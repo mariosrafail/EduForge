@@ -52,7 +52,7 @@ const demoChecklist = [
   "Analytics/export",
 ];
 
-export function FullDemoFlow({ setView }) {
+export function FullDemoFlow({ navigateTo }) {
   const [activeStep, setActiveStep] = useState(0);
   const [exported, setExported] = useState(false);
   const [checkedItems, setCheckedItems] = useState(["School profile personalization"]);
@@ -81,7 +81,7 @@ export function FullDemoFlow({ setView }) {
           </div>
         </div>
         <div className="flow-actions">
-          <button className="primary-action" onClick={() => setView(active.target)}>Jump to {active.target === "admin" ? "Admin" : active.target === "teacher" ? "Teacher" : "Student"}</button>
+          <button className="primary-action" onClick={() => navigateTo(active.target)}>Jump to {active.target === "admin" ? "Admin" : active.target === "teacher" ? "Teacher" : "Student"}</button>
           <button className="secondary-action" onClick={() => setActiveStep((activeStep + 1) % flow.length)}>Next step</button>
         </div>
       </Card>
@@ -114,7 +114,7 @@ export function FullDemoFlow({ setView }) {
               <Icon size={26} />
               <h2>{index + 1}. {item.title}</h2>
               <p>{item.text}</p>
-              <button className="secondary-action compact-action" onClick={() => setView(item.target)}>Open role</button>
+              <button className="secondary-action compact-action" onClick={() => navigateTo(item.target)}>Open role</button>
               {index < flow.length - 1 && <ArrowRight className="flow-arrow" size={22} />}
             </Card>
           );
@@ -132,9 +132,9 @@ export function FullDemoFlow({ setView }) {
           </p>
         </div>
         <div className="flow-actions">
-          <button className="primary-action" onClick={() => setView("admin")}>Open Admin</button>
-          <button className="secondary-action" onClick={() => setView("teacher")}>Open Teacher</button>
-          <button className="secondary-action" onClick={() => setView("student")}>Open Student</button>
+          <button className="primary-action" onClick={() => navigateTo("admin")}>Open Admin</button>
+          <button className="secondary-action" onClick={() => navigateTo("teacher")}>Open Teacher</button>
+          <button className="secondary-action" onClick={() => navigateTo("student")}>Open Student</button>
         </div>
       </Card>
 

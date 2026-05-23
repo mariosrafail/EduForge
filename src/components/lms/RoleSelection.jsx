@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
+import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleCards = [
@@ -26,7 +27,7 @@ const roleCards = [
   },
 ];
 
-export function RoleSelection({ setView, brand }) {
+export function RoleSelection({ navigateTo, brand }) {
   return (
     <main className="role-screen">
       <section className="landing-hero">
@@ -38,10 +39,10 @@ export function RoleSelection({ setView, brand }) {
             book-based practice, book code activation, teacher adoption dashboards, skill gap analysis, and publisher intelligence.
           </p>
           <div className="landing-actions">
-            <button className="primary-action" onClick={() => setView("flow")}>
+            <button className="primary-action" onClick={() => navigateTo("flow")}>
               <Layers3 size={18} /> View Full Demo Flow
             </button>
-            <button className="secondary-action" onClick={() => setView("admin")}>
+            <button className="secondary-action" onClick={() => navigateTo("admin")}>
               <MonitorCheck size={18} /> Start with school setup
             </button>
           </div>
@@ -54,6 +55,10 @@ export function RoleSelection({ setView, brand }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
         >
+          <div className="screen logo-screen">
+            <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
+            <small>ELT publisher LMS</small>
+          </div>
           <div className="screen admin-screen">
             <span>{brand.schoolName}</span>
             <strong>78%</strong>
@@ -82,7 +87,7 @@ export function RoleSelection({ setView, brand }) {
             <motion.button
               key={role.id}
               className="role-entry"
-              onClick={() => setView(role.id)}
+              onClick={() => navigateTo(role.id)}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.07 + 0.12 }}

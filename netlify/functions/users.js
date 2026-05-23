@@ -1,7 +1,9 @@
 import { neon } from "@neondatabase/serverless";
+import bcrypt from "bcryptjs";
 
 const allowedRoles = new Set(["admin", "teacher", "student"]);
 const allowedStatuses = new Set(["active", "invited", "paused"]);
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const headers = {
@@ -55,7 +57,8 @@ async function ensureDemoSchool(sql) {
 
 function validateUserInput(payload) {
   const fullName = String(payload.full_name ?? payload.name ?? "").trim();
-  const email = String(payload.email ?? "").trim() || null;
+  const email = String(payload.email ?? "").trim().toLowerCase() || null;
+  const password = String(payload.password ?? "");
   const role = normalizeRole(payload.role);
   const status = normalizeStatus(payload.status);
   const level = String(payload.level ?? "").trim() || null;
@@ -63,6 +66,14 @@ function validateUserInput(payload) {
 
   if (!fullName) {
     return { error: "full_name is required" };
+  }
+
+  if (email && !emailPattern.test(email)) {
+    return { error: "email must be valid" };
+  }
+
+  if (password && password.length < 8) {
+    return { error: "password must be at least 8 characters" };
   }
 
   if (!allowedRoles.has(role)) {
@@ -77,7 +88,7 @@ function validateUserInput(payload) {
     return { error: "school_id must be a valid UUID" };
   }
 
-  return { value: { fullName, email, role, status, level, schoolId } };
+  return { value: { fullName, email, password, role, status, level, schoolId } };
 }
 
 export async function handler(event) {
@@ -122,14 +133,15 @@ export async function handler(event) {
         return json(400, { error: validation.error });
       }
 
-      const { fullName, email, role, status, level } = validation.value;
+      const { fullName, email, password, role, status, level } = validation.value;
       const school = validation.value.schoolId
         ? { id: validation.value.schoolId }
         : await ensureDemoSchool(sql);
+      const passwordHash = password ? await bcrypt.hash(password, 12) : null;
 
       const inserted = await sql`
-        insert into app_users (school_id, full_name, email, role, level, status)
-        values (${school.id}, ${fullName}, ${email}, ${role}, ${level}, ${status})
+        insert into app_users (school_id, full_name, email, role, level, status, password_hash, auth_provider)
+        values (${school.id}, ${fullName}, ${email}, ${role}, ${level}, ${status}, ${passwordHash}, 'password')
         returning id, school_id, full_name, email, role, level, status, created_at, updated_at
       `;
 
@@ -139,6 +151,9 @@ export async function handler(event) {
     return json(405, { error: "Method not allowed" });
   } catch (error) {
     console.error(error);
+    if (error.code === "23505") {
+      return json(409, { error: "Email already exists" });
+    }
     return json(500, { error: "User API failed", detail: error.message });
   }
 }

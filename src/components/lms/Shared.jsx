@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 import {
   Bell,
   BookOpen,
@@ -9,6 +10,7 @@ import {
   GraduationCap,
   Layers3,
   Languages,
+  LogOut,
   Search,
   Settings,
   ShieldCheck,
@@ -39,13 +41,20 @@ export function PageTransition({ children, pageKey }) {
   );
 }
 
-export function Header({ activeRole, brand, setView }) {
+function displayRole(role) {
+  const normalized = String(role ?? "").toLowerCase();
+  return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
+}
+
+export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
   return (
     <header className="app-header">
-      <button className="brand-lockup" onClick={() => setView("home")} aria-label="Return to role selection">
-        <span className="brand-logo">HH</span>
+      <button className="brand-lockup" onClick={() => navigateTo("home")} aria-label="Return to role selection">
+        <span className="brand-logo image-logo">
+          <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
+        </span>
         <span>
           <strong>Hamilton House Publishers LMS</strong>
           <small>ELT platform demo</small>
@@ -54,6 +63,11 @@ export function Header({ activeRole, brand, setView }) {
 
       <div className="header-context">
         <span className="role-chip">{roleLabel}</span>
+        {currentUser && (
+          <span className="signed-in-chip">
+            Signed in as {currentUser.full_name} / {displayRole(currentUser.role)}
+          </span>
+        )}
         <span className="locale-chip"><Languages size={14} /> Interface ready for EN / EL</span>
         <span className="school-preview">
           <span className="school-logo" style={{ background: brand.primary }}>{brand.logo}</span>
@@ -62,16 +76,17 @@ export function Header({ activeRole, brand, setView }) {
       </div>
 
       <nav className="quick-actions" aria-label="Demo navigation">
-        <button onClick={() => setView("home")} title="Back to role selection"><ChevronLeft size={18} /> Roles</button>
+        <button onClick={() => navigateTo("home")} title="Back to role selection"><ChevronLeft size={18} /> Roles</button>
         {Object.entries(roles).map(([id, role]) => {
           const Icon = role.icon;
           return (
-            <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => setView(id)}>
+            <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(id)}>
               <Icon size={17} />
               <span>{role.label.replace("School / ", "")}</span>
             </button>
           );
         })}
+        {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
       </nav>
     </header>
   );
@@ -173,7 +188,9 @@ export function PortalPreview({ brand }) {
   return (
     <div className="portal-preview" style={{ "--preview-primary": brand.primary, "--preview-secondary": brand.secondary }}>
       <div className="portal-bar">
-        <span className="school-logo">{brand.logo}</span>
+        <span className="school-logo image-school-logo">
+          <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
+        </span>
         <strong>{brand.schoolName}</strong>
       </div>
       <div className="portal-hero">

@@ -1,31 +1,8 @@
 import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { brandPresets, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
+import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
-
-const roleOptions = ["Admin", "Teacher", "Student"];
-const statusOptions = ["Active", "Invited", "Paused"];
-
-function roleToDb(role) {
-  return String(role).toLowerCase();
-}
-
-function roleToLabel(role) {
-  const normalized = String(role ?? "").toLowerCase();
-  return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "Student";
-}
-
-function userToUi(user) {
-  return {
-    id: user.id,
-    name: user.full_name ?? user.name,
-    email: user.email ?? "",
-    role: roleToLabel(user.role),
-    level: user.level ?? "",
-    status: roleToLabel(user.status),
-    source: user.id ? "database" : "mock",
-  };
-}
 
 export function AdminView({ brand, setBrand }) {
   const [userCreated, setUserCreated] = useState(false);
@@ -43,6 +20,7 @@ export function AdminView({ brand, setBrand }) {
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
+    password: "",
     role: "Student",
     level: "B1 Junior",
     status: "Invited",
@@ -53,14 +31,7 @@ export function AdminView({ brand, setBrand }) {
     setUsersError("");
 
     try {
-      const response = await fetch("/.netlify/functions/users");
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Could not load users");
-      }
-
-      setCreatedUsers(payload.users.map(userToUi));
+      setCreatedUsers(await listUsers());
       setApiFallback(false);
     } catch (error) {
       setUsersError(error.message);
@@ -85,27 +56,19 @@ export function AdminView({ brand, setBrand }) {
     setUsersError("");
 
     try {
-      const response = await fetch("/.netlify/functions/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          full_name: name,
-          email: newUser.email,
-          role: roleToDb(newUser.role),
-          level: newUser.level,
-          status: roleToDb(newUser.status),
-        }),
+      const createdUser = await createUser({
+        name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        level: newUser.level,
+        status: newUser.status,
       });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Could not create user");
-      }
 
       try {
         await loadUsers({ fallbackToMock: false });
       } catch {
-        setCreatedUsers((current) => [userToUi(payload.user), ...current]);
+        setCreatedUsers((current) => [createdUser, ...current]);
         setUsersError("User was created, but the list reload failed.");
       }
       setApiFallback(false);
@@ -119,7 +82,7 @@ export function AdminView({ brand, setBrand }) {
     } finally {
       setSavingUser(false);
       setUserCreated(true);
-      setNewUser({ name: "", email: "", role: "Student", level: "B1 Junior", status: "Invited" });
+      setNewUser({ name: "", email: "", password: "", role: "Student", level: "B1 Junior", status: "Invited" });
     }
   };
 
@@ -132,18 +95,8 @@ export function AdminView({ brand, setBrand }) {
     }
 
     try {
-      const response = await fetch(`/.netlify/functions/user?id=${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: roleToDb(value) }),
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Could not update user");
-      }
-
-      setCreatedUsers((current) => current.map((user) => user.id === id ? userToUi(payload.user) : user));
+      const updatedUser = await updateUserRequest(id, { [field]: roleToDb(value) });
+      setCreatedUsers((current) => current.map((user) => user.id === id ? updatedUser : user));
       setUsersError("");
     } catch (error) {
       setApiFallback(true);
@@ -161,15 +114,7 @@ export function AdminView({ brand, setBrand }) {
     }
 
     try {
-      const response = await fetch(`/.netlify/functions/user?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Could not delete user");
-      }
-
+      await deleteUserRequest(id);
       setUsersError("");
     } catch (error) {
       setCreatedUsers(previousUsers);
@@ -281,6 +226,10 @@ export function AdminView({ brand, setBrand }) {
             <label>
               Email
               <input type="email" value={newUser.email} placeholder="sofia@example.com" onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
+            </label>
+            <label>
+              Temporary password
+              <input type="password" value={newUser.password} placeholder="Optional, min 8 characters" onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
             </label>
             <label>
               Role
