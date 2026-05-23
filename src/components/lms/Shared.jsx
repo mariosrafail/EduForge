@@ -45,10 +45,10 @@ export function Header({ activeRole, brand, setView }) {
   return (
     <header className="app-header">
       <button className="brand-lockup" onClick={() => setView("home")} aria-label="Return to role selection">
-        <span className="brand-logo">EF</span>
+        <span className="brand-logo">HH</span>
         <span>
-          <strong>EduForge LMS</strong>
-          <small>Publisher platform demo</small>
+          <strong>Hamilton House Publishers LMS</strong>
+          <small>ELT platform demo</small>
         </span>
       </button>
 
@@ -138,7 +138,7 @@ export function ExportButton({ rows }) {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "eduforge-student-performance.csv";
+    anchor.download = "hamilton-house-student-performance.csv";
     anchor.click();
     URL.revokeObjectURL(url);
     setExported(true);

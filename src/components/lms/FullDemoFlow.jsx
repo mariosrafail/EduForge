@@ -68,7 +68,7 @@ export function FullDemoFlow({ setView }) {
       <SectionTitle
         eyebrow="End-to-end demo flow"
         title="A complete LMS story for publisher sales conversations."
-        text="Use this overview to present EduForge as the ELT operational layer connecting publishers, school rollout, teachers, and students."
+        text="Use this overview to present Hamilton House Publishers LMS as the ELT operational layer connecting publishers, school rollout, teachers, and students."
       />
 
       <Card className="presentation-mode priority-panel">

@@ -21,6 +21,7 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; background: linear-gradient(135deg, #fbfcff 0%, #edf3f9 52%, #f7fafc 100%); }
 button, input, textarea, select { font: inherit; }
 button { border: 0; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.68; transform: none !important; box-shadow: none !important; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand-primary) 24%, transparent); outline-offset: 2px; }
 
 .eduforge-app { min-height: 100vh; color: #101828; }
@@ -178,7 +179,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .primary-action { background: linear-gradient(135deg, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 76%, #101828)); color: #fff; box-shadow: 0 12px 24px color-mix(in srgb, var(--brand-primary) 22%, transparent); }
 .secondary-action { background: #fff; color: #1d2939; border: 1px solid var(--line); }
+.danger-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #b42318;
+  background: #fff5f5;
+  border: 1px solid #fecdca;
+  border-radius: 6px;
+  font-weight: 850;
+}
 .primary-action:hover, .secondary-action:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(16, 24, 40, 0.12); }
+.danger-action:hover { background: #fee4e2; }
 .primary-action:active, .secondary-action:active, .quick-actions button:active { transform: translateY(0); }
 .compact-action { min-height: 38px; padding: 9px 12px; margin-top: 12px; }
 .action-with-status { display: grid; gap: 7px; justify-items: end; }
@@ -385,7 +399,26 @@ input[type="color"] { padding: 4px; height: 46px; }
   line-height: 1.4;
 }
 .inline-status.success { background: #ecfdf3; border-color: #abefc6; color: #067647; }
+.inline-status.warning { background: #fffaeb; border-color: #fedf89; color: #b54708; }
 .portal-open-state { margin: 0 18px 18px; }
+.empty-user-state {
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  color: #344054;
+  background: #f8fafc;
+  border: 1px dashed var(--line);
+  border-radius: 7px;
+}
+.empty-user-state span { color: var(--ink-muted); }
+.user-data-table div { grid-template-columns: minmax(170px, 1.1fr) minmax(120px, 0.72fr) minmax(130px, 0.82fr) minmax(120px, 0.72fr) auto auto; }
+.user-data-table strong small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-muted);
+  font-weight: 720;
+}
+.user-data-table select { min-height: 38px; padding-top: 8px; padding-bottom: 8px; }
 
 .portal-preview {
   --preview-primary: var(--brand-primary);

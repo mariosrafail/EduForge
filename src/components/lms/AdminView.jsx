@@ -1,7 +1,31 @@
 import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { brandPresets, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
+
+const roleOptions = ["Admin", "Teacher", "Student"];
+const statusOptions = ["Active", "Invited", "Paused"];
+
+function roleToDb(role) {
+  return String(role).toLowerCase();
+}
+
+function roleToLabel(role) {
+  const normalized = String(role ?? "").toLowerCase();
+  return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "Student";
+}
+
+function userToUi(user) {
+  return {
+    id: user.id,
+    name: user.full_name ?? user.name,
+    email: user.email ?? "",
+    role: roleToLabel(user.role),
+    level: user.level ?? "",
+    status: roleToLabel(user.status),
+    source: user.id ? "database" : "mock",
+  };
+}
 
 export function AdminView({ brand, setBrand }) {
   const [userCreated, setUserCreated] = useState(false);
@@ -11,20 +35,147 @@ export function AdminView({ brand, setBrand }) {
   const [exported, setExported] = useState(false);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
-  const [createdUsers, setCreatedUsers] = useState(users);
+  const [createdUsers, setCreatedUsers] = useState(users.map(userToUi));
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState("");
+  const [apiFallback, setApiFallback] = useState(false);
+  const [savingUser, setSavingUser] = useState(false);
   const [newUser, setNewUser] = useState({
     name: "",
+    email: "",
     role: "Student",
     level: "B1 Junior",
     status: "Invited",
   });
 
-  const handleCreateUser = (event) => {
+  const loadUsers = async ({ fallbackToMock = true } = {}) => {
+    setUsersLoading(true);
+    setUsersError("");
+
+    try {
+      const response = await fetch("/.netlify/functions/users");
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not load users");
+      }
+
+      setCreatedUsers(payload.users.map(userToUi));
+      setApiFallback(false);
+    } catch (error) {
+      setUsersError(error.message);
+      setApiFallback(true);
+      if (fallbackToMock) {
+        setCreatedUsers(users.map(userToUi));
+      }
+      throw error;
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers().catch(() => {});
+  }, []);
+
+  const handleCreateUser = async (event) => {
     event.preventDefault();
     const name = newUser.name.trim() || `Demo ${newUser.role}`;
-    setCreatedUsers([{ ...newUser, name }, ...createdUsers]);
-    setUserCreated(true);
-    setNewUser({ name: "", role: "Student", level: "B1 Junior", status: "Invited" });
+    setSavingUser(true);
+    setUsersError("");
+
+    try {
+      const response = await fetch("/.netlify/functions/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: name,
+          email: newUser.email,
+          role: roleToDb(newUser.role),
+          level: newUser.level,
+          status: roleToDb(newUser.status),
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not create user");
+      }
+
+      try {
+        await loadUsers({ fallbackToMock: false });
+      } catch {
+        setCreatedUsers((current) => [userToUi(payload.user), ...current]);
+        setUsersError("User was created, but the list reload failed.");
+      }
+      setApiFallback(false);
+    } catch (error) {
+      setApiFallback(true);
+      setUsersError(error.message);
+      setCreatedUsers((current) => [
+        { ...newUser, id: `mock-${Date.now()}`, name, source: "mock" },
+        ...current,
+      ]);
+    } finally {
+      setSavingUser(false);
+      setUserCreated(true);
+      setNewUser({ name: "", email: "", role: "Student", level: "B1 Junior", status: "Invited" });
+    }
+  };
+
+  const updateUser = async (id, field, value) => {
+    setCreatedUsers((current) => current.map((user) => user.id === id ? { ...user, [field]: value } : user));
+
+    if (String(id).startsWith("mock-")) {
+      setApiFallback(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/.netlify/functions/user?id=${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: roleToDb(value) }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not update user");
+      }
+
+      setCreatedUsers((current) => current.map((user) => user.id === id ? userToUi(payload.user) : user));
+      setUsersError("");
+    } catch (error) {
+      setApiFallback(true);
+      setUsersError(error.message);
+    }
+  };
+
+  const deleteUser = async (id) => {
+    const previousUsers = createdUsers;
+    setCreatedUsers((current) => current.filter((user) => user.id !== id));
+
+    if (String(id).startsWith("mock-")) {
+      setApiFallback(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/.netlify/functions/user?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not delete user");
+      }
+
+      setUsersError("");
+    } catch (error) {
+      setCreatedUsers(previousUsers);
+      setApiFallback(true);
+      setUsersError(error.message);
+    }
   };
 
   const toggleRolloutAction = (action) => {
@@ -128,11 +279,13 @@ export function AdminView({ brand, setBrand }) {
               <input value={newUser.name} placeholder="e.g. Sofia Laskari" onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
             </label>
             <label>
+              Email
+              <input type="email" value={newUser.email} placeholder="sofia@example.com" onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
+            </label>
+            <label>
               Role
               <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
-                <option>Admin</option>
-                <option>Teacher</option>
-                <option>Student</option>
+                {roleOptions.map((role) => <option key={role}>{role}</option>)}
               </select>
             </label>
             <label>
@@ -142,24 +295,42 @@ export function AdminView({ brand, setBrand }) {
             <label>
               Status
               <select value={newUser.status} onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}>
-                <option>Active</option>
-                <option>Invited</option>
-                <option>Paused</option>
+                {statusOptions.map((status) => <option key={status}>{status}</option>)}
               </select>
             </label>
-            <button className="primary-action" type="submit"><UserPlus size={17} /> Create user</button>
+            <button className="primary-action" type="submit" disabled={savingUser}><UserPlus size={17} /> {savingUser ? "Creating..." : "Create user"}</button>
           </form>
-          {userCreated && <div className="inline-status">Demo user action completed. New users appear immediately in the table below.</div>}
-          <div className="data-table">
-            {createdUsers.map((user, index) => (
-              <div key={`${user.name}-${index}`}>
-                <strong>{user.name}</strong>
-                <span>{user.role}</span>
-                <small>{user.level}</small>
-                <Tag tone={user.status === "Active" ? "green" : user.status === "Paused" ? "violet" : "gold"}>{user.status}</Tag>
-              </div>
-            ))}
-          </div>
+          {usersLoading && <div className="inline-status">Loading users from Neon through Netlify Functions...</div>}
+          {apiFallback && (
+            <div className="inline-status warning">
+              Database API unavailable. Showing local mock fallback only. Check Netlify Functions configuration.
+              {usersError ? ` (${usersError})` : ""}
+            </div>
+          )}
+          {userCreated && !apiFallback && <div className="inline-status success">User saved to Neon and added to the database-backed table.</div>}
+          {!usersLoading && createdUsers.length === 0 ? (
+            <div className="empty-user-state">
+              <strong>Create your first user</strong>
+              <span>No platform users were returned for this school yet.</span>
+            </div>
+          ) : (
+            <div className="data-table user-data-table">
+              {createdUsers.map((user, index) => (
+                <div key={user.id ?? `${user.name}-${index}`}>
+                  <strong>{user.name}<small>{user.email || "No email"}</small></strong>
+                  <select value={user.role} onChange={(event) => updateUser(user.id, "role", event.target.value)}>
+                    {roleOptions.map((role) => <option key={role}>{role}</option>)}
+                  </select>
+                  <small>{user.level || "No level"}</small>
+                  <select value={user.status} onChange={(event) => updateUser(user.id, "status", event.target.value)}>
+                    {statusOptions.map((status) => <option key={status}>{status}</option>)}
+                  </select>
+                  <Tag tone={user.source === "database" ? "green" : "gold"}>{user.source === "database" ? "DB" : "Mock"}</Tag>
+                  <button className="danger-action" onClick={() => deleteUser(user.id)}>Delete</button>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card>

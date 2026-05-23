@@ -31,10 +31,10 @@ export function RoleSelection({ setView, brand }) {
     <main className="role-screen">
       <section className="landing-hero">
         <div className="hero-copy">
-          <Tag tone="gold">Proprietary LMS platform demo</Tag>
-          <h1>EduForge LMS for publishers, schools, teachers, and learners.</h1>
+          <Tag tone="gold">Hamilton House platform demo</Tag>
+          <h1>Hamilton House Publishers LMS for schools, teachers, and learners.</h1>
           <p>
-            A polished front-end demo showing how an ELT publisher can deliver branded school portals,
+            A polished front-end demo showing how Hamilton House can deliver branded school portals,
             book-based practice, book code activation, teacher adoption dashboards, skill gap analysis, and publisher intelligence.
           </p>
           <div className="landing-actions">
@@ -103,7 +103,7 @@ export function RoleSelection({ setView, brand }) {
           <h2>More than a course creator</h2>
         </div>
         <p>
-          The demo positions EduForge as a proprietary ELT LMS layer: school rollout, publisher-controlled books,
+          The demo positions Hamilton House Publishers LMS as a proprietary ELT LMS layer: school rollout, publisher-controlled books,
           interactive activity authoring, student-facing practice, automated correction, and branded portal delivery.
         </p>
       </Card>
