@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const validViews = new Set(["home", "admin", "teacher", "student", "flow"]);
+export const validViews = new Set(["home", "auth-admin", "auth-teacher", "auth-student", "admin", "teacher", "student", "flow"]);
 
 function readHashView() {
   if (typeof window === "undefined") {

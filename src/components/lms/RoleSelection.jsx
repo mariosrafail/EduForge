@@ -42,8 +42,8 @@ export function RoleSelection({ navigateTo, brand }) {
             <button className="primary-action" onClick={() => navigateTo("flow")}>
               <Layers3 size={18} /> View Full Demo Flow
             </button>
-            <button className="secondary-action" onClick={() => navigateTo("admin")}>
-              <MonitorCheck size={18} /> Start with school setup
+            <button className="secondary-action" onClick={() => navigateTo("auth-admin")}>
+              <MonitorCheck size={18} /> Enter as School / Admin
             </button>
           </div>
           <div className="demo-login-note"><KeyRound size={16} /> Demo mode, no real login required.</div>
@@ -87,7 +87,7 @@ export function RoleSelection({ navigateTo, brand }) {
             <motion.button
               key={role.id}
               className="role-entry"
-              onClick={() => navigateTo(role.id)}
+              onClick={() => navigateTo(`auth-${role.id}`)}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.07 + 0.12 }}

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
+import { RoleSelection } from "./components/lms/RoleSelection.jsx";
 import { Header, HeaderTools, PageTransition } from "./components/lms/Shared.jsx";
 import { StudentView } from "./components/lms/StudentView.jsx";
 import { TeacherView } from "./components/lms/TeacherView.jsx";
@@ -50,13 +51,14 @@ export default function App() {
   );
 
   const isRoleView = view !== "home";
+  const headerActiveRole = view.startsWith("auth-") ? view.replace("auth-", "") : view;
 
   return (
     <div className="eduforge-app" style={cssVars}>
       {isRoleView && (
         <>
           <Header
-            activeRole={view}
+            activeRole={headerActiveRole}
             brand={brand}
             currentUser={auth.currentUser}
             navigateTo={navigateTo}
@@ -70,10 +72,11 @@ export default function App() {
       )}
 
       <PageTransition pageKey={view}>
-        {view === "home" && (
+        {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
+        {view.startsWith("auth-") && (
           <AuthView
+            role={view.replace("auth-", "")}
             navigateTo={navigateTo}
-            brand={brand}
             currentUser={auth.currentUser}
             authLoading={auth.authLoading}
             authError={auth.authError}
