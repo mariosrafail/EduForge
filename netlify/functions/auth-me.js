@@ -1,4 +1,4 @@
-import { currentUserFromEvent, getSql, json, publicUser } from "./_auth-utils.js";
+import { currentUserFromEvent, ensureAuthSchema, getCookie, getSql, json, publicUser, sessionCookieName } from "./_auth-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
@@ -10,7 +10,12 @@ export async function handler(event) {
   }
 
   try {
+    if (!getCookie(event, sessionCookieName)) {
+      return json(401, { error: "Not signed in" });
+    }
+
     const sql = getSql();
+    await ensureAuthSchema(sql);
     const user = await currentUserFromEvent(sql, event);
 
     if (!user) {

@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { createSession, emailPattern, getSql, json, normalizeEmail, publicUser } from "./_auth-utils.js";
+import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
 
 function validate(payload) {
   const schoolName = String(payload.schoolName ?? "").trim();
@@ -24,6 +24,9 @@ export async function handler(event) {
     return json(405, { error: "Method not allowed" });
   }
 
+  let sql;
+  let createdSchoolId = null;
+
   try {
     const payload = JSON.parse(event.body || "{}");
     const validation = validate(payload);
@@ -32,7 +35,8 @@ export async function handler(event) {
       return json(400, { error: validation.error });
     }
 
-    const sql = getSql();
+    sql = getSql();
+    await ensureAuthSchema(sql);
     const { schoolName, adminName, email, password } = validation.value;
 
     const existing = await sql`
@@ -50,6 +54,7 @@ export async function handler(event) {
       values (${schoolName}, 'HH', '#f97316', '#0b1f3a')
       returning id
     `;
+    createdSchoolId = schools[0].id;
 
     const users = await sql`
       insert into app_users (school_id, full_name, email, role, level, status, password_hash, auth_provider)
@@ -62,6 +67,16 @@ export async function handler(event) {
     return json(201, { user: publicUser(users[0]) }, { "Set-Cookie": session.cookie });
   } catch (error) {
     console.error(error);
-    return json(500, { error: "Signup failed" });
+    if (createdSchoolId && sql) {
+      try {
+        await sql`delete from schools where id = ${createdSchoolId}`;
+      } catch (cleanupError) {
+        console.error(cleanupError);
+      }
+    }
+    if (error.code === "23505") {
+      return json(409, { error: "Email already exists" });
+    }
+    return serverError("Signup failed. Check database setup and migrations.");
   }
 }

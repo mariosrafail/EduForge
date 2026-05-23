@@ -756,6 +756,44 @@ input[type="color"] { padding: 4px; height: 46px; }
   gap: 12px;
   align-items: end;
 }
+.activity-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+.activity-author-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.activity-author-fields label, .activity-assignment-box label, .student-activity-shell label, .matching-answer-grid label, .teacher-review-box label {
+  display: grid;
+  gap: 7px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 850;
+}
+.activity-author-fields .wide-field { grid-column: 1 / -1; }
+.activity-assignment-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 7px;
+}
+.activity-assignment-box h3 { margin: 0; font-size: 20px; }
+.activity-action-row { display: grid; gap: 9px; }
+.activity-preview-card .preview-options { display: grid; gap: 8px; }
+.activity-preview-card .preview-options span {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 6px;
+  color: #344054;
+  font-weight: 780;
+}
 .student-preview-card {
   display: grid;
   gap: 10px;
@@ -777,6 +815,70 @@ input[type="color"] { padding: 4px; height: 46px; }
   border: 1px solid #b2ddff;
   border-radius: 6px;
   font-weight: 820;
+}
+.assigned-activity-panel { margin: 18px 0; }
+.activity-meta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.activity-meta-row span { color: var(--ink-muted); font-size: 13px; font-weight: 850; }
+.student-activity-shell {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 7px;
+}
+.student-answer-list { display: grid; gap: 9px; }
+.student-answer-list label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.student-answer-list input[type="radio"] { width: auto; min-height: auto; }
+.matching-answer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.submission-review-panel { margin-top: 18px; }
+.submission-list { display: grid; gap: 12px; }
+.submission-list article {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 7px;
+}
+.submission-head, .submission-score-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.submission-head span, .submission-score-row span { display: block; color: var(--ink-muted); font-weight: 780; }
+.submission-score-row b { font-size: 24px; }
+.submission-list p { margin: 0; }
+.teacher-review-box {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
 }
 .new-submission-card {
   display: grid;
@@ -1024,12 +1126,12 @@ input[type="color"] { padding: 4px; height: 46px; }
   .header-tools { position: relative; display: flex; width: min(100% - 32px, 1480px); margin: 10px auto 0; justify-content: flex-end; }
   .tool-popover { top: auto; right: 16px; margin-top: 50px; }
   .workspace { padding-top: 28px; }
-  .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench, .activation-panel, .auth-panel { grid-template-columns: 1fr; }
+  .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench, .activation-panel, .auth-panel, .activity-builder-layout { grid-template-columns: 1fr; }
   .product-composition { min-height: 620px; }
   .admin-screen { left: 0; }
   .teacher-screen { right: 0; }
   .student-screen { left: 40px; }
-  .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .builder-grid, .demo-checklist, .rollout-action-grid, .activity-builder-grid, .integration-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .builder-grid, .demo-checklist, .rollout-action-grid, .activity-builder-grid, .integration-grid, .activity-author-fields, .matching-answer-grid, .teacher-review-box { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form .primary-action { grid-column: 1 / -1; }
   .admin-grid.lower, .teacher-grid.lower, .student-grid.lower { grid-template-columns: 1fr; }
@@ -1044,7 +1146,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .hero-copy p, .section-title p { font-size: 16px; }
   .product-composition { min-height: 0; display: grid; gap: 12px; }
   .screen { position: static; width: 100%; }
-  .role-card-grid, .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .create-user-form, .builder-grid, .demo-checklist, .rollout-action-grid, .activity-builder-grid, .integration-grid { grid-template-columns: 1fr; }
+  .role-card-grid, .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .create-user-form, .builder-grid, .demo-checklist, .rollout-action-grid, .activity-builder-grid, .integration-grid, .activity-author-fields, .matching-answer-grid, .teacher-review-box { grid-template-columns: 1fr; }
   .section-title, .card-heading { flex-direction: column; }
   .quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-actions button { justify-content: center; }

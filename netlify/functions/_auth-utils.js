@@ -19,11 +19,41 @@ export function json(statusCode, body, extraHeaders = {}) {
   };
 }
 
+export function serverError(message = "Authentication service failed") {
+  return json(500, { error: message });
+}
+
 export function getSql() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not configured");
   }
   return neon(process.env.DATABASE_URL);
+}
+
+export async function ensureAuthSchema(sql) {
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    alter table app_users
+    add column if not exists password_hash text,
+    add column if not exists last_login_at timestamptz,
+    add column if not exists auth_provider text default 'password'
+  `;
+  await sql`
+    update app_users
+    set auth_provider = 'password'
+    where auth_provider is null
+  `;
+  await sql`
+    create table if not exists auth_sessions (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid references app_users(id) on delete cascade,
+      token_hash text not null,
+      expires_at timestamptz not null,
+      created_at timestamptz default now()
+    )
+  `;
+  await sql`create index if not exists auth_sessions_token_hash_idx on auth_sessions (token_hash)`;
+  await sql`create index if not exists auth_sessions_user_id_idx on auth_sessions (user_id)`;
 }
 
 export function normalizeEmail(email) {

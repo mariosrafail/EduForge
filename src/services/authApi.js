@@ -17,7 +17,21 @@ async function authFetch(url, options = {}) {
 }
 
 export async function getCurrentUser() {
-  const payload = await authFetch("/.netlify/functions/auth-me");
+  const response = await fetch("/.netlify/functions/auth-me", {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.error || "Authentication check failed");
+  }
+
   return payload.user;
 }
 

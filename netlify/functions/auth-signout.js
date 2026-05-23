@@ -1,4 +1,4 @@
-import { clearSessionCookie, getCookie, getSql, hashToken, json, sessionCookieName } from "./_auth-utils.js";
+import { clearSessionCookie, ensureAuthSchema, getCookie, getSql, hashToken, json, sessionCookieName } from "./_auth-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
@@ -14,6 +14,7 @@ export async function handler(event) {
 
     if (token) {
       const sql = getSql();
+      await ensureAuthSchema(sql);
       await sql`
         delete from auth_sessions
         where token_hash = ${hashToken(token)}

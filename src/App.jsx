@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
@@ -8,11 +8,38 @@ import { TeacherView } from "./components/lms/TeacherView.jsx";
 import { brandPresets } from "./data/lmsDemoData.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { useHashView } from "./hooks/useHashView.js";
+import { createActivity, createAssignment, loadActivityDemoState, saveActivityDemoState, submitAssignment } from "./services/activitiesApi.js";
 
 export default function App() {
   const { view, navigateTo } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
+  const [activityDemo, setActivityDemo] = useState(loadActivityDemoState);
+  const activityDemoRef = useRef(activityDemo);
+
+  const updateActivityDemo = (nextState) => {
+    activityDemoRef.current = nextState;
+    setActivityDemo(nextState);
+    saveActivityDemoState(nextState);
+  };
+
+  const activityActions = useMemo(() => ({
+    createActivity: (activityInput) => {
+      const result = createActivity(activityDemoRef.current, activityInput);
+      updateActivityDemo(result.state);
+      return result.activity;
+    },
+    createAssignment: (assignmentInput) => {
+      const result = createAssignment(activityDemoRef.current, assignmentInput);
+      updateActivityDemo(result.state);
+      return result.assignment;
+    },
+    submitAssignment: (assignmentId, answers) => {
+      const result = submitAssignment(activityDemoRef.current, assignmentId, answers);
+      updateActivityDemo(result.state);
+      return result.submission;
+    },
+  }), []);
 
   const cssVars = useMemo(
     () => ({
@@ -53,11 +80,15 @@ export default function App() {
             setAuthError={auth.setAuthError}
             signIn={auth.signIn}
             createSchoolAccount={auth.createSchoolAccount}
+            signOut={async () => {
+              await auth.signOut();
+              navigateTo("home");
+            }}
           />
         )}
         {view === "admin" && <AdminView brand={brand} setBrand={setBrand} />}
-        {view === "teacher" && <TeacherView />}
-        {view === "student" && <StudentView brand={brand} />}
+        {view === "teacher" && <TeacherView activityDemo={activityDemo} activityActions={activityActions} />}
+        {view === "student" && <StudentView brand={brand} activityDemo={activityDemo} activityActions={activityActions} />}
         {view === "flow" && <FullDemoFlow navigateTo={navigateTo} />}
       </PageTransition>
     </div>

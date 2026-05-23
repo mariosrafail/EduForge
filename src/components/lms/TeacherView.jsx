@@ -1,14 +1,16 @@
 import { BarChart3, BookOpenCheck, FileUp, Plus, Send, Users } from "lucide-react";
 import { useState } from "react";
-import { assignments, bookUnits, books, classes, demoStudents, exerciseTypes, interactiveActivityTypes, skillStats, submittedWork } from "../../data/lmsDemoData.js";
+import { assignments, bookUnits, books, classes, demoStudents, exerciseTypes, skillStats, submittedWork } from "../../data/lmsDemoData.js";
+import { activityTypeLabels } from "../../services/activitiesApi.js";
+import { ActivityBuilder } from "./ActivityBuilder.jsx";
+import { SubmissionReview } from "./SubmissionReview.jsx";
 import { Card, ExportButton, MetricCard, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
-export function TeacherView() {
+export function TeacherView({ activityDemo, activityActions }) {
   const [selectedClass, setSelectedClass] = useState(classes[0].name);
   const [published, setPublished] = useState(false);
   const [exerciseCreated, setExerciseCreated] = useState(false);
   const [submissionReceived, setSubmissionReceived] = useState(false);
-  const [activityPreviewed, setActivityPreviewed] = useState(false);
   const [assignmentList, setAssignmentList] = useState(assignments);
   const [builder, setBuilder] = useState({
     book: books[0],
@@ -19,13 +21,6 @@ export function TeacherView() {
     due: "2026-05-29",
     attempts: "2",
   });
-  const [activityBuilder, setActivityBuilder] = useState({
-    type: interactiveActivityTypes[0],
-    title: "Choose the correct travel collocation",
-    feedback: "Review Unit 4 vocabulary and try again before the next attempt.",
-    skill: "Vocabulary",
-  });
-
   const updateBuilder = (field, value) => {
     const next = { ...builder, [field]: value };
     if (field === "targetMode") {
@@ -94,6 +89,20 @@ export function TeacherView() {
           </div>
           {published && <div className="inline-status success">New assignment published to {builder.target}. Students receive a portal notification immediately.</div>}
           <div className="assignment-list">
+            {activityDemo.assignments.map((item) => {
+              const activity = activityDemo.activities.find((activityItem) => activityItem.id === item.activity_id);
+              return (
+                <article key={item.id} className="newly-published">
+                  <div>
+                    <strong>{activity?.title || "Interactive activity"}</strong>
+                    <span>{activity ? activityTypeLabels[activity.type] : "Activity"} / {item.target_label} / due {item.due_date}</span>
+                    <small>{activity?.book_title} / {activity?.unit_title} / {item.allowed_attempts} attempts</small>
+                  </div>
+                  <Progress value={activityDemo.submissions.some((submission) => submission.assignment_id === item.id) ? 100 : 0} color="linear-gradient(90deg, #f97316, #0b1f3a)" />
+                  <b>New</b>
+                </article>
+              );
+            })}
             {assignmentList.map((item, index) => (
               <article key={`${item.title}-${index}`} className={item.newlyPublished ? "newly-published" : ""}>
                 <div>
@@ -167,6 +176,11 @@ export function TeacherView() {
         </div>
       </Card>
 
+      <ActivityBuilder
+        onCreateActivity={activityActions.createActivity}
+        onCreateAssignment={activityActions.createAssignment}
+      />
+
       <section className="teacher-grid lower">
         <Card>
           <span className="eyebrow">Performance by skill</span>
@@ -211,57 +225,14 @@ export function TeacherView() {
           <div className="dropzone">
             <FileUp size={28} />
             <strong>Drop a worksheet, paste text, or build from a book unit</strong>
-            <small>Demo mode: H5P-like interactive activity authoring for book-based practice, skill tagging, attempts, and student preview.</small>
+            <small>Demo mode: interactive activity authoring for book-based practice, skill tagging, attempts, and student preview.</small>
           </div>
           <button className="secondary-action" onClick={() => setExerciseCreated(true)}><Plus size={17} /> Create demo exercise</button>
           {exerciseCreated && <div className="inline-status">Custom exercise draft created with scoring, attempt limits, and skill tagging.</div>}
         </Card>
-
-        <Card className="activity-authoring priority-panel">
-          <div className="card-heading">
-            <div>
-              <span className="eyebrow"><Plus size={15} /> Interactive Activity Builder</span>
-              <h2>Create H5P-like ELT exercises</h2>
-              <p>Mocked authoring controls show how teachers can create interactive book-based practice without leaving the LMS.</p>
-            </div>
-            <Tag tone={activityPreviewed ? "green" : "violet"}>{activityPreviewed ? "Student preview ready" : "Authoring mode"}</Tag>
-          </div>
-          <div className="activity-builder-grid">
-            <label>
-              Activity type
-              <select value={activityBuilder.type} onChange={(event) => setActivityBuilder({ ...activityBuilder, type: event.target.value })}>
-                {interactiveActivityTypes.map((type) => <option key={type}>{type}</option>)}
-              </select>
-            </label>
-            <label>
-              Question / title
-              <input value={activityBuilder.title} onChange={(event) => setActivityBuilder({ ...activityBuilder, title: event.target.value })} />
-            </label>
-            <label>
-              Skill tag
-              <select value={activityBuilder.skill} onChange={(event) => setActivityBuilder({ ...activityBuilder, skill: event.target.value })}>
-                {skillStats.map((skill) => <option key={skill.label}>{skill.label}</option>)}
-              </select>
-            </label>
-            <label>
-              Feedback
-              <input value={activityBuilder.feedback} onChange={(event) => setActivityBuilder({ ...activityBuilder, feedback: event.target.value })} />
-            </label>
-            <button className="primary-action" onClick={() => setActivityPreviewed(true)}>Preview as student</button>
-          </div>
-          {activityPreviewed && (
-            <div className="student-preview-card">
-              <div>
-                <Tag tone="blue">{activityBuilder.type}</Tag>
-                <Tag tone="gold">{activityBuilder.skill}</Tag>
-              </div>
-              <strong>{activityBuilder.title}</strong>
-              <p>Student sees a clean interactive exercise shell with response controls, attempts, and instant guided feedback.</p>
-              <small>{activityBuilder.feedback}</small>
-            </div>
-          )}
-        </Card>
       </section>
+
+      <SubmissionReview submissions={activityDemo.submissions} />
     </div>
   );
 }

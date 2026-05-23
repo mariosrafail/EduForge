@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { createSession, emailPattern, getSql, json, normalizeEmail, publicUser } from "./_auth-utils.js";
+import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
 
 function validate(payload) {
   const email = normalizeEmail(payload.email);
@@ -29,6 +29,7 @@ export async function handler(event) {
     }
 
     const sql = getSql();
+    await ensureAuthSchema(sql);
     const { email, password } = validation.value;
     const users = await sql`
       select id, school_id, full_name, email, role, status, password_hash
@@ -61,6 +62,6 @@ export async function handler(event) {
     return json(200, { user: publicUser(updated[0]) }, { "Set-Cookie": session.cookie });
   } catch (error) {
     console.error(error);
-    return json(500, { error: "Signin failed" });
+    return serverError("Signin failed. Check database setup and migrations.");
   }
 }

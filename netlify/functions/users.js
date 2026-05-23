@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import bcrypt from "bcryptjs";
+import { ensureAuthSchema } from "./_auth-utils.js";
 
 const allowedRoles = new Set(["admin", "teacher", "student"]);
 const allowedStatuses = new Set(["active", "invited", "paused"]);
@@ -134,6 +135,7 @@ export async function handler(event) {
       }
 
       const { fullName, email, password, role, status, level } = validation.value;
+      await ensureAuthSchema(sql);
       const school = validation.value.schoolId
         ? { id: validation.value.schoolId }
         : await ensureDemoSchool(sql);

@@ -29,6 +29,7 @@ Create a Neon PostgreSQL database and run:
 ```sql
 database/001_init_lms_demo.sql
 database/002_basic_auth.sql
+database/003_activities_assignments.sql
 ```
 
 The migration creates:
@@ -37,6 +38,9 @@ The migration creates:
 - `app_users`
 - `classes`
 - `class_students`
+- `activities`
+- `assignments`
+- `activity_submissions`
 
 It also seeds a demo school:
 
@@ -54,6 +58,14 @@ If the database has no users, the Admin screen shows `Create your first user`. T
 - `auth_sessions`
 
 Passwords are hashed in Netlify Functions. Plain text passwords are never stored.
+
+`database/003_activities_assignments.sql` adds the demo/MVP activity authoring flow for interactive book-based practice:
+
+- teacher-created interactive activities
+- class or student assignments
+- auto-scored submissions and revision guidance
+
+The current UI uses a frontend mock service in `src/services/activitiesApi.js`, structured so these tables can be connected to Netlify Functions in a later phase.
 
 ## Required Environment Variable
 

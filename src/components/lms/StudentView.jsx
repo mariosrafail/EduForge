@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Bell, BookOpen, CheckCircle2, Clock3, FileCheck2, Headphones, KeyRound, LockKeyhole, MessageSquare, PenLine, Play, RotateCcw, Send } from "lucide-react";
 import { bookUnits, fullTestSections, skillStats, studentExercises } from "../../data/lmsDemoData.js";
+import { AssignedActivity } from "./AssignedActivity.jsx";
 import { Card, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
-export function StudentView({ brand }) {
+export function StudentView({ brand, activityDemo, activityActions }) {
   const [submitted, setSubmitted] = useState(false);
   const [attemptRequested, setAttemptRequested] = useState(false);
   const [audioPlayed, setAudioPlayed] = useState(false);
@@ -64,6 +65,13 @@ export function StudentView({ brand }) {
         </div>
         {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked. Unit 4 test and practice content are now available.</div>}
       </Card>
+
+      <AssignedActivity
+        activities={activityDemo.activities}
+        assignments={activityDemo.assignments}
+        submissions={activityDemo.submissions}
+        onSubmit={activityActions.submitAssignment}
+      />
 
       <Card className="full-test-demo priority-panel">
         <div className="test-overview">

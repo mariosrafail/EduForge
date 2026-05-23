@@ -21,7 +21,7 @@ function roleLabel(role) {
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
 }
 
-export function AuthView({ navigateTo, brand, currentUser, authLoading, authError, setAuthError, signIn, createSchoolAccount }) {
+export function AuthView({ navigateTo, brand, currentUser, authLoading, authError, setAuthError, signIn, createSchoolAccount, signOut }) {
   const [activeTab, setActiveTab] = useState("signin");
   const [signinForm, setSigninForm] = useState(initialSignin);
   const [signupForm, setSignupForm] = useState(initialSignup);
@@ -75,6 +75,7 @@ export function AuthView({ navigateTo, brand, currentUser, authLoading, authErro
                   <span>{roleLabel(currentUser.role)} / {currentUser.email}</span>
                 </div>
                 <button className="secondary-action compact-action" onClick={() => navigateTo(dashboardForRole(currentUser.role))}>Open dashboard</button>
+                <button className="secondary-action compact-action" onClick={signOut}>Logout</button>
               </div>
             )}
           </div>
