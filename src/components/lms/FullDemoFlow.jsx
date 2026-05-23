@@ -42,11 +42,26 @@ const flow = [
   },
 ];
 
+const demoChecklist = [
+  "School profile personalization",
+  "User creation",
+  "Book activation",
+  "Teacher assignment",
+  "Student test",
+  "Automatic correction",
+  "Analytics/export",
+];
+
 export function FullDemoFlow({ setView }) {
   const [activeStep, setActiveStep] = useState(0);
   const [exported, setExported] = useState(false);
+  const [checkedItems, setCheckedItems] = useState(["School profile personalization"]);
   const active = flow[activeStep];
   const ActiveIcon = active.icon;
+
+  const toggleChecklistItem = (item) => {
+    setCheckedItems((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item]);
+  };
 
   return (
     <div className="workspace">
@@ -68,6 +83,25 @@ export function FullDemoFlow({ setView }) {
         <div className="flow-actions">
           <button className="primary-action" onClick={() => setView(active.target)}>Jump to {active.target === "admin" ? "Admin" : active.target === "teacher" ? "Teacher" : "Student"}</button>
           <button className="secondary-action" onClick={() => setActiveStep((activeStep + 1) % flow.length)}>Next step</button>
+        </div>
+      </Card>
+
+      <Card className="demo-checklist-panel">
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow"><CheckCircle2 size={15} /> Demo checklist</span>
+            <h2>Client presentation milestones</h2>
+          </div>
+          <Tag tone="green">{checkedItems.length}/{demoChecklist.length} ready</Tag>
+        </div>
+        <div className="demo-checklist">
+          {demoChecklist.map((item, index) => (
+            <button key={item} className={checkedItems.includes(item) ? "checked" : ""} onClick={() => toggleChecklistItem(item)}>
+              <span>{index + 1}</span>
+              <strong>{item}</strong>
+              <small>{checkedItems.includes(item) ? "Ready" : "Mark ready"}</small>
+            </button>
+          ))}
         </div>
       </Card>
 

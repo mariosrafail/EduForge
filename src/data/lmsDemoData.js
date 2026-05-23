@@ -71,6 +71,10 @@ export const assignments = [
   { title: "Complete Unit 4 Test", type: "Mixed test", target: "B1 Junior B", due: "Friday", submitted: 8, total: 18 },
 ];
 
+export const books = ["English Skills B1", "Exam Focus B2", "Young Learners A2"];
+
+export const demoStudents = ["Anna Georgiou", "Nikos Stavrou", "Lea Karras"];
+
 export const skillStats = [
   { label: "Reading", value: 76, accent: "#175cd3" },
   { label: "Listening", value: 64, accent: "#0f766e" },

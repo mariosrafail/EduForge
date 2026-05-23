@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, GraduationCap, Layers3, MonitorCheck, UserRound } from "lucide-react";
+import { ArrowRight, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleCards = [
@@ -45,6 +45,7 @@ export function RoleSelection({ setView, brand }) {
               <MonitorCheck size={18} /> Start with school setup
             </button>
           </div>
+          <div className="demo-login-note"><KeyRound size={16} /> Demo mode, no real login required.</div>
         </div>
 
         <motion.div
@@ -71,6 +72,10 @@ export function RoleSelection({ setView, brand }) {
       </section>
 
       <section className="role-card-grid" aria-label="Role entry points">
+        <div className="demo-entry-heading">
+          <span className="eyebrow"><KeyRound size={15} /> Demo login</span>
+          <h2>Choose a role to enter the platform</h2>
+        </div>
         {roleCards.map((role, index) => {
           const Icon = role.icon;
           return (

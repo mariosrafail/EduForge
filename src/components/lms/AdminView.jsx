@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Building2, Download, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, Download, KeyRound, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { brandPresets, classes, exerciseTypes, publisherIntelligence, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
@@ -6,6 +6,8 @@ import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./
 export function AdminView({ brand, setBrand }) {
   const [userCreated, setUserCreated] = useState(false);
   const [bookAdded, setBookAdded] = useState(false);
+  const [bookUnlocked, setBookUnlocked] = useState(false);
+  const [activationCode, setActivationCode] = useState("");
   const [exported, setExported] = useState(false);
   const [createdUsers, setCreatedUsers] = useState(users);
   const [newUser, setNewUser] = useState({
@@ -142,6 +144,14 @@ export function AdminView({ brand, setBrand }) {
           </div>
           <div className="exercise-type-row">
             {exerciseTypes.slice(0, 4).map((type) => <Tag key={type} tone="violet">{type}</Tag>)}
+          </div>
+          <div className="activation-mini">
+            <span className="eyebrow"><KeyRound size={15} /> Activation code</span>
+            <div className="activation-form">
+              <input value={activationCode} placeholder="B1-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
+              <button className="secondary-action" onClick={() => setBookUnlocked(true)}>Activate book</button>
+            </div>
+            {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked for B1 Junior A.</div>}
           </div>
         </Card>
       </section>

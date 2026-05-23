@@ -72,6 +72,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   font-weight: 800;
   font-size: 12px;
 }
+.locale-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  color: #0f766e;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 900;
+}
 .school-preview { padding: 6px 10px; background: #f8fafc; border: 1px solid var(--line); border-radius: 6px; font-weight: 700; }
 .school-preview .school-logo { width: 28px; height: 28px; font-size: 11px; border-radius: 5px; }
 .quick-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
@@ -140,6 +152,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   margin: 0;
 }
 .landing-actions, .flow-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.demo-login-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 11px;
+  color: #344054;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 850;
+}
 .primary-action, .secondary-action {
   display: inline-flex;
   align-items: center;
@@ -188,6 +213,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .student-screen strong { font-size: 26px; color: #fff; }
 
 .role-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+.demo-entry-heading {
+  grid-column: 1 / -1;
+  padding: 18px 4px 2px;
+}
+.demo-entry-heading h2 { margin: 8px 0 0; font-size: 26px; letter-spacing: 0; }
 .role-entry {
   position: relative;
   min-height: 300px;
@@ -334,7 +364,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   border: 1px solid #e6edf6;
   border-radius: 7px;
 }
-.create-user-form label, .demo-answer-box label {
+.create-user-form label, .demo-answer-box label, .builder-grid label {
   display: grid;
   gap: 7px;
   color: #344054;
@@ -388,6 +418,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 .progress-track { height: 9px; overflow: hidden; background: #e7eef7; border-radius: 999px; }
 .progress-track span { display: block; height: 100%; border-radius: inherit; }
 .assignment-list article { display: grid; grid-template-columns: 1fr 180px auto; gap: 14px; align-items: center; }
+.assignment-list article.newly-published {
+  border-color: #abefc6;
+  background: #ecfdf3;
+  box-shadow: inset 3px 0 0 #12b76a;
+}
+.assignment-list small { display: block; color: #475467; font-weight: 780; margin-top: 4px; }
 .skill-panel > div { display: grid; gap: 8px; margin-bottom: 12px; }
 .skill-panel > div > div { display: flex; justify-content: space-between; gap: 10px; font-weight: 850; }
 .review-list strong { display: flex; justify-content: space-between; gap: 10px; }
@@ -468,6 +504,52 @@ input[type="color"] { padding: 4px; height: 46px; }
 .practice-box { display: flex; gap: 12px; align-items: flex-start; }
 .practice-box svg { color: var(--brand-primary); }
 .practice-box span { display: block; color: var(--ink-muted); margin-top: 3px; }
+
+.activation-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.8fr);
+  gap: 18px;
+  align-items: center;
+  margin: 18px 0;
+}
+.activation-panel h2 { margin-bottom: 8px; }
+.activation-panel p { margin: 0; max-width: 680px; }
+.activation-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.activation-form input { flex: 1; }
+.activation-mini {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  margin-top: 14px;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 7px;
+}
+
+.assignment-builder { margin: 18px 0; }
+.builder-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.builder-grid .primary-action { min-height: 42px; }
+.new-submission-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+  border-radius: 7px;
+  animation: reveal 260ms ease-out;
+}
+.new-submission-card p { margin: 0; color: #067647; }
+.new-submission-card small { color: #064e3b; font-weight: 820; line-height: 1.45; }
 
 .full-test-demo { margin: 18px 0; }
 .test-overview {
@@ -601,6 +683,41 @@ input[type="color"] { padding: 4px; height: 46px; }
 .presentation-stage h2 { margin: 8px 0; }
 .presentation-stage p { margin: 0; max-width: 780px; }
 
+.demo-checklist-panel { margin-bottom: 18px; }
+.demo-checklist {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+.demo-checklist button {
+  display: grid;
+  gap: 9px;
+  min-height: 132px;
+  padding: 13px;
+  text-align: left;
+  color: #101828;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.demo-checklist button:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--brand-primary) 30%, var(--line)); }
+.demo-checklist button.checked { background: #ecfdf3; border-color: #abefc6; }
+.demo-checklist span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  background: #101828;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 950;
+}
+.demo-checklist button.checked span { background: #067647; }
+.demo-checklist strong { line-height: 1.25; }
+.demo-checklist small { color: var(--ink-muted); font-weight: 900; }
+
 .publisher-intelligence { margin-top: 18px; }
 .publisher-metric-grid {
   display: grid;
@@ -641,12 +758,12 @@ input[type="color"] { padding: 4px; height: 46px; }
   .header-tools { position: relative; display: flex; width: min(100% - 32px, 1480px); margin: 10px auto 0; justify-content: flex-end; }
   .tool-popover { top: auto; right: 16px; margin-top: 50px; }
   .workspace { padding-top: 28px; }
-  .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench { grid-template-columns: 1fr; }
+  .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench, .activation-panel { grid-template-columns: 1fr; }
   .product-composition { min-height: 620px; }
   .admin-screen { left: 0; }
   .teacher-screen { right: 0; }
   .student-screen { left: 40px; }
-  .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .builder-grid, .demo-checklist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form .primary-action { grid-column: 1 / -1; }
   .admin-grid.lower, .teacher-grid.lower, .student-grid.lower { grid-template-columns: 1fr; }
@@ -661,7 +778,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .hero-copy p, .section-title p { font-size: 16px; }
   .product-composition { min-height: 0; display: grid; gap: 12px; }
   .screen { position: static; width: 100%; }
-  .role-card-grid, .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .create-user-form { grid-template-columns: 1fr; }
+  .role-card-grid, .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .create-user-form, .builder-grid, .demo-checklist { grid-template-columns: 1fr; }
   .section-title, .card-heading { flex-direction: column; }
   .quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-actions button { justify-content: center; }
@@ -671,7 +788,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .header-tools { justify-content: stretch; display: grid; grid-template-columns: repeat(3, 1fr); }
   .header-tools button { width: 100%; }
   .tool-popover { left: 0; right: 0; width: auto; }
-  .class-list article, .exercise-list article, .audio-placeholder, .practice-box, .test-actions { align-items: stretch; flex-direction: column; }
+  .class-list article, .exercise-list article, .audio-placeholder, .practice-box, .test-actions, .activation-form { align-items: stretch; flex-direction: column; }
   .presentation-stage { grid-template-columns: 1fr; }
   .action-with-status { justify-items: stretch; width: 100%; }
   .panel, .role-entry { padding: 18px; }

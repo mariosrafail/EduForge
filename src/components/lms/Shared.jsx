@@ -8,6 +8,7 @@ import {
   Download,
   GraduationCap,
   Layers3,
+  Languages,
   Search,
   Settings,
   ShieldCheck,
@@ -53,6 +54,7 @@ export function Header({ activeRole, brand, setView }) {
 
       <div className="header-context">
         <span className="role-chip">{roleLabel}</span>
+        <span className="locale-chip"><Languages size={14} /> Interface ready for EN / EL</span>
         <span className="school-preview">
           <span className="school-logo" style={{ background: brand.primary }}>{brand.logo}</span>
           {brand.schoolName}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BookOpen, CheckCircle2, Clock3, FileCheck2, Headphones, LockKeyhole, MessageSquare, PenLine, Play, RotateCcw, Send } from "lucide-react";
+import { Bell, BookOpen, CheckCircle2, Clock3, FileCheck2, Headphones, KeyRound, LockKeyhole, MessageSquare, PenLine, Play, RotateCcw, Send } from "lucide-react";
 import { bookUnits, fullTestSections, skillStats, studentExercises } from "../../data/lmsDemoData.js";
 import { Card, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
@@ -9,6 +9,8 @@ export function StudentView({ brand }) {
   const [audioPlayed, setAudioPlayed] = useState(false);
   const [testStarted, setTestStarted] = useState(false);
   const [testSubmitted, setTestSubmitted] = useState(false);
+  const [bookUnlocked, setBookUnlocked] = useState(false);
+  const [activationCode, setActivationCode] = useState("");
   const [activeSection, setActiveSection] = useState(fullTestSections[0].title);
   const activeTestSection = fullTestSections.find((section) => section.title === activeSection);
 
@@ -49,6 +51,19 @@ export function StudentView({ brand }) {
           </div>
         </Card>
       </section>
+
+      <Card className="activation-panel">
+        <div>
+          <span className="eyebrow"><KeyRound size={15} /> Book activation code</span>
+          <h2>Unlock publisher content</h2>
+          <p>Printed book code connects the student account to the matching digital book, units, and assignments.</p>
+        </div>
+        <div className="activation-form">
+          <input value={activationCode} placeholder="B1-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
+          <button className="primary-action" onClick={() => setBookUnlocked(true)}>Activate book</button>
+        </div>
+        {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked. Unit 4 test and practice content are now available.</div>}
+      </Card>
 
       <Card className="full-test-demo priority-panel">
         <div className="test-overview">
