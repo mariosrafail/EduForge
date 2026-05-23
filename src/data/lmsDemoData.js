@@ -1,0 +1,84 @@
+export const brandPresets = [
+  {
+    schoolName: "Bright Path Language School",
+    logo: "BP",
+    primary: "#175cd3",
+    secondary: "#f59e0b",
+  },
+  {
+    schoolName: "Northstar English Institute",
+    logo: "NE",
+    primary: "#0f766e",
+    secondary: "#7c3aed",
+  },
+];
+
+export const schoolMetrics = [
+  ["Active students", "1,284", "+8.6%"],
+  ["Teachers", "72", "14 online"],
+  ["Classes", "48", "6 new"],
+  ["Assigned books", "19", "3 publishers"],
+  ["Completion rate", "78%", "+4.2%"],
+];
+
+export const users = [
+  { name: "Elena Markou", role: "Admin", level: "Operations", status: "Active" },
+  { name: "Maria Antoniou", role: "Teacher", level: "B1 Junior", status: "Active" },
+  { name: "Dimitris Voss", role: "Teacher", level: "B2 Senior", status: "Active" },
+  { name: "Anna Georgiou", role: "Student", level: "B1 Junior", status: "Invited" },
+  { name: "Nikos Stavrou", role: "Student", level: "B1 Junior", status: "Active" },
+];
+
+export const classes = [
+  { name: "B1 Junior A", teacher: "Maria Antoniou", students: 21, book: "English Skills B1", completion: 74 },
+  { name: "B1 Junior B", teacher: "Maria Antoniou", students: 18, book: "English Skills B1", completion: 68 },
+  { name: "B2 Senior", teacher: "Dimitris Voss", students: 16, book: "Exam Focus B2", completion: 81 },
+];
+
+export const bookUnits = [
+  {
+    unit: "Unit 4",
+    title: "Travel Stories",
+    lessons: ["Reading: Island Routes", "Listening: Planning a trip", "Grammar: Past Simple vs Present Perfect", "Writing: A travel review"],
+  },
+  {
+    unit: "Unit 5",
+    title: "Future Cities",
+    lessons: ["Reading: Smart transport", "Vocabulary: Urban life", "Writing: Opinion paragraph"],
+  },
+];
+
+export const exerciseTypes = [
+  "Multiple choice",
+  "Fill in the blanks",
+  "Matching",
+  "Short answer",
+  "Writing task",
+  "Listening comprehension",
+];
+
+export const assignments = [
+  { title: "Unit 4 Reading Check", type: "Reading", target: "B1 Junior A", due: "Today", submitted: 16, total: 21 },
+  { title: "Travel Plans Audio Drill", type: "Listening", target: "B1 Junior A", due: "Tomorrow", submitted: 11, total: 21 },
+  { title: "Complete Unit 4 Test", type: "Mixed test", target: "B1 Junior B", due: "Friday", submitted: 8, total: 18 },
+];
+
+export const skillStats = [
+  { label: "Reading", value: 76, accent: "#175cd3" },
+  { label: "Listening", value: 64, accent: "#0f766e" },
+  { label: "Writing", value: 58, accent: "#7c3aed" },
+  { label: "Vocabulary", value: 82, accent: "#dc6803" },
+  { label: "Grammar", value: 69, accent: "#c2410c" },
+];
+
+export const submittedWork = [
+  { student: "Anna Georgiou", score: "72%", mistakes: "Present Perfect, travel collocations", recommendation: "Revise: Past Simple vs Present Perfect" },
+  { student: "Nikos Stavrou", score: "84%", mistakes: "Listening detail questions", recommendation: "Repeat audio drill at slower speed" },
+  { student: "Lea Karras", score: "61%", mistakes: "Short answer evidence", recommendation: "Reading Strategy Booster" },
+];
+
+export const studentExercises = [
+  { title: "Unit 4 Reading Check", status: "Due today", skill: "Reading", attempts: "1 of 2" },
+  { title: "Travel Plans Audio Drill", status: "New", skill: "Listening", attempts: "0 of 2" },
+  { title: "Write a Travel Review", status: "Teacher review", skill: "Writing", attempts: "Draft" },
+];
