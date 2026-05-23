@@ -7,22 +7,22 @@ const roleCards = [
     id: "admin",
     icon: Building2,
     title: "School / Admin",
-    text: "Configure branded school portals, manage users, assign books, and supervise institutional rollout.",
-    stats: "Setup wizard, classes, roles, books",
+    text: "Configure branded school rollout, manage users, generate book code activation, and supervise ELT adoption.",
+    stats: "School rollout, classes, roles, books",
   },
   {
     id: "teacher",
     icon: GraduationCap,
     title: "Teacher",
-    text: "Assign activities, review submissions, analyze mistakes, export performance, and create custom exercises.",
-    stats: "Skill analytics, marking, exports",
+    text: "Assign book-based practice, review submissions, run skill gap analysis, and author interactive activities.",
+    stats: "Teacher adoption dashboard, marking, exports",
   },
   {
     id: "student",
     icon: UserRound,
     title: "Student",
-    text: "Complete exercises inside a branded portal, receive correction feedback, and follow targeted revision paths.",
-    stats: "Book units, attempts, practice",
+    text: "Activate a book code, complete book-based practice, receive correction feedback, and follow revision paths.",
+    stats: "Book units, attempts, skill practice",
   },
 ];
 
@@ -34,8 +34,8 @@ export function RoleSelection({ setView, brand }) {
           <Tag tone="gold">Proprietary LMS platform demo</Tag>
           <h1>EduForge LMS for publishers, schools, teachers, and learners.</h1>
           <p>
-            A polished front-end demo showing how a publisher can deliver branded school portals,
-            digital books, teacher supervision, automated correction, learning analytics, and data exports.
+            A polished front-end demo showing how an ELT publisher can deliver branded school portals,
+            book-based practice, book code activation, teacher adoption dashboards, skill gap analysis, and publisher intelligence.
           </p>
           <div className="landing-actions">
             <button className="primary-action" onClick={() => setView("flow")}>
@@ -103,8 +103,8 @@ export function RoleSelection({ setView, brand }) {
           <h2>More than a course creator</h2>
         </div>
         <p>
-          The demo positions EduForge as a proprietary LMS layer: school administration, publisher-controlled books,
-          teacher workflows, student-facing practice, automated correction, and branded portal delivery.
+          The demo positions EduForge as a proprietary ELT LMS layer: school rollout, publisher-controlled books,
+          interactive activity authoring, student-facing practice, automated correction, and branded portal delivery.
         </p>
       </Card>
     </main>

@@ -1,6 +1,6 @@
-import { BarChart3, BookOpen, Building2, Download, KeyRound, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
-import { brandPresets, classes, exerciseTypes, publisherIntelligence, schoolMetrics, users } from "../../data/lmsDemoData.js";
+import { brandPresets, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
 export function AdminView({ brand, setBrand }) {
@@ -9,6 +9,8 @@ export function AdminView({ brand, setBrand }) {
   const [bookUnlocked, setBookUnlocked] = useState(false);
   const [activationCode, setActivationCode] = useState("");
   const [exported, setExported] = useState(false);
+  const [completedRollout, setCompletedRollout] = useState(["Create school"]);
+  const [selectedIntegration, setSelectedIntegration] = useState("");
   const [createdUsers, setCreatedUsers] = useState(users);
   const [newUser, setNewUser] = useState({
     name: "",
@@ -25,12 +27,16 @@ export function AdminView({ brand, setBrand }) {
     setNewUser({ name: "", role: "Student", level: "B1 Junior", status: "Invited" });
   };
 
+  const toggleRolloutAction = (action) => {
+    setCompletedRollout((current) => current.includes(action) ? current.filter((item) => item !== action) : [...current, action]);
+  };
+
   return (
     <div className="workspace">
       <SectionTitle
         eyebrow="School administration"
-        title="Launch and manage a branded LMS environment."
-        text="Admins can configure school identity, create users across roles, attach virtual books, organize sections, and assign teachers and students."
+        title="Launch school rollout and publisher-controlled book access."
+        text="Admins can configure school identity, create users, generate book activation codes, attach virtual books, organize classes, and monitor publisher intelligence."
       />
 
       <section className="metric-grid">
@@ -38,6 +44,37 @@ export function AdminView({ brand, setBrand }) {
           <MetricCard key={label} label={label} value={value} note={note} icon={index === 3 ? BookOpen : index === 1 ? Users : Building2} delay={index} />
         ))}
       </section>
+
+      <Card className="rollout-actions priority-panel">
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow"><CheckCircle2 size={15} /> School rollout actions</span>
+            <h2>Publisher-ready launch checklist</h2>
+            <p>Compact demo actions show the path from new school setup to book code activation and teacher adoption.</p>
+          </div>
+          <Tag tone="green">{completedRollout.length}/{rolloutActions.length} completed</Tag>
+        </div>
+        <div className="rollout-action-grid">
+          {rolloutActions.map((action) => {
+            const isCompleted = completedRollout.includes(action);
+            const isCodeAction = action === "Generate book activation codes";
+            return (
+              <button
+                key={action}
+                className={`${isCompleted ? "completed" : ""} ${isCodeAction ? "code-action" : ""}`}
+                onClick={() => toggleRolloutAction(action)}
+              >
+                <span>{isCompleted ? <CheckCircle2 size={17} /> : <Plus size={17} />}</span>
+                <strong>{action}</strong>
+                <small>{isCompleted ? "Ready" : isCodeAction ? "Publisher code batch" : "Run demo action"}</small>
+              </button>
+            );
+          })}
+        </div>
+        {completedRollout.includes("Generate book activation codes") && (
+          <div className="inline-status success">Book code activation batch generated: B1-DEMO-2026 through B1-DEMO-2075.</div>
+        )}
+      </Card>
 
       <section className="admin-grid">
         <Card className="setup-panel priority-panel">
@@ -161,7 +198,7 @@ export function AdminView({ brand, setBrand }) {
           <div>
             <span className="eyebrow"><BarChart3 size={15} /> Publisher intelligence</span>
             <h2>Adoption evidence for publishing teams</h2>
-            <p>Aggregate book activation and engagement signals help an owner prove value across schools without exposing individual answers.</p>
+            <p>Publisher intelligence combines book code activation, teacher adoption dashboard signals, skill gap analysis, and book engagement without exposing individual answers.</p>
           </div>
           <button className="secondary-action" onClick={() => setExported(true)}><Download size={17} /> Export adoption data</button>
         </div>
@@ -174,6 +211,25 @@ export function AdminView({ brand, setBrand }) {
               <strong>{item.value}</strong>
               <p>{item.note}</p>
             </article>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="integration-panel">
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow"><Link2 size={15} /> Integration-ready architecture</span>
+            <h2>Standalone now, connected later</h2>
+            <p>The platform works as a standalone publisher LMS and can connect to existing school systems in later phases.</p>
+          </div>
+          {selectedIntegration && <Tag tone="blue">{selectedIntegration} selected</Tag>}
+        </div>
+        <div className="integration-grid">
+          {integrationOptions.map((option) => (
+            <button key={option} className={selectedIntegration === option ? "selected" : ""} onClick={() => setSelectedIntegration(option)}>
+              <span>{option}</span>
+              <small>{selectedIntegration === option ? "Demo connection highlighted" : "Integration-ready"}</small>
+            </button>
           ))}
         </div>
       </Card>

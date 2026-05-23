@@ -1,5 +1,11 @@
 export const brandPresets = [
   {
+    schoolName: "Hamilton House ELT Demo",
+    logo: "HH",
+    primary: "#f97316",
+    secondary: "#0b1f3a",
+  },
+  {
     schoolName: "Bright Path Language School",
     logo: "BP",
     primary: "#175cd3",
@@ -17,7 +23,7 @@ export const schoolMetrics = [
   ["Active students", "1,284", "+8.6%"],
   ["Teachers", "72", "14 online"],
   ["Classes", "48", "6 new"],
-  ["Assigned books", "19", "3 publishers"],
+  ["Assigned books", "19", "book-based practice"],
   ["Completion rate", "78%", "+4.2%"],
 ];
 
@@ -35,6 +41,22 @@ export const publisherIntelligence = [
   { label: "Difficult skills", value: "Writing", note: "58% average across partner schools", accent: "#7c3aed" },
   { label: "Book engagement", value: "82%", note: "weekly active learners per adoption", accent: "#dc6803" },
   { label: "Adoption data", value: "CSV", note: "exportable by school, unit, and skill", accent: "#101828" },
+];
+
+export const rolloutActions = [
+  "Create school",
+  "Create class",
+  "Generate book activation codes",
+  "Assign teacher",
+  "Import students",
+];
+
+export const integrationOptions = [
+  "Moodle LTI",
+  "Google Classroom",
+  "Microsoft Teams / Zoom",
+  "Website embed",
+  "CSV / Excel import-export",
 ];
 
 export const classes = [
@@ -63,6 +85,15 @@ export const exerciseTypes = [
   "Short answer",
   "Writing task",
   "Listening comprehension",
+];
+
+export const interactiveActivityTypes = [
+  "Multiple Choice",
+  "Matching",
+  "Fill in the blanks",
+  "Drag and Drop",
+  "Listening",
+  "Writing",
 ];
 
 export const assignments = [

@@ -12,14 +12,14 @@ const flow = [
   },
   {
     icon: KeyRound,
-    title: "Book activation",
-    text: "Activated book codes unlock the correct digital book, units, exercise banks, and reporting tags.",
+    title: "Book code activation",
+    text: "Book code activation unlocks the correct digital book, units, exercise banks, and reporting tags.",
     target: "admin",
   },
   {
     icon: GraduationCap,
     title: "Teacher assignment",
-    text: "Teacher chooses a class, publishes work from a book unit, and controls attempts and due dates.",
+    text: "Teacher chooses a class, publishes book-based practice from a unit, and controls attempts and due dates.",
     target: "teacher",
   },
   {
@@ -37,7 +37,7 @@ const flow = [
   {
     icon: BarChart3,
     title: "Analytics/export",
-    text: "Admins and publishers review adoption, difficult skills, book engagement, and exportable evidence.",
+    text: "Admins and publishers review teacher adoption dashboard signals, skill gap analysis, book engagement, and exportable evidence.",
     target: "admin",
   },
 ];
@@ -45,7 +45,7 @@ const flow = [
 const demoChecklist = [
   "School profile personalization",
   "User creation",
-  "Book activation",
+  "Book code activation",
   "Teacher assignment",
   "Student test",
   "Automatic correction",
@@ -68,7 +68,7 @@ export function FullDemoFlow({ setView }) {
       <SectionTitle
         eyebrow="End-to-end demo flow"
         title="A complete LMS story for publisher sales conversations."
-        text="Use this overview to present EduForge as the operational layer connecting publishers, schools, teachers, and students."
+        text="Use this overview to present EduForge as the ELT operational layer connecting publishers, school rollout, teachers, and students."
       />
 
       <Card className="presentation-mode priority-panel">
@@ -143,7 +143,7 @@ export function FullDemoFlow({ setView }) {
           <div>
             <span className="eyebrow"><BookCheck size={15} /> Publisher intelligence</span>
             <h2>What the publisher or owner can prove</h2>
-            <p>Book-code activation, unit usage, difficult skills, engagement, and adoption exports turn LMS usage into sales and renewal evidence.</p>
+            <p>Book code activation, unit usage, skill gap analysis, engagement, and adoption exports turn LMS usage into sales and renewal evidence.</p>
           </div>
           <button className="secondary-action" onClick={() => setExported(true)}>Export adoption snapshot</button>
         </div>

@@ -1,6 +1,6 @@
 import { BarChart3, BookOpenCheck, FileUp, Plus, Send, Users } from "lucide-react";
 import { useState } from "react";
-import { assignments, bookUnits, books, classes, demoStudents, exerciseTypes, skillStats, submittedWork } from "../../data/lmsDemoData.js";
+import { assignments, bookUnits, books, classes, demoStudents, exerciseTypes, interactiveActivityTypes, skillStats, submittedWork } from "../../data/lmsDemoData.js";
 import { Card, ExportButton, MetricCard, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
 export function TeacherView() {
@@ -8,6 +8,7 @@ export function TeacherView() {
   const [published, setPublished] = useState(false);
   const [exerciseCreated, setExerciseCreated] = useState(false);
   const [submissionReceived, setSubmissionReceived] = useState(false);
+  const [activityPreviewed, setActivityPreviewed] = useState(false);
   const [assignmentList, setAssignmentList] = useState(assignments);
   const [builder, setBuilder] = useState({
     book: books[0],
@@ -17,6 +18,12 @@ export function TeacherView() {
     target: classes[0].name,
     due: "2026-05-29",
     attempts: "2",
+  });
+  const [activityBuilder, setActivityBuilder] = useState({
+    type: interactiveActivityTypes[0],
+    title: "Choose the correct travel collocation",
+    feedback: "Review Unit 4 vocabulary and try again before the next attempt.",
+    skill: "Vocabulary",
   });
 
   const updateBuilder = (field, value) => {
@@ -49,8 +56,8 @@ export function TeacherView() {
     <div className="workspace">
       <SectionTitle
         eyebrow="Teacher supervision"
-        title="Assign, review, correct, and export performance evidence."
-        text="Teachers see class-level progress, select a class, assign exercises to groups or individuals, inspect mistakes, and prepare data for school reporting."
+        title="Assign book-based practice, review submissions, and export adoption evidence."
+        text="Teachers see a teacher adoption dashboard, select a class, assign publisher units, inspect mistakes, run skill gap analysis, and author interactive activities."
         action={<ExportButton rows={submittedWork} />}
       />
 
@@ -163,7 +170,7 @@ export function TeacherView() {
       <section className="teacher-grid lower">
         <Card>
           <span className="eyebrow">Performance by skill</span>
-          <h2>Class analytics</h2>
+          <h2>Skill gap analysis</h2>
           <div className="skill-panel">
             {skillStats.map((skill) => (
               <div key={skill.label}>
@@ -200,14 +207,59 @@ export function TeacherView() {
 
         <Card className="upload-panel">
           <span className="eyebrow">Custom exercise builder</span>
-          <h2>Upload or create an activity</h2>
+          <h2>Interactive activity authoring</h2>
           <div className="dropzone">
             <FileUp size={28} />
             <strong>Drop a worksheet, paste text, or build from a book unit</strong>
-            <small>Demo mode: multiple choice, fill blanks, matching, short answer, writing, and listening comprehension.</small>
+            <small>Demo mode: H5P-like interactive activity authoring for book-based practice, skill tagging, attempts, and student preview.</small>
           </div>
           <button className="secondary-action" onClick={() => setExerciseCreated(true)}><Plus size={17} /> Create demo exercise</button>
           {exerciseCreated && <div className="inline-status">Custom exercise draft created with scoring, attempt limits, and skill tagging.</div>}
+        </Card>
+
+        <Card className="activity-authoring priority-panel">
+          <div className="card-heading">
+            <div>
+              <span className="eyebrow"><Plus size={15} /> Interactive Activity Builder</span>
+              <h2>Create H5P-like ELT exercises</h2>
+              <p>Mocked authoring controls show how teachers can create interactive book-based practice without leaving the LMS.</p>
+            </div>
+            <Tag tone={activityPreviewed ? "green" : "violet"}>{activityPreviewed ? "Student preview ready" : "Authoring mode"}</Tag>
+          </div>
+          <div className="activity-builder-grid">
+            <label>
+              Activity type
+              <select value={activityBuilder.type} onChange={(event) => setActivityBuilder({ ...activityBuilder, type: event.target.value })}>
+                {interactiveActivityTypes.map((type) => <option key={type}>{type}</option>)}
+              </select>
+            </label>
+            <label>
+              Question / title
+              <input value={activityBuilder.title} onChange={(event) => setActivityBuilder({ ...activityBuilder, title: event.target.value })} />
+            </label>
+            <label>
+              Skill tag
+              <select value={activityBuilder.skill} onChange={(event) => setActivityBuilder({ ...activityBuilder, skill: event.target.value })}>
+                {skillStats.map((skill) => <option key={skill.label}>{skill.label}</option>)}
+              </select>
+            </label>
+            <label>
+              Feedback
+              <input value={activityBuilder.feedback} onChange={(event) => setActivityBuilder({ ...activityBuilder, feedback: event.target.value })} />
+            </label>
+            <button className="primary-action" onClick={() => setActivityPreviewed(true)}>Preview as student</button>
+          </div>
+          {activityPreviewed && (
+            <div className="student-preview-card">
+              <div>
+                <Tag tone="blue">{activityBuilder.type}</Tag>
+                <Tag tone="gold">{activityBuilder.skill}</Tag>
+              </div>
+              <strong>{activityBuilder.title}</strong>
+              <p>Student sees a clean interactive exercise shell with response controls, attempts, and instant guided feedback.</p>
+              <small>{activityBuilder.feedback}</small>
+            </div>
+          )}
         </Card>
       </section>
     </div>
