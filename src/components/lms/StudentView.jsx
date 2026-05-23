@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { Bell, BookOpen, CheckCircle2, Headphones, LockKeyhole, MessageSquare, PenLine, RotateCcw } from "lucide-react";
-import { bookUnits, skillStats, studentExercises } from "../../data/lmsDemoData.js";
+import { Bell, BookOpen, CheckCircle2, Clock3, FileCheck2, Headphones, LockKeyhole, MessageSquare, PenLine, Play, RotateCcw, Send } from "lucide-react";
+import { bookUnits, fullTestSections, skillStats, studentExercises } from "../../data/lmsDemoData.js";
 import { Card, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
 export function StudentView({ brand }) {
   const [submitted, setSubmitted] = useState(false);
   const [attemptRequested, setAttemptRequested] = useState(false);
   const [audioPlayed, setAudioPlayed] = useState(false);
+  const [testStarted, setTestStarted] = useState(false);
+  const [testSubmitted, setTestSubmitted] = useState(false);
+  const [activeSection, setActiveSection] = useState(fullTestSections[0].title);
+  const activeTestSection = fullTestSections.find((section) => section.title === activeSection);
 
   return (
     <div className="workspace student-workspace">
@@ -45,6 +49,81 @@ export function StudentView({ brand }) {
           </div>
         </Card>
       </section>
+
+      <Card className="full-test-demo priority-panel">
+        <div className="test-overview">
+          <div>
+            <span className="eyebrow"><FileCheck2 size={15} /> Full Test Demo</span>
+            <h2>English Skills B1: Unit 4 progress test</h2>
+            <p>One controlled assessment experience combining reading, listening, grammar, vocabulary, and writing. Feedback shows mistakes and revision guidance only.</p>
+          </div>
+          <div className="test-meta">
+            <div><strong>Attempt limit</strong><span>1 of 2 attempts used</span></div>
+            <div><strong>Timer</strong><span><Clock3 size={15} /> 70:00 placeholder</span></div>
+            <div><strong>Correction</strong><span>Automatic summary after submit</span></div>
+          </div>
+        </div>
+
+        <div className="test-actions">
+          <button className="primary-action" onClick={() => { setTestStarted(true); setTestSubmitted(false); }}><Play size={17} /> Start test</button>
+          <button className="secondary-action" onClick={() => setTestSubmitted(true)}><Send size={17} /> Submit test</button>
+          {testStarted && <span className="inline-status">Test opened in demo mode. Section navigation, timer, and attempt controls are active placeholders.</span>}
+        </div>
+
+        <div className="test-section-grid">
+          {fullTestSections.map((section) => (
+            <button
+              key={section.title}
+              className={`test-section-card ${activeSection === section.title ? "selected" : ""}`}
+              onClick={() => setActiveSection(section.title)}
+            >
+              <strong>{section.title}</strong>
+              <span>{section.prompt}</span>
+              <small>{section.duration} / {section.status}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="test-workbench">
+          <div>
+            <Tag tone={activeTestSection.status === "Ready" ? "blue" : activeTestSection.status === "Audio locked" ? "gold" : "violet"}>{activeTestSection.status}</Tag>
+            <h3>{activeTestSection.title}</h3>
+            <p>{activeTestSection.prompt}</p>
+            {activeSection === "Listening" && (
+              <div className="audio-placeholder">
+                <Headphones size={18} />
+                <span>{audioPlayed ? "Listening sample marked as played" : "Listening audio placeholder"}</span>
+                <button onClick={() => setAudioPlayed(true)}>Play 00:38</button>
+              </div>
+            )}
+          </div>
+          <div className="demo-answer-box">
+            <label>
+              Student response draft
+              <textarea defaultValue="I found the main idea and added my evidence, but I need to check the tense in my short answer." />
+            </label>
+            <button className="secondary-action compact-action" onClick={() => setTestStarted(true)}><CheckCircle2 size={16} /> Save progress</button>
+          </div>
+        </div>
+
+        {testSubmitted && (
+          <div className="correction-summary">
+            <div>
+              <strong>Automatic correction summary</strong>
+              <span>Estimated score: 76% / correct answers remain hidden</span>
+            </div>
+            <div className="revision-grid">
+              {fullTestSections.map((section) => (
+                <article key={section.title}>
+                  <b>{section.title}</b>
+                  <p>{section.mistake}</p>
+                  <small>{section.revision}</small>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
 
       <section className="student-grid lower">
         <Card>

@@ -29,6 +29,14 @@ export const users = [
   { name: "Nikos Stavrou", role: "Student", level: "B1 Junior", status: "Active" },
 ];
 
+export const publisherIntelligence = [
+  { label: "Activated book codes", value: "3,842", note: "B1 and B2 campaigns", accent: "#175cd3" },
+  { label: "Most used book units", value: "Unit 4", note: "Travel Stories across 18 schools", accent: "#0f766e" },
+  { label: "Difficult skills", value: "Writing", note: "58% average across partner schools", accent: "#7c3aed" },
+  { label: "Book engagement", value: "82%", note: "weekly active learners per adoption", accent: "#dc6803" },
+  { label: "Adoption data", value: "CSV", note: "exportable by school, unit, and skill", accent: "#101828" },
+];
+
 export const classes = [
   { name: "B1 Junior A", teacher: "Maria Antoniou", students: 21, book: "English Skills B1", completion: 74 },
   { name: "B1 Junior B", teacher: "Maria Antoniou", students: 18, book: "English Skills B1", completion: 68 },
@@ -81,4 +89,39 @@ export const studentExercises = [
   { title: "Unit 4 Reading Check", status: "Due today", skill: "Reading", attempts: "1 of 2" },
   { title: "Travel Plans Audio Drill", status: "New", skill: "Listening", attempts: "0 of 2" },
   { title: "Write a Travel Review", status: "Teacher review", skill: "Writing", attempts: "Draft" },
+];
+
+export const fullTestSections = [
+  {
+    title: "Reading",
+    duration: "18 min",
+    status: "Ready",
+    prompt: "Read a short travel article and identify supporting evidence.",
+    mistake: "One answer uses general memory instead of evidence from paragraph 2.",
+    revision: "Underline the sentence that proves each answer before submitting.",
+  },
+  {
+    title: "Listening",
+    duration: "12 min",
+    status: "Audio locked",
+    prompt: "Listen to a trip-planning dialogue and answer detail questions.",
+    mistake: "Two date and time details need another listen at normal speed.",
+    revision: "Replay once, then note numbers and time expressions before choosing.",
+  },
+  {
+    title: "Grammar / Vocabulary",
+    duration: "15 min",
+    status: "Ready",
+    prompt: "Complete tense, collocation, and travel vocabulary items.",
+    mistake: "Past Simple and Present Perfect are mixed in short-answer items.",
+    revision: "Review time markers such as last summer, already, and ever.",
+  },
+  {
+    title: "Writing",
+    duration: "25 min",
+    status: "Teacher review",
+    prompt: "Write a short travel review with clear sequencing and opinion language.",
+    mistake: "The paragraph needs clearer linking words and more precise adjectives.",
+    revision: "Revise structure first, then improve vocabulary. Correct answers remain locked.",
+  },
 ];

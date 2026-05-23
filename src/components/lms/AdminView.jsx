@@ -1,11 +1,27 @@
-import { BookOpen, Building2, Palette, Plus, UploadCloud, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, Download, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
-import { brandPresets, classes, exerciseTypes, schoolMetrics, users } from "../../data/lmsDemoData.js";
+import { brandPresets, classes, exerciseTypes, publisherIntelligence, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
 export function AdminView({ brand, setBrand }) {
   const [userCreated, setUserCreated] = useState(false);
   const [bookAdded, setBookAdded] = useState(false);
+  const [exported, setExported] = useState(false);
+  const [createdUsers, setCreatedUsers] = useState(users);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    role: "Student",
+    level: "B1 Junior",
+    status: "Invited",
+  });
+
+  const handleCreateUser = (event) => {
+    event.preventDefault();
+    const name = newUser.name.trim() || `Demo ${newUser.role}`;
+    setCreatedUsers([{ ...newUser, name }, ...createdUsers]);
+    setUserCreated(true);
+    setNewUser({ name: "", role: "Student", level: "B1 Junior", status: "Invited" });
+  };
 
   return (
     <div className="workspace">
@@ -67,14 +83,41 @@ export function AdminView({ brand, setBrand }) {
             <div><span className="eyebrow"><Users size={15} /> User creation</span><h2>Users across three levels</h2></div>
             <button className="secondary-action" onClick={() => setUserCreated(true)}><UploadCloud size={17} /> Import CSV</button>
           </div>
-          {userCreated && <div className="inline-status">3 sample users staged for import. Admin, teacher, and student roles are visible below.</div>}
+          <form className="create-user-form" onSubmit={handleCreateUser}>
+            <label>
+              Name
+              <input value={newUser.name} placeholder="e.g. Sofia Laskari" onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
+            </label>
+            <label>
+              Role
+              <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
+                <option>Admin</option>
+                <option>Teacher</option>
+                <option>Student</option>
+              </select>
+            </label>
+            <label>
+              Class / level
+              <input value={newUser.level} onChange={(e) => setNewUser({ ...newUser, level: e.target.value })} />
+            </label>
+            <label>
+              Status
+              <select value={newUser.status} onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}>
+                <option>Active</option>
+                <option>Invited</option>
+                <option>Paused</option>
+              </select>
+            </label>
+            <button className="primary-action" type="submit"><UserPlus size={17} /> Create user</button>
+          </form>
+          {userCreated && <div className="inline-status">Demo user action completed. New users appear immediately in the table below.</div>}
           <div className="data-table">
-            {users.map((user) => (
-              <div key={user.name}>
+            {createdUsers.map((user, index) => (
+              <div key={`${user.name}-${index}`}>
                 <strong>{user.name}</strong>
                 <span>{user.role}</span>
                 <small>{user.level}</small>
-                <Tag tone={user.status === "Active" ? "green" : "gold"}>{user.status}</Tag>
+                <Tag tone={user.status === "Active" ? "green" : user.status === "Paused" ? "violet" : "gold"}>{user.status}</Tag>
               </div>
             ))}
           </div>
@@ -102,6 +145,28 @@ export function AdminView({ brand, setBrand }) {
           </div>
         </Card>
       </section>
+
+      <Card className="publisher-intelligence priority-panel">
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow"><BarChart3 size={15} /> Publisher intelligence</span>
+            <h2>Adoption evidence for publishing teams</h2>
+            <p>Aggregate book activation and engagement signals help an owner prove value across schools without exposing individual answers.</p>
+          </div>
+          <button className="secondary-action" onClick={() => setExported(true)}><Download size={17} /> Export adoption data</button>
+        </div>
+        {exported && <div className="inline-status success">Adoption export prepared with school, book code, unit usage, skill difficulty, and engagement columns.</div>}
+        <div className="publisher-metric-grid">
+          {publisherIntelligence.map((item) => (
+            <article key={item.label}>
+              <span style={{ background: item.accent }} />
+              <small>{item.label}</small>
+              <strong>{item.value}</strong>
+              <p>{item.note}</p>
+            </article>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
