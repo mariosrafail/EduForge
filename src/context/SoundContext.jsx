@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 const STORAGE_KEY = "hh_lms_sound_muted";
 const VOLUME_STORAGE_KEY = "hh_lms_sound_volume";
 const DEFAULT_VOLUME = 0.95;
+const MAX_OUTPUT_GAIN = 2.4;
 const HOVER_COOLDOWN_MS = 90;
 
 const SoundContext = createContext({
@@ -127,7 +128,7 @@ export function SoundProvider({ children }) {
       if (!AudioCtx) return null;
       const ctx = new AudioCtx();
       const master = ctx.createGain();
-      master.gain.value = volumeRef.current;
+      master.gain.value = volumeRef.current * MAX_OUTPUT_GAIN;
       master.connect(ctx.destination);
       audioCtxRef.current = ctx;
       masterRef.current = master;
@@ -206,7 +207,7 @@ export function SoundProvider({ children }) {
     setVolumeState(normalized);
     window.localStorage.setItem(VOLUME_STORAGE_KEY, String(normalized));
     if (masterRef.current) {
-      masterRef.current.gain.value = normalized;
+      masterRef.current.gain.value = normalized * MAX_OUTPUT_GAIN;
     }
     if (normalized > 0 && mutedRef.current) {
       mutedRef.current = false;
@@ -222,7 +223,7 @@ export function SoundProvider({ children }) {
   useEffect(() => {
     volumeRef.current = volume;
     if (masterRef.current) {
-      masterRef.current.gain.value = volume;
+      masterRef.current.gain.value = volume * MAX_OUTPUT_GAIN;
     }
   }, [volume]);
 
