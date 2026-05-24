@@ -20,9 +20,12 @@ function normalizeFeedback(feedback = {}, fallbackRevision = "") {
 function LoadingOverlay({ label }) {
   return (
     <div className="editor-loading-overlay" role="status" aria-live="polite">
-      <div className="editor-loading-orb">
-        <span />
-        <i />
+      <div className="puzzle-loader" aria-hidden="true">
+        <span className="puzzle-piece piece-1" />
+        <span className="puzzle-piece piece-2" />
+        <span className="puzzle-piece piece-3" />
+        <span className="puzzle-piece piece-4" />
+        <span className="puzzle-piece piece-5" />
       </div>
       <strong>{label}</strong>
     </div>

@@ -648,45 +648,68 @@ input[type="color"] { padding: 4px; height: 46px; }
   font-size: 13px;
   font-weight: 900;
 }
-.editor-loading-orb {
+.puzzle-loader {
   position: relative;
-  width: 92px;
-  height: 92px;
-  display: grid;
-  place-items: center;
+  width: 116px;
+  height: 82px;
+  filter: drop-shadow(0 18px 24px rgba(16, 24, 40, 0.16));
 }
-.editor-loading-orb::before,
-.editor-loading-orb::after,
-.editor-loading-orb span,
-.editor-loading-orb i {
+.puzzle-piece {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 6px;
+  background: var(--brand-primary);
+  box-shadow: inset 0 -5px 10px rgba(16, 24, 40, 0.13), 0 8px 18px rgba(16, 24, 40, 0.13);
+  animation: puzzleAssemble 1250ms cubic-bezier(0.24, 0.82, 0.24, 1) infinite;
+}
+.puzzle-piece::before,
+.puzzle-piece::after {
   content: "";
   position: absolute;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  background: inherit;
 }
-.editor-loading-orb::before {
-  inset: 0;
-  border: 7px solid rgba(23, 92, 211, 0.16);
-  border-top-color: var(--brand-primary);
-  border-right-color: var(--brand-secondary);
-  animation: loadingSpin 760ms linear infinite;
+.puzzle-piece::before {
+  top: 9px;
+  right: -7px;
 }
-.editor-loading-orb::after {
-  inset: 18px;
-  border: 5px solid rgba(249, 158, 11, 0.18);
-  border-bottom-color: var(--brand-secondary);
-  animation: loadingSpin 980ms linear infinite reverse;
+.puzzle-piece::after {
+  left: 9px;
+  bottom: -7px;
 }
-.editor-loading-orb span {
-  width: 24px;
-  height: 24px;
+.piece-1 {
+  left: 8px;
+  top: 10px;
+  background: #175cd3;
+  animation-delay: 0ms;
+}
+.piece-2 {
+  left: 40px;
+  top: 10px;
+  background: #f59e0b;
+  animation-delay: 90ms;
+}
+.piece-3 {
+  left: 72px;
+  top: 10px;
   background: #0b1f3a;
-  box-shadow: 0 0 0 9px rgba(23, 92, 211, 0.12);
-  animation: loadingPulse 900ms ease-in-out infinite;
+  animation-delay: 180ms;
 }
-.editor-loading-orb i {
-  width: 8px;
-  height: 8px;
-  background: #fff;
+.piece-4 {
+  left: 24px;
+  top: 42px;
+  background: #12b76a;
+  animation-delay: 270ms;
+}
+.piece-5 {
+  left: 56px;
+  top: 42px;
+  background: #1849a9;
+  animation-delay: 360ms;
 }
 .empty-user-state {
   display: grid;
@@ -2619,8 +2642,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 
 @keyframes growBar { from { width: 0; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes loadingSpin { to { transform: rotate(360deg); } }
-@keyframes loadingPulse { 0%, 100% { transform: scale(0.86); opacity: 0.72; } 50% { transform: scale(1); opacity: 1; } }
+@keyframes puzzleAssemble {
+  0%, 100% { transform: translateY(0) scale(1); }
+  28% { transform: translateY(-12px) scale(1.04); }
+  52% { transform: translateY(0) scale(1); }
+  72% { transform: translateY(4px) scale(0.98); }
+}
 @keyframes drawLine { from { stroke-dasharray: 24 240; stroke-dashoffset: 80; opacity: 0.3; } to { stroke-dasharray: 0 0; stroke-dashoffset: 0; opacity: 1; } }
 @keyframes dashFlow { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
 @keyframes snapIn { 0% { transform: scale(0.985); opacity: 0.82; } 100% { transform: scale(1); opacity: 1; } }

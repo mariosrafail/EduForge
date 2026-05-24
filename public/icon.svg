@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hamilton House app icon">
-  <rect width="512" height="512" rx="72" fill="#0b1f3a"/>
-  <path d="M92 250 256 112l164 138v166c0 24-20 44-44 44H136c-24 0-44-20-44-44V250Z" fill="#f97316"/>
-  <path d="M180 452V268h64v72h24v-72h64v184H180Z" fill="#fff"/>
-  <path d="M116 250 256 132l140 118" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
