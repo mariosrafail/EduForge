@@ -8,6 +8,16 @@ import { MatchingNode } from "./MatchingNode.jsx";
 
 const connectionColors = ["#f97316", "#0b1f3a", "#0f766e", "#7c3aed", "#16a34a", "#d97706"];
 
+function shuffleWeight(seed, itemId, index) {
+  const key = `${seed}:${itemId}:${index}`;
+  let hash = 0;
+  for (let charIndex = 0; charIndex < key.length; charIndex += 1) {
+    hash = ((hash << 5) - hash) + key.charCodeAt(charIndex);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function colorForConnection(leftId, rightId) {
   const key = `${leftId}:${rightId}`;
   let hash = 0;
@@ -46,6 +56,13 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
   const [lines, setLines] = useState([]);
   const [draftLine, setDraftLine] = useState(null);
   const score = useMemo(() => scoreLineMatching(activity, answers), [activity, answers]);
+  const shuffledRightItems = useMemo(
+    () => [...(activity.rightItems || [])]
+      .map((item, index) => ({ item, weight: shuffleWeight(activity.id || activity.title || "line-matching", item.id, index) }))
+      .sort((a, b) => a.weight - b.weight)
+      .map(({ item }) => item),
+    [activity.id, activity.rightItems, activity.title],
+  );
 
   const measureLines = useCallback(() => {
     const container = containerRef.current;
@@ -74,7 +91,7 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
   useLayoutEffect(() => {
     const frame = requestAnimationFrame(measureLines);
     return () => cancelAnimationFrame(frame);
-  }, [measureLines]);
+  }, [measureLines, shuffledRightItems]);
 
   useEffect(() => {
     window.addEventListener("resize", measureLines);
@@ -127,7 +144,7 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
 
     const targetSide = activeDrag.side === "left" ? "right" : "left";
     const targetId = targetSide === "right"
-      ? findItemAtPoint(activity.rightItems, rightRefs, event.clientX, event.clientY)
+      ? findItemAtPoint(shuffledRightItems, rightRefs, event.clientX, event.clientY)
       : findItemAtPoint(activity.leftItems, leftRefs, event.clientX, event.clientY);
     setHoverTarget(targetId ? { side: targetSide, itemId: targetId } : null);
   };
@@ -136,7 +153,7 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
     if (!activeDrag || submitted) return;
 
     if (activeDrag.side === "left") {
-      const targetRightId = findItemAtPoint(activity.rightItems, rightRefs, event.clientX, event.clientY);
+      const targetRightId = findItemAtPoint(shuffledRightItems, rightRefs, event.clientX, event.clientY);
       if (targetRightId) {
         replaceMatch(activeDrag.itemId, targetRightId);
         playSound("dropSuccess");
@@ -220,7 +237,7 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
         </div>
 
         <div className="line-match-column right-column">
-          {activity.rightItems.map((item, index) => (
+          {shuffledRightItems.map((item, index) => (
             <MatchingNode
               key={item.id}
               item={item}

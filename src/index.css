@@ -2617,8 +2617,37 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .inline-editor-list > div:has(> input:only-of-type) { grid-template-columns: minmax(0, 1fr) auto; }
 .sentence-editor-row { grid-template-columns: minmax(0, 1.2fr) minmax(120px, 0.55fr) auto !important; }
+.line-editor-intro {
+  grid-template-columns: 1fr !important;
+  gap: 4px !important;
+  padding: 4px 0 2px;
+}
+.line-editor-intro strong,
+.line-editor-intro span {
+  display: block;
+}
+.line-editor-intro span {
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.4;
+}
 .line-pair-editor-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto !important;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto !important;
+  gap: 10px !important;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 8px;
+}
+.line-pair-arrow {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-height: 38px;
+  color: #f97316;
+  font-size: 18px;
+  font-weight: 900;
 }
 .line-pair-editor-row .right-item-editor {
   grid-column: 1 / -1;
@@ -2912,6 +2941,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .role-entry { min-height: 240px; }
   .lesson-intro-panel, .activity-shell-header, .activity-editor-head, .single-activity-actions, .completion-hero { flex-direction: column; align-items: stretch; }
   .gap-items article, .inline-editor-list > div, .sentence-editor-row { grid-template-columns: 1fr !important; }
+  .line-pair-arrow { width: 100%; min-height: 18px; justify-content: start; }
   .add-activity-choice-grid, .word-search-direction-grid { grid-template-columns: 1fr; }
   .add-activity-modal-actions { justify-content: stretch; }
   .add-activity-modal-actions button { width: 100%; }

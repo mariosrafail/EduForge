@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ArrowDown, ArrowUp, ListPlus, Trash2 } from "lucide-react";
+import { ListPlus, Trash2 } from "lucide-react";
 import { WordSearchEditor } from "./WordSearchEditor.jsx";
 
 function cloneActivities(course, updater) {
@@ -137,16 +137,22 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
     });
   };
 
-  const updateLineRightItem = (rightId, value) => {
-    updateActivity({
-      ...activity,
-      rightItems: activity.rightItems.map((item) => (item.id === rightId ? { ...item, label: value } : item)),
-    });
+  const getRightItemForLeft = (leftId, itemIndex) => {
+    const pairedRightId = activity.correctPairs?.[leftId];
+    return activity.rightItems.find((item) => item.id === pairedRightId) || activity.rightItems[itemIndex] || null;
   };
 
-  const updateLineCorrectPair = (leftId, rightId) => {
+  const updateLineRightForLeft = (leftId, itemIndex, value) => {
+    const currentRight = getRightItemForLeft(leftId, itemIndex);
+    const rightId = currentRight?.id || `right-${Date.now()}-${itemIndex}`;
+    const hasRight = activity.rightItems.some((item) => item.id === rightId);
+    const nextRightItems = hasRight
+      ? activity.rightItems.map((item) => (item.id === rightId ? { ...item, label: value } : item))
+      : [...activity.rightItems, { id: rightId, label: value }];
+
     updateActivity({
       ...activity,
+      rightItems: nextRightItems,
       correctPairs: { ...activity.correctPairs, [leftId]: rightId },
     });
   };
@@ -163,12 +169,14 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
     });
   };
 
-  const removeLineLeftItem = (leftId) => {
+  const removeLinePair = (leftId) => {
+    const pairedRightId = activity.correctPairs?.[leftId];
     const nextCorrectPairs = { ...activity.correctPairs };
     delete nextCorrectPairs[leftId];
     updateActivity({
       ...activity,
       leftItems: activity.leftItems.filter((item) => item.id !== leftId),
+      rightItems: pairedRightId ? activity.rightItems.filter((item) => item.id !== pairedRightId) : activity.rightItems,
       correctPairs: nextCorrectPairs,
     });
   };
@@ -297,29 +305,31 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
       {activity.type === "line-matching" && (
         <>
           <div className="inline-editor-list line-editor-list">
-            <strong>Line matching pairs</strong>
-            {activity.leftItems.map((leftItem, itemIndex) => (
+            <div className="line-editor-intro">
+              <strong>Line matching pairs</strong>
+              <span>Enter each correct pair below. The right-side answers will be shuffled automatically for students.</span>
+            </div>
+            {activity.leftItems.map((leftItem, itemIndex) => {
+              const rightItem = getRightItemForLeft(leftItem.id, itemIndex);
+              return (
               <div className="line-pair-editor-row" key={leftItem.id}>
-                <input value={leftItem.label} onChange={(event) => updateLineLeftItem(leftItem.id, event.target.value)} />
-                <select
-                  value={activity.correctPairs[leftItem.id] || ""}
-                  onChange={(event) => updateLineCorrectPair(leftItem.id, event.target.value)}
-                >
-                  <option value="">Choose correct right item</option>
-                  {activity.rightItems.map((rightItem) => (
-                    <option key={rightItem.id} value={rightItem.id}>{rightItem.label}</option>
-                  ))}
-                </select>
-                <button data-sound-click="deleteRemove" onClick={() => removeLineLeftItem(leftItem.id)}><Trash2 size={15} /></button>
-                {activity.rightItems[itemIndex] && (
-                  <input
-                    className="right-item-editor"
-                    value={activity.rightItems[itemIndex].label}
-                    onChange={(event) => updateLineRightItem(activity.rightItems[itemIndex].id, event.target.value)}
-                  />
-                )}
+                <input
+                  aria-label={`Left item ${itemIndex + 1}`}
+                  placeholder="Left item text"
+                  value={leftItem.label}
+                  onChange={(event) => updateLineLeftItem(leftItem.id, event.target.value)}
+                />
+                <span className="line-pair-arrow" aria-hidden="true">&rarr;</span>
+                <input
+                  aria-label={`Correct right item ${itemIndex + 1}`}
+                  placeholder="Correct right item text"
+                  value={rightItem?.label || ""}
+                  onChange={(event) => updateLineRightForLeft(leftItem.id, itemIndex, event.target.value)}
+                />
+                <button data-sound-click="deleteRemove" onClick={() => removeLinePair(leftItem.id)}><Trash2 size={15} /></button>
               </div>
-            ))}
+              );
+            })}
             <button className="secondary-action compact-action" onClick={addLinePair}>
               <ListPlus size={16} /> Add line pair
             </button>
