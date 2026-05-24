@@ -32,7 +32,7 @@ function displayRole(role) {
 }
 
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
-  const { muted, audioReady, toggleMuted, enableSound, unlockAudio, playSound } = useSoundEffects();
+  const { muted, audioReady, volume, toggleMuted, enableSound, setVolume, unlockAudio, playSound } = useSoundEffects();
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
   return (
@@ -94,6 +94,19 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
           <Waves size={16} />
           <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
         </button>
+        <label className="sound-volume-control" title="Sound volume">
+          <Volume2 size={15} />
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={volume}
+            aria-label="Sound volume"
+            onChange={(event) => setVolume(event.target.value)}
+          />
+          <span>{Math.round(volume * 100)}%</span>
+        </label>
         {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
       </nav>
     </header>

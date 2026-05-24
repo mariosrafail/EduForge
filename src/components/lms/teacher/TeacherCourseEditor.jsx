@@ -6,11 +6,8 @@ import { ActivityEditor } from "./ActivityEditor.jsx";
 import { ActivityPreviewPanel } from "./ActivityPreviewPanel.jsx";
 import { ActivityTabs } from "./ActivityTabs.jsx";
 import { LessonEditor } from "./LessonEditor.jsx";
-import { StudentPreviewPanel } from "./StudentPreviewPanel.jsx";
 import { TeacherEditorHelp } from "./TeacherEditorHelp.jsx";
 import { defaultWordSearchDirections, generateWordSearch } from "../../../utils/wordSearchGenerator.js";
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 function normalizeFeedback(feedback = {}, fallbackRevision = "") {
   return {
@@ -104,22 +101,6 @@ function activityToApiPatch(activity, index) {
   }
 
   return activity;
-}
-
-function activityGuidance(type) {
-  if (type === "gap-fill") {
-    return "Edit the word bank, gap prompts, and accepted answers. Keep one accepted answer per gap for this demo.";
-  }
-  if (type === "line-matching") {
-    return "Edit the left and right boxes, then set which pairs are correct.";
-  }
-  if (type === "multiple-choice") {
-    return "Edit the question, answer options, and the correct option. Students will see the selected option as a full answer card.";
-  }
-  if (type === "word-search") {
-    return "Add the word list, choose allowed directions, and generate the word search puzzle grid.";
-  }
-  return "Edit the activity content and save when you are ready.";
 }
 
 function createActivityTemplate(type, orderIndex) {
@@ -221,8 +202,7 @@ export function TeacherCourseEditor({
   const { playSound } = useSoundEffects();
   const [saved, setSaved] = useState(false);
   const [assigned, setAssigned] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showActivityPreview, setShowActivityPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState(null);
   const [selectedActivityIndex, setSelectedActivityIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -255,7 +235,7 @@ export function TeacherCourseEditor({
     onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
     const nextSelected = activities.length ? Math.min(selectedActivityIndex, activities.length - 1) : 0;
     setSelectedActivityIndex(nextSelected);
-    setShowActivityPreview(false);
+    setPreviewMode(null);
   };
 
   const addActivity = (activityType) => {
@@ -264,7 +244,7 @@ export function TeacherCourseEditor({
     activities.push(nextActivity);
     onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
     setSelectedActivityIndex(activities.length - 1);
-    setShowActivityPreview(false);
+    setPreviewMode(null);
   };
 
   const saveSelectedActivity = async () => {
@@ -275,9 +255,6 @@ export function TeacherCourseEditor({
     setSaveError("");
     try {
       await saveActivity?.(selectedActivity.id, activityToApiPatch(selectedActivity, selectedActivityIndex));
-      if (uuidPattern.test(selectedActivity.id)) {
-        await reloadCourse?.();
-      }
       setActivitySaved(true);
       window.setTimeout(() => setActivitySaved(false), 2600);
     } catch (error) {
@@ -324,9 +301,6 @@ export function TeacherCourseEditor({
         text={`${course.title} / ${course.lesson.title}. The editor is intentionally focused on lesson content and interactive activities.`}
         action={(
           <div className="editor-action-row">
-            <button className="secondary-action" onClick={() => setShowPreview(!showPreview)}>
-              <Eye size={17} /> {showPreview ? "Hide preview" : "Preview here"}
-            </button>
             <button className="secondary-action" onClick={() => navigateTo("student-preview")}>
               <Eye size={17} /> Open student preview
             </button>
@@ -380,7 +354,7 @@ export function TeacherCourseEditor({
                 onSelect={(index, action) => {
                   if (!action) {
                     setSelectedActivityIndex(index);
-                    setShowActivityPreview(false);
+                    setPreviewMode(null);
                     return;
                   }
                   if (action.type === "reorder") {
@@ -408,18 +382,18 @@ export function TeacherCourseEditor({
                     onMove={moveActivity}
                   />
                   <aside className="selected-activity-actions">
-                    <div className="activity-guidance-box">
-                      <strong>Teacher note</strong>
-                      <p>{activityGuidance(selectedActivity.type)}</p>
-                    </div>
                     <button className="primary-action" data-sound-ignore="true" onClick={saveSelectedActivity} disabled={saving}>
                       <Save size={17} /> {saving ? "Saving..." : "Save activity"}
                     </button>
-                    <button className="secondary-action" data-sound-ignore="true" onClick={() => {
-                      setShowActivityPreview(!showActivityPreview);
-                    }}>
-                      <Eye size={17} /> {showActivityPreview ? "Hide preview" : "Preview as student"}
-                    </button>
+                    <div className="preview-action-stack">
+                      <span>Preview the selected activity or the full lesson flow before publishing.</span>
+                      <button className="secondary-action" data-sound-ignore="true" onClick={() => setPreviewMode("activity")}>
+                        <Eye size={17} /> Preview activity
+                      </button>
+                      <button className="secondary-action" data-sound-ignore="true" onClick={() => setPreviewMode("course")}>
+                        <Eye size={17} /> Preview whole course
+                      </button>
+                    </div>
                   </aside>
                 </div>
               )}
@@ -461,17 +435,16 @@ export function TeacherCourseEditor({
             </Card>
           </details>
 
-          {showActivityPreview && selectedActivity && (
+          {previewMode && selectedActivity && (
             <ActivityPreviewPanel
               course={course}
               activity={selectedActivity}
-              onClose={() => setShowActivityPreview(false)}
+              mode={previewMode}
+              onClose={() => setPreviewMode(null)}
             />
           )}
         </main>
       </div>
-
-      {showPreview && <StudentPreviewPanel course={course} />}
     </div>
   );
 }

@@ -145,6 +145,27 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   border-color: #84caff !important;
   background: #d1e9ff !important;
 }
+.sound-volume-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 10px;
+  color: #344054;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 900;
+}
+.sound-volume-control input {
+  width: 92px;
+  min-height: 0;
+  padding: 0;
+}
+.sound-volume-control span {
+  min-width: 34px;
+}
 .header-tools { position: fixed; right: 24px; top: 16px; display: grid; gap: 8px; z-index: 21; }
 .header-tools button { width: 46px; height: 42px; justify-content: center; padding: 0; position: relative; }
 .header-tools button.active-tool { background: #101828; border-color: #101828; color: #fff; }
@@ -2204,6 +2225,19 @@ input[type="color"] { padding: 4px; height: 46px; }
   position: sticky;
   top: 104px;
 }
+.preview-action-stack {
+  display: grid;
+  gap: 8px;
+}
+.preview-action-stack span {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.4;
+}
+.preview-action-stack .secondary-action {
+  width: 100%;
+}
 .activity-empty-editor {
   padding: 18px;
   background: #f8fafc;
@@ -2214,14 +2248,6 @@ input[type="color"] { padding: 4px; height: 46px; }
   margin: 7px 0 0;
   color: var(--ink-muted);
 }
-.activity-guidance-box {
-  padding: 14px;
-  background: #f8fafc;
-  border: 1px solid #e6edf6;
-  border-radius: 8px;
-}
-.activity-guidance-box strong { display: block; margin-bottom: 6px; }
-.activity-guidance-box p { margin: 0; color: var(--ink-muted); line-height: 1.45; }
 .feedback-editor-list > div:first-child {
   display: grid;
   gap: 3px;
@@ -2287,6 +2313,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 .compact-preview .workspace { padding: 16px; }
 .compact-preview .course-lesson-layout { grid-template-columns: 1fr; }
 .compact-preview .lesson-sidebar { display: none; }
+.activity-preview-only .lesson-breadcrumbs,
+.activity-preview-only .section-title,
+.activity-preview-only .activity-flow-header,
+.activity-preview-only .activity-flow-progress {
+  display: none;
+}
 .lesson-editor-panel, .activity-editor-card, .student-preview-panel {
   display: grid;
   gap: 16px;

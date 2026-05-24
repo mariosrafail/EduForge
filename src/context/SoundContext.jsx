@@ -1,14 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "hh_lms_sound_muted";
+const VOLUME_STORAGE_KEY = "hh_lms_sound_volume";
 const DEFAULT_VOLUME = 0.95;
 const HOVER_COOLDOWN_MS = 90;
 
 const SoundContext = createContext({
   muted: false,
   audioReady: false,
+  volume: DEFAULT_VOLUME,
   toggleMuted: () => {},
   enableSound: () => {},
+  setVolume: () => {},
   unlockAudio: async () => false,
   playSound: () => {},
 });
@@ -103,7 +106,13 @@ export function SoundProvider({ children }) {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(STORAGE_KEY) === "1";
   });
+  const [volume, setVolumeState] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_VOLUME;
+    const saved = Number(window.localStorage.getItem(VOLUME_STORAGE_KEY));
+    return Number.isFinite(saved) ? clamp(saved, 0, 1) : DEFAULT_VOLUME;
+  });
   const mutedRef = useRef(muted);
+  const volumeRef = useRef(volume);
   const [audioReady, setAudioReady] = useState(false);
   const audioCtxRef = useRef(null);
   const masterRef = useRef(null);
@@ -118,7 +127,7 @@ export function SoundProvider({ children }) {
       if (!AudioCtx) return null;
       const ctx = new AudioCtx();
       const master = ctx.createGain();
-      master.gain.value = DEFAULT_VOLUME;
+      master.gain.value = volumeRef.current;
       master.connect(ctx.destination);
       audioCtxRef.current = ctx;
       masterRef.current = master;
@@ -191,9 +200,31 @@ export function SoundProvider({ children }) {
     window.localStorage.setItem(STORAGE_KEY, "0");
   }, []);
 
+  const setVolume = useCallback((nextVolume) => {
+    const normalized = clamp(Number(nextVolume), 0, 1);
+    volumeRef.current = normalized;
+    setVolumeState(normalized);
+    window.localStorage.setItem(VOLUME_STORAGE_KEY, String(normalized));
+    if (masterRef.current) {
+      masterRef.current.gain.value = normalized;
+    }
+    if (normalized > 0 && mutedRef.current) {
+      mutedRef.current = false;
+      setMuted(false);
+      window.localStorage.setItem(STORAGE_KEY, "0");
+    }
+  }, []);
+
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+    if (masterRef.current) {
+      masterRef.current.gain.value = volume;
+    }
+  }, [volume]);
 
   useEffect(() => {
     const onPointerDown = () => {
@@ -235,7 +266,16 @@ export function SoundProvider({ children }) {
     };
   }, [playHoverFor, playSound]);
 
-  const value = useMemo(() => ({ muted, audioReady, toggleMuted, enableSound, unlockAudio, playSound }), [audioReady, enableSound, muted, playSound, toggleMuted, unlockAudio]);
+  const value = useMemo(() => ({
+    muted,
+    audioReady,
+    volume,
+    toggleMuted,
+    enableSound,
+    setVolume,
+    unlockAudio,
+    playSound,
+  }), [audioReady, enableSound, muted, playSound, setVolume, toggleMuted, unlockAudio, volume]);
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
 }

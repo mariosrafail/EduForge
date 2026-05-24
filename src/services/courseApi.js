@@ -3,7 +3,9 @@ const jsonHeaders = { "Content-Type": "application/json" };
 async function parseJsonResponse(response) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || payload.detail || "Course API request failed");
+    const error = new Error(payload.error || payload.detail || "Course API request failed");
+    error.status = response.status;
+    throw error;
   }
   return payload;
 }
@@ -44,6 +46,14 @@ export async function updateActivity(activityId, patch) {
   const payload = await request(`/.netlify/functions/activity?id=${encodeURIComponent(activityId)}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
+  });
+  return payload.course;
+}
+
+export async function createActivity(lessonId, activityInput) {
+  const payload = await request("/.netlify/functions/activity", {
+    method: "POST",
+    body: JSON.stringify({ ...activityInput, lesson_id: lessonId }),
   });
   return payload.course;
 }

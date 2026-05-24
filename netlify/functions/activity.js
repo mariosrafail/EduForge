@@ -27,19 +27,74 @@ function normalizeGapFillPayload(content = {}, correctAnswers = {}) {
   };
 }
 
+function normalizeActivityPayload(type, rawContent, rawCorrectAnswers) {
+  if (type === "gap_fill") {
+    return normalizeGapFillPayload(rawContent, rawCorrectAnswers);
+  }
+
+  return { content: rawContent || {}, correct_answers: rawCorrectAnswers || {} };
+}
+
+function validateActivityType(type) {
+  return allowedTypes.has(type) ? "" : "type must be one of: gap_fill, line_matching, multiple_choice, word_search";
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
 
   try {
-    if (event.httpMethod !== "PATCH") return json(405, { error: "Method not allowed" });
+    if (event.httpMethod !== "PATCH" && event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
+
+    const body = parseBody(event);
+    const sql = getSql();
+
+    if (event.httpMethod === "POST") {
+      const lessonIdError = validateUuid(body.lesson_id, "lesson_id");
+      if (lessonIdError) return json(400, { error: lessonIdError });
+
+      const lessons = await sql`
+        select id, course_id
+        from lessons
+        where id = ${body.lesson_id}
+        limit 1
+      `;
+      if (!lessons.length) return json(404, { error: "Lesson not found" });
+
+      const type = body.type;
+      const typeError = validateActivityType(type);
+      if (typeError) return json(400, { error: typeError });
+
+      const title = sanitizeRequiredText(body.title);
+      if (!title) return json(400, { error: "title is required" });
+
+      const normalizedPayload = normalizeActivityPayload(type, body.content, body.correct_answers);
+      const contentJson = JSON.stringify(normalizedPayload.content);
+      const correctJson = JSON.stringify(normalizedPayload.correct_answers);
+      const feedbackJson = JSON.stringify(body.feedback || {});
+
+      await sql`
+        insert into lesson_activities (lesson_id, type, title, instructions, position, content, correct_answers, feedback, skill)
+        values (
+          ${body.lesson_id},
+          ${type},
+          ${title},
+          ${sanitizeText(body.instructions)},
+          ${Number(body.position) || 1},
+          ${contentJson}::jsonb,
+          ${correctJson}::jsonb,
+          ${feedbackJson}::jsonb,
+          ${sanitizeText(body.skill)}
+        )
+      `;
+
+      return json(200, { course: await fetchCourseById(sql, lessons[0].course_id) });
+    }
 
     const params = new URLSearchParams(event.rawQuery || "");
     const id = params.get("id");
     const idError = validateUuid(id, "activity id");
     if (idError) return json(400, { error: idError });
 
-    const body = parseBody(event);
-    const sql = getSql();
     const existing = await sql`
       select la.id, la.type, la.title, la.instructions, la.position, la.content, la.correct_answers, la.feedback, la.skill, l.course_id
       from lesson_activities la
@@ -51,16 +106,15 @@ export async function handler(event) {
     const activity = existing[0];
 
     const type = body.type === undefined ? activity.type : body.type;
-    if (!allowedTypes.has(type)) return json(400, { error: "type must be one of: gap_fill, line_matching, multiple_choice, word_search" });
+    const typeError = validateActivityType(type);
+    if (typeError) return json(400, { error: typeError });
 
     const title = body.title === undefined ? activity.title : sanitizeRequiredText(body.title);
     if (!title) return json(400, { error: "title is required" });
 
     const rawContent = body.content === undefined ? activity.content : body.content;
     const rawCorrectAnswers = body.correct_answers === undefined ? activity.correct_answers : body.correct_answers;
-    const normalizedPayload = type === "gap_fill"
-      ? normalizeGapFillPayload(rawContent, rawCorrectAnswers)
-      : { content: rawContent, correct_answers: rawCorrectAnswers };
+    const normalizedPayload = normalizeActivityPayload(type, rawContent, rawCorrectAnswers);
     const contentJson = JSON.stringify(normalizedPayload.content);
     const correctJson = JSON.stringify(normalizedPayload.correct_answers);
     const feedbackJson = JSON.stringify(body.feedback === undefined ? activity.feedback : body.feedback);

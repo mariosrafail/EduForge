@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cloneCourseDemo } from "../data/courseDemoData.js";
-import { getCourse, submitLesson, updateActivity, updateCourse, updateLesson } from "../services/courseApi.js";
+import { createActivity, getCourse, submitLesson, updateActivity, updateCourse, updateLesson } from "../services/courseApi.js";
 
 const unavailableMessage = "Database connection unavailable, using local demo content.";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function canUseLocalFallback(error) {
+  return !error?.status || error.status === 404;
+}
 
 function normalizeFeedback(feedback = {}) {
   return {
@@ -160,8 +164,21 @@ export function useCourseData() {
     };
 
     if (!uuidPattern.test(activityId)) {
-      setError(unavailableMessage);
-      return saveLocalActivity();
+      try {
+        const nextCourse = await createActivity(course.lesson.id, patch);
+        setCourse(nextCourse);
+        setError("");
+        setLastSavedAt(new Date().toISOString());
+        return nextCourse;
+      } catch (requestError) {
+        console.warn(requestError);
+        if (!canUseLocalFallback(requestError)) {
+          setError("Activity save failed. Check the database migration and try again.");
+          throw requestError;
+        }
+        setError(unavailableMessage);
+        return saveLocalActivity();
+      }
     }
 
     try {
@@ -172,10 +189,14 @@ export function useCourseData() {
       return nextCourse;
     } catch (requestError) {
       console.warn(requestError);
+      if (!canUseLocalFallback(requestError)) {
+        setError("Activity save failed. Check the database migration and try again.");
+        throw requestError;
+      }
       setError(unavailableMessage);
       return saveLocalActivity();
     }
-  }, []);
+  }, [course.lesson.id]);
 
   const submitCourseLesson = useCallback(async (payload) => {
     try {
