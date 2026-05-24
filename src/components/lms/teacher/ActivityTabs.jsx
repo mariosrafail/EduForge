@@ -19,7 +19,6 @@ function iconFor(type) {
 export function ActivityTabs({ activities, selectedIndex, onSelect }) {
   const [dragActivityId, setDragActivityId] = useState("");
   const [overActivityId, setOverActivityId] = useState("");
-  const [newType, setNewType] = useState("gap-fill");
 
   const handleDrop = (targetId) => {
     if (!dragActivityId || dragActivityId === targetId) return;
@@ -77,16 +76,10 @@ export function ActivityTabs({ activities, selectedIndex, onSelect }) {
         );
       })}
       <div className="activity-add-row">
-        <select value={newType} onChange={(event) => setNewType(event.target.value)} aria-label="New activity type">
-          <option value="gap-fill">Gap Fill</option>
-          <option value="line-matching">Line Matching</option>
-          <option value="multiple-choice">Multiple Choice</option>
-          <option value="word-search">Word Search</option>
-        </select>
         <button
           type="button"
           className="secondary-action compact-action"
-          onClick={() => onSelect(selectedIndex, { type: "add", activityType: newType })}
+          onClick={() => onSelect(selectedIndex, { type: "add" })}
         >
           <Plus size={15} /> Add activity
         </button>

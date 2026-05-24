@@ -23,6 +23,17 @@ button, input, textarea, select { font: inherit; }
 button { border: 0; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: 0.68; transform: none !important; box-shadow: none !important; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand-primary) 24%, transparent); outline-offset: 2px; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .eduforge-app { min-height: 100vh; color: #101828; }
 .role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
@@ -636,17 +647,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   align-content: center;
   background: rgba(244, 247, 251, 0.58);
   backdrop-filter: blur(6px);
-  animation: reveal 140ms ease-out;
-}
-.editor-loading-overlay strong {
-  padding: 7px 10px;
-  color: #0b1f3a;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(213, 223, 235, 0.9);
-  border-radius: 6px;
-  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
-  font-size: 13px;
-  font-weight: 900;
+  animation: loadingOverlayFadeIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .puzzle-loader {
   position: relative;
@@ -656,6 +657,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   background: transparent;
   border: 0;
   box-shadow: none;
+  animation: puzzleLoaderEnter 460ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
 }
 .puzzle-piece {
   position: absolute;
@@ -2458,6 +2460,82 @@ input[type="color"] { padding: 4px; height: 46px; }
   border-color: #fecdca;
   transform: translateY(-1px);
 }
+.add-activity-modal {
+  width: min(760px, 96vw);
+}
+.add-activity-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.add-activity-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 106px;
+  padding: 14px;
+  text-align: left;
+  color: #0b1f3a;
+  background: #fff;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 22px rgba(16, 24, 40, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.add-activity-choice:hover,
+.add-activity-choice:focus-visible {
+  background: #fffaf5;
+  border-color: rgba(249, 115, 22, 0.58);
+  box-shadow: 0 14px 26px rgba(16, 24, 40, 0.1);
+  transform: translateY(-1px);
+}
+.add-activity-choice.selected {
+  background: #ffedd5;
+  border-color: #f97316;
+  box-shadow: 0 16px 30px rgba(249, 115, 22, 0.16);
+}
+.add-activity-choice-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #0b1f3a;
+  background: #f8fafc;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+}
+.add-activity-choice.selected .add-activity-choice-icon {
+  color: #fff;
+  background: #f97316;
+  border-color: #f97316;
+}
+.add-activity-choice strong,
+.add-activity-choice small {
+  display: block;
+}
+.add-activity-choice strong {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 900;
+}
+.add-activity-choice small {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.35;
+}
+.add-activity-selected-icon {
+  color: #f97316;
+}
+.add-activity-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
 .compact-preview {
   max-height: 660px;
   overflow: auto;
@@ -2571,30 +2649,66 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .word-search-direction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
 }
 .activity-editor-card .word-search-direction-checkbox {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  min-height: 48px;
-  padding: 8px 10px;
-  background: #f8fafc;
-  border: 1px solid #e6edf6;
-  border-radius: 6px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 12px;
+  color: #0b1f3a;
+  background: #fff;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 13px;
-  font-weight: 760;
+  font-weight: 850;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.activity-editor-card .word-search-direction-checkbox:hover {
+  background: #fffaf5;
+  border-color: rgba(249, 115, 22, 0.55);
+  transform: translateY(-1px);
+}
+.activity-editor-card .word-search-direction-checkbox.selected {
+  background: #ffedd5;
+  border-color: #f97316;
+  box-shadow: 0 10px 18px rgba(249, 115, 22, 0.13);
 }
 .activity-editor-card .word-search-direction-checkbox input {
-  width: 16px;
-  height: 16px;
-  min-height: 16px;
-  flex: 0 0 auto;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 1px;
   margin: 0;
   padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.activity-editor-card .word-search-direction-checkbox:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
+  outline-offset: 2px;
+}
+.activity-editor-card .word-search-direction-checkbox .direction-check {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+  color: #f97316;
+  background: #fff;
+  border: 1px solid #dbe4f0;
+  border-radius: 6px;
+  box-shadow: inset 0 -1px 0 rgba(16, 24, 40, 0.04);
+}
+.activity-editor-card .word-search-direction-checkbox.selected .direction-check {
+  background: #fff7ed;
+  border-color: #f97316;
 }
 .activity-editor-card .word-search-direction-checkbox span {
   display: block;
@@ -2711,6 +2825,26 @@ input[type="color"] { padding: 4px; height: 46px; }
 
 @keyframes growBar { from { width: 0; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loadingOverlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+  }
+}
+@keyframes puzzleLoaderEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 @keyframes puzzleGlow {
   0%, 100% { transform: translateY(0) scale(1); opacity: 0.82; }
   45% { transform: translateY(-4px) scale(1.04); opacity: 1; }
@@ -2778,6 +2912,9 @@ input[type="color"] { padding: 4px; height: 46px; }
   .role-entry { min-height: 240px; }
   .lesson-intro-panel, .activity-shell-header, .activity-editor-head, .single-activity-actions, .completion-hero { flex-direction: column; align-items: stretch; }
   .gap-items article, .inline-editor-list > div, .sentence-editor-row { grid-template-columns: 1fr !important; }
+  .add-activity-choice-grid, .word-search-direction-grid { grid-template-columns: 1fr; }
+  .add-activity-modal-actions { justify-content: stretch; }
+  .add-activity-modal-actions button { width: 100%; }
   .gap-items select, .gap-drop, .draggable-chip { width: 100%; }
   .course-activity { padding: 18px; }
   .flow-progress-top { align-items: flex-start; flex-direction: column; }

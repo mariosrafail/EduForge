@@ -1,4 +1,4 @@
-import { ListPlus, Trash2 } from "lucide-react";
+import { Check, ListPlus, Trash2 } from "lucide-react";
 import { defaultWordSearchDirections, generateWordSearch, wordSearchDirections } from "../../../utils/wordSearchGenerator.js";
 
 function makeWordId() {
@@ -64,12 +64,16 @@ export function WordSearchEditor({ activity, onUpdate }) {
       <div className="inline-editor-list word-search-direction-list">
         <strong>Allowed directions</strong>
         <div className="word-search-direction-grid">
-          {wordSearchDirections.map((direction) => (
-            <label key={direction.value} className="word-search-direction-checkbox">
-              <input type="checkbox" checked={directions.includes(direction.value)} onChange={() => toggleDirection(direction.value)} />
-              <span>{direction.label}</span>
-            </label>
-          ))}
+          {wordSearchDirections.map((direction) => {
+            const selected = directions.includes(direction.value);
+            return (
+              <label key={direction.value} className={`word-search-direction-checkbox ${selected ? "selected" : ""}`}>
+                <input type="checkbox" checked={selected} onChange={() => toggleDirection(direction.value)} />
+                <span className="direction-check" aria-hidden="true">{selected && <Check size={14} strokeWidth={3} />}</span>
+                <span>{direction.label}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
 

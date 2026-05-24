@@ -5,6 +5,7 @@ import { useSoundEffects } from "../../../context/SoundContext.jsx";
 import { ActivityEditor } from "./ActivityEditor.jsx";
 import { ActivityPreviewPanel } from "./ActivityPreviewPanel.jsx";
 import { ActivityTabs } from "./ActivityTabs.jsx";
+import { AddActivityModal } from "./AddActivityModal.jsx";
 import { LessonEditor } from "./LessonEditor.jsx";
 import { TeacherEditorHelp } from "./TeacherEditorHelp.jsx";
 import { defaultWordSearchDirections, generateWordSearch } from "../../../utils/wordSearchGenerator.js";
@@ -20,6 +21,7 @@ function normalizeFeedback(feedback = {}, fallbackRevision = "") {
 function LoadingOverlay({ label }) {
   return (
     <div className="editor-loading-overlay" role="status" aria-live="polite">
+      <span className="sr-only">{label}</span>
       <div className="puzzle-loader" aria-hidden="true">
         <span className="puzzle-piece piece-1" />
         <span className="puzzle-piece piece-2" />
@@ -42,7 +44,6 @@ function LoadingOverlay({ label }) {
         <span className="puzzle-piece piece-19" />
         <span className="puzzle-piece piece-20" />
       </div>
-      <strong>{label}</strong>
     </div>
   );
 }
@@ -235,10 +236,12 @@ export function TeacherCourseEditor({
   const [previewMode, setPreviewMode] = useState(null);
   const [selectedActivityIndex, setSelectedActivityIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [addingActivity, setAddingActivity] = useState(false);
+  const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [activitySaved, setActivitySaved] = useState(false);
   const selectedActivity = course.lesson.activities[selectedActivityIndex] || course.lesson.activities[0];
-  const overlayLabel = saving ? "Saving..." : courseLoading ? "Loading..." : "";
+  const overlayLabel = saving || addingActivity ? "Saving..." : courseLoading ? "Loading..." : "";
 
   const moveActivity = (index, direction) => {
     const nextIndex = index + direction;
@@ -269,13 +272,42 @@ export function TeacherCourseEditor({
     setPreviewMode(null);
   };
 
-  const addActivity = (activityType) => {
-    const activities = [...course.lesson.activities];
-    const nextActivity = createActivityTemplate(activityType, activities.length);
-    activities.push(nextActivity);
-    onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
-    setSelectedActivityIndex(activities.length - 1);
-    setPreviewMode(null);
+  const addActivity = async (activityType) => {
+    const orderIndex = course.lesson.activities.length;
+    const nextActivity = createActivityTemplate(activityType, orderIndex);
+    const applyLocalActivity = () => {
+      const activities = [...course.lesson.activities, nextActivity];
+      onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
+      setSelectedActivityIndex(activities.length - 1);
+    };
+
+    playSound("submit");
+    setAddingActivity(true);
+    setActivitySaved(false);
+    setSaveError("");
+    try {
+      const nextCourse = await saveActivity?.(nextActivity.id, activityToApiPatch(nextActivity, orderIndex));
+      const persistedActivities = nextCourse?.lesson?.activities || [];
+      const createdIndex = persistedActivities.findIndex((item) => item.type === activityType && item.title === nextActivity.title && item.position === orderIndex + 1);
+
+      if (createdIndex >= 0) {
+        setSelectedActivityIndex(createdIndex);
+      } else {
+        applyLocalActivity();
+      }
+
+      setShowAddActivityModal(false);
+      setPreviewMode(null);
+      setActivitySaved(true);
+      window.setTimeout(() => setActivitySaved(false), 2600);
+    } catch (error) {
+      applyLocalActivity();
+      setShowAddActivityModal(false);
+      setPreviewMode(null);
+      setSaveError("Activity added locally. Database save failed.");
+    } finally {
+      setAddingActivity(false);
+    }
   };
 
   const saveSelectedActivity = async () => {
@@ -398,7 +430,7 @@ export function TeacherCourseEditor({
                     return;
                   }
                   if (action.type === "add") {
-                    addActivity(action.activityType);
+                    setShowAddActivityModal(true);
                   }
                 }}
               />
@@ -473,6 +505,14 @@ export function TeacherCourseEditor({
               activity={selectedActivity}
               mode={previewMode}
               onClose={() => setPreviewMode(null)}
+            />
+          )}
+
+          {showAddActivityModal && (
+            <AddActivityModal
+              adding={addingActivity}
+              onClose={() => setShowAddActivityModal(false)}
+              onAdd={addActivity}
             />
           )}
         </main>

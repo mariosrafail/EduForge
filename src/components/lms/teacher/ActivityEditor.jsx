@@ -211,11 +211,6 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
           <span>Activity {index + 1}</span>
           <strong>{activityTypeLabel(activity.type)}</strong>
         </div>
-        <div className="icon-button-row">
-          <button title="Move up" onClick={() => onMove(index, -1)}><ArrowUp size={16} /></button>
-          <button title="Move down" onClick={() => onMove(index, 1)}><ArrowDown size={16} /></button>
-          <button title="Remove activity" data-sound-click="deleteRemove" onClick={removeActivity}><Trash2 size={16} /></button>
-        </div>
       </div>
 
       {activity.type !== "word-search" && (
