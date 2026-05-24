@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
-import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
+import { ArrowRight, BookOpenCheck, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleCards = [
@@ -15,15 +14,15 @@ const roleCards = [
     id: "teacher",
     icon: GraduationCap,
     title: "Teacher",
-    text: "Assign book-based practice, review submissions, run skill gap analysis, and author interactive activities.",
-    stats: "Teacher adoption dashboard, marking, exports",
+    text: "Open the course editor, adjust lesson content and activities, preview as a student, then assign the lesson.",
+    stats: "Lesson editor, activity authoring, preview",
   },
   {
     id: "student",
     icon: UserRound,
     title: "Student",
-    text: "Activate a book code, complete book-based practice, receive correction feedback, and follow revision paths.",
-    stats: "Book units, attempts, skill practice",
+    text: "Enter English Skills B1, open Welcome 2 - Vocabulary 4, complete activities, and receive feedback.",
+    stats: "Digital book lesson, word bank, matching",
   },
 ];
 
@@ -33,45 +32,46 @@ export function RoleSelection({ navigateTo, brand }) {
       <section className="landing-hero">
         <div className="hero-copy">
           <Tag tone="gold">Hamilton House platform demo</Tag>
-          <h1>Hamilton House Publishers LMS for schools, teachers, and learners.</h1>
+          <h1>Hamilton House Publishers LMS for digital ELT course lessons.</h1>
           <p>
-            A polished front-end demo showing how Hamilton House can deliver branded school portals,
-            book-based practice, book code activation, teacher adoption dashboards, skill gap analysis, and publisher intelligence.
+            A focused demo of a student-facing digital book lesson and a teacher-facing course editor for Hamilton House ELT content.
           </p>
           <div className="landing-actions">
-            <button className="primary-action" onClick={() => navigateTo("flow")}>
-              <Layers3 size={18} /> View Full Demo Flow
+            <button className="primary-action" onClick={() => navigateTo("student-course")}>
+              <BookOpenCheck size={18} /> Open Student Lesson
             </button>
-            <button className="secondary-action" onClick={() => navigateTo("auth-admin")}>
-              <MonitorCheck size={18} /> Enter as School / Admin
+            <button className="secondary-action" onClick={() => navigateTo("teacher-course-editor")}>
+              <MonitorCheck size={18} /> Open Teacher Editor
+            </button>
+            <button className="secondary-action" onClick={() => navigateTo("flow")}>
+              <Layers3 size={18} /> View Flow
             </button>
           </div>
           <div className="demo-login-note"><KeyRound size={16} /> Demo mode, no real login required.</div>
         </div>
 
         <motion.div
-          className="product-composition"
+          className="course-hero-preview"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
         >
-          <div className="screen logo-screen">
-            <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
-            <small>ELT publisher LMS</small>
+          <div className="preview-book-top">
+            <span className="school-logo" style={{ background: brand.primary }}>{brand.logo}</span>
+            <div>
+              <strong>{brand.schoolName}</strong>
+              <small>English Skills B1</small>
+            </div>
           </div>
-          <div className="screen admin-screen">
-            <span>{brand.schoolName}</span>
-            <strong>78%</strong>
-            <small>school completion</small>
-          </div>
-          <div className="screen teacher-screen">
-            <span>Teacher analytics</span>
-            <div><i style={{ height: "70%" }} /><i style={{ height: "44%" }} /><i style={{ height: "84%" }} /><i style={{ height: "58%" }} /></div>
-          </div>
-          <div className="screen student-screen">
-            <span>Unit 4 Reading Check</span>
-            <strong>Revise grammar</strong>
-            <small>solutions remain locked</small>
+          <div className="preview-book-page">
+            <span className="eyebrow">Welcome 2 - Vocabulary 4</span>
+            <h2>Drag each word into the correct gap.</h2>
+            <div className="preview-word-row">
+              <span>Monday</span><span>Wednesday</span><span>Friday</span><span>Sunday</span>
+            </div>
+            <div className="preview-line"><b>1</b><span>We have English on _____ morning.</span></div>
+            <div className="preview-line active"><b>2</b><span>When are the seasons in the UK?</span></div>
+            <button className="primary-action">Submit answers</button>
           </div>
         </motion.div>
       </section>
@@ -87,7 +87,7 @@ export function RoleSelection({ navigateTo, brand }) {
             <motion.button
               key={role.id}
               className="role-entry"
-              onClick={() => navigateTo(`auth-${role.id}`)}
+              onClick={() => navigateTo(role.id === "teacher" ? "teacher-course-editor" : role.id === "student" ? "student-course" : `auth-${role.id}`)}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.07 + 0.12 }}
@@ -105,11 +105,11 @@ export function RoleSelection({ navigateTo, brand }) {
       <Card className="publisher-strip">
         <div>
           <span className="eyebrow">Platform scope</span>
-          <h2>More than a course creator</h2>
+          <h2>Focused on the course experience</h2>
         </div>
         <p>
-          The demo positions Hamilton House Publishers LMS as a proprietary ELT LMS layer: school rollout, publisher-controlled books,
-          interactive activity authoring, student-facing practice, automated correction, and branded portal delivery.
+          The main route now follows a realistic ELT lesson: a student completes interactive book activities, while a teacher edits,
+          previews, assigns, and reviews the same lesson content.
         </p>
       </Card>
     </main>

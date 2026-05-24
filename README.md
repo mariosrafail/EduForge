@@ -30,6 +30,7 @@ Create a Neon PostgreSQL database and run:
 database/001_init_lms_demo.sql
 database/002_basic_auth.sql
 database/003_activities_assignments.sql
+database/004_course_content.sql
 ```
 
 The migration creates:
@@ -41,6 +42,10 @@ The migration creates:
 - `activities`
 - `assignments`
 - `activity_submissions`
+- `courses`
+- `lessons`
+- `lesson_activities`
+- `lesson_submissions`
 
 It also seeds a demo school:
 
@@ -66,6 +71,22 @@ Passwords are hashed in Netlify Functions. Plain text passwords are never stored
 - auto-scored submissions and revision guidance
 
 The current UI uses a frontend mock service in `src/services/activitiesApi.js`, structured so these tables can be connected to Netlify Functions in a later phase.
+
+`database/004_course_content.sql` adds demo/MVP persistence for editable Hamilton House course content:
+
+- editable course/book metadata
+- editable lesson metadata
+- editable lesson activities stored as JSONB
+- persisted student lesson submissions
+
+It seeds:
+
+- course: `English Skills B1`
+- book code: `B1-DEMO-2026`
+- lesson: `Welcome 2 - Vocabulary 4`
+- activities: gap fill, line matching, and multiple choice
+
+This is demo/MVP persistence for course content, not a full production CMS yet.
 
 ## Required Environment Variable
 
@@ -109,6 +130,22 @@ Test the users function:
 ```bash
 curl http://localhost:8888/.netlify/functions/users
 ```
+
+Test the course content function:
+
+```bash
+curl http://localhost:8888/.netlify/functions/course
+```
+
+Test editable course persistence:
+
+1. Run `database/004_course_content.sql` in the Neon SQL Editor.
+2. Run `netlify dev`.
+3. Open `http://localhost:8888/#teacher-course-editor`.
+4. Edit the course, lesson, or an activity.
+5. Click `Save changes`.
+6. Open `http://localhost:8888/#student-course`.
+7. Confirm the student course shows the updated content.
 
 Test signup:
 

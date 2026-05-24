@@ -1,28 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import {
-  Bell,
-  BookOpen,
-  Building2,
-  ChevronLeft,
-  Download,
-  GraduationCap,
-  Layers3,
-  Languages,
-  LogOut,
-  Search,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-} from "lucide-react";
+import { Bell, BookOpen, Building2, Download, GraduationCap, Layers3, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX } from "lucide-react";
+import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
-  admin: { label: "School / Admin", icon: Building2 },
-  teacher: { label: "Teacher", icon: GraduationCap },
-  student: { label: "Student", icon: UserRound },
-  flow: { label: "Full Demo Flow", icon: Layers3 },
+  student: { label: "Student", icon: UserRound, targetView: "student-course" },
+  teacher: { label: "Teacher", icon: GraduationCap, targetView: "teacher-course-editor" },
+  admin: { label: "Admin", icon: Building2, targetView: "admin" },
 };
 
 export function PageTransition({ children, pageKey }) {
@@ -47,6 +32,7 @@ function displayRole(role) {
 }
 
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
+  const { muted, toggleMuted } = useSoundEffects();
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
   return (
@@ -68,24 +54,30 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
             Signed in as {currentUser.full_name} / {displayRole(currentUser.role)}
           </span>
         )}
-        <span className="locale-chip"><Languages size={14} /> Interface ready for EN / EL</span>
-        <span className="school-preview">
-          <span className="school-logo" style={{ background: brand.primary }}>{brand.logo}</span>
-          {brand.schoolName}
-        </span>
       </div>
 
       <nav className="quick-actions" aria-label="Demo navigation">
-        <button onClick={() => navigateTo("home")} title="Back to role selection"><ChevronLeft size={18} /> Roles</button>
         {Object.entries(roles).map(([id, role]) => {
           const Icon = role.icon;
           return (
-            <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(id)}>
+            <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(role.targetView || id)}>
               <Icon size={17} />
-              <span>{role.label.replace("School / ", "")}</span>
+              <span>{role.label}</span>
             </button>
           );
         })}
+        <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
+        <button className="nav-secondary-link" onClick={() => navigateTo("flow")}><Layers3 size={15} /> Flow</button>
+        <button
+          className="nav-secondary-link sound-toggle-button"
+          type="button"
+          aria-pressed={!muted}
+          aria-label={muted ? "Sound Off" : "Sound On"}
+          onClick={toggleMuted}
+        >
+          {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          <span>{muted ? "Sound Off" : "Sound On"}</span>
+        </button>
         {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
       </nav>
     </header>

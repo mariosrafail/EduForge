@@ -1,46 +1,21 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
 import { RoleSelection } from "./components/lms/RoleSelection.jsx";
-import { Header, HeaderTools, PageTransition } from "./components/lms/Shared.jsx";
-import { StudentView } from "./components/lms/StudentView.jsx";
-import { TeacherView } from "./components/lms/TeacherView.jsx";
+import { Header, PageTransition } from "./components/lms/Shared.jsx";
+import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
+import { TeacherCourseEditor } from "./components/lms/teacher/TeacherCourseEditor.jsx";
 import { brandPresets } from "./data/lmsDemoData.js";
 import { useAuth } from "./hooks/useAuth.js";
+import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
-import { createActivity, createAssignment, loadActivityDemoState, saveActivityDemoState, submitAssignment } from "./services/activitiesApi.js";
 
 export default function App() {
   const { view, navigateTo } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
-  const [activityDemo, setActivityDemo] = useState(loadActivityDemoState);
-  const activityDemoRef = useRef(activityDemo);
-
-  const updateActivityDemo = (nextState) => {
-    activityDemoRef.current = nextState;
-    setActivityDemo(nextState);
-    saveActivityDemoState(nextState);
-  };
-
-  const activityActions = useMemo(() => ({
-    createActivity: (activityInput) => {
-      const result = createActivity(activityDemoRef.current, activityInput);
-      updateActivityDemo(result.state);
-      return result.activity;
-    },
-    createAssignment: (assignmentInput) => {
-      const result = createAssignment(activityDemoRef.current, assignmentInput);
-      updateActivityDemo(result.state);
-      return result.assignment;
-    },
-    submitAssignment: (assignmentId, answers) => {
-      const result = submitAssignment(activityDemoRef.current, assignmentId, answers);
-      updateActivityDemo(result.state);
-      return result.submission;
-    },
-  }), []);
+  const courseData = useCourseData();
 
   const cssVars = useMemo(
     () => ({
@@ -51,7 +26,20 @@ export default function App() {
   );
 
   const isRoleView = view !== "home";
-  const headerActiveRole = view.startsWith("auth-") ? view.replace("auth-", "") : view;
+  const headerActiveRole = view.startsWith("auth-")
+    ? view.replace("auth-", "")
+    : view === "student-course" || view === "student-preview"
+      ? "student"
+      : view === "teacher-course-editor"
+        ? "teacher"
+        : view;
+
+  const addCourseSubmission = (submission) => {
+    courseData.setCourse((current) => ({
+      ...current,
+      submissions: [submission, ...current.submissions.filter((item) => item.student !== submission.student)],
+    }));
+  };
 
   return (
     <div className="eduforge-app" style={cssVars}>
@@ -67,7 +55,6 @@ export default function App() {
               navigateTo("home");
             }}
           />
-          <HeaderTools />
         </>
       )}
 
@@ -90,8 +77,32 @@ export default function App() {
           />
         )}
         {view === "admin" && <AdminView brand={brand} setBrand={setBrand} />}
-        {view === "teacher" && <TeacherView activityDemo={activityDemo} activityActions={activityActions} />}
-        {view === "student" && <StudentView brand={brand} activityDemo={activityDemo} activityActions={activityActions} />}
+        {(view === "teacher" || view === "teacher-course-editor") && (
+          <TeacherCourseEditor
+            course={courseData.course}
+            onCourseChange={courseData.setCourse}
+            navigateTo={navigateTo}
+            courseLoading={courseData.loading}
+            courseError={courseData.error}
+            saveCourse={courseData.saveCourse}
+            saveLesson={courseData.saveLesson}
+            saveActivity={courseData.saveActivity}
+            reloadCourse={courseData.reloadCourse}
+          />
+        )}
+        {(view === "student" || view === "student-course") && (
+          <StudentCourseView
+            course={courseData.course}
+            onSubmission={addCourseSubmission}
+            navigateTo={navigateTo}
+            courseLoading={courseData.loading}
+            courseError={courseData.error}
+            submitLesson={courseData.submitCourseLesson}
+          />
+        )}
+        {view === "student-preview" && (
+          <StudentCourseView course={courseData.course} navigateTo={navigateTo} courseError={courseData.error} previewMode />
+        )}
         {view === "flow" && <FullDemoFlow navigateTo={navigateTo} />}
       </PageTransition>
     </div>
