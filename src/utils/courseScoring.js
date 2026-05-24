@@ -38,10 +38,20 @@ export function scoreMultipleChoice(activity, answers = {}) {
   }));
 }
 
+export function scoreWordSearch(activity, answers = {}) {
+  return (activity.words || []).map((entry) => ({
+    id: entry.id,
+    correct: Boolean(answers[entry.id]),
+    expected: true,
+    actual: Boolean(answers[entry.id]),
+  }));
+}
+
 export function scoreActivity(activity, answers = {}) {
   if (activity.type === "gap-fill") return scoreGapFill(activity, answers);
   if (activity.type === "matching" || activity.type === "line-matching") return scoreMatching(activity, answers);
   if (activity.type === "multiple-choice") return scoreMultipleChoice(activity, answers);
+  if (activity.type === "word-search") return scoreWordSearch(activity, answers);
   return [];
 }
 

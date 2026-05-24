@@ -27,7 +27,7 @@ create table if not exists lessons (
 create table if not exists lesson_activities (
   id uuid primary key default gen_random_uuid(),
   lesson_id uuid references lessons(id) on delete cascade,
-  type text not null check (type in ('gap_fill', 'line_matching', 'multiple_choice')),
+  type text not null check (type in ('gap_fill', 'line_matching', 'multiple_choice', 'word_search')),
   title text not null,
   instructions text,
   position int not null default 1,

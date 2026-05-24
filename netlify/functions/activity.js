@@ -1,6 +1,6 @@
 import { fetchCourseById, getSql, json, parseBody, sanitizeRequiredText, sanitizeText, validateUuid } from "./_course-utils.js";
 
-const allowedTypes = new Set(["gap_fill", "line_matching", "multiple_choice"]);
+const allowedTypes = new Set(["gap_fill", "line_matching", "multiple_choice", "word_search"]);
 
 function uniqueText(values) {
   return Array.from(new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean)));
@@ -51,7 +51,7 @@ export async function handler(event) {
     const activity = existing[0];
 
     const type = body.type === undefined ? activity.type : body.type;
-    if (!allowedTypes.has(type)) return json(400, { error: "type must be one of: gap_fill, line_matching, multiple_choice" });
+    if (!allowedTypes.has(type)) return json(400, { error: "type must be one of: gap_fill, line_matching, multiple_choice, word_search" });
 
     const title = body.title === undefined ? activity.title : sanitizeRequiredText(body.title);
     if (!title) return json(400, { error: "title is required" });

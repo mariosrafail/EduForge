@@ -58,7 +58,7 @@ export function DropZone({ id, label, value, disabled = false, state = "", onDro
       </button>
       {!disabled && value && (
         <button type="button" data-sound-ignore="true" className="drop-zone-clear" onClick={() => {
-          playSound("clickConfirm");
+          playSound("deleteRemove");
           onClear(id);
         }} aria-label="Clear answer">
           <X size={15} />

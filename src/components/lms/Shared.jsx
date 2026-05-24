@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import { Bell, BookOpen, Building2, Download, GraduationCap, Layers3, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX } from "lucide-react";
+import { Bell, BookOpen, Building2, Download, GraduationCap, Layers3, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves } from "lucide-react";
 import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
@@ -32,7 +32,7 @@ function displayRole(role) {
 }
 
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
-  const { muted, toggleMuted } = useSoundEffects();
+  const { muted, audioReady, toggleMuted, enableSound, unlockAudio, playSound } = useSoundEffects();
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
   return (
@@ -77,6 +77,22 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           <span>{muted ? "Sound Off" : "Sound On"}</span>
+        </button>
+        <button
+          className="nav-secondary-link sound-test-button"
+          type="button"
+          data-sound-ignore="true"
+          onClick={async () => {
+            if (muted) {
+              enableSound();
+            }
+            await unlockAudio();
+            await playSound("clickConfirm");
+          }}
+          title={audioReady ? "Test UI sound" : "Enable audio and test"}
+        >
+          <Waves size={16} />
+          <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
         </button>
         {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
       </nav>

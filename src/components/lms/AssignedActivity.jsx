@@ -9,6 +9,9 @@ function initialAnswers(activity) {
   if (activity.type === "matching") {
     return { pairs: Object.fromEntries((activity.content.pairs || []).map((pair) => [pair.left, ""])) };
   }
+  if (activity.type === "word_search") {
+    return Object.fromEntries((activity.content.words || []).map((entry) => [entry.id, false]));
+  }
   return { writing: "" };
 }
 
@@ -98,6 +101,20 @@ export function AssignedActivity({ activities, assignments, submissions, onSubmi
             Writing response
             <textarea value={answers.writing || ""} onChange={(event) => setAnswers({ writing: event.target.value })} placeholder="Write your answer for teacher review" />
           </label>
+        )}
+        {activity.type === "word_search" && (
+          <div className="matching-answer-grid">
+            {(activity.content.words || []).map((entry, index) => (
+              <label key={entry.id}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(answers[entry.id])}
+                  onChange={(event) => setAnswers({ ...answers, [entry.id]: event.target.checked })}
+                />
+                {index + 1}. {entry.word}
+              </label>
+            ))}
+          </div>
         )}
       </div>
 

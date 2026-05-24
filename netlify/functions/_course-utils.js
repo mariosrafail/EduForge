@@ -42,6 +42,7 @@ function dbTypeToUi(type) {
   if (type === "gap_fill") return "gap-fill";
   if (type === "line_matching") return "line-matching";
   if (type === "multiple_choice") return "multiple-choice";
+  if (type === "word_search") return "word-search";
   return type;
 }
 
@@ -49,6 +50,7 @@ function uiTypeToDb(type) {
   if (type === "gap-fill") return "gap_fill";
   if (type === "line-matching") return "line_matching";
   if (type === "multiple-choice") return "multiple_choice";
+  if (type === "word-search") return "word_search";
   return type;
 }
 
@@ -130,6 +132,28 @@ export function activityRowToUi(row) {
         ...question,
         answer: correct[question.id] || question.answer || "",
       })),
+      feedback,
+      position: row.position,
+    };
+  }
+
+  if (type === "word-search") {
+    return {
+      id: row.id,
+      type,
+      title: row.title,
+      instruction: row.instructions || "",
+      skill: row.skill || "",
+      words: (content.words || []).map((entry, index) => ({
+        id: entry.id || `ws-${index + 1}`,
+        word: String(entry.word || ""),
+        hint: String(entry.hint || ""),
+      })),
+      allowedDirections: Array.isArray(content.directions)
+        ? content.directions
+        : Array.isArray(content.allowedDirections) ? content.allowedDirections : ["right", "down"],
+      gridSize: Number(content.gridSize) || 12,
+      generatedGrid: content.generatedGrid || { grid: [] },
       feedback,
       position: row.position,
     };

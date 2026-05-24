@@ -11,6 +11,7 @@ import { ActivityFeedback } from "./activities/ActivityFeedback.jsx";
 import { DragDropGapFillActivity } from "./activities/DragDropGapFillActivity.jsx";
 import { LineMatchingActivity } from "./activities/LineMatchingActivity.jsx";
 import { MultipleChoiceActivity } from "./activities/MultipleChoiceActivity.jsx";
+import { WordSearchActivity } from "./activities/WordSearchActivity.jsx";
 
 function resultMapFromResults(results) {
   return Object.fromEntries(results.map((result) => [result.id, result]));
@@ -25,6 +26,9 @@ function ActivityRenderer({ activity, answers, onChange, submitted, resultMap })
   }
   if (activity.type === "multiple-choice") {
     return <MultipleChoiceActivity activity={activity} answers={answers} onChange={onChange} submitted={submitted} resultMap={resultMap} />;
+  }
+  if (activity.type === "word-search") {
+    return <WordSearchActivity activity={activity} answers={answers} onChange={onChange} submitted={submitted} resultMap={resultMap} />;
   }
   return null;
 }

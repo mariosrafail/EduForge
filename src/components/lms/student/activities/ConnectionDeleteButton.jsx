@@ -4,7 +4,7 @@ export function ConnectionDeleteButton({ line, leftLabel, rightLabel, disabled =
   return (
     <button
       type="button"
-      data-sound-ignore="true"
+      data-sound-click="deleteRemove"
       className="connection-delete-button"
       style={{ left: line.to.x, top: line.to.y }}
       aria-label={`Remove connection from ${leftLabel} to ${rightLabel}`}

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { ArrowDown, ArrowUp, ListPlus, Trash2 } from "lucide-react";
+import { WordSearchEditor } from "./WordSearchEditor.jsx";
 
 function cloneActivities(course, updater) {
   return {
@@ -15,6 +16,7 @@ function activityTypeLabel(type) {
   if (type === "line-matching") return "Line Matching";
   if (type === "gap-fill") return "Drag and Drop Gap Fill";
   if (type === "multiple-choice") return "Multiple Choice";
+  if (type === "word-search") return "Word Search";
   return type.replace("-", " ");
 }
 
@@ -212,19 +214,23 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
         <div className="icon-button-row">
           <button title="Move up" onClick={() => onMove(index, -1)}><ArrowUp size={16} /></button>
           <button title="Move down" onClick={() => onMove(index, 1)}><ArrowDown size={16} /></button>
-          <button title="Remove activity" onClick={removeActivity}><Trash2 size={16} /></button>
+          <button title="Remove activity" data-sound-click="deleteRemove" onClick={removeActivity}><Trash2 size={16} /></button>
         </div>
       </div>
 
-      <label>
-        Title
-        <input value={activity.title} onChange={(event) => updateActivity({ ...activity, title: event.target.value })} />
-      </label>
+      {activity.type !== "word-search" && (
+        <>
+          <label>
+            Title
+            <input value={activity.title} onChange={(event) => updateActivity({ ...activity, title: event.target.value })} />
+          </label>
 
-      <label>
-        Instruction
-        <input value={activity.instruction} onChange={(event) => updateActivity({ ...activity, instruction: event.target.value })} />
-      </label>
+          <label>
+            Instruction
+            <input value={activity.instruction} onChange={(event) => updateActivity({ ...activity, instruction: event.target.value })} />
+          </label>
+        </>
+      )}
 
       <div className="inline-editor-list feedback-editor-list">
         <div>
@@ -264,7 +270,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
             {activity.wordBank.map((word, wordIndex) => (
               <div key={wordBankIds[wordIndex]}>
                 <input value={word} onChange={(event) => updateArrayValue("wordBank", wordIndex, event.target.value)} />
-                <button onClick={() => removeWordBankWord(wordIndex)}><Trash2 size={15} /></button>
+                <button data-sound-click="deleteRemove" onClick={() => removeWordBankWord(wordIndex)}><Trash2 size={15} /></button>
               </div>
             ))}
             <button className="secondary-action compact-action" onClick={addWordBankWord}>
@@ -283,7 +289,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
                     items: activity.items.map((row) => row.id === item.id ? { ...row, answer: event.target.value } : row),
                   }))}
                 />
-                <button onClick={() => updateActivity(withDerivedGapWordBank({ ...activity, items: activity.items.filter((row) => row.id !== item.id) }))}><Trash2 size={15} /></button>
+                <button data-sound-click="deleteRemove" onClick={() => updateActivity(withDerivedGapWordBank({ ...activity, items: activity.items.filter((row) => row.id !== item.id) }))}><Trash2 size={15} /></button>
               </div>
             ))}
             <button className="secondary-action compact-action" onClick={() => updateActivity(withDerivedGapWordBank({ ...activity, items: [...activity.items, { id: `gap-${Date.now()}`, prompt: "New clue prompt", answer: activity.wordBank[0] || "Answer" }] }))}>
@@ -309,7 +315,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
                     <option key={rightItem.id} value={rightItem.id}>{rightItem.label}</option>
                   ))}
                 </select>
-                <button onClick={() => removeLineLeftItem(leftItem.id)}><Trash2 size={15} /></button>
+                <button data-sound-click="deleteRemove" onClick={() => removeLineLeftItem(leftItem.id)}><Trash2 size={15} /></button>
                 {activity.rightItems[itemIndex] && (
                   <input
                     className="right-item-editor"
@@ -333,7 +339,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
             <div key={pair.id}>
               <input value={pair.left} onChange={(event) => updateMatchingPair(pair.id, (row) => ({ ...row, left: event.target.value }))} />
               <input value={pair.right} onChange={(event) => updateMatchingPair(pair.id, (row) => ({ ...row, right: event.target.value }))} />
-              <button onClick={() => removeMatchingPair(pair.id)}><Trash2 size={15} /></button>
+              <button data-sound-click="deleteRemove" onClick={() => removeMatchingPair(pair.id)}><Trash2 size={15} /></button>
             </div>
           ))}
           <button className="secondary-action compact-action" onClick={() => updateActivity({
@@ -355,7 +361,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
             <div className="question-editor-block" key={question.id}>
               <div className="question-editor-head">
                 <strong>Question</strong>
-                <button onClick={() => {
+                <button data-sound-click="deleteRemove" onClick={() => {
                   delete optionRowIdsByQuestion.current[question.id];
                   delete nextOptionRowIdByQuestion.current[question.id];
                   updateActivity({ ...activity, questions: activity.questions.filter((row) => row.id !== question.id) });
@@ -372,7 +378,7 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
                       options: row.options.map((item, itemIndex) => itemIndex === optionIndex ? event.target.value : item),
                     }))}
                   />
-                  <button onClick={() => removeQuestionOption(question.id, optionIndex)}>
+                  <button data-sound-click="deleteRemove" onClick={() => removeQuestionOption(question.id, optionIndex)}>
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -387,6 +393,10 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
             <ListPlus size={16} /> Add question
           </button>
         </div>
+      )}
+
+      {activity.type === "word-search" && (
+        <WordSearchEditor activity={activity} onUpdate={updateActivity} />
       )}
     </section>
   );

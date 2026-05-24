@@ -24,6 +24,11 @@ export function ActivityPreview({ activity }) {
           {activity.content.pairs.map((pair) => <span key={pair.left}>{pair.left} to match item</span>)}
         </div>
       )}
+      {activity.type === "word_search" && (
+        <div className="preview-options">
+          {(activity.content.words || []).map((entry) => <span key={entry.id}>{entry.word}</span>)}
+        </div>
+      )}
       <small>{activity.feedback?.revision || activity.feedback?.wrong}</small>
     </div>
   );

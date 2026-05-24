@@ -6,6 +6,18 @@ import { ConnectionDeleteButton } from "./ConnectionDeleteButton.jsx";
 import { ConnectionLine } from "./ConnectionLine.jsx";
 import { MatchingNode } from "./MatchingNode.jsx";
 
+const connectionColors = ["#f97316", "#0b1f3a", "#0f766e", "#7c3aed", "#16a34a", "#d97706"];
+
+function colorForConnection(leftId, rightId) {
+  const key = `${leftId}:${rightId}`;
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = ((hash << 5) - hash) + key.charCodeAt(index);
+    hash |= 0;
+  }
+  return connectionColors[Math.abs(hash) % connectionColors.length];
+}
+
 function centerForEndpoint(containerRect, node) {
   const rect = node.getBoundingClientRect();
   const x = rect.left - containerRect.left + rect.width / 2;
@@ -51,6 +63,7 @@ export function LineMatchingActivity({ activity, answers, onChange, submitted })
           from: centerForEndpoint(containerRect, leftEndpoint),
           to: centerForEndpoint(containerRect, rightEndpoint),
           state: submitted ? score.lineStates[leftId] || "incorrect" : "",
+          color: colorForConnection(leftId, rightId),
         };
       })
       .filter(Boolean);

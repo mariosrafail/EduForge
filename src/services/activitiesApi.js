@@ -14,6 +14,7 @@ export const activityTypeLabels = {
   fill_blank: "Fill in the blanks",
   matching: "Matching",
   writing: "Writing task",
+  word_search: "Word Search",
 };
 
 export const activityTypes = [
@@ -21,6 +22,7 @@ export const activityTypes = [
   { value: "fill_blank", label: activityTypeLabels.fill_blank },
   { value: "matching", label: activityTypeLabels.matching },
   { value: "writing", label: activityTypeLabels.writing },
+  { value: "word_search", label: activityTypeLabels.word_search },
 ];
 
 export const seedActivity = {

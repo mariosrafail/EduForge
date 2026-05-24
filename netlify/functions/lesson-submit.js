@@ -10,6 +10,9 @@ function scoreActivity(activity, answers = {}) {
   if (activity.type === "multiple-choice") {
     return activity.questions.map((question) => ({ id: question.id, correct: answers[question.id] === question.answer }));
   }
+  if (activity.type === "word-search") {
+    return (activity.words || []).map((entry) => ({ id: entry.id, correct: Boolean(answers[entry.id]) }));
+  }
   return [];
 }
 

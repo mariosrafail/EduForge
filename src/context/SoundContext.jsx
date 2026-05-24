@@ -1,12 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "hh_lms_sound_muted";
-const DEFAULT_VOLUME = 0.2;
+const DEFAULT_VOLUME = 0.95;
 const HOVER_COOLDOWN_MS = 90;
 
 const SoundContext = createContext({
   muted: false,
+  audioReady: false,
   toggleMuted: () => {},
+  enableSound: () => {},
+  unlockAudio: async () => false,
   playSound: () => {},
 });
 
@@ -38,50 +41,58 @@ function createVoice(audioCtx, { type = "sine", frequency = 440, gain = 0.14, at
 function soundPlan(type) {
   switch (type) {
     case "hoverSoft":
-      return [{ type: "sine", frequency: 760, gain: 0.03, attack: 0.002, decay: 0.045 }];
+      return [{ type: "sine", frequency: 980, gain: 0.022, attack: 0.0015, decay: 0.04 }];
     case "clickConfirm":
       return [
-        { type: "triangle", frequency: 560, gain: 0.05, attack: 0.002, decay: 0.05 },
-        { type: "sine", frequency: 820, gain: 0.02, attack: 0.002, decay: 0.05 },
+        { type: "triangle", frequency: 430, gain: 0.07, attack: 0.0015, decay: 0.045 },
+        { type: "sine", frequency: 920, gain: 0.03, attack: 0.002, decay: 0.055 },
       ];
     case "dragStart":
       return [
-        { type: "triangle", frequency: 310, gain: 0.045, attack: 0.002, decay: 0.065 },
-        { type: "sine", frequency: 520, gain: 0.022, attack: 0.002, decay: 0.07 },
+        { type: "triangle", frequency: 260, gain: 0.06, attack: 0.0015, decay: 0.07 },
+        { type: "sine", frequency: 480, gain: 0.03, attack: 0.002, decay: 0.075, pan: -0.08 },
       ];
     case "dragMoveTick":
-      return [{ type: "sine", frequency: 520, gain: 0.014, attack: 0.002, decay: 0.03 }];
+      return [{ type: "sine", frequency: 600, gain: 0.012, attack: 0.0015, decay: 0.024 }];
     case "dropSuccess":
       return [
-        { type: "sine", frequency: 620, gain: 0.055, attack: 0.002, decay: 0.06 },
-        { type: "triangle", frequency: 880, gain: 0.022, attack: 0.002, decay: 0.065 },
+        { type: "sine", frequency: 700, gain: 0.085, attack: 0.0015, decay: 0.055 },
+        { type: "triangle", frequency: 1080, gain: 0.038, attack: 0.002, decay: 0.07, pan: 0.06 },
       ];
     case "dropInvalid":
-      return [{ type: "square", frequency: 210, gain: 0.03, attack: 0.002, decay: 0.055 }];
+      return [
+        { type: "square", frequency: 170, gain: 0.045, attack: 0.0015, decay: 0.05 },
+        { type: "triangle", frequency: 130, gain: 0.018, attack: 0.002, decay: 0.07 },
+      ];
     case "submit":
       return [
-        { type: "triangle", frequency: 420, gain: 0.06, attack: 0.002, decay: 0.07 },
-        { type: "sine", frequency: 640, gain: 0.025, attack: 0.006, decay: 0.09 },
+        { type: "triangle", frequency: 360, gain: 0.075, attack: 0.0015, decay: 0.07 },
+        { type: "sine", frequency: 620, gain: 0.04, attack: 0.004, decay: 0.1 },
       ];
     case "correct":
       return [
-        { type: "sine", frequency: 660, gain: 0.04, attack: 0.002, decay: 0.07 },
-        { type: "sine", frequency: 980, gain: 0.028, attack: 0.005, decay: 0.11 },
+        { type: "sine", frequency: 760, gain: 0.052, attack: 0.0015, decay: 0.07 },
+        { type: "triangle", frequency: 1140, gain: 0.04, attack: 0.004, decay: 0.12, pan: 0.08 },
       ];
     case "wrong":
       return [
-        { type: "triangle", frequency: 210, gain: 0.04, attack: 0.002, decay: 0.06 },
-        { type: "sine", frequency: 170, gain: 0.02, attack: 0.002, decay: 0.09 },
+        { type: "triangle", frequency: 190, gain: 0.05, attack: 0.0015, decay: 0.06 },
+        { type: "sine", frequency: 140, gain: 0.028, attack: 0.002, decay: 0.095 },
       ];
     case "nextActivity":
       return [
-        { type: "triangle", frequency: 520, gain: 0.038, attack: 0.002, decay: 0.05, pan: -0.12 },
-        { type: "sine", frequency: 730, gain: 0.03, attack: 0.008, decay: 0.085, pan: 0.12 },
+        { type: "triangle", frequency: 490, gain: 0.05, attack: 0.0015, decay: 0.05, pan: -0.14 },
+        { type: "sine", frequency: 820, gain: 0.04, attack: 0.006, decay: 0.09, pan: 0.14 },
       ];
     case "modalOpen":
-      return [{ type: "sine", frequency: 560, gain: 0.034, attack: 0.002, decay: 0.075 }];
+      return [{ type: "triangle", frequency: 540, gain: 0.045, attack: 0.0015, decay: 0.08 }];
     case "modalClose":
-      return [{ type: "sine", frequency: 400, gain: 0.03, attack: 0.002, decay: 0.06 }];
+      return [{ type: "triangle", frequency: 320, gain: 0.04, attack: 0.0015, decay: 0.06 }];
+    case "deleteRemove":
+      return [
+        { type: "square", frequency: 240, gain: 0.05, attack: 0.0015, decay: 0.045 },
+        { type: "triangle", frequency: 180, gain: 0.024, attack: 0.0015, decay: 0.07, pan: -0.06 },
+      ];
     default:
       return [];
   }
@@ -92,6 +103,8 @@ export function SoundProvider({ children }) {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(STORAGE_KEY) === "1";
   });
+  const mutedRef = useRef(muted);
+  const [audioReady, setAudioReady] = useState(false);
   const audioCtxRef = useRef(null);
   const masterRef = useRef(null);
   const unlockedRef = useRef(false);
@@ -113,19 +126,32 @@ export function SoundProvider({ children }) {
     return audioCtxRef.current;
   }, []);
 
-  const unlockAudio = useCallback(() => {
+  const unlockAudio = useCallback(async () => {
     const ctx = ensureAudio();
-    if (!ctx) return;
-    if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
+    if (!ctx) return false;
+    try {
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+      const running = ctx.state === "running";
+      unlockedRef.current = running;
+      setAudioReady(running);
+      return running;
+    } catch {
+      unlockedRef.current = false;
+      setAudioReady(false);
+      return false;
     }
-    unlockedRef.current = true;
   }, [ensureAudio]);
 
-  const playSound = useCallback((type) => {
-    if (muted) return;
+  const playSound = useCallback(async (type) => {
+    if (mutedRef.current) return;
     const ctx = ensureAudio();
-    if (!ctx || !masterRef.current || !unlockedRef.current) return;
+    if (!ctx || !masterRef.current) return;
+    if (!unlockedRef.current || ctx.state !== "running") {
+      const ok = await unlockAudio();
+      if (!ok) return;
+    }
 
     const now = performance.now();
     if (type === "dragMoveTick") {
@@ -141,7 +167,7 @@ export function SoundProvider({ children }) {
       osc.start();
       osc.stop(stopAt);
     });
-  }, [ensureAudio, muted]);
+  }, [ensureAudio, unlockAudio]);
 
   const playHoverFor = useCallback((element) => {
     if (!element) return;
@@ -150,24 +176,44 @@ export function SoundProvider({ children }) {
     const previous = hoverTimes.get(element) || 0;
     if (current - previous < HOVER_COOLDOWN_MS) return;
     hoverTimes.set(element, current);
-    playSound("hoverSoft");
+    void playSound("hoverSoft");
   }, [playSound]);
 
   const toggleMuted = useCallback(() => {
     setMuted((current) => {
       const next = !current;
+      mutedRef.current = next;
       window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
       return next;
     });
   }, []);
 
+  const enableSound = useCallback(() => {
+    mutedRef.current = false;
+    setMuted(false);
+    window.localStorage.setItem(STORAGE_KEY, "0");
+  }, []);
+
   useEffect(() => {
-    const onPointerDown = () => unlockAudio();
-    const onKeyDown = () => unlockAudio();
+    mutedRef.current = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    const onPointerDown = () => {
+      void unlockAudio();
+    };
+    const onClick = () => {
+      void unlockAudio();
+    };
+    const onKeyDown = () => {
+      void unlockAudio();
+    };
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("click", onClick, { passive: true });
     window.addEventListener("keydown", onKeyDown, { passive: true });
     return () => {
       window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [unlockAudio]);
@@ -182,7 +228,7 @@ export function SoundProvider({ children }) {
       const target = event.target.closest?.("button, [role='button']");
       if (!target || target.disabled || target.dataset.soundIgnore === "true") return;
       const type = target.dataset.soundClick || "clickConfirm";
-      playSound(type);
+      void playSound(type);
     };
     document.addEventListener("pointerover", onPointerOver, true);
     document.addEventListener("click", onClick, true);
@@ -192,7 +238,7 @@ export function SoundProvider({ children }) {
     };
   }, [playHoverFor, playSound]);
 
-  const value = useMemo(() => ({ muted, toggleMuted, playSound }), [muted, playSound, toggleMuted]);
+  const value = useMemo(() => ({ muted, audioReady, toggleMuted, enableSound, unlockAudio, playSound }), [audioReady, enableSound, muted, playSound, toggleMuted, unlockAudio]);
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
 }

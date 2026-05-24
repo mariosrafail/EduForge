@@ -8,6 +8,9 @@ import { ActivityTabs } from "./ActivityTabs.jsx";
 import { LessonEditor } from "./LessonEditor.jsx";
 import { StudentPreviewPanel } from "./StudentPreviewPanel.jsx";
 import { TeacherEditorHelp } from "./TeacherEditorHelp.jsx";
+import { defaultWordSearchDirections, generateWordSearch } from "../../../utils/wordSearchGenerator.js";
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
 function normalizeFeedback(feedback = {}, fallbackRevision = "") {
   return {
@@ -72,6 +75,34 @@ function activityToApiPatch(activity, index) {
     };
   }
 
+  if (activity.type === "word-search") {
+    const words = (activity.words || [])
+      .map((row) => ({
+        id: row.id,
+        word: String(row.word || "").trim().toUpperCase(),
+        hint: String(row.hint || "").trim(),
+      }))
+      .filter((row) => row.word);
+    const allowedDirections = activity.allowedDirections?.length ? activity.allowedDirections : defaultWordSearchDirections;
+    const generatedGrid = activity.generatedGrid || generateWordSearch(words.map((row) => row.word), { directions: allowedDirections, gridSize: activity.gridSize || 12 });
+    return {
+      type: "word_search",
+      title: activity.title,
+      instructions: activity.instruction,
+      skill: activity.skill,
+      position: index + 1,
+      content: {
+        words,
+        directions: allowedDirections,
+        allowedDirections,
+        gridSize: activity.gridSize || 12,
+        generatedGrid,
+      },
+      correct_answers: Object.fromEntries(words.map((row) => [row.id, row.word])),
+      feedback: normalizeFeedback(activity.feedback, "Review the word list and try again."),
+    };
+  }
+
   return activity;
 }
 
@@ -85,7 +116,95 @@ function activityGuidance(type) {
   if (type === "multiple-choice") {
     return "Edit the question, answer options, and the correct option. Students will see the selected option as a full answer card.";
   }
+  if (type === "word-search") {
+    return "Add the word list, choose allowed directions, and generate the word search puzzle grid.";
+  }
   return "Edit the activity content and save when you are ready.";
+}
+
+function createActivityTemplate(type, orderIndex) {
+  const stamp = Date.now();
+  if (type === "line-matching") {
+    const leftA = `left-${stamp}-1`;
+    const leftB = `left-${stamp}-2`;
+    const rightA = `right-${stamp}-1`;
+    const rightB = `right-${stamp}-2`;
+    return {
+      id: `line-${stamp}`,
+      type: "line-matching",
+      title: `Activity ${orderIndex + 1}`,
+      instruction: "Drag from one box to another to make a match.",
+      skill: "Matching skill",
+      leftItems: [
+        { id: leftA, label: "new left item 1" },
+        { id: leftB, label: "new left item 2" },
+      ],
+      rightItems: [
+        { id: rightA, label: "new right item 1" },
+        { id: rightB, label: "new right item 2" },
+      ],
+      correctPairs: {
+        [leftA]: rightA,
+        [leftB]: rightB,
+      },
+      feedback: normalizeFeedback({}, "Review the matching pairs and try again."),
+    };
+  }
+  if (type === "multiple-choice") {
+    const questionId = `mc-${stamp}`;
+    return {
+      id: `multiple-choice-${stamp}`,
+      type: "multiple-choice",
+      title: `Activity ${orderIndex + 1}`,
+      instruction: "Choose the best option for each question.",
+      skill: "Multiple choice skill",
+      questions: [
+        {
+          id: questionId,
+          prompt: "New question prompt",
+          options: ["Option A", "Option B", "Option C"],
+          answer: "Option A",
+        },
+      ],
+      feedback: normalizeFeedback({}, "Review the question and answer options."),
+    };
+  }
+  if (type === "word-search") {
+    const entries = [
+      { id: `ws-${stamp}-1`, word: "SPRING", hint: "" },
+      { id: `ws-${stamp}-2`, word: "SUMMER", hint: "" },
+      { id: `ws-${stamp}-3`, word: "WINTER", hint: "" },
+      { id: `ws-${stamp}-4`, word: "SUNNY", hint: "" },
+      { id: `ws-${stamp}-5`, word: "CLOUDY", hint: "" },
+      { id: `ws-${stamp}-6`, word: "WINDY", hint: "" },
+    ];
+    const generatedGrid = generateWordSearch(entries.map((item) => item.word), { directions: defaultWordSearchDirections, gridSize: 12 });
+    return {
+      id: `word-search-${stamp}`,
+      type: "word-search",
+      title: "Find the weather words",
+      instruction: "Find the hidden words in the letter grid.",
+      skill: "Weather vocabulary",
+      words: entries,
+      allowedDirections: [...defaultWordSearchDirections],
+      gridSize: 12,
+      generatedGrid,
+      feedback: normalizeFeedback({}, "Review the hidden words and try again."),
+    };
+  }
+  return {
+    id: `gap-fill-${stamp}`,
+    type: "gap-fill",
+    title: `Activity ${orderIndex + 1}`,
+    instruction: "Drag each word into the correct gap.",
+    skill: "Gap fill skill",
+    wordBank: ["Word 1", "Word 2"],
+    items: [
+      { id: `gap-${stamp}-1`, prompt: "New clue prompt 1.", answer: "Word 1" },
+      { id: `gap-${stamp}-2`, prompt: "New clue prompt 2.", answer: "Word 2" },
+    ],
+    feedback: normalizeFeedback({}, "Review the clues and words before trying again."),
+  };
 }
 
 export function TeacherCourseEditor({
@@ -119,6 +238,35 @@ export function TeacherCourseEditor({
     onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
   };
 
+  const reorderActivitiesByIds = (dragActivityId, targetId) => {
+    if (!dragActivityId || !targetId || dragActivityId === targetId) return;
+    const activities = [...course.lesson.activities];
+    const dragIndex = activities.findIndex((item) => item.id === dragActivityId);
+    const targetIndex = activities.findIndex((item) => item.id === targetId);
+    if (dragIndex < 0 || targetIndex < 0) return;
+    const [dragItem] = activities.splice(dragIndex, 1);
+    activities.splice(targetIndex, 0, dragItem);
+    onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
+    setSelectedActivityIndex(activities.findIndex((item) => item.id === dragItem.id));
+  };
+
+  const deleteActivity = (activityId) => {
+    const activities = course.lesson.activities.filter((item) => item.id !== activityId);
+    onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
+    const nextSelected = activities.length ? Math.min(selectedActivityIndex, activities.length - 1) : 0;
+    setSelectedActivityIndex(nextSelected);
+    setShowActivityPreview(false);
+  };
+
+  const addActivity = (activityType) => {
+    const activities = [...course.lesson.activities];
+    const nextActivity = createActivityTemplate(activityType, activities.length);
+    activities.push(nextActivity);
+    onCourseChange({ ...course, lesson: { ...course.lesson, activities } });
+    setSelectedActivityIndex(activities.length - 1);
+    setShowActivityPreview(false);
+  };
+
   const saveSelectedActivity = async () => {
     if (!selectedActivity) return;
     playSound("submit");
@@ -127,7 +275,9 @@ export function TeacherCourseEditor({
     setSaveError("");
     try {
       await saveActivity?.(selectedActivity.id, activityToApiPatch(selectedActivity, selectedActivityIndex));
-      await reloadCourse?.();
+      if (uuidPattern.test(selectedActivity.id)) {
+        await reloadCourse?.();
+      }
       setActivitySaved(true);
       window.setTimeout(() => setActivitySaved(false), 2600);
     } catch (error) {
@@ -223,42 +373,93 @@ export function TeacherCourseEditor({
               <Tag tone="green">Live data</Tag>
             </div>
 
-            <ActivityTabs
-              activities={course.lesson.activities}
-              selectedIndex={selectedActivityIndex}
-              onSelect={(index) => {
-                setSelectedActivityIndex(index);
-                setShowActivityPreview(false);
-              }}
-            />
+            <div className="activity-manager-layout">
+              <ActivityTabs
+                activities={course.lesson.activities}
+                selectedIndex={selectedActivityIndex}
+                onSelect={(index, action) => {
+                  if (!action) {
+                    setSelectedActivityIndex(index);
+                    setShowActivityPreview(false);
+                    return;
+                  }
+                  if (action.type === "reorder") {
+                    reorderActivitiesByIds(action.dragActivityId, action.targetId);
+                    return;
+                  }
+                  if (action.type === "delete") {
+                    deleteActivity(action.activityId);
+                    return;
+                  }
+                  if (action.type === "add") {
+                    addActivity(action.activityType);
+                  }
+                }}
+              />
 
-            {selectedActivity && (
-              <div className="selected-activity-editor-layout">
-                <ActivityEditor
-                  key={selectedActivity.id}
-                  course={course}
-                  activity={selectedActivity}
-                  index={selectedActivityIndex}
-                  onChange={onCourseChange}
-                  onMove={moveActivity}
-                />
-                <aside className="selected-activity-actions">
-                  <div className="activity-guidance-box">
-                    <strong>Teacher note</strong>
-                    <p>{activityGuidance(selectedActivity.type)}</p>
-                  </div>
-                  <button className="primary-action" data-sound-ignore="true" onClick={saveSelectedActivity} disabled={saving}>
-                    <Save size={17} /> {saving ? "Saving..." : "Save activity"}
-                  </button>
-                  <button className="secondary-action" data-sound-ignore="true" onClick={() => {
-                    setShowActivityPreview(!showActivityPreview);
-                  }}>
-                    <Eye size={17} /> {showActivityPreview ? "Hide preview" : "Preview as student"}
-                  </button>
-                </aside>
-              </div>
-            )}
+              {selectedActivity && (
+                <div className="selected-activity-editor-layout">
+                  <ActivityEditor
+                    key={selectedActivity.id}
+                    course={course}
+                    activity={selectedActivity}
+                    index={selectedActivityIndex}
+                    onChange={onCourseChange}
+                    onMove={moveActivity}
+                  />
+                  <aside className="selected-activity-actions">
+                    <div className="activity-guidance-box">
+                      <strong>Teacher note</strong>
+                      <p>{activityGuidance(selectedActivity.type)}</p>
+                    </div>
+                    <button className="primary-action" data-sound-ignore="true" onClick={saveSelectedActivity} disabled={saving}>
+                      <Save size={17} /> {saving ? "Saving..." : "Save activity"}
+                    </button>
+                    <button className="secondary-action" data-sound-ignore="true" onClick={() => {
+                      setShowActivityPreview(!showActivityPreview);
+                    }}>
+                      <Eye size={17} /> {showActivityPreview ? "Hide preview" : "Preview as student"}
+                    </button>
+                  </aside>
+                </div>
+              )}
+              {!selectedActivity && (
+                <div className="activity-empty-editor">
+                  <strong>No activity selected</strong>
+                  <p>Add a new activity from the left list to start editing.</p>
+                </div>
+              )}
+            </div>
           </Card>
+
+          <details className="teacher-optional-panel">
+            <summary>Assignment</summary>
+            <Card>
+              <span className="eyebrow">Assignment</span>
+              <h2>Assign lesson</h2>
+              <p>Publish this lesson to the selected class with two attempts and automatic feedback.</p>
+              <button className="primary-action compact-action" onClick={() => setAssigned(true)}>
+                <Send size={17} /> Assign to {course.className}
+              </button>
+            </Card>
+          </details>
+
+          <details className="teacher-optional-panel">
+            <summary>Submissions</summary>
+            <Card>
+              <span className="eyebrow">Submissions</span>
+              <h2>Student summary</h2>
+              <div className="submission-list compact">
+                {course.submissions.map((submission) => (
+                  <article key={submission.student}>
+                    <strong>{submission.student}<span>{submission.score === null ? "-" : `${submission.score}%`}</span></strong>
+                    <p>{submission.status} / attempt {submission.attempt}</p>
+                    <Tag tone={submission.status === "Submitted" ? "green" : submission.status === "Needs review" ? "gold" : "blue"}>{submission.submittedAt}</Tag>
+                  </article>
+                ))}
+              </div>
+            </Card>
+          </details>
 
           {showActivityPreview && selectedActivity && (
             <ActivityPreviewPanel
@@ -268,31 +469,6 @@ export function TeacherCourseEditor({
             />
           )}
         </main>
-
-        <aside className="teacher-editor-side">
-          <Card>
-            <span className="eyebrow">Assignment</span>
-            <h2>Assign lesson</h2>
-            <p>Publish this lesson to the selected class with two attempts and automatic feedback.</p>
-            <button className="primary-action compact-action" onClick={() => setAssigned(true)}>
-              <Send size={17} /> Assign to {course.className}
-            </button>
-          </Card>
-
-          <Card>
-            <span className="eyebrow">Submissions</span>
-            <h2>Student summary</h2>
-            <div className="submission-list compact">
-              {course.submissions.map((submission) => (
-                <article key={submission.student}>
-                  <strong>{submission.student}<span>{submission.score === null ? "-" : `${submission.score}%`}</span></strong>
-                  <p>{submission.status} / attempt {submission.attempt}</p>
-                  <Tag tone={submission.status === "Submitted" ? "green" : submission.status === "Needs review" ? "gold" : "blue"}>{submission.submittedAt}</Tag>
-                </article>
-              ))}
-            </div>
-          </Card>
-        </aside>
       </div>
 
       {showPreview && <StudentPreviewPanel course={course} />}
