@@ -146,12 +146,9 @@ export function SoundProvider({ children }) {
 
   const playSound = useCallback(async (type) => {
     if (mutedRef.current) return;
-    const ctx = ensureAudio();
-    if (!ctx || !masterRef.current) return;
-    if (!unlockedRef.current || ctx.state !== "running") {
-      const ok = await unlockAudio();
-      if (!ok) return;
-    }
+    if (!unlockedRef.current) return;
+    const ctx = audioCtxRef.current;
+    if (!ctx || !masterRef.current || ctx.state !== "running") return;
 
     const now = performance.now();
     if (type === "dragMoveTick") {
@@ -167,7 +164,7 @@ export function SoundProvider({ children }) {
       osc.start();
       osc.stop(stopAt);
     });
-  }, [ensureAudio, unlockAudio]);
+  }, []);
 
   const playHoverFor = useCallback((element) => {
     if (!element) return;

@@ -11,7 +11,7 @@ export async function handler(event) {
 
   try {
     if (!getCookie(event, sessionCookieName)) {
-      return json(401, { error: "Not signed in" });
+      return json(200, { user: null, authenticated: false });
     }
 
     const sql = getSql();
@@ -19,10 +19,10 @@ export async function handler(event) {
     const user = await currentUserFromEvent(sql, event);
 
     if (!user) {
-      return json(401, { error: "Not signed in" });
+      return json(200, { user: null, authenticated: false });
     }
 
-    return json(200, { user: publicUser(user) });
+    return json(200, { user: publicUser(user), authenticated: true });
   } catch (error) {
     console.error(error);
     return json(500, { error: "Auth check failed" });

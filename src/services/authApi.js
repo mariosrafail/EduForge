@@ -29,10 +29,10 @@ export async function getCurrentUser() {
   const payload = await response.json();
 
   if (!response.ok) {
-    throw new Error(payload.error || "Authentication check failed");
+    throw new Error("Failed to check auth session");
   }
 
-  return payload.user;
+  return payload.user || null;
 }
 
 export async function signIn(credentials) {
