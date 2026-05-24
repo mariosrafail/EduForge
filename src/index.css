@@ -651,12 +651,11 @@ input[type="color"] { padding: 4px; height: 46px; }
 .puzzle-loader {
   position: relative;
   width: 244px;
-  height: 188px;
+  height: 214px;
   padding: 22px;
-  background: #202019;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  box-shadow: 0 22px 48px rgba(16, 24, 40, 0.24);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 .puzzle-piece {
   position: absolute;
@@ -756,6 +755,16 @@ input[type="color"] { padding: 4px; height: 46px; }
   left: 83px;
   top: 142px;
   animation-delay: 850ms;
+}
+.piece-19 {
+  left: 139px;
+  top: 170px;
+  animation-delay: 900ms;
+}
+.piece-20 {
+  left: 167px;
+  top: 170px;
+  animation-delay: 950ms;
 }
 .piece-14::after,
 .piece-15::after,
