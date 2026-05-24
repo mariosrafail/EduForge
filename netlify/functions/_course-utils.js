@@ -115,6 +115,7 @@ export function activityRowToUi(row) {
       revisionGuidance: feedback.revision || feedback.revisionGuidance || "",
       leftItems: content.leftItems || [],
       rightItems: content.rightItems || [],
+      shuffleRightItems: content.shuffleRightItems !== false,
       correctPairs: correct || {},
       feedback,
       position: row.position,

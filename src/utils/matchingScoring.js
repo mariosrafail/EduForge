@@ -7,7 +7,8 @@ export function scoreLineMatching(activity, matches = {}) {
   activity.leftItems.forEach((leftItem) => {
     const actual = matches[leftItem.id] || "";
     const expected = activity.correctPairs[leftItem.id];
-    const correct = actual === expected;
+    const accepted = Array.isArray(expected) ? expected : [expected].filter(Boolean);
+    const correct = accepted.includes(actual);
 
     if (correct) {
       correctCount += 1;

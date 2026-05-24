@@ -51,6 +51,7 @@ function apiActivityPatchToUi(activity, patch = {}) {
       type: "line-matching",
       leftItems: patch.content?.leftItems || activity.leftItems || [],
       rightItems: patch.content?.rightItems || activity.rightItems || [],
+      shuffleRightItems: patch.content?.shuffleRightItems !== false,
       correctPairs: patch.correct_answers || activity.correctPairs || {},
     };
   }

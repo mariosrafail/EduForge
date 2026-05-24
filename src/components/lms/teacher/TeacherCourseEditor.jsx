@@ -82,6 +82,7 @@ function activityToApiPatch(activity, index) {
       content: {
         leftItems: activity.leftItems,
         rightItems: activity.rightItems,
+        shuffleRightItems: true,
       },
       correct_answers: activity.correctPairs,
       feedback: normalizeFeedback(activity.feedback, activity.revisionGuidance || "Review the seasons and their months before trying again."),
@@ -156,8 +157,8 @@ function createActivityTemplate(type, orderIndex) {
         { id: rightB, label: "new right item 2" },
       ],
       correctPairs: {
-        [leftA]: rightA,
-        [leftB]: rightB,
+        [leftA]: [rightA],
+        [leftB]: [rightB],
       },
       feedback: normalizeFeedback({}, "Review the matching pairs and try again."),
     };

@@ -5,7 +5,11 @@ function scoreActivity(activity, answers = {}) {
     return activity.items.map((item) => ({ id: item.id, correct: answers[item.id] === item.answer }));
   }
   if (activity.type === "line-matching") {
-    return activity.leftItems.map((item) => ({ id: item.id, correct: answers[item.id] === activity.correctPairs[item.id] }));
+    return activity.leftItems.map((item) => {
+      const expected = activity.correctPairs[item.id];
+      const accepted = Array.isArray(expected) ? expected : [expected].filter(Boolean);
+      return { id: item.id, correct: accepted.includes(answers[item.id]) };
+    });
   }
   if (activity.type === "multiple-choice") {
     return activity.questions.map((question) => ({ id: question.id, correct: answers[question.id] === question.answer }));

@@ -137,24 +137,66 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
     });
   };
 
-  const getRightItemForLeft = (leftId, itemIndex) => {
-    const pairedRightId = activity.correctPairs?.[leftId];
-    return activity.rightItems.find((item) => item.id === pairedRightId) || activity.rightItems[itemIndex] || null;
+  const getAcceptedRightIds = (leftId, itemIndex) => {
+    const pairedRightIds = activity.correctPairs?.[leftId];
+    if (Array.isArray(pairedRightIds)) return pairedRightIds.filter(Boolean);
+    if (pairedRightIds) return [pairedRightIds];
+    const fallbackRightId = activity.rightItems[itemIndex]?.id;
+    return fallbackRightId ? [fallbackRightId] : [];
   };
 
-  const updateLineRightForLeft = (leftId, itemIndex, value) => {
-    const currentRight = getRightItemForLeft(leftId, itemIndex);
-    const rightId = currentRight?.id || `right-${Date.now()}-${itemIndex}`;
-    const hasRight = activity.rightItems.some((item) => item.id === rightId);
+  const getAcceptedRightItems = (leftId, itemIndex) => {
+    const acceptedIds = getAcceptedRightIds(leftId, itemIndex);
+    return acceptedIds
+      .map((rightId) => activity.rightItems.find((item) => item.id === rightId))
+      .filter(Boolean);
+  };
+
+  const updateAcceptedRight = (leftId, itemIndex, rightId, value) => {
+    const acceptedIds = getAcceptedRightIds(leftId, itemIndex);
+    const safeRightId = rightId || `right-${Date.now()}-${itemIndex}`;
+    const nextAcceptedIds = acceptedIds.includes(safeRightId) ? acceptedIds : [...acceptedIds, safeRightId];
+    const hasRight = activity.rightItems.some((item) => item.id === safeRightId);
     const nextRightItems = hasRight
-      ? activity.rightItems.map((item) => (item.id === rightId ? { ...item, label: value } : item))
-      : [...activity.rightItems, { id: rightId, label: value }];
+      ? activity.rightItems.map((item) => (item.id === safeRightId ? { ...item, label: value } : item))
+      : [...activity.rightItems, { id: safeRightId, label: value }];
 
     updateActivity({
       ...activity,
       rightItems: nextRightItems,
-      correctPairs: { ...activity.correctPairs, [leftId]: rightId },
+      correctPairs: { ...activity.correctPairs, [leftId]: nextAcceptedIds },
     });
+  };
+
+  const addAcceptedRight = (leftId, itemIndex) => {
+    const rightId = `right-${Date.now()}-${itemIndex}`;
+    updateActivity({
+      ...activity,
+      rightItems: [...activity.rightItems, { id: rightId, label: "new accepted answer" }],
+      correctPairs: { ...activity.correctPairs, [leftId]: [...getAcceptedRightIds(leftId, itemIndex), rightId] },
+    });
+  };
+
+  const removeAcceptedRight = (leftId, itemIndex, rightId) => {
+    const acceptedIds = getAcceptedRightIds(leftId, itemIndex);
+    if (acceptedIds.length <= 1) {
+      updateAcceptedRight(leftId, itemIndex, rightId, "");
+      return;
+    }
+    updateActivity({
+      ...activity,
+      rightItems: activity.rightItems.filter((item) => item.id !== rightId),
+      correctPairs: {
+        ...activity.correctPairs,
+        [leftId]: acceptedIds.filter((id) => id !== rightId),
+      },
+    });
+  };
+
+  const getAcceptedRightItemsForRender = (leftId, itemIndex) => {
+    const acceptedItems = getAcceptedRightItems(leftId, itemIndex);
+    if (acceptedItems.length) return acceptedItems;
+    return [{ id: "", label: "" }];
   };
 
   const addLinePair = () => {
@@ -165,18 +207,18 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
       ...activity,
       leftItems: [...activity.leftItems, { id: leftId, label: "new left item" }],
       rightItems: [...activity.rightItems, { id: rightId, label: "new right item" }],
-      correctPairs: { ...activity.correctPairs, [leftId]: rightId },
+      correctPairs: { ...activity.correctPairs, [leftId]: [rightId] },
     });
   };
 
-  const removeLinePair = (leftId) => {
-    const pairedRightId = activity.correctPairs?.[leftId];
+  const removeLinePair = (leftId, itemIndex) => {
+    const pairedRightIds = getAcceptedRightIds(leftId, itemIndex);
     const nextCorrectPairs = { ...activity.correctPairs };
     delete nextCorrectPairs[leftId];
     updateActivity({
       ...activity,
       leftItems: activity.leftItems.filter((item) => item.id !== leftId),
-      rightItems: pairedRightId ? activity.rightItems.filter((item) => item.id !== pairedRightId) : activity.rightItems,
+      rightItems: pairedRightIds.length ? activity.rightItems.filter((item) => !pairedRightIds.includes(item.id)) : activity.rightItems,
       correctPairs: nextCorrectPairs,
     });
   };
@@ -307,26 +349,46 @@ export function ActivityEditor({ course, activity, index, onChange, onMove }) {
           <div className="inline-editor-list line-editor-list">
             <div className="line-editor-intro">
               <strong>Line matching pairs</strong>
-              <span>Enter each correct pair below. The right-side answers will be shuffled automatically for students.</span>
+              <span>Add one or more accepted right-side answers for each left item. Students will connect one answer; any accepted answer will be marked correct.</span>
             </div>
             {activity.leftItems.map((leftItem, itemIndex) => {
-              const rightItem = getRightItemForLeft(leftItem.id, itemIndex);
+              const acceptedRightItems = getAcceptedRightItemsForRender(leftItem.id, itemIndex);
               return (
               <div className="line-pair-editor-row" key={leftItem.id}>
-                <input
-                  aria-label={`Left item ${itemIndex + 1}`}
-                  placeholder="Left item text"
-                  value={leftItem.label}
-                  onChange={(event) => updateLineLeftItem(leftItem.id, event.target.value)}
-                />
-                <span className="line-pair-arrow" aria-hidden="true">&rarr;</span>
-                <input
-                  aria-label={`Correct right item ${itemIndex + 1}`}
-                  placeholder="Correct right item text"
-                  value={rightItem?.label || ""}
-                  onChange={(event) => updateLineRightForLeft(leftItem.id, itemIndex, event.target.value)}
-                />
-                <button data-sound-click="deleteRemove" onClick={() => removeLinePair(leftItem.id)}><Trash2 size={15} /></button>
+                <label className="line-left-editor">
+                  Left item
+                  <input
+                    aria-label={`Left item ${itemIndex + 1}`}
+                    placeholder="Left item text"
+                    value={leftItem.label}
+                    onChange={(event) => updateLineLeftItem(leftItem.id, event.target.value)}
+                  />
+                </label>
+                <div className="line-accepted-editor">
+                  <strong>Accepted right answers</strong>
+                  {acceptedRightItems.map((rightItem, answerIndex) => (
+                    <div className="line-accepted-answer-row" key={rightItem.id || `empty-${leftItem.id}`}>
+                      <input
+                        aria-label={`Accepted right answer ${answerIndex + 1} for ${leftItem.label || `left item ${itemIndex + 1}`}`}
+                        placeholder={answerIndex === 0 ? "Primary accepted answer" : "Additional accepted answer"}
+                        value={rightItem.label || ""}
+                        onChange={(event) => updateAcceptedRight(leftItem.id, itemIndex, rightItem.id, event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        data-sound-click="deleteRemove"
+                        aria-label={`Delete accepted answer ${answerIndex + 1}`}
+                        onClick={() => removeAcceptedRight(leftItem.id, itemIndex, rightItem.id)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="secondary-action compact-action" onClick={() => addAcceptedRight(leftItem.id, itemIndex)}>
+                    <ListPlus size={16} /> Add accepted answer
+                  </button>
+                </div>
+                <button className="line-pair-delete" data-sound-click="deleteRemove" onClick={() => removeLinePair(leftItem.id, itemIndex)}><Trash2 size={15} /></button>
               </div>
               );
             })}
