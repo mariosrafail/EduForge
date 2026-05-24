@@ -4,6 +4,7 @@ import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
 import { RoleSelection } from "./components/lms/RoleSelection.jsx";
 import { Header, PageTransition } from "./components/lms/Shared.jsx";
+import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
 import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
 import { TeacherCourseEditor } from "./components/lms/teacher/TeacherCourseEditor.jsx";
 import { brandPresets } from "./data/lmsDemoData.js";
@@ -43,6 +44,7 @@ export default function App() {
 
   return (
     <div className="eduforge-app" style={cssVars}>
+      <AppIntro />
       {isRoleView && (
         <>
           <Header

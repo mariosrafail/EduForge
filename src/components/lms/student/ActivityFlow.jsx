@@ -4,7 +4,6 @@ import { BookOpen, Send } from "lucide-react";
 import { scoreActivity, scoreLesson } from "../../../utils/courseScoring.js";
 import { Card, Tag } from "../Shared.jsx";
 import { useSoundEffects } from "../../../context/SoundContext.jsx";
-import { ActivityProgress } from "./ActivityProgress.jsx";
 import { LessonCompletionSummary } from "./LessonCompletionSummary.jsx";
 import { ActivityShell } from "./activities/ActivityShell.jsx";
 import { ActivityFeedback } from "./activities/ActivityFeedback.jsx";
@@ -129,21 +128,12 @@ export function ActivityFlow({ course, onSubmission, submitLesson, previewMode =
           <p>{course.title} / {course.lesson.unit}. Work through one focused activity at a time.</p>
         </div>
         <div className="lesson-meta-row">
+          <Tag tone="blue">Activity {activeIndex + 1} of {activities.length}</Tag>
           <Tag tone="gold">{course.lesson.estimatedTime}</Tag>
           <Tag tone="blue">{course.className}</Tag>
           <Tag tone="green">Auto feedback</Tag>
         </div>
       </Card>
-
-      <ActivityProgress
-        activities={activities}
-        activeIndex={activeIndex}
-        completedIds={completedActivityIds}
-        onSelectActivity={(index) => {
-          playSound("nextActivity");
-          setActiveIndex(index);
-        }}
-      />
 
       <AnimatePresence mode="wait">
         <motion.div

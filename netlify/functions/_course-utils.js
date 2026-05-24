@@ -180,7 +180,7 @@ export function courseRowsToUi(course, lessonRows, activityRows, submissionRows 
     subtitle: lesson.subtitle || "",
     unit: lesson.subtitle || "Welcome 2",
     section: lesson.title,
-    estimatedTime: "18 min",
+    estimatedTime: "20 minutes",
     status: lesson.status === "published" ? "Assigned" : lesson.status,
     instructions: lesson.instructions || "",
     objectives: [

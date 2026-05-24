@@ -4,6 +4,7 @@ import { createActivity, getCourse, submitLesson, updateActivity, updateCourse, 
 
 const unavailableMessage = "Database connection unavailable, using local demo content.";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const LESSON_META_STORAGE_KEY = "hh_lms_lesson_metadata";
 
 function canUseLocalFallback(error) {
   return !error?.status || error.status === 404;
@@ -16,6 +17,36 @@ function normalizeFeedback(feedback = {}) {
     wrong: feedback.wrong || "Review the item and try again.",
     revision: feedback.revision || feedback.revisionGuidance || "Review the activity before trying again.",
   };
+}
+
+function readLessonMetadata() {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(LESSON_META_STORAGE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeLessonMetadata(lesson = {}) {
+  if (typeof window === "undefined" || !lesson.id) return;
+  const current = readLessonMetadata();
+  current[lesson.id] = {
+    estimatedTime: lesson.estimatedTime,
+    objectives: Array.isArray(lesson.objectives) ? lesson.objectives : [],
+  };
+  window.localStorage.setItem(LESSON_META_STORAGE_KEY, JSON.stringify(current));
+}
+
+function applyLessonMetadata(course) {
+  const metadata = readLessonMetadata();
+  const applyToLesson = (lesson) => {
+    const saved = metadata[lesson.id];
+    return saved ? { ...lesson, ...saved } : lesson;
+  };
+  const lessons = course.lessons?.map(applyToLesson);
+  const activeLesson = course.lesson ? applyToLesson(course.lesson) : lessons?.[0];
+  return { ...course, lesson: activeLesson, lessons };
 }
 
 function apiActivityPatchToUi(activity, patch = {}) {
@@ -83,7 +114,7 @@ function apiActivityPatchToUi(activity, patch = {}) {
 }
 
 export function useCourseData() {
-  const [course, setCourse] = useState(() => cloneCourseDemo());
+  const [course, setCourseState] = useState(() => applyLessonMetadata(cloneCourseDemo()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastSavedAt, setLastSavedAt] = useState("");
@@ -91,15 +122,15 @@ export function useCourseData() {
   const reloadCourse = useCallback(async () => {
     setLoading(true);
     try {
-      const nextCourse = await getCourse();
-      setCourse(nextCourse);
+      const nextCourse = applyLessonMetadata(await getCourse());
+      setCourseState(nextCourse);
       setError("");
       return nextCourse;
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      const fallback = cloneCourseDemo();
-      setCourse((current) => current || fallback);
+      const fallback = applyLessonMetadata(cloneCourseDemo());
+      setCourseState((current) => current || fallback);
       return fallback;
     } finally {
       setLoading(false);
@@ -113,14 +144,14 @@ export function useCourseData() {
   const saveCourse = useCallback(async (patch) => {
     try {
       const nextCourse = await updateCourse(patch);
-      setCourse(nextCourse);
+      setCourseState(applyLessonMetadata(nextCourse));
       setError("");
       setLastSavedAt(new Date().toISOString());
       return nextCourse;
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      setCourse((current) => ({ ...current, ...patch }));
+      setCourseState((current) => ({ ...current, ...patch }));
       throw requestError;
     }
   }, []);
@@ -128,14 +159,14 @@ export function useCourseData() {
   const saveLesson = useCallback(async (lessonId, patch) => {
     try {
       const nextCourse = await updateLesson(lessonId, patch);
-      setCourse(nextCourse);
+      setCourseState(applyLessonMetadata(nextCourse));
       setError("");
       setLastSavedAt(new Date().toISOString());
       return nextCourse;
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      setCourse((current) => ({
+      setCourseState((current) => ({
         ...current,
         lesson: { ...current.lesson, ...patch },
         lessons: current.lessons?.map((lesson) => (lesson.id === lessonId ? { ...lesson, ...patch } : lesson)),
@@ -148,7 +179,7 @@ export function useCourseData() {
     const saveLocalActivity = () => {
       const savedAt = new Date().toISOString();
       let nextCourse = null;
-      setCourse((current) => {
+      setCourseState((current) => {
         nextCourse = {
           ...current,
           lesson: {
@@ -167,7 +198,7 @@ export function useCourseData() {
     if (!uuidPattern.test(activityId)) {
       try {
         const nextCourse = await createActivity(course.lesson.id, patch);
-        setCourse(nextCourse);
+        setCourseState(applyLessonMetadata(nextCourse));
         setError("");
         setLastSavedAt(new Date().toISOString());
         return nextCourse;
@@ -184,7 +215,7 @@ export function useCourseData() {
 
     try {
       const nextCourse = await updateActivity(activityId, patch);
-      setCourse(nextCourse);
+      setCourseState(applyLessonMetadata(nextCourse));
       setError("");
       setLastSavedAt(new Date().toISOString());
       return nextCourse;
@@ -209,6 +240,14 @@ export function useCourseData() {
     }
   }, []);
 
+  const setCourse = useCallback((nextCourseOrUpdater) => {
+    setCourseState((current) => {
+      const nextCourse = typeof nextCourseOrUpdater === "function" ? nextCourseOrUpdater(current) : nextCourseOrUpdater;
+      writeLessonMetadata(nextCourse.lesson);
+      return nextCourse;
+    });
+  }, []);
+
   return useMemo(() => ({
     course,
     setCourse,
@@ -220,5 +259,5 @@ export function useCourseData() {
     saveLesson,
     saveActivity,
     submitCourseLesson,
-  }), [course, loading, error, lastSavedAt, reloadCourse, saveCourse, saveLesson, saveActivity, submitCourseLesson]);
+  }), [course, loading, error, lastSavedAt, reloadCourse, saveCourse, saveLesson, saveActivity, submitCourseLesson, setCourse]);
 }

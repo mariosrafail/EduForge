@@ -1,4 +1,3 @@
-import { Eye } from "lucide-react";
 import { SectionTitle } from "../Shared.jsx";
 import { ActivityFlow } from "./ActivityFlow.jsx";
 import { LessonBreadcrumbs } from "./LessonBreadcrumbs.jsx";
@@ -14,12 +13,21 @@ export function StudentCourseView({ course, onSubmission, navigateTo, previewMod
         eyebrow={previewMode ? "Student preview" : "Student digital course"}
         title={course.lesson.title}
         text={`${course.title} / ${course.lesson.unit}. Complete the activities, submit your answers, and review targeted feedback.`}
-        action={navigateTo && (
-          <button className="secondary-action" onClick={() => navigateTo("teacher-course-editor")}>
-            <Eye size={17} /> Teacher editor
-          </button>
-        )}
       />
+
+      {course.lesson.objectives?.length > 0 && (
+        <section className="student-objectives-panel" aria-label="Learning objectives">
+          <div>
+            <span className="eyebrow">Learning objectives</span>
+            <strong>By the end of this lesson, you can:</strong>
+          </div>
+          <ul>
+            {course.lesson.objectives.filter(Boolean).map((objective, index) => (
+              <li key={`${objective}-${index}`}>{objective}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="course-lesson-layout">
         <LessonSidebar

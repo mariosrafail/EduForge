@@ -2,9 +2,25 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 const STORAGE_KEY = "hh_lms_sound_muted";
 const VOLUME_STORAGE_KEY = "hh_lms_sound_volume";
-const DEFAULT_VOLUME = 0.95;
+const DEFAULT_VOLUME = 0.68;
 const MAX_OUTPUT_GAIN = 2.4;
 const HOVER_COOLDOWN_MS = 90;
+
+const soundAssets = {
+  hoverSoft: { file: "hover.wav", gain: 0.42 },
+  clickConfirm: { file: "click.wav", gain: 0.9 },
+  dragStart: { file: "drag-start.wav", gain: 0.82 },
+  dragMoveTick: { file: "hover.wav", gain: 0.28 },
+  dropSuccess: { file: "drop-success.wav", gain: 0.95 },
+  dropInvalid: { file: "drop-invalid.wav", gain: 0.85 },
+  submit: { file: "submit.wav", gain: 0.9 },
+  correct: { file: "correct.wav", gain: 0.96 },
+  wrong: { file: "wrong.wav", gain: 0.86 },
+  nextActivity: { file: "next.wav", gain: 0.82 },
+  modalOpen: { file: "modal-open.wav", gain: 0.78 },
+  modalClose: { file: "modal-close.wav", gain: 0.72 },
+  deleteRemove: { file: "delete.wav", gain: 0.84 },
+};
 
 const SoundContext = createContext({
   muted: false,
@@ -120,6 +136,8 @@ export function SoundProvider({ children }) {
   const unlockedRef = useRef(false);
   const hoverTimesRef = useRef(new WeakMap());
   const lastTypeTimeRef = useRef({});
+  const assetPoolRef = useRef({});
+  const brokenAssetsRef = useRef(new Set());
 
   const ensureAudio = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -154,19 +172,9 @@ export function SoundProvider({ children }) {
     }
   }, [ensureAudio]);
 
-  const playSound = useCallback(async (type) => {
-    if (mutedRef.current) return;
-    if (!unlockedRef.current) return;
+  const playSynthSound = useCallback((type) => {
     const ctx = audioCtxRef.current;
     if (!ctx || !masterRef.current || ctx.state !== "running") return;
-
-    const now = performance.now();
-    if (type === "dragMoveTick") {
-      const last = lastTypeTimeRef.current[type] || 0;
-      if (now - last < 120) return;
-      lastTypeTimeRef.current[type] = now;
-    }
-
     const parts = soundPlan(type);
     parts.forEach((part) => {
       const { osc, stereo, stopAt } = createVoice(ctx, part);
@@ -175,6 +183,44 @@ export function SoundProvider({ children }) {
       osc.stop(stopAt);
     });
   }, []);
+
+  const playAssetSound = useCallback((type) => {
+    const asset = soundAssets[type];
+    const pool = assetPoolRef.current[type];
+    if (!asset || !pool?.length || brokenAssetsRef.current.has(type)) return false;
+    const available = pool.find((audio) => audio.paused || audio.ended) || pool[0];
+    try {
+      available.pause();
+      available.currentTime = 0;
+      available.volume = clamp(volumeRef.current * asset.gain, 0, 1);
+      const result = available.play();
+      if (result?.catch) {
+        result.catch(() => {
+          brokenAssetsRef.current.add(type);
+          playSynthSound(type);
+        });
+      }
+      return true;
+    } catch {
+      brokenAssetsRef.current.add(type);
+      return false;
+    }
+  }, [playSynthSound]);
+
+  const playSound = useCallback(async (type) => {
+    if (mutedRef.current) return;
+    if (!unlockedRef.current) return;
+
+    const now = performance.now();
+    if (type === "dragMoveTick") {
+      const last = lastTypeTimeRef.current[type] || 0;
+      if (now - last < 120) return;
+      lastTypeTimeRef.current[type] = now;
+    }
+
+    if (playAssetSound(type)) return;
+    playSynthSound(type);
+  }, [playAssetSound, playSynthSound]);
 
   const playHoverFor = useCallback((element) => {
     if (!element) return;
@@ -225,7 +271,35 @@ export function SoundProvider({ children }) {
     if (masterRef.current) {
       masterRef.current.gain.value = volume * MAX_OUTPUT_GAIN;
     }
+    Object.entries(assetPoolRef.current).forEach(([type, pool]) => {
+      const gain = soundAssets[type]?.gain ?? 1;
+      pool.forEach((audio) => {
+        audio.volume = clamp(volume * gain, 0, 1);
+      });
+    });
   }, [volume]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    assetPoolRef.current = Object.fromEntries(Object.entries(soundAssets).map(([type, asset]) => [
+      type,
+      Array.from({ length: type === "hoverSoft" || type === "dragMoveTick" ? 2 : 3 }, () => {
+        const audio = new Audio(`/assets/sounds/${asset.file}`);
+        audio.preload = "auto";
+        audio.volume = clamp(volumeRef.current * asset.gain, 0, 1);
+        audio.addEventListener("error", () => brokenAssetsRef.current.add(type), { once: true });
+        audio.load();
+        return audio;
+      }),
+    ]));
+    return () => {
+      Object.values(assetPoolRef.current).flat().forEach((audio) => {
+        audio.pause();
+        audio.src = "";
+      });
+      assetPoolRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     const onPointerDown = () => {

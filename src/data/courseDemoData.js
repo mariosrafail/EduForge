@@ -10,7 +10,7 @@ export const defaultCourseDemo = {
     title: "Welcome 2 - Vocabulary 4",
     unit: "Welcome 2",
     section: "Vocabulary 4",
-    estimatedTime: "18 min",
+    estimatedTime: "20 minutes",
     status: "Assigned",
     objectives: [
       "Use days of the week accurately in short sentences.",

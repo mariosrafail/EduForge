@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpenCheck, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
 import { Card, Tag } from "./Shared.jsx";
+import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 
 const roleCards = [
   {
@@ -36,44 +37,38 @@ export function RoleSelection({ navigateTo, brand }) {
           <p>
             A focused demo of a student-facing digital book lesson and a teacher-facing course editor for Hamilton House ELT content.
           </p>
-          <div className="landing-actions">
-            <button className="primary-action" onClick={() => navigateTo("student-course")}>
-              <BookOpenCheck size={18} /> Open Student Lesson
-            </button>
-            <button className="secondary-action" onClick={() => navigateTo("teacher-course-editor")}>
-              <MonitorCheck size={18} /> Open Teacher Editor
-            </button>
-            <button className="secondary-action" onClick={() => navigateTo("flow")}>
-              <Layers3 size={18} /> View Flow
-            </button>
+          <div className="hero-value-list" aria-label="Platform highlights">
+            <span><BookOpenCheck size={17} /> Digital book lesson flow</span>
+            <span><MonitorCheck size={17} /> Teacher editor with live preview</span>
+            <span><Layers3 size={17} /> Neon-backed activity content</span>
           </div>
-          <div className="demo-login-note"><KeyRound size={16} /> Demo mode, no real login required.</div>
         </div>
 
-        <motion.div
-          className="course-hero-preview"
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08 }}
-        >
-          <div className="preview-book-top">
-            <span className="school-logo" style={{ background: brand.primary }}>{brand.logo}</span>
+        <div className="home-product-preview" aria-label="Hamilton House LMS preview">
+          <div className="preview-panel-top">
+            <span className="brand-logo image-logo">
+              <img src={hamiltonHouseLogo} alt="" />
+            </span>
             <div>
-              <strong>{brand.schoolName}</strong>
-              <small>English Skills B1</small>
+              <strong>English Skills B1</strong>
+              <small>Welcome 2 - Vocabulary 4</small>
             </div>
           </div>
-          <div className="preview-book-page">
-            <span className="eyebrow">Welcome 2 - Vocabulary 4</span>
-            <h2>Drag each word into the correct gap.</h2>
+          <div className="preview-lesson-card">
+            <span className="eyebrow">Student lesson</span>
+            <h2>One activity at a time</h2>
             <div className="preview-word-row">
-              <span>Monday</span><span>Wednesday</span><span>Friday</span><span>Sunday</span>
+              <span>Gap Fill</span>
+              <span>Matching</span>
+              <span>Choice</span>
+              <span>Word Search</span>
             </div>
-            <div className="preview-line"><b>1</b><span>We have English on _____ morning.</span></div>
-            <div className="preview-line active"><b>2</b><span>When are the seasons in the UK?</span></div>
-            <button className="primary-action">Submit answers</button>
           </div>
-        </motion.div>
+          <div className="preview-editor-card">
+            <span>Teacher editor</span>
+            <strong>Clean activity authoring, preview, and persistence.</strong>
+          </div>
+        </div>
       </section>
 
       <section className="role-card-grid" aria-label="Role entry points">
