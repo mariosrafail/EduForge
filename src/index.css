@@ -626,6 +626,68 @@ input[type="color"] { padding: 4px; height: 46px; }
 .inline-status.success { background: #ecfdf3; border-color: #abefc6; color: #067647; }
 .inline-status.warning { background: #fffaeb; border-color: #fedf89; color: #b54708; }
 .portal-open-state { margin: 0 18px 18px; }
+.editor-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  align-content: center;
+  background: rgba(244, 247, 251, 0.58);
+  backdrop-filter: blur(6px);
+  animation: reveal 140ms ease-out;
+}
+.editor-loading-overlay strong {
+  padding: 7px 10px;
+  color: #0b1f3a;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(213, 223, 235, 0.9);
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(16, 24, 40, 0.08);
+  font-size: 13px;
+  font-weight: 900;
+}
+.editor-loading-orb {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+}
+.editor-loading-orb::before,
+.editor-loading-orb::after,
+.editor-loading-orb span,
+.editor-loading-orb i {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+.editor-loading-orb::before {
+  inset: 0;
+  border: 7px solid rgba(23, 92, 211, 0.16);
+  border-top-color: var(--brand-primary);
+  border-right-color: var(--brand-secondary);
+  animation: loadingSpin 760ms linear infinite;
+}
+.editor-loading-orb::after {
+  inset: 18px;
+  border: 5px solid rgba(249, 158, 11, 0.18);
+  border-bottom-color: var(--brand-secondary);
+  animation: loadingSpin 980ms linear infinite reverse;
+}
+.editor-loading-orb span {
+  width: 24px;
+  height: 24px;
+  background: #0b1f3a;
+  box-shadow: 0 0 0 9px rgba(23, 92, 211, 0.12);
+  animation: loadingPulse 900ms ease-in-out infinite;
+}
+.editor-loading-orb i {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+}
 .empty-user-state {
   display: grid;
   gap: 4px;
@@ -2557,6 +2619,8 @@ input[type="color"] { padding: 4px; height: 46px; }
 
 @keyframes growBar { from { width: 0; } }
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loadingSpin { to { transform: rotate(360deg); } }
+@keyframes loadingPulse { 0%, 100% { transform: scale(0.86); opacity: 0.72; } 50% { transform: scale(1); opacity: 1; } }
 @keyframes drawLine { from { stroke-dasharray: 24 240; stroke-dashoffset: 80; opacity: 0.3; } to { stroke-dasharray: 0 0; stroke-dashoffset: 0; opacity: 1; } }
 @keyframes dashFlow { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
 @keyframes snapIn { 0% { transform: scale(0.985); opacity: 0.82; } 100% { transform: scale(1); opacity: 1; } }

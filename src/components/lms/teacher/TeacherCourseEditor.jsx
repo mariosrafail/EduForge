@@ -17,6 +17,18 @@ function normalizeFeedback(feedback = {}, fallbackRevision = "") {
   };
 }
 
+function LoadingOverlay({ label }) {
+  return (
+    <div className="editor-loading-overlay" role="status" aria-live="polite">
+      <div className="editor-loading-orb">
+        <span />
+        <i />
+      </div>
+      <strong>{label}</strong>
+    </div>
+  );
+}
+
 function activityToApiPatch(activity, index) {
   if (activity.type === "gap-fill") {
     const rows = activity.items.map((item) => ({
@@ -208,6 +220,7 @@ export function TeacherCourseEditor({
   const [saveError, setSaveError] = useState("");
   const [activitySaved, setActivitySaved] = useState(false);
   const selectedActivity = course.lesson.activities[selectedActivityIndex] || course.lesson.activities[0];
+  const overlayLabel = saving ? "Saving..." : courseLoading ? "Loading..." : "";
 
   const moveActivity = (index, direction) => {
     const nextIndex = index + direction;
@@ -295,6 +308,7 @@ export function TeacherCourseEditor({
 
   return (
     <div className="workspace editor-workspace">
+      {overlayLabel && <LoadingOverlay label={overlayLabel} />}
       <SectionTitle
         eyebrow="Teacher course editor"
         title="Edit the digital book lesson, preview it, and assign it."
