@@ -26,6 +26,19 @@ function LoadingOverlay({ label }) {
         <span className="puzzle-piece piece-3" />
         <span className="puzzle-piece piece-4" />
         <span className="puzzle-piece piece-5" />
+        <span className="puzzle-piece piece-6" />
+        <span className="puzzle-piece piece-7" />
+        <span className="puzzle-piece piece-8" />
+        <span className="puzzle-piece piece-9" />
+        <span className="puzzle-piece piece-10" />
+        <span className="puzzle-piece piece-11" />
+        <span className="puzzle-piece piece-12" />
+        <span className="puzzle-piece piece-13" />
+        <span className="puzzle-piece piece-14" />
+        <span className="puzzle-piece piece-15" />
+        <span className="puzzle-piece piece-16" />
+        <span className="puzzle-piece piece-17" />
+        <span className="puzzle-piece piece-18" />
       </div>
       <strong>{label}</strong>
     </div>
