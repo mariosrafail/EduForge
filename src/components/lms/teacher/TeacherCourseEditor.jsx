@@ -43,6 +43,10 @@ function LoadingOverlay({ label }) {
         <span className="puzzle-piece piece-18" />
         <span className="puzzle-piece piece-19" />
         <span className="puzzle-piece piece-20" />
+        <span className="puzzle-piece piece-21" />
+        <span className="puzzle-piece piece-22" />
+        <span className="puzzle-piece piece-23" />
+        <span className="puzzle-piece piece-24" />
       </div>
     </div>
   );

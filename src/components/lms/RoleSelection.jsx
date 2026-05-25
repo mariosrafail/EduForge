@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpenCheck, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
 import { Card, Tag } from "./Shared.jsx";
-import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 
 const roleCards = [
   {
@@ -44,31 +43,6 @@ export function RoleSelection({ navigateTo, brand }) {
           </div>
         </div>
 
-        <div className="home-product-preview" aria-label="Hamilton House LMS preview">
-          <div className="preview-panel-top">
-            <span className="brand-logo image-logo">
-              <img src={hamiltonHouseLogo} alt="" />
-            </span>
-            <div>
-              <strong>English Skills B1</strong>
-              <small>Welcome 2 - Vocabulary 4</small>
-            </div>
-          </div>
-          <div className="preview-lesson-card">
-            <span className="eyebrow">Student lesson</span>
-            <h2>One activity at a time</h2>
-            <div className="preview-word-row">
-              <span>Gap Fill</span>
-              <span>Matching</span>
-              <span>Choice</span>
-              <span>Word Search</span>
-            </div>
-          </div>
-          <div className="preview-editor-card">
-            <span>Teacher editor</span>
-            <strong>Clean activity authoring, preview, and persistence.</strong>
-          </div>
-        </div>
       </section>
 
       <section className="role-card-grid" aria-label="Role entry points">
