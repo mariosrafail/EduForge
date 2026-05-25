@@ -89,8 +89,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .app-intro-mark .piece-16 { left: 195px; top: 114px; --intro-x: 54px; --intro-y: 0; animation-delay: 470ms; }
 .app-intro-mark .piece-17 { left: 55px; top: 142px; --intro-x: -34px; --intro-y: 28px; animation-delay: 500ms; }
 .app-intro-mark .piece-18 { left: 83px; top: 142px; --intro-x: -18px; --intro-y: 28px; animation-delay: 530ms; }
-.app-intro-mark .piece-19 { left: 139px; top: 170px; --intro-x: 18px; --intro-y: 42px; animation-delay: 560ms; }
-.app-intro-mark .piece-20 { left: 167px; top: 170px; --intro-x: 34px; --intro-y: 42px; animation-delay: 590ms; }
+.app-intro-mark .piece-21 { left: 139px; top: 142px; --intro-x: 18px; --intro-y: 28px; animation-delay: 560ms; }
+.app-intro-mark .piece-22 { left: 167px; top: 142px; --intro-x: 34px; --intro-y: 28px; animation-delay: 590ms; }
+.app-intro-mark .piece-19 { left: 139px; top: 170px; --intro-x: 18px; --intro-y: 42px; animation-delay: 620ms; }
+.app-intro-mark .piece-20 { left: 167px; top: 170px; --intro-x: 34px; --intro-y: 42px; animation-delay: 650ms; }
+.app-intro-mark .piece-23 { left: 55px; top: 170px; --intro-x: -34px; --intro-y: 42px; animation-delay: 680ms; }
+.app-intro-mark .piece-24 { left: 83px; top: 170px; --intro-x: -18px; --intro-y: 42px; animation-delay: 710ms; }
 .app-intro-copy {
   display: grid;
   gap: 4px;
@@ -283,6 +287,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   font-size: clamp(44px, 6vw, 82px);
   line-height: 0.94;
   letter-spacing: 0;
+}
+.hero-copy h1 {
+  max-width: none;
 }
 .hero-copy p, .section-title p {
   max-width: 780px;
@@ -893,24 +900,24 @@ input[type="color"] { padding: 4px; height: 46px; }
   top: 142px;
   animation-delay: 850ms;
 }
-.piece-19 {
-  left: 139px;
-  top: 170px;
-  animation-delay: 900ms;
-}
-.piece-20 {
-  left: 167px;
-  top: 170px;
-  animation-delay: 950ms;
-}
 .piece-21 {
   left: 139px;
   top: 142px;
-  animation-delay: 1000ms;
+  animation-delay: 900ms;
 }
 .piece-22 {
   left: 167px;
   top: 142px;
+  animation-delay: 950ms;
+}
+.piece-19 {
+  left: 139px;
+  top: 170px;
+  animation-delay: 1000ms;
+}
+.piece-20 {
+  left: 167px;
+  top: 170px;
   animation-delay: 1050ms;
 }
 .piece-23 {

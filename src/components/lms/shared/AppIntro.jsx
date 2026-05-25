@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const pieces = Array.from({ length: 20 }, (_, index) => index + 1);
+const pieces = Array.from({ length: 24 }, (_, index) => index + 1);
 
 export function AppIntro() {
   const [visible, setVisible] = useState(true);
