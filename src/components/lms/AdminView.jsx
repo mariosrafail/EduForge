@@ -4,6 +4,50 @@ import { brandPresets, classes, exerciseTypes, integrationOptions, publisherInte
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
+const ALLOWED_PRIMARY_COLORS = [
+  { label: "Deep Orange", value: "#c2410c" },
+  { label: "Burnt Orange", value: "#9a3412" },
+  { label: "Dark Blue", value: "#1e3a8a" },
+  { label: "Navy", value: "#172554" },
+  { label: "Deep Purple", value: "#581c87" },
+  { label: "Dark Green", value: "#166534" },
+  { label: "Emerald Dark", value: "#065f46" },
+  { label: "Burgundy", value: "#7f1d1d" },
+  { label: "Slate", value: "#334155" },
+  { label: "Charcoal", value: "#1f2937" },
+];
+
+function hexToRgb(hex) {
+  const normalized = String(hex || "").trim().replace("#", "");
+  if (normalized.length !== 6) return null;
+  const value = Number.parseInt(normalized, 16);
+  if (Number.isNaN(value)) return null;
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function relativeLuminance({ r, g, b }) {
+  const toLinear = (channel) => {
+    const n = channel / 255;
+    return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+  };
+  const R = toLinear(r);
+  const G = toLinear(g);
+  const B = toLinear(b);
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+function contrastWithWhite(hexColor) {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return 0;
+  const l1 = 1;
+  const l2 = relativeLuminance(rgb);
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
 export function AdminView({ brand, setBrand }) {
   const [userCreated, setUserCreated] = useState(false);
   const [bookAdded, setBookAdded] = useState(false);
@@ -17,6 +61,7 @@ export function AdminView({ brand, setBrand }) {
   const [usersError, setUsersError] = useState("");
   const [apiFallback, setApiFallback] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
+  const [primaryColorWarning, setPrimaryColorWarning] = useState("");
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -25,6 +70,9 @@ export function AdminView({ brand, setBrand }) {
     level: "B1 Junior",
     status: "Invited",
   });
+  const selectedPrimaryColor = ALLOWED_PRIMARY_COLORS.some((option) => option.value === String(brand.primary || "").toLowerCase())
+    ? String(brand.primary).toLowerCase()
+    : ALLOWED_PRIMARY_COLORS[0].value;
 
   const loadUsers = async ({ fallbackToMock = true } = {}) => {
     setUsersLoading(true);
@@ -48,6 +96,14 @@ export function AdminView({ brand, setBrand }) {
   useEffect(() => {
     loadUsers().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const normalizedPrimary = String(brand.primary || "").toLowerCase();
+    const isAllowed = ALLOWED_PRIMARY_COLORS.some((option) => option.value === normalizedPrimary);
+    if (!isAllowed) {
+      setBrand({ ...brand, primary: ALLOWED_PRIMARY_COLORS[0].value });
+    }
+  }, [brand, setBrand]);
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
@@ -127,6 +183,18 @@ export function AdminView({ brand, setBrand }) {
     setCompletedRollout((current) => current.includes(action) ? current.filter((item) => item !== action) : [...current, action]);
   };
 
+  const applyPrimaryColor = (nextColor) => {
+    const normalized = String(nextColor || "").toLowerCase();
+    const isAllowed = ALLOWED_PRIMARY_COLORS.some((option) => option.value === normalized);
+    const hasContrast = contrastWithWhite(normalized) >= 4.5;
+    if (!isAllowed || !hasContrast) {
+      setPrimaryColorWarning("Primary color must be a dark, high-contrast shade that stays readable with white text.");
+      return;
+    }
+    setPrimaryColorWarning("");
+    setBrand({ ...brand, primary: normalized });
+  };
+
   return (
     <div className="workspace admin-workspace">
       <SectionTitle
@@ -183,13 +251,20 @@ export function AdminView({ brand, setBrand }) {
           <div className="color-row">
             <label>
               Primary color
-              <input type="color" value={brand.primary} onChange={(e) => setBrand({ ...brand, primary: e.target.value })} />
+              <select value={selectedPrimaryColor} onChange={(e) => applyPrimaryColor(e.target.value)}>
+                {ALLOWED_PRIMARY_COLORS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} ({option.value.toUpperCase()})
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Secondary color
               <input type="color" value={brand.secondary} onChange={(e) => setBrand({ ...brand, secondary: e.target.value })} />
             </label>
           </div>
+          {primaryColorWarning && <div className="inline-status warning">{primaryColorWarning}</div>}
           <div className="preset-row">
             {brandPresets.map((preset) => (
               <button key={preset.schoolName} onClick={() => setBrand(preset)} className={brand.schoolName === preset.schoolName ? "selected" : ""}>

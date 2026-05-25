@@ -2,19 +2,19 @@ export const brandPresets = [
   {
     schoolName: "Hamilton House ELT Demo",
     logo: "HH",
-    primary: "#f97316",
+    primary: "#c2410c",
     secondary: "#0b1f3a",
   },
   {
     schoolName: "Bright Path Language School",
     logo: "BP",
-    primary: "#175cd3",
+    primary: "#1e3a8a",
     secondary: "#f59e0b",
   },
   {
     schoolName: "Northstar English Institute",
     logo: "NE",
-    primary: "#0f766e",
+    primary: "#065f46",
     secondary: "#7c3aed",
   },
 ];
