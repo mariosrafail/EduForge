@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import { Bell, BookOpen, Building2, Download, GraduationCap, Layers3, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves } from "lucide-react";
+import { Bell, BookOpen, Building2, Download, GraduationCap, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves } from "lucide-react";
 import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
@@ -37,10 +37,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
 
   return (
     <header className="app-header">
-      <button className="brand-lockup" onClick={() => navigateTo("home")} aria-label="Return to role selection">
-        <span className="brand-logo image-logo">
-          <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
-        </span>
+      <button className="brand-lockup text-only" onClick={() => navigateTo("home")} aria-label="Return to role selection">
         <span>
           <strong>Hamilton House Publishers LMS</strong>
           <small>ELT platform demo</small>
@@ -67,7 +64,6 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
           );
         })}
         <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
-        <button className="nav-secondary-link" onClick={() => navigateTo("flow")}><Layers3 size={15} /> Flow</button>
         <button
           className="nav-secondary-link sound-toggle-button"
           type="button"

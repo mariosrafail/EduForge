@@ -20,6 +20,7 @@ const soundAssets = {
   modalOpen: { file: "modal-open.wav", gain: 0.78 },
   modalClose: { file: "modal-close.wav", gain: 0.72 },
   deleteRemove: { file: "delete.wav", gain: 0.84 },
+  toggleSelect: { file: "hover.wav", gain: 0.38 },
 };
 
 const SoundContext = createContext({
@@ -112,6 +113,11 @@ function soundPlan(type) {
       return [
         { type: "square", frequency: 240, gain: 0.05, attack: 0.0015, decay: 0.045 },
         { type: "triangle", frequency: 180, gain: 0.024, attack: 0.0015, decay: 0.07, pan: -0.06 },
+      ];
+    case "toggleSelect":
+      return [
+        { type: "triangle", frequency: 520, gain: 0.04, attack: 0.0012, decay: 0.04 },
+        { type: "sine", frequency: 760, gain: 0.018, attack: 0.0012, decay: 0.05 },
       ];
     default:
       return [];
@@ -333,11 +339,23 @@ export function SoundProvider({ children }) {
       const type = target.dataset.soundClick || "clickConfirm";
       void playSound(type);
     };
+    const onChange = (event) => {
+      const target = event.target;
+      if (!target || target.disabled || target.dataset?.soundIgnore === "true") return;
+      const tag = target.tagName?.toLowerCase();
+      const type = target.type?.toLowerCase();
+      const isToggleInput = tag === "select" || type === "checkbox" || type === "radio" || type === "range" || type === "color";
+      if (!isToggleInput) return;
+      const soundType = target.dataset?.soundChange || "toggleSelect";
+      void playSound(soundType);
+    };
     document.addEventListener("pointerover", onPointerOver, true);
     document.addEventListener("click", onClick, true);
+    document.addEventListener("change", onChange, true);
     return () => {
       document.removeEventListener("pointerover", onPointerOver, true);
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("change", onChange, true);
     };
   }, [playHoverFor, playSound]);
 

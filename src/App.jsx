@@ -7,6 +7,7 @@ import { Header, PageTransition } from "./components/lms/Shared.jsx";
 import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
 import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
 import { TeacherCourseEditor } from "./components/lms/teacher/TeacherCourseEditor.jsx";
+import houseLogoMark from "./assets/branding/hamilton-house-logo-houseonly.png";
 import { brandPresets } from "./data/lmsDemoData.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
@@ -22,6 +23,7 @@ export default function App() {
     () => ({
       "--brand-primary": brand.primary,
       "--brand-secondary": brand.secondary,
+      "--app-watermark-logo": `url(${houseLogoMark})`,
     }),
     [brand],
   );

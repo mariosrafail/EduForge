@@ -35,9 +35,41 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   border: 0;
 }
 
-.eduforge-app { min-height: 100vh; color: #101828; }
+.eduforge-app {
+  position: relative;
+  min-height: 100vh;
+  color: #101828;
+  isolation: isolate;
+}
+.eduforge-app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(23, 92, 211, 0.08), transparent 38%),
+    radial-gradient(circle at 82% 78%, rgba(245, 158, 11, 0.08), transparent 40%),
+    linear-gradient(135deg, #fbfcff 0%, #eef3fa 52%, #f7fafc 100%);
+}
+.eduforge-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: var(--app-watermark-logo);
+  background-repeat: repeat;
+  background-size: 140px 122px;
+  background-position: 24px 18px;
+}
+.eduforge-app > * {
+  position: relative;
+  z-index: 1;
+}
 .role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
-.workspace { padding: 104px 0 42px; }
+.workspace { padding: 94px 0 42px; }
 
 .app-intro-overlay {
   position: fixed;
@@ -108,18 +140,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .app-header {
   position: fixed;
   z-index: 20;
-  top: 16px;
+  top: 12px;
   left: 24px;
   right: 96px;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.86);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(217, 226, 239, 0.9);
   border-radius: 8px;
-  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.08);
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.08);
   backdrop-filter: blur(18px);
 }
 .brand-lockup, .school-preview, .quick-actions button, .header-tools button {
@@ -127,7 +159,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   align-items: center;
   gap: 10px;
 }
-.brand-lockup { background: transparent; color: inherit; text-align: left; }
+.brand-lockup {
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 7px;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.brand-lockup:hover {
+  background: rgba(255, 255, 255, 0.78);
+  transform: translateY(-1px);
+}
+.brand-lockup.text-only { gap: 0; }
 .brand-logo, .school-logo {
   display: grid;
   place-items: center;
@@ -150,7 +194,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   max-height: 88%;
   object-fit: contain;
 }
-.brand-lockup strong { display: block; font-size: 17px; line-height: 1; }
+.brand-lockup strong { display: block; font-size: 15px; line-height: 1; }
 .brand-lockup small, .school-preview { color: var(--ink-muted); font-size: 12px; }
 .header-context { justify-self: center; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .role-chip {
@@ -193,16 +237,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .school-preview .school-logo { width: 28px; height: 28px; font-size: 11px; border-radius: 5px; }
 .quick-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .quick-actions button, .header-tools button {
-  min-height: 38px;
-  padding: 9px 11px;
+  min-height: 36px;
+  padding: 8px 11px;
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 6px;
   color: #344054;
   font-weight: 780;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
-.quick-actions button:hover, .header-tools button:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--brand-primary) 34%, var(--line)); }
+.quick-actions button:hover, .header-tools button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand-primary) 34%, var(--line));
+  box-shadow: 0 8px 16px rgba(16, 24, 40, 0.08);
+}
 .quick-actions .is-active { background: #101828; color: #fff; border-color: #101828; }
 .sound-toggle-button {
   color: #7a2e0e;
@@ -692,8 +740,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .metric-card span, .metric-card small { display: block; color: var(--ink-muted); font-weight: 720; }
 .metric-card strong { display: block; margin: 12px 0 2px; font-size: 34px; letter-spacing: 0; }
 
-.admin-grid, .teacher-grid, .student-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr); gap: 18px; margin-bottom: 18px; }
-.admin-grid.lower, .teacher-grid.lower, .student-grid.lower { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.admin-grid, .teacher-grid, .student-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr); gap: 18px; margin-bottom: 18px; align-items: start; }
+.admin-grid.lower { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.teacher-grid.lower, .student-grid.lower { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
 .teacher-grid.lower .panel:nth-child(2), .student-grid.lower .exercise-solver { grid-column: span 2; }
 
 .setup-panel label { display: grid; gap: 8px; color: #344054; font-weight: 800; margin-top: 14px; }
@@ -747,13 +796,14 @@ input[type="color"] { padding: 4px; height: 46px; }
 .create-user-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(150px, 1fr));
-  gap: 10px;
+  gap: 12px;
   align-items: end;
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 12px;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #fbfdff, #f8fafc);
   border: 1px solid #e6edf6;
-  border-radius: 7px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 .create-user-form .primary-action { grid-column: 1 / -1; }
 .create-user-form label, .demo-answer-box label, .builder-grid label, .activity-builder-grid label {
@@ -940,14 +990,18 @@ input[type="color"] { padding: 4px; height: 46px; }
   border-radius: 7px;
 }
 .empty-user-state span { color: var(--ink-muted); }
-.user-data-table div { grid-template-columns: minmax(170px, 1.1fr) minmax(120px, 0.72fr) minmax(130px, 0.82fr) minmax(120px, 0.72fr) auto auto; }
+.user-data-table div { grid-template-columns: minmax(190px, 1.1fr) minmax(130px, 0.72fr) minmax(140px, 0.82fr) minmax(130px, 0.72fr) auto auto; }
 .user-data-table strong small {
   display: block;
   margin-top: 3px;
   color: var(--ink-muted);
   font-weight: 720;
 }
-.user-data-table select { min-height: 38px; padding-top: 8px; padding-bottom: 8px; }
+.user-data-table select { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
+.user-data-table .danger-action {
+  min-width: 92px;
+  justify-content: center;
+}
 
 .portal-preview {
   --preview-primary: var(--brand-primary);
@@ -1083,11 +1137,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 .activation-panel h2 { margin-bottom: 8px; }
 .activation-panel p { margin: 0; max-width: 680px; }
 .activation-form {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
 }
-.activation-form input { flex: 1; }
+.activation-form input { min-width: 0; }
 .activation-mini {
   display: grid;
   gap: 10px;
@@ -2918,7 +2973,7 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .word-search-direction-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   gap: 10px;
 }
 .activity-editor-card .word-search-direction-checkbox {
@@ -2928,8 +2983,8 @@ input[type="color"] { padding: 4px; height: 46px; }
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  min-height: 52px;
-  padding: 10px 12px;
+  min-height: 54px;
+  padding: 11px 13px;
   color: #0b1f3a;
   background: #fff;
   border: 1px solid #dbe4f0;
@@ -2940,14 +2995,14 @@ input[type="color"] { padding: 4px; height: 46px; }
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 .activity-editor-card .word-search-direction-checkbox:hover {
-  background: #fffaf5;
-  border-color: rgba(249, 115, 22, 0.55);
+  background: #fff9f2;
+  border-color: rgba(249, 115, 22, 0.45);
   transform: translateY(-1px);
 }
 .activity-editor-card .word-search-direction-checkbox.selected {
-  background: #ffedd5;
-  border-color: #f97316;
-  box-shadow: 0 10px 18px rgba(249, 115, 22, 0.13);
+  background: linear-gradient(180deg, #fff4e5, #ffedd5);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 16px rgba(249, 115, 22, 0.12);
 }
 .activity-editor-card .word-search-direction-checkbox input {
   position: absolute;
@@ -2982,6 +3037,9 @@ input[type="color"] { padding: 4px; height: 46px; }
 .activity-editor-card .word-search-direction-checkbox span {
   display: block;
   line-height: 1.25;
+}
+.activity-editor-card .word-search-direction-checkbox:active {
+  transform: translateY(0);
 }
 .word-search-entry-list .word-search-entry-row {
   display: grid;
@@ -3158,6 +3216,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .line-match-board { gap: 74px; }
   .lesson-sidebar, .teacher-editor-side, .selected-activity-actions { position: static; }
   .word-search-student-layout { grid-template-columns: 1fr; }
+  .word-search-direction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .create-user-form .primary-action { grid-column: 1 / -1; }
   .admin-grid.lower, .teacher-grid.lower, .student-grid.lower { grid-template-columns: 1fr; }
@@ -3183,7 +3242,8 @@ input[type="color"] { padding: 4px; height: 46px; }
   .header-tools { justify-content: stretch; display: grid; grid-template-columns: repeat(3, 1fr); }
   .header-tools button { width: 100%; }
   .tool-popover { left: 0; right: 0; width: auto; }
-  .class-list article, .exercise-list article, .audio-placeholder, .practice-box, .test-actions, .activation-form { align-items: stretch; flex-direction: column; }
+  .class-list article, .exercise-list article, .audio-placeholder, .practice-box, .test-actions { align-items: stretch; flex-direction: column; }
+  .activation-form { grid-template-columns: 1fr; align-items: stretch; }
   .presentation-stage { grid-template-columns: 1fr; }
   .action-with-status { justify-items: stretch; width: 100%; }
   .panel, .role-entry { padding: 18px; }

@@ -1,4 +1,5 @@
 import { Check, ListPlus, Trash2 } from "lucide-react";
+import { useUiSound } from "../../../hooks/useUiSound.js";
 import { defaultWordSearchDirections, generateWordSearch, wordSearchDirections } from "../../../utils/wordSearchGenerator.js";
 
 function makeWordId() {
@@ -6,6 +7,7 @@ function makeWordId() {
 }
 
 export function WordSearchEditor({ activity, onUpdate }) {
+  const { playUiSound } = useUiSound();
   const words = activity.words || [];
   const directions = activity.directions || activity.allowedDirections || defaultWordSearchDirections;
 
@@ -31,6 +33,7 @@ export function WordSearchEditor({ activity, onUpdate }) {
   };
 
   const toggleDirection = (direction) => {
+    playUiSound("toggleSelect");
     const next = directions.includes(direction)
       ? directions.filter((value) => value !== direction)
       : [...directions, direction];
@@ -68,7 +71,7 @@ export function WordSearchEditor({ activity, onUpdate }) {
             const selected = directions.includes(direction.value);
             return (
               <label key={direction.value} className={`word-search-direction-checkbox ${selected ? "selected" : ""}`}>
-                <input type="checkbox" checked={selected} onChange={() => toggleDirection(direction.value)} />
+                <input type="checkbox" data-sound-ignore="true" checked={selected} onChange={() => toggleDirection(direction.value)} />
                 <span className="direction-check" aria-hidden="true">{selected && <Check size={14} strokeWidth={3} />}</span>
                 <span>{direction.label}</span>
               </label>

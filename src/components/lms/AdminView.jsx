@@ -216,7 +216,7 @@ export function AdminView({ brand, setBrand }) {
         <Card>
           <div className="card-heading">
             <div><span className="eyebrow"><Users size={15} /> User creation</span><h2>Users across three levels</h2></div>
-            <button className="secondary-action" onClick={() => setUserCreated(true)}><UploadCloud size={17} /> Import CSV</button>
+            <button className="secondary-action" data-sound-click="submit" onClick={() => setUserCreated(true)}><UploadCloud size={17} /> Import CSV</button>
           </div>
           <form className="create-user-form" onSubmit={handleCreateUser}>
             <label>
@@ -247,7 +247,7 @@ export function AdminView({ brand, setBrand }) {
                 {statusOptions.map((status) => <option key={status}>{status}</option>)}
               </select>
             </label>
-            <button className="primary-action" type="submit" disabled={savingUser}><UserPlus size={17} /> {savingUser ? "Creating..." : "Create user"}</button>
+            <button className="primary-action" data-sound-click="submit" type="submit" disabled={savingUser}><UserPlus size={17} /> {savingUser ? "Creating..." : "Create user"}</button>
           </form>
           {usersLoading && <div className="inline-status">Loading users from Neon through Netlify Functions...</div>}
           {apiFallback && (
@@ -275,7 +275,7 @@ export function AdminView({ brand, setBrand }) {
                     {statusOptions.map((status) => <option key={status}>{status}</option>)}
                   </select>
                   <Tag tone={user.source === "database" ? "green" : "gold"}>{user.source === "database" ? "DB" : "Mock"}</Tag>
-                  <button className="danger-action" onClick={() => deleteUser(user.id)}>Delete</button>
+                  <button className="danger-action" data-sound-click="deleteRemove" onClick={() => deleteUser(user.id)}>Delete</button>
                 </div>
               ))}
             </div>
@@ -285,7 +285,7 @@ export function AdminView({ brand, setBrand }) {
         <Card>
           <div className="card-heading">
             <div><span className="eyebrow"><BookOpen size={15} /> Books and classes</span><h2>Assign content to sections</h2></div>
-            <button className="primary-action" onClick={() => setBookAdded(true)}><Plus size={17} /> Add book</button>
+            <button className="primary-action" data-sound-click="submit" onClick={() => setBookAdded(true)}><Plus size={17} /> Add book</button>
           </div>
           {bookAdded && <div className="inline-status success">Virtual book added: English Skills B1 with reading, listening, grammar, vocabulary, and writing activities.</div>}
           <div className="class-list">
@@ -306,7 +306,7 @@ export function AdminView({ brand, setBrand }) {
             <span className="eyebrow"><KeyRound size={15} /> Activation code</span>
             <div className="activation-form">
               <input value={activationCode} placeholder="B1-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
-              <button className="secondary-action" onClick={() => setBookUnlocked(true)}>Activate book</button>
+              <button className="secondary-action" data-sound-click="submit" onClick={() => setBookUnlocked(true)}>Activate book</button>
             </div>
             {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked for B1 Junior A.</div>}
           </div>
