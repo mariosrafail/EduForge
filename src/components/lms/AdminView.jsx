@@ -128,7 +128,7 @@ export function AdminView({ brand, setBrand }) {
   };
 
   return (
-    <div className="workspace">
+    <div className="workspace admin-workspace">
       <SectionTitle
         eyebrow="School administration"
         title="Launch school rollout and publisher-controlled book access."

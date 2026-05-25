@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
 const pieces = Array.from({ length: 24 }, (_, index) => index + 1);
+const LOGO_ANIMATION_MS = 1100;
+const HOLD_AFTER_COMPLETE_MS = 500;
+const FADE_OUT_MS = 520;
+const REDUCED_MOTION_MS = 100;
 
 export function AppIntro() {
   const [visible, setVisible] = useState(true);
@@ -8,10 +12,11 @@ export function AppIntro() {
 
   useEffect(() => {
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    const holdMs = reduceMotion ? 80 : 1050;
-    const exitMs = reduceMotion ? 80 : 320;
-    const holdTimer = window.setTimeout(() => setExiting(true), holdMs);
-    const doneTimer = window.setTimeout(() => setVisible(false), holdMs + exitMs);
+    const enterMs = reduceMotion ? REDUCED_MOTION_MS : LOGO_ANIMATION_MS;
+    const holdMs = reduceMotion ? REDUCED_MOTION_MS : HOLD_AFTER_COMPLETE_MS;
+    const exitMs = reduceMotion ? REDUCED_MOTION_MS : FADE_OUT_MS;
+    const holdTimer = window.setTimeout(() => setExiting(true), enterMs + holdMs);
+    const doneTimer = window.setTimeout(() => setVisible(false), enterMs + holdMs + exitMs);
     return () => {
       window.clearTimeout(holdTimer);
       window.clearTimeout(doneTimer);
