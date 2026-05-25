@@ -1,7 +1,7 @@
-import { BookOpenCheck, Clock3, Layers3, LockKeyhole } from "lucide-react";
+import { BookOpenCheck, Clock3, Layers3 } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 
-export function LessonSidebar({ course, lesson }) {
+export function LessonSidebar({ course, lesson, activeIndex = 0, onSelectActivity }) {
   return (
     <aside className="lesson-sidebar">
       <div className="lesson-book-card">
@@ -17,20 +17,26 @@ export function LessonSidebar({ course, lesson }) {
           <span className="eyebrow"><Clock3 size={14} /> Lesson format</span>
           <b>{lesson.activities.length}</b>
         </div>
-        <small>One activity appears at a time. Feedback unlocks the next step.</small>
+        <small>Use the list to jump between activities at any time.</small>
       </div>
 
       <div className="lesson-nav-list">
         <strong>Activity sequence</strong>
         {lesson.activities.map((activity, index) => (
-          <div key={activity.id} className="locked-activity-row">
+          <button
+            key={activity.id}
+            type="button"
+            className={activeIndex === index ? "selected" : ""}
+            data-sound-click="nextActivity"
+            onClick={() => onSelectActivity?.(index)}
+            aria-current={activeIndex === index ? "true" : undefined}
+          >
             <span>{index + 1}</span>
             <div>
               <b>{activity.title}</b>
               <small>{activity.skill || activity.instruction}</small>
             </div>
-            {index > 0 && <LockKeyhole size={15} />}
-          </div>
+          </button>
         ))}
       </div>
 

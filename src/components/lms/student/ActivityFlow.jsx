@@ -32,14 +32,17 @@ function ActivityRenderer({ activity, answers, onChange, submitted, resultMap })
   return null;
 }
 
-export function ActivityFlow({ course, onSubmission, submitLesson, previewMode = false }) {
+export function ActivityFlow({ course, onSubmission, submitLesson, previewMode = false, activeIndex: controlledActiveIndex, onSelectActivity }) {
   const { playSound } = useSoundEffects();
   const activities = course.lesson.activities;
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [internalActiveIndex, setInternalActiveIndex] = useState(0);
   const [answersByActivity, setAnswersByActivity] = useState({});
   const [submittedActivityIds, setSubmittedActivityIds] = useState(new Set());
   const [completedActivityIds, setCompletedActivityIds] = useState(new Set());
   const [lessonComplete, setLessonComplete] = useState(false);
+  const isControlledIndex = typeof controlledActiveIndex === "number";
+  const activeIndex = isControlledIndex ? controlledActiveIndex : internalActiveIndex;
+  const setActiveIndex = isControlledIndex ? (onSelectActivity || (() => {})) : setInternalActiveIndex;
   const activeActivity = activities[activeIndex];
   const activeAnswers = answersByActivity[activeActivity.id] || {};
   const activeResults = useMemo(() => scoreActivity(activeActivity, activeAnswers), [activeActivity, activeAnswers]);
@@ -163,7 +166,7 @@ export function ActivityFlow({ course, onSubmission, submitLesson, previewMode =
               <>
                 <div>
                   <h2>Submit this activity</h2>
-                  <p>Feedback appears after submission. The next activity stays locked until you continue.</p>
+                  <p>Feedback appears after submission. You can continue or jump to another activity from the list.</p>
                 </div>
                 <button className="primary-action" data-sound-ignore="true" onClick={submitActivity}>
                   <Send size={17} /> Submit activity

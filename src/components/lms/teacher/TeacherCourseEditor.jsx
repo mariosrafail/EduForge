@@ -475,34 +475,7 @@ export function TeacherCourseEditor({
             </div>
           </Card>
 
-          <details className="teacher-optional-panel">
-            <summary>Assignment</summary>
-            <Card>
-              <span className="eyebrow">Assignment</span>
-              <h2>Assign lesson</h2>
-              <p>Publish this lesson to the selected class with two attempts and automatic feedback.</p>
-              <button className="primary-action compact-action" onClick={() => setAssigned(true)}>
-                <Send size={17} /> Assign to {course.className}
-              </button>
-            </Card>
-          </details>
 
-          <details className="teacher-optional-panel">
-            <summary>Submissions</summary>
-            <Card>
-              <span className="eyebrow">Submissions</span>
-              <h2>Student summary</h2>
-              <div className="submission-list compact">
-                {course.submissions.map((submission) => (
-                  <article key={submission.student}>
-                    <strong>{submission.student}<span>{submission.score === null ? "-" : `${submission.score}%`}</span></strong>
-                    <p>{submission.status} / attempt {submission.attempt}</p>
-                    <Tag tone={submission.status === "Submitted" ? "green" : submission.status === "Needs review" ? "gold" : "blue"}>{submission.submittedAt}</Tag>
-                  </article>
-                ))}
-              </div>
-            </Card>
-          </details>
 
           {previewMode && selectedActivity && (
             <ActivityPreviewPanel

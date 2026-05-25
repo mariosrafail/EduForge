@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { SectionTitle } from "../Shared.jsx";
 import { ActivityFlow } from "./ActivityFlow.jsx";
 import { LessonBreadcrumbs } from "./LessonBreadcrumbs.jsx";
 import { LessonSidebar } from "./LessonSidebar.jsx";
 
 export function StudentCourseView({ course, onSubmission, navigateTo, previewMode = false, courseLoading = false, courseError = "", submitLesson }) {
+  const [activeActivityIndex, setActiveActivityIndex] = useState(0);
+
   return (
     <div className="workspace course-workspace">
       {courseError && <div className="inline-status warning">{courseError}</div>}
@@ -33,8 +36,17 @@ export function StudentCourseView({ course, onSubmission, navigateTo, previewMod
         <LessonSidebar
           course={course}
           lesson={course.lesson}
+          activeIndex={activeActivityIndex}
+          onSelectActivity={setActiveActivityIndex}
         />
-        <ActivityFlow course={course} onSubmission={onSubmission} submitLesson={submitLesson} previewMode={previewMode} />
+        <ActivityFlow
+          course={course}
+          onSubmission={onSubmission}
+          submitLesson={submitLesson}
+          previewMode={previewMode}
+          activeIndex={activeActivityIndex}
+          onSelectActivity={setActiveActivityIndex}
+        />
       </div>
     </div>
   );
