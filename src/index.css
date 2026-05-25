@@ -62,8 +62,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   opacity: 0.05;
   background-image: var(--app-watermark-logo);
   background-repeat: repeat;
-  background-size: 140px 122px;
-  background-position: 24px 18px;
+  background-size: 200px 182px;
+  background-position: 32px 28px;
 }
 .eduforge-app > * {
   position: relative;
