@@ -34,10 +34,32 @@ function displayRole(role) {
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
   const { muted, audioReady, volume, toggleMuted, enableSound, setVolume, unlockAudio, playSound } = useSoundEffects();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileNav, setIsMobileNav] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(max-width: 1100px)").matches));
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
   useEffect(() => {
-    if (!mobileMenuOpen) {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia("(max-width: 1100px)");
+    const syncMobileNav = () => {
+      setIsMobileNav(mediaQuery.matches);
+      if (!mediaQuery.matches) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    syncMobileNav();
+    mediaQuery.addEventListener("change", syncMobileNav);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncMobileNav);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mobileMenuOpen || !isMobileNav) {
       return undefined;
     }
 
@@ -54,7 +76,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
       document.body.classList.remove("mobile-nav-open");
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mobileMenuOpen]);
+  }, [isMobileNav, mobileMenuOpen]);
 
   const handleNavigate = (nextView) => {
     navigateTo(nextView);
@@ -72,15 +94,17 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
   return (
     <>
       <header className="app-header">
-        <button
-          className="mobile-menu-toggle"
-          type="button"
-          aria-label="Open navigation menu"
-          aria-expanded={mobileMenuOpen}
-          onClick={() => setMobileMenuOpen(true)}
-        >
-          <Menu size={22} />
-        </button>
+        {isMobileNav && (
+          <button
+            className="mobile-menu-toggle"
+            type="button"
+            aria-label="Open navigation menu"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu size={22} />
+          </button>
+        )}
 
         <button className="brand-lockup text-only" onClick={() => handleNavigate("home")} aria-label="Return to role selection">
           <span>
@@ -89,81 +113,90 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
           </span>
         </button>
 
-        <div className="header-context">
-          <span className="role-chip">{roleLabel}</span>
-          {currentUser && (
-            <span className="signed-in-chip">
-              Signed in as {currentUser.full_name} / {displayRole(currentUser.role)}
-            </span>
-          )}
-        </div>
+        {!isMobileNav && (
+          <>
+            <div className="header-context">
+              <span className="role-chip">{roleLabel}</span>
+              {currentUser && (
+                <span className="signed-in-chip">
+                  Signed in as {currentUser.full_name} / {displayRole(currentUser.role)}
+                </span>
+              )}
+            </div>
 
-        <button
-          className="mobile-sound-status"
-          type="button"
-          aria-pressed={!muted}
-          aria-label={muted ? "Sound Off" : "Sound On"}
-          onClick={toggleMuted}
-        >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
-
-        <nav className="quick-actions desktop-header-actions" aria-label="Demo navigation">
-          {Object.entries(roles).map(([id, role]) => {
-            const Icon = role.icon;
-            return (
-              <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(role.targetView || id)}>
-                <Icon size={17} />
-                <span>{role.label}</span>
+            <nav className="quick-actions desktop-header-actions" aria-label="Demo navigation">
+              {Object.entries(roles).map(([id, role]) => {
+                const Icon = role.icon;
+                return (
+                  <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(role.targetView || id)}>
+                    <Icon size={17} />
+                    <span>{role.label}</span>
+                  </button>
+                );
+              })}
+              <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
+              <button
+                className="nav-secondary-link sound-toggle-button"
+                type="button"
+                aria-pressed={!muted}
+                aria-label={muted ? "Sound Off" : "Sound On"}
+                onClick={toggleMuted}
+              >
+                {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                <span>{muted ? "Sound Off" : "Sound On"}</span>
               </button>
-            );
-          })}
-          <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
+              <button
+                className="nav-secondary-link sound-test-button"
+                type="button"
+                data-sound-ignore="true"
+                onClick={testSound}
+                title={audioReady ? "Test UI sound" : "Enable audio and test"}
+              >
+                <Waves size={16} />
+                <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
+              </button>
+              <label className="sound-volume-control" title="Sound volume">
+                <Volume2 size={15} />
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={volume}
+                  aria-label="Sound volume"
+                  onChange={(event) => setVolume(event.target.value)}
+                />
+                <span>{Math.round(volume * 100)}%</span>
+              </label>
+              {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
+            </nav>
+          </>
+        )}
+
+        {isMobileNav && (
           <button
-            className="nav-secondary-link sound-toggle-button"
+            className="mobile-sound-status"
             type="button"
             aria-pressed={!muted}
             aria-label={muted ? "Sound Off" : "Sound On"}
             onClick={toggleMuted}
           >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            <span>{muted ? "Sound Off" : "Sound On"}</span>
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
-          <button
-            className="nav-secondary-link sound-test-button"
-            type="button"
-            data-sound-ignore="true"
-            onClick={testSound}
-            title={audioReady ? "Test UI sound" : "Enable audio and test"}
-          >
-            <Waves size={16} />
-            <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
-          </button>
-          <label className="sound-volume-control" title="Sound volume">
-            <Volume2 size={15} />
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={volume}
-              aria-label="Sound volume"
-              onChange={(event) => setVolume(event.target.value)}
-            />
-            <span>{Math.round(volume * 100)}%</span>
-          </label>
-          {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
-        </nav>
+        )}
       </header>
 
-      <button
-        className={`mobile-menu-backdrop ${mobileMenuOpen ? "open" : ""}`}
-        type="button"
-        aria-label="Close navigation menu"
-        tabIndex={mobileMenuOpen ? 0 : -1}
-        onClick={() => setMobileMenuOpen(false)}
-      />
-      <aside className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`} aria-hidden={!mobileMenuOpen}>
+      {isMobileNav && (
+        <button
+          className={`mobile-menu-backdrop ${mobileMenuOpen ? "open" : ""}`}
+          type="button"
+          aria-label="Close navigation menu"
+          tabIndex={mobileMenuOpen ? 0 : -1}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      {isMobileNav && (
+        <aside className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`} aria-hidden={!mobileMenuOpen}>
         <div className="mobile-nav-header">
           <div>
             <strong>Hamilton House LMS</strong>
@@ -221,6 +254,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
           )}
         </nav>
       </aside>
+      )}
     </>
   );
 }
