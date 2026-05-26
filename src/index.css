@@ -15,6 +15,9 @@
   --line: #d5dfeb;
   --panel: rgba(255, 255, 255, 0.94);
   --shadow: 0 16px 34px rgba(16, 24, 40, 0.075);
+  --app-page-padding: 24px;
+  --app-card-radius: 8px;
+  --app-mobile-header-height: 60px;
   --app-header-height: 72px;
   --app-header-top: 12px;
   --app-header-bottom-gap: 28px;
@@ -75,7 +78,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   position: relative;
   z-index: 1;
 }
-.role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
+.role-screen, .workspace { width: min(1480px, calc(100% - (var(--app-page-padding) * 2))); margin: 0 auto; }
 .workspace { padding: var(--app-content-top-offset) 0 42px; }
 .role-screen { padding: var(--app-content-top-offset) 0 24px; }
 .role-selection-screen {
@@ -847,7 +850,7 @@ body.mobile-nav-open {
 .preview-line.active { border-color: color-mix(in srgb, var(--brand-primary) 36%, var(--line)); box-shadow: inset 4px 0 0 var(--brand-primary); }
 
 .role-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
-.auth-screen { padding-top: 34px; }
+.auth-screen { padding-top: var(--app-content-top-offset); }
 .auth-panel {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(390px, 0.72fr);
@@ -3762,4 +3765,736 @@ input[type="color"] { padding: 4px; height: 46px; }
   .line-match-board { gap: 18px; }
   .matching-node.left, .matching-node.right { padding: 14px 44px 14px 14px; grid-template-columns: minmax(0, 1fr); }
   .match-endpoint-anchor.left, .match-endpoint-anchor.right { right: 9px; left: auto; }
+}
+
+/* Mobile-first responsive refinement layer */
+@media (max-width: 1200px) {
+  :root {
+    --app-page-padding: 16px;
+  }
+
+  .role-screen,
+  .workspace,
+  .course-workspace,
+  .editor-workspace {
+    width: min(100% - 32px, 1480px);
+  }
+
+  .admin-workspace {
+    max-width: 100%;
+  }
+
+  .metric-grid,
+  .metric-grid.four,
+  .publisher-metric-grid,
+  .integration-grid,
+  .rollout-action-grid,
+  .demo-checklist,
+  .test-section-grid,
+  .revision-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rollout-action-grid button,
+  .demo-checklist button,
+  .integration-grid button,
+  .test-section-card {
+    min-height: 104px;
+  }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --app-page-padding: 16px;
+    --app-header-top: 8px;
+    --app-header-height: var(--app-mobile-header-height);
+    --app-header-bottom-gap: 18px;
+    --app-card-radius: 8px;
+  }
+
+  .app-header {
+    top: var(--app-header-top);
+    left: 8px;
+    right: 8px;
+    min-height: var(--app-header-height);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .mobile-nav-drawer {
+    width: min(340px, 88vw);
+    padding: 18px;
+  }
+
+  .mobile-menu-backdrop {
+    min-height: 100dvh;
+  }
+
+  .role-screen,
+  .workspace,
+  .course-workspace,
+  .editor-workspace {
+    width: min(100% - 32px, 1480px);
+    padding-top: var(--app-shell-top-offset);
+  }
+
+  .role-selection-screen {
+    padding-top: calc(var(--app-shell-top-offset) + 6px);
+  }
+
+  .admin-workspace {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--app-shell-top-offset) var(--app-page-padding) 18px;
+  }
+
+  .admin-dashboard-shell,
+  .course-lesson-layout,
+  .teacher-editor-layout,
+  .activity-manager-layout,
+  .selected-activity-editor-layout,
+  .activity-builder-layout,
+  .auth-panel,
+  .activation-panel,
+  .test-overview,
+  .test-workbench,
+  .admin-grid,
+  .admin-grid.lower,
+  .teacher-grid,
+  .teacher-grid.lower,
+  .student-grid,
+  .student-grid.lower {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .admin-main-panel,
+  .admin-section-panel,
+  .teacher-editor-main,
+  .teacher-editor-side,
+  .activity-editor-stack,
+  .lesson-page,
+  .activity-flow,
+  .panel,
+  .course-activity {
+    min-width: 0;
+  }
+
+  .admin-sidebar,
+  .lesson-sidebar,
+  .teacher-editor-side,
+  .selected-activity-actions {
+    position: static;
+    top: auto;
+  }
+
+  .admin-sidebar-card {
+    padding: 12px;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
+  }
+
+  .admin-sidebar-card > .eyebrow,
+  .admin-sidebar-card h2,
+  .admin-sidebar-card p {
+    display: none;
+  }
+
+  .admin-sidebar-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-nav-button {
+    flex: 0 0 min(238px, 78vw);
+    min-height: 58px;
+    scroll-snap-align: start;
+  }
+
+  .section-title {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .section-title h1 {
+    font-size: clamp(34px, 7vw, 52px);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(42px, 9vw, 72px);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .role-card-grid,
+  .metric-grid,
+  .metric-grid.four,
+  .publisher-metric-grid,
+  .integration-grid,
+  .rollout-action-grid,
+  .demo-checklist,
+  .builder-grid,
+  .activity-builder-grid,
+  .activity-author-fields,
+  .editor-field-grid,
+  .teacher-review-box,
+  .matching-answer-grid,
+  .completion-grid,
+  .student-objectives-panel,
+  .flow-grid,
+  .test-section-grid,
+  .revision-grid,
+  .word-search-student-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .role-entry,
+  .panel,
+  .course-activity,
+  .activity-flow-progress,
+  .student-objectives-panel,
+  .lesson-book-card,
+  .lesson-progress-card,
+  .lesson-sidebar-note {
+    border-radius: var(--app-card-radius);
+  }
+
+  .lesson-sidebar {
+    display: grid;
+    gap: 12px;
+  }
+
+  .lesson-nav-list {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+  }
+
+  .lesson-nav-list > strong {
+    flex: 0 0 100%;
+  }
+
+  .lesson-nav-list button,
+  .locked-activity-row {
+    flex: 0 0 min(260px, 78vw);
+    scroll-snap-align: start;
+  }
+
+  .activity-stepper {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .activity-stepper button {
+    flex: 0 0 min(230px, 76vw);
+    min-height: 52px;
+    scroll-snap-align: start;
+  }
+
+  .activity-shell-header,
+  .lesson-intro-panel,
+  .flow-progress-top,
+  .single-activity-actions,
+  .activity-feedback-panel,
+  .completion-hero,
+  .activity-editor-head,
+  .activity-preview-modal-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lesson-submit-panel,
+  .activity-feedback-panel,
+  .gap-drop-list article,
+  .matching-activity article {
+    grid-template-columns: 1fr;
+  }
+
+  .line-matching-activity {
+    min-height: 0;
+    touch-action: auto;
+  }
+
+  .matching-lines {
+    display: none;
+  }
+
+  .line-match-board {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .matching-node.left,
+  .matching-node.right {
+    padding: 14px 44px 14px 14px;
+  }
+
+  .match-endpoint-anchor.left,
+  .match-endpoint-anchor.right {
+    left: auto;
+    right: 9px;
+  }
+
+  .create-user-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-data-table div {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.72fr);
+  }
+
+  .user-data-table strong {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+
+  .user-data-table strong small {
+    white-space: normal;
+  }
+
+  .user-data-table .tag,
+  .user-data-table .danger-action {
+    justify-self: start;
+  }
+
+  .assignment-list article,
+  .data-table div,
+  .class-list article,
+  .wizard-list div,
+  .notification-stack div {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --app-page-padding: 14px;
+    --app-header-height: 60px;
+    --app-header-bottom-gap: 16px;
+  }
+
+  * {
+    min-width: 0;
+  }
+
+  .role-screen,
+  .workspace,
+  .course-workspace,
+  .editor-workspace {
+    width: min(100% - 28px, 1480px);
+  }
+
+  .role-selection-screen {
+    gap: 12px;
+    min-height: auto;
+    padding-bottom: 18px;
+  }
+
+  .role-selection-screen .landing-hero {
+    gap: 12px;
+    padding: 8px 0 2px;
+  }
+
+  .role-selection-screen .role-card-grid {
+    margin-top: 8px;
+  }
+
+  .demo-entry-heading {
+    padding: 8px 2px 0;
+  }
+
+  .demo-entry-heading h2 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .role-card-grid {
+    gap: 12px;
+  }
+
+  .role-entry {
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .role-entry h2,
+  .panel h2 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .role-entry p,
+  .panel p,
+  .section-title p,
+  .hero-copy p {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .card-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .card-heading .primary-action,
+  .card-heading .secondary-action,
+  .card-heading button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .panel,
+  .course-activity,
+  .activity-editor-card,
+  .teacher-help-card,
+  .student-preview-panel,
+  .activity-flow-progress,
+  .student-objectives-panel,
+  .auth-form-shell,
+  .test-workbench,
+  .activity-assignment-box {
+    padding: 16px;
+  }
+
+  .primary-action,
+  .secondary-action,
+  .danger-action,
+  .text-action,
+  .quick-actions button,
+  .header-tools button,
+  .preset-row button,
+  .integration-grid button,
+  .rollout-action-grid button,
+  .demo-checklist button,
+  .activity-stepper button,
+  .lesson-nav-list button,
+  .locked-activity-row,
+  .mc-option-card,
+  .word-bank button,
+  .draggable-chip,
+  input,
+  textarea,
+  select {
+    min-height: 44px;
+  }
+
+  input,
+  textarea,
+  select,
+  label {
+    max-width: 100%;
+  }
+
+  .create-user-form,
+  .builder-grid,
+  .activity-builder-grid,
+  .activity-author-fields,
+  .editor-field-grid,
+  .teacher-review-box,
+  .activation-form,
+  .matching-answer-grid,
+  .word-search-entry-list .word-search-entry-row,
+  .inline-editor-list > div,
+  .sentence-editor-row,
+  .line-pair-editor-row,
+  .line-accepted-answer-row,
+  .question-editor-head,
+  .option-editor-row,
+  .objective-editor-row,
+  .add-activity-choice-grid,
+  .word-search-direction-grid,
+  .mc-options,
+  .season-match-board {
+    grid-template-columns: 1fr !important;
+  }
+
+  .create-user-form .primary-action,
+  .builder-grid .primary-action,
+  .activity-builder-grid .primary-action,
+  .teacher-review-box .primary-action,
+  .activation-form button,
+  .single-activity-actions button,
+  .activity-feedback-panel button,
+  .lesson-submit-panel button,
+  .add-activity-modal-actions button,
+  .preview-action-stack .secondary-action {
+    width: 100%;
+  }
+
+  .color-row,
+  .preset-row,
+  .exercise-type-row,
+  .feedback-tags,
+  .lesson-actions,
+  .editor-action-row,
+  .icon-button-row,
+  .test-actions,
+  .add-activity-modal-actions,
+  .student-preview-card > div,
+  .teacher-help-list {
+    align-items: stretch;
+  }
+
+  .preset-row button,
+  .exercise-type-row button,
+  .color-row label,
+  .test-actions > *,
+  .lesson-actions > *,
+  .editor-action-row > * {
+    flex: 1 1 100%;
+  }
+
+  .admin-section-panel {
+    gap: 14px;
+  }
+
+  .metric-grid,
+  .metric-grid.four {
+    gap: 10px;
+  }
+
+  .metric-card {
+    padding: 14px;
+  }
+
+  .metric-card strong {
+    font-size: 28px;
+  }
+
+  .rollout-action-grid button,
+  .demo-checklist button,
+  .integration-grid button,
+  .test-section-card,
+  .publisher-metric-grid article {
+    min-height: 0;
+    padding: 13px;
+  }
+
+  .publisher-metric-grid strong {
+    font-size: 26px;
+  }
+
+  .user-data-table {
+    overflow-x: visible;
+  }
+
+  .user-data-table div {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .user-data-table select,
+  .user-data-table .danger-action {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .user-data-table .tag {
+    justify-self: start;
+    width: fit-content;
+  }
+
+  .class-list article > div strong,
+  .class-list article > div span {
+    white-space: normal;
+  }
+
+  .portal-preview,
+  .preview-book-page,
+  .activity-preview-modal,
+  .compact-preview,
+  .embedded-student-preview {
+    max-width: 100%;
+  }
+
+  .activity-preview-modal-backdrop {
+    padding: 12px;
+  }
+
+  .activity-preview-modal {
+    width: min(100%, 96vw);
+    max-height: 92dvh;
+    overflow: auto;
+    padding: 14px;
+  }
+
+  .lesson-book-card,
+  .lesson-progress-card,
+  .lesson-sidebar-note {
+    padding: 14px;
+  }
+
+  .lesson-book-card {
+    align-items: flex-start;
+  }
+
+  .course-activity {
+    gap: 14px;
+    scroll-margin-top: calc(var(--app-shell-top-offset) + 12px);
+  }
+
+  .activity-shell-header h2 {
+    font-size: clamp(21px, 5.8vw, 26px);
+  }
+
+  .activity-status {
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .drag-bank,
+  .word-bank {
+    padding: 12px;
+  }
+
+  .draggable-chip,
+  .month-bank .draggable-chip {
+    flex: 1 1 100%;
+    width: 100%;
+    text-align: center;
+  }
+
+  .gap-drop-list article {
+    align-items: stretch;
+  }
+
+  .gap-index,
+  .match-left span {
+    align-self: start;
+  }
+
+  .drop-zone-target,
+  .gap-drop {
+    width: 100%;
+  }
+
+  .matching-node {
+    min-height: 58px;
+  }
+
+  .completion-hero h2 {
+    font-size: clamp(30px, 9vw, 42px);
+  }
+
+  .completion-hero > span {
+    width: 46px;
+    height: 46px;
+  }
+
+  .word-search-grid {
+    gap: 3px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .word-search-cell {
+    min-height: 28px;
+    min-width: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  :root {
+    --app-page-padding: 12px;
+    --app-header-height: 58px;
+    --app-header-bottom-gap: 14px;
+  }
+
+  .app-header {
+    left: 8px;
+    right: 8px;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .mobile-menu-toggle,
+  .mobile-sound-status,
+  .mobile-nav-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand-lockup {
+    padding: 4px;
+  }
+
+  .brand-lockup strong {
+    max-width: calc(100vw - 132px);
+    font-size: 13px;
+  }
+
+  .mobile-nav-drawer {
+    width: min(340px, 88vw);
+    padding: 16px 14px;
+  }
+
+  .role-screen,
+  .workspace,
+  .course-workspace,
+  .editor-workspace {
+    width: min(100% - 24px, 1480px);
+  }
+
+  .admin-workspace {
+    padding-inline: 12px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(40px, 13vw, 60px);
+  }
+
+  .section-title h1 {
+    font-size: clamp(32px, 10vw, 44px);
+  }
+
+  .panel,
+  .role-entry,
+  .course-activity,
+  .activity-flow-progress,
+  .student-objectives-panel,
+  .activity-editor-card,
+  .teacher-help-card,
+  .student-preview-panel {
+    padding: 14px;
+  }
+
+  .admin-nav-button {
+    flex-basis: min(220px, 76vw);
+  }
+
+  .lesson-nav-list button,
+  .locked-activity-row,
+  .activity-stepper button {
+    flex-basis: min(230px, 78vw);
+  }
+
+  .mobile-nav-button,
+  .mobile-volume-row {
+    min-height: 48px;
+  }
+
+  .tag,
+  .eyebrow,
+  .activity-number {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .inline-status,
+  .portal-open-state {
+    overflow-wrap: anywhere;
+  }
 }
