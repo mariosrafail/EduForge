@@ -15,6 +15,9 @@
   --line: #d5dfeb;
   --panel: rgba(255, 255, 255, 0.94);
   --shadow: 0 16px 34px rgba(16, 24, 40, 0.075);
+  --app-header-height: 62px;
+  --app-header-gap: 20px;
+  --app-header-offset: calc(var(--app-header-height) + var(--app-header-gap));
 }
 
 * { box-sizing: border-box; }
@@ -70,12 +73,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   z-index: 1;
 }
 .role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
-.workspace { padding: 94px 0 42px; }
+.workspace { padding: var(--app-header-offset) 0 42px; }
 .admin-workspace {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--app-header-offset) 24px 24px;
   box-sizing: border-box;
 }
 .admin-dashboard-shell {
@@ -87,7 +90,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-sidebar {
   position: sticky;
-  top: 92px;
+  top: var(--app-header-offset);
   align-self: start;
 }
 .admin-sidebar-card {
@@ -3373,10 +3376,13 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 
 @media (max-width: 1180px) {
-  .app-header { position: static; margin: 16px auto 0; width: min(100% - 32px, 1480px); grid-template-columns: 1fr; }
+  :root {
+    --app-header-height: 108px;
+    --app-header-gap: 16px;
+  }
+  .app-header { position: fixed; top: 12px; left: 16px; right: 16px; margin: 0 auto; width: auto; grid-template-columns: 1fr; }
   .header-tools { position: relative; display: flex; width: min(100% - 32px, 1480px); margin: 10px auto 0; justify-content: flex-end; }
   .tool-popover { top: auto; right: 16px; margin-top: 50px; }
-  .workspace { padding-top: 28px; }
   .admin-dashboard-shell {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -3422,8 +3428,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 
 @media (max-width: 760px) {
+  :root {
+    --app-header-height: 132px;
+    --app-header-gap: 14px;
+  }
   .role-screen, .workspace { width: min(100% - 28px, 1480px); }
-  .admin-workspace { padding: 16px; }
+  .admin-workspace { padding: var(--app-header-offset) 16px 16px; }
   .admin-sidebar-card { padding: 10px; }
   .admin-sidebar-nav { gap: 8px; }
   .admin-nav-button {
