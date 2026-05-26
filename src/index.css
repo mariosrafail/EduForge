@@ -15,11 +15,12 @@
   --line: #d5dfeb;
   --panel: rgba(255, 255, 255, 0.94);
   --shadow: 0 16px 34px rgba(16, 24, 40, 0.075);
-  --app-header-height: 62px;
-  --app-header-gap: 20px;
-  --fixed-header-safe-space: calc(var(--app-header-height) + var(--app-header-gap));
+  --app-header-height: 72px;
+  --app-header-top: 12px;
+  --app-header-bottom-gap: 28px;
+  --fixed-header-safe-space: calc(var(--app-header-top) + var(--app-header-height) + var(--app-header-bottom-gap));
   --app-content-top-offset: var(--fixed-header-safe-space);
-  --app-header-offset: var(--app-content-top-offset);
+  --app-shell-top-offset: var(--app-content-top-offset);
 }
 
 * { box-sizing: border-box; }
@@ -113,7 +114,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-sidebar {
   position: sticky;
-  top: var(--app-content-top-offset);
+  top: var(--app-shell-top-offset);
   align-self: start;
 }
 .admin-sidebar-card {
@@ -278,10 +279,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 .app-header {
   position: fixed;
-  z-index: 20;
-  top: 12px;
+  z-index: 100;
+  top: var(--app-header-top);
   left: 24px;
-  right: 96px;
+  right: 24px;
+  width: auto;
+  max-width: none;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 12px;
@@ -3398,12 +3402,12 @@ input[type="color"] { padding: 4px; height: 46px; }
   }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1100px) {
   :root {
     --app-header-height: 108px;
-    --app-header-gap: 16px;
+    --app-header-bottom-gap: 24px;
   }
-  .app-header { position: fixed; top: 12px; left: 16px; right: 16px; margin: 0 auto; width: auto; grid-template-columns: 1fr; }
+  .app-header { top: var(--app-header-top); left: 12px; right: 12px; margin: 0 auto; width: auto; grid-template-columns: 1fr; }
   .header-tools { position: relative; display: flex; width: min(100% - 32px, 1480px); margin: 10px auto 0; justify-content: flex-end; }
   .tool-popover { top: auto; right: 16px; margin-top: 50px; }
   .admin-dashboard-shell {
@@ -3461,10 +3465,10 @@ input[type="color"] { padding: 4px; height: 46px; }
   .flow-arrow { display: none; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 700px) {
   :root {
-    --app-header-height: 132px;
-    --app-header-gap: 14px;
+    --app-header-height: 150px;
+    --app-header-bottom-gap: 20px;
   }
   .role-screen, .workspace { width: min(100% - 28px, 1480px); }
   .admin-workspace { padding: var(--app-content-top-offset) 16px 16px; }
