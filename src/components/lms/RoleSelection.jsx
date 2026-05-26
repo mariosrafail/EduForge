@@ -36,11 +36,11 @@ export function RoleSelection({ navigateTo, brand }) {
           <p>
             A focused demo of a student-facing digital book lesson and a teacher-facing course editor for Hamilton House ELT content.
           </p>
-          <div className="hero-value-list" aria-label="Platform highlights">
+          {/* <div className="hero-value-list" aria-label="Platform highlights">
             <span><BookOpenCheck size={17} /> Digital book lesson flow</span>
             <span><MonitorCheck size={17} /> Teacher editor with live preview</span>
             <span><Layers3 size={17} /> Neon-backed activity content</span>
-          </div>
+          </div> */}
         </div>
 
       </section>
