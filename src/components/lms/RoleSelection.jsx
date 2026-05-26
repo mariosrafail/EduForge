@@ -28,7 +28,7 @@ const roleCards = [
 
 export function RoleSelection({ navigateTo, brand }) {
   return (
-    <main className="role-screen">
+    <main className="role-screen role-selection-screen">
       <section className="landing-hero">
         <div className="hero-copy">
           <Tag tone="gold">Hamilton House platform demo</Tag>

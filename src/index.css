@@ -74,6 +74,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
 .workspace { padding: var(--app-header-offset) 0 42px; }
+.role-selection-screen {
+  min-height: min(920px, calc(100vh - 24px));
+  display: grid;
+  align-content: start;
+  padding-top: clamp(30px, 5vh, 68px);
+  padding-bottom: clamp(24px, 4vh, 42px);
+}
+.role-selection-screen .landing-hero {
+  min-height: auto;
+  align-items: start;
+  gap: 20px;
+  padding: clamp(14px, 2.2vh, 28px) 0 clamp(8px, 1.8vh, 20px);
+}
+.role-selection-screen .role-card-grid {
+  margin-top: clamp(16px, 3vh, 40px);
+  margin-bottom: 0;
+}
+.role-selection-screen .demo-entry-heading {
+  padding: 8px 4px 2px;
+}
 .admin-workspace {
   width: 100%;
   max-width: 1240px;
@@ -3411,6 +3431,17 @@ input[type="color"] { padding: 4px; height: 46px; }
   }
   .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench, .activation-panel, .auth-panel, .activity-builder-layout, .course-lesson-layout, .teacher-editor-layout, .selected-activity-editor-layout, .activity-manager-layout { grid-template-columns: 1fr; }
   .landing-hero { min-height: auto; padding-top: 42px; }
+  .role-selection-screen {
+    min-height: auto;
+    padding-top: clamp(22px, 4vh, 42px);
+  }
+  .role-selection-screen .landing-hero {
+    padding-top: clamp(10px, 2vh, 20px);
+    padding-bottom: clamp(6px, 1.5vh, 14px);
+  }
+  .role-selection-screen .role-card-grid {
+    margin-top: clamp(12px, 2vh, 26px);
+  }
   .product-composition { min-height: 620px; }
   .admin-screen { left: 0; }
   .teacher-screen { right: 0; }
@@ -3441,6 +3472,17 @@ input[type="color"] { padding: 4px; height: 46px; }
     padding: 10px 11px;
   }
   .landing-hero { padding-top: 30px; }
+  .role-selection-screen {
+    padding-top: 14px;
+    padding-bottom: 18px;
+  }
+  .role-selection-screen .landing-hero {
+    gap: 14px;
+    padding: 8px 0 6px;
+  }
+  .role-selection-screen .role-card-grid {
+    margin-top: 10px;
+  }
   .hero-copy h1, .section-title h1 { font-size: clamp(36px, 12vw, 48px); line-height: 0.98; }
   .hero-copy p, .section-title p { font-size: 16px; }
   .product-composition { min-height: 0; display: grid; gap: 12px; }
