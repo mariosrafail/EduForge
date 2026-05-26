@@ -70,7 +70,7 @@ export function RoleSelection({ navigateTo, brand }) {
           );
         })}
       </section>
-
+{/* 
       <Card className="publisher-strip">
         <div>
           <span className="eyebrow">Platform scope</span>
@@ -80,7 +80,7 @@ export function RoleSelection({ navigateTo, brand }) {
           The main route now follows a realistic ELT lesson: a student completes interactive book activities, while a teacher edits,
           previews, assigns, and reviews the same lesson content.
         </p>
-      </Card>
+      </Card> */}
     </main>
   );
 }
