@@ -17,7 +17,9 @@
   --shadow: 0 16px 34px rgba(16, 24, 40, 0.075);
   --app-header-height: 62px;
   --app-header-gap: 20px;
-  --app-header-offset: calc(var(--app-header-height) + var(--app-header-gap));
+  --fixed-header-safe-space: calc(var(--app-header-height) + var(--app-header-gap));
+  --app-content-top-offset: var(--fixed-header-safe-space);
+  --app-header-offset: var(--app-content-top-offset);
 }
 
 * { box-sizing: border-box; }
@@ -73,12 +75,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   z-index: 1;
 }
 .role-screen, .workspace { width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
-.workspace { padding: var(--app-header-offset) 0 42px; }
+.workspace { padding: var(--app-content-top-offset) 0 42px; }
+.role-screen { padding: var(--app-content-top-offset) 0 24px; }
 .role-selection-screen {
   min-height: min(920px, calc(100vh - 24px));
   display: grid;
   align-content: start;
-  padding-top: clamp(30px, 5vh, 68px);
+  padding-top: calc(var(--app-content-top-offset) + clamp(8px, 2vh, 24px));
   padding-bottom: clamp(24px, 4vh, 42px);
 }
 .role-selection-screen .landing-hero {
@@ -98,7 +101,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: var(--app-header-offset) 24px 24px;
+  padding: var(--app-content-top-offset) 24px 24px;
   box-sizing: border-box;
 }
 .admin-dashboard-shell {
@@ -110,7 +113,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-sidebar {
   position: sticky;
-  top: var(--app-header-offset);
+  top: var(--app-content-top-offset);
   align-self: start;
 }
 .admin-sidebar-card {
@@ -3433,7 +3436,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   .landing-hero { min-height: auto; padding-top: 42px; }
   .role-selection-screen {
     min-height: auto;
-    padding-top: clamp(22px, 4vh, 42px);
+    padding-top: calc(var(--app-content-top-offset) + clamp(8px, 2vh, 18px));
   }
   .role-selection-screen .landing-hero {
     padding-top: clamp(10px, 2vh, 20px);
@@ -3464,7 +3467,7 @@ input[type="color"] { padding: 4px; height: 46px; }
     --app-header-gap: 14px;
   }
   .role-screen, .workspace { width: min(100% - 28px, 1480px); }
-  .admin-workspace { padding: var(--app-header-offset) 16px 16px; }
+  .admin-workspace { padding: var(--app-content-top-offset) 16px 16px; }
   .admin-sidebar-card { padding: 10px; }
   .admin-sidebar-nav { gap: 8px; }
   .admin-nav-button {
@@ -3473,7 +3476,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   }
   .landing-hero { padding-top: 30px; }
   .role-selection-screen {
-    padding-top: 14px;
+    padding-top: calc(var(--app-content-top-offset) + 8px);
     padding-bottom: 18px;
   }
   .role-selection-screen .landing-hero {
