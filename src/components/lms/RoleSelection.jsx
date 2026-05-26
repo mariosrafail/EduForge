@@ -48,7 +48,7 @@ export function RoleSelection({ navigateTo, brand }) {
             <motion.button
               key={role.id}
               className="role-entry"
-              onClick={() => navigateTo(role.id === "teacher" ? "teacher-course-editor" : role.id === "student" ? "student-course" : `auth-${role.id}`)}
+              onClick={() => navigateTo(role.id === "teacher" ? "teacher-course-editor" : role.id === "student" ? "student-course" : "admin")}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.07 + 0.12 }}
