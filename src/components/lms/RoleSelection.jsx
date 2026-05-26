@@ -33,14 +33,6 @@ export function RoleSelection({ navigateTo, brand }) {
         <div className="hero-copy">
           <Tag tone="gold">Hamilton House platform demo</Tag>
           <h1>Hamilton House Publishers LMS for digital ELT course lessons.</h1>
-          <p>
-            A focused demo of a student-facing digital book lesson and a teacher-facing course editor for Hamilton House ELT content.
-          </p>
-          {/* <div className="hero-value-list" aria-label="Platform highlights">
-            <span><BookOpenCheck size={17} /> Digital book lesson flow</span>
-            <span><MonitorCheck size={17} /> Teacher editor with live preview</span>
-            <span><Layers3 size={17} /> Neon-backed activity content</span>
-          </div> */}
         </div>
 
       </section>
@@ -70,17 +62,6 @@ export function RoleSelection({ navigateTo, brand }) {
           );
         })}
       </section>
-{/* 
-      <Card className="publisher-strip">
-        <div>
-          <span className="eyebrow">Platform scope</span>
-          <h2>Focused on the course experience</h2>
-        </div>
-        <p>
-          The main route now follows a realistic ELT lesson: a student completes interactive book activities, while a teacher edits,
-          previews, assigns, and reviews the same lesson content.
-        </p>
-      </Card> */}
     </main>
   );
 }
