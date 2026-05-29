@@ -385,18 +385,18 @@ export function TeacherCourseEditor({
       {saveError && <div className="inline-status warning">{saveError}</div>}
 
       <section className="metric-grid four">
-        <MetricCard label="Course" value="B1" note={course.title} icon={ClipboardList} />
-        <MetricCard label="Activities" value={course.lesson.activities.length} note="editable ELT tasks" icon={Save} delay={1} />
+        <MetricCard label="Level" value="B2" note={course.title} icon={ClipboardList} />
+        <MetricCard label="Activities" value={course.lesson.activities.length} note="assigned book exercises" icon={Save} delay={1} />
         <MetricCard label="Assigned class" value="21" note={course.className} icon={Users} delay={2} />
         <MetricCard label="Submissions" value="2/3" note="demo summary" icon={Send} delay={3} />
       </section>
 
       {(saved || assigned) && (
         <div className={`inline-status ${assigned ? "success" : ""}`}>
-          {assigned ? `${course.lesson.title} assigned to ${course.className}.` : "Saved to course database. Student view updated."}
+          {assigned ? `${course.lesson.title} assigned to ${course.className}.` : "Saved to digital book platform. Student view updated."}
         </div>
       )}
-      {activitySaved && <div className="inline-status success">Activity saved. Student view updated.</div>}
+      {activitySaved && <div className="inline-status success">Assigned book exercise saved. Student view updated.</div>}
 
       <div className="teacher-editor-layout">
         <main className="teacher-editor-main">
@@ -410,7 +410,7 @@ export function TeacherCourseEditor({
             <div className="card-heading">
               <div>
                 <span className="eyebrow">Activities</span>
-                <h2>Build the lesson practice</h2>
+                <h2>Build the assigned book practice</h2>
                 <p>Edit instructions, questions, word bank options, matching pairs, and answer keys.</p>
               </div>
               <Tag tone="green">Live data</Tag>

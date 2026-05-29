@@ -1,6 +1,6 @@
 import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { brandPresets, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
+import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
@@ -68,7 +68,7 @@ export function AdminView({ brand, setBrand }) {
     email: "",
     password: "",
     role: "Student",
-    level: "B1 Junior",
+    level: "B2",
     status: "Invited",
   });
   const selectedPrimaryColor = ALLOWED_PRIMARY_COLORS.some((option) => option.value === String(brand.primary || "").toLowerCase())
@@ -76,7 +76,7 @@ export function AdminView({ brand, setBrand }) {
     : ALLOWED_PRIMARY_COLORS[0].value;
   const adminSections = [
     { id: "overview", label: "Overview", description: "Metrics and rollout checklist", icon: CheckCircle2 },
-    { id: "school-setup", label: "School setup", description: "Branding and portal identity", icon: Building2 },
+    { id: "school-setup", label: "School setup", description: "Own school profile and portal identity", icon: Building2 },
     { id: "users", label: "Users", description: "Create, import, and manage users", icon: Users },
     { id: "books-classes", label: "Books & classes", description: "Assignments, classes, activation", icon: BookOpen },
     { id: "publisher-intelligence", label: "Publisher intelligence", description: "Adoption evidence and exports", icon: BarChart3 },
@@ -147,7 +147,7 @@ export function AdminView({ brand, setBrand }) {
     } finally {
       setSavingUser(false);
       setUserCreated(true);
-      setNewUser({ name: "", email: "", password: "", role: "Student", level: "B1 Junior", status: "Invited" });
+      setNewUser({ name: "", email: "", password: "", role: "Student", level: "B2", status: "Invited" });
     }
   };
 
@@ -209,9 +209,9 @@ export function AdminView({ brand, setBrand }) {
       <div className="admin-dashboard-shell">
         <aside className="admin-sidebar">
           <div className="admin-sidebar-card">
-            <span className="eyebrow">Admin dashboard</span>
+            <span className="eyebrow">School Admin dashboard</span>
             <h2>Control center</h2>
-            <p>Switch between administration modules without scrolling through one long page.</p>
+            <p>Manage the Hamilton House demo profile, users, book access, and class progress for this school only.</p>
             <nav className="admin-sidebar-nav" aria-label="Admin sections">
               {adminSections.map((section) => {
                 const Icon = section.icon;
@@ -274,7 +274,7 @@ export function AdminView({ brand, setBrand }) {
                   })}
                 </div>
                 {completedRollout.includes("Generate book activation codes") && (
-                  <div className="inline-status success">Book code activation batch generated: B1-DEMO-2026 through B1-DEMO-2075.</div>
+                  <div className="inline-status success">Book activation code batch generated: ULT-B2-DEMO-2026 through ULT-B2-DEMO-2075.</div>
                 )}
               </Card>
             </section>
@@ -285,7 +285,8 @@ export function AdminView({ brand, setBrand }) {
               <section className="admin-grid">
                 <Card className="setup-panel priority-panel">
                   <span className="eyebrow"><Palette size={15} /> School profile setup wizard</span>
-                  <h2>Personalize the school portal</h2>
+                  <h2>Hamilton House ELT Demo school profile</h2>
+                  <p>The school admin sees and edits only their own school profile for this Hamilton House demo.</p>
                   <label>
                     School name
                     <input value={brand.schoolName} onChange={(e) => setBrand({ ...brand, schoolName: e.target.value })} />
@@ -316,7 +317,7 @@ export function AdminView({ brand, setBrand }) {
                     ))}
                   </div>
                   <div className="wizard-list">
-                    {["School identity", "User roles: admin, teacher, student", "Virtual book assignment", "Class sections and enrolment"].map((step, index) => (
+                    {["School identity", "User roles: school admin, teacher, student", "Ultimate B2 package assignment", "Class sections and enrolment"].map((step, index) => (
                       <div key={step}><b>{index + 1}</b><span>{step}</span><Tag tone={index < 2 ? "green" : "blue"}>{index < 2 ? "Ready" : "Demo"}</Tag></div>
                     ))}
                   </div>
@@ -324,7 +325,7 @@ export function AdminView({ brand, setBrand }) {
 
                 <Card className="preview-panel">
                   <span className="eyebrow">Student portal preview</span>
-                  <h2>Branding changes live</h2>
+                  <h2>Hamilton House demo branding preview</h2>
                   <PortalPreview brand={brand} />
                 </Card>
               </section>
@@ -335,13 +336,13 @@ export function AdminView({ brand, setBrand }) {
             <section className="admin-section-panel">
               <Card>
                 <div className="card-heading">
-                  <div><span className="eyebrow"><Users size={15} /> User creation</span><h2>Users across three levels</h2></div>
+                  <div><span className="eyebrow"><Users size={15} /> User creation</span><h2>Users for the Ultimate B2 package</h2></div>
                   <button className="secondary-action" data-sound-click="submit" onClick={() => setUserCreated(true)}><UploadCloud size={17} /> Import CSV</button>
                 </div>
                 <form className="create-user-form" onSubmit={handleCreateUser}>
                   <label>
                     Name
-                    <input value={newUser.name} placeholder="e.g. Sofia Laskari" onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
+                    <input value={newUser.name} placeholder="e.g. Elena Markou" onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} />
                   </label>
                   <label>
                     Email
@@ -358,8 +359,10 @@ export function AdminView({ brand, setBrand }) {
                     </select>
                   </label>
                   <label>
-                    Class / level
-                    <input value={newUser.level} onChange={(e) => setNewUser({ ...newUser, level: e.target.value })} />
+                    CEFR level
+                    <select value={newUser.level} onChange={(e) => setNewUser({ ...newUser, level: e.target.value })}>
+                      {cefrLevels.map((level) => <option key={level}>{level}</option>)}
+                    </select>
                   </label>
                   <label>
                     Status
@@ -408,10 +411,10 @@ export function AdminView({ brand, setBrand }) {
             <section className="admin-section-panel">
               <Card>
                 <div className="card-heading">
-                  <div><span className="eyebrow"><BookOpen size={15} /> Books and classes</span><h2>Assign content to sections</h2></div>
+                  <div><span className="eyebrow"><BookOpen size={15} /> Books and classes</span><h2>Assign digital book access to sections</h2></div>
                   <button className="primary-action" data-sound-click="submit" onClick={() => setBookAdded(true)}><Plus size={17} /> Add book</button>
                 </div>
-                {bookAdded && <div className="inline-status success">Virtual book added: English Skills B1 with reading, listening, grammar, vocabulary, and writing activities.</div>}
+                {bookAdded && <div className="inline-status success">Digital book added: Ultimate B2 Students Book with reading, listening, grammar, vocabulary, and writing activities.</div>}
                 <div className="class-list">
                   {classes.map((item) => (
                     <article key={item.name}>
@@ -429,10 +432,10 @@ export function AdminView({ brand, setBrand }) {
                 <div className="activation-mini">
                   <span className="eyebrow"><KeyRound size={15} /> Activation code</span>
                   <div className="activation-form">
-                    <input value={activationCode} placeholder="B1-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
+                    <input value={activationCode} placeholder="ULT-B2-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
                     <button className="secondary-action" data-sound-click="submit" onClick={() => setBookUnlocked(true)}>Activate book</button>
                   </div>
-                  {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked for B1 Junior A.</div>}
+                  {bookUnlocked && <div className="inline-status success">Ultimate B2 Students Book unlocked for Ultimate B2 A.</div>}
                 </div>
               </Card>
             </section>
@@ -471,7 +474,7 @@ export function AdminView({ brand, setBrand }) {
                   <div>
                     <span className="eyebrow"><Link2 size={15} /> Integration-ready architecture</span>
                     <h2>Standalone now, connected later</h2>
-                    <p>The platform works as a standalone publisher LMS and can connect to existing school systems in later phases.</p>
+                    <p>The platform works as a standalone publisher-controlled digital book platform and can connect to existing school systems in later phases.</p>
                   </div>
                   {selectedIntegration && <Tag tone="blue">{selectedIntegration} selected</Tag>}
                 </div>

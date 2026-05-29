@@ -52,7 +52,7 @@ export function TeacherView({ activityDemo, activityActions }) {
       <SectionTitle
         eyebrow="Teacher supervision"
         title="Assign book-based practice, review submissions, and export adoption evidence."
-        text="Teachers see a teacher adoption dashboard, select a class, assign publisher units, inspect mistakes, run skill gap analysis, and author interactive activities."
+        text="Teachers see class progress, select an Ultimate B2 class, assign publisher-controlled book units, inspect student results, run skill gap analysis, and author interactive activities."
         action={<ExportButton rows={submittedWork} />}
       />
 
@@ -87,7 +87,7 @@ export function TeacherView({ activityDemo, activityActions }) {
             <div><span className="eyebrow">Assignments</span><h2>Assign to class or student</h2></div>
             <button className="primary-action" onClick={publishAssignment}><Send size={17} /> Publish</button>
           </div>
-          {published && <div className="inline-status success">New assignment published to {builder.target}. Students receive a portal notification immediately.</div>}
+          {published && <div className="inline-status success">Assigned book exercise published to {builder.target}. Students receive a portal notification immediately.</div>}
           <div className="assignment-list">
             {activityDemo.assignments.map((item) => {
               const activity = activityDemo.activities.find((activityItem) => activityItem.id === item.activity_id);
@@ -203,9 +203,9 @@ export function TeacherView({ activityDemo, activityActions }) {
           {submissionReceived && (
             <div className="new-submission-card">
               <Tag tone="green">New submission received</Tag>
-              <strong>Anna Georgiou / Complete Unit 4 Test / 76%</strong>
-              <p>Detected mistakes: Past Simple vs Present Perfect, listening detail questions, weak travel collocations.</p>
-              <small>Recommended revision: Grammar Booster plus one targeted listening replay before next attempt.</small>
+              <strong>Anna Georgiou / Quiz 2: Timed test / 76%</strong>
+              <p>Detected mistakes: Unit 2 sentence transformation, listening detail questions, weak text evidence.</p>
+              <small>Recommended revision: Ultimate B2 Grammar Book Unit 2 Exercise 4 plus Workbook page 20 replay before next attempt.</small>
             </div>
           )}
           <div className="review-list">
@@ -225,7 +225,7 @@ export function TeacherView({ activityDemo, activityActions }) {
           <div className="dropzone">
             <FileUp size={28} />
             <strong>Drop a worksheet, paste text, or build from a book unit</strong>
-            <small>Demo mode: interactive activity authoring for book-based practice, skill tagging, attempts, and student preview.</small>
+            <small>Hamilton House demo mode: interactive activity authoring for assigned book exercises, skill tagging, attempts, and student preview.</small>
           </div>
           <button className="secondary-action" onClick={() => setExerciseCreated(true)}><Plus size={17} /> Create demo exercise</button>
           {exerciseCreated && <div className="inline-status">Custom exercise draft created with scoring, attempt limits, and skill tagging.</div>}

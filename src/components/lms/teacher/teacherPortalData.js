@@ -1,0 +1,146 @@
+export const teacherPortalClasses = [
+  {
+    name: "Ultimate B2 A",
+    teacher: "Paris Georgoulakis",
+    students: 21,
+    assignedBook: "Ultimate B2",
+    completion: 74,
+  },
+  {
+    name: "Ultimate B2 B",
+    teacher: "Paris Georgoulakis",
+    students: 18,
+    assignedBook: "Ultimate B2",
+    completion: 68,
+  },
+  {
+    name: "Ultimate B2 Exam Prep",
+    teacher: "Paris Georgoulakis",
+    students: 16,
+    assignedBook: "Ultimate B2",
+    completion: 81,
+  },
+];
+
+export const teacherPortalStudents = [
+  {
+    name: "Anna Georgiou",
+    className: "Ultimate B2 A",
+    level: "B2",
+    completion: 76,
+    completedExercises: "18/24",
+    averageScore: 82,
+    latestWork: "Unit 2 Reading: Exercise 4",
+    lastActivity: "Today 10:14",
+  },
+  {
+    name: "Nikos Stavrou",
+    className: "Ultimate B2 A",
+    level: "B2",
+    completion: 71,
+    completedExercises: "17/24",
+    averageScore: 78,
+    latestWork: "Unit 2 Listening: Workbook page 20",
+    lastActivity: "Today 09:42",
+  },
+  {
+    name: "Lea Karras",
+    className: "Ultimate B2 B",
+    level: "B2",
+    completion: 63,
+    completedExercises: "14/24",
+    averageScore: 69,
+    latestWork: "Unit 2 Grammar: Opening exercise",
+    lastActivity: "Yesterday 18:20",
+  },
+  {
+    name: "Iasonas Petrou",
+    className: "Ultimate B2 Exam Prep",
+    level: "B2",
+    completion: 88,
+    completedExercises: "21/24",
+    averageScore: 86,
+    latestWork: "Quiz 2: Timed test",
+    lastActivity: "Today 11:03",
+  },
+  {
+    name: "Maya Ioannou",
+    className: "Ultimate B2 B",
+    level: "B2",
+    completion: 59,
+    completedExercises: "13/24",
+    averageScore: 74,
+    latestWork: "Unit 2 Reading: Text comprehension",
+    lastActivity: "Monday 16:12",
+  },
+];
+
+export const teacherPortalAssignments = [
+  {
+    title: "Unit 2 Reading: Text comprehension",
+    component: "Ultimate B2 Students Book",
+    className: "Ultimate B2 A",
+    assignedDate: "May 27, 2026",
+    submitted: 16,
+    total: 21,
+    averageScore: 78,
+  },
+  {
+    title: "Unit 2 Listening: Workbook page 20",
+    component: "Ultimate B2 Workbook",
+    className: "Ultimate B2 A",
+    assignedDate: "May 28, 2026",
+    submitted: 14,
+    total: 21,
+    averageScore: 74,
+  },
+  {
+    title: "Unit 2 Grammar: Exercise 4",
+    component: "Ultimate B2 Grammar Book",
+    className: "Ultimate B2 B",
+    assignedDate: "May 28, 2026",
+    submitted: 12,
+    total: 18,
+    averageScore: 72,
+  },
+  {
+    title: "Quiz 2: Timed test",
+    component: "Ultimate B2 Test Book",
+    className: "Ultimate B2 Exam Prep",
+    assignedDate: "May 29, 2026",
+    submitted: 11,
+    total: 16,
+    averageScore: 81,
+  },
+];
+
+export const sampleExerciseResult = {
+  exercise: "Unit 2 Reading: Exercise 4",
+  score: "2/4",
+  answers: [
+    {
+      prompt: "main idea question",
+      studentAnswer: "read the whole paragraph first",
+      correctAnswer: "read the whole paragraph first",
+      correct: true,
+    },
+    {
+      prompt: "detail question",
+      studentAnswer: "choose the longest option",
+      correctAnswer: "find the exact line evidence",
+      correct: false,
+    },
+    {
+      prompt: "vocabulary in context",
+      studentAnswer: "check nearby words and phrases",
+      correctAnswer: "check nearby words and phrases",
+      correct: true,
+    },
+    {
+      prompt: "writer purpose",
+      studentAnswer: "match the first sentence only",
+      correctAnswer: "notice tone and reason for writing",
+      correct: false,
+    },
+  ],
+};

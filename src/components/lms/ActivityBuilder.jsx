@@ -6,21 +6,21 @@ import { ActivityPreview } from "./ActivityPreview.jsx";
 import { Card, Tag } from "./Shared.jsx";
 
 const baseActivity = {
-  title: "Unit 4 Travel Collocations Check",
+  title: "Unit 2 Reading: Exercise 4",
   type: "multiple_choice",
-  skill: "Vocabulary",
+  skill: "Reading",
   book_title: books[0],
   unit_title: `${bookUnits[0].unit}: ${bookUnits[0].title}`,
-  feedbackWrong: "Review Unit 4 vocabulary and try again before the next attempt.",
+  feedbackWrong: "Review Unit 2 reading strategies and try again before the next attempt.",
   revision: "Revise the target skill. Correct answers remain locked.",
-  question: "Choose the strongest collocation for a holiday plan.",
-  options: ["make a journey", "do a journey", "take a decision", "go a plan"],
+  question: "Which strategy best supports a B2 detail question?",
+  options: ["Find the exact line evidence", "Guess from the title only", "Ignore reference words", "Choose the longest option"],
   correctIndex: "0",
-  sentence: "Emma decided to ____ a journey across the island.",
-  acceptedAnswer: "make",
-  matchLeft: "book a ticket\nmiss a train\npack a suitcase",
-  matchRight: "reserve travel\narrive too late\nprepare luggage",
-  writingPrompt: "Write a short travel review using sequencing language.",
+  sentence: "A strong answer uses clear ____ from the text.",
+  acceptedAnswer: "evidence",
+  matchLeft: "main idea question\ndetail question\nvocabulary in context",
+  matchRight: "read the whole paragraph first\nfind the exact line evidence\ncheck nearby words and phrases",
+  writingPrompt: "Write a short B2 paragraph using evidence from the Unit 2 text.",
 };
 
 const baseAssignment = {

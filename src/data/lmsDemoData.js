@@ -5,19 +5,9 @@ export const brandPresets = [
     primary: "#c2410c",
     secondary: "#0b1f3a",
   },
-  {
-    schoolName: "Bright Path Language School",
-    logo: "BP",
-    primary: "#1e3a8a",
-    secondary: "#f59e0b",
-  },
-  {
-    schoolName: "Northstar English Institute",
-    logo: "NE",
-    primary: "#065f46",
-    secondary: "#7c3aed",
-  },
 ];
+
+export const cefrLevels = ["Primary (Pre-A1)", "A1", "A2", "B1", "B1+", "B2", "C1", "C2"];
 
 export const schoolMetrics = [
   ["Active students", "1,284", "+8.6%"],
@@ -28,16 +18,16 @@ export const schoolMetrics = [
 ];
 
 export const users = [
-  { name: "Elena Markou", role: "Admin", level: "Operations", status: "Active" },
-  { name: "Maria Antoniou", role: "Teacher", level: "B1 Junior", status: "Active" },
-  { name: "Dimitris Voss", role: "Teacher", level: "B2 Senior", status: "Active" },
-  { name: "Anna Georgiou", role: "Student", level: "B1 Junior", status: "Invited" },
-  { name: "Nikos Stavrou", role: "Student", level: "B1 Junior", status: "Active" },
+  { name: "Elena Markou", role: "School Admin", level: "B2", status: "Active" },
+  { name: "Paris Georgoulakis", role: "Teacher", level: "B2", status: "Active" },
+  { name: "Sofia Laskari", role: "Teacher", level: "B2", status: "Active" },
+  { name: "Anna Georgiou", role: "Student", level: "B2", status: "Invited" },
+  { name: "Nikos Stavrou", role: "Student", level: "B2", status: "Active" },
 ];
 
 export const publisherIntelligence = [
-  { label: "Activated book codes", value: "3,842", note: "B1 and B2 campaigns", accent: "#175cd3" },
-  { label: "Most used book units", value: "Unit 4", note: "Travel Stories across 18 schools", accent: "#0f766e" },
+  { label: "Activated book codes", value: "3,842", note: "Ultimate B2 package campaign", accent: "#175cd3" },
+  { label: "Most used book units", value: "Unit 2", note: "Ultimate B2 Unit 2 across demo classes", accent: "#0f766e" },
   { label: "Difficult skills", value: "Writing", note: "58% average across partner schools", accent: "#7c3aed" },
   { label: "Book engagement", value: "82%", note: "weekly active learners per adoption", accent: "#dc6803" },
   { label: "Adoption data", value: "CSV", note: "exportable by school, unit, and skill", accent: "#101828" },
@@ -60,21 +50,21 @@ export const integrationOptions = [
 ];
 
 export const classes = [
-  { name: "B1 Junior A", teacher: "Maria Antoniou", students: 21, book: "English Skills B1", completion: 74 },
-  { name: "B1 Junior B", teacher: "Maria Antoniou", students: 18, book: "English Skills B1", completion: 68 },
-  { name: "B2 Senior", teacher: "Dimitris Voss", students: 16, book: "Exam Focus B2", completion: 81 },
+  { name: "Ultimate B2 A", teacher: "Paris Georgoulakis", students: 21, book: "Ultimate B2 Students Book", completion: 74 },
+  { name: "Ultimate B2 B", teacher: "Paris Georgoulakis", students: 18, book: "Ultimate B2 Workbook", completion: 68 },
+  { name: "Ultimate B2 Exam Prep", teacher: "Paris Georgoulakis", students: 16, book: "Ultimate B2 Test Book", completion: 81 },
 ];
 
 export const bookUnits = [
   {
-    unit: "Unit 4",
-    title: "Travel Stories",
-    lessons: ["Reading: Island Routes", "Listening: Planning a trip", "Grammar: Past Simple vs Present Perfect", "Writing: A travel review"],
+    unit: "Unit 2",
+    title: "Reading and grammar focus",
+    lessons: ["Reading: Text comprehension", "Reading: Exercise 3", "Reading: Exercise 4", "Listening: Workbook page 20", "Grammar: Opening exercise", "Grammar: Exercise 4", "Quiz 2: Timed test"],
   },
   {
-    unit: "Unit 5",
-    title: "Future Cities",
-    lessons: ["Reading: Smart transport", "Vocabulary: Urban life", "Writing: Opinion paragraph"],
+    unit: "Unit 3",
+    title: "Skills extension",
+    lessons: ["Vocabulary: Topic review", "Writing: Guided paragraph", "Speaking: Exam practice"],
   },
 ];
 
@@ -97,12 +87,12 @@ export const interactiveActivityTypes = [
 ];
 
 export const assignments = [
-  { title: "Unit 4 Reading Check", type: "Reading", target: "B1 Junior A", due: "Today", submitted: 16, total: 21 },
-  { title: "Travel Plans Audio Drill", type: "Listening", target: "B1 Junior A", due: "Tomorrow", submitted: 11, total: 21 },
-  { title: "Complete Unit 4 Test", type: "Mixed test", target: "B1 Junior B", due: "Friday", submitted: 8, total: 18 },
+  { title: "Unit 2 Reading: Text comprehension", type: "Reading", target: "Ultimate B2 A", due: "Today", submitted: 16, total: 21 },
+  { title: "Unit 2 Listening: Workbook page 20", type: "Listening", target: "Ultimate B2 A", due: "Tomorrow", submitted: 11, total: 21 },
+  { title: "Quiz 2: Timed test", type: "Mixed test", target: "Ultimate B2 B", due: "Friday", submitted: 8, total: 18 },
 ];
 
-export const books = ["English Skills B1", "Exam Focus B2", "Young Learners A2"];
+export const books = ["Ultimate B2 Students Book", "Ultimate B2 Workbook", "Ultimate B2 Grammar Book", "Ultimate B2 Test Book"];
 
 export const demoStudents = ["Anna Georgiou", "Nikos Stavrou", "Lea Karras"];
 
@@ -115,15 +105,15 @@ export const skillStats = [
 ];
 
 export const submittedWork = [
-  { student: "Anna Georgiou", score: "72%", mistakes: "Present Perfect, travel collocations", recommendation: "Revise: Past Simple vs Present Perfect" },
-  { student: "Nikos Stavrou", score: "84%", mistakes: "Listening detail questions", recommendation: "Repeat audio drill at slower speed" },
+  { student: "Anna Georgiou", score: "72%", mistakes: "Text evidence, sentence transformation", recommendation: "Revise Unit 2 Reading: Exercise 4" },
+  { student: "Nikos Stavrou", score: "84%", mistakes: "Listening detail questions", recommendation: "Repeat Unit 2 Listening: Workbook page 20" },
   { student: "Lea Karras", score: "61%", mistakes: "Short answer evidence", recommendation: "Reading Strategy Booster" },
 ];
 
 export const studentExercises = [
-  { title: "Unit 4 Reading Check", status: "Due today", skill: "Reading", attempts: "1 of 2" },
-  { title: "Travel Plans Audio Drill", status: "New", skill: "Listening", attempts: "0 of 2" },
-  { title: "Write a Travel Review", status: "Teacher review", skill: "Writing", attempts: "Draft" },
+  { title: "Unit 2 Reading: Text comprehension", status: "Due today", skill: "Reading", attempts: "1 of 2" },
+  { title: "Unit 2 Listening: Workbook page 20", status: "New", skill: "Listening", attempts: "0 of 2" },
+  { title: "Unit 2 Grammar: Exercise 4", status: "Teacher review", skill: "Grammar", attempts: "Draft" },
 ];
 
 export const fullTestSections = [
@@ -131,15 +121,15 @@ export const fullTestSections = [
     title: "Reading",
     duration: "18 min",
     status: "Ready",
-    prompt: "Read a short travel article and identify supporting evidence.",
-    mistake: "One answer uses general memory instead of evidence from paragraph 2.",
+    prompt: "Read the Unit 2 text and identify supporting evidence.",
+    mistake: "One answer uses general knowledge instead of evidence from paragraph 2.",
     revision: "Underline the sentence that proves each answer before submitting.",
   },
   {
     title: "Listening",
     duration: "12 min",
     status: "Audio locked",
-    prompt: "Listen to a trip-planning dialogue and answer detail questions.",
+    prompt: "Listen to the Unit 2 Workbook page 20 audio and answer detail questions.",
     mistake: "Two date and time details need another listen at normal speed.",
     revision: "Replay once, then note numbers and time expressions before choosing.",
   },
@@ -147,16 +137,16 @@ export const fullTestSections = [
     title: "Grammar / Vocabulary",
     duration: "15 min",
     status: "Ready",
-    prompt: "Complete tense, collocation, and travel vocabulary items.",
-    mistake: "Past Simple and Present Perfect are mixed in short-answer items.",
-    revision: "Review time markers such as last summer, already, and ever.",
+    prompt: "Complete the Unit 2 opening exercise and Exercise 4 grammar items.",
+    mistake: "Sentence transformation and tense control need more accuracy.",
+    revision: "Review the Unit 2 Grammar Book notes before trying again.",
   },
   {
     title: "Writing",
     duration: "25 min",
     status: "Teacher review",
-    prompt: "Write a short travel review with clear sequencing and opinion language.",
-    mistake: "The paragraph needs clearer linking words and more precise adjectives.",
+    prompt: "Write a short B2 paragraph with clear linking and precise examples.",
+    mistake: "The paragraph needs clearer topic support and more precise B2 vocabulary.",
     revision: "Revise structure first, then improve vocabulary. Correct answers remain locked.",
   },
 ];

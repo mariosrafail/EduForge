@@ -6,12 +6,31 @@ import { RoleSelection } from "./components/lms/RoleSelection.jsx";
 import { Header, PageTransition } from "./components/lms/Shared.jsx";
 import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
 import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
-import { TeacherCourseEditor } from "./components/lms/teacher/TeacherCourseEditor.jsx";
+import { StudentPortal } from "./components/lms/student/StudentPortal.jsx";
+import { TeacherPortal } from "./components/lms/teacher/TeacherPortal.jsx";
 import houseLogoMark from "./assets/branding/hamilton-house-logo-houseonly.png";
 import { brandPresets } from "./data/lmsDemoData.js";
 import { useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
+
+const teacherSectionByView = {
+  teacher: "dashboard",
+  "teacher-books": "books",
+  "teacher-classes": "classes",
+  "teacher-students": "students",
+  "teacher-assignments": "assignments",
+  "teacher-custom-assignment": "custom-assignment",
+  "teacher-course-editor": "custom-assignment",
+};
+
+const studentSectionByView = {
+  student: "dashboard",
+  "student-books": "books",
+  "student-assignments": "assignments",
+  "student-grades": "grades",
+  "student-activity": "activity",
+};
 
 export default function App() {
   const { view, navigateTo } = useHashView();
@@ -31,9 +50,9 @@ export default function App() {
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
     ? view.replace("auth-", "")
-    : view === "student-course" || view === "student-preview"
+    : view.startsWith("student")
       ? "student"
-      : view === "teacher-course-editor"
+      : view.startsWith("teacher")
         ? "teacher"
         : view;
 
@@ -81,8 +100,9 @@ export default function App() {
           />
         )}
         {view === "admin" && <AdminView brand={brand} setBrand={setBrand} />}
-        {(view === "teacher" || view === "teacher-course-editor") && (
-          <TeacherCourseEditor
+        {teacherSectionByView[view] && (
+          <TeacherPortal
+            initialSection={teacherSectionByView[view]}
             course={courseData.course}
             onCourseChange={courseData.setCourse}
             navigateTo={navigateTo}
@@ -94,7 +114,18 @@ export default function App() {
             reloadCourse={courseData.reloadCourse}
           />
         )}
-        {(view === "student" || view === "student-course") && (
+        {studentSectionByView[view] && (
+          <StudentPortal
+            initialSection={studentSectionByView[view]}
+            course={courseData.course}
+            onSubmission={addCourseSubmission}
+            navigateTo={navigateTo}
+            courseLoading={courseData.loading}
+            courseError={courseData.error}
+            submitLesson={courseData.submitCourseLesson}
+          />
+        )}
+        {view === "student-course" && (
           <StudentCourseView
             course={courseData.course}
             onSubmission={addCourseSubmission}

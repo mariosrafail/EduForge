@@ -5,9 +5,9 @@ import { Bell, BookOpen, Building2, Download, GraduationCap, LogOut, Menu, Searc
 import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
-  student: { label: "Student", icon: UserRound, targetView: "student-course" },
-  teacher: { label: "Teacher", icon: GraduationCap, targetView: "teacher-course-editor" },
-  admin: { label: "Admin", icon: Building2, targetView: "admin" },
+  student: { label: "Student", icon: UserRound, targetView: "student" },
+  teacher: { label: "Teacher", icon: GraduationCap, targetView: "teacher" },
+  admin: { label: "School Admin", icon: Building2, targetView: "admin" },
 };
 
 export function PageTransition({ children, pageKey }) {
@@ -28,6 +28,7 @@ export function PageTransition({ children, pageKey }) {
 
 function displayRole(role) {
   const normalized = String(role ?? "").toLowerCase();
+  if (normalized === "admin") return "School Admin";
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
 }
 
@@ -108,8 +109,8 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
 
         <button className="brand-lockup text-only" onClick={() => handleNavigate("home")} aria-label="Return to role selection">
           <span>
-            <strong>Hamilton House Publishers LMS</strong>
-            <small>ELT platform demo</small>
+            <strong>Hamilton House Ultimate B2</strong>
+            <small>Digital book platform demo</small>
           </span>
         </button>
 
@@ -119,7 +120,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
               <span className="role-chip">{roleLabel}</span>
               {currentUser && (
                 <span className="signed-in-chip">
-                  Signed in as {currentUser.full_name} / {displayRole(currentUser.role)}
+                  {currentUser.full_name} ({displayRole(currentUser.role)})
                 </span>
               )}
             </div>
@@ -199,7 +200,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
         <aside className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`} aria-hidden={!mobileMenuOpen}>
         <div className="mobile-nav-header">
           <div>
-            <strong>Hamilton House LMS</strong>
+            <strong>Hamilton House Ultimate B2</strong>
             <small>{roleLabel}</small>
           </div>
           <button className="mobile-nav-close" type="button" aria-label="Close navigation menu" onClick={() => setMobileMenuOpen(false)}>
@@ -344,7 +345,7 @@ export function HeaderTools() {
       <button title="Search" onClick={() => setActiveTool(activeTool === "search" ? "" : "search")} className={activeTool === "search" ? "active-tool" : ""}><Search size={18} /></button>
       <button title="Notifications" onClick={() => setActiveTool(activeTool === "notifications" ? "" : "notifications")} className={`notification-button ${activeTool === "notifications" ? "active-tool" : ""}`}><Bell size={18} /><span>4</span></button>
       <button title="Settings" onClick={() => setActiveTool(activeTool === "settings" ? "" : "settings")} className={activeTool === "settings" ? "active-tool" : ""}><Settings size={18} /></button>
-      {activeTool && <div className="tool-popover">{activeTool === "search" ? "Demo search is ready for books, users, and classes." : activeTool === "notifications" ? "4 demo notifications: assignments, exports, and portal updates." : "Demo settings are controlled from the admin profile panel."}</div>}
+              {activeTool && <div className="tool-popover">{activeTool === "search" ? "Demo search is ready for Ultimate B2 books, users, and classes." : activeTool === "notifications" ? "4 Hamilton House demo notifications: assigned book exercises, exports, and portal updates." : "Demo settings are controlled from the school profile panel."}</div>}
     </div>
   );
 }
@@ -356,18 +357,18 @@ export function PortalPreview({ brand }) {
     <div className="portal-preview" style={{ "--preview-primary": brand.primary, "--preview-secondary": brand.secondary }}>
       <div className="portal-bar">
         <span className="school-logo image-school-logo">
-          <img src={hamiltonHouseLogo} alt="Hamilton House Publishers LMS logo" />
+          <img src={hamiltonHouseLogo} alt="Hamilton House digital book platform logo" />
         </span>
         <strong>{brand.schoolName}</strong>
       </div>
       <div className="portal-hero">
         <BookOpen size={24} />
-        <h3>English Skills B1</h3>
-        <p>3 assigned activities</p>
+        <h3>Ultimate B2 Students Book</h3>
+        <p>3 assigned book exercises</p>
       </div>
       <div className="portal-progress"><span /></div>
       <button onClick={() => setOpened(!opened)}>{opened ? "Student portal preview opened" : "Open student portal"}</button>
-      {opened && <div className="portal-open-state">Student portal uses this logo, color system, book assignment, and notification style.</div>}
+      {opened && <div className="portal-open-state">Student portal uses this logo, color system, Ultimate B2 package assignment, and notification style.</div>}
     </div>
   );
 }

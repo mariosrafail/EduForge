@@ -26,29 +26,29 @@ export const activityTypes = [
 ];
 
 export const seedActivity = {
-  id: "demo-activity-travel-collocations",
-  title: "Unit 4 Travel Collocations Check",
+  id: "demo-activity-unit-2-reading-exercise-4",
+  title: "Unit 2 Reading: Exercise 4",
   type: "multiple_choice",
-  skill: "Vocabulary",
-  book_title: "English Skills B1",
-  unit_title: "Unit 4: Travel Stories",
+  skill: "Reading",
+  book_title: "Ultimate B2 Students Book",
+  unit_title: "Unit 2: Reading and grammar focus",
   content: {
-    question: "Choose the strongest collocation for a holiday plan.",
-    options: ["make a journey", "do a journey", "take a decision", "go a plan"],
+    question: "Which strategy best supports a B2 detail question?",
+    options: ["Find the exact line evidence", "Guess from the title only", "Ignore reference words", "Choose the longest option"],
     correctIndex: 0,
   },
   feedback: {
-    wrong: "Review Unit 4 travel collocations and focus on verb-noun combinations.",
-    revision: "Revise travel collocations before the next attempt. Correct answers remain locked.",
+    wrong: "Review Unit 2 reading strategies and focus on text evidence.",
+    revision: "Revise Unit 2 Reading: Exercise 4 before the next attempt. Correct answers remain locked.",
   },
   created_at: new Date().toISOString(),
 };
 
 export const seedAssignment = {
-  id: "demo-assignment-travel-collocations",
+  id: "demo-assignment-unit-2-reading-exercise-4",
   activity_id: seedActivity.id,
   target_type: "class",
-  target_label: "B1 Junior A",
+  target_label: "Ultimate B2 A",
   due_date: "2026-05-29",
   allowed_attempts: 2,
   status: "published",

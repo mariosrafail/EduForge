@@ -6,23 +6,23 @@ const roleCards = [
   {
     id: "admin",
     icon: Building2,
-    title: "School / Admin",
-    text: "Configure branded school rollout, manage users, generate book code activation, and supervise ELT adoption.",
-    stats: "School rollout, classes, roles, books",
+    title: "School Admin",
+    text: "Manage the Hamilton House ELT Demo profile, Ultimate B2 users, book activation codes, and class progress.",
+    stats: "School profile, classes, roles, books",
   },
   {
     id: "teacher",
     icon: GraduationCap,
     title: "Teacher",
-    text: "Open the course editor, adjust lesson content and activities, preview as a student, then assign the lesson.",
-    stats: "Lesson editor, activity authoring, preview",
+    text: "Open Ultimate B2 book content, adjust activities, preview as a student, then assign the lesson.",
+    stats: "Digital book editor, activity authoring, preview",
   },
   {
     id: "student",
     icon: UserRound,
     title: "Student",
-    text: "Enter English Skills B1, open Welcome 2 - Vocabulary 4, complete activities, and receive feedback.",
-    stats: "Digital book lesson, word bank, matching",
+    text: "Enter the Ultimate B2 package, open Unit 2, complete assigned book exercises, and receive feedback.",
+    stats: "Digital book access, Unit 2, feedback",
   },
 ];
 
@@ -32,7 +32,7 @@ export function RoleSelection({ navigateTo, brand }) {
       <section className="landing-hero">
         <div className="hero-copy">
           <Tag tone="gold">Hamilton House platform demo</Tag>
-          <h1>Hamilton House Publishers LMS for digital ELT course lessons.</h1>
+          <h1>Hamilton House Ultimate B2 digital book platform.</h1>
         </div>
 
       </section>
@@ -48,7 +48,7 @@ export function RoleSelection({ navigateTo, brand }) {
             <motion.button
               key={role.id}
               className="role-entry"
-              onClick={() => navigateTo(role.id === "teacher" ? "teacher-course-editor" : role.id === "student" ? "student-course" : "admin")}
+              onClick={() => navigateTo(role.id === "teacher" ? "teacher" : role.id === "student" ? "student" : "admin")}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.07 + 0.12 }}

@@ -5,12 +5,12 @@ import { Card, Tag } from "./Shared.jsx";
 
 const roleConfig = {
   admin: {
-    title: "Enter as School / Admin",
+    title: "Enter as School Admin",
     tag: "School rollout access",
     signinTitle: "Sign in as School Admin",
     joinTitle: "Create school account",
     primaryRoute: "admin",
-    copy: "School admins can create the school workspace, manage teachers and students, generate book activation codes, and supervise rollout.",
+    copy: "School admins manage their Hamilton House demo profile, teachers, students, book activation codes, and Ultimate B2 rollout.",
   },
   teacher: {
     title: "Enter as Teacher",
@@ -18,7 +18,7 @@ const roleConfig = {
     signinTitle: "Sign in as Teacher",
     joinTitle: "Join with invitation code",
     primaryRoute: "teacher",
-    copy: "Teachers are invited by a school, then assign book-based practice, author interactive activities, and review student submissions.",
+    copy: "Teachers are invited by the school, then assign Ultimate B2 book exercises, author interactive activities, and review student results.",
   },
   student: {
     title: "Enter as Student",
@@ -26,7 +26,7 @@ const roleConfig = {
     signinTitle: "Sign in as Student",
     joinTitle: "Join with class/book code",
     primaryRoute: "student",
-    copy: "Students join through their school or book code, complete assigned activities, and receive guided revision feedback.",
+    copy: "Students join through their school and book activation code, complete assigned book exercises, and receive guided revision feedback.",
   },
 };
 
@@ -36,29 +36,30 @@ const initialSignin = {
 };
 
 const initialSignup = {
-  schoolName: "Hamilton House ELT Demo School",
-  adminName: "",
+  schoolName: "Hamilton House ELT Demo",
+  adminName: "Elena Markou",
   email: "",
   password: "",
 };
 
 const initialTeacherJoin = {
   invitationCode: "HH-TEACHER-DEMO",
-  fullName: "",
+  fullName: "Paris Georgoulakis",
   email: "",
   password: "",
 };
 
 const initialStudentJoin = {
-  classCode: "B1-JUNIOR-A",
-  bookCode: "B1-DEMO-2026",
-  studentName: "",
+  classCode: "ULTIMATE-B2-A",
+  bookCode: "ULT-B2-DEMO-2026",
+  studentName: "Anna Georgiou",
   email: "",
   password: "",
 };
 
 function roleLabel(role) {
   const normalized = String(role ?? "").toLowerCase();
+  if (normalized === "admin") return "School Admin";
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
 }
 
@@ -158,8 +159,8 @@ export function AuthView({
             <div className="signed-in-panel">
               <ShieldCheck size={18} />
               <div>
-                <strong>Signed in as {currentUser.full_name}</strong>
-                <span>{roleLabel(currentUser.role)} / {currentUser.email}</span>
+                <strong>{currentUser.full_name} ({roleLabel(currentUser.role)})</strong>
+                <span>{currentUser.email}</span>
               </div>
               <button className="secondary-action compact-action" onClick={() => navigateTo(dashboardForRole(currentUser.role))}>Open dashboard</button>
               <button className="secondary-action compact-action" onClick={signOut}>Logout</button>
@@ -207,8 +208,8 @@ export function AuthView({
                 <input value={signupForm.schoolName} onChange={(event) => setSignupForm({ ...signupForm, schoolName: event.target.value })} />
               </label>
               <label>
-                Admin full name
-                <input value={signupForm.adminName} onChange={(event) => setSignupForm({ ...signupForm, adminName: event.target.value })} placeholder="Sofia Laskari" />
+                School admin full name
+                <input value={signupForm.adminName} onChange={(event) => setSignupForm({ ...signupForm, adminName: event.target.value })} placeholder="Elena Markou" />
               </label>
               <label>
                 Email
@@ -230,7 +231,7 @@ export function AuthView({
               </label>
               <label>
                 Full name
-                <input value={teacherJoin.fullName} onChange={(event) => setTeacherJoin({ ...teacherJoin, fullName: event.target.value })} placeholder="Maria Antoniou" />
+                <input value={teacherJoin.fullName} onChange={(event) => setTeacherJoin({ ...teacherJoin, fullName: event.target.value })} placeholder="Paris Georgoulakis" />
               </label>
               <label>
                 Email

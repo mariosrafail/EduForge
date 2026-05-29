@@ -7,7 +7,7 @@ const flow = [
   {
     icon: Building2,
     title: "School setup",
-    text: "Admin configures school profile, brand colors, users, classes, and first enrolment rules.",
+    text: "School admin configures the Hamilton House demo school profile, brand colors, users, classes, and first enrolment rules.",
     target: "admin",
   },
   {
@@ -19,25 +19,25 @@ const flow = [
   {
     icon: GraduationCap,
     title: "Teacher assignment",
-    text: "Teacher chooses a class, publishes book-based practice from a unit, and controls attempts and due dates.",
+    text: "Teacher chooses an Ultimate B2 class, publishes assigned book exercises from Unit 2, and controls attempts and due dates.",
     target: "teacher",
   },
   {
     icon: UserRound,
     title: "Student exercise",
-    text: "Student completes a branded full test with reading, listening, grammar, vocabulary, and writing sections.",
+    text: "Student completes assigned Ultimate B2 exercises with reading, listening, grammar, vocabulary, and writing sections.",
     target: "student",
   },
   {
     icon: CheckCircle2,
     title: "Automatic correction",
-    text: "The LMS returns mistakes and revision guidance while keeping the correct answers locked.",
+    text: "The book platform returns mistakes and revision guidance while keeping the correct answers locked.",
     target: "student",
   },
   {
     icon: BarChart3,
     title: "Analytics/export",
-    text: "Admins and publishers review teacher adoption dashboard signals, skill gap analysis, book engagement, and exportable evidence.",
+    text: "School admins review class progress, student results, book engagement, and exportable evidence for the Hamilton House demo.",
     target: "admin",
   },
 ];
@@ -67,8 +67,8 @@ export function FullDemoFlow({ navigateTo }) {
     <div className="workspace">
       <SectionTitle
         eyebrow="End-to-end demo flow"
-        title="A complete LMS story for publisher sales conversations."
-        text="Use this overview to present Hamilton House Publishers LMS as the ELT operational layer connecting publishers, school rollout, teachers, and students."
+        title="A complete Ultimate B2 book platform story."
+        text="Use this overview to present the Hamilton House demo as the ELT operational layer connecting school rollout, teachers, students, and publisher-controlled digital book access."
       />
 
       <Card className="presentation-mode priority-panel">
@@ -81,7 +81,7 @@ export function FullDemoFlow({ navigateTo }) {
           </div>
         </div>
         <div className="flow-actions">
-          <button className="primary-action" onClick={() => navigateTo(active.target)}>Jump to {active.target === "admin" ? "Admin" : active.target === "teacher" ? "Teacher" : "Student"}</button>
+          <button className="primary-action" onClick={() => navigateTo(active.target)}>Jump to {active.target === "admin" ? "School Admin" : active.target === "teacher" ? "Teacher" : "Student"}</button>
           <button className="secondary-action" onClick={() => setActiveStep((activeStep + 1) % flow.length)}>Next step</button>
         </div>
       </Card>
@@ -124,15 +124,15 @@ export function FullDemoFlow({ navigateTo }) {
       <Card className="demo-script">
         <div>
           <Tag tone="gold">Suggested demo route</Tag>
-          <h2>Start with Admin, switch to Teacher, finish with Student correction.</h2>
+          <h2>Start with School Admin, switch to Teacher, finish with Student correction.</h2>
           <p>
             The role switcher remains visible so a client can understand each user experience without authentication.
-            All data is mocked locally, but the surface area mirrors a real proprietary LMS: branding, enrolment,
-            book assignment, teacher workflows, automated correction, analytics, and export.
+            All data is mocked locally, but the surface area mirrors a real publisher-controlled book platform: branding, enrolment,
+            Ultimate B2 package assignment, teacher workflows, automated correction, class progress, and export.
           </p>
         </div>
         <div className="flow-actions">
-          <button className="primary-action" onClick={() => navigateTo("admin")}>Open Admin</button>
+          <button className="primary-action" onClick={() => navigateTo("admin")}>Open School Admin</button>
           <button className="secondary-action" onClick={() => navigateTo("teacher")}>Open Teacher</button>
           <button className="secondary-action" onClick={() => navigateTo("student")}>Open Student</button>
         </div>
@@ -143,7 +143,7 @@ export function FullDemoFlow({ navigateTo }) {
           <div>
             <span className="eyebrow"><BookCheck size={15} /> Publisher intelligence</span>
             <h2>What the publisher or owner can prove</h2>
-            <p>Book code activation, unit usage, skill gap analysis, engagement, and adoption exports turn LMS usage into sales and renewal evidence.</p>
+            <p>Book activation codes, unit usage, skill gap analysis, engagement, and adoption exports turn digital book usage into sales and renewal evidence.</p>
           </div>
           <button className="secondary-action" onClick={() => setExported(true)}>Export adoption snapshot</button>
         </div>

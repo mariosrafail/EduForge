@@ -1,4 +1,4 @@
-export const roleOptions = ["Admin", "Teacher", "Student"];
+export const roleOptions = ["School Admin", "Teacher", "Student"];
 export const statusOptions = ["Active", "Invited", "Paused"];
 
 async function fetchJson(url, options = {}) {
@@ -19,11 +19,13 @@ async function fetchJson(url, options = {}) {
 }
 
 export function roleToDb(role) {
+  if (String(role).toLowerCase() === "school admin") return "admin";
   return String(role).toLowerCase();
 }
 
 export function roleToLabel(role) {
   const normalized = String(role ?? "").toLowerCase();
+  if (normalized === "admin") return "School Admin";
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "Student";
 }
 

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { BookOpenText, ListPlus, Trash2 } from "lucide-react";
 
-const levelOptions = ["Pre-A1", "A1", "A2", "B1", "B2", "C1", "C2"];
+const levelOptions = ["Primary (Pre-A1)", "A1", "A2", "B1", "B1+", "B2", "C1", "C2"];
 const minuteOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60];
 
 export function LessonEditor({ course, onChange }) {
@@ -67,7 +67,7 @@ export function LessonEditor({ course, onChange }) {
         </label>
         <label>
           Level
-          <select value={course.level || "B1"} onChange={(event) => onChange({ ...course, level: event.target.value })}>
+          <select value={course.level || "B2"} onChange={(event) => onChange({ ...course, level: event.target.value })}>
             {levelOptions.map((level) => <option key={level} value={level}>{level}</option>)}
           </select>
         </label>

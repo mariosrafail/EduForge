@@ -20,7 +20,7 @@ export function StudentView({ brand, activityDemo, activityActions }) {
       <SectionTitle
         eyebrow="Student portal"
         title={`Welcome back to ${brand.schoolName}.`}
-        text="Students enter a branded learning area with assigned activities, book units, notifications, correction feedback, and recommended extra practice."
+        text="Students enter a Hamilton House demo learning area with digital book access, assigned book exercises, notifications, correction feedback, and recommended extra practice."
       />
 
       <section className="student-grid">
@@ -30,7 +30,7 @@ export function StudentView({ brand, activityDemo, activityActions }) {
             <div><strong>{brand.schoolName}</strong><small>Student portal</small></div>
           </div>
           <div className="notification-stack">
-            <div><Bell size={18} /><strong>New assignment</strong><span>Unit 4 Reading Check is due today.</span></div>
+            <div><Bell size={18} /><strong>New assignment</strong><span>Unit 2 Reading: Text comprehension is due today.</span></div>
             <div><LockKeyhole size={18} /><strong>Attempts controlled</strong><span>Teacher can unlock more attempts.</span></div>
             <div><MessageSquare size={18} /><strong>Feedback mode</strong><span>Corrections show revision guidance, not direct answers.</span></div>
           </div>
@@ -57,13 +57,13 @@ export function StudentView({ brand, activityDemo, activityActions }) {
         <div>
           <span className="eyebrow"><KeyRound size={15} /> Book activation code</span>
           <h2>Unlock publisher content</h2>
-          <p>Printed book code connects the student account to the matching digital book, units, and assignments.</p>
+          <p>Printed book activation code connects the student account to the matching Ultimate B2 digital book, units, and assignments.</p>
         </div>
         <div className="activation-form">
-          <input value={activationCode} placeholder="B1-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
+          <input value={activationCode} placeholder="ULT-B2-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
           <button className="primary-action" onClick={() => setBookUnlocked(true)}>Activate book</button>
         </div>
-        {bookUnlocked && <div className="inline-status success">English Skills B1 unlocked. Unit 4 test and practice content are now available.</div>}
+        {bookUnlocked && <div className="inline-status success">Ultimate B2 Students Book unlocked. Unit 2 test and practice content are now available.</div>}
       </Card>
 
       <AssignedActivity
@@ -77,7 +77,7 @@ export function StudentView({ brand, activityDemo, activityActions }) {
         <div className="test-overview">
           <div>
             <span className="eyebrow"><FileCheck2 size={15} /> Full Test Demo</span>
-            <h2>English Skills B1: Unit 4 progress test</h2>
+            <h2>Ultimate B2: Unit 2 progress test</h2>
             <p>One controlled assessment experience combining reading, listening, grammar, vocabulary, and writing. Feedback shows mistakes and revision guidance only.</p>
           </div>
           <div className="test-meta">
@@ -150,8 +150,8 @@ export function StudentView({ brand, activityDemo, activityActions }) {
 
       <section className="student-grid lower">
         <Card>
-          <span className="eyebrow"><BookOpen size={15} /> Virtual English book</span>
-          <h2>English Skills B1</h2>
+          <span className="eyebrow"><BookOpen size={15} /> Digital book access</span>
+          <h2>Ultimate B2 Students Book</h2>
           <div className="unit-list">
             {bookUnits.map((unit) => (
               <article key={unit.unit}>
@@ -164,18 +164,18 @@ export function StudentView({ brand, activityDemo, activityActions }) {
 
         <Card className="exercise-solver priority-panel">
           <div className="card-heading">
-            <div><span className="eyebrow">Solve demo exercise</span><h2>Unit 4 Reading Check</h2></div>
+            <div><span className="eyebrow">Solve assigned book exercise</span><h2>Unit 2 Reading: Text comprehension</h2></div>
             <Tag tone="gold">Attempt 1/2</Tag>
           </div>
           <div className="reading-passage">
             <strong>Reading text</strong>
-            <p>Last summer, Emma visited a small island where public transport was limited. She planned each route carefully and kept notes about local customs before each trip.</p>
+            <p>The Unit 2 article explains how careful readers use evidence, context, and reference words before choosing an answer.</p>
           </div>
           <div className="question-set">
-            <label className="is-muted"><input type="radio" name="reading" /> Emma avoided planning her routes.</label>
-            <label><input type="radio" name="reading" defaultChecked /> Emma planned routes and noted local customs.</label>
-            <label className={submitted ? "is-mistake" : ""}><input type="text" defaultValue="She has visited the island last summer." /> Short answer</label>
-            <label><textarea defaultValue="I think the story shows that preparation makes travel easier." /> Writing note</label>
+            <label className="is-muted"><input type="radio" name="reading" /> Readers should choose answers from memory.</label>
+            <label><input type="radio" name="reading" defaultChecked /> Readers should find evidence in the text.</label>
+            <label className={submitted ? "is-mistake" : ""}><input type="text" defaultValue="The article has explained the strategy yesterday." /> Short answer</label>
+            <label><textarea defaultValue="I think the text shows that evidence is more reliable than guessing." /> Writing note</label>
           </div>
           <div className="audio-placeholder">
             <Headphones size={18} />
@@ -187,7 +187,7 @@ export function StudentView({ brand, activityDemo, activityActions }) {
           {submitted && (
             <div className="feedback-reveal">
               <strong>Score: 74%</strong>
-              <p>Your short answer has a tense problem. Revise: Past Simple vs Present Perfect. Review travel vocabulary and reread the paragraph about planning details.</p>
+              <p>Your short answer has a tense problem. Revise Unit 2 Grammar: Opening exercise and reread the paragraph about text evidence.</p>
               <div className="feedback-tags">
                 <Tag tone="gold">Mistake highlighted</Tag>
                 <Tag tone="violet">Correct answer locked</Tag>
@@ -214,7 +214,7 @@ export function StudentView({ brand, activityDemo, activityActions }) {
             <PenLine size={20} />
             <div>
               <strong>Extra practice recommended</strong>
-              <span>Grammar Booster: Past Simple vs Present Perfect, then Listening detail drill.</span>
+              <span>Ultimate B2 Grammar Book: Unit 2 Exercise 4, then Listening Workbook page 20.</span>
             </div>
           </div>
         </Card>
