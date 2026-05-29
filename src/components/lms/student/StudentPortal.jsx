@@ -1,9 +1,10 @@
-import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, Search, Star, UserRound } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
+import { PortalShell } from "../shared/PortalShell.jsx";
 import {
   correctedExercise,
   studentAssignments,
@@ -17,6 +18,13 @@ const sectionIcons = {
   grades: Star,
 };
 
+const studentNavItems = [
+  { id: "dashboard", label: "Dashboard", description: "Overview", icon: Home },
+  { id: "books", label: "Books", description: "My digital books", icon: BookOpen },
+  { id: "assignments", label: "Assignments", description: "Pending work", icon: ClipboardList },
+  { id: "grades", label: "Grades", description: "Feedback", icon: Star },
+];
+
 const studentViewBySection = {
   dashboard: "student",
   books: "student-books",
@@ -24,31 +32,6 @@ const studentViewBySection = {
   grades: "student-grades",
   activity: "student-activity",
 };
-
-function StudentPortalNav({ activeSection, goToSection }) {
-  if (activeSection === "dashboard") return null;
-
-  return (
-    <div className="student-portal-nav">
-      <button className="secondary-action compact-action" type="button" onClick={() => goToSection("dashboard")} data-sound-click="back">
-        <ArrowLeft size={17} /> Student dashboard
-      </button>
-      <div className="student-section-tabs" aria-label="Student sections">
-        {studentDashboardCards.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={activeSection === section.id ? "selected" : ""}
-            onClick={() => goToSection(section.id)}
-            data-sound-click="tab"
-          >
-            {section.title}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function StudentProfileStrip() {
   return (
@@ -97,7 +80,7 @@ function StudentDashboard({ goToSection }) {
   );
 }
 
-function StudentBooks({ openActivity }) {
+function StudentBooks({ openActivity, completedActivities }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
 
@@ -121,7 +104,7 @@ function StudentBooks({ openActivity }) {
         </div>
         {activated && <div className="inline-status success">Ultimate B2 package activated for Anna Georgiou (Student).</div>}
       </Card>
-      <BookPackageBrowser mode="student" onStartExercise={(exercise) => openActivity(exercise, "books")} />
+      <BookPackageBrowser mode="student" onStartExercise={(exercise) => openActivity(exercise, "books")} completedActivities={completedActivities} />
     </section>
   );
 }
@@ -218,6 +201,7 @@ function StudentGrades() {
           <div>
             <span className="eyebrow"><CheckCircle2 size={15} /> Corrected work</span>
             <h2>{selectedResult}</h2>
+            <p>Sample corrected work for the Hamilton House demo. Replace with live submitted answers when backend results are connected.</p>
           </div>
           <Tag tone="gold">Review feedback</Tag>
         </div>
@@ -303,20 +287,29 @@ export function StudentPortal({
 
   return (
     <div className="workspace student-portal-workspace">
-      <StudentPortalNav activeSection={activeSection} goToSection={goToSection} />
-      {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} />}
-      {activeSection === "books" && <StudentBooks openActivity={openActivity} />}
-      {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
-      {activeSection === "grades" && <StudentGrades />}
-      {activeSection === "activity" && (
-        <StudentActivitySection
-          activeExercise={activeExercise}
-          completedActivities={completedActivities}
-          setCompletedActivities={setCompletedActivities}
-          previousSection={previousSection}
-          goToSection={goToSection}
-        />
-      )}
+      <PortalShell
+        title="Student portal"
+        profile="Anna Georgiou (Student)"
+        subtitle="Ultimate B2 A"
+        navItems={studentNavItems}
+        activeItem={activeSection === "activity" ? previousSection : activeSection}
+        onNavigate={goToSection}
+        variant="student-portal-shell"
+      >
+        {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} />}
+        {activeSection === "books" && <StudentBooks openActivity={openActivity} completedActivities={completedActivities} />}
+        {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
+        {activeSection === "grades" && <StudentGrades />}
+        {activeSection === "activity" && (
+          <StudentActivitySection
+            activeExercise={activeExercise}
+            completedActivities={completedActivities}
+            setCompletedActivities={setCompletedActivities}
+            previousSection={previousSection}
+            goToSection={goToSection}
+          />
+        )}
+      </PortalShell>
     </div>
   );
 }

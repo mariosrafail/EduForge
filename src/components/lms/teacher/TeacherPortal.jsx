@@ -1,9 +1,10 @@
-import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, KeyRound, ListChecks, Search, Users } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, Home, KeyRound, ListChecks, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
+import { PortalShell } from "../shared/PortalShell.jsx";
 import { TeacherCourseEditor } from "./TeacherCourseEditor.jsx";
 import {
   sampleExerciseResult,
@@ -50,6 +51,15 @@ const teacherSections = [
   },
 ];
 
+const teacherNavItems = [
+  { id: "dashboard", label: "Dashboard", description: "Overview", icon: Home },
+  { id: "books", label: "Books", description: "Digital book access", icon: BookOpen },
+  { id: "classes", label: "Classes", description: "B2 groups", icon: GraduationCap },
+  { id: "students", label: "Students", description: "Results", icon: Users },
+  { id: "assignments", label: "Assignments", description: "Assigned exercises", icon: ClipboardList },
+  { id: "custom-assignment", label: "Custom Assignment", description: "Activity editor", icon: Edit3 },
+];
+
 const classNames = teacherPortalClasses.map((item) => item.name);
 
 const teacherViewBySection = {
@@ -60,31 +70,6 @@ const teacherViewBySection = {
   assignments: "teacher-assignments",
   "custom-assignment": "teacher-custom-assignment",
 };
-
-function TeacherPortalNav({ activeSection, goToSection }) {
-  if (activeSection === "dashboard") return null;
-
-  return (
-    <div className="teacher-portal-nav">
-      <button className="secondary-action compact-action" type="button" onClick={() => goToSection("dashboard")} data-sound-click="back">
-        <ArrowLeft size={17} /> Teacher dashboard
-      </button>
-      <div className="teacher-section-tabs" aria-label="Teacher sections">
-        {teacherSections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={activeSection === section.id ? "selected" : ""}
-            onClick={() => goToSection(section.id)}
-            data-sound-click="tab"
-          >
-            {section.title}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function TeacherDashboard({ goToSection }) {
   return (
@@ -163,6 +148,7 @@ function TeacherBooks() {
 
 function TeacherClasses() {
   const [selectedClass, setSelectedClass] = useState(teacherPortalClasses[0].name);
+  const [selectedWorkStudent, setSelectedWorkStudent] = useState(null);
   const students = teacherPortalStudents.filter((student) => student.className === selectedClass);
 
   return (
@@ -211,23 +197,26 @@ function TeacherClasses() {
               <span>{student.completion}% complete</span>
               <span>{student.lastActivity}</span>
               <span>{student.averageScore}% average</span>
-              <button className="secondary-action compact-action" type="button" data-sound-click="tab">View work</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedWorkStudent(student)} data-sound-click="tab">View work</button>
             </article>
           ))}
         </div>
       </Card>
+      {selectedWorkStudent && (
+        <ResultDetailPanel student={selectedWorkStudent} label="Selected student work" />
+      )}
     </section>
   );
 }
 
-function ResultDetailPanel({ student }) {
+function ResultDetailPanel({ student, label = "Student results" }) {
   if (!student) return null;
 
   return (
     <Card className="teacher-result-panel">
       <div className="card-heading">
         <div>
-          <span className="eyebrow"><CheckCircle2 size={15} /> Student results</span>
+          <span className="eyebrow"><CheckCircle2 size={15} /> {label}</span>
           <h2>{student.name}</h2>
           <p>{sampleExerciseResult.exercise} / Score {sampleExerciseResult.score}</p>
         </div>
@@ -312,6 +301,7 @@ function TeacherAssignments() {
   const [selectedExercises, setSelectedExercises] = useState(["Unit 2 Reading: Exercise 3"]);
   const [selectedClasses, setSelectedClasses] = useState(["Ultimate B2 A"]);
   const [assigned, setAssigned] = useState(false);
+  const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
   const exerciseOptions = [
     "Unit 2 Reading: Exercise 3",
     "Unit 2 Reading: Exercise 4",
@@ -351,11 +341,27 @@ function TeacherAssignments() {
               </div>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.averageScore}% average</span>
-              <button className="secondary-action compact-action" type="button" data-sound-click="tab">View results</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedAssignmentResult(assignment)} data-sound-click="tab">View results</button>
             </article>
           ))}
         </div>
       </Card>
+      {selectedAssignmentResult && (
+        <Card className="teacher-result-panel">
+          <div className="card-heading">
+            <div>
+              <span className="eyebrow"><CheckCircle2 size={15} /> Results preview</span>
+              <h2>{selectedAssignmentResult.title}</h2>
+              <p>{selectedAssignmentResult.className} / {selectedAssignmentResult.submitted}/{selectedAssignmentResult.total} submitted / {selectedAssignmentResult.averageScore}% average</p>
+            </div>
+            <Tag tone="gold">Mock results</Tag>
+          </div>
+          <div className="review-list">
+            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
+            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
+          </div>
+        </Card>
+      )}
 
       <Card className="teacher-book-assign-panel">
         <div className="card-heading">
@@ -442,13 +448,22 @@ export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) 
 
   return (
     <div className="workspace teacher-portal-workspace">
-      <TeacherPortalNav activeSection={activeSection} goToSection={goToSection} />
-      {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
-      {activeSection === "books" && <TeacherBooks />}
-      {activeSection === "classes" && <TeacherClasses />}
-      {activeSection === "students" && <TeacherStudents />}
-      {activeSection === "assignments" && <TeacherAssignments />}
-      {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}
+      <PortalShell
+        title="Teacher portal"
+        profile="Paris Georgoulakis (Teacher)"
+        subtitle="Ultimate B2 workspace"
+        navItems={teacherNavItems}
+        activeItem={activeSection === "books" ? "books" : activeSection}
+        onNavigate={goToSection}
+        variant="teacher-portal-shell"
+      >
+        {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
+        {activeSection === "books" && <TeacherBooks />}
+        {activeSection === "classes" && <TeacherClasses />}
+        {activeSection === "students" && <TeacherStudents />}
+        {activeSection === "assignments" && <TeacherAssignments />}
+        {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}
+      </PortalShell>
     </div>
   );
 }

@@ -4,13 +4,14 @@ import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { Card, Tag } from "../Shared.jsx";
 
 function statusTone(status) {
-  if (status === "Completed" || status === "Available") return "green";
+  if (status === "Completed" || status === "Available" || status === "Submitted") return "green";
   if (status === "Assigned") return "gold";
   return "blue";
 }
 
 function exerciseActionLabel(exercise) {
   if (exercise.status === "Completed") return "Review";
+  if (exercise.status === "Submitted") return "Review";
   if (exercise.status === "Assigned") return "Continue";
   return "Start";
 }
@@ -61,8 +62,12 @@ function TeacherAssignControl({ exercise, classOptions }) {
   );
 }
 
-function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions }) {
+function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities = {} }) {
   const isTeacher = mode === "teacher";
+  const completed = !isTeacher && completedActivities[exercise.demoActivityKey];
+  const displayExercise = completed
+    ? { ...exercise, status: "Submitted", studentProgressLabel: `Submitted / ${completed.score}%` }
+    : exercise;
   const canStart = exercise.availableToStudent && typeof onStartExercise === "function";
 
   return (
@@ -71,14 +76,14 @@ function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, class
         <strong>{exercise.title}</strong>
         <p>{exercise.description}</p>
         <div className="book-exercise-meta">
-          <span>{exercise.skill}</span>
-          <span>{exercise.type}</span>
-          <span>{exercise.estimatedTime}</span>
+          <span>{displayExercise.skill}</span>
+          <span>{displayExercise.type}</span>
+          <span>{displayExercise.estimatedTime}</span>
         </div>
       </div>
       <div className="book-exercise-status">
-        <Tag tone={statusTone(exercise.status)}>{exercise.status}</Tag>
-        <small>{isTeacher ? exercise.progressLabel : exercise.studentProgressLabel}</small>
+        <Tag tone={statusTone(displayExercise.status)}>{displayExercise.status}</Tag>
+        <small>{isTeacher ? displayExercise.progressLabel : displayExercise.studentProgressLabel}</small>
       </div>
       {isTeacher ? (
         <div className="book-browser-teacher-actions">
@@ -95,14 +100,14 @@ function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, class
           onClick={() => onStartExercise?.(exercise)}
           data-sound-click="submit"
         >
-          <Play size={16} /> {exerciseActionLabel(exercise)}
+          <Play size={16} /> {exerciseActionLabel(displayExercise)}
         </button>
       )}
     </article>
   );
 }
 
-function BookUnitPanel({ component, mode, onStartExercise, onPreviewExercise, classOptions }) {
+function BookUnitPanel({ component, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
   return (
     <Card className="book-unit-panel">
       <div className="card-heading">
@@ -133,6 +138,7 @@ function BookUnitPanel({ component, mode, onStartExercise, onPreviewExercise, cl
                       onStartExercise={onStartExercise}
                       onPreviewExercise={onPreviewExercise}
                       classOptions={classOptions}
+                      completedActivities={completedActivities}
                     />
                   ))}
                 </div>
@@ -149,6 +155,7 @@ export function BookPackageBrowser({
   mode = "student",
   onStartExercise,
   onPreviewExercise,
+  completedActivities = {},
   classOptions = ultimateB2Package.classes,
 }) {
   const [selectedComponentId, setSelectedComponentId] = useState(ultimateB2Package.components[0].id);
@@ -194,6 +201,7 @@ export function BookPackageBrowser({
         onStartExercise={onStartExercise}
         onPreviewExercise={onPreviewExercise}
         classOptions={classOptions}
+        completedActivities={completedActivities}
       />
     </section>
   );

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, CheckCircle2, Clock3, Headphones, Play, Timer, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BookOpen, Headphones, Play, Timer, X } from "lucide-react";
 import { findUltimateB2Exercise } from "../../../data/ultimateB2DemoData.js";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
 import {
@@ -22,20 +22,30 @@ function scoreAnswers(questions, answers) {
 }
 
 function FeedbackRows({ rows }) {
+  const correctCount = rows.filter((row) => row.correct).length;
+  const score = rows.length ? Math.round((correctCount / rows.length) * 100) : 0;
+
   return (
-    <div className="ultimate-feedback-list">
-      {rows.map((row) => (
-        <article key={row.id} className={row.correct ? "correct" : "wrong"}>
-          <div>
-            <strong>{row.question || row.prompt}</strong>
-            <span>Student answer: {row.studentAnswer || "No answer"}</span>
-            <small>Correct answer: {row.answer}</small>
-            {row.feedback && <p>{row.feedback}</p>}
-          </div>
-          <b>{row.correct ? "Correct" : "Needs review"}</b>
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="ultimate-result-summary">
+        <strong>{score}%</strong>
+        <span>{correctCount}/{rows.length} correct</span>
+        <Tag tone={score >= 70 ? "green" : "gold"}>{score >= 70 ? "Submitted" : "Review needed"}</Tag>
+      </div>
+      <div className="ultimate-feedback-list">
+        {rows.map((row) => (
+          <article key={row.id} className={row.correct ? "correct" : "wrong"}>
+            <div>
+              <strong>{row.question || row.prompt}</strong>
+              <span>Student answer: {row.studentAnswer || "No answer"}</span>
+              <small>Correct answer: {row.answer}</small>
+              {row.feedback && <p>{row.feedback}</p>}
+            </div>
+            <b>{row.correct ? "Correct" : "Needs review"}</b>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -45,19 +55,87 @@ function ChoiceSet({ questions, answers, setAnswers, disabled = false }) {
       {questions.map((question, index) => (
         <fieldset key={question.id} className="ultimate-question-card" disabled={disabled}>
           <legend>{index + 1}. {question.question || question.prompt}</legend>
-          {question.options.map((option) => (
-            <label key={option}>
+          {Array.isArray(question.options) && question.options.length > 0 ? (
+            question.options.map((option) => (
+              <label key={option}>
+                <input
+                  type="radio"
+                  name={question.id}
+                  checked={answers[question.id] === option}
+                  onChange={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
+                />
+                <span>{option}</span>
+              </label>
+            ))
+          ) : (
+            <label>
+              <span className="sr-only">Answer</span>
               <input
-                type="radio"
-                name={question.id}
-                checked={answers[question.id] === option}
-                onChange={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
+                type="text"
+                value={answers[question.id] || ""}
+                placeholder="Type your answer"
+                onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))}
               />
-              <span>{option}</span>
             </label>
-          ))}
+          )}
         </fieldset>
       ))}
+    </div>
+  );
+}
+
+function ReadingEvidenceExercise({ mode, onSubmit }) {
+  const [answers, setAnswers] = useState({});
+  const [submittedRows, setSubmittedRows] = useState(null);
+  const paragraphOptions = ["Paragraph 1", "Paragraph 2", "Paragraph 3", "Paragraph 4"];
+
+  const submit = () => {
+    const normalizedRows = readingExercise4.map((item) => {
+      const studentAnswer = answers[item.id] || "";
+      return {
+        ...item,
+        studentAnswer,
+        correct: studentAnswer.trim().toLowerCase() === item.answer.trim().toLowerCase(),
+      };
+    });
+    setSubmittedRows(normalizedRows);
+    onSubmit?.({ activityKey: "reading-ex4", score: Math.round((normalizedRows.filter((row) => row.correct).length / normalizedRows.length) * 100) });
+  };
+
+  return (
+    <div className="ultimate-activity-grid">
+      <ReadingTextPanel />
+      <Card>
+        <span className="eyebrow">Students Book / Unit 2 Reading</span>
+        <h2>Exercise 4</h2>
+        <p>Choose the paragraph or type the evidence-based answer. Feedback shows the student answer, correct answer, and review note.</p>
+        <div className="ultimate-evidence-list">
+          {readingExercise4.map((item, index) => (
+            <label key={item.id}>
+              <strong>{index + 1}. {item.prompt}</strong>
+              {index < 2 ? (
+                <select
+                  value={answers[item.id] || ""}
+                  disabled={Boolean(submittedRows) || mode === "teacher-preview"}
+                  onChange={(event) => setAnswers((current) => ({ ...current, [item.id]: event.target.value }))}
+                >
+                  <option value="">Choose paragraph</option>
+                  {paragraphOptions.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={answers[item.id] || ""}
+                  disabled={Boolean(submittedRows) || mode === "teacher-preview"}
+                  placeholder="Type a short answer"
+                  onChange={(event) => setAnswers((current) => ({ ...current, [item.id]: event.target.value }))}
+                />
+              )}
+            </label>
+          ))}
+        </div>
+        {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit evidence answers</button>}
+        {submittedRows && <FeedbackRows rows={submittedRows} />}
+      </Card>
     </div>
   );
 }
@@ -88,8 +166,8 @@ function VideoIntro({ mode, onSubmit }) {
       </div>
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
       {mode === "student" && (
-        <button className="primary-action" type="button" onClick={() => { setWatched(true); onSubmit?.({ activityKey: "video-intro", score: 100 }); }} data-sound-click="submit">
-          Mark video as watched
+        <button className="primary-action" type="button" disabled={watched} onClick={() => { setWatched(true); onSubmit?.({ activityKey: "video-intro", score: 100 }); }} data-sound-click="submit">
+          {watched ? "Video watched" : "Mark video as watched"}
         </button>
       )}
       {watched && <div className="inline-status success">Video watched.</div>}
@@ -99,6 +177,8 @@ function VideoIntro({ mode, onSubmit }) {
 
 function ReadingExercise({ activityKey, mode, onSubmit }) {
   const isExercise4 = activityKey === "reading-ex4";
+  if (isExercise4) return <ReadingEvidenceExercise mode={mode} onSubmit={onSubmit} />;
+
   const questions = isExercise4 ? readingExercise4 : readingExercise3;
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
@@ -222,11 +302,12 @@ function TimedQuiz({ mode, onSubmit }) {
   const [submittedRows, setSubmittedRows] = useState(null);
   const [remaining, setRemaining] = useState(QUIZ_DURATION_SECONDS);
 
-  const submit = () => {
+  const submit = useCallback(() => {
+    if (submittedRows) return;
     const rows = scoreAnswers(quizQuestions, answers);
     setSubmittedRows(rows);
     onSubmit?.({ activityKey: "quiz-2", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
-  };
+  }, [answers, onSubmit, submittedRows]);
 
   useEffect(() => {
     if (mode !== "student" || submittedRows) return undefined;
@@ -244,7 +325,7 @@ function TimedQuiz({ mode, onSubmit }) {
 
   useEffect(() => {
     if (remaining === 0 && !submittedRows && mode === "student") submit();
-  }, [remaining, submittedRows, mode]);
+  }, [remaining, submittedRows, mode, submit]);
 
   return (
     <Card>
