@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX, X } from "lucide-react";
+import { BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX, X } from "lucide-react";
 import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
 import unit2ReadingAudio from "../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
 import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
@@ -1128,21 +1128,52 @@ function formatTime(seconds) {
   return `${minutes}:${secs}`;
 }
 
+const QUIZ_2_COMPLETED_STORAGE_KEY = "hh_lms_quiz_2_attempt_completed";
+
 function TimedQuiz({ mode, onSubmit }) {
   const [answers, setAnswers] = useState({});
-  const [submittedRows, setSubmittedRows] = useState(null);
+  const [submittedRows, setSubmittedRows] = useState(() => {
+    if (mode !== "student" || typeof window === "undefined") return null;
+    try {
+      const storedAttempt = window.localStorage.getItem(QUIZ_2_COMPLETED_STORAGE_KEY);
+      if (!storedAttempt) return null;
+      const parsedAttempt = JSON.parse(storedAttempt);
+      return Array.isArray(parsedAttempt?.rows) ? parsedAttempt.rows : [];
+    } catch {
+      return [];
+    }
+  });
+  const [testStarted, setTestStarted] = useState(false);
   const [remaining, setRemaining] = useState(QUIZ_DURATION_SECONDS);
+  const [timeExpired, setTimeExpired] = useState(false);
   const answeredCount = Object.keys(answers).filter((key) => answers[key]).length;
+  const correctCount = submittedRows?.filter((row) => row.correct).length || 0;
+  const hasCompletedAttempt = Boolean(submittedRows);
+  const displayedAnsweredCount = submittedRows ? submittedRows.filter((row) => row.studentAnswer).length : answeredCount;
+  const timerTone = remaining <= 60 ? "danger" : remaining <= 300 ? "warning" : "steady";
 
-  const submit = useCallback(() => {
+  const submit = useCallback((options = {}) => {
     if (submittedRows) return;
+    if (!options.autoSubmit) {
+      const shouldSubmit = window.confirm("Submit test?\n\nYou will not be able to change your answers after submitting.");
+      if (!shouldSubmit) return;
+    }
     const rows = scoreAnswers(quizQuestions, answers);
     setSubmittedRows(rows);
+    if (options.autoSubmit) setTimeExpired(true);
+    if (mode === "student") {
+      try {
+        // TODO: Clear hh_lms_quiz_2_attempt_completed in dev tools to reset this demo-only one-attempt guard.
+        window.localStorage.setItem(QUIZ_2_COMPLETED_STORAGE_KEY, JSON.stringify({ completed: true, rows }));
+      } catch {
+        // Demo persistence is best-effort; submittedRows still enforces this attempt for the current session.
+      }
+    }
     onSubmit?.({ activityKey: "quiz-2", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
-  }, [answers, onSubmit, submittedRows]);
+  }, [answers, mode, onSubmit, submittedRows]);
 
   useEffect(() => {
-    if (mode !== "student" || submittedRows) return undefined;
+    if (mode !== "student" || submittedRows || !testStarted) return undefined;
     const timer = window.setInterval(() => {
       setRemaining((current) => {
         if (current <= 1) {
@@ -1153,26 +1184,82 @@ function TimedQuiz({ mode, onSubmit }) {
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [mode, submittedRows]);
+  }, [mode, submittedRows, testStarted]);
 
   useEffect(() => {
-    if (remaining === 0 && !submittedRows && mode === "student") submit();
-  }, [remaining, submittedRows, mode, submit]);
+    if (remaining === 0 && !submittedRows && mode === "student" && testStarted) submit({ autoSubmit: true });
+  }, [remaining, submittedRows, mode, submit, testStarted]);
+
+  const startTest = () => {
+    setRemaining(QUIZ_DURATION_SECONDS);
+    setTestStarted(true);
+  };
+
+  if (!hasCompletedAttempt && !testStarted) {
+    return (
+      <Card>
+        <div className="ultimate-quiz-start-card">
+          <div className="ultimate-quiz-start-copy">
+            <span className="eyebrow"><Timer size={15} /> {mode === "teacher-preview" ? "Teacher preview" : "Ultimate B2 Test Book"}</span>
+            <h2>Quiz 2</h2>
+            <p>Timed test, 20 minutes</p>
+          </div>
+          <div className="ultimate-quiz-ready-badge">
+            <Timer size={18} />
+            <strong>{formatTime(QUIZ_DURATION_SECONDS)}</strong>
+            <span>ready</span>
+          </div>
+          <ul className="ultimate-quiz-instructions">
+            {[
+              "You have 20 minutes to complete this test.",
+              "The timer will start when you click \"Start test\".",
+              "You can only take this test once.",
+              "Answer all 40 multiple choice questions.",
+              "You can change your answers before submitting.",
+              "When time is up, the test will be submitted automatically.",
+              "Do not refresh or leave the page while taking the test.",
+            ].map((instruction) => (
+              <li key={instruction}>
+                <CheckCircle2 size={17} />
+                <span>{instruction}</span>
+              </li>
+            ))}
+          </ul>
+          {mode === "teacher-preview" && (
+            <div className="inline-status">Teacher preview is read-only. Previewing questions does not start a student attempt.</div>
+          )}
+          <div className="ultimate-quiz-start-actions">
+            <button className="primary-action" type="button" onClick={startTest} data-sound-click="submit">
+              {mode === "teacher-preview" ? "Preview questions" : "Start test"}
+            </button>
+            <span>Make sure you are ready before you begin.</span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <div className="ultimate-quiz-head">
+      <div className={`ultimate-quiz-head ${submittedRows ? "submitted" : ""} ${timerTone}`}>
         <div>
           <span className="eyebrow"><Timer size={15} /> Ultimate B2 Test Book</span>
           <h2>Quiz 2</h2>
-          <p>Choose the correct answer. 20-minute timed test. Submit when ready or when time is up.</p>
+          <p>{submittedRows ? "This test has already been submitted." : "Choose the correct answer. Submit when ready or when time is up."}</p>
         </div>
-        <strong className={remaining === 0 ? "time-up" : ""}>{formatTime(remaining)}</strong>
+        <div className="ultimate-quiz-status-actions">
+          <strong className={remaining === 0 ? "time-up" : ""}>{submittedRows ? "Submitted" : formatTime(remaining)}</strong>
+          <span>Answered {displayedAnsweredCount}/{quizQuestions.length}</span>
+          {mode === "student" && !submittedRows && (
+            <button className="secondary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>
+          )}
+        </div>
       </div>
-      {remaining === 0 && <div className="inline-status warning">Time is up. The test has been submitted.</div>}
+      {timeExpired && <div className="inline-status warning">Time is up. The test has been submitted.</div>}
+      {hasCompletedAttempt && <div className="inline-status success">This test has already been submitted.</div>}
       <div className="ultimate-quiz-progress-row">
-        <Tag tone="blue">Question {Math.min(answeredCount + 1, quizQuestions.length)} of {quizQuestions.length}</Tag>
-        <Tag tone="gold">Answered {answeredCount}/{quizQuestions.length}</Tag>
+        <Tag tone="blue">Question {Math.min(displayedAnsweredCount + 1, quizQuestions.length)} of {quizQuestions.length}</Tag>
+        <Tag tone="gold">Answered {displayedAnsweredCount}/{quizQuestions.length}</Tag>
       </div>
       <ChoiceSet
         questions={quizQuestions}
@@ -1181,11 +1268,17 @@ function TimedQuiz({ mode, onSubmit }) {
         disabled={Boolean(submittedRows) || mode === "teacher-preview" || remaining === 0}
         submittedRows={submittedRows}
       />
-      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit test</button>}
+      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>}
       {submittedRows && (
         <>
-          <div className="inline-status success">Completed. Score: {submittedRows.filter((row) => row.correct).length}/{submittedRows.length}</div>
-          <FeedbackRows rows={submittedRows} />
+          {submittedRows.length > 0 ? (
+            <>
+              <div className="inline-status success">Completed. Score: {correctCount}/{submittedRows.length}</div>
+              <FeedbackRows rows={submittedRows} />
+            </>
+          ) : (
+            <div className="inline-status warning">Review details are unavailable for this stored demo attempt.</div>
+          )}
         </>
       )}
     </Card>
