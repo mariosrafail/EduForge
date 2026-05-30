@@ -1,6 +1,6 @@
 import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
@@ -237,7 +237,7 @@ function StudentGrades() {
   );
 }
 
-function StudentActivitySection({ activeExercise, completedActivities, setCompletedActivities, previousSection, goToSection }) {
+function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, goToSection }) {
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
   return (
     <section className="student-section-stack">
@@ -255,6 +255,13 @@ function StudentActivitySection({ activeExercise, completedActivities, setComple
         mode="student"
         onBack={() => goToSection(previousSection || "books")}
         onSubmit={(result) => setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }))}
+        onNextActivity={(activityKey) => {
+          const next = findUltimateB2Exercise(activityKey);
+          if (next?.exercise) {
+            setActiveExercise(next.exercise);
+            goToSection("activity");
+          }
+        }}
       />
     </section>
   );
@@ -332,6 +339,7 @@ export function StudentPortal({
         {activeSection === "activity" && (
           <StudentActivitySection
             activeExercise={activeExercise}
+            setActiveExercise={setActiveExercise}
             completedActivities={completedActivities}
             setCompletedActivities={setCompletedActivities}
             previousSection={previousSection}

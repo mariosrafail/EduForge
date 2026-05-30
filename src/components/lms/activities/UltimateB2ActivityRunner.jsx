@@ -155,11 +155,23 @@ function ReadingTextPanel() {
   );
 }
 
-function VideoIntro({ mode, onSubmit }) {
+function VideoIntro({ mode, onSubmit, onNextActivity }) {
   const [watched, setWatched] = useState(false);
+  const completeVideo = () => {
+    if (!watched) {
+      setWatched(true);
+      onSubmit?.({ activityKey: "video-intro", score: 100 });
+      return;
+    }
+    onNextActivity?.("reading-ex3");
+  };
 
   return (
     <Card className="ultimate-media-card">
+      <div className="ultimate-media-heading">
+        <span className="eyebrow"><Play size={15} /> Watch before reading</span>
+        <Tag tone={watched ? "green" : "gold"}>{watched ? "Ready for reading" : "Required intro"}</Tag>
+      </div>
       <div className="ultimate-video-player">
         <video controls preload="metadata" src={unit2ReadingVideo} onEnded={() => setWatched(true)}>
           <track kind="captions" />
@@ -172,8 +184,8 @@ function VideoIntro({ mode, onSubmit }) {
       </div>
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
       {mode === "student" && (
-        <button className="primary-action" type="button" disabled={watched} onClick={() => { setWatched(true); onSubmit?.({ activityKey: "video-intro", score: 100 }); }} data-sound-click="submit">
-          {watched ? "Video watched" : "Mark video as watched"}
+        <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
+          {watched ? "Start Exercise 3" : "Continue to Reading Text"}
         </button>
       )}
       {watched && <div className="inline-status success">Video watched.</div>}
@@ -368,7 +380,7 @@ function dbQuestionsToChoiceQuestions(questions = []) {
   }));
 }
 
-function DatabaseActivity({ activity, mode, onSubmit }) {
+function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
   const [watched, setWatched] = useState(false);
@@ -388,8 +400,21 @@ function DatabaseActivity({ activity, mode, onSubmit }) {
   };
 
   if (activityType === "media_video") {
+    const completeVideo = () => {
+      if (!watched) {
+        setWatched(true);
+        onSubmit?.({ activityKey: activity.demoActivityKey || activity.slug, activityId: activity.id, score: 100 });
+        return;
+      }
+      onNextActivity?.("reading-ex3");
+    };
+
     return (
       <Card className="ultimate-media-card">
+        <div className="ultimate-media-heading">
+          <span className="eyebrow"><Play size={15} /> Watch before reading</span>
+          <Tag tone={watched ? "green" : "gold"}>{watched ? "Ready for reading" : "Required intro"}</Tag>
+        </div>
         <div className="ultimate-video-player">
           <video controls preload="metadata" src={unit2ReadingVideo} onEnded={() => setWatched(true)}>
             <track kind="captions" />
@@ -402,8 +427,8 @@ function DatabaseActivity({ activity, mode, onSubmit }) {
         </div>
         <p>{activity.instructions || "Watch the video introduction before starting the exercises."}</p>
         {mode === "student" && (
-          <button className="primary-action" type="button" disabled={watched} onClick={() => { setWatched(true); onSubmit?.({ activityKey: activity.demoActivityKey || activity.slug, activityId: activity.id, score: 100 }); }} data-sound-click="submit">
-            {watched ? "Video watched" : "Mark video as watched"}
+          <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
+            {watched ? "Start Exercise 3" : "Continue to Reading Text"}
           </button>
         )}
         {watched && <div className="inline-status success">Video watched.</div>}
@@ -442,11 +467,11 @@ function DatabaseActivity({ activity, mode, onSubmit }) {
   );
 }
 
-function ActivityBody({ activityKey, activity, mode, onSubmit }) {
+function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity }) {
   if (activity?.questions?.length || activity?.activityType === "media_video" || activity?.activity_type === "media_video") {
-    return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} />;
+    return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
-  if (activityKey === "video-intro") return <VideoIntro mode={mode} onSubmit={onSubmit} />;
+  if (activityKey === "video-intro") return <VideoIntro mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningExercise mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "grammar-opening" || activityKey === "grammar-ex4") return <GrammarExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
@@ -454,7 +479,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit }) {
   return <Card><h2>Demo activity not configured</h2><p>This activity key is ready for future content mapping.</p></Card>;
 }
 
-export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit }) {
+export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
@@ -479,7 +504,7 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
         </div>
       )}
       {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
-      <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} />
+      <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />
     </div>
   );
 }

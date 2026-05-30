@@ -1,4 +1,4 @@
-import { BookOpenCheck, Eye, Layers3, Play, Send } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, Eye, Layers3, Lock, Play, Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg";
 import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
@@ -24,6 +24,7 @@ const coverAssets = {
 function statusTone(status) {
   if (status === "Completed" || status === "Available" || status === "Submitted") return "green";
   if (status === "Assigned") return "gold";
+  if (status === "Locked") return "slate";
   return "blue";
 }
 
@@ -32,6 +33,14 @@ function exerciseActionLabel(exercise) {
   if (exercise.status === "Submitted") return "Review";
   if (exercise.status === "Assigned") return "Continue";
   return "Start";
+}
+
+function isExerciseActive(exercise) {
+  return Boolean(exercise.demoActivityKey && !exercise.locked && (exercise.availableToStudent || exercise.assignable));
+}
+
+function getActiveExercises(component) {
+  return component.units.flatMap((unit) => unit.lessons.flatMap((lesson) => lesson.exercises.filter(isExerciseActive)));
 }
 
 function resolveCoverAsset(component) {
@@ -53,18 +62,18 @@ function resolveCoverAsset(component) {
   return coverAssets[component.id] || coverAssets[component.slug] || coverAssets[component.componentType] || null;
 }
 
-function BookCover({ component, bookPackage }) {
+function BookCover({ component, bookPackage, size = "compact" }) {
   const coverAsset = resolveCoverAsset(component);
   if (coverAsset) {
     return (
-      <span className="book-cover-placeholder book-cover-image">
+      <span className={`book-cover-placeholder book-cover-image ${size === "large" ? "large-cover" : ""}`}>
         <img src={coverAsset} alt={`${component.title} cover`} loading="lazy" />
       </span>
     );
   }
 
   return (
-    <span className={`book-cover-placeholder cover-${component.coverTone || "orange"}`}>
+    <span className={`book-cover-placeholder cover-${component.coverTone || "orange"} ${size === "large" ? "large-cover" : ""}`}>
       <b>{bookPackage.level}</b>
       <strong>{component.title}</strong>
       <small>{component.type}</small>
@@ -108,7 +117,22 @@ function TeacherAssignControl({ exercise, classOptions }) {
   );
 }
 
-function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities = {} }) {
+function LockedUnitRow({ unit }) {
+  const lessonCount = unit.lessons.reduce((count, lesson) => count + lesson.exercises.length, 0);
+
+  return (
+    <article className="book-locked-unit" aria-disabled="true">
+      <span><Lock size={17} /></span>
+      <div>
+        <strong>{unit.title}</strong>
+        <p>{lessonCount} locked lesson{lessonCount === 1 ? "" : "s"} visible in the full digital book.</p>
+      </div>
+      <Tag tone="slate">Locked demo</Tag>
+    </article>
+  );
+}
+
+function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities = {} }) {
   const isTeacher = mode === "teacher";
   const completed = !isTeacher && completedActivities[exercise.demoActivityKey];
   const displayExercise = completed
@@ -117,7 +141,7 @@ function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, class
   const canStart = exercise.availableToStudent && typeof onStartExercise === "function";
 
   return (
-    <article className="book-exercise-row">
+    <article className="book-exercise-row active-demo-row">
       <div className="book-exercise-main">
         <strong>{exercise.title}</strong>
         <p>{exercise.description}</p>
@@ -136,7 +160,7 @@ function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, class
           <button className="secondary-action compact-action" type="button" onClick={() => onPreviewExercise?.(exercise)} data-sound-click="tab">
             <Eye size={16} /> Preview
           </button>
-          {exercise.assignable ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} /> : <Tag tone="blue">Not assignable</Tag>}
+          {exercise.assignable ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} /> : <Tag tone="slate">Not assignable</Tag>}
         </div>
       ) : (
         <button
@@ -153,45 +177,134 @@ function ExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, class
   );
 }
 
-function BookUnitPanel({ component, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
+function LockedExerciseRow({ exercise }) {
   return (
-    <Card className="book-unit-panel">
+    <article className="book-exercise-row locked-exercise-row" aria-disabled="true">
+      <div className="book-exercise-main">
+        <strong>{exercise.title}</strong>
+        <p>{exercise.description}</p>
+        <div className="book-exercise-meta">
+          <span>{exercise.skill}</span>
+          <span>{exercise.type}</span>
+          <span>{exercise.estimatedTime}</span>
+        </div>
+      </div>
+      <div className="book-exercise-status">
+        <Tag tone="slate">Locked</Tag>
+        <small>{exercise.studentProgressLabel || "Locked for demo"}</small>
+      </div>
+      <button className="secondary-action compact-action" type="button" disabled>
+        <Lock size={16} /> Locked
+      </button>
+    </article>
+  );
+}
+
+function BookGrid({ bookPackage, onSelectBook }) {
+  return (
+    <Card>
       <div className="card-heading">
         <div>
-          <span className="eyebrow"><Layers3 size={15} /> {component.units[0]?.unit || "Unit 2"}</span>
+          <span className="eyebrow"><BookOpenCheck size={15} /> {bookPackage.level}</span>
+          <h2>{bookPackage.packageLabel}</h2>
+          <p>{bookPackage.publisher} digital book package for {bookPackage.demoSchool}.</p>
+        </div>
+        <Tag tone="green">B2 active</Tag>
+      </div>
+
+      <div className="book-component-grid book-card-grid">
+        {bookPackage.components.map((component) => {
+          const activeCount = getActiveExercises(component).length;
+          const unitCount = component.units.length;
+
+          return (
+            <button key={component.id} type="button" onClick={() => onSelectBook(component.id)} data-sound-click="tab">
+              <BookCover component={component} bookPackage={bookPackage} size="large" />
+              <span>
+                <strong>{component.title}</strong>
+                <small>{component.subtitle}</small>
+                <em>{unitCount} units / {activeCount} demo item{activeCount === 1 ? "" : "s"} active</em>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function BookDetailView({ component, bookPackage, mode, onBack, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
+  const activeCount = getActiveExercises(component).length;
+
+  return (
+    <Card className="book-detail-view">
+      <div className="book-detail-toolbar">
+        <button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back">
+          <ArrowLeft size={17} /> Back to all books
+        </button>
+        <Tag tone="blue">{mode === "teacher" ? "Teacher preview" : "Student view"}</Tag>
+      </div>
+
+      <div className="book-detail-hero">
+        <BookCover component={component} bookPackage={bookPackage} size="large" />
+        <div>
+          <span className="eyebrow"><Layers3 size={15} /> {component.type}</span>
           <h2>{component.title}</h2>
           <p>{component.subtitle}</p>
+          <div className="book-detail-stats">
+            <span>{component.units.length} units visible</span>
+            <span>{activeCount} demo item{activeCount === 1 ? "" : "s"} active</span>
+            <span>Publisher content placeholders locked</span>
+          </div>
         </div>
-        <Tag tone="blue">{mode === "teacher" ? "Assignable exercises" : "Practice exercises"}</Tag>
       </div>
 
       <div className="book-unit-list">
-        {component.units.map((unit) => (
-          <section key={unit.id}>
-            <h3>{unit.title}</h3>
-            {unit.lessons.map((lesson) => (
-              <div key={lesson.id} className="book-lesson-block">
-                <div className="book-lesson-heading">
-                  <strong>{lesson.title}</strong>
+        {component.units.map((unit) => {
+          const hasActiveExercises = unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive));
+
+          if (!hasActiveExercises) {
+            return <LockedUnitRow key={unit.id} unit={unit} />;
+          }
+
+          return (
+            <section key={unit.id} className="book-active-unit">
+              <div className="book-unit-heading">
+                <div>
+                  <h3>{unit.title}</h3>
                   <small>{unit.unit}</small>
                 </div>
-                <div className="book-exercise-list">
-                  {lesson.exercises.map((exercise) => (
-                    <ExerciseRow
-                      key={exercise.id}
-                      exercise={exercise}
-                      mode={mode}
-                      onStartExercise={onStartExercise}
-                      onPreviewExercise={onPreviewExercise}
-                      classOptions={classOptions}
-                      completedActivities={completedActivities}
-                    />
-                  ))}
-                </div>
+                <Tag tone="green">Demo active</Tag>
               </div>
-            ))}
-          </section>
-        ))}
+
+              {unit.lessons.map((lesson) => (
+                <div key={lesson.id} className="book-lesson-block">
+                  <div className="book-lesson-heading">
+                    <strong>{lesson.title}</strong>
+                    <small>{unit.unit}</small>
+                  </div>
+                  <div className="book-exercise-list">
+                    {lesson.exercises.map((exercise) => (
+                      isExerciseActive(exercise) ? (
+                        <ActiveExerciseRow
+                          key={exercise.id}
+                          exercise={exercise}
+                          mode={mode}
+                          onStartExercise={onStartExercise}
+                          onPreviewExercise={onPreviewExercise}
+                          classOptions={classOptions}
+                          completedActivities={completedActivities}
+                        />
+                      ) : (
+                        <LockedExerciseRow key={exercise.id} exercise={exercise} />
+                      )
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </section>
+          );
+        })}
       </div>
     </Card>
   );
@@ -206,57 +319,34 @@ export function BookPackageBrowser({
   bookPackage = ultimateB2Package,
 }) {
   const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
-  const [selectedComponentId, setSelectedComponentId] = useState(activePackage.components[0].id);
+  const [selectedComponentId, setSelectedComponentId] = useState(null);
   const selectedComponent = useMemo(
-    () => activePackage.components.find((component) => component.id === selectedComponentId) || activePackage.components[0],
+    () => activePackage.components.find((component) => component.id === selectedComponentId) || null,
     [activePackage, selectedComponentId],
   );
 
   useEffect(() => {
-    if (!activePackage.components.some((component) => component.id === selectedComponentId)) {
-      setSelectedComponentId(activePackage.components[0].id);
+    if (selectedComponentId && !activePackage.components.some((component) => component.id === selectedComponentId)) {
+      setSelectedComponentId(null);
     }
   }, [activePackage, selectedComponentId]);
 
   return (
     <section className={`book-package-browser ${mode === "teacher" ? "teacher-mode" : "student-mode"}`}>
-      <Card>
-        <div className="card-heading">
-          <div>
-            <span className="eyebrow"><BookOpenCheck size={15} /> {activePackage.level}</span>
-            <h2>{activePackage.packageLabel}</h2>
-            <p>{activePackage.publisher} digital book package for {activePackage.demoSchool}.</p>
-          </div>
-          <Tag tone="green">B2 active</Tag>
-        </div>
-
-        <div className="book-component-grid">
-          {activePackage.components.map((component) => (
-            <button
-              key={component.id}
-              type="button"
-              className={selectedComponent.id === component.id ? "selected" : ""}
-              onClick={() => setSelectedComponentId(component.id)}
-              data-sound-click="tab"
-            >
-              <BookCover component={component} bookPackage={activePackage} />
-              <span>
-                <strong>{component.title}</strong>
-                <small>{component.subtitle}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      <BookUnitPanel
-        component={selectedComponent}
-        mode={mode}
-        onStartExercise={onStartExercise}
-        onPreviewExercise={onPreviewExercise}
-        classOptions={classOptions}
-        completedActivities={completedActivities}
-      />
+      {selectedComponent ? (
+        <BookDetailView
+          component={selectedComponent}
+          bookPackage={activePackage}
+          mode={mode}
+          onBack={() => setSelectedComponentId(null)}
+          onStartExercise={onStartExercise}
+          onPreviewExercise={onPreviewExercise}
+          classOptions={classOptions}
+          completedActivities={completedActivities}
+        />
+      ) : (
+        <BookGrid bookPackage={activePackage} onSelectBook={setSelectedComponentId} />
+      )}
     </section>
   );
 }
