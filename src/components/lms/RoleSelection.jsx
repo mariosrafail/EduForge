@@ -32,7 +32,7 @@ export function RoleSelection({ navigateTo, brand }) {
       <section className="landing-hero">
         <div className="hero-copy">
           <Tag tone="gold">Hamilton House platform demo</Tag>
-          <h1>Hamilton House Ultimate B2 digital book platform.</h1>
+          <h1>Hamilton House Ultimate digital book platform.</h1>
         </div>
 
       </section>

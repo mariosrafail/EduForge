@@ -90,7 +90,7 @@ function StudentBooks({ openActivity, completedActivities, bookPackage = ultimat
     <section className="student-section-stack">
       <SectionTitle
         eyebrow="My digital books"
-        title="Ultimate B2 package."
+        title="Explore your books."
         // text="Activate your Hamilton House book code, open Unit 2, and start practice exercises."
       />
 

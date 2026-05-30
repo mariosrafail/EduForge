@@ -210,7 +210,7 @@ with publisher as (
   select id from publishers where slug = 'hamilton-house'
 )
 insert into book_packages (publisher_id, title, slug, level, description, cover_asset_path, status)
-select id, 'Ultimate B2', 'ultimate-b2', 'B2', 'Hamilton House Ultimate B2 digital book package for ELT schools.', 'src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg', 'active'
+select id, 'Ultimate B2', 'ultimate-b2', 'B2', 'Hamilton House Ultimate digital book package for ELT schools.', 'src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg', 'active'
 from publisher
 on conflict (slug) do update
 set title = excluded.title,

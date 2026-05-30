@@ -109,7 +109,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
 
         <button className="brand-lockup text-only" onClick={() => handleNavigate("home")} aria-label="Return to role selection">
           <span>
-            <strong>Hamilton House Ultimate B2</strong>
+            <strong>Hamilton House Ultimate</strong>
             <small>Digital book platform demo</small>
           </span>
         </button>

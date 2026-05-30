@@ -78,7 +78,7 @@ function TeacherDashboard({ goToSection }) {
     <>
       <SectionTitle
         eyebrow="Teacher portal"
-        title="Ultimate B2 teaching workspace."
+        title="Teaching workspace."
         text="Choose a section to manage digital book access, class progress, student results, assigned exercises, or custom interactive activities."
       />
 
