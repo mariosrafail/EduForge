@@ -1,61 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
+import { mainHashRoutes, parseHashRoute } from "../utils/hashRoutes.js";
 
-export const validViews = new Set([
-  "home",
-  "auth-admin",
-  "auth-teacher",
-  "auth-student",
-  "admin",
-  "admin-school-setup",
-  "admin-users",
-  "admin-books-classes",
-  "admin-publisher-intelligence",
-  "admin-integrations",
-  "teacher",
-  "teacher-books",
-  "teacher-classes",
-  "teacher-students",
-  "teacher-assignments",
-  "teacher-custom-assignment",
-  "student",
-  "student-course",
-  "teacher-course-editor",
-  "student-books",
-  "student-assignments",
-  "student-grades",
-  "student-activity",
-  "student-preview",
-  "flow",
-]);
+export const validViews = new Set(Object.keys(mainHashRoutes));
 
-function readHashView() {
+function readHashRoute() {
   if (typeof window === "undefined") {
-    return "home";
+    return parseHashRoute("home");
   }
 
-  const hashView = window.location.hash.slice(1).trim();
-  return validViews.has(hashView) ? hashView : "home";
+  return parseHashRoute(window.location.hash);
 }
 
-function normalizeInvalidHash() {
-  if (typeof window === "undefined") {
+function normalizeInvalidHash(route) {
+  if (typeof window === "undefined" || route.valid) {
     return;
   }
 
-  const hashView = window.location.hash.slice(1).trim();
-
-  if (hashView && !validViews.has(hashView)) {
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#home`);
-  }
+  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#home`);
 }
 
 export function useHashView() {
-  const [view, setView] = useState(readHashView);
+  const [route, setRoute] = useState(readHashRoute);
 
   useEffect(() => {
     const handleHashChange = () => {
-      normalizeInvalidHash();
-      setView(readHashView());
+      const nextRoute = readHashRoute();
+      normalizeInvalidHash(nextRoute);
+      setRoute(nextRoute.valid ? nextRoute : parseHashRoute("home"));
     };
 
     window.addEventListener("hashchange", handleHashChange);
@@ -66,14 +37,15 @@ export function useHashView() {
     };
   }, []);
 
-  const navigateTo = useCallback((nextView) => {
-    const safeView = validViews.has(nextView) ? nextView : "home";
-    setView(safeView);
+  const navigateTo = useCallback((nextHash) => {
+    const nextRoute = parseHashRoute(nextHash);
+    const safeRoute = nextRoute.valid ? nextRoute : parseHashRoute("home");
+    setRoute(safeRoute);
 
-    if (typeof window !== "undefined" && window.location.hash !== `#${safeView}`) {
-      window.location.hash = safeView;
+    if (typeof window !== "undefined" && window.location.hash !== `#${safeRoute.hash}`) {
+      window.location.hash = safeRoute.hash;
     }
   }, []);
 
-  return { view, navigateTo };
+  return { ...route, route, navigateTo };
 }

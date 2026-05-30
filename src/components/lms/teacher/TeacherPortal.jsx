@@ -1,7 +1,8 @@
-import { BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, Home, KeyRound, ListChecks, Search, Users } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, Home, KeyRound, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -104,10 +105,37 @@ function TeacherDashboard({ goToSection }) {
   );
 }
 
-function TeacherBooks({ bookPackage, bookSourceMessage }) {
+function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, onSelectBook, initialPreviewActivityKey = null, navigateTo }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
+
+  useEffect(() => {
+    if (!initialPreviewActivityKey) {
+      setPreviewExercise(null);
+      return;
+    }
+
+    const match = findUltimateB2Exercise(initialPreviewActivityKey);
+    setPreviewExercise(match?.exercise || { title: initialPreviewActivityKey, demoActivityKey: initialPreviewActivityKey });
+  }, [initialPreviewActivityKey]);
+
+  const previewActivity = (exercise) => {
+    if (navigateTo && exercise.demoActivityKey) {
+      navigateTo(buildActivityHash(exercise.demoActivityKey, "teacher-preview"));
+      return;
+    }
+    setPreviewExercise(exercise);
+  };
+
+  const closePreview = () => {
+    const match = findUltimateB2Exercise(previewExercise?.demoActivityKey || previewExercise?.id);
+    if (navigateTo && match?.component?.id) {
+      navigateTo(buildBookHash("teacher", match.component.id));
+      return;
+    }
+    setPreviewExercise(null);
+  };
 
   if (previewExercise) {
     return (
@@ -117,7 +145,7 @@ function TeacherBooks({ bookPackage, bookSourceMessage }) {
           exerciseId={previewExercise.id}
           activity={previewExercise.dbActivity || previewExercise}
           mode="teacher-preview"
-          onBack={() => setPreviewExercise(null)}
+          onBack={closePreview}
         />
       </section>
     );
@@ -144,7 +172,15 @@ function TeacherBooks({ bookPackage, bookSourceMessage }) {
         {activated && <div className="inline-status success">Ultimate B2 package activated for Paris Georgoulakis (Teacher).</div>}
       </Card>
       {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
-      <BookPackageBrowser mode="teacher" bookPackage={bookPackage} classOptions={classNames} onPreviewExercise={setPreviewExercise} />
+      <BookPackageBrowser
+        mode="teacher"
+        bookPackage={bookPackage}
+        classOptions={classNames}
+        selectedComponentId={selectedBookId}
+        onSelectComponent={onSelectBook}
+        onBackToBooks={() => onSelectBook?.(null)}
+        onPreviewExercise={previewActivity}
+      />
     </section>
   );
 }
@@ -205,47 +241,72 @@ function TeacherClasses() {
           ))}
         </div>
       </Card>
-      {selectedWorkStudent && (
-        <ResultDetailPanel student={selectedWorkStudent} label="Selected student work" />
-      )}
+      <ResultsModal student={selectedWorkStudent} label="Selected student work" onClose={() => setSelectedWorkStudent(null)} />
     </section>
   );
 }
 
-function ResultDetailPanel({ student, label = "Student results" }) {
-  if (!student) return null;
+function ResultsModal({ student, assignment, label = "Student results", onClose }) {
+  useEffect(() => {
+    if (!student && !assignment) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [assignment, onClose, student]);
+
+  if (!student && !assignment) return null;
+
+  const title = assignment?.title || student?.name;
+  const summary = assignment
+    ? `${assignment.className} / ${assignment.submitted}/${assignment.total} submitted / ${assignment.averageScore}% average`
+    : `${sampleExerciseResult.exercise} / Score ${sampleExerciseResult.score}`;
+  const tag = assignment ? "Mock results" : student.className;
 
   return (
-    <Card className="teacher-result-panel">
-      <div className="card-heading">
-        <div>
-          <span className="eyebrow"><CheckCircle2 size={15} /> {label}</span>
-          <h2>{student.name}</h2>
-          <p>{sampleExerciseResult.exercise} / Score {sampleExerciseResult.score}</p>
+    <div className="results-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <Card className="results-modal" role="dialog" aria-modal="true" aria-labelledby="results-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+        <button className="results-modal-close" type="button" onClick={onClose} aria-label="Close results"><X size={18} /></button>
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow"><CheckCircle2 size={15} /> {label}</span>
+            <h2 id="results-modal-title">{title}</h2>
+            <p>{summary}</p>
+          </div>
+          <Tag tone="gold">{tag}</Tag>
         </div>
-        <Tag tone="gold">{student.className}</Tag>
-      </div>
 
-      <div className="answer-feedback-list">
-        {sampleExerciseResult.answers.map((answer) => (
-          <article key={answer.prompt} className={answer.correct ? "correct" : "wrong"}>
-            <div>
-              <strong>{answer.prompt}</strong>
-              <span>Student chose: {answer.studentAnswer}</span>
-              {!answer.correct && <small>Correct answer: {answer.correctAnswer}</small>}
-            </div>
-            <b>{answer.correct ? "Correct" : "Wrong"}</b>
-          </article>
-        ))}
-      </div>
-    </Card>
+        {assignment ? (
+          <div className="review-list results-modal-list">
+            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
+            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
+            <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
+          </div>
+        ) : (
+          <div className="answer-feedback-list results-modal-list">
+            {sampleExerciseResult.answers.map((answer) => (
+              <article key={answer.prompt} className={answer.correct ? "correct" : "wrong"}>
+                <div>
+                  <strong>{answer.prompt}</strong>
+                  <span>Student chose: {answer.studentAnswer}</span>
+                  {!answer.correct && <small>Correct answer: {answer.correctAnswer}</small>}
+                </div>
+                <b>{answer.correct ? "Correct" : "Wrong"}</b>
+              </article>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 
 function TeacherStudents() {
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("All classes");
-  const [selectedStudentName, setSelectedStudentName] = useState(teacherPortalStudents[0].name);
+  const [selectedStudentResult, setSelectedStudentResult] = useState(null);
 
   const visibleStudents = useMemo(() => {
     return teacherPortalStudents.filter((student) => {
@@ -254,8 +315,6 @@ function TeacherStudents() {
       return matchesQuery && matchesClass;
     });
   }, [classFilter, query]);
-  const selectedStudent = teacherPortalStudents.find((student) => student.name === selectedStudentName) || visibleStudents[0];
-
   return (
     <section className="teacher-section-stack">
       <SectionTitle
@@ -289,13 +348,13 @@ function TeacherStudents() {
               <span>{student.completedExercises}</span>
               <span>{student.averageScore}%</span>
               <span>{student.latestWork}</span>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedStudentName(student.name)} data-sound-click="tab">View results</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedStudentResult(student)} data-sound-click="tab">View results</button>
             </article>
           ))}
         </div>
       </Card>
 
-      <ResultDetailPanel student={selectedStudent} />
+      <ResultsModal student={selectedStudentResult} onClose={() => setSelectedStudentResult(null)} />
     </section>
   );
 }
@@ -349,22 +408,7 @@ function TeacherAssignments() {
           ))}
         </div>
       </Card>
-      {selectedAssignmentResult && (
-        <Card className="teacher-result-panel">
-          <div className="card-heading">
-            <div>
-              <span className="eyebrow"><CheckCircle2 size={15} /> Results preview</span>
-              <h2>{selectedAssignmentResult.title}</h2>
-              <p>{selectedAssignmentResult.className} / {selectedAssignmentResult.submitted}/{selectedAssignmentResult.total} submitted / {selectedAssignmentResult.averageScore}% average</p>
-            </div>
-            <Tag tone="gold">Mock results</Tag>
-          </div>
-          <div className="review-list">
-            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
-            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
-          </div>
-        </Card>
-      )}
+      <ResultsModal assignment={selectedAssignmentResult} label="Results preview" onClose={() => setSelectedAssignmentResult(null)} />
 
       <Card className="teacher-book-assign-panel">
         <div className="card-heading">
@@ -432,15 +476,21 @@ function TeacherCustomAssignment(props) {
   );
 }
 
-export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) {
+export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialPreviewActivityKey = null, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
   const [bookPackage, setBookPackage] = useState(ultimateB2Package);
   const [bookSourceMessage, setBookSourceMessage] = useState("");
 
   useEffect(() => {
     setActiveSection(initialSection);
   }, [initialSection]);
+
+  useEffect(() => {
+    setSelectedBookId(initialSelectedBookId);
+    if (initialSelectedBookId || initialPreviewActivityKey) setActiveSection("books");
+  }, [initialPreviewActivityKey, initialSelectedBookId]);
 
   useEffect(() => {
     let mounted = true;
@@ -463,6 +513,13 @@ export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) 
     setActiveSection(section);
   };
 
+  const selectBook = (bookId) => {
+    setSelectedBookId(bookId);
+    if (navigateTo) {
+      navigateTo(bookId ? buildBookHash("teacher", bookId) : "teacher-books");
+    }
+  };
+
   return (
     <div className="workspace teacher-portal-workspace">
       <PortalShell
@@ -475,7 +532,16 @@ export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) 
         variant="teacher-portal-shell"
       >
         {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
-        {activeSection === "books" && <TeacherBooks bookPackage={bookPackage} bookSourceMessage={bookSourceMessage} />}
+        {activeSection === "books" && (
+          <TeacherBooks
+            bookPackage={bookPackage}
+            bookSourceMessage={bookSourceMessage}
+            selectedBookId={selectedBookId}
+            onSelectBook={selectBook}
+            initialPreviewActivityKey={initialPreviewActivityKey}
+            navigateTo={navigateTo}
+          />
+        )}
         {activeSection === "classes" && <TeacherClasses />}
         {activeSection === "students" && <TeacherStudents />}
         {activeSection === "assignments" && <TeacherAssignments />}

@@ -1,4 +1,5 @@
 import { useSoundEffects } from "../../../../context/SoundContext.jsx";
+import { InlineBlankPrompt } from "../../activities/InlineBlankPrompt.jsx";
 
 export function MultipleChoiceActivity({ activity, answers, onChange, submitted, resultMap = {} }) {
   const { playSound } = useSoundEffects();
@@ -16,9 +17,18 @@ export function MultipleChoiceActivity({ activity, answers, onChange, submitted,
         const feedbackText = result?.correct
           ? activity.feedback?.correct || "Good job. You chose the correct answer."
           : activity.feedback?.wrong || "Use the sentence context before choosing the answer.";
+        const selectedAnswer = answers[question.id] || result?.actual || "";
         return (
           <article key={question.id} className={submitted && result ? (result.correct ? "correct" : "incorrect") : ""}>
-            <strong>{index + 1}. {question.prompt}</strong>
+            <strong className="mc-question-prompt">
+              <span>{index + 1}. </span>
+              <InlineBlankPrompt
+                prompt={question.prompt}
+                selectedAnswer={selectedAnswer}
+                submitted={submitted && Boolean(result)}
+                isCorrect={Boolean(result?.correct)}
+              />
+            </strong>
             <div className="mc-options" role="radiogroup" aria-label={question.prompt}>
               {question.options.map((option, optionIndex) => {
                 const selected = answers[question.id] === option;
@@ -48,6 +58,7 @@ export function MultipleChoiceActivity({ activity, answers, onChange, submitted,
             {submitted && result && (
               <div className={`item-feedback-box ${result.correct ? "correct" : "wrong"}`}>
                 {feedbackText}
+                {!result.correct && <span>Correct answer: {question.answer}</span>}
               </div>
             )}
           </article>

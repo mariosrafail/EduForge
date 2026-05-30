@@ -1,5 +1,5 @@
-import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BarChart3, BookOpen, Building2, CheckCircle2, ChevronRight, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
@@ -63,6 +63,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [apiFallback, setApiFallback] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
   const [primaryColorWarning, setPrimaryColorWarning] = useState("");
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const sidebarCloseTimerRef = useRef(null);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -208,11 +210,31 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     setBrand({ ...brand, primary: normalized });
   };
 
+  const openSidebar = () => {
+    window.clearTimeout(sidebarCloseTimerRef.current);
+    setSidebarExpanded(true);
+  };
+
+  const scheduleSidebarClose = () => {
+    window.clearTimeout(sidebarCloseTimerRef.current);
+    sidebarCloseTimerRef.current = window.setTimeout(() => setSidebarExpanded(false), 250);
+  };
+
   return (
     <div className="workspace admin-workspace">
-      <div className="admin-dashboard-shell">
-        <aside className="admin-sidebar">
+      <div className={`admin-dashboard-shell ${sidebarExpanded ? "sidebar-expanded" : "sidebar-collapsed"}`}>
+        <aside
+          className="admin-sidebar"
+          onMouseEnter={openSidebar}
+          onMouseLeave={scheduleSidebarClose}
+          onFocus={openSidebar}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) scheduleSidebarClose();
+          }}
+        >
           <div className="admin-sidebar-card">
+            <span className="admin-rail-avatar" aria-hidden="true">A</span>
+            <span className="admin-rail-handle" aria-hidden="true"><ChevronRight size={14} /></span>
             <span className="eyebrow">School Admin dashboard</span>
             <h2>Control center</h2>
             <p>Manage the Hamilton House demo profile, users, book access, and class progress for this school only.</p>
@@ -230,6 +252,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                       navigateTo?.(section.route);
                     }}
                     data-sound-click="submit"
+                    title={section.label}
                   >
                     <span><Icon size={16} /></span>
                     <strong>{section.label}</strong>

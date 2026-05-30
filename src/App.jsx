@@ -41,7 +41,8 @@ const adminSectionByView = {
   "admin-integrations": "integrations",
 };
 
-function transitionGroupForView(view) {
+function transitionGroupForView(view, activityKey = null) {
+  if (activityKey) return "student";
   if (adminSectionByView[view]) return "admin";
   if (teacherSectionByView[view]) return "teacher";
   if (studentSectionByView[view]) return "student";
@@ -49,7 +50,7 @@ function transitionGroupForView(view) {
 }
 
 export default function App() {
-  const { view, navigateTo } = useHashView();
+  const { view, navigateTo, activityKey, selectedBookId, mode: routeMode } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
   const courseData = useCourseData();
@@ -62,14 +63,15 @@ export default function App() {
     }),
     [brand],
   );
-  const transitionKey = transitionGroupForView(view);
+  const transitionKey = transitionGroupForView(view, activityKey);
+  const studentSection = studentSectionByView[view] || (activityKey && routeMode === "student" ? "activity" : null);
 
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
     ? view.replace("auth-", "")
-    : view.startsWith("student")
+    : view.startsWith("student") || routeMode === "student"
       ? "student"
-      : view.startsWith("teacher")
+      : view.startsWith("teacher") || routeMode === "teacher-preview"
         ? "teacher"
         : view.startsWith("admin")
           ? "admin"
@@ -129,6 +131,8 @@ export default function App() {
         {teacherSectionByView[view] && (
           <TeacherPortal
             initialSection={teacherSectionByView[view]}
+            initialSelectedBookId={selectedBookId}
+            initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
             course={courseData.course}
             onCourseChange={courseData.setCourse}
             navigateTo={navigateTo}
@@ -140,9 +144,11 @@ export default function App() {
             reloadCourse={courseData.reloadCourse}
           />
         )}
-        {studentSectionByView[view] && (
+        {studentSection && (
           <StudentPortal
-            initialSection={studentSectionByView[view]}
+            initialSection={studentSection}
+            initialActivityKey={routeMode === "student" ? activityKey : null}
+            initialSelectedBookId={selectedBookId}
             course={courseData.course}
             onSubmission={addCourseSubmission}
             navigateTo={navigateTo}

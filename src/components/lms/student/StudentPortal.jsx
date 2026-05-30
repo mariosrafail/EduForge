@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, 
 import { useEffect, useState } from "react";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
@@ -81,7 +82,7 @@ function StudentDashboard({ goToSection }) {
   );
 }
 
-function StudentBooks({ openActivity, completedActivities, bookPackage = ultimateB2Package, bookSourceMessage = "" }) {
+function StudentBooks({ openActivity, completedActivities, bookPackage = ultimateB2Package, bookSourceMessage = "", selectedBookId = null, onSelectBook }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
 
@@ -90,25 +91,18 @@ function StudentBooks({ openActivity, completedActivities, bookPackage = ultimat
       <SectionTitle
         eyebrow="My digital books"
         title="Ultimate B2 package."
-        text="Activate your Hamilton House book code, open Unit 2, and start practice exercises."
+        // text="Activate your Hamilton House book code, open Unit 2, and start practice exercises."
       />
 
-      <Card className="student-activation-card">
-        <div>
-          <span className="eyebrow"><KeyRound size={15} /> Book activation code</span>
-          <h2>Activate your book</h2>
-          <p>Your book activation code connects this student account to the Ultimate B2 package.</p>
-        </div>
-        <div className="activation-form">
-          <input value={activationCode} placeholder={ultimateB2Package.activationCodeExample} onChange={(event) => setActivationCode(event.target.value)} />
-          <button className="primary-action" type="button" onClick={() => setActivated(true)} data-sound-click="submit">Activate book</button>
-        </div>
-        {activated && <div className="inline-status success">Ultimate B2 package activated for Anna Georgiou (Student).</div>}
-      </Card>
+
+
       {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
       <BookPackageBrowser
         mode="student"
         bookPackage={bookPackage}
+        selectedComponentId={selectedBookId}
+        onSelectComponent={onSelectBook}
+        onBackToBooks={() => onSelectBook?.(null)}
         onStartExercise={(exercise) => openActivity(exercise, "books")}
         completedActivities={completedActivities}
       />
@@ -237,8 +231,17 @@ function StudentGrades() {
   );
 }
 
-function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, goToSection }) {
+function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, goToSection, navigateTo }) {
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
+  const exerciseContext = findUltimateB2Exercise(exercise.demoActivityKey || exercise.id);
+  const backToPrevious = () => {
+    if (previousSection === "books" && exerciseContext?.component?.id && navigateTo) {
+      navigateTo(buildBookHash("student", exerciseContext.component.id));
+      return;
+    }
+    goToSection(previousSection || "books");
+  };
+
   return (
     <section className="student-section-stack">
       <div className="student-activity-return">
@@ -253,7 +256,7 @@ function StudentActivitySection({ activeExercise, setActiveExercise, completedAc
         exerciseId={exercise.id}
         activity={exercise.dbActivity || exercise}
         mode="student"
-        onBack={() => goToSection(previousSection || "books")}
+        onBack={backToPrevious}
         onSubmit={(result) => setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }))}
         onNextActivity={(activityKey) => {
           const next = findUltimateB2Exercise(activityKey);
@@ -269,6 +272,8 @@ function StudentActivitySection({ activeExercise, setActiveExercise, completedAc
 
 export function StudentPortal({
   initialSection = "dashboard",
+  initialActivityKey = null,
+  initialSelectedBookId = null,
   course,
   onSubmission,
   navigateTo,
@@ -279,6 +284,7 @@ export function StudentPortal({
   const [activeSection, setActiveSection] = useState(initialSection);
   const [activeExercise, setActiveExercise] = useState(null);
   const [previousSection, setPreviousSection] = useState("books");
+  const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
   const [completedActivities, setCompletedActivities] = useState({});
   const [bookPackage, setBookPackage] = useState(ultimateB2Package);
   const [bookSourceMessage, setBookSourceMessage] = useState("");
@@ -286,6 +292,20 @@ export function StudentPortal({
   useEffect(() => {
     setActiveSection(initialSection);
   }, [initialSection]);
+
+  useEffect(() => {
+    setSelectedBookId(initialSelectedBookId);
+    if (initialSelectedBookId) setActiveSection("books");
+  }, [initialSelectedBookId]);
+
+  useEffect(() => {
+    if (!initialActivityKey) return;
+
+    const match = findUltimateB2Exercise(initialActivityKey);
+    setActiveExercise(match?.exercise || { title: initialActivityKey, demoActivityKey: initialActivityKey });
+    setPreviousSection("books");
+    setActiveSection("activity");
+  }, [initialActivityKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -311,7 +331,18 @@ export function StudentPortal({
   const openActivity = (exercise, sourceSection = "books") => {
     setActiveExercise(exercise);
     setPreviousSection(sourceSection);
+    if (navigateTo && exercise.demoActivityKey) {
+      navigateTo(buildActivityHash(exercise.demoActivityKey, "student"));
+      return;
+    }
     goToSection("activity");
+  };
+
+  const selectBook = (bookId) => {
+    setSelectedBookId(bookId);
+    if (navigateTo) {
+      navigateTo(bookId ? buildBookHash("student", bookId) : "student-books");
+    }
   };
 
   return (
@@ -332,6 +363,8 @@ export function StudentPortal({
             completedActivities={completedActivities}
             bookPackage={bookPackage}
             bookSourceMessage={bookSourceMessage}
+            selectedBookId={selectedBookId}
+            onSelectBook={selectBook}
           />
         )}
         {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
@@ -344,6 +377,7 @@ export function StudentPortal({
             setCompletedActivities={setCompletedActivities}
             previousSection={previousSection}
             goToSection={goToSection}
+            navigateTo={navigateTo}
           />
         )}
       </PortalShell>
