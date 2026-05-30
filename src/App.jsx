@@ -32,6 +32,22 @@ const studentSectionByView = {
   "student-activity": "activity",
 };
 
+const adminSectionByView = {
+  admin: "overview",
+  "admin-school-setup": "school-setup",
+  "admin-users": "users",
+  "admin-books-classes": "books-classes",
+  "admin-publisher-intelligence": "publisher-intelligence",
+  "admin-integrations": "integrations",
+};
+
+function transitionGroupForView(view) {
+  if (adminSectionByView[view]) return "admin";
+  if (teacherSectionByView[view]) return "teacher";
+  if (studentSectionByView[view]) return "student";
+  return view;
+}
+
 export default function App() {
   const { view, navigateTo } = useHashView();
   const auth = useAuth();
@@ -46,6 +62,7 @@ export default function App() {
     }),
     [brand],
   );
+  const transitionKey = transitionGroupForView(view);
 
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
@@ -54,7 +71,9 @@ export default function App() {
       ? "student"
       : view.startsWith("teacher")
         ? "teacher"
-        : view;
+        : view.startsWith("admin")
+          ? "admin"
+          : view;
 
   const addCourseSubmission = (submission) => {
     courseData.setCourse((current) => ({
@@ -81,7 +100,7 @@ export default function App() {
         </>
       )}
 
-      <PageTransition pageKey={view}>
+      <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
         {view.startsWith("auth-") && (
           <AuthView
@@ -99,7 +118,14 @@ export default function App() {
             }}
           />
         )}
-        {view === "admin" && <AdminView brand={brand} setBrand={setBrand} />}
+        {adminSectionByView[view] && (
+          <AdminView
+            initialSection={adminSectionByView[view]}
+            brand={brand}
+            setBrand={setBrand}
+            navigateTo={navigateTo}
+          />
+        )}
         {teacherSectionByView[view] && (
           <TeacherPortal
             initialSection={teacherSectionByView[view]}

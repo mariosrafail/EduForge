@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BookOpen, Headphones, Play, Timer, X } from "lucide-react";
+import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
+import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
 import { findUltimateB2Exercise } from "../../../data/ultimateB2DemoData.js";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
 import {
@@ -57,7 +59,7 @@ function ChoiceSet({ questions, answers, setAnswers, disabled = false }) {
           <legend>{index + 1}. {question.question || question.prompt}</legend>
           {Array.isArray(question.options) && question.options.length > 0 ? (
             question.options.map((option) => (
-              <label key={option}>
+              <label key={option} className={answers[question.id] === option ? "selected" : ""}>
                 <input
                   type="radio"
                   name={question.id}
@@ -158,11 +160,15 @@ function VideoIntro({ mode, onSubmit }) {
 
   return (
     <Card className="ultimate-media-card">
-      <div className="ultimate-video-placeholder">
-        <Play size={42} />
-        <strong>Unit 2 Video Intro</strong>
-        <span>Video placeholder, replace with supplied Ultimate B2 video asset</span>
-        <Tag tone="gold">02:15</Tag>
+      <div className="ultimate-video-player">
+        <video controls preload="metadata" src={unit2ReadingVideo} onEnded={() => setWatched(true)}>
+          <track kind="captions" />
+        </video>
+        <div>
+          <strong>Unit 2 Video Intro</strong>
+          <span>Ultimate B2 local demo video asset</span>
+          <Tag tone="gold">02:15</Tag>
+        </div>
       </div>
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
       {mode === "student" && (
@@ -222,10 +228,10 @@ function ListeningExercise({ mode, onSubmit }) {
       <div className="ultimate-audio-placeholder">
         <Headphones size={28} />
         <div>
-          <strong>Audio placeholder, replace with supplied Ultimate B2 audio asset</strong>
-          <span>01:40 / mock play control</span>
+          <strong>Unit 2 listening audio</strong>
+          <span>Ultimate B2 local demo audio asset</span>
         </div>
-        <button className="secondary-action compact-action" type="button" onClick={() => setPlayed(true)} data-sound-click="tab">{played ? "Replay" : "Play"}</button>
+        <audio controls preload="metadata" src={unit2ListeningAudio} onPlay={() => setPlayed(true)} onEnded={() => setPlayed(true)} />
       </div>
       {played && <div className="inline-status success">Audio sample marked as played.</div>}
       <p>Listen to the Unit 2 conversation and answer the questions. The real audio asset can be swapped in later.</p>
@@ -351,7 +357,95 @@ function TimedQuiz({ mode, onSubmit }) {
   );
 }
 
-function ActivityBody({ activityKey, mode, onSubmit }) {
+function dbQuestionsToChoiceQuestions(questions = []) {
+  return questions.map((question, index) => ({
+    id: question.id || `db-question-${index + 1}`,
+    question: question.question || question.prompt,
+    prompt: question.prompt || question.question,
+    options: (question.options || []).map((option) => option.text || option.value || option.option_text),
+    answer: question.answer || (question.options || []).find((option) => option.correct || option.is_correct)?.text || "",
+    feedback: question.feedbackJson?.feedback || question.feedback_json?.feedback || question.feedback || "",
+  }));
+}
+
+function DatabaseActivity({ activity, mode, onSubmit }) {
+  const [answers, setAnswers] = useState({});
+  const [submittedRows, setSubmittedRows] = useState(null);
+  const [watched, setWatched] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const activityType = activity.activityType || activity.activity_type;
+  const contentJson = activity.contentJson || activity.content_json || {};
+  const questions = dbQuestionsToChoiceQuestions(activity.questions || []);
+
+  const submit = () => {
+    const rows = scoreAnswers(questions, answers);
+    setSubmittedRows(rows);
+    onSubmit?.({
+      activityKey: activity.demoActivityKey || contentJson.demoActivityKey || activity.slug || activity.id,
+      activityId: activity.id,
+      score: Math.round((rows.filter((row) => row.correct).length / Math.max(rows.length, 1)) * 100),
+    });
+  };
+
+  if (activityType === "media_video") {
+    return (
+      <Card className="ultimate-media-card">
+        <div className="ultimate-video-player">
+          <video controls preload="metadata" src={unit2ReadingVideo} onEnded={() => setWatched(true)}>
+            <track kind="captions" />
+          </video>
+          <div>
+            <strong>{activity.title}</strong>
+            <span>Ultimate B2 local demo video asset</span>
+            <Tag tone="gold">{contentJson.duration || "02:15"}</Tag>
+          </div>
+        </div>
+        <p>{activity.instructions || "Watch the video introduction before starting the exercises."}</p>
+        {mode === "student" && (
+          <button className="primary-action" type="button" disabled={watched} onClick={() => { setWatched(true); onSubmit?.({ activityKey: activity.demoActivityKey || activity.slug, activityId: activity.id, score: 100 }); }} data-sound-click="submit">
+            {watched ? "Video watched" : "Mark video as watched"}
+          </button>
+        )}
+        {watched && <div className="inline-status success">Video watched.</div>}
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="card-heading">
+        <div>
+          <span className="eyebrow">Database-backed activity</span>
+          <h2>{activity.title}</h2>
+          <p>{activity.instructions}</p>
+        </div>
+        {(contentJson.grammar_rules || contentJson.grammarRules) && (
+          <button className="secondary-action" type="button" onClick={() => setRulesOpen(true)} data-sound-click="tab">View grammar rules</button>
+        )}
+      </div>
+      {activityType === "listening_multiple_choice" && (
+        <div className="ultimate-audio-placeholder">
+          <Headphones size={28} />
+          <div>
+            <strong>Unit 2 listening audio</strong>
+            <span>{contentJson.duration || "01:40"} / Ultimate B2 local demo audio asset</span>
+          </div>
+          <audio controls preload="metadata" src={unit2ListeningAudio} />
+        </div>
+      )}
+      {activityType === "timed_quiz" && <Tag tone="gold">Timer: {formatTime(activity.timerSeconds || activity.timer_seconds || QUIZ_DURATION_SECONDS)}</Tag>}
+      <ChoiceSet questions={questions} answers={answers} setAnswers={setAnswers} disabled={Boolean(submittedRows) || mode === "teacher-preview"} />
+      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit answers</button>}
+      {submittedRows && <FeedbackRows rows={submittedRows} />}
+      {rulesOpen && <GrammarRulesPopup onClose={() => setRulesOpen(false)} />}
+    </Card>
+  );
+}
+
+function ActivityBody({ activityKey, activity, mode, onSubmit }) {
+  if (activity?.questions?.length || activity?.activityType === "media_video" || activity?.activity_type === "media_video") {
+    return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} />;
+  }
   if (activityKey === "video-intro") return <VideoIntro mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningExercise mode={mode} onSubmit={onSubmit} />;
@@ -360,17 +454,19 @@ function ActivityBody({ activityKey, mode, onSubmit }) {
   return <Card><h2>Demo activity not configured</h2><p>This activity key is ready for future content mapping.</p></Card>;
 }
 
-export function UltimateB2ActivityRunner({ activityKey, exerciseId, mode = "student", onBack, onSubmit }) {
+export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
   const exercise = resolved?.exercise;
-  const key = exercise?.demoActivityKey || activityKey || exerciseId;
+  const contentJson = activity?.contentJson || activity?.content_json || {};
+  const key = exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
+  const title = activity?.title || exercise?.title || "Ultimate B2 activity";
 
   return (
     <div className="ultimate-activity-runner">
       <button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back">Back</button>
       <SectionTitle
         eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Demo activity"}
-        title={exercise?.title || "Ultimate B2 activity"}
+        title={title}
         text={resolved ? `Ultimate B2 package > ${resolved.component.title} > ${resolved.unit.title} > ${exercise.title}` : "Ultimate B2 package > Unit 2 demo activity"}
         action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || "Unit 2"}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
       />
@@ -383,7 +479,7 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, mode = "stud
         </div>
       )}
       {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
-      <ActivityBody activityKey={key} mode={mode} onSubmit={onSubmit} />
+      <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} />
     </div>
   );
 }

@@ -1,0 +1,26 @@
+{
+  "publisher": "Hamilton House",
+  "bookPackage": "Ultimate B2",
+  "component": "Ultimate B2 Test Book",
+  "unit": "Quiz 1",
+  "lesson": "Vocabulary",
+  "activity": {
+    "title": "Quiz 1 Vocabulary",
+    "activityType": "timed_quiz",
+    "instructions": "Choose the correct answers.",
+    "timerSeconds": 1200,
+    "scoreLabel": "/20",
+    "questions": [
+      {
+        "number": 1,
+        "prompt": "She's a very experienced ___. She's made more than twenty films in the last thirty years.",
+        "options": [
+          { "label": "A", "text": "cast" },
+          { "label": "B", "text": "crew" },
+          { "label": "C", "text": "producer", "correct": true },
+          { "label": "D", "text": "cinemagoer" }
+        ]
+      }
+    ]
+  }
+}

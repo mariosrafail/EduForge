@@ -1,6 +1,7 @@
 import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
@@ -80,7 +81,7 @@ function StudentDashboard({ goToSection }) {
   );
 }
 
-function StudentBooks({ openActivity, completedActivities }) {
+function StudentBooks({ openActivity, completedActivities, bookPackage = ultimateB2Package, bookSourceMessage = "" }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
 
@@ -104,7 +105,13 @@ function StudentBooks({ openActivity, completedActivities }) {
         </div>
         {activated && <div className="inline-status success">Ultimate B2 package activated for Anna Georgiou (Student).</div>}
       </Card>
-      <BookPackageBrowser mode="student" onStartExercise={(exercise) => openActivity(exercise, "books")} completedActivities={completedActivities} />
+      {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
+      <BookPackageBrowser
+        mode="student"
+        bookPackage={bookPackage}
+        onStartExercise={(exercise) => openActivity(exercise, "books")}
+        completedActivities={completedActivities}
+      />
     </section>
   );
 }
@@ -244,6 +251,7 @@ function StudentActivitySection({ activeExercise, completedActivities, setComple
       <UltimateB2ActivityRunner
         activityKey={exercise.demoActivityKey}
         exerciseId={exercise.id}
+        activity={exercise.dbActivity || exercise}
         mode="student"
         onBack={() => goToSection(previousSection || "books")}
         onSubmit={(result) => setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }))}
@@ -265,10 +273,24 @@ export function StudentPortal({
   const [activeExercise, setActiveExercise] = useState(null);
   const [previousSection, setPreviousSection] = useState("books");
   const [completedActivities, setCompletedActivities] = useState({});
+  const [bookPackage, setBookPackage] = useState(ultimateB2Package);
+  const [bookSourceMessage, setBookSourceMessage] = useState("");
 
   useEffect(() => {
     setActiveSection(initialSection);
   }, [initialSection]);
+
+  useEffect(() => {
+    let mounted = true;
+    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
+      if (!mounted) return;
+      setBookPackage(packageTree);
+      setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const goToSection = (section) => {
     const nextView = studentViewBySection[section] || "student";
@@ -297,7 +319,14 @@ export function StudentPortal({
         variant="student-portal-shell"
       >
         {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} />}
-        {activeSection === "books" && <StudentBooks openActivity={openActivity} completedActivities={completedActivities} />}
+        {activeSection === "books" && (
+          <StudentBooks
+            openActivity={openActivity}
+            completedActivities={completedActivities}
+            bookPackage={bookPackage}
+            bookSourceMessage={bookSourceMessage}
+          />
+        )}
         {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
         {activeSection === "grades" && <StudentGrades />}
         {activeSection === "activity" && (

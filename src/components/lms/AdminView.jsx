@@ -48,8 +48,8 @@ function contrastWithWhite(hexColor) {
   return (l1 + 0.05) / (l2 + 0.05);
 }
 
-export function AdminView({ brand, setBrand }) {
-  const [activeAdminSection, setActiveAdminSection] = useState("overview");
+export function AdminView({ brand, setBrand, initialSection = "overview", navigateTo }) {
+  const [activeAdminSection, setActiveAdminSection] = useState(initialSection);
   const [userCreated, setUserCreated] = useState(false);
   const [bookAdded, setBookAdded] = useState(false);
   const [bookUnlocked, setBookUnlocked] = useState(false);
@@ -75,12 +75,12 @@ export function AdminView({ brand, setBrand }) {
     ? String(brand.primary).toLowerCase()
     : ALLOWED_PRIMARY_COLORS[0].value;
   const adminSections = [
-    { id: "overview", label: "Overview", description: "Metrics and rollout checklist", icon: CheckCircle2 },
-    { id: "school-setup", label: "School setup", description: "Own school profile and portal identity", icon: Building2 },
-    { id: "users", label: "Users", description: "Create, import, and manage users", icon: Users },
-    { id: "books-classes", label: "Books & classes", description: "Assignments, classes, activation", icon: BookOpen },
-    { id: "publisher-intelligence", label: "Publisher intelligence", description: "Adoption evidence and exports", icon: BarChart3 },
-    { id: "integrations", label: "Integrations", description: "Integration-ready architecture", icon: Link2 },
+    { id: "overview", route: "admin", label: "Overview", description: "Metrics and rollout checklist", icon: CheckCircle2 },
+    { id: "school-setup", route: "admin-school-setup", label: "School setup", description: "Own school profile and portal identity", icon: Building2 },
+    { id: "users", route: "admin-users", label: "Users", description: "Create, import, and manage users", icon: Users },
+    { id: "books-classes", route: "admin-books-classes", label: "Books & classes", description: "Assignments, classes, activation", icon: BookOpen },
+    { id: "publisher-intelligence", route: "admin-publisher-intelligence", label: "Publisher intelligence", description: "Adoption evidence and exports", icon: BarChart3 },
+    { id: "integrations", route: "admin-integrations", label: "Integrations", description: "Integration-ready architecture", icon: Link2 },
   ];
 
   const loadUsers = async ({ fallbackToMock = true } = {}) => {
@@ -105,6 +105,10 @@ export function AdminView({ brand, setBrand }) {
   useEffect(() => {
     loadUsers().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setActiveAdminSection(initialSection);
+  }, [initialSection]);
 
   useEffect(() => {
     const normalizedPrimary = String(brand.primary || "").toLowerCase();
@@ -221,7 +225,10 @@ export function AdminView({ brand, setBrand }) {
                     key={section.id}
                     type="button"
                     className={`admin-nav-button ${isActive ? "active" : ""}`}
-                    onClick={() => setActiveAdminSection(section.id)}
+                    onClick={() => {
+                      setActiveAdminSection(section.id);
+                      navigateTo?.(section.route);
+                    }}
                     data-sound-click="submit"
                   >
                     <span><Icon size={16} /></span>

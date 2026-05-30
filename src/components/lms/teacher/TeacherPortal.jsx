@@ -1,6 +1,7 @@
 import { BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, Home, KeyRound, ListChecks, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -103,7 +104,7 @@ function TeacherDashboard({ goToSection }) {
   );
 }
 
-function TeacherBooks() {
+function TeacherBooks({ bookPackage, bookSourceMessage }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
@@ -114,6 +115,7 @@ function TeacherBooks() {
         <UltimateB2ActivityRunner
           activityKey={previewExercise.demoActivityKey}
           exerciseId={previewExercise.id}
+          activity={previewExercise.dbActivity || previewExercise}
           mode="teacher-preview"
           onBack={() => setPreviewExercise(null)}
         />
@@ -141,7 +143,8 @@ function TeacherBooks() {
         </div>
         {activated && <div className="inline-status success">Ultimate B2 package activated for Paris Georgoulakis (Teacher).</div>}
       </Card>
-      <BookPackageBrowser mode="teacher" classOptions={classNames} onPreviewExercise={setPreviewExercise} />
+      {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
+      <BookPackageBrowser mode="teacher" bookPackage={bookPackage} classOptions={classNames} onPreviewExercise={setPreviewExercise} />
     </section>
   );
 }
@@ -432,10 +435,24 @@ function TeacherCustomAssignment(props) {
 export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [bookPackage, setBookPackage] = useState(ultimateB2Package);
+  const [bookSourceMessage, setBookSourceMessage] = useState("");
 
   useEffect(() => {
     setActiveSection(initialSection);
   }, [initialSection]);
+
+  useEffect(() => {
+    let mounted = true;
+    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
+      if (!mounted) return;
+      setBookPackage(packageTree);
+      setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const goToSection = (section) => {
     const nextView = teacherViewBySection[section] || "teacher";
@@ -458,7 +475,7 @@ export function TeacherPortal({ initialSection = "dashboard", ...editorProps }) 
         variant="teacher-portal-shell"
       >
         {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
-        {activeSection === "books" && <TeacherBooks />}
+        {activeSection === "books" && <TeacherBooks bookPackage={bookPackage} bookSourceMessage={bookSourceMessage} />}
         {activeSection === "classes" && <TeacherClasses />}
         {activeSection === "students" && <TeacherStudents />}
         {activeSection === "assignments" && <TeacherAssignments />}

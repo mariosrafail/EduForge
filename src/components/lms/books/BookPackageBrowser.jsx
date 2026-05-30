@@ -1,7 +1,25 @@
 import { BookOpenCheck, Eye, Layers3, Play, Send } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg";
+import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
+import testBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg";
+import workbookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { Card, Tag } from "../Shared.jsx";
+
+const coverAssets = {
+  "students-book": studentsBookCover,
+  students_book: studentsBookCover,
+  "ultimate-b2-students-book": studentsBookCover,
+  workbook: workbookCover,
+  "ultimate-b2-workbook": workbookCover,
+  "grammar-book": grammarBookCover,
+  grammar_book: grammarBookCover,
+  "ultimate-b2-grammar-book": grammarBookCover,
+  "test-book": testBookCover,
+  test_book: testBookCover,
+  "ultimate-b2-test-book": testBookCover,
+};
 
 function statusTone(status) {
   if (status === "Completed" || status === "Available" || status === "Submitted") return "green";
@@ -16,13 +34,41 @@ function exerciseActionLabel(exercise) {
   return "Start";
 }
 
-function BookCover({ component }) {
+function resolveCoverAsset(component) {
+  const lookupValues = [
+    component.id,
+    component.slug,
+    component.componentType,
+    component.component_type,
+    component.coverAssetPath,
+    component.cover_asset_path,
+    component.title,
+  ].map((value) => String(value || "").toLowerCase());
+
+  if (lookupValues.some((value) => value.includes("students_book") || value.includes("students-book") || value.includes("students book"))) return studentsBookCover;
+  if (lookupValues.some((value) => value.includes("workbook"))) return workbookCover;
+  if (lookupValues.some((value) => value.includes("grammar"))) return grammarBookCover;
+  if (lookupValues.some((value) => value.includes("test"))) return testBookCover;
+
+  return coverAssets[component.id] || coverAssets[component.slug] || coverAssets[component.componentType] || null;
+}
+
+function BookCover({ component, bookPackage }) {
+  const coverAsset = resolveCoverAsset(component);
+  if (coverAsset) {
+    return (
+      <span className="book-cover-placeholder book-cover-image">
+        <img src={coverAsset} alt={`${component.title} cover`} loading="lazy" />
+      </span>
+    );
+  }
+
   return (
     <span className={`book-cover-placeholder cover-${component.coverTone || "orange"}`}>
-      <b>{ultimateB2Package.level}</b>
+      <b>{bookPackage.level}</b>
       <strong>{component.title}</strong>
       <small>{component.type}</small>
-      <em>{ultimateB2Package.demoSchool}</em>
+      <em>{bookPackage.demoSchool}</em>
     </span>
   );
 }
@@ -157,27 +203,35 @@ export function BookPackageBrowser({
   onPreviewExercise,
   completedActivities = {},
   classOptions = ultimateB2Package.classes,
+  bookPackage = ultimateB2Package,
 }) {
-  const [selectedComponentId, setSelectedComponentId] = useState(ultimateB2Package.components[0].id);
+  const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
+  const [selectedComponentId, setSelectedComponentId] = useState(activePackage.components[0].id);
   const selectedComponent = useMemo(
-    () => ultimateB2Package.components.find((component) => component.id === selectedComponentId) || ultimateB2Package.components[0],
-    [selectedComponentId],
+    () => activePackage.components.find((component) => component.id === selectedComponentId) || activePackage.components[0],
+    [activePackage, selectedComponentId],
   );
+
+  useEffect(() => {
+    if (!activePackage.components.some((component) => component.id === selectedComponentId)) {
+      setSelectedComponentId(activePackage.components[0].id);
+    }
+  }, [activePackage, selectedComponentId]);
 
   return (
     <section className={`book-package-browser ${mode === "teacher" ? "teacher-mode" : "student-mode"}`}>
       <Card>
         <div className="card-heading">
           <div>
-            <span className="eyebrow"><BookOpenCheck size={15} /> {ultimateB2Package.level}</span>
-            <h2>{ultimateB2Package.packageLabel}</h2>
-            <p>{ultimateB2Package.publisher} digital book package for {ultimateB2Package.demoSchool}.</p>
+            <span className="eyebrow"><BookOpenCheck size={15} /> {activePackage.level}</span>
+            <h2>{activePackage.packageLabel}</h2>
+            <p>{activePackage.publisher} digital book package for {activePackage.demoSchool}.</p>
           </div>
           <Tag tone="green">B2 active</Tag>
         </div>
 
         <div className="book-component-grid">
-          {ultimateB2Package.components.map((component) => (
+          {activePackage.components.map((component) => (
             <button
               key={component.id}
               type="button"
@@ -185,7 +239,7 @@ export function BookPackageBrowser({
               onClick={() => setSelectedComponentId(component.id)}
               data-sound-click="tab"
             >
-              <BookCover component={component} />
+              <BookCover component={component} bookPackage={activePackage} />
               <span>
                 <strong>{component.title}</strong>
                 <small>{component.subtitle}</small>
