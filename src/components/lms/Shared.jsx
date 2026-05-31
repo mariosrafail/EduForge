@@ -273,8 +273,8 @@ export function SectionTitle({ eyebrow, title, text, action }) {
   );
 }
 
-export function Card({ children, className = "" }) {
-  return <section className={`panel ${className}`}>{children}</section>;
+export function Card({ children, className = "", ...props }) {
+  return <section className={`panel ${className}`} {...props}>{children}</section>;
 }
 
 export function MetricCard({ label, value, note, icon: Icon = ShieldCheck, delay = 0 }) {

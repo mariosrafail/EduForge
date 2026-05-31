@@ -1,10 +1,10 @@
-import { ArrowLeft, BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
-import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
+import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
 import { PortalShell } from "../shared/PortalShell.jsx";
 import {
@@ -85,9 +85,17 @@ function StudentDashboard({ goToSection }) {
 function StudentBooks({ openActivity, completedActivities, bookPackage = ultimateB2Package, bookSourceMessage = "", selectedBookId = null, onSelectBook }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
+  const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
 
   return (
     <section className="student-section-stack">
+      {selectedComponent && (
+        <BookSubpageNavigation
+          component={selectedComponent}
+          mode="student"
+          onBack={() => onSelectBook?.(null)}
+        />
+      )}
       <SectionTitle
         eyebrow="My digital books"
         title="Explore your books."
@@ -244,13 +252,6 @@ function StudentActivitySection({ activeExercise, setActiveExercise, completedAc
 
   return (
     <section className="student-section-stack">
-      <div className="student-activity-return">
-        <button className="secondary-action compact-action" type="button" onClick={() => goToSection("dashboard")} data-sound-click="back">
-          <ArrowLeft size={17} /> Student dashboard
-        </button>
-        <Tag tone="gold">{exercise.title}</Tag>
-        {completedActivities[exercise.demoActivityKey] && <Tag tone="green">Submitted</Tag>}
-      </div>
       <UltimateB2ActivityRunner
         activityKey={exercise.demoActivityKey}
         exerciseId={exercise.id}
@@ -258,6 +259,7 @@ function StudentActivitySection({ activeExercise, setActiveExercise, completedAc
         mode="student"
         onBack={backToPrevious}
         onSubmit={(result) => setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }))}
+        navigateTo={navigateTo}
         onNextActivity={(activityKey) => {
           const next = findUltimateB2Exercise(activityKey);
           if (next?.exercise) {

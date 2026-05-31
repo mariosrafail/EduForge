@@ -52,13 +52,19 @@ export function AddActivityModal({ onClose, onAdd, adding = false }) {
   };
 
   return (
-    <div className="activity-preview-modal-backdrop" role="presentation" onMouseDown={close}>
+    <div
+      className="activity-preview-modal-backdrop"
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
+    >
       <section
         className="activity-preview-modal add-activity-modal"
         role="dialog"
         aria-modal="true"
         aria-label="Choose activity type"
-        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="activity-preview-modal-head">
           <div className="editor-section-heading">

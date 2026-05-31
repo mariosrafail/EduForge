@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { useRef, useState } from "react";
 
 export function PortalShell({
@@ -38,7 +37,6 @@ export function PortalShell({
       >
         <div className="portal-sidebar-card">
           <span className="portal-rail-avatar" aria-hidden="true">{title?.charAt(0) || "P"}</span>
-          <span className="portal-rail-handle" aria-hidden="true"><ChevronRight size={14} /></span>
           <span className="eyebrow">{title}</span>
           <strong>{profile}</strong>
           <small>{subtitle}</small>

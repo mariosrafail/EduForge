@@ -31,7 +31,7 @@ export function InlineBlankPrompt({ prompt, selectedAnswer = "", submitted = fal
     <span className="choice-inline-prompt">
       <span>{before}</span>
       <span key={displayAnswer || "empty"} className={`choice-inline-blank ${blankState}`}>
-        {displayAnswer || "choose"}
+        {displayAnswer || "blank"}
       </span>
       <span>{after}</span>
     </span>

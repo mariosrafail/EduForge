@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { MonitorPlay, X } from "lucide-react";
 import { StudentCourseView } from "../student/StudentCourseView.jsx";
 import { useSoundEffects } from "../../../context/SoundContext.jsx";
@@ -10,10 +10,18 @@ export function ActivityPreviewPanel({ course, activity, mode = "activity", onCl
     playSound("modalOpen");
   }, [playSound]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     playSound("modalClose");
     onClose();
-  };
+  }, [onClose, playSound]);
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleClose]);
 
   const isActivityPreview = mode === "activity";
   const previewCourse = isActivityPreview ? {
@@ -29,13 +37,19 @@ export function ActivityPreviewPanel({ course, activity, mode = "activity", onCl
     : `${course.title} / ${course.lesson.title}`;
 
   return (
-    <div className="activity-preview-modal-backdrop" role="presentation" onMouseDown={handleClose}>
+    <div
+      className="activity-preview-modal-backdrop"
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) handleClose();
+      }}
+    >
       <section
         className="activity-preview-modal"
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="activity-preview-modal-head">
           <div className="editor-section-heading">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowLeft, BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX, X } from "lucide-react";
 import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
 import unit2ReadingAudio from "../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
 import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
@@ -532,7 +533,7 @@ function CircleWordsExercise({ mode, onSubmit }) {
                 <p className="inline-choice-sentence">
                   {item.before}{" "}
                   <span className={`inline-choice-blank ${blankState}`} aria-live="polite">
-                    {selectedAnswer || "choose"}
+                    {selectedAnswer || "blank"}
                   </span>
                   {" "}{item.after}
                 </p>
@@ -1195,6 +1196,23 @@ function TimedQuiz({ mode, onSubmit }) {
     setTestStarted(true);
   };
 
+  const floatingTimer = testStarted && !submittedRows ? (
+    <div className={`quiz-floating-timer ${timerTone}`} role="status" aria-live="polite">
+      <div className="quiz-floating-timer-main">
+        <span><Timer size={14} /> Quiz 2</span>
+        <strong>{formatTime(remaining)}</strong>
+      </div>
+      <div className="quiz-floating-timer-actions">
+        <small>Answered {displayedAnsweredCount}/{quizQuestions.length}</small>
+        {mode === "student" && (
+          <button type="button" onClick={() => submit()} data-sound-click="submit">
+            Submit
+          </button>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   if (!hasCompletedAttempt && !testStarted) {
     return (
       <Card>
@@ -1240,48 +1258,51 @@ function TimedQuiz({ mode, onSubmit }) {
   }
 
   return (
-    <Card>
-      <div className={`ultimate-quiz-head ${submittedRows ? "submitted" : ""} ${timerTone}`}>
-        <div>
-          <span className="eyebrow"><Timer size={15} /> Ultimate B2 Test Book</span>
-          <h2>Quiz 2</h2>
-          <p>{submittedRows ? "This test has already been submitted." : "Choose the correct answer. Submit when ready or when time is up."}</p>
+    <>
+      <Card className="ultimate-quiz-card">
+        <div className={`ultimate-quiz-head ${submittedRows ? "submitted" : ""} ${timerTone}`}>
+          <div>
+            <span className="eyebrow"><Timer size={15} /> Ultimate B2 Test Book</span>
+            <h2>Quiz 2</h2>
+            <p>{submittedRows ? "This test has already been submitted." : "Choose the correct answer. Submit when ready or when time is up."}</p>
+          </div>
+          <div className="ultimate-quiz-status-actions">
+            <strong className={remaining === 0 ? "time-up" : ""}>{submittedRows ? "Submitted" : formatTime(remaining)}</strong>
+            <span>Answered {displayedAnsweredCount}/{quizQuestions.length}</span>
+            {mode === "student" && !submittedRows && (
+              <button className="secondary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>
+            )}
+          </div>
         </div>
-        <div className="ultimate-quiz-status-actions">
-          <strong className={remaining === 0 ? "time-up" : ""}>{submittedRows ? "Submitted" : formatTime(remaining)}</strong>
-          <span>Answered {displayedAnsweredCount}/{quizQuestions.length}</span>
-          {mode === "student" && !submittedRows && (
-            <button className="secondary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>
-          )}
+        {timeExpired && <div className="inline-status warning">Time is up. The test has been submitted.</div>}
+        {hasCompletedAttempt && <div className="inline-status success">This test has already been submitted.</div>}
+        <div className="ultimate-quiz-progress-row">
+          <Tag tone="blue">Question {Math.min(displayedAnsweredCount + 1, quizQuestions.length)} of {quizQuestions.length}</Tag>
+          <Tag tone="gold">Answered {displayedAnsweredCount}/{quizQuestions.length}</Tag>
         </div>
-      </div>
-      {timeExpired && <div className="inline-status warning">Time is up. The test has been submitted.</div>}
-      {hasCompletedAttempt && <div className="inline-status success">This test has already been submitted.</div>}
-      <div className="ultimate-quiz-progress-row">
-        <Tag tone="blue">Question {Math.min(displayedAnsweredCount + 1, quizQuestions.length)} of {quizQuestions.length}</Tag>
-        <Tag tone="gold">Answered {displayedAnsweredCount}/{quizQuestions.length}</Tag>
-      </div>
-      <ChoiceSet
-        questions={quizQuestions}
-        answers={answers}
-        setAnswers={setAnswers}
-        disabled={Boolean(submittedRows) || mode === "teacher-preview" || remaining === 0}
-        submittedRows={submittedRows}
-      />
-      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>}
-      {submittedRows && (
-        <>
-          {submittedRows.length > 0 ? (
-            <>
-              <div className="inline-status success">Completed. Score: {correctCount}/{submittedRows.length}</div>
-              <FeedbackRows rows={submittedRows} />
-            </>
-          ) : (
-            <div className="inline-status warning">Review details are unavailable for this stored demo attempt.</div>
-          )}
-        </>
-      )}
-    </Card>
+        <ChoiceSet
+          questions={quizQuestions}
+          answers={answers}
+          setAnswers={setAnswers}
+          disabled={Boolean(submittedRows) || mode === "teacher-preview" || remaining === 0}
+          submittedRows={submittedRows}
+        />
+        {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>}
+        {submittedRows && (
+          <>
+            {submittedRows.length > 0 ? (
+              <>
+                <div className="inline-status success">Completed. Score: {correctCount}/{submittedRows.length}</div>
+                <FeedbackRows rows={submittedRows} />
+              </>
+            ) : (
+              <div className="inline-status warning">Review details are unavailable for this stored demo attempt.</div>
+            )}
+          </>
+        )}
+      </Card>
+      {floatingTimer && typeof document !== "undefined" ? createPortal(floatingTimer, document.body) : floatingTimer}
+    </>
   );
 }
 
@@ -1438,30 +1459,61 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
   return <Card><h2>Demo activity not configured</h2><p>This activity key is ready for future content mapping.</p></Card>;
 }
 
-export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity }) {
+function getBookIdForActivity(activityKey, resolved) {
+  if (["video-intro", "reading-ex3", "reading-ex4"].includes(activityKey)) return "students-book";
+  if (activityKey === "listening-page-20") return "workbook";
+  if (["grammar-opening", "grammar-ex4"].includes(activityKey)) return "grammar-book";
+  if (activityKey === "quiz-2") return "test-book";
+  return resolved?.component?.id || null;
+}
+
+function getActivityRouteRole(mode) {
+  return mode === "teacher-preview" ? "teacher" : "student";
+}
+
+function getBookHashForActivity(activityKey, mode = "student", resolved = null) {
+  const bookId = getBookIdForActivity(activityKey, resolved);
+  return bookId ? `${getActivityRouteRole(mode)}-book-${bookId}` : `${getActivityRouteRole(mode)}-books`;
+}
+
+export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
   const key = exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
   const title = activity?.title || exercise?.title || "Ultimate B2 activity";
+  const routeRole = getActivityRouteRole(mode);
+  const packageRoute = `${routeRole}-books`;
+  const bookRoute = getBookHashForActivity(key, mode, resolved);
+  const openRoute = (route) => {
+    if (navigateTo) {
+      navigateTo(route);
+      return;
+    }
+    onBack?.();
+  };
+  const backToBook = () => openRoute(bookRoute);
 
   return (
     <div className="ultimate-activity-runner">
-      <button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back">Back</button>
+      <nav className="ultimate-activity-nav subpage-nav" aria-label="Activity navigation">
+        <button className="ultimate-activity-back subpage-back-button" type="button" onClick={backToBook} data-sound-click="back" aria-label="Back to book">
+          <ArrowLeft size={17} />
+        </button>
+        {resolved && (
+          <div className="ultimate-breadcrumb subpage-breadcrumb">
+            <button type="button" onClick={() => openRoute(packageRoute)} data-sound-click="tab">Ultimate B2 package</button>
+            <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.component.title}</button>
+            <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.unit.title}</button>
+            <span aria-current="page">{exercise.title}</span>
+          </div>
+        )}
+      </nav>
       <SectionTitle
         eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Demo activity"}
         title={title}
-        text={resolved ? `Ultimate B2 package > ${resolved.component.title} > ${resolved.unit.title} > ${exercise.title}` : "Ultimate B2 package > Unit 2 demo activity"}
         action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || "Unit 2"}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
       />
-      {resolved && (
-        <div className="ultimate-breadcrumb">
-          <span>Ultimate B2 package</span>
-          <span>{resolved.component.title}</span>
-          <span>{resolved.unit.title}</span>
-          <strong>{exercise.title}</strong>
-        </div>
-      )}
       {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
       <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />
     </div>

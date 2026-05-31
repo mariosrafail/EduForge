@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Building2, CheckCircle2, ChevronRight, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
@@ -234,7 +234,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
         >
           <div className="admin-sidebar-card">
             <span className="admin-rail-avatar" aria-hidden="true">A</span>
-            <span className="admin-rail-handle" aria-hidden="true"><ChevronRight size={14} /></span>
             <span className="eyebrow">School Admin dashboard</span>
             <h2>Control center</h2>
             <p>Manage the Hamilton House demo profile, users, book access, and class progress for this school only.</p>

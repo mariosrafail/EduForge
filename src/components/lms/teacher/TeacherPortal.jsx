@@ -4,7 +4,7 @@ import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } 
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
-import { BookPackageBrowser } from "../books/BookPackageBrowser.jsx";
+import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
 import { PortalShell } from "../shared/PortalShell.jsx";
 import { TeacherCourseEditor } from "./TeacherCourseEditor.jsx";
@@ -146,13 +146,23 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
           activity={previewExercise.dbActivity || previewExercise}
           mode="teacher-preview"
           onBack={closePreview}
+          navigateTo={navigateTo}
         />
       </section>
     );
   }
 
+  const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
+
   return (
     <section className="teacher-section-stack">
+      {selectedComponent && (
+        <BookSubpageNavigation
+          component={selectedComponent}
+          mode="teacher"
+          onBack={() => onSelectBook?.(null)}
+        />
+      )}
       <SectionTitle
         eyebrow="Books"
         title="Digital book access for the Ultimate B2 package."
@@ -266,8 +276,14 @@ function ResultsModal({ student, assignment, label = "Student results", onClose 
   const tag = assignment ? "Mock results" : student.className;
 
   return (
-    <div className="results-modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <Card className="results-modal" role="dialog" aria-modal="true" aria-labelledby="results-modal-title" onMouseDown={(event) => event.stopPropagation()}>
+    <div
+      className="results-modal-backdrop"
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose?.();
+      }}
+    >
+      <Card className="results-modal" role="dialog" aria-modal="true" aria-labelledby="results-modal-title" onClick={(event) => event.stopPropagation()}>
         <button className="results-modal-close" type="button" onClick={onClose} aria-label="Close results"><X size={18} /></button>
         <div className="card-heading">
           <div>

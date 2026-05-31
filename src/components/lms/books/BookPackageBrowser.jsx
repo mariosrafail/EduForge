@@ -1,5 +1,5 @@
 import { ArrowLeft, BookOpenCheck, CheckSquare, ChevronDown, Copy, Eye, FileText, Layers3, Lock, Play, Send } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg";
 import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import testBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg";
@@ -109,6 +109,25 @@ function TeacherAssignControl({ exercise, classOptions }) {
   const [selectedClasses, setSelectedClasses] = useState([classOptions[0]]);
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState(false);
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (!popoverRef.current?.contains(event.target)) setOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
 
   const toggleClass = (className) => {
     setSelectedClasses((current) => (
@@ -125,7 +144,7 @@ function TeacherAssignControl({ exercise, classOptions }) {
   };
 
   return (
-    <div className="teacher-assign-popover">
+    <div className="teacher-assign-popover" ref={popoverRef}>
       <button
         className="teacher-assign-toggle"
         type="button"
@@ -140,7 +159,7 @@ function TeacherAssignControl({ exercise, classOptions }) {
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div className="teacher-assign-menu" role="dialog" aria-label={`Choose classes for ${exercise.title}`}>
+        <div className="teacher-assign-menu" role="dialog" aria-label={`Choose classes for ${exercise.title}`} onClick={(event) => event.stopPropagation()}>
           <strong>Assign to class</strong>
           <div className="book-browser-class-picker">
             {classOptions.map((className) => (
@@ -385,17 +404,27 @@ function BookGrid({ bookPackage, mode, onSelectBook }) {
   );
 }
 
-function BookDetailView({ component, bookPackage, mode, onBack, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
-  const activeCount = getActiveExercises(component).length;
+export function findBookComponentById(bookPackage = ultimateB2Package, selectedComponentId = null) {
+  const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
+  return activePackage.components.find((component) => isBookMatch(component, selectedComponentId)) || null;
+}
+
+export function BookSubpageNavigation({ component, mode = "student", onBack }) {
+  if (!component) return null;
+
   const role = mode === "teacher" ? "teacher" : "student";
   const canonicalBookId = getCanonicalBookId(component);
 
   return (
-    <Card className="book-detail-view">
-      <div className="book-detail-toolbar">
-        <button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back">
-          <ArrowLeft size={17} /> Back to all books
-        </button>
+    <div className="book-detail-toolbar subpage-nav">
+      <button className="subpage-back-button" type="button" onClick={onBack} data-sound-click="back" aria-label="Back to all books">
+        <ArrowLeft size={17} />
+      </button>
+      <div className="subpage-breadcrumb" aria-label="Book navigation">
+        <button type="button" onClick={onBack} data-sound-click="tab">Ultimate B2 package</button>
+        <span aria-current="page">{component.title}</span>
+      </div>
+      <div className="book-detail-toolbar-actions">
         <button
           className="secondary-action compact-action"
           type="button"
@@ -406,7 +435,15 @@ function BookDetailView({ component, bookPackage, mode, onBack, onStartExercise,
         </button>
         <Tag tone="blue">{mode === "teacher" ? "Teacher preview" : "Student view"}</Tag>
       </div>
+    </div>
+  );
+}
 
+function BookDetailView({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
+  const activeCount = getActiveExercises(component).length;
+
+  return (
+    <Card className="book-detail-view">
       <div className="book-detail-hero">
         <BookCover component={component} bookPackage={bookPackage} size="large" />
         <div>
@@ -491,10 +528,7 @@ export function BookPackageBrowser({
   const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
   const [uncontrolledSelectedComponentId, setUncontrolledSelectedComponentId] = useState(initialSelectedComponentId);
   const selectedComponentId = controlledSelectedComponentId !== undefined ? controlledSelectedComponentId : uncontrolledSelectedComponentId;
-  const selectedComponent = useMemo(
-    () => activePackage.components.find((component) => isBookMatch(component, selectedComponentId)) || null,
-    [activePackage, selectedComponentId],
-  );
+  const selectedComponent = useMemo(() => findBookComponentById(activePackage, selectedComponentId), [activePackage, selectedComponentId]);
 
   const selectComponent = (componentId) => {
     if (controlledSelectedComponentId === undefined) {
@@ -528,7 +562,6 @@ export function BookPackageBrowser({
           component={selectedComponent}
           bookPackage={activePackage}
           mode={mode}
-          onBack={backToBooks}
           onStartExercise={onStartExercise}
           onPreviewExercise={onPreviewExercise}
           classOptions={classOptions}
