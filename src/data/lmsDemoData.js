@@ -50,16 +50,16 @@ export const integrationOptions = [
 ];
 
 export const classes = [
-  { name: "Ultimate B2 A", teacher: "Paris Georgoulakis", students: 21, book: "Ultimate B2 Students Book", completion: 74 },
-  { name: "Ultimate B2 B", teacher: "Paris Georgoulakis", students: 18, book: "Ultimate B2 Workbook", completion: 68 },
-  { name: "Ultimate B2 Exam Prep", teacher: "Paris Georgoulakis", students: 16, book: "Ultimate B2 Test Book", completion: 81 },
+  { name: "Ultimate B2 A", slug: "ultimate-b2-a", teacher: "Paris Georgoulakis", students: 21, book: "Ultimate B2 Students Book", completion: 74 },
+  { name: "Ultimate B2 B", slug: "ultimate-b2-b", teacher: "Paris Georgoulakis", students: 18, book: "Ultimate B2 Workbook", completion: 68 },
+  { name: "Ultimate B2 Exam Prep", slug: "ultimate-b2-exam-prep", teacher: "Paris Georgoulakis", students: 16, book: "Ultimate B2 Test Book", completion: 81 },
 ];
 
 export const bookUnits = [
   {
     unit: "Unit 2",
     title: "Reading and grammar focus",
-    lessons: ["Reading: Text comprehension", "Reading: Exercise 3", "Reading: Exercise 4", "Listening: Workbook page 20", "Grammar: Opening exercise", "Grammar: Exercise 4", "Quiz 2: Timed test"],
+    lessons: ["Reading: Text comprehension", "Reading: Exercise 3", "Reading: Exercise 4", "Listening: Workbook page 20", "Grammar: Opening exercise", "Grammar: Exercise 4", "Quiz 1: Unit check", "Quiz 2: Timed test"],
   },
   {
     unit: "Unit 3",

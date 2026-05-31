@@ -1,8 +1,8 @@
-import { BookOpen, CheckCircle2, ClipboardList, Edit3, GraduationCap, Home, KeyRound, ListChecks, Search, Users, X } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, Copy, Edit3, GraduationCap, Home, KeyRound, Link2, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
-import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
+import { buildActivityHash, buildBookHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -63,6 +63,48 @@ const teacherNavItems = [
 ];
 
 const classNames = teacherPortalClasses.map((item) => item.name);
+
+function CopyInviteLink({ classItem }) {
+  const [copied, setCopied] = useState(false);
+  const inviteUrl = buildClassInviteUrl(classItem);
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard?.writeText(inviteUrl);
+      setCopied(true);
+    } catch {
+      setCopied(true);
+    }
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div className="class-invite-link">
+      <Link2 size={15} />
+      <code>{inviteUrl}</code>
+      <button className="secondary-action compact-action" type="button" onClick={copyInvite} data-sound-click="tab">
+        <Copy size={15} /> {copied ? "Link copied" : "Copy link"}
+      </button>
+    </div>
+  );
+}
+
+function dueDateTone(dueDate) {
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return "neutral";
+  const now = new Date("2026-05-31T12:00:00");
+  const diffDays = Math.ceil((due.getTime() - now.getTime()) / 86400000);
+  if (diffDays < 0) return "overdue";
+  if (diffDays <= 2) return "soon";
+  return "normal";
+}
+
+function dueDateLabel(dueDate) {
+  const tone = dueDateTone(dueDate);
+  if (tone === "overdue") return "Overdue";
+  if (tone === "soon") return "Due soon";
+  return "On track";
+}
 
 const teacherViewBySection = {
   dashboard: "teacher",
@@ -147,6 +189,10 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
           mode="teacher-preview"
           onBack={closePreview}
           navigateTo={navigateTo}
+          onNextActivity={(activityKey) => {
+            const next = findUltimateB2Exercise(activityKey);
+            if (next?.exercise) setPreviewExercise(next.exercise);
+          }}
         />
       </section>
     );
@@ -223,6 +269,7 @@ function TeacherClasses() {
               <div>
                 <strong>{classItem.name}</strong>
                 <small>{classItem.teacher} / {classItem.students} students / assigned book: {classItem.assignedBook}</small>
+                <CopyInviteLink classItem={classItem} />
               </div>
               <Progress value={classItem.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
               <b>{classItem.completion}%</b>
@@ -378,6 +425,7 @@ function TeacherStudents() {
 function TeacherAssignments() {
   const [selectedExercises, setSelectedExercises] = useState(["Unit 2 Reading: Exercise 3"]);
   const [selectedClasses, setSelectedClasses] = useState(["Ultimate B2 A"]);
+  const [dueDate, setDueDate] = useState("2026-06-04");
   const [assigned, setAssigned] = useState(false);
   const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
   const exerciseOptions = [
@@ -386,6 +434,7 @@ function TeacherAssignments() {
     "Unit 2 Listening: Workbook page 20",
     "Unit 2 Grammar: Opening exercise",
     "Unit 2 Grammar: Exercise 4",
+    "Quiz 1: Reading and Vocabulary",
     "Quiz 2: Timed test",
   ];
 
@@ -415,8 +464,12 @@ function TeacherAssignments() {
             <article key={`${assignment.title}-${assignment.className}`}>
               <div>
                 <strong>{assignment.title}</strong>
-                <small>{assignment.component} / {assignment.className} / assigned {assignment.assignedDate}</small>
+                <small>{assignment.component} / {assignment.className}</small>
+                <small>Assigned {assignment.assignedDate} / Due {assignment.dueDate}</small>
               </div>
+              <Tag tone={dueDateTone(assignment.dueDate) === "overdue" ? "red" : dueDateTone(assignment.dueDate) === "soon" ? "gold" : "green"}>
+                {dueDateLabel(assignment.dueDate)}
+              </Tag>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.averageScore}% average</span>
               <button className="secondary-action compact-action" type="button" onClick={() => setSelectedAssignmentResult(assignment)} data-sound-click="tab">View results</button>
@@ -470,14 +523,25 @@ function TeacherAssignments() {
               </label>
             ))}
           </div>
+          <label>
+            Due date
+            <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setAssigned(false); }} />
+          </label>
         </div>
-        {assigned && <div className="inline-status success">Selected exercises assigned to {selectedClasses.join(", ")}.</div>}
+        {assigned && <div className="inline-status success">Selected exercises assigned to {selectedClasses.join(", ")}. Due {new Date(`${dueDate}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.</div>}
       </Card>
     </section>
   );
 }
 
 function TeacherCustomAssignment(props) {
+  const steps = [
+    ["1", "Choose source", "Pick a book, unit, or component before editing."],
+    ["2", "Choose activity", "Select the interactive activity type."],
+    ["3", "Edit content", "Update prompts, answers, and feedback."],
+    ["4", "Preview and assign", "Check the student view before assigning."],
+  ];
+
   return (
     <section className="teacher-section-stack teacher-custom-section">
       <SectionTitle
@@ -485,8 +549,19 @@ function TeacherCustomAssignment(props) {
         title="Create or edit custom interactive activities."
         text="The existing course editor remains available here for custom assignments, previews, and activity authoring."
       />
-      <div className="embedded-teacher-editor">
-        <TeacherCourseEditor {...props} />
+      <div className="custom-assignment-workspace">
+        <aside className="custom-assignment-steps" aria-label="Custom assignment steps">
+          {steps.map(([number, title, text]) => (
+            <article key={title}>
+              <b>{number}</b>
+              <strong>{title}</strong>
+              <span>{text}</span>
+            </article>
+          ))}
+        </aside>
+        <div className="embedded-teacher-editor">
+          <TeacherCourseEditor {...props} />
+        </div>
       </div>
     </section>
   );

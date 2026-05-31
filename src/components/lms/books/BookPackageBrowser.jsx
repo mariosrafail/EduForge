@@ -1,12 +1,17 @@
 import { ArrowLeft, BookOpenCheck, CheckSquare, ChevronDown, Copy, Eye, FileText, Layers3, Lock, Play, Send } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import grammarRulesImage from "../../../assets/books/ultimate-b2/grammar-rules.jpg";
 import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg";
 import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import testBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg";
 import workbookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg";
+import studentTextImage from "../../../assets/books/ultimate-b2/student-text.jpg";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
+import { ReadingTextAudioScreen, StudentsBookPageGateway, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
 import { Card, Tag } from "../Shared.jsx";
+import { BookImageFrame } from "../shared/BookImageFrame.jsx";
 
 const coverAssets = {
   "students-book": studentsBookCover,
@@ -102,6 +107,72 @@ function BookCover({ component, bookPackage, size = "compact" }) {
       <small>{component.type}</small>
       <em>{bookPackage.demoSchool}</em>
     </span>
+  );
+}
+
+function getFlipbookPages(component) {
+  const cover = resolveCoverAsset(component);
+  const canonicalBookId = getCanonicalBookId(component);
+  if (canonicalBookId === "students-book") {
+    return [
+      { title: "Cover", imageSrc: cover, alt: `${component.title} cover` },
+      { title: "Unit 2 Reading", imageSrc: studentTextImage, alt: "Ultimate B2 Unit 2 reading text" },
+      { title: "Reading exercise page", imageSrc: studentTextImage, alt: "Ultimate B2 reading exercise page" },
+    ];
+  }
+  if (canonicalBookId === "grammar-book") {
+    return [
+      { title: "Cover", imageSrc: cover, alt: `${component.title} cover` },
+      { title: "Grammar rules", imageSrc: grammarRulesImage, alt: "Ultimate B2 grammar rules page" },
+    ];
+  }
+  return [
+    { title: "Cover", imageSrc: cover, alt: `${component.title} cover` },
+    { title: "Sample page", imageSrc: cover, alt: `${component.title} sample page` },
+  ];
+}
+
+function BookFlipbook({ component }) {
+  const pages = getFlipbookPages(component);
+  const [pageIndex, setPageIndex] = useState(0);
+  const currentPage = pages[pageIndex];
+  const nextPage = pages[pageIndex + 1];
+
+  return (
+    <div className="book-flipbook">
+      <div className="book-flipbook-toolbar">
+        <button className="secondary-action compact-action" type="button" disabled={pageIndex === 0} onClick={() => setPageIndex((current) => Math.max(0, current - 1))} data-sound-click="tab">
+          Previous
+        </button>
+        <strong>Page {pageIndex + 1} of {pages.length}</strong>
+        <button className="secondary-action compact-action" type="button" disabled={pageIndex >= pages.length - 1} onClick={() => setPageIndex((current) => Math.min(pages.length - 1, current + 1))} data-sound-click="tab">
+          Next
+        </button>
+      </div>
+      <div className="book-flipbook-stage" aria-live="polite">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pageIndex}
+            className="book-flipbook-spread"
+            initial={{ opacity: 0, rotateY: -8, x: 24 }}
+            animate={{ opacity: 1, rotateY: 0, x: 0 }}
+            exit={{ opacity: 0, rotateY: 8, x: -24 }}
+            transition={{ duration: 0.22 }}
+          >
+            <BookImageFrame title={currentPage.title} imageSrc={currentPage.imageSrc} alt={currentPage.alt} maxHeight="620px" zoomTitle={currentPage.title} />
+            {nextPage && <BookImageFrame title={nextPage.title} imageSrc={nextPage.imageSrc} alt={nextPage.alt} maxHeight="620px" zoomTitle={nextPage.title} className="book-flipbook-next-page" />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      <div className="book-flipbook-thumbnails" aria-label="Page selector">
+        {pages.map((page, index) => (
+          <button key={`${page.title}-${index}`} type="button" className={index === pageIndex ? "active" : ""} onClick={() => setPageIndex(index)} data-sound-click="tab" aria-label={`Open page ${index + 1}`}>
+            <img src={page.imageSrc} alt="" />
+            <span>{index + 1}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -356,6 +427,87 @@ function TeacherBookUnitList({ component, onPreviewExercise, classOptions }) {
   );
 }
 
+function BackToPagesButton({ onBack }) {
+  return (
+    <button className="secondary-action compact-action back-to-pages-button" type="button" onClick={onBack} aria-label="Back to pages 20-21" data-sound-click="back">
+      <ArrowLeft size={16} /> Back to pages 20-21
+    </button>
+  );
+}
+
+function StudentBookGatewayExperience({ mode = "student" }) {
+  const [bookScreen, setBookScreen] = useState("gateway");
+  const [gatewayOpenSectionId, setGatewayOpenSectionId] = useState(null);
+  const runnerMode = mode === "teacher" ? "teacher-preview" : "student";
+  const backToReadingSpread = () => {
+    setGatewayOpenSectionId("reading-20-21");
+    setBookScreen("gateway");
+  };
+
+  if (bookScreen === "video") {
+    return (
+      <div className="book-hotspot-screen">
+        <BackToPagesButton onBack={backToReadingSpread} />
+        <Unit2VideoOnlyScreen
+          mode={runnerMode}
+          onContinue={() => setBookScreen("text-audio")}
+        />
+      </div>
+    );
+  }
+
+  if (bookScreen === "text-audio") {
+    return (
+      <div className="book-hotspot-screen">
+        <BackToPagesButton onBack={backToReadingSpread} />
+        <ReadingTextAudioScreen
+          onBack={backToReadingSpread}
+          onStartExercise3={() => {
+            setGatewayOpenSectionId("reading-20-21");
+            setBookScreen("exercise-3");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (bookScreen === "exercise-3" || bookScreen === "exercise-4") {
+    const activityKey = bookScreen === "exercise-3" ? "reading-ex3" : "reading-ex4";
+    return (
+      <div className="book-hotspot-screen">
+        <BackToPagesButton onBack={backToReadingSpread} />
+        <UltimateB2ActivityRunner
+          activityKey={activityKey}
+          mode={runnerMode}
+          onBack={backToReadingSpread}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <StudentsBookPageGateway
+      initialOpenSectionId={gatewayOpenSectionId}
+      onContinue={() => {
+        setGatewayOpenSectionId("reading-20-21");
+        setBookScreen("video");
+      }}
+      onTextAudio={() => {
+        setGatewayOpenSectionId("reading-20-21");
+        setBookScreen("text-audio");
+      }}
+      onExercise3={() => {
+        setGatewayOpenSectionId("reading-20-21");
+        setBookScreen("exercise-3");
+      }}
+      onExercise4={() => {
+        setGatewayOpenSectionId("reading-20-21");
+        setBookScreen("exercise-4");
+      }}
+    />
+  );
+}
+
 function BookGrid({ bookPackage, mode, onSelectBook }) {
   const role = mode === "teacher" ? "teacher" : "student";
 
@@ -441,6 +593,9 @@ export function BookSubpageNavigation({ component, mode = "student", onBack }) {
 
 function BookDetailView({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
   const activeCount = getActiveExercises(component).length;
+  const [viewMode, setViewMode] = useState("contents");
+  const canonicalBookId = getCanonicalBookId(component);
+  const useStudentGateway = mode !== "teacher" && canonicalBookId === "students-book";
 
   return (
     <Card className="book-detail-view">
@@ -455,10 +610,20 @@ function BookDetailView({ component, bookPackage, mode, onStartExercise, onPrevi
             <span>{activeCount} demo item{activeCount === 1 ? "" : "s"} active</span>
             <span>Publisher content placeholders locked</span>
           </div>
+          {!useStudentGateway && (
+            <div className="book-detail-mode-toggle">
+              <button className={viewMode === "contents" ? "selected" : ""} type="button" onClick={() => setViewMode("contents")} data-sound-click="tab">Contents</button>
+              <button className={viewMode === "flipbook" ? "selected" : ""} type="button" onClick={() => setViewMode("flipbook")} data-sound-click="tab">Read as flipbook</button>
+            </div>
+          )}
         </div>
       </div>
 
-      {mode === "teacher" ? (
+      {useStudentGateway ? (
+        <StudentBookGatewayExperience mode={mode} />
+      ) : viewMode === "flipbook" ? (
+        <BookFlipbook component={component} />
+      ) : mode === "teacher" ? (
         <TeacherBookUnitList component={component} onPreviewExercise={onPreviewExercise} classOptions={classOptions} />
       ) : (
         <div className="book-unit-list">

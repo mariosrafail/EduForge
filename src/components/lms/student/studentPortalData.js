@@ -48,6 +48,15 @@ export const studentAssignments = [
     demoActivityKey: "listening-page-20",
   },
   {
+    title: "Quiz 1: Reading and Vocabulary",
+    component: "Ultimate B2 Test Book",
+    className: "Ultimate B2 A",
+    dueStatus: "This week",
+    estimatedTime: "20 min",
+    completionStatus: "Not started",
+    demoActivityKey: "quiz-1",
+  },
+  {
     title: "Quiz 2: Timed test",
     component: "Ultimate B2 Test Book",
     className: "Ultimate B2 A",

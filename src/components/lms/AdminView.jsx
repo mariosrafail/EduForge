@@ -2,6 +2,7 @@ import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2
 import { useEffect, useRef, useState } from "react";
 import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../data/lmsDemoData.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../services/usersApi.js";
+import { buildClassInviteUrl } from "../../utils/hashRoutes.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "./Shared.jsx";
 
 const ALLOWED_PRIMARY_COLORS = [
@@ -16,6 +17,30 @@ const ALLOWED_PRIMARY_COLORS = [
   { label: "Slate", value: "#334155" },
   { label: "Charcoal", value: "#1f2937" },
 ];
+
+function AdminInviteLink({ classItem }) {
+  const [copied, setCopied] = useState(false);
+  const inviteUrl = buildClassInviteUrl(classItem);
+
+  const copyInvite = async () => {
+    try {
+      await navigator.clipboard?.writeText(inviteUrl);
+      setCopied(true);
+    } catch {
+      setCopied(true);
+    }
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  return (
+    <div className="class-invite-link admin-class-invite">
+      <code>{inviteUrl}</code>
+      <button className="secondary-action compact-action" type="button" onClick={copyInvite} data-sound-click="tab">
+        {copied ? "Link copied" : "Copy link"}
+      </button>
+    </div>
+  );
+}
 
 function hexToRgb(hex) {
   const normalized = String(hex || "").trim().replace("#", "");
@@ -450,6 +475,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                       <div>
                         <strong>{item.name}</strong>
                         <span>{item.teacher} / {item.students} students / {item.book}</span>
+                        <AdminInviteLink classItem={item} />
                       </div>
                       <Progress value={item.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
                     </article>

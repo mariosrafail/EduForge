@@ -7,6 +7,7 @@ export const activityKeys = [
   "listening-page-20",
   "grammar-opening",
   "grammar-ex4",
+  "quiz-1",
   "quiz-2",
 ];
 
@@ -45,12 +46,32 @@ function cleanHash(hash = "") {
   return String(hash || "").replace(/^#/, "").trim();
 }
 
+export function slugifyClassName(className = "") {
+  return String(className || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function buildBookHash(role, bookId) {
   return `${role}-book-${bookId}`;
 }
 
 export function buildActivityHash(activityKey, mode = "student") {
   return mode === "teacher-preview" ? `teacher-preview-${activityKey}` : `activity-${activityKey}`;
+}
+
+export function buildClassInviteHash(classItem = {}) {
+  const slug = classItem.slug || classItem.classSlug || slugifyClassName(classItem.name);
+  return `join-class/${slug}`;
+}
+
+export function buildClassInviteUrl(classItem = {}) {
+  const hash = buildClassInviteHash(classItem);
+  if (typeof window === "undefined") return `/#${hash}`;
+  return `${window.location.origin}${window.location.pathname}${window.location.search}#${hash}`;
 }
 
 export function getBookFromHash(hash) {
@@ -81,6 +102,20 @@ export function getActivityFromHash(hash) {
 
 export function parseHashRoute(hash = "") {
   const hashView = cleanHash(hash) || "home";
+  const joinClassMatch = hashView.match(/^join-class\/([^/]+)$/);
+  if (joinClassMatch) {
+    return {
+      hash: hashView,
+      view: "join-class",
+      selectedBookId: null,
+      activityKey: null,
+      classSlug: joinClassMatch[1],
+      mode: "student",
+      role: "student",
+      valid: true,
+    };
+  }
+
   const bookRoute = getBookFromHash(hashView);
   if (bookRoute) {
     return {

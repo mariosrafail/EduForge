@@ -313,7 +313,130 @@ export const grammarQuizQuestions = [
   { id: "gq-5", question: "Complete: She wished she ___ asked users earlier.", options: ["had", "has", "would"], answer: "had" },
 ];
 
-export const quizQuestions = [
+export const quiz1Questions = [
+  {
+    id: "quiz1-1",
+    question: "She's a very experienced ___. She's made more than twenty films in the last thirty years.",
+    options: ["A. cast", "B. crew", "C. producer", "D. cinemagoer"],
+    answer: "C. producer",
+  },
+  {
+    id: "quiz1-2",
+    question: "The film had a huge ___ and included several famous actors.",
+    options: ["A. cast", "B. review", "C. audience", "D. scene"],
+    answer: "A. cast",
+  },
+  {
+    id: "quiz1-3",
+    question: "We arrived late and missed the opening ___ of the play.",
+    options: ["A. plot", "B. scene", "C. subtitle", "D. critic"],
+    answer: "B. scene",
+  },
+  {
+    id: "quiz1-4",
+    question: "The documentary was so ___ that I kept thinking about it the next day.",
+    options: ["A. thought-provoking", "B. predictable", "C. ordinary", "D. private"],
+    answer: "A. thought-provoking",
+  },
+  {
+    id: "quiz1-5",
+    question: "The story was easy to follow because the ___ was simple and clear.",
+    options: ["A. plot", "B. cast", "C. review", "D. venue"],
+    answer: "A. plot",
+  },
+  {
+    id: "quiz1-6",
+    question: "The special effects looked completely ___.",
+    options: ["A. realistic", "B. ordinary", "C. crowded", "D. native"],
+    answer: "A. realistic",
+  },
+  {
+    id: "quiz1-7",
+    question: "A person who writes opinions about films, plays, or books is a ___.",
+    options: ["A. critic", "B. crew", "C. producer", "D. character"],
+    answer: "A. critic",
+  },
+  {
+    id: "quiz1-8",
+    question: "The audience gave the actors a standing ___ at the end.",
+    options: ["A. ovation", "B. location", "C. direction", "D. reservation"],
+    answer: "A. ovation",
+  },
+  {
+    id: "quiz1-9",
+    question: "The book was ___ into a successful TV series.",
+    options: ["A. adapted", "B. located", "C. performed", "D. released"],
+    answer: "A. adapted",
+  },
+  {
+    id: "quiz1-10",
+    question: "I usually read a ___ before deciding whether to watch a new film.",
+    options: ["A. review", "B. crew", "C. scene", "D. stage"],
+    answer: "A. review",
+  },
+  {
+    id: "quiz1-11",
+    question: "The lead ___ was excellent and made the character feel real.",
+    options: ["A. actor", "B. audience", "C. subtitle", "D. plot"],
+    answer: "A. actor",
+  },
+  {
+    id: "quiz1-12",
+    question: "This cinema shows foreign films with English ___.",
+    options: ["A. subtitles", "B. scenes", "C. reviews", "D. venues"],
+    answer: "A. subtitles",
+  },
+  {
+    id: "quiz1-13",
+    question: "The concert ___ was full, so we had to stand at the back.",
+    options: ["A. venue", "B. plot", "C. critic", "D. cast"],
+    answer: "A. venue",
+  },
+  {
+    id: "quiz1-14",
+    question: "The main character has to ___ a difficult choice at the end.",
+    options: ["A. make", "B. do", "C. have", "D. take"],
+    answer: "A. make",
+  },
+  {
+    id: "quiz1-15",
+    question: "The ending was very ___; everyone guessed it halfway through.",
+    options: ["A. predictable", "B. realistic", "C. moving", "D. powerful"],
+    answer: "A. predictable",
+  },
+  {
+    id: "quiz1-16",
+    question: "I found the final scene very ___ and almost cried.",
+    options: ["A. moving", "B. crowded", "C. ordinary", "D. private"],
+    answer: "A. moving",
+  },
+  {
+    id: "quiz1-17",
+    question: "The theatre company will ___ the play again next month.",
+    options: ["A. perform", "B. locate", "C. adapt", "D. review"],
+    answer: "A. perform",
+  },
+  {
+    id: "quiz1-18",
+    question: "The film was ___ last Friday and quickly became popular.",
+    options: ["A. released", "B. performed", "C. located", "D. produced"],
+    answer: "A. released",
+  },
+  {
+    id: "quiz1-19",
+    question: "The supporting ___ were more interesting than the hero.",
+    options: ["A. characters", "B. subtitles", "C. critics", "D. venues"],
+    answer: "A. characters",
+  },
+  {
+    id: "quiz1-20",
+    question: "The film ___ worked behind the camera to prepare each shot.",
+    options: ["A. crew", "B. cast", "C. audience", "D. critic"],
+    answer: "A. crew",
+  },
+];
+
+export const quiz2Questions = [
   {
     id: "quiz2-1",
     question: "The pilot couldn't see the runway, so he had to rely on the ___ to help him land the plane.",
@@ -555,3 +678,5 @@ export const quizQuestions = [
     answer: "D. Had he been travelling",
   },
 ];
+
+export const quizQuestions = quiz2Questions;

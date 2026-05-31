@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
+import { JoinClassView } from "./components/lms/JoinClassView.jsx";
 import { RoleSelection } from "./components/lms/RoleSelection.jsx";
 import { Header, PageTransition } from "./components/lms/Shared.jsx";
 import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
@@ -50,7 +51,7 @@ function transitionGroupForView(view, activityKey = null) {
 }
 
 export default function App() {
-  const { view, navigateTo, activityKey, selectedBookId, mode: routeMode } = useHashView();
+  const { view, navigateTo, activityKey, selectedBookId, classSlug, mode: routeMode } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
   const courseData = useCourseData();
@@ -171,6 +172,7 @@ export default function App() {
           <StudentCourseView course={courseData.course} navigateTo={navigateTo} courseError={courseData.error} previewMode />
         )}
         {view === "flow" && <FullDemoFlow navigateTo={navigateTo} />}
+        {view === "join-class" && <JoinClassView classSlug={classSlug} navigateTo={navigateTo} />}
       </PageTransition>
     </div>
   );

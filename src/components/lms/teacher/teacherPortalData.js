@@ -1,6 +1,7 @@
 export const teacherPortalClasses = [
   {
     name: "Ultimate B2 A",
+    slug: "ultimate-b2-a",
     teacher: "Paris Georgoulakis",
     students: 21,
     assignedBook: "Ultimate B2",
@@ -8,6 +9,7 @@ export const teacherPortalClasses = [
   },
   {
     name: "Ultimate B2 B",
+    slug: "ultimate-b2-b",
     teacher: "Paris Georgoulakis",
     students: 18,
     assignedBook: "Ultimate B2",
@@ -15,6 +17,7 @@ export const teacherPortalClasses = [
   },
   {
     name: "Ultimate B2 Exam Prep",
+    slug: "ultimate-b2-exam-prep",
     teacher: "Paris Georgoulakis",
     students: 16,
     assignedBook: "Ultimate B2",
@@ -81,6 +84,7 @@ export const teacherPortalAssignments = [
     component: "Ultimate B2 Students Book",
     className: "Ultimate B2 A",
     assignedDate: "May 27, 2026",
+    dueDate: "June 2, 2026",
     submitted: 16,
     total: 21,
     averageScore: 78,
@@ -90,6 +94,7 @@ export const teacherPortalAssignments = [
     component: "Ultimate B2 Workbook",
     className: "Ultimate B2 A",
     assignedDate: "May 28, 2026",
+    dueDate: "June 1, 2026",
     submitted: 14,
     total: 21,
     averageScore: 74,
@@ -99,6 +104,7 @@ export const teacherPortalAssignments = [
     component: "Ultimate B2 Grammar Book",
     className: "Ultimate B2 B",
     assignedDate: "May 28, 2026",
+    dueDate: "May 30, 2026",
     submitted: 12,
     total: 18,
     averageScore: 72,
@@ -108,6 +114,7 @@ export const teacherPortalAssignments = [
     component: "Ultimate B2 Test Book",
     className: "Ultimate B2 Exam Prep",
     assignedDate: "May 29, 2026",
+    dueDate: "June 5, 2026",
     submitted: 11,
     total: 16,
     averageScore: 81,

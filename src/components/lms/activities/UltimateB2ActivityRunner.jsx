@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX } from "lucide-react";
+import page19Image from "../../../../selides/19.png";
+import page20To21Image from "../../../../selides/20-21.png";
+import page22To23Image from "../../../../selides/22-23.png";
+import page24To25Image from "../../../../selides/24-25.png";
+import page26Image from "../../../../selides/26.png";
+import page27Image from "../../../../selides/27.png";
+import page28To29Image from "../../../../selides/28-29.png";
+import page30Image from "../../../../selides/30.png";
+import page31Image from "../../../../selides/31.png";
+import page32Image from "../../../../selides/32.png";
+import page33Image from "../../../../selides/33.png";
+import page34Image from "../../../../selides/34.png";
 import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
 import unit2ReadingAudio from "../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
 import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
@@ -15,6 +28,8 @@ import {
   grammarExercise4,
   grammarOpening,
   listeningGapFillItems,
+  quiz1Questions,
+  quiz2Questions,
   quizQuestions,
   readingExercise3,
   readingExercise3Options,
@@ -572,39 +587,490 @@ function CircleWordsExercise({ mode, onSubmit }) {
   );
 }
 
-function VideoIntro({ mode, onSubmit, onNextActivity }) {
-  const [watched, setWatched] = useState(false);
-  const completeVideo = () => {
-    if (!watched) {
-      setWatched(true);
-      onSubmit?.({ activityKey: "video-intro", score: 100 });
-      return;
-    }
-    onNextActivity?.("reading-ex3");
+function readingParagraphText(paragraph) {
+  return (paragraph.parts || [paragraph.text]).map((part) => (typeof part === "string" ? part : `[${part.gap}]`)).join(" ");
+}
+
+function ReadingPreparationText({ highlighted = false }) {
+  const highlightTerms = [
+    "Bermuda Triangle",
+    "electric fog",
+    "never-ending tunnel",
+    "electronic equipment stopped functioning",
+    "already inside the Miami air space",
+    "45 minutes",
+  ];
+
+  const renderHighlightedText = (text) => {
+    const pattern = new RegExp(`(${highlightTerms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+    return text.split(pattern).map((part, index) => {
+      const isHighlighted = highlightTerms.some((term) => term.toLowerCase() === part.toLowerCase());
+      return isHighlighted ? <mark key={`${part}-${index}`}>{part}</mark> : <span key={`${part}-${index}`}>{part}</span>;
+    });
   };
 
   return (
-    <Card className="ultimate-media-card">
+    <div className={`reading-prep-text ${highlighted ? "highlighted" : ""}`}>
+      <div className="reading-prep-text-heading">
+        <span className="eyebrow"><BookOpen size={15} /> Students Book / Unit 2 Reading</span>
+        <h2>On a fast track</h2>
+        <p>{highlighted ? "Key ideas are highlighted before students start the missing sentence exercise." : "Read the full text before moving on to the highlighted version."}</p>
+      </div>
+      <div className="reading-prep-paragraphs">
+        {readingText.map((paragraph, index) => (
+          <p key={paragraph.id}>
+            <b>{index + 1}</b>
+            <span>{highlighted ? renderHighlightedText(readingParagraphText(paragraph)) : readingParagraphText(paragraph)}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const unit2PageSections = [
+  { id: "reading-19", title: "Reading", pages: "pg 19", images: [page19Image] },
+  { id: "reading-20-21", title: "Reading", pages: "pg 20-21", images: [page20To21Image], continuesToVideo: true },
+  { id: "vocabulary-22-23", title: "Vocabulary in Use", pages: "pg 22-23", images: [page22To23Image] },
+  { id: "grammar-24-25", title: "Grammar in Use", pages: "pg 24-25", images: [page24To25Image] },
+  { id: "listening-26", title: "Listening", pages: "pg 26", images: [page26Image] },
+  { id: "speaking-27", title: "Speaking", pages: "pg 27", images: [page27Image] },
+  { id: "writing-28-29", title: "Writing", pages: "pg 28-29", images: [page28To29Image] },
+  { id: "review-30", title: "Review 2", pages: "pg 30", images: [page30Image] },
+  { id: "practice-31-32", title: "Practice 2", pages: "pg 31-32", images: [page31Image, page32Image] },
+  { id: "progress-check-33-34", title: "Progress check 1", pages: "pg 33-34", images: [page33Image, page34Image] },
+];
+
+const readingSpreadHotspots = [
+  { id: "video", label: "Video", top: "7%", left: "3.2%", width: "45%", height: "14%", ariaLabel: "Open video activity from page 20" },
+  { id: "text-audio", label: "Text + Audio", top: "22%", left: "3.4%", width: "46.2%", height: "66%", ariaLabel: "Open reading text with audio from page 20" },
+  { id: "exercise-3", label: "Exercise 3", top: "8%", left: "53.2%", width: "43.5%", height: "38%", ariaLabel: "Open Exercise 3 missing sentences" },
+  { id: "exercise-4", label: "Exercise 4", top: "48%", left: "53.3%", width: "43.4%", height: "29%", ariaLabel: "Open Exercise 4 circle the correct words" },
+];
+
+function ReadingSpreadHotspots({ onHotspot }) {
+  return (
+    <div className="reading-spread-hotspots" aria-label="Reading page shortcuts">
+      {readingSpreadHotspots.map((hotspot, index) => (
+        <motion.button
+          key={hotspot.id}
+          type="button"
+          className="reading-spread-hotspot"
+          style={{ top: hotspot.top, left: hotspot.left, width: hotspot.width, height: hotspot.height }}
+          aria-label={hotspot.ariaLabel}
+          onClick={() => onHotspot?.(hotspot.id)}
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.28 + index * 0.06, duration: 0.22, ease: "easeOut" }}
+          whileHover={{ scale: 1.012 }}
+          whileTap={{ scale: 0.985 }}
+          data-sound-click="submit"
+        >
+          <span>{hotspot.label}</span>
+        </motion.button>
+      ))}
+    </div>
+  );
+}
+
+export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, onExercise4, initialOpenSectionId = null }) {
+  const [activeSectionIndex, setActiveSectionIndex] = useState(null);
+  const [navigationDirection, setNavigationDirection] = useState(1);
+  const [openingSectionId, setOpeningSectionId] = useState(null);
+  const selectedSection = activeSectionIndex === null ? null : unit2PageSections[activeSectionIndex];
+
+  useEffect(() => {
+    if (!initialOpenSectionId) return;
+    const nextIndex = unit2PageSections.findIndex((section) => section.id === initialOpenSectionId);
+    if (nextIndex >= 0) {
+      setNavigationDirection(1);
+      setActiveSectionIndex(nextIndex);
+    }
+  }, [initialOpenSectionId]);
+
+  useEffect(() => {
+    if (activeSectionIndex === null) return undefined;
+
+    const handleViewerKeys = (event) => {
+      if (event.key === "Escape") {
+        setActiveSectionIndex(null);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setNavigationDirection(1);
+        setActiveSectionIndex((current) => Math.min(unit2PageSections.length - 1, current + 1));
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setNavigationDirection(-1);
+        setActiveSectionIndex((current) => Math.max(0, current - 1));
+      }
+    };
+    window.addEventListener("keydown", handleViewerKeys);
+    return () => window.removeEventListener("keydown", handleViewerKeys);
+  }, [activeSectionIndex]);
+
+  const openSection = (section, index) => {
+    setOpeningSectionId(section.id);
+    setNavigationDirection(1);
+    window.setTimeout(() => {
+      setActiveSectionIndex(index);
+      setOpeningSectionId(null);
+    }, 170);
+  };
+
+  const goToSection = (nextIndex) => {
+    setNavigationDirection(nextIndex > activeSectionIndex ? 1 : -1);
+    setActiveSectionIndex(Math.min(Math.max(nextIndex, 0), unit2PageSections.length - 1));
+  };
+
+  const goToPreviousSection = () => {
+    if (activeSectionIndex <= 0) return;
+    goToSection(activeSectionIndex - 1);
+  };
+
+  const goToNextSection = () => {
+    if (activeSectionIndex >= unit2PageSections.length - 1) return;
+    goToSection(activeSectionIndex + 1);
+  };
+
+  const handleReadingHotspot = (hotspotId) => {
+    if (hotspotId === "video") onContinue?.();
+    if (hotspotId === "text-audio") onTextAudio?.();
+    if (hotspotId === "exercise-3") onExercise3?.();
+    if (hotspotId === "exercise-4") onExercise4?.();
+  };
+
+  if (selectedSection) {
+    const spreadClass = selectedSection.images.length > 1 ? "two-page-spread" : "single-page-spread";
+    const isFirstSection = activeSectionIndex === 0;
+    const isLastSection = activeSectionIndex === unit2PageSections.length - 1;
+    const pageTurnVariants = {
+      enter: (direction) => ({
+        opacity: 0,
+        x: direction > 0 ? 72 : -72,
+        scale: 0.965,
+        rotateY: direction > 0 ? -10 : 10,
+      }),
+      center: { opacity: 1, x: 0, scale: 1, rotateY: 0 },
+      exit: (direction) => ({
+        opacity: 0,
+        x: direction > 0 ? -72 : 72,
+        scale: 0.965,
+        rotateY: direction > 0 ? 10 : -10,
+      }),
+    };
+
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="page-open"
+          className="students-book-gateway book-page-spread-view"
+          initial={{ opacity: 0, y: 22, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -18, scale: 0.98 }}
+          transition={{ duration: 0.34, ease: [0.2, 0.9, 0.2, 1] }}
+        >
+          <motion.span className="book-page-ambient-orb one" aria-hidden="true" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} />
+          <motion.span className="book-page-ambient-orb two" aria-hidden="true" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.08 }} />
+          <div className="book-page-spread-toolbar">
+            <motion.button className="secondary-action compact-action" type="button" onClick={() => setActiveSectionIndex(null)} data-sound-click="back" aria-label="Back to Unit 2 pages" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+              <ArrowLeft size={16} /> Back to pages
+            </motion.button>
+            <div>
+              <span className="eyebrow">Students Book · Unit 2</span>
+              <h2>{selectedSection.title} {selectedSection.pages}</h2>
+              <small className="book-page-section-counter">{activeSectionIndex + 1} / {unit2PageSections.length}</small>
+            </div>
+            <motion.button
+              className={`${selectedSection.continuesToVideo ? "primary-action" : "secondary-action"} compact-action`}
+              type="button"
+              onClick={selectedSection.continuesToVideo ? onContinue : () => setActiveSectionIndex(null)}
+              data-sound-click={selectedSection.continuesToVideo ? "submit" : "back"}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {selectedSection.continuesToVideo ? "Continue to video" : "Back to unit pages"}
+            </motion.button>
+          </div>
+          <div className="book-page-viewer-shell">
+            <motion.button className="book-page-turn-button previous" type="button" onClick={goToPreviousSection} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
+              <ArrowLeft size={18} />
+              <span>Previous</span>
+            </motion.button>
+            <AnimatePresence mode="wait" custom={navigationDirection}>
+              <motion.div
+                key={selectedSection.id}
+                className={`book-page-spread-stage ${spreadClass}`}
+                layoutId={`unit2-page-${selectedSection.id}`}
+                custom={navigationDirection}
+                variants={pageTurnVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
+              >
+                <div className={`book-page-image-layer ${spreadClass}`}>
+                  {selectedSection.images.map((image, index) => (
+                    <motion.img
+                      key={`${selectedSection.id}-${index}`}
+                      src={image}
+                      alt={`Students Book Unit 2 ${selectedSection.title} ${selectedSection.pages}${selectedSection.images.length > 1 ? ` page ${index + 1}` : ""}`}
+                      initial={{ opacity: 0, y: 14, rotateY: navigationDirection > 0 ? -4 : 4 }}
+                      animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                      transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
+                    />
+                  ))}
+                  {selectedSection.id === "reading-20-21" && <ReadingSpreadHotspots onHotspot={handleReadingHotspot} />}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+            <motion.button className="book-page-turn-button next" type="button" onClick={goToNextSection} disabled={isLastSection} aria-label="Next book section" data-sound-click="tab" whileHover={isLastSection ? undefined : { x: 3 }} whileTap={isLastSection ? undefined : { scale: 0.96 }}>
+              <span>Next</span>
+              <ArrowLeft size={18} />
+            </motion.button>
+          </div>
+          <div className="book-page-mini-nav" aria-label="Unit 2 page sections">
+            {unit2PageSections.map((section, index) => (
+              <button
+                key={`mini-${section.id}`}
+                type="button"
+                className={index === activeSectionIndex ? "active" : ""}
+                onClick={() => goToSection(index)}
+                aria-label={`Open ${section.title} pages ${section.pages.replace(/^pg\s*/i, "")}`}
+                aria-current={index === activeSectionIndex ? "page" : undefined}
+                data-sound-click="tab"
+              >
+                <span>{index + 1}</span>
+                <small>{section.pages.replace("pg ", "")}</small>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <motion.div
+      className="students-book-gateway"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.42, ease: [0.2, 0.9, 0.2, 1] }}
+    >
+      <motion.span className="book-gateway-bg-orb one" aria-hidden="true" animate={{ x: [0, 18, 0], y: [0, -12, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
+      <motion.span className="book-gateway-bg-orb two" aria-hidden="true" animate={{ x: [0, -16, 0], y: [0, 14, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }} />
+      <div className="students-book-gateway-hero">
+        <div>
+          <span className="eyebrow"><BookOpen size={15} /> Students Book · Unit 2</span>
+          <h2>Choose a page section.</h2>
+          <p>Open any Unit 2 page section. Reading pg 20-21 continues into the video introduction when you are ready.</p>
+        </div>
+        <Tag tone="green">All sections available</Tag>
+      </div>
+      <div className="book-section-grid">
+        {unit2PageSections.map((section, index) => (
+          <motion.button
+            key={section.id}
+            type="button"
+            className={`book-section-card available ${openingSectionId === section.id ? "opening" : ""}`}
+            onClick={() => openSection(section, index)}
+            title={`Open ${section.title} ${section.pages}`}
+            aria-label={`Open ${section.title} pages ${section.pages.replace(/^pg\s*/i, "")}`}
+            data-sound-click="submit"
+            initial={{ opacity: 0, y: 22, scale: 0.96, rotateX: 3 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: index * 0.055, duration: 0.34, ease: [0.2, 0.9, 0.2, 1] }}
+            whileHover={{ y: -10, scale: 1.035, rotateX: 2, rotateY: index % 2 === 0 ? -2 : 2 }}
+            whileTap={{ scale: 0.975 }}
+          >
+            <motion.span className="book-section-thumb" layoutId={`unit2-page-${section.id}`}>
+              {section.images.map((image, imageIndex) => (
+                <img key={`${section.id}-thumb-${imageIndex}`} src={image} alt="" loading="lazy" />
+              ))}
+            </motion.span>
+            <span className="book-section-card-copy">
+              <strong>{section.title}</strong>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+export function ReadingTextAudioScreen({ onBack, onStartExercise3 }) {
+  return (
+    <motion.div
+      className="reading-text-audio-screen"
+      initial={{ opacity: 0, y: 18, scale: 0.99 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+    >
+      <Card className="reading-text-audio-card">
+        <div className="book-page-spread-toolbar reading-text-audio-toolbar">
+          <motion.button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+            <ArrowLeft size={16} /> Back to page 20-21
+          </motion.button>
+          <div>
+            <span className="eyebrow"><BookOpen size={15} /> Students Book / Unit 2</span>
+            <h2>Reading text</h2>
+          </div>
+          <motion.button className="primary-action compact-action" type="button" onClick={onStartExercise3} data-sound-click="submit" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+            Start Exercise 3
+          </motion.button>
+        </div>
+        <ReadingAudioPlayer />
+        <BookImageFrame
+          title="On a fast track"
+          subtitle="Read the full text while listening to the audio."
+          imageSrc={studentTextImage}
+          alt="Student's Book Unit 2 reading text"
+          zoomTitle="Reading text"
+          maxHeight="72vh"
+          className="reading-text-audio-image"
+        />
+      </Card>
+    </motion.div>
+  );
+}
+
+export function Unit2VideoOnlyScreen({ mode = "student", onBack, onContinue }) {
+  const [watched, setWatched] = useState(false);
+
+  return (
+    <Card className="ultimate-media-card video-intro-only-card">
       <div className="ultimate-media-heading">
         <span className="eyebrow"><Play size={15} /> Watch before reading</span>
         <Tag tone={watched ? "green" : "gold"}>{watched ? "Ready for reading" : "Required intro"}</Tag>
       </div>
       <CustomVideoPlayer mode={mode} onWatched={() => setWatched(true)} />
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
-      <BookImageFrame
-        title="Reading text"
-        subtitle="Scroll to read the full text, or open it larger."
-        imageSrc={studentTextImage}
-        alt="Student's Book reading text"
-        zoomTitle="Reading text"
-      />
-      {mode === "student" && (
-        <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
-          {watched ? "Start Exercise 3" : "Continue to Reading Text"}
+      {mode === "teacher-preview" && <div className="inline-status">Teacher preview can move through the slides without submitting a student attempt.</div>}
+      <div className="ultimate-media-actions split-actions">
+        {onBack && (
+          <button className="secondary-action" type="button" onClick={onBack} data-sound-click="back">
+            <ArrowLeft size={16} /> Back to page 20-21
+          </button>
+        )}
+        <button
+          className="primary-action"
+          type="button"
+          onClick={() => {
+            if (!watched) setWatched(true);
+            onContinue?.();
+          }}
+          data-sound-click="submit"
+        >
+          {watched ? "Continue to full text" : "Mark watched and continue"}
         </button>
-      )}
+      </div>
       {watched && <div className="inline-status success">Video watched.</div>}
     </Card>
+  );
+}
+
+function VideoIntro({ mode, onSubmit, onNextActivity }) {
+  const [watched, setWatched] = useState(false);
+  const [screen, setScreen] = useState("page-gallery");
+  const [gatewayOpenSectionId, setGatewayOpenSectionId] = useState(null);
+  const completeVideo = () => {
+    if (!watched) {
+      setWatched(true);
+      onSubmit?.({ activityKey: "video-intro", score: 100 });
+    }
+    setScreen("full-text");
+  };
+
+  if (screen === "page-gallery") {
+    return (
+      <StudentsBookPageGateway
+        initialOpenSectionId={gatewayOpenSectionId}
+        onContinue={() => {
+          setGatewayOpenSectionId(null);
+          setScreen("video");
+        }}
+        onTextAudio={() => {
+          setGatewayOpenSectionId("reading-20-21");
+          setScreen("text-audio");
+        }}
+        onExercise3={() => {
+          setGatewayOpenSectionId(null);
+          setScreen("exercise-3");
+        }}
+        onExercise4={() => {
+          setGatewayOpenSectionId(null);
+          setScreen("exercise-4");
+        }}
+      />
+    );
+  }
+
+  if (screen === "text-audio") {
+    return (
+      <ReadingTextAudioScreen
+        onBack={() => {
+          setGatewayOpenSectionId("reading-20-21");
+          setScreen("page-gallery");
+        }}
+        onStartExercise3={() => {
+          setGatewayOpenSectionId(null);
+          setScreen("exercise-3");
+        }}
+      />
+    );
+  }
+
+  if (screen === "exercise-3") {
+    return <MissingSentenceExercise mode={mode} onSubmit={onSubmit} />;
+  }
+
+  if (screen === "exercise-4") {
+    return <CircleWordsExercise mode={mode} onSubmit={onSubmit} />;
+  }
+
+  if (screen === "full-text") {
+    return (
+      <Card className="ultimate-media-card reading-prep-card">
+        <div className="ultimate-media-heading">
+          <span className="eyebrow"><BookOpen size={15} /> Reading slide</span>
+          <Tag tone="blue">Full text</Tag>
+        </div>
+        <ReadingPreparationText />
+        <button className="primary-action" type="button" onClick={() => setScreen("highlighted-text")} data-sound-click="submit">
+          Continue to highlighted text
+        </button>
+      </Card>
+    );
+  }
+
+  if (screen === "highlighted-text") {
+    return (
+      <Card className="ultimate-media-card reading-prep-card">
+        <div className="ultimate-media-heading">
+          <span className="eyebrow"><BookOpen size={15} /> Reading slide</span>
+          <Tag tone="gold">Highlighted text</Tag>
+        </div>
+        <ReadingPreparationText highlighted />
+        <button className="primary-action" type="button" onClick={() => onNextActivity?.("reading-ex3")} data-sound-click="submit">
+          Start Exercise
+        </button>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="video-intro-flow">
+      <Unit2VideoOnlyScreen mode={mode} onContinue={completeVideo} />
+      <div className="reading-flow-steps" aria-label="Reading flow">
+        <span className="active">1 Video</span>
+        <span>2 Full text</span>
+        <span>3 Highlighted text</span>
+        <span>4 Exercise</span>
+      </div>
+    </div>
   );
 }
 
@@ -1089,14 +1555,31 @@ function formatTime(seconds) {
   return `${minutes}:${secs}`;
 }
 
-const QUIZ_2_COMPLETED_STORAGE_KEY = "hh_lms_quiz_2_attempt_completed";
+const quizConfigs = {
+  "quiz-1": {
+    title: "Quiz 1: Reading and Vocabulary",
+    shortTitle: "Quiz 1",
+    subtitle: "Timed Unit 1 check, 20 minutes",
+    questions: quiz1Questions,
+    storageKey: "hh_lms_quiz_1_attempt_completed",
+  },
+  "quiz-2": {
+    title: "Quiz 2",
+    shortTitle: "Quiz 2",
+    subtitle: "Timed test, 20 minutes",
+    questions: quiz2Questions,
+    storageKey: "hh_lms_quiz_2_attempt_completed",
+  },
+};
 
-function TimedQuiz({ mode, onSubmit }) {
+function TimedQuiz({ activityKey = "quiz-2", mode, onSubmit }) {
+  const quizConfig = quizConfigs[activityKey] || quizConfigs["quiz-2"];
+  const questions = quizConfig.questions?.length ? quizConfig.questions : quizQuestions;
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(() => {
     if (mode !== "student" || typeof window === "undefined") return null;
     try {
-      const storedAttempt = window.localStorage.getItem(QUIZ_2_COMPLETED_STORAGE_KEY);
+      const storedAttempt = window.localStorage.getItem(quizConfig.storageKey);
       if (!storedAttempt) return null;
       const parsedAttempt = JSON.parse(storedAttempt);
       return Array.isArray(parsedAttempt?.rows) ? parsedAttempt.rows : [];
@@ -1119,19 +1602,19 @@ function TimedQuiz({ mode, onSubmit }) {
       const shouldSubmit = window.confirm("Submit test?\n\nYou will not be able to change your answers after submitting.");
       if (!shouldSubmit) return;
     }
-    const rows = scoreAnswers(quizQuestions, answers);
+    const rows = scoreAnswers(questions, answers);
     setSubmittedRows(rows);
     if (options.autoSubmit) setTimeExpired(true);
     if (mode === "student") {
       try {
-        // TODO: Clear hh_lms_quiz_2_attempt_completed in dev tools to reset this demo-only one-attempt guard.
-        window.localStorage.setItem(QUIZ_2_COMPLETED_STORAGE_KEY, JSON.stringify({ completed: true, rows }));
+        // TODO: Clear the quiz attempt key in dev tools to reset this demo-only one-attempt guard.
+        window.localStorage.setItem(quizConfig.storageKey, JSON.stringify({ completed: true, rows }));
       } catch {
         // Demo persistence is best-effort; submittedRows still enforces this attempt for the current session.
       }
     }
-    onSubmit?.({ activityKey: "quiz-2", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
-  }, [answers, mode, onSubmit, submittedRows]);
+    onSubmit?.({ activityKey, score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
+  }, [activityKey, answers, mode, onSubmit, questions, quizConfig.storageKey, submittedRows]);
 
   useEffect(() => {
     if (mode !== "student" || submittedRows || !testStarted) return undefined;
@@ -1159,11 +1642,11 @@ function TimedQuiz({ mode, onSubmit }) {
   const floatingTimer = testStarted && !submittedRows ? (
     <div className={`quiz-floating-timer ${timerTone}`} role="status" aria-live="polite">
       <div className="quiz-floating-timer-main">
-        <span><Timer size={14} /> Quiz 2</span>
+        <span><Timer size={14} /> {quizConfig.shortTitle}</span>
         <strong>{formatTime(remaining)}</strong>
       </div>
       <div className="quiz-floating-timer-actions">
-        <small>Answered {displayedAnsweredCount}/{quizQuestions.length}</small>
+        <small>Answered {displayedAnsweredCount}/{questions.length}</small>
         {mode === "student" && (
           <button type="button" onClick={() => submit()} data-sound-click="submit">
             Submit
@@ -1179,8 +1662,8 @@ function TimedQuiz({ mode, onSubmit }) {
         <div className="ultimate-quiz-start-card">
           <div className="ultimate-quiz-start-copy">
             <span className="eyebrow"><Timer size={15} /> {mode === "teacher-preview" ? "Teacher preview" : "Ultimate B2 Test Book"}</span>
-            <h2>Quiz 2</h2>
-            <p>Timed test, 20 minutes</p>
+            <h2>{quizConfig.title}</h2>
+            <p>{quizConfig.subtitle}</p>
           </div>
           <div className="ultimate-quiz-ready-badge">
             <Timer size={18} />
@@ -1192,7 +1675,7 @@ function TimedQuiz({ mode, onSubmit }) {
               "You have 20 minutes to complete this test.",
               "The timer will start when you click \"Start test\".",
               "You can only take this test once.",
-              "Answer all 40 multiple choice questions.",
+              `Answer all ${questions.length} multiple choice questions.`,
               "You can change your answers before submitting.",
               "When time is up, the test will be submitted automatically.",
               "Do not refresh or leave the page while taking the test.",
@@ -1223,12 +1706,12 @@ function TimedQuiz({ mode, onSubmit }) {
         <div className={`ultimate-quiz-head ${submittedRows ? "submitted" : ""} ${timerTone}`}>
           <div>
             <span className="eyebrow"><Timer size={15} /> Ultimate B2 Test Book</span>
-            <h2>Quiz 2</h2>
+            <h2>{quizConfig.title}</h2>
             <p>{submittedRows ? "This test has already been submitted." : "Choose the correct answer. Submit when ready or when time is up."}</p>
           </div>
           <div className="ultimate-quiz-status-actions">
             <strong className={remaining === 0 ? "time-up" : ""}>{submittedRows ? "Submitted" : formatTime(remaining)}</strong>
-            <span>Answered {displayedAnsweredCount}/{quizQuestions.length}</span>
+            <span>Answered {displayedAnsweredCount}/{questions.length}</span>
             {mode === "student" && !submittedRows && (
               <button className="secondary-action" type="button" onClick={() => submit()} data-sound-click="submit">Submit test</button>
             )}
@@ -1237,11 +1720,11 @@ function TimedQuiz({ mode, onSubmit }) {
         {timeExpired && <div className="inline-status warning">Time is up. The test has been submitted.</div>}
         {hasCompletedAttempt && <div className="inline-status success">This test has already been submitted.</div>}
         <div className="ultimate-quiz-progress-row">
-          <Tag tone="blue">Question {Math.min(displayedAnsweredCount + 1, quizQuestions.length)} of {quizQuestions.length}</Tag>
-          <Tag tone="gold">Answered {displayedAnsweredCount}/{quizQuestions.length}</Tag>
+          <Tag tone="blue">Question {Math.min(displayedAnsweredCount + 1, questions.length)} of {questions.length}</Tag>
+          <Tag tone="gold">Answered {displayedAnsweredCount}/{questions.length}</Tag>
         </div>
         <ChoiceSet
-          questions={quizQuestions}
+          questions={questions}
           answers={answers}
           setAnswers={setAnswers}
           disabled={Boolean(submittedRows) || mode === "teacher-preview" || remaining === 0}
@@ -1316,44 +1799,7 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   };
 
   if (activityType === "media_video") {
-    const completeVideo = () => {
-      if (!watched) {
-        setWatched(true);
-        onSubmit?.({ activityKey: activity.demoActivityKey || activity.slug, activityId: activity.id, score: 100 });
-        return;
-      }
-      onNextActivity?.("reading-ex3");
-    };
-
-    return (
-      <Card className="ultimate-media-card">
-        <div className="ultimate-media-heading">
-          <span className="eyebrow"><Play size={15} /> Watch before reading</span>
-          <Tag tone={watched ? "green" : "gold"}>{watched ? "Ready for reading" : "Required intro"}</Tag>
-        </div>
-        <CustomVideoPlayer
-          title={activity.title}
-          subtitle="Prepare for the Unit 2 reading text"
-          durationLabel={contentJson.duration || "02:15"}
-          mode={mode}
-          onWatched={() => setWatched(true)}
-        />
-        <p>{activity.instructions || "Watch the video introduction before starting the exercises."}</p>
-        <BookImageFrame
-          title="Reading text"
-          subtitle="Scroll to read the full text, or open it larger."
-          imageSrc={studentTextImage}
-          alt="Student's Book reading text"
-          zoomTitle="Reading text"
-        />
-        {mode === "student" && (
-          <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
-            {watched ? "Start Exercise 3" : "Continue to Reading Text"}
-          </button>
-        )}
-        {watched && <div className="inline-status success">Video watched.</div>}
-      </Card>
-    );
+    return <VideoIntro mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
 
   if (demoActivityKey === "listening-page-20" || activityType === "listening_gap_fill" || activityType === "typed_gap_fill" || activityType === "audio_gap_fill") {
@@ -1421,7 +1867,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningExercise mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "grammar-opening" || activityKey === "grammar-ex4") return <GrammarExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
-  if (activityKey === "quiz-2") return <TimedQuiz mode={mode} onSubmit={onSubmit} />;
+  if (activityKey === "quiz-1" || activityKey === "quiz-2") return <TimedQuiz activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activity?.questions?.length || activity?.activityType === "media_video" || activity?.activity_type === "media_video") {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
@@ -1432,7 +1878,7 @@ function getBookIdForActivity(activityKey, resolved) {
   if (["video-intro", "reading-ex3", "reading-ex4"].includes(activityKey)) return "students-book";
   if (activityKey === "listening-page-20") return "workbook";
   if (["grammar-opening", "grammar-ex4"].includes(activityKey)) return "grammar-book";
-  if (activityKey === "quiz-2") return "test-book";
+  if (activityKey === "quiz-1" || activityKey === "quiz-2") return "test-book";
   return resolved?.component?.id || null;
 }
 

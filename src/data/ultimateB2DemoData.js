@@ -331,15 +331,36 @@ export const ultimateB2Package = {
       type: "Test Book",
       coverTone: "slate",
       units: [
-        lockedUnit({
+        {
           id: "tb-quiz-1",
           title: "Quiz 1",
           unit: "Quiz 1",
-          component: "Test Book",
           lessons: [
-            { title: "Timed test", slug: "timed-test", exerciseTitle: "Quiz 1 timed test", skill: "Test", type: "Timed test", estimatedTime: "20 min" },
+            {
+              id: "tb-quiz-1-test",
+              title: "Quiz 1",
+              exercises: [
+                {
+                  id: "tb-quiz-1-unit-check",
+                  title: "Quiz 1: Reading and Vocabulary",
+                  component: "Test Book",
+                  unit: "Quiz 1",
+                  lesson: "Test",
+                  skill: "Test",
+                  type: "Timed test",
+                  estimatedTime: "20 min",
+                  assignable: true,
+                  availableToStudent: true,
+                  status: "Available",
+                  progressLabel: "Ready to assign",
+                  studentProgressLabel: "Available",
+                  demoActivityKey: "quiz-1",
+                  description: "Complete a 20-minute Unit 1 reading and vocabulary check.",
+                },
+              ],
+            },
           ],
-        }),
+        },
         {
           id: "tb-quiz-2",
           title: "Quiz 2",
