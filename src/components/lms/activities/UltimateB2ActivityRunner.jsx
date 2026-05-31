@@ -4,6 +4,8 @@ import { ArrowLeft, BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, 
 import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
 import unit2ReadingAudio from "../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
 import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
+import grammarRulesImage from "../../../assets/books/ultimate-b2/grammar-rules.jpg";
+import studentTextImage from "../../../assets/books/ultimate-b2/student-text.jpg";
 import { findUltimateB2Exercise } from "../../../data/ultimateB2DemoData.js";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
 import { InlineBlankPrompt } from "./InlineBlankPrompt.jsx";
@@ -11,7 +13,6 @@ import {
   QUIZ_DURATION_SECONDS,
   grammarExercise4,
   grammarOpening,
-  grammarRuleSections,
   listeningGapFillItems,
   quizQuestions,
   readingExercise3,
@@ -84,6 +85,20 @@ function FeedbackRows({ rows }) {
         ))}
       </div>
     </>
+  );
+}
+
+function BookImageFrame({ title, subtitle, imageSrc, alt, maxHeight = "420px", maxWidth = "760px", className = "" }) {
+  return (
+    <section className={`book-image-section ${className}`.trim()} style={{ "--book-image-max-height": maxHeight, "--book-image-max-width": maxWidth }}>
+      <div className="book-image-section-header">
+        <h3>{title}</h3>
+        {subtitle && <p>{subtitle}</p>}
+      </div>
+      <div className="book-image-scroll-frame">
+        <img src={imageSrc} alt={alt} />
+      </div>
+    </section>
   );
 }
 
@@ -589,6 +604,12 @@ function VideoIntro({ mode, onSubmit, onNextActivity }) {
       </div>
       <CustomVideoPlayer mode={mode} onWatched={() => setWatched(true)} />
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
+      <BookImageFrame
+        title="Reading text"
+        subtitle="Read the text, then continue with the exercise."
+        imageSrc={studentTextImage}
+        alt="Student's Book reading text"
+      />
       {mode === "student" && (
         <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
           {watched ? "Start Exercise 3" : "Continue to Reading Text"}
@@ -944,10 +965,7 @@ function ListeningExercise({ mode, onSubmit }) {
   return <ListeningGapFillExercise mode={mode} onSubmit={onSubmit} />;
 }
 
-function GrammarRulesPopup({ onClose }) {
-  const [activeRuleId, setActiveRuleId] = useState(grammarRuleSections[0].id);
-  const activeRule = grammarRuleSections.find((rule) => rule.id === activeRuleId) || grammarRuleSections[0];
-
+function GrammarRulesPopup({ imageSrc = grammarRulesImage, onClose }) {
   useEffect(() => {
     const closeOnEscape = (event) => {
       if (event.key === "Escape") onClose();
@@ -958,69 +976,51 @@ function GrammarRulesPopup({ onClose }) {
 
   return (
     <div
-      className="grammar-rules-backdrop"
+      className="grammar-help-modal-backdrop"
       role="presentation"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <Card className="grammar-rules-modal" role="dialog" aria-modal="true" aria-labelledby="grammar-rules-title" onClick={(event) => event.stopPropagation()}>
-        <button className="grammar-rules-close" type="button" onClick={onClose} aria-label="Close grammar rules"><X size={18} /></button>
-        <div className="grammar-rules-head">
-          <span className="eyebrow">Grammar support</span>
-          <h2 id="grammar-rules-title">Unit 2 Grammar Rules</h2>
-          <p>Review the forms and uses before completing the Unit 2 grammar exercises.</p>
+      <Card className="grammar-help-modal" role="dialog" aria-modal="true" aria-labelledby="grammar-rules-title" onClick={(event) => event.stopPropagation()}>
+        <div className="grammar-help-modal-header">
+          <div>
+            <span className="eyebrow">Grammar support</span>
+            <h2 id="grammar-rules-title">Grammar rules</h2>
+            <p>Review the rules before you continue the exercise.</p>
+          </div>
+          <button className="grammar-help-close-button" type="button" onClick={onClose} aria-label="Close grammar rules"><X size={18} /></button>
         </div>
-        <div className="grammar-rule-tabs" role="tablist" aria-label="Grammar rule sections">
-          {grammarRuleSections.map((rule) => (
-            <button
-              key={rule.id}
-              type="button"
-              role="tab"
-              aria-selected={rule.id === activeRuleId}
-              className={rule.id === activeRuleId ? "active" : ""}
-              onClick={(event) => {
-                event.stopPropagation();
-                setActiveRuleId(rule.id);
-              }}
-              data-sound-click="tab"
-            >
-              {rule.title}
-            </button>
-          ))}
-        </div>
-        <div key={activeRule.id} className="grammar-rule-content grammar-tab-panel">
-          <section className="grammar-rule-card form-card">
-            <h3>Form</h3>
-            {activeRule.form.map((line) => <p key={line}>{line}</p>)}
-          </section>
-          <section className="grammar-rule-card">
-            <h3>Use</h3>
-            <ul>{activeRule.use.map((line) => <li key={line}>{line}</li>)}</ul>
-          </section>
-          <section className="grammar-rule-card">
-            <h3>Examples</h3>
-            <ul>{activeRule.examples.map((line) => <li key={line}>{line}</li>)}</ul>
-          </section>
-          {activeRule.timeExpressions && (
-            <section className="grammar-rule-card grammar-time-expressions">
-              <h3>Time expressions</h3>
-              <p>{activeRule.timeExpressions}</p>
-            </section>
-          )}
-          {activeRule.notes && (
-            <section className="grammar-rule-card grammar-extra-notes">
-              <h3>Extra notes</h3>
-              <ul>{activeRule.notes.map((line) => <li key={line}>{line}</li>)}</ul>
-            </section>
-          )}
+        <div className="grammar-help-modal-body">
+          <BookImageFrame
+            title="Grammar rules"
+            subtitle="Review the rules before you start the exercises."
+            imageSrc={imageSrc}
+            alt="Grammar rules reference"
+            maxHeight="70vh"
+            maxWidth="860px"
+          />
         </div>
       </Card>
     </div>
   );
 }
 
-function GrammarSentenceJoiningExercise({ mode, onSubmit, onOpenRules }) {
+function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "Grammar rules" }) {
+  const [isGrammarHelpOpen, setIsGrammarHelpOpen] = useState(false);
+
+  return (
+    <div className="grammar-help">
+      <button className="grammar-help-button" type="button" onClick={() => setIsGrammarHelpOpen(true)} data-sound-click="tab">
+        <BookOpen size={16} />
+        <span>{buttonLabel}</span>
+      </button>
+      {isGrammarHelpOpen && <GrammarRulesPopup imageSrc={imageSrc} onClose={() => setIsGrammarHelpOpen(false)} />}
+    </div>
+  );
+}
+
+function GrammarSentenceJoiningExercise({ mode, onSubmit }) {
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
 
@@ -1045,7 +1045,6 @@ function GrammarSentenceJoiningExercise({ mode, onSubmit, onOpenRules }) {
           <h2>Join the sentences</h2>
           <p>Join the sentences. Use the past simple, the past continuous and the words in bold.</p>
         </div>
-        <button className="secondary-action" type="button" onClick={onOpenRules} data-sound-click="tab">View grammar rules</button>
       </div>
       <div className="grammar-joining-list">
         {grammarExercise4.map((item, index) => {
@@ -1075,6 +1074,7 @@ function GrammarSentenceJoiningExercise({ mode, onSubmit, onOpenRules }) {
           );
         })}
       </div>
+      <GrammarRulesHelp />
       {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit sentences</button>}
       {submittedRows && <FeedbackRows rows={submittedRows} />}
     </>
@@ -1082,7 +1082,6 @@ function GrammarSentenceJoiningExercise({ mode, onSubmit, onOpenRules }) {
 }
 
 function GrammarExercise({ activityKey, mode, onSubmit }) {
-  const [rulesOpen, setRulesOpen] = useState(false);
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
   const questions = grammarOpening;
@@ -1095,8 +1094,14 @@ function GrammarExercise({ activityKey, mode, onSubmit }) {
 
   return (
     <Card>
+      <BookImageFrame
+        title="Grammar rules"
+        subtitle="Review the rules before you start the exercises."
+        imageSrc={grammarRulesImage}
+        alt="Grammar rules reference"
+      />
       {activityKey === "grammar-ex4" ? (
-        <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} onOpenRules={() => setRulesOpen(true)} />
+        <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} />
       ) : (
         <>
           <div className="card-heading">
@@ -1105,7 +1110,6 @@ function GrammarExercise({ activityKey, mode, onSubmit }) {
               <h2>Opening exercise</h2>
               <p>Complete the Unit 2 grammar warm-up. Use the rules popup as your support tool before answering.</p>
             </div>
-            <button className="secondary-action" type="button" onClick={() => setRulesOpen(true)} data-sound-click="tab">View grammar rules</button>
           </div>
           <ChoiceSet
             questions={questions}
@@ -1114,11 +1118,11 @@ function GrammarExercise({ activityKey, mode, onSubmit }) {
             disabled={Boolean(submittedRows) || mode === "teacher-preview"}
             submittedRows={submittedRows}
           />
+          <GrammarRulesHelp />
           {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit grammar</button>}
           {submittedRows && <FeedbackRows rows={submittedRows} />}
         </>
       )}
-      {rulesOpen && <GrammarRulesPopup onClose={() => setRulesOpen(false)} />}
     </Card>
   );
 }
@@ -1380,6 +1384,12 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
           onWatched={() => setWatched(true)}
         />
         <p>{activity.instructions || "Watch the video introduction before starting the exercises."}</p>
+        <BookImageFrame
+          title="Reading text"
+          subtitle="Read the text, then continue with the exercise."
+          imageSrc={studentTextImage}
+          alt="Student's Book reading text"
+        />
         {mode === "student" && (
           <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
             {watched ? "Start Exercise 3" : "Continue to Reading Text"}
@@ -1404,8 +1414,13 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   if (demoActivityKey === "grammar-ex4" || activityType === "sentence_transformation" || activityType === "typed_sentence_joining" || activityType === "grammar_sentence_joining") {
     return (
       <Card>
-        <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} onOpenRules={() => setRulesOpen(true)} />
-        {rulesOpen && <GrammarRulesPopup onClose={() => setRulesOpen(false)} />}
+        <BookImageFrame
+          title="Grammar rules"
+          subtitle="Review the rules before you start the exercises."
+          imageSrc={grammarRulesImage}
+          alt="Grammar rules reference"
+        />
+        <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} />
       </Card>
     );
   }
