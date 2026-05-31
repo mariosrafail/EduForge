@@ -231,8 +231,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   opacity: 0;
   transform: translateX(-8px);
   pointer-events: none;
-  max-height: 0;
-  overflow: hidden;
+  visibility: hidden;
+  max-height: none;
+  overflow: visible;
 }
 .admin-dashboard-shell.sidebar-expanded .admin-sidebar-card > .eyebrow,
 .admin-dashboard-shell.sidebar-expanded .admin-sidebar-card h2,
@@ -246,7 +247,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-dashboard-shell.sidebar-collapsed .admin-sidebar-nav,
 .portal-shell.sidebar-collapsed .portal-sidebar-nav {
-  padding-top: 46px;
+  padding-top: 0;
 }
 .admin-dashboard-shell.sidebar-collapsed .admin-nav-button,
 .portal-shell.sidebar-collapsed .portal-sidebar-nav button {
@@ -269,7 +270,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   transform: translateX(-8px);
   pointer-events: none;
   width: 0;
-  height: 0;
   overflow: hidden;
 }
 .admin-dashboard-shell.sidebar-expanded .admin-nav-button strong,
@@ -299,21 +299,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-rail-handle,
 .portal-rail-handle {
-  position: absolute;
-  top: 28px;
-  right: -1px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 32px;
-  color: #175cd3;
-  background: #fff;
-  border: 1px solid #d0d5dd;
-  border-right: 0;
-  border-radius: 8px 0 0 8px;
-  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.12);
-  transition: transform 220ms ease;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 .admin-dashboard-shell.sidebar-expanded .admin-rail-avatar,
 .portal-shell.sidebar-expanded .portal-rail-avatar {
@@ -323,7 +311,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 .admin-dashboard-shell.sidebar-expanded .admin-rail-handle,
 .portal-shell.sidebar-expanded .portal-rail-handle {
-  transform: rotate(180deg);
+  display: none !important;
 }
 .admin-main-panel {
   min-width: 0;
@@ -3775,8 +3763,9 @@ input[type="color"] { padding: 4px; height: 46px; }
   opacity: 0;
   transform: translateX(-8px);
   pointer-events: none;
-  max-height: 0;
-  overflow: hidden;
+  visibility: hidden;
+  max-height: none;
+  overflow: visible;
 }
 .portal-shell.sidebar-expanded .portal-sidebar-card > .eyebrow,
 .portal-shell.sidebar-expanded .portal-sidebar-card > strong,
@@ -3786,7 +3775,7 @@ input[type="color"] { padding: 4px; height: 46px; }
   transition: opacity 180ms ease 80ms, transform 180ms ease 80ms;
 }
 .portal-shell.sidebar-collapsed .portal-sidebar-nav {
-  padding-top: 46px;
+  padding-top: 0;
 }
 .portal-shell.sidebar-collapsed .portal-sidebar-nav button {
   grid-template-columns: 1fr;
@@ -3805,7 +3794,6 @@ input[type="color"] { padding: 4px; height: 46px; }
   transform: translateX(-8px);
   pointer-events: none;
   width: 0;
-  height: 0;
   overflow: hidden;
 }
 .portal-shell.sidebar-expanded .portal-sidebar-nav button > strong,
@@ -3818,7 +3806,9 @@ input[type="color"] { padding: 4px; height: 46px; }
   display: grid;
 }
 .portal-rail-handle {
-  display: grid;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 .teacher-dashboard-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 .teacher-dashboard-card {
@@ -6858,7 +6848,10 @@ input[type="color"] { padding: 4px; height: 46px; }
 .admin-dashboard-shell.sidebar-collapsed .admin-sidebar-card,
 .portal-shell.sidebar-collapsed .portal-sidebar-card {
   justify-items: center;
-  gap: 7px;
+  align-content: start;
+  justify-content: center;
+  gap: 12px;
+  min-height: auto;
   padding: 10px 8px;
 }
 .admin-dashboard-shell.sidebar-expanded .admin-sidebar-card,
@@ -6937,13 +6930,17 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .admin-dashboard-shell.sidebar-collapsed .admin-sidebar-nav,
 .portal-shell.sidebar-collapsed .portal-sidebar-nav {
-  gap: 5px;
-  padding-top: 40px;
+  display: grid;
+  gap: 9px;
+  align-content: start;
+  justify-content: center;
+  padding-top: 0;
   justify-items: center;
 }
 .admin-dashboard-shell.sidebar-collapsed .admin-nav-button,
 .portal-shell.sidebar-collapsed .portal-sidebar-nav button {
   width: var(--sidebar-collapsed-item-size);
+  height: var(--sidebar-collapsed-item-size);
   min-height: var(--sidebar-collapsed-item-size);
   padding: 5px;
   display: grid;
@@ -7000,6 +6997,23 @@ input[type="color"] { padding: 4px; height: 46px; }
 .admin-rail-handle,
 .portal-rail-handle {
   display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+.admin-dashboard-shell.sidebar-collapsed .admin-sidebar-card > .eyebrow,
+.admin-dashboard-shell.sidebar-collapsed .admin-sidebar-card h2,
+.admin-dashboard-shell.sidebar-collapsed .admin-sidebar-card p,
+.portal-shell.sidebar-collapsed .portal-sidebar-card > .eyebrow,
+.portal-shell.sidebar-collapsed .portal-sidebar-card > strong,
+.portal-shell.sidebar-collapsed .portal-sidebar-card > small {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  pointer-events: none;
+  max-height: none;
+  height: auto;
+  overflow: visible;
+  transition: opacity 120ms ease, visibility 120ms ease, transform 190ms var(--sidebar-ease);
 }
 .admin-dashboard-shell.sidebar-expanded .admin-sidebar-card > .eyebrow,
 .admin-dashboard-shell.sidebar-expanded .admin-sidebar-card h2,
@@ -7007,6 +7021,9 @@ input[type="color"] { padding: 4px; height: 46px; }
 .portal-shell.sidebar-expanded .portal-sidebar-card > .eyebrow,
 .portal-shell.sidebar-expanded .portal-sidebar-card > strong,
 .portal-shell.sidebar-expanded .portal-sidebar-card > small {
+  visibility: visible;
+  max-height: none;
+  height: auto;
   transition: opacity 160ms ease 100ms, transform 180ms var(--sidebar-ease) 100ms;
 }
 
