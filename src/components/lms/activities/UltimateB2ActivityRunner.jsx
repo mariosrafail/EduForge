@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Headphones, Maximize2, Pause, Play, RotateCcw, Timer, Volume2, VolumeX } from "lucide-react";
 import unit2ListeningAudio from "../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
 import unit2ReadingAudio from "../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
 import unit2ReadingVideo from "../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
 import grammarRulesImage from "../../../assets/books/ultimate-b2/grammar-rules.jpg";
 import studentTextImage from "../../../assets/books/ultimate-b2/student-text.jpg";
 import { findUltimateB2Exercise } from "../../../data/ultimateB2DemoData.js";
+import { BookImageFrame, ImageZoomModal } from "../shared/BookImageFrame.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
 import { InlineBlankPrompt } from "./InlineBlankPrompt.jsx";
 import {
@@ -85,20 +86,6 @@ function FeedbackRows({ rows }) {
         ))}
       </div>
     </>
-  );
-}
-
-function BookImageFrame({ title, subtitle, imageSrc, alt, maxHeight = "420px", maxWidth = "760px", className = "" }) {
-  return (
-    <section className={`book-image-section ${className}`.trim()} style={{ "--book-image-max-height": maxHeight, "--book-image-max-width": maxWidth }}>
-      <div className="book-image-section-header">
-        <h3>{title}</h3>
-        {subtitle && <p>{subtitle}</p>}
-      </div>
-      <div className="book-image-scroll-frame">
-        <img src={imageSrc} alt={alt} />
-      </div>
-    </section>
   );
 }
 
@@ -606,9 +593,10 @@ function VideoIntro({ mode, onSubmit, onNextActivity }) {
       <p>This short introduction prepares students for the Unit 2 reading topic and key ideas.</p>
       <BookImageFrame
         title="Reading text"
-        subtitle="Read the text, then continue with the exercise."
+        subtitle="Scroll to read the full text, or open it larger."
         imageSrc={studentTextImage}
         alt="Student's Book reading text"
+        zoomTitle="Reading text"
       />
       {mode === "student" && (
         <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
@@ -965,47 +953,6 @@ function ListeningExercise({ mode, onSubmit }) {
   return <ListeningGapFillExercise mode={mode} onSubmit={onSubmit} />;
 }
 
-function GrammarRulesPopup({ imageSrc = grammarRulesImage, onClose }) {
-  useEffect(() => {
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  return (
-    <div
-      className="grammar-help-modal-backdrop"
-      role="presentation"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <Card className="grammar-help-modal" role="dialog" aria-modal="true" aria-labelledby="grammar-rules-title" onClick={(event) => event.stopPropagation()}>
-        <div className="grammar-help-modal-header">
-          <div>
-            <span className="eyebrow">Grammar support</span>
-            <h2 id="grammar-rules-title">Grammar rules</h2>
-            <p>Review the rules before you continue the exercise.</p>
-          </div>
-          <button className="grammar-help-close-button" type="button" onClick={onClose} aria-label="Close grammar rules"><X size={18} /></button>
-        </div>
-        <div className="grammar-help-modal-body">
-          <BookImageFrame
-            title="Grammar rules"
-            subtitle="Review the rules before you start the exercises."
-            imageSrc={imageSrc}
-            alt="Grammar rules reference"
-            maxHeight="70vh"
-            maxWidth="860px"
-          />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "Grammar rules" }) {
   const [isGrammarHelpOpen, setIsGrammarHelpOpen] = useState(false);
 
@@ -1015,7 +962,15 @@ function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "Grammar
         <BookOpen size={16} />
         <span>{buttonLabel}</span>
       </button>
-      {isGrammarHelpOpen && <GrammarRulesPopup imageSrc={imageSrc} onClose={() => setIsGrammarHelpOpen(false)} />}
+      {isGrammarHelpOpen && (
+        <ImageZoomModal
+          title="Grammar rules"
+          subtitle="Review the rules before you continue the exercise."
+          imageSrc={imageSrc}
+          alt="Grammar rules reference"
+          onClose={() => setIsGrammarHelpOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1096,9 +1051,10 @@ function GrammarExercise({ activityKey, mode, onSubmit }) {
     <Card>
       <BookImageFrame
         title="Grammar rules"
-        subtitle="Review the rules before you start the exercises."
+        subtitle="Review the rules before you start. You can open them larger anytime."
         imageSrc={grammarRulesImage}
         alt="Grammar rules reference"
+        zoomTitle="Grammar rules"
       />
       {activityKey === "grammar-ex4" ? (
         <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} />
@@ -1343,7 +1299,6 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
   const [watched, setWatched] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(false);
   const activityType = activity.activityType || activity.activity_type;
   const contentJson = activity.contentJson || activity.content_json || {};
   const questions = dbQuestionsToChoiceQuestions(activity.questions || []);
@@ -1386,9 +1341,10 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
         <p>{activity.instructions || "Watch the video introduction before starting the exercises."}</p>
         <BookImageFrame
           title="Reading text"
-          subtitle="Read the text, then continue with the exercise."
+          subtitle="Scroll to read the full text, or open it larger."
           imageSrc={studentTextImage}
           alt="Student's Book reading text"
+          zoomTitle="Reading text"
         />
         {mode === "student" && (
           <button className="primary-action" type="button" onClick={completeVideo} data-sound-click="submit">
@@ -1416,9 +1372,10 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
       <Card>
         <BookImageFrame
           title="Grammar rules"
-          subtitle="Review the rules before you start the exercises."
+          subtitle="Review the rules before you start. You can open them larger anytime."
           imageSrc={grammarRulesImage}
           alt="Grammar rules reference"
+          zoomTitle="Grammar rules"
         />
         <GrammarSentenceJoiningExercise mode={mode} onSubmit={onSubmit} />
       </Card>
@@ -1433,9 +1390,6 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
           <h2>{activity.title}</h2>
           <p>{activity.instructions}</p>
         </div>
-        {(contentJson.grammar_rules || contentJson.grammarRules) && (
-          <button className="secondary-action" type="button" onClick={() => setRulesOpen(true)} data-sound-click="tab">View grammar rules</button>
-        )}
       </div>
       {activityType === "listening_multiple_choice" && (
         <div className="ultimate-audio-placeholder">
@@ -1455,9 +1409,9 @@ function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
         disabled={Boolean(submittedRows) || mode === "teacher-preview"}
         submittedRows={submittedRows}
       />
+      {(contentJson.grammar_rules || contentJson.grammarRules) && <GrammarRulesHelp />}
       {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit answers</button>}
       {submittedRows && <FeedbackRows rows={submittedRows} />}
-      {rulesOpen && <GrammarRulesPopup onClose={() => setRulesOpen(false)} />}
     </Card>
   );
 }
