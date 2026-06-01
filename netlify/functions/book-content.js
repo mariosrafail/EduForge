@@ -15,6 +15,74 @@ function badRequest(message) {
 }
 
 const classLevels = new Set(["A1", "A2", "B1", "B2", "C1", "C2"]);
+let teacherClassSchemaReady = false;
+
+async function ensureTeacherClassSchema(sql) {
+  if (teacherClassSchemaReady) return;
+
+  await sql`create extension if not exists pgcrypto`;
+  await sql`alter table classes add column if not exists slug text`;
+  await sql`alter table classes add column if not exists assigned_book text`;
+  await sql`alter table classes add column if not exists book_package_id uuid references book_packages(id) on delete set null`;
+  await sql`alter table classes add column if not exists invite_code text`;
+  await sql`alter table classes add column if not exists status text not null default 'active'`;
+  await sql`alter table classes add column if not exists updated_at timestamptz default now()`;
+
+  await sql`
+    update classes
+    set level = coalesce(nullif(level, ''), 'B2'),
+        assigned_book = coalesce(assigned_book, 'Ultimate B2'),
+        status = coalesce(nullif(status, ''), 'active'),
+        updated_at = coalesce(updated_at, created_at, now())
+    where level is null
+       or level = ''
+       or assigned_book is null
+       or status is null
+       or status = ''
+       or updated_at is null
+  `;
+
+  await sql`
+    update classes
+    set slug = trim(both '-' from regexp_replace(lower(coalesce(name, 'class')), '[^a-z0-9]+', '-', 'g')) || '-' || left(replace(id::text, '-', ''), 8)
+    where slug is null or slug = ''
+  `;
+
+  await sql`
+    update classes
+    set invite_code = upper(left(replace(id::text, '-', ''), 8))
+    where invite_code is null or invite_code = ''
+  `;
+
+  await sql`alter table classes alter column level set default 'B2'`;
+  await sql`alter table classes alter column level set not null`;
+  await sql`alter table classes alter column slug set not null`;
+  await sql`alter table classes alter column invite_code set not null`;
+  await sql`alter table classes alter column status set not null`;
+  await sql`alter table classes alter column updated_at set default now()`;
+
+  await sql`create unique index if not exists classes_slug_unique_idx on classes(slug)`;
+  await sql`create unique index if not exists classes_invite_code_unique_idx on classes(invite_code)`;
+  await sql`create index if not exists classes_teacher_idx on classes(teacher_id)`;
+  await sql`create index if not exists classes_school_idx on classes(school_id)`;
+  await sql`create index if not exists classes_book_package_idx on classes(book_package_id)`;
+
+  await sql`alter table class_students add column if not exists joined_at timestamptz default now()`;
+  await sql`alter table class_students add column if not exists status text not null default 'active'`;
+  await sql`
+    update class_students
+    set joined_at = coalesce(joined_at, created_at, now()),
+        status = coalesce(nullif(status, ''), 'active')
+    where joined_at is null or status is null or status = ''
+  `;
+  await sql`alter table class_students alter column joined_at set not null`;
+  await sql`alter table class_students alter column status set not null`;
+  await sql`create unique index if not exists class_students_class_student_unique_idx on class_students(class_id, student_id)`;
+  await sql`create index if not exists class_students_class_idx on class_students(class_id)`;
+  await sql`create index if not exists class_students_student_idx on class_students(student_id)`;
+
+  teacherClassSchemaReady = true;
+}
 
 function normalizeClassRow(row = {}) {
   const teacherName = row.teacher_name || "Paris Georgoulakis";
@@ -73,6 +141,7 @@ async function ensureUniqueInviteCode(sql) {
 }
 
 async function fetchClassById(sql, classId) {
+  await ensureTeacherClassSchema(sql);
   const rows = await sql`
     select c.*,
            u.full_name as teacher_name,
@@ -89,6 +158,7 @@ async function fetchClassById(sql, classId) {
 }
 
 async function listTeacherClasses(sql, teacherId = "") {
+  await ensureTeacherClassSchema(sql);
   const rows = teacherId
     ? await sql`
         select c.*,
@@ -118,6 +188,7 @@ async function listTeacherClasses(sql, teacherId = "") {
 }
 
 async function createTeacherClass(sql, body) {
+  await ensureTeacherClassSchema(sql);
   const name = String(body.name || "").trim();
   const level = String(body.level || "").trim().toUpperCase();
   if (!name) return badRequest("name is required");
@@ -146,6 +217,7 @@ async function createTeacherClass(sql, body) {
 }
 
 async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = "", slug = "" } = {}) {
+  await ensureTeacherClassSchema(sql);
   const lookup = inviteCode || slug;
   const rows = classId
     ? await sql`
@@ -177,6 +249,7 @@ async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = "", slu
 }
 
 async function joinClass(sql, body) {
+  await ensureTeacherClassSchema(sql);
   if (!body.studentId) return badRequest("studentId is required");
   const studentRows = await sql`select id from app_users where id = ${body.studentId} and role = 'student' limit 1`;
   if (!studentRows.length) return json(404, { error: "Student not found" });
