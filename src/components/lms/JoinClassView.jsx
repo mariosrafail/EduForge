@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { classes } from "../../data/lmsDemoData.js";
-import { getClassByInvite, getClassBySlug, joinClass } from "../../services/bookContentApi.js";
+import { getClassByInvite, getClassBySlug, joinClass } from "../../services/classApi.js";
 import { slugifyClassName } from "../../utils/hashRoutes.js";
 import { Card, SectionTitle, Tag } from "./Shared.jsx";
 

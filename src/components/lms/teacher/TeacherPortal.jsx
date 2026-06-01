@@ -1,7 +1,9 @@
 import { BookOpen, CheckCircle2, ClipboardList, Copy, Edit3, GraduationCap, Home, KeyRound, Link2, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
-import { createTeacherClass, getBookPackageTreeWithFallback, listTeacherClasses } from "../../../services/bookContentApi.js";
+import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
+import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import { createTeacherClass } from "../../../services/classApi.js";
 import { buildActivityHash, buildBookHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
@@ -62,10 +64,8 @@ const teacherNavItems = [
   { id: "custom-assignment", label: "Custom Assignment", description: "Activity editor", icon: Edit3 },
 ];
 
-const classNames = teacherPortalClasses.map((item) => item.name);
 const classLevelOptions = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const classBookOptions = Array.from(new Set(["Ultimate B2", ...ultimateB2ComponentTitles]));
-const demoTeacherClasses = teacherPortalClasses.map((classItem) => ({ level: "B2", ...classItem }));
 
 function CopyInviteLink({ classItem }) {
   const [copied, setCopied] = useState(false);
@@ -150,7 +150,7 @@ function TeacherDashboard({ goToSection }) {
   );
 }
 
-function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, onSelectBook, initialPreviewActivityKey = null, navigateTo }) {
+function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, onSelectBook, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
@@ -234,7 +234,7 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
       <BookPackageBrowser
         mode="teacher"
         bookPackage={bookPackage}
-        classOptions={classNames}
+        classOptions={classOptions}
         selectedComponentId={selectedBookId}
         onSelectComponent={onSelectBook}
         onBackToBooks={() => onSelectBook?.(null)}
@@ -244,8 +244,7 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
   );
 }
 
-function TeacherClasses({ currentUser = null, bookPackage = null }) {
-  const [classes, setClasses] = useState([]);
+function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, usingDemoClasses = false, onClassCreated }) {
   const [selectedClassSlug, setSelectedClassSlug] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [newClassLevel, setNewClassLevel] = useState("B2");
@@ -253,49 +252,17 @@ function TeacherClasses({ currentUser = null, bookPackage = null }) {
   const [classNameError, setClassNameError] = useState("");
   const [classSaveError, setClassSaveError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [loadingClasses, setLoadingClasses] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
-  const [usingDemoClasses, setUsingDemoClasses] = useState(false);
   const [selectedWorkStudent, setSelectedWorkStudent] = useState(null);
   const selectedClass = classes.find((classItem) => classItem.slug === selectedClassSlug) || classes[0];
   const students = teacherPortalStudents.filter((student) => student.className === selectedClass?.name);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadClasses() {
-      setLoadingClasses(true);
-      setClassSaveError("");
-
-      try {
-        const databaseClasses = await listTeacherClasses(currentUser?.id || null);
-        if (cancelled) return;
-        setClasses(databaseClasses);
-        setSelectedClassSlug((currentSlug) => {
-          if (databaseClasses.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
-          return databaseClasses[0]?.slug || "";
-        });
-        setUsingDemoClasses(false);
-      } catch (error) {
-        console.warn("Using demo classes because database classes could not be loaded.", error);
-        if (cancelled) return;
-        setClasses(demoTeacherClasses);
-        setSelectedClassSlug((currentSlug) => {
-          if (demoTeacherClasses.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
-          return demoTeacherClasses[0]?.slug || "";
-        });
-        setUsingDemoClasses(true);
-      } finally {
-        if (!cancelled) setLoadingClasses(false);
-      }
-    }
-
-    loadClasses();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentUser?.id]);
+    setSelectedClassSlug((currentSlug) => {
+      if (classes.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
+      return classes[0]?.slug || "";
+    });
+  }, [classes]);
 
   const createClass = async (event) => {
     event.preventDefault();
@@ -322,12 +289,11 @@ function TeacherClasses({ currentUser = null, bookPackage = null }) {
         bookPackageId: bookPackage?.id || null,
       });
 
-      setClasses((currentClasses) => [createdClass, ...currentClasses.filter((classItem) => classItem.id !== createdClass.id)]);
+      onClassCreated?.(createdClass);
       setSelectedClassSlug(createdClass.slug);
       setSelectedWorkStudent(null);
       setNewClassName("");
       setClassNameError("");
-      setUsingDemoClasses(false);
       setSuccessMessage("Class created. Share the invite link with students.");
     } catch (error) {
       setClassSaveError(error.message || "Class could not be saved. Try again.");
@@ -519,7 +485,7 @@ function ResultsModal({ student, assignment, label = "Student results", onClose 
   );
 }
 
-function TeacherStudents() {
+function TeacherStudents({ classOptions = [] }) {
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("All classes");
   const [selectedStudentResult, setSelectedStudentResult] = useState(null);
@@ -549,7 +515,7 @@ function TeacherStudents() {
             Class
             <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
               <option>All classes</option>
-              {classNames.map((className) => <option key={className}>{className}</option>)}
+              {classOptions.map((className) => <option key={className}>{className}</option>)}
             </select>
           </label>
           <Tag tone="blue">Sort: average score</Tag>
@@ -575,9 +541,9 @@ function TeacherStudents() {
   );
 }
 
-function TeacherAssignments() {
+function TeacherAssignments({ classOptions = [] }) {
   const [selectedExercises, setSelectedExercises] = useState(["Unit 2 Reading: Exercise 3"]);
-  const [selectedClasses, setSelectedClasses] = useState(["Ultimate B2 A"]);
+  const [selectedClasses, setSelectedClasses] = useState([]);
   const [dueDate, setDueDate] = useState("2026-06-04");
   const [assigned, setAssigned] = useState(false);
   const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
@@ -595,6 +561,13 @@ function TeacherAssignments() {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
     setAssigned(false);
   };
+
+  useEffect(() => {
+    setSelectedClasses((currentClasses) => {
+      const validClasses = currentClasses.filter((className) => classOptions.includes(className));
+      return validClasses.length ? validClasses : classOptions.slice(0, 1);
+    });
+  }, [classOptions]);
 
   return (
     <section className="teacher-section-stack">
@@ -669,7 +642,7 @@ function TeacherAssignments() {
           </div>
           <div className="teacher-checkbox-panel">
             <strong>Classes</strong>
-            {classNames.map((className) => (
+            {classOptions.map((className) => (
               <label key={className}>
                 <input type="checkbox" checked={selectedClasses.includes(className)} onChange={() => toggleListItem(className, selectedClasses, setSelectedClasses)} />
                 <span>{className}</span>
@@ -726,6 +699,13 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
   const [bookPackage, setBookPackage] = useState(ultimateB2Package);
   const [bookSourceMessage, setBookSourceMessage] = useState("");
+  const {
+    classes: teacherClasses,
+    classOptions,
+    loadingClasses,
+    usingDemoClasses,
+    addCreatedClass,
+  } = useTeacherClasses(currentUser);
 
   useEffect(() => {
     setActiveSection(initialSection);
@@ -784,11 +764,21 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             onSelectBook={selectBook}
             initialPreviewActivityKey={initialPreviewActivityKey}
             navigateTo={navigateTo}
+            classOptions={classOptions}
           />
         )}
-        {activeSection === "classes" && <TeacherClasses currentUser={currentUser} bookPackage={bookPackage} />}
-        {activeSection === "students" && <TeacherStudents />}
-        {activeSection === "assignments" && <TeacherAssignments />}
+        {activeSection === "classes" && (
+          <TeacherClasses
+            currentUser={currentUser}
+            bookPackage={bookPackage}
+            classes={teacherClasses}
+            loadingClasses={loadingClasses}
+            usingDemoClasses={usingDemoClasses}
+            onClassCreated={addCreatedClass}
+          />
+        )}
+        {activeSection === "students" && <TeacherStudents classOptions={classOptions} />}
+        {activeSection === "assignments" && <TeacherAssignments classOptions={classOptions} />}
         {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}
       </PortalShell>
     </div>

@@ -6427,9 +6427,6 @@ input[type="color"] { padding: 4px; height: 46px; }
   display: grid;
   gap: 12px;
 }
-.back-to-pages-button {
-  justify-self: start;
-}
 .book-flipbook { display: grid; gap: 14px; }
 .book-flipbook-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e6edf6; border-radius: 8px; }
 .book-flipbook-stage { overflow: hidden; perspective: 1400px; }

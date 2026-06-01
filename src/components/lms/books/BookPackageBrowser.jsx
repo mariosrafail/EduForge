@@ -427,14 +427,6 @@ function TeacherBookUnitList({ component, onPreviewExercise, classOptions }) {
   );
 }
 
-function BackToPagesButton({ onBack }) {
-  return (
-    <button className="secondary-action compact-action back-to-pages-button" type="button" onClick={onBack} aria-label="Back to pages 20-21" data-sound-click="back">
-      <ArrowLeft size={16} /> Back to pages 20-21
-    </button>
-  );
-}
-
 function StudentBookGatewayExperience({ mode = "student" }) {
   const [bookScreen, setBookScreen] = useState("gateway");
   const [gatewayOpenSectionId, setGatewayOpenSectionId] = useState(null);
@@ -447,9 +439,9 @@ function StudentBookGatewayExperience({ mode = "student" }) {
   if (bookScreen === "video") {
     return (
       <div className="book-hotspot-screen">
-        <BackToPagesButton onBack={backToReadingSpread} />
         <Unit2VideoOnlyScreen
           mode={runnerMode}
+          onBack={backToReadingSpread}
           onContinue={() => setBookScreen("text-audio")}
         />
       </div>
@@ -459,10 +451,8 @@ function StudentBookGatewayExperience({ mode = "student" }) {
   if (bookScreen === "text-audio") {
     return (
       <div className="book-hotspot-screen">
-        <BackToPagesButton onBack={backToReadingSpread} />
         <ReadingTextAudioScreen
           onBack={backToReadingSpread}
-          showBackButton={false}
           onStartExercise3={() => {
             setGatewayOpenSectionId("reading-20-21");
             setBookScreen("exercise-3");
@@ -476,12 +466,10 @@ function StudentBookGatewayExperience({ mode = "student" }) {
     const activityKey = bookScreen === "exercise-3" ? "reading-ex3" : "reading-ex4";
     return (
       <div className="book-hotspot-screen">
-        <BackToPagesButton onBack={backToReadingSpread} />
         <UltimateB2ActivityRunner
           activityKey={activityKey}
           mode={runnerMode}
           onBack={backToReadingSpread}
-          hideBreadcrumb
         />
       </div>
     );

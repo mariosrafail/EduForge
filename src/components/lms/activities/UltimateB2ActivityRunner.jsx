@@ -784,16 +784,18 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
               <h2>{selectedSection.title} {selectedSection.pages}</h2>
               <small className="book-page-section-counter">{activeSectionIndex + 1} / {unit2PageSections.length}</small>
             </div>
-            <motion.button
-              className={`${selectedSection.continuesToVideo ? "primary-action" : "secondary-action"} compact-action`}
-              type="button"
-              onClick={selectedSection.continuesToVideo ? onContinue : () => setActiveSectionIndex(null)}
-              data-sound-click={selectedSection.continuesToVideo ? "submit" : "back"}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              {selectedSection.continuesToVideo ? "Continue to video" : "Back to unit pages"}
-            </motion.button>
+            {selectedSection.continuesToVideo && (
+              <motion.button
+                className="primary-action compact-action"
+                type="button"
+                onClick={onContinue}
+                data-sound-click="submit"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Continue to video
+              </motion.button>
+            )}
           </div>
           <div className="book-page-viewer-shell">
             <motion.button className="book-page-turn-button previous" type="button" onClick={goToPreviousSection} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
