@@ -99,6 +99,7 @@ export default function App() {
               await auth.signOut();
               navigateTo("home");
             }}
+            showSignOut={!view.startsWith("auth-")}
           />
         </>
       )}

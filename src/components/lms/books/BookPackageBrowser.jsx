@@ -462,6 +462,7 @@ function StudentBookGatewayExperience({ mode = "student" }) {
         <BackToPagesButton onBack={backToReadingSpread} />
         <ReadingTextAudioScreen
           onBack={backToReadingSpread}
+          showBackButton={false}
           onStartExercise3={() => {
             setGatewayOpenSectionId("reading-20-21");
             setBookScreen("exercise-3");
@@ -480,6 +481,7 @@ function StudentBookGatewayExperience({ mode = "student" }) {
           activityKey={activityKey}
           mode={runnerMode}
           onBack={backToReadingSpread}
+          hideBreadcrumb
         />
       </div>
     );

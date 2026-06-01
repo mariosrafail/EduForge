@@ -32,7 +32,7 @@ function displayRole(role) {
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
 }
 
-export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }) {
+export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, showSignOut = true }) {
   const { muted, audioReady, volume, toggleMuted, enableSound, setVolume, unlockAudio, playSound } = useSoundEffects();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileNav, setIsMobileNav] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(max-width: 1100px)").matches));
@@ -81,6 +81,11 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
 
   const handleNavigate = (nextView) => {
     navigateTo(nextView);
+    setMobileMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await onSignOut?.();
     setMobileMenuOpen(false);
   };
 
@@ -169,7 +174,12 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
                 />
                 <span>{Math.round(volume * 100)}%</span>
               </label>
-              {currentUser && <button onClick={onSignOut} title="Sign out"><LogOut size={17} /><span>Logout</span></button>}
+              {showSignOut && onSignOut && (
+                <button className="header-logout-button" type="button" onClick={handleSignOut} title="Log out" data-sound-click="tab">
+                  <LogOut size={17} />
+                  <span>Log out</span>
+                </button>
+              )}
             </nav>
           </>
         )}
@@ -244,13 +254,10 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut }
             />
             <strong>{Math.round(volume * 100)}%</strong>
           </label>
-          {currentUser && (
-            <button className="mobile-nav-button" onClick={async () => {
-              await onSignOut();
-              setMobileMenuOpen(false);
-            }}>
+          {showSignOut && onSignOut && (
+            <button className="mobile-nav-button" type="button" onClick={handleSignOut} data-sound-click="tab">
               <LogOut size={18} />
-              <span>Sign out</span>
+              <span>Log out</span>
             </button>
           )}
         </nav>

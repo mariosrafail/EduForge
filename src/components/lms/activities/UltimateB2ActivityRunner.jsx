@@ -901,7 +901,7 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
   );
 }
 
-export function ReadingTextAudioScreen({ onBack, onStartExercise3 }) {
+export function ReadingTextAudioScreen({ onBack, onStartExercise3, showBackButton = true }) {
   return (
     <motion.div
       className="reading-text-audio-screen"
@@ -911,9 +911,11 @@ export function ReadingTextAudioScreen({ onBack, onStartExercise3 }) {
     >
       <Card className="reading-text-audio-card">
         <div className="book-page-spread-toolbar reading-text-audio-toolbar">
-          <motion.button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
-            <ArrowLeft size={16} /> Back to page 20-21
-          </motion.button>
+          {showBackButton && (
+            <motion.button className="secondary-action compact-action" type="button" onClick={onBack} data-sound-click="back" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+              <ArrowLeft size={16} /> Back to page 20-21
+            </motion.button>
+          )}
           <div>
             <span className="eyebrow"><BookOpen size={15} /> Students Book / Unit 2</span>
             <h2>Reading text</h2>
@@ -1891,7 +1893,7 @@ function getBookHashForActivity(activityKey, mode = "student", resolved = null) 
   return bookId ? `${getActivityRouteRole(mode)}-book-${bookId}` : `${getActivityRouteRole(mode)}-books`;
 }
 
-export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo }) {
+export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
@@ -1911,19 +1913,21 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
 
   return (
     <div className="ultimate-activity-runner">
-      <nav className="ultimate-activity-nav subpage-nav" aria-label="Activity navigation">
-        <button className="ultimate-activity-back subpage-back-button" type="button" onClick={backToBook} data-sound-click="back" aria-label="Back to book">
-          <ArrowLeft size={17} />
-        </button>
-        {resolved && (
-          <div className="ultimate-breadcrumb subpage-breadcrumb">
-            <button type="button" onClick={() => openRoute(packageRoute)} data-sound-click="tab">Ultimate B2 package</button>
-            <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.component.title}</button>
-            <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.unit.title}</button>
-            <span aria-current="page">{exercise.title}</span>
-          </div>
-        )}
-      </nav>
+      {!hideBreadcrumb && (
+        <nav className="ultimate-activity-nav subpage-nav" aria-label="Activity navigation">
+          <button className="ultimate-activity-back subpage-back-button" type="button" onClick={backToBook} data-sound-click="back" aria-label="Back to book">
+            <ArrowLeft size={17} />
+          </button>
+          {resolved && (
+            <div className="ultimate-breadcrumb subpage-breadcrumb">
+              <button type="button" onClick={() => openRoute(packageRoute)} data-sound-click="tab">Ultimate B2 package</button>
+              <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.component.title}</button>
+              <button type="button" onClick={() => openRoute(bookRoute)} data-sound-click="tab">{resolved.unit.title}</button>
+              <span aria-current="page">{exercise.title}</span>
+            </div>
+          )}
+        </nav>
+      )}
       <SectionTitle
         eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Demo activity"}
         title={title}
