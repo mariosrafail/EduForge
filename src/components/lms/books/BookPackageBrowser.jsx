@@ -427,6 +427,14 @@ function TeacherBookUnitList({ component, onPreviewExercise, classOptions }) {
   );
 }
 
+function BackToPageSpreadButton({ onBack }) {
+  return (
+    <button className="secondary-action compact-action back-to-page-spread-button" type="button" onClick={onBack} data-sound-click="back">
+      <ArrowLeft size={16} /> Back to page 20-21
+    </button>
+  );
+}
+
 function StudentBookGatewayExperience({ mode = "student" }) {
   const [bookScreen, setBookScreen] = useState("gateway");
   const [gatewayOpenSectionId, setGatewayOpenSectionId] = useState(null);
@@ -466,10 +474,12 @@ function StudentBookGatewayExperience({ mode = "student" }) {
     const activityKey = bookScreen === "exercise-3" ? "reading-ex3" : "reading-ex4";
     return (
       <div className="book-hotspot-screen">
+        <BackToPageSpreadButton onBack={backToReadingSpread} />
         <UltimateB2ActivityRunner
           activityKey={activityKey}
           mode={runnerMode}
           onBack={backToReadingSpread}
+          hideBreadcrumb
         />
       </div>
     );
