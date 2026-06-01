@@ -135,6 +135,7 @@ export default function App() {
             initialSection={teacherSectionByView[view]}
             initialSelectedBookId={selectedBookId}
             initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
+            currentUser={auth.currentUser}
             course={courseData.course}
             onCourseChange={courseData.setCourse}
             navigateTo={navigateTo}
@@ -173,7 +174,7 @@ export default function App() {
           <StudentCourseView course={courseData.course} navigateTo={navigateTo} courseError={courseData.error} previewMode />
         )}
         {view === "flow" && <FullDemoFlow navigateTo={navigateTo} />}
-        {view === "join-class" && <JoinClassView classSlug={classSlug} navigateTo={navigateTo} />}
+        {view === "join-class" && <JoinClassView classSlug={classSlug} currentUser={auth.currentUser} navigateTo={navigateTo} />}
       </PageTransition>
     </div>
   );

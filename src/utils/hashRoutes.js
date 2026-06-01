@@ -64,7 +64,7 @@ export function buildActivityHash(activityKey, mode = "student") {
 }
 
 export function buildClassInviteHash(classItem = {}) {
-  const slug = classItem.slug || classItem.classSlug || slugifyClassName(classItem.name);
+  const slug = classItem.inviteCode || classItem.invite_code || classItem.slug || classItem.classSlug || slugifyClassName(classItem.name);
   return `join-class/${slug}`;
 }
 

@@ -1,7 +1,7 @@
 import { BookOpen, CheckCircle2, ClipboardList, Copy, Edit3, GraduationCap, Home, KeyRound, Link2, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
-import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import { createTeacherClass, getBookPackageTreeWithFallback, listTeacherClasses } from "../../../services/bookContentApi.js";
 import { buildActivityHash, buildBookHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
@@ -63,6 +63,9 @@ const teacherNavItems = [
 ];
 
 const classNames = teacherPortalClasses.map((item) => item.name);
+const classLevelOptions = ["A1", "A2", "B1", "B2", "C1", "C2"];
+const classBookOptions = Array.from(new Set(["Ultimate B2", ...ultimateB2ComponentTitles]));
+const demoTeacherClasses = teacherPortalClasses.map((classItem) => ({ level: "B2", ...classItem }));
 
 function CopyInviteLink({ classItem }) {
   const [copied, setCopied] = useState(false);
@@ -241,10 +244,97 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
   );
 }
 
-function TeacherClasses() {
-  const [selectedClass, setSelectedClass] = useState(teacherPortalClasses[0].name);
+function TeacherClasses({ currentUser = null, bookPackage = null }) {
+  const [classes, setClasses] = useState([]);
+  const [selectedClassSlug, setSelectedClassSlug] = useState("");
+  const [newClassName, setNewClassName] = useState("");
+  const [newClassLevel, setNewClassLevel] = useState("B2");
+  const [newClassBook, setNewClassBook] = useState("Ultimate B2");
+  const [classNameError, setClassNameError] = useState("");
+  const [classSaveError, setClassSaveError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [savingClass, setSavingClass] = useState(false);
+  const [usingDemoClasses, setUsingDemoClasses] = useState(false);
   const [selectedWorkStudent, setSelectedWorkStudent] = useState(null);
-  const students = teacherPortalStudents.filter((student) => student.className === selectedClass);
+  const selectedClass = classes.find((classItem) => classItem.slug === selectedClassSlug) || classes[0];
+  const students = teacherPortalStudents.filter((student) => student.className === selectedClass?.name);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadClasses() {
+      setLoadingClasses(true);
+      setClassSaveError("");
+
+      try {
+        const databaseClasses = await listTeacherClasses(currentUser?.id || null);
+        if (cancelled) return;
+        setClasses(databaseClasses);
+        setSelectedClassSlug((currentSlug) => {
+          if (databaseClasses.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
+          return databaseClasses[0]?.slug || "";
+        });
+        setUsingDemoClasses(false);
+      } catch (error) {
+        console.warn("Using demo classes because database classes could not be loaded.", error);
+        if (cancelled) return;
+        setClasses(demoTeacherClasses);
+        setSelectedClassSlug((currentSlug) => {
+          if (demoTeacherClasses.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
+          return demoTeacherClasses[0]?.slug || "";
+        });
+        setUsingDemoClasses(true);
+      } finally {
+        if (!cancelled) setLoadingClasses(false);
+      }
+    }
+
+    loadClasses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
+
+  const createClass = async (event) => {
+    event.preventDefault();
+    const trimmedName = newClassName.trim();
+    if (!trimmedName) {
+      setClassNameError("Enter a class name before creating the class.");
+      setClassSaveError("");
+      setSuccessMessage("");
+      return;
+    }
+
+    setSavingClass(true);
+    setClassSaveError("");
+    setSuccessMessage("");
+
+    try {
+      const createdClass = await createTeacherClass({
+        // TODO: make teacherId required once the full auth flow protects the teacher portal.
+        teacherId: currentUser?.id || null,
+        schoolId: currentUser?.school_id || currentUser?.schoolId || null,
+        name: trimmedName,
+        level: newClassLevel,
+        assignedBook: newClassBook,
+        bookPackageId: bookPackage?.id || null,
+      });
+
+      setClasses((currentClasses) => [createdClass, ...currentClasses.filter((classItem) => classItem.id !== createdClass.id)]);
+      setSelectedClassSlug(createdClass.slug);
+      setSelectedWorkStudent(null);
+      setNewClassName("");
+      setClassNameError("");
+      setUsingDemoClasses(false);
+      setSuccessMessage("Class created. Share the invite link with students.");
+    } catch (error) {
+      setClassSaveError(error.message || "Class could not be saved. Try again.");
+    } finally {
+      setSavingClass(false);
+    }
+  };
 
   return (
     <section className="teacher-section-stack">
@@ -254,26 +344,78 @@ function TeacherClasses() {
         text="Review Ultimate B2 class groups, completion, and student work."
       />
 
+      <Card className="teacher-create-class-card">
+        <div className="card-heading">
+          <div>
+            <span className="eyebrow">New class group</span>
+            <h2>Create new class</h2>
+          </div>
+          <Tag tone={usingDemoClasses ? "gold" : "blue"}>{usingDemoClasses ? "Demo fallback" : "Database"}</Tag>
+        </div>
+        <form className="teacher-create-class-form" onSubmit={createClass}>
+          <label>
+            Class name
+            <input
+              value={newClassName}
+              placeholder="B2 Monday 18:00"
+              onChange={(event) => {
+                setNewClassName(event.target.value);
+                if (classNameError) setClassNameError("");
+              }}
+              aria-invalid={classNameError ? "true" : "false"}
+            />
+            {classNameError && <span className="field-error">{classNameError}</span>}
+          </label>
+          <label>
+            Level
+            <select value={newClassLevel} onChange={(event) => setNewClassLevel(event.target.value)}>
+              {classLevelOptions.map((level) => <option key={level}>{level}</option>)}
+            </select>
+          </label>
+          <label>
+            Assigned book
+            <select value={newClassBook} onChange={(event) => setNewClassBook(event.target.value)}>
+              {classBookOptions.map((book) => <option key={book}>{book}</option>)}
+            </select>
+          </label>
+          <button className="primary-action" type="submit" disabled={savingClass} data-sound-click="submit">
+            {savingClass ? "Saving..." : "Create class"}
+          </button>
+        </form>
+        {usingDemoClasses && <div className="inline-status warning">Using demo classes because database classes could not be loaded.</div>}
+        {classSaveError && <div className="inline-status error">{classSaveError}</div>}
+        {successMessage && <div className="inline-status success">{successMessage}</div>}
+      </Card>
+
       <Card>
         <div className="card-heading">
           <div>
-            <span className="eyebrow">Level B2</span>
+            <span className="eyebrow">Class groups</span>
             <h2>Ultimate B2 classes</h2>
           </div>
           <Tag tone="green">Class progress</Tag>
         </div>
 
         <div className="teacher-class-table">
-          {teacherPortalClasses.map((classItem) => (
-            <article key={classItem.name} className={selectedClass === classItem.name ? "selected" : ""}>
-              <div>
-                <strong>{classItem.name}</strong>
-                <small>{classItem.teacher} / {classItem.students} students / assigned book: {classItem.assignedBook}</small>
+          {loadingClasses && <div className="teacher-loading-state">Loading classes...</div>}
+          {!loadingClasses && classes.length === 0 && <div className="teacher-loading-state">No classes have been created yet.</div>}
+          {!loadingClasses && classes.map((classItem) => (
+            <article key={classItem.id || classItem.slug} className={selectedClassSlug === classItem.slug ? "selected" : ""}>
+              <div className="teacher-class-summary">
+                <div className="teacher-class-title-row">
+                  <strong>{classItem.name}</strong>
+                  <span className="class-level-pill">{classItem.level || "B2"}</span>
+                </div>
+                <small>{classItem.teacher}</small>
+                <small>{classItem.students} students / assigned book: {classItem.assignedBook}</small>
                 <CopyInviteLink classItem={classItem} />
               </div>
-              <Progress value={classItem.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
+              <div className="teacher-class-progress">
+                <span>Progress</span>
+                <Progress value={classItem.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
+              </div>
               <b>{classItem.completion}%</b>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedClass(classItem.name)} data-sound-click="tab">View students</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedClassSlug(classItem.slug)} data-sound-click="tab">View students</button>
             </article>
           ))}
         </div>
@@ -282,21 +424,32 @@ function TeacherClasses() {
       <Card>
         <div className="card-heading">
           <div>
-            <span className="eyebrow"><Users size={15} /> {selectedClass}</span>
+            <span className="eyebrow"><Users size={15} /> {selectedClass?.name || "No class selected"}</span>
             <h2>Students</h2>
           </div>
         </div>
-        <div className="teacher-student-table compact">
-          {students.map((student) => (
-            <article key={student.name}>
-              <strong>{student.name}</strong>
-              <span>{student.completion}% complete</span>
-              <span>{student.lastActivity}</span>
-              <span>{student.averageScore}% average</span>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedWorkStudent(student)} data-sound-click="tab">View work</button>
-            </article>
-          ))}
-        </div>
+        {!selectedClass ? (
+          <div className="teacher-empty-class-state">
+            <p>Create a class or select one from the list to view students.</p>
+          </div>
+        ) : students.length > 0 ? (
+          <div className="teacher-student-table compact">
+            {students.map((student) => (
+              <article key={student.name}>
+                <strong>{student.name}</strong>
+                <span>{student.completion}% complete</span>
+                <span>{student.lastActivity}</span>
+                <span>{student.averageScore}% average</span>
+                <button className="secondary-action compact-action" type="button" onClick={() => setSelectedWorkStudent(student)} data-sound-click="tab">View work</button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="teacher-empty-class-state">
+            <p>No students have joined this class yet. Copy the invite link and share it with students.</p>
+            {selectedClass && <CopyInviteLink classItem={selectedClass} />}
+          </div>
+        )}
       </Card>
       <ResultsModal student={selectedWorkStudent} label="Selected student work" onClose={() => setSelectedWorkStudent(null)} />
     </section>
@@ -567,7 +720,7 @@ function TeacherCustomAssignment(props) {
   );
 }
 
-export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialPreviewActivityKey = null, ...editorProps }) {
+export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
@@ -633,7 +786,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             navigateTo={navigateTo}
           />
         )}
-        {activeSection === "classes" && <TeacherClasses />}
+        {activeSection === "classes" && <TeacherClasses currentUser={currentUser} bookPackage={bookPackage} />}
         {activeSection === "students" && <TeacherStudents />}
         {activeSection === "assignments" && <TeacherAssignments />}
         {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}

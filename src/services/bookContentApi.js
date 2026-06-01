@@ -205,3 +205,34 @@ export async function getStudentGrades(studentId) {
   const payload = await request(`/.netlify/functions/book-content?action=grades&studentId=${encodeURIComponent(studentId)}`);
   return payload.grades || [];
 }
+
+export async function listTeacherClasses(teacherId) {
+  const query = teacherId ? `&teacherId=${encodeURIComponent(teacherId)}` : "";
+  const payload = await request(`/.netlify/functions/book-content?action=classes${query}`);
+  return payload.classes || [];
+}
+
+export async function createTeacherClass(classPayload) {
+  const payload = await request("/.netlify/functions/book-content?action=create-class", {
+    method: "POST",
+    body: JSON.stringify(classPayload),
+  });
+  return payload.classItem || payload.class;
+}
+
+export async function getClassByInvite(inviteCode) {
+  const payload = await request(`/.netlify/functions/book-content?action=class-by-invite&inviteCode=${encodeURIComponent(inviteCode)}`);
+  return payload.classItem || payload.class;
+}
+
+export async function getClassBySlug(slug) {
+  const payload = await request(`/.netlify/functions/book-content?action=class-by-slug&slug=${encodeURIComponent(slug)}`);
+  return payload.classItem || payload.class;
+}
+
+export async function joinClass(joinPayload) {
+  return request("/.netlify/functions/book-content?action=join-class", {
+    method: "POST",
+    body: JSON.stringify(joinPayload),
+  });
+}

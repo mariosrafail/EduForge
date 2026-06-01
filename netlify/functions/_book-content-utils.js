@@ -12,7 +12,10 @@ export function readQuery(event) {
     activityId: params.activityId || "",
     activitySlug: params.activitySlug || "",
     userId: params.userId || "",
+    teacherId: params.teacherId || "",
     studentId: params.studentId || "",
+    classId: params.classId || "",
+    inviteCode: params.inviteCode || "",
   };
 }
 

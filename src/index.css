@@ -1249,7 +1249,23 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .inline-status.success { background: #ecfdf3; border-color: #abefc6; color: #067647; }
 .inline-status.warning { background: #fffaeb; border-color: #fedf89; color: #b54708; }
+.inline-status.error { background: #fef3f2; border-color: #fecdca; color: #b42318; }
 .portal-open-state { margin: 0 18px 18px; }
+.join-class-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.join-class-meta span {
+  padding: 7px 9px;
+  color: #344054;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 850;
+}
 .editor-loading-overlay {
   position: fixed;
   inset: 0;
@@ -3906,6 +3922,7 @@ input[type="color"] { padding: 4px; height: 46px; }
 .teacher-assign-control { display: grid; grid-template-columns: minmax(170px, 1fr) auto; gap: 8px; align-items: end; }
 .teacher-assign-control label,
 .teacher-filter-row label,
+.teacher-create-class-form label,
 .teacher-book-assign-grid > label {
   display: grid;
   gap: 6px;
@@ -3914,6 +3931,19 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 .teacher-assign-control label { font-size: 12px; }
 .teacher-success-line { grid-column: 1 / -1; color: #067647; font-weight: 900; }
+.teacher-create-class-card { border-color: color-mix(in srgb, var(--brand-primary) 18%, var(--line)); }
+.teacher-create-class-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(110px, 0.38fr) minmax(220px, 0.85fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.teacher-create-class-form .primary-action { align-self: end; min-height: 42px; }
+.field-error {
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 850;
+}
 .teacher-class-table,
 .teacher-student-table,
 .teacher-assignment-table,
@@ -3929,8 +3959,58 @@ input[type="color"] { padding: 4px; height: 46px; }
   border: 1px solid var(--line);
   border-radius: 8px;
 }
-.teacher-class-table article { grid-template-columns: minmax(210px, 1.1fr) minmax(160px, 0.75fr) auto auto; }
+.teacher-class-table article { grid-template-columns: minmax(300px, 1.35fr) minmax(180px, 0.72fr) auto auto; }
 .teacher-class-table article.selected { border-color: color-mix(in srgb, var(--brand-primary) 42%, var(--line)); background: color-mix(in srgb, var(--brand-primary) 6%, white); }
+.teacher-class-summary { min-width: 0; }
+.teacher-class-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.class-level-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  padding: 4px 8px;
+  color: #0b4a6f;
+  background: #eff8ff;
+  border: 1px solid #b2ddff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+}
+.teacher-class-progress {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.teacher-class-progress span {
+  color: #475467;
+  font-size: 12px;
+  font-weight: 900;
+}
+.teacher-empty-class-state {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+.teacher-empty-class-state p {
+  margin: 0;
+  color: #475467;
+  font-weight: 820;
+}
+.teacher-loading-state {
+  padding: 14px;
+  color: #475467;
+  background: #f8fafc;
+  border: 1px solid #e6edf6;
+  border-radius: 8px;
+  font-weight: 850;
+}
 .teacher-student-table article { grid-template-columns: minmax(170px, 1.2fr) minmax(130px, 0.9fr) 72px minmax(90px, 0.75fr) 82px minmax(180px, 1.2fr) auto; }
 .teacher-student-table.compact article { grid-template-columns: minmax(170px, 1fr) minmax(120px, 0.7fr) minmax(140px, 0.8fr) minmax(110px, 0.7fr) auto; }
 .teacher-student-table span,
@@ -6786,6 +6866,10 @@ input[type="color"] { padding: 4px; height: 46px; }
 @media (max-width: 920px) {
   .custom-assignment-workspace,
   .book-flipbook-spread { grid-template-columns: 1fr; }
+  .teacher-create-class-form,
+  .teacher-class-table article { grid-template-columns: 1fr; }
+  .teacher-create-class-form .primary-action,
+  .teacher-class-table .secondary-action { width: 100%; justify-content: center; }
   .custom-assignment-steps { position: static; }
   .book-flipbook-next-page { display: none; }
   .book-section-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
