@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Hamilton House LMS">
+  <rect width="180" height="180" rx="38" fill="#0b1f3a"/>
+  <path d="M43 58c0-7.2 5.8-13 13-13h23c6.2 0 12 2.2 16.5 6v84c-4.5-3.8-10.3-6-16.5-6H56c-7.2 0-13-5.8-13-13V58Z" fill="#fff"/>
+  <path d="M137 58c0-7.2-5.8-13-13-13h-23c-6.2 0-12 2.2-16.5 6v84c4.5-3.8 10.3-6 16.5-6h23c7.2 0 13-5.8 13-13V58Z" fill="#f97316"/>
+  <path d="M66 72h15M66 89h15M107 72h8M107 89h8" stroke="#0b1f3a" stroke-width="8" stroke-linecap="round"/>
+</svg>
