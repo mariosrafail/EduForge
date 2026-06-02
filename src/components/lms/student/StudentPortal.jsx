@@ -323,6 +323,9 @@ export function StudentPortal({
 
   const goToSection = (section) => {
     const nextView = studentViewBySection[section] || "student";
+    if (section === "books") {
+      setSelectedBookId(null);
+    }
     if (navigateTo) {
       navigateTo(nextView);
       return;

@@ -6427,18 +6427,17 @@ input[type="color"] { padding: 4px; height: 46px; }
   display: grid;
   gap: 12px;
 }
+.student-book-pages-shell {
+  display: grid;
+  gap: 12px;
+}
+.student-book-pages-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
 .back-to-page-spread-button {
   justify-self: start;
 }
-.book-flipbook { display: grid; gap: 14px; }
-.book-flipbook-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e6edf6; border-radius: 8px; }
-.book-flipbook-stage { overflow: hidden; perspective: 1400px; }
-.book-flipbook-spread { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-.book-flipbook-thumbnails { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
-.book-flipbook-thumbnails button { position: relative; flex: 0 0 68px; height: 82px; overflow: hidden; padding: 0; background: #fff; border: 2px solid #e6edf6; border-radius: 8px; cursor: pointer; }
-.book-flipbook-thumbnails button.active { border-color: var(--brand-primary); }
-.book-flipbook-thumbnails img { width: 100%; height: 100%; object-fit: cover; }
-.book-flipbook-thumbnails span { position: absolute; right: 4px; bottom: 4px; padding: 2px 6px; color: #fff; background: rgba(16, 24, 40, 0.78); border-radius: 999px; font-size: 11px; font-weight: 900; }
 .join-class-workspace { display: grid; place-items: center; min-height: calc(100vh - 160px); }
 .join-class-card { width: min(680px, 100%); }
 .join-class-form,
@@ -6864,14 +6863,12 @@ input[type="color"] { padding: 4px; height: 46px; }
 }
 
 @media (max-width: 920px) {
-  .custom-assignment-workspace,
-  .book-flipbook-spread { grid-template-columns: 1fr; }
+  .custom-assignment-workspace { grid-template-columns: 1fr; }
   .teacher-create-class-form,
   .teacher-class-table article { grid-template-columns: 1fr; }
   .teacher-create-class-form .primary-action,
   .teacher-class-table .secondary-action { width: 100%; justify-content: center; }
   .custom-assignment-steps { position: static; }
-  .book-flipbook-next-page { display: none; }
   .book-section-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .book-page-spread-toolbar { grid-template-columns: 1fr; }
   .book-page-viewer-shell { grid-template-columns: 1fr; }
