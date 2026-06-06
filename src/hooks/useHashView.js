@@ -5,18 +5,14 @@ export const validViews = new Set(Object.keys(mainHashRoutes));
 
 function readHashRoute() {
   if (typeof window === "undefined") {
-    return parseHashRoute("home");
+    return parseHashRoute("/courses");
   }
 
   return parseHashRoute(window.location.hash);
 }
 
 function normalizeInvalidHash(route) {
-  if (typeof window === "undefined" || route.valid) {
-    return;
-  }
-
-  window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#home`);
+  return route;
 }
 
 export function useHashView() {
@@ -24,9 +20,12 @@ export function useHashView() {
 
   useEffect(() => {
     const handleHashChange = () => {
+      if (!window.location.hash) {
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#/courses`);
+      }
       const nextRoute = readHashRoute();
       normalizeInvalidHash(nextRoute);
-      setRoute(nextRoute.valid ? nextRoute : parseHashRoute("home"));
+      setRoute(nextRoute);
     };
 
     window.addEventListener("hashchange", handleHashChange);
@@ -39,7 +38,7 @@ export function useHashView() {
 
   const navigateTo = useCallback((nextHash) => {
     const nextRoute = parseHashRoute(nextHash);
-    const safeRoute = nextRoute.valid ? nextRoute : parseHashRoute("home");
+    const safeRoute = nextRoute.valid ? nextRoute : parseHashRoute("/courses");
     setRoute(safeRoute);
 
     if (typeof window !== "undefined" && window.location.hash !== `#${safeRoute.hash}`) {

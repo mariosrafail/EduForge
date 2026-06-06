@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
@@ -26,6 +27,7 @@ const teacherSectionByView = {
 };
 
 const studentSectionByView = {
+  courses: "books",
   student: "dashboard",
   "student-books": "books",
   "student-assignments": "assignments",
@@ -44,14 +46,48 @@ const adminSectionByView = {
 
 function transitionGroupForView(view, activityKey = null) {
   if (activityKey) return "student";
+  if (view === "courses") return "student";
+  if (view === "invalid-route") return "invalid-route";
   if (adminSectionByView[view]) return "admin";
   if (teacherSectionByView[view]) return "teacher";
   if (studentSectionByView[view]) return "student";
   return view;
 }
 
+function InvalidRouteView({ attemptedHash, navigateTo }) {
+  return (
+    <main className="route-fallback-screen">
+      <section className="route-fallback-card">
+        <AlertTriangle size={30} />
+        <span className="eyebrow">Invalid route</span>
+        <h1>This page link is not available.</h1>
+        <p>{attemptedHash ? `No screen matches #${attemptedHash}.` : "No screen matches this URL."}</p>
+        <button className="primary-action" type="button" onClick={() => navigateTo("/courses")} data-sound-click="back">
+          <ArrowLeft size={17} /> Back to course list
+        </button>
+      </section>
+    </main>
+  );
+}
+
 export default function App() {
-  const { view, navigateTo, activityKey, selectedBookId, selectedPageUnitId, selectedPageId, classSlug, mode: routeMode } = useHashView();
+  const {
+    view,
+    navigateTo,
+    activityKey,
+    selectedBookId,
+    selectedPackageSlug,
+    selectedBookSubview,
+    selectedPageUnitId,
+    selectedPageId,
+    selectedPageNumber,
+    selectedAssignmentId,
+    selectedClassSlug,
+    classSlug,
+    attemptedHash,
+    routeAction,
+    mode: routeMode,
+  } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
   const courseData = useCourseData();
@@ -106,6 +142,7 @@ export default function App() {
 
       <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
+        {view === "invalid-route" && <InvalidRouteView attemptedHash={attemptedHash} navigateTo={navigateTo} />}
         {view.startsWith("auth-") && (
           <AuthView
             role={view.replace("auth-", "")}
@@ -133,9 +170,15 @@ export default function App() {
         {teacherSectionByView[view] && (
           <TeacherPortal
             initialSection={teacherSectionByView[view]}
+            initialSelectedPackageSlug={selectedPackageSlug}
             initialSelectedBookId={selectedBookId}
+            initialSelectedBookSubview={selectedBookSubview}
             initialSelectedPageUnitId={selectedPageUnitId}
             initialSelectedPageId={selectedPageId}
+            initialSelectedPageNumber={selectedPageNumber}
+            initialSelectedAssignmentId={selectedAssignmentId}
+            initialSelectedClassSlug={selectedClassSlug}
+            routeAction={routeAction}
             initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
             currentUser={auth.currentUser}
             course={courseData.course}
@@ -153,9 +196,12 @@ export default function App() {
           <StudentPortal
             initialSection={studentSection}
             initialActivityKey={routeMode === "student" ? activityKey : null}
+            initialSelectedPackageSlug={selectedPackageSlug}
             initialSelectedBookId={selectedBookId}
+            initialSelectedBookSubview={selectedBookSubview}
             initialSelectedPageUnitId={selectedPageUnitId}
             initialSelectedPageId={selectedPageId}
+            initialSelectedPageNumber={selectedPageNumber}
             course={courseData.course}
             onSubmission={addCourseSubmission}
             navigateTo={navigateTo}

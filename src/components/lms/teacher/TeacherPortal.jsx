@@ -6,7 +6,13 @@ import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } 
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
-import { buildActivityHash, buildBookHash, buildBookPageHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
+import {
+  buildActivityHash,
+  buildBookHash,
+  buildClassInviteUrl,
+  buildTeacherSectionHash,
+  slugifyRoute,
+} from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -111,15 +117,6 @@ function dueDateLabel(dueDate) {
   return "On track";
 }
 
-const teacherViewBySection = {
-  dashboard: "teacher",
-  books: "teacher-books",
-  classes: "teacher-classes",
-  students: "teacher-students",
-  assignments: "teacher-assignments",
-  "custom-assignment": "teacher-custom-assignment",
-};
-
 function TeacherDashboard({ goToSection }) {
   return (
     <>
@@ -182,7 +179,7 @@ function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackag
   );
 }
 
-function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, onSelectBook, onSelectBookPage, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
+function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
@@ -277,10 +274,13 @@ function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "
         bookPackage={bookPackage}
         classOptions={classOptions}
         selectedComponentId={selectedBookId}
+        selectedSubview={selectedBookSubview}
         selectedPageUnitId={selectedPageUnitId}
         selectedPageId={selectedPageId}
+        selectedPageNumber={selectedPageNumber}
         onSelectComponent={onSelectBook}
         onSelectBookPage={onSelectBookPage}
+        onSelectSubview={onSelectBookSubview}
         onBackToBooks={() => onSelectBook?.(null)}
         onPreviewExercise={previewActivity}
       />
@@ -288,8 +288,8 @@ function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "
   );
 }
 
-function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, usingDemoClasses = false, onClassCreated }) {
-  const [selectedClassSlug, setSelectedClassSlug] = useState("");
+function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, usingDemoClasses = false, selectedClassSlug: routeSelectedClassSlug = null, routeAction = null, navigateTo, onClassCreated }) {
+  const [selectedClassSlug, setSelectedClassSlug] = useState(routeSelectedClassSlug || "");
   const [newClassName, setNewClassName] = useState("");
   const [newClassLevel, setNewClassLevel] = useState("B2");
   const [newClassBook, setNewClassBook] = useState("Ultimate B2");
@@ -303,10 +303,11 @@ function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], 
 
   useEffect(() => {
     setSelectedClassSlug((currentSlug) => {
+      if (routeSelectedClassSlug && classes.some((classItem) => classItem.slug === routeSelectedClassSlug)) return routeSelectedClassSlug;
       if (classes.some((classItem) => classItem.slug === currentSlug)) return currentSlug;
       return classes[0]?.slug || "";
     });
-  }, [classes]);
+  }, [classes, routeSelectedClassSlug]);
 
   const createClass = async (event) => {
     event.preventDefault();
@@ -335,6 +336,7 @@ function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], 
 
       onClassCreated?.(createdClass);
       setSelectedClassSlug(createdClass.slug);
+      navigateTo?.(buildTeacherSectionHash("classes", createdClass.slug));
       setSelectedWorkStudent(null);
       setNewClassName("");
       setClassNameError("");
@@ -425,7 +427,17 @@ function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], 
                 <Progress value={classItem.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
               </div>
               <b>{classItem.completion}%</b>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedClassSlug(classItem.slug)} data-sound-click="tab">View students</button>
+              <button
+                className="secondary-action compact-action"
+                type="button"
+                onClick={() => {
+                  setSelectedClassSlug(classItem.slug);
+                  navigateTo?.(buildTeacherSectionHash("classes", classItem.slug));
+                }}
+                data-sound-click="tab"
+              >
+                View students
+              </button>
             </article>
           ))}
         </div>
@@ -585,7 +597,7 @@ function TeacherStudents({ classOptions = [] }) {
   );
 }
 
-function TeacherAssignments({ classOptions = [] }) {
+function TeacherAssignments({ classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
   const [selectedExercises, setSelectedExercises] = useState(["Unit 2 Reading: Exercise 3"]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [dueDate, setDueDate] = useState("2026-06-04");
@@ -600,6 +612,18 @@ function TeacherAssignments({ classOptions = [] }) {
     "Quiz 1: Reading and Vocabulary",
     "Quiz 2: Timed test",
   ];
+
+  useEffect(() => {
+    if (!selectedAssignmentId || selectedAssignmentId === "new") {
+      setSelectedAssignmentResult(null);
+      return;
+    }
+    const match = teacherPortalAssignments.find((assignment) => (
+      slugifyRoute(`${assignment.title}-${assignment.className}`) === slugifyRoute(selectedAssignmentId) ||
+      slugifyRoute(assignment.title) === slugifyRoute(selectedAssignmentId)
+    ));
+    setSelectedAssignmentResult(match || null);
+  }, [selectedAssignmentId]);
 
   const toggleListItem = (value, list, setter) => {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -642,12 +666,29 @@ function TeacherAssignments({ classOptions = [] }) {
               </Tag>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.averageScore}% average</span>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedAssignmentResult(assignment)} data-sound-click="tab">View results</button>
+              <button
+                className="secondary-action compact-action"
+                type="button"
+                onClick={() => {
+                  setSelectedAssignmentResult(assignment);
+                  navigateTo?.(buildTeacherSectionHash("assignments", `${assignment.title}-${assignment.className}`));
+                }}
+                data-sound-click="tab"
+              >
+                View results
+              </button>
             </article>
           ))}
         </div>
       </Card>
-      <ResultsModal assignment={selectedAssignmentResult} label="Results preview" onClose={() => setSelectedAssignmentResult(null)} />
+      <ResultsModal
+        assignment={selectedAssignmentResult}
+        label="Results preview"
+        onClose={() => {
+          setSelectedAssignmentResult(null);
+          navigateTo?.(buildTeacherSectionHash("assignments"));
+        }}
+      />
 
       <Card className="teacher-book-assign-panel">
         <div className="card-heading">
@@ -740,11 +781,13 @@ function TeacherCustomAssignment(props) {
 export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [selectedPackageSlug, setSelectedPackageSlug] = useState(editorProps.initialSelectedPackageSlug || "ultimate-b2");
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
+  const [selectedBookSubview, setSelectedBookSubview] = useState(editorProps.initialSelectedBookSubview || null);
   const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
+  const [selectedPageNumber, setSelectedPageNumber] = useState(editorProps.initialSelectedPageNumber || null);
   const [bookPackages, setBookPackages] = useState(demoBookPackages);
-  const [selectedPackageSlug, setSelectedPackageSlug] = useState("ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
   const {
     classes: teacherClasses,
@@ -760,11 +803,13 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   useEffect(() => {
     setSelectedBookId(initialSelectedBookId);
+    setSelectedBookSubview(editorProps.initialSelectedBookSubview || null);
     setSelectedPageUnitId(initialSelectedPageUnitId);
     setSelectedPageId(initialSelectedPageId);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(initialSelectedBookId));
-    if (initialSelectedBookId || initialPreviewActivityKey) setActiveSection("books");
-  }, [initialPreviewActivityKey, initialSelectedBookId, initialSelectedPageId, initialSelectedPageUnitId]);
+    setSelectedPageNumber(editorProps.initialSelectedPageNumber || null);
+    setSelectedPackageSlug(editorProps.initialSelectedPackageSlug || inferPackageSlugFromBookId(initialSelectedBookId));
+    if (initialSelectedBookId || initialPreviewActivityKey || editorProps.initialSelectedPackageSlug) setActiveSection("books");
+  }, [editorProps.initialSelectedBookSubview, editorProps.initialSelectedPackageSlug, editorProps.initialSelectedPageNumber, initialPreviewActivityKey, initialSelectedBookId, initialSelectedPageId, initialSelectedPageUnitId]);
 
   useEffect(() => {
     let mounted = true;
@@ -779,9 +824,8 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   }, []);
 
   const goToSection = (section) => {
-    const nextView = teacherViewBySection[section] || "teacher";
     if (navigateTo) {
-      navigateTo(nextView);
+      navigateTo(buildTeacherSectionHash(section));
       return;
     }
     setActiveSection(section);
@@ -789,28 +833,47 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   const selectBook = (bookId) => {
     setSelectedBookId(bookId);
+    setSelectedBookSubview(bookId ? "exercises" : null);
     setSelectedPageUnitId(null);
     setSelectedPageId(null);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
+    setSelectedPageNumber(null);
+    const nextPackageSlug = selectedPackageSlug || inferPackageSlugFromBookId(bookId);
+    setSelectedPackageSlug(nextPackageSlug);
     if (navigateTo) {
-      navigateTo(bookId ? buildBookHash("teacher", bookId) : "teacher-books");
+      navigateTo(bookId ? `/teacher/books/${nextPackageSlug}/components/${bookId}` : buildTeacherSectionHash("books"));
     }
   };
 
   const selectPackage = (packageSlug) => {
     setSelectedPackageSlug(packageSlug);
     setSelectedBookId(null);
+    setSelectedBookSubview(null);
     setSelectedPageUnitId(null);
     setSelectedPageId(null);
-    if (navigateTo) navigateTo("teacher-books");
+    setSelectedPageNumber(null);
+    if (navigateTo) navigateTo(`/teacher/books/${packageSlug}`);
   };
 
-  const selectBookPage = (bookId, pageUnitId, pageId) => {
+  const selectBookPage = (bookId, pageUnitId, pageId, pageNumber = null) => {
     setSelectedBookId(bookId);
+    setSelectedBookSubview("pages");
     setSelectedPageUnitId(pageUnitId);
     setSelectedPageId(pageId);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
-    if (navigateTo) navigateTo(buildBookPageHash("teacher", bookId, pageUnitId, pageId));
+    setSelectedPageNumber(pageNumber);
+    setSelectedPackageSlug(selectedPackageSlug || inferPackageSlugFromBookId(bookId));
+    if (navigateTo) navigateTo(`/teacher/books/${selectedPackageSlug || inferPackageSlugFromBookId(bookId)}/components/${bookId}/pages/${pageNumber || pageId}`);
+  };
+
+  const selectBookSubview = (bookId, subview) => {
+    const nextSubview = subview || "exercises";
+    setSelectedBookId(bookId);
+    setSelectedBookSubview(nextSubview);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    setSelectedPageNumber(null);
+    const nextPackageSlug = selectedPackageSlug || inferPackageSlugFromBookId(bookId);
+    setSelectedPackageSlug(nextPackageSlug);
+    if (navigateTo) navigateTo(`/teacher/books/${nextPackageSlug}/components/${bookId}/${nextSubview}`);
   };
 
   return (
@@ -829,13 +892,16 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
           <TeacherBooks
             bookPackages={bookPackages}
             selectedPackageSlug={selectedPackageSlug}
+            selectedBookSubview={selectedBookSubview}
             onSelectPackage={selectPackage}
             bookSourceMessage={bookSourceMessage}
             selectedBookId={selectedBookId}
             selectedPageUnitId={selectedPageUnitId}
             selectedPageId={selectedPageId}
+            selectedPageNumber={selectedPageNumber}
             onSelectBook={selectBook}
             onSelectBookPage={selectBookPage}
+            onSelectBookSubview={selectBookSubview}
             initialPreviewActivityKey={initialPreviewActivityKey}
             navigateTo={navigateTo}
             classOptions={classOptions}
@@ -848,11 +914,21 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             classes={teacherClasses}
             loadingClasses={loadingClasses}
             usingDemoClasses={usingDemoClasses}
+            selectedClassSlug={editorProps.initialSelectedClassSlug}
+            routeAction={editorProps.routeAction}
+            navigateTo={navigateTo}
             onClassCreated={addCreatedClass}
           />
         )}
         {activeSection === "students" && <TeacherStudents classOptions={classOptions} />}
-        {activeSection === "assignments" && <TeacherAssignments classOptions={classOptions} />}
+        {activeSection === "assignments" && (
+          <TeacherAssignments
+            classOptions={classOptions}
+            selectedAssignmentId={editorProps.initialSelectedAssignmentId}
+            routeAction={editorProps.routeAction}
+            navigateTo={navigateTo}
+          />
+        )}
         {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}
       </PortalShell>
     </div>

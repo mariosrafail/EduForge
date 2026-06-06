@@ -53,30 +53,56 @@ function buildUnits({ componentKey, componentLabel, unitNumbers, partCount, reso
   }));
 }
 
-function buildPageSet({ componentFolder, unitNumber, partCount, titlePrefix = "Unit" }) {
+function buildPageSet({ componentFolder, unitNumber, partCount, titlePrefix = "Unit", startPageNumber = 1, unitTitle = null, pageSections = null }) {
+  const unitLabel = unitTitle ? `${unitNumber} ${unitTitle}` : `${titlePrefix} ${unitNumber}`;
+  const title = unitTitle || `${titlePrefix} ${unitNumber}`;
+  const unitPageLabel = unitTitle ? `${titlePrefix} ${unitNumber}, ${unitTitle}` : `${titlePrefix} ${unitNumber}`;
+  const pageItems = pageSections || Array.from({ length: partCount }, (_, index) => ({
+    part: index + 1,
+    title: `Part ${index + 1}`,
+  }));
+
   return {
     id: `ej6-pages-${componentFolder}-${unitNumber}`,
-    title: `${titlePrefix} ${unitNumber}`,
+    number: unitNumber,
+    title,
     unit: `${titlePrefix} ${unitNumber}`,
-    pages: Array.from({ length: partCount }, (_, index) => {
-      const pageNumber = index + 1;
+    displayLabel: unitLabel,
+    pages: pageItems.map((section, index) => {
+      const partNumber = section.part || index + 1;
       return {
-        id: `ej6-${componentFolder}-${unitNumber}-page-${pageNumber}`,
-        title: `Part ${pageNumber}`,
-        label: `${titlePrefix} ${unitNumber} / Part ${pageNumber}`,
-        imagePath: `/src/assets/books/english-journey-6/pages/${componentFolder}/${unitNumber}/parts_part_${pageNumber}.png`,
+        id: `ej6-${componentFolder}-${unitNumber}-page-${partNumber}`,
+        sectionId: section.id || `part-${partNumber}`,
+        part: partNumber,
+        title: section.title || `Part ${partNumber}`,
+        label: `${unitPageLabel} / ${section.title || `Part ${partNumber}`}`,
+        pageNumber: startPageNumber + index,
+        imagePath: `/src/assets/books/english-journey-6/pages/${componentFolder}/${unitNumber}/parts_part_${partNumber}.png`,
       };
     }),
   };
 }
 
-function buildPageUnits({ componentFolder, unitNumbers, partCount, partCounts = {}, titlePrefix = "Unit" }) {
-  return unitNumbers.map((unitNumber) => buildPageSet({
-    componentFolder,
-    unitNumber,
-    partCount: partCounts[unitNumber] || partCount,
-    titlePrefix,
-  }));
+function buildPageUnits({ componentFolder, unitNumbers, units = null, partCount, partCounts = {}, titlePrefix = "Unit", pageSections = null }) {
+  let nextPageNumber = 1;
+  const pageUnitItems = units || unitNumbers.map((unitNumber) => ({ number: unitNumber }));
+
+  return pageUnitItems.map((unitItem) => {
+    const unitNumber = unitItem.number;
+    const unitPageSections = pageSections || null;
+    const pageCount = unitPageSections?.length || partCounts[unitNumber] || partCount;
+    const pageSet = buildPageSet({
+      componentFolder,
+      unitNumber,
+      partCount: pageCount,
+      titlePrefix,
+      startPageNumber: nextPageNumber,
+      unitTitle: unitItem.title || null,
+      pageSections: unitPageSections,
+    });
+    nextPageNumber += pageCount;
+    return pageSet;
+  });
 }
 
 function buildSinglePartUnits({ componentKey, componentLabel, unitNumbers, resourceCounts, titlePrefix }) {
@@ -98,6 +124,32 @@ function buildSinglePartUnits({ componentKey, componentLabel, unitNumbers, resou
 }
 
 const unitNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+const englishJourney6StudentsBookUnits = [
+  { number: 1, title: "This Is Me!" },
+  { number: 2, title: "People of the World" },
+  { number: 3, title: "Museums & Collections" },
+  { number: 4, title: "Getting Around" },
+  { number: 5, title: "Eating & Drinking" },
+  { number: 6, title: "Feeling Fine" },
+  { number: 7, title: "The Countryside" },
+  { number: 8, title: "Towns & Cities" },
+  { number: 9, title: "Celebrate!" },
+  { number: 10, title: "Music" },
+];
+
+const englishJourney6StudentsBookPageSections = [
+  { part: 1, id: "unit-opener", title: "Unit opener" },
+  { part: 2, id: "reading", title: "Reading" },
+  { part: 3, id: "vocabulary-1", title: "Vocabulary 1" },
+  { part: 4, id: "grammar-1", title: "Grammar 1" },
+  { part: 5, id: "vocabulary-2", title: "Vocabulary 2" },
+  { part: 6, id: "grammar-2", title: "Grammar 2" },
+  { part: 7, id: "listening", title: "Listening" },
+  { part: 8, id: "speaking", title: "Speaking" },
+  { part: 9, id: "writing", title: "Writing" },
+  { part: 10, id: "reload", title: "Reload" },
+];
 
 const studentsBookResourceCounts = {
   1: 123,
@@ -170,6 +222,7 @@ export const englishJourney6Package = {
     {
       id: "ej6-students-book",
       slug: "english-journey-6-students-book",
+      routeSlug: "students-book",
       title: "English Journey 6 Students Book",
       subtitle: "Coursebook units imported from book1/unit",
       type: "Students Book",
@@ -178,8 +231,9 @@ export const englishJourney6Package = {
       coverAssetPath: "src/assets/books/english-journey-6/covers/english_journey_6_students_book.png",
       pageUnits: buildPageUnits({
         componentFolder: "students-book",
-        unitNumbers,
+        units: englishJourney6StudentsBookUnits,
         partCount: 10,
+        pageSections: englishJourney6StudentsBookPageSections,
       }),
       units: buildUnits({
         componentKey: "students-book",
@@ -192,6 +246,7 @@ export const englishJourney6Package = {
     {
       id: "ej6-workbook",
       slug: "english-journey-6-workbook",
+      routeSlug: "workbook",
       title: "English Journey 6 Workbook",
       subtitle: "Workbook units imported from book1/work",
       type: "Workbook",
@@ -215,6 +270,7 @@ export const englishJourney6Package = {
     {
       id: "ej6-grammar-book",
       slug: "english-journey-6-grammar-book",
+      routeSlug: "grammar-book",
       title: "English Journey 6 Grammar Book",
       subtitle: "Grammar units imported from book1/grammar",
       type: "Grammar Book",
@@ -238,6 +294,7 @@ export const englishJourney6Package = {
     {
       id: "ej6-test-book",
       slug: "english-journey-6-test-book",
+      routeSlug: "test-book",
       title: "English Journey 6 Test Book",
       subtitle: "Tests imported from book1/test",
       type: "Test Book",
@@ -261,6 +318,7 @@ export const englishJourney6Package = {
     {
       id: "ej6-video-bank",
       slug: "english-journey-6-video-bank",
+      routeSlug: "video-bank",
       title: "English Journey 6 Video Bank",
       subtitle: "Video resources imported from book1/video",
       type: "Video Bank",

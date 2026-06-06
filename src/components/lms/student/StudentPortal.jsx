@@ -3,7 +3,16 @@ import { useEffect, useState } from "react";
 import { demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
-import { buildActivityHash, buildBookHash, buildBookPageHash } from "../../../utils/hashRoutes.js";
+import {
+  buildCourseComponentHash,
+  buildCourseComponentsHash,
+  buildCourseComponentSubviewHash,
+  buildCourseExerciseHash,
+  buildCourseHash,
+  buildCoursePageHash,
+  buildStudentSectionHash,
+  getExerciseRouteSlug,
+} from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
@@ -27,14 +36,6 @@ const studentNavItems = [
   { id: "assignments", label: "Assignments", description: "Pending work", icon: ClipboardList },
   { id: "grades", label: "Grades", description: "Feedback", icon: Star },
 ];
-
-const studentViewBySection = {
-  dashboard: "student",
-  books: "student-books",
-  assignments: "student-assignments",
-  grades: "student-grades",
-  activity: "student-activity",
-};
 
 function StudentProfileStrip() {
   return (
@@ -113,7 +114,7 @@ function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackag
   );
 }
 
-function StudentBooks({ openActivity, completedActivities, bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, onSelectBook, onSelectBookPage }) {
+function StudentBooks({ openActivity, completedActivities, bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || ultimateB2Package;
@@ -149,10 +150,13 @@ function StudentBooks({ openActivity, completedActivities, bookPackages = demoBo
         mode="student"
         bookPackage={bookPackage}
         selectedComponentId={selectedBookId}
+        selectedSubview={selectedBookSubview}
         selectedPageUnitId={selectedPageUnitId}
         selectedPageId={selectedPageId}
+        selectedPageNumber={selectedPageNumber}
         onSelectComponent={onSelectBook}
         onSelectBookPage={onSelectBookPage}
+        onSelectSubview={onSelectBookSubview}
         onBackToBooks={() => onSelectBook?.(null)}
         onStartExercise={(exercise) => openActivity(exercise, "books")}
         completedActivities={completedActivities}
@@ -282,12 +286,18 @@ function StudentGrades() {
   );
 }
 
-function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, goToSection, navigateTo }) {
+function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, selectedPackageSlug, selectedBookId, goToSection, navigateTo }) {
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
   const exerciseContext = findUltimateB2Exercise(exercise.demoActivityKey || exercise.id);
   const backToPrevious = () => {
-    if (previousSection === "books" && exerciseContext?.component?.id && navigateTo) {
-      navigateTo(buildBookHash("student", exerciseContext.component.id));
+    if (previousSection === "books" && navigateTo) {
+      const packageSlug = selectedPackageSlug || "ultimate-b2";
+      const componentSlug = selectedBookId || exerciseContext?.component?.id;
+      if (componentSlug) {
+        navigateTo(buildCourseComponentSubviewHash(packageSlug, componentSlug, "exercises"));
+        return;
+      }
+      navigateTo(buildCourseComponentsHash(packageSlug));
       return;
     }
     goToSection(previousSection || "books");
@@ -318,9 +328,12 @@ function StudentActivitySection({ activeExercise, setActiveExercise, completedAc
 export function StudentPortal({
   initialSection = "dashboard",
   initialActivityKey = null,
+  initialSelectedPackageSlug = null,
   initialSelectedBookId = null,
+  initialSelectedBookSubview = null,
   initialSelectedPageUnitId = null,
   initialSelectedPageId = null,
+  initialSelectedPageNumber = null,
   course,
   onSubmission,
   navigateTo,
@@ -332,11 +345,13 @@ export function StudentPortal({
   const [activeExercise, setActiveExercise] = useState(null);
   const [previousSection, setPreviousSection] = useState("books");
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
+  const [selectedBookSubview, setSelectedBookSubview] = useState(initialSelectedBookSubview);
   const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
+  const [selectedPageNumber, setSelectedPageNumber] = useState(initialSelectedPageNumber);
   const [completedActivities, setCompletedActivities] = useState({});
   const [bookPackages, setBookPackages] = useState(demoBookPackages);
-  const [selectedPackageSlug, setSelectedPackageSlug] = useState("ultimate-b2");
+  const [selectedPackageSlug, setSelectedPackageSlug] = useState(initialSelectedPackageSlug || "ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
 
   useEffect(() => {
@@ -345,17 +360,24 @@ export function StudentPortal({
 
   useEffect(() => {
     setSelectedBookId(initialSelectedBookId);
+    setSelectedBookSubview(initialSelectedBookSubview);
     setSelectedPageUnitId(initialSelectedPageUnitId);
     setSelectedPageId(initialSelectedPageId);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(initialSelectedBookId));
-    if (initialSelectedBookId) setActiveSection("books");
-  }, [initialSelectedBookId, initialSelectedPageId, initialSelectedPageUnitId]);
+    setSelectedPageNumber(initialSelectedPageNumber);
+    setSelectedPackageSlug(initialSelectedPackageSlug || inferPackageSlugFromBookId(initialSelectedBookId));
+    if (initialSelectedBookId || initialSelectedPackageSlug) setActiveSection("books");
+  }, [initialSelectedBookId, initialSelectedBookSubview, initialSelectedPackageSlug, initialSelectedPageId, initialSelectedPageNumber, initialSelectedPageUnitId]);
 
   useEffect(() => {
     if (!initialActivityKey) return;
 
     const match = findUltimateB2Exercise(initialActivityKey);
     setActiveExercise(match?.exercise || { title: initialActivityKey, demoActivityKey: initialActivityKey });
+    if (match?.component?.id) {
+      setSelectedPackageSlug("ultimate-b2");
+      setSelectedBookId(match.component.id);
+      setSelectedBookSubview("exercises");
+    }
     setPreviousSection("books");
     setActiveSection("activity");
   }, [initialActivityKey]);
@@ -373,12 +395,12 @@ export function StudentPortal({
   }, []);
 
   const goToSection = (section) => {
-    const nextView = studentViewBySection[section] || "student";
     if (section === "books") {
       setSelectedBookId(null);
+      setSelectedBookSubview(null);
     }
     if (navigateTo) {
-      navigateTo(nextView);
+      navigateTo(section === "books" ? buildCourseHash() : buildStudentSectionHash(section));
       return;
     }
     setActiveSection(section);
@@ -387,8 +409,12 @@ export function StudentPortal({
   const openActivity = (exercise, sourceSection = "books") => {
     setActiveExercise(exercise);
     setPreviousSection(sourceSection);
-    if (navigateTo && exercise.demoActivityKey) {
-      navigateTo(buildActivityHash(exercise.demoActivityKey, "student"));
+    if (navigateTo && (exercise.demoActivityKey || exercise.id)) {
+      if (sourceSection === "books" && selectedPackageSlug && selectedBookId) {
+        navigateTo(buildCourseExerciseHash(selectedPackageSlug, selectedBookId, getExerciseRouteSlug(exercise)));
+        return;
+      }
+      navigateTo(`activity-${exercise.demoActivityKey || exercise.id}`);
       return;
     }
     goToSection("activity");
@@ -396,28 +422,48 @@ export function StudentPortal({
 
   const selectBook = (bookId) => {
     setSelectedBookId(bookId);
+    setSelectedBookSubview(bookId ? "exercises" : null);
     setSelectedPageUnitId(null);
     setSelectedPageId(null);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
+    setSelectedPageNumber(null);
+    const nextPackageSlug = selectedPackageSlug || inferPackageSlugFromBookId(bookId);
+    setSelectedPackageSlug(nextPackageSlug);
     if (navigateTo) {
-      navigateTo(bookId ? buildBookHash("student", bookId) : "student-books");
+      navigateTo(bookId ? buildCourseComponentHash(nextPackageSlug, bookId) : buildCourseComponentsHash(nextPackageSlug));
     }
   };
 
   const selectPackage = (packageSlug) => {
     setSelectedPackageSlug(packageSlug);
     setSelectedBookId(null);
+    setSelectedBookSubview(null);
     setSelectedPageUnitId(null);
     setSelectedPageId(null);
-    if (navigateTo) navigateTo("student-books");
+    setSelectedPageNumber(null);
+    if (navigateTo) navigateTo(buildCourseHash(packageSlug));
   };
 
-  const selectBookPage = (bookId, pageUnitId, pageId) => {
+  const selectBookPage = (bookId, pageUnitId, pageId, pageNumber = null) => {
     setSelectedBookId(bookId);
+    setSelectedBookSubview("pages");
     setSelectedPageUnitId(pageUnitId);
     setSelectedPageId(pageId);
-    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
-    if (navigateTo) navigateTo(buildBookPageHash("student", bookId, pageUnitId, pageId));
+    setSelectedPageNumber(pageNumber);
+    const nextPackageSlug = selectedPackageSlug || inferPackageSlugFromBookId(bookId);
+    setSelectedPackageSlug(nextPackageSlug);
+    if (navigateTo) navigateTo(buildCoursePageHash(nextPackageSlug, bookId, pageNumber || pageId));
+  };
+
+  const selectBookSubview = (bookId, subview) => {
+    const nextSubview = subview || "exercises";
+    setSelectedBookId(bookId);
+    setSelectedBookSubview(nextSubview);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    setSelectedPageNumber(null);
+    const nextPackageSlug = selectedPackageSlug || inferPackageSlugFromBookId(bookId);
+    setSelectedPackageSlug(nextPackageSlug);
+    if (navigateTo) navigateTo(buildCourseComponentSubviewHash(nextPackageSlug, bookId, nextSubview));
   };
 
   return (
@@ -438,13 +484,16 @@ export function StudentPortal({
             completedActivities={completedActivities}
             bookPackages={bookPackages}
             selectedPackageSlug={selectedPackageSlug}
+            selectedBookSubview={selectedBookSubview}
             onSelectPackage={selectPackage}
             bookSourceMessage={bookSourceMessage}
             selectedBookId={selectedBookId}
             selectedPageUnitId={selectedPageUnitId}
             selectedPageId={selectedPageId}
+            selectedPageNumber={selectedPageNumber}
             onSelectBook={selectBook}
             onSelectBookPage={selectBookPage}
+            onSelectBookSubview={selectBookSubview}
           />
         )}
         {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
@@ -456,6 +505,8 @@ export function StudentPortal({
             completedActivities={completedActivities}
             setCompletedActivities={setCompletedActivities}
             previousSection={previousSection}
+            selectedPackageSlug={selectedPackageSlug}
+            selectedBookId={selectedBookId}
             goToSection={goToSection}
             navigateTo={navigateTo}
           />
