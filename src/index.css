@@ -4084,6 +4084,45 @@ input[type="color"] { padding: 4px; height: 46px; }
 .teacher-checkbox-panel input { min-height: auto; width: 16px; height: 16px; }
 .embedded-teacher-editor .editor-workspace { width: 100%; padding: 0; }
 .embedded-teacher-editor .section-title { margin-top: 0; }
+.book-package-selector {
+  display: grid;
+  gap: 14px;
+}
+.book-package-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.book-package-selector-grid button {
+  display: grid;
+  gap: 6px;
+  min-height: 88px;
+  padding: 14px;
+  text-align: left;
+  color: #344054;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.book-package-selector-grid button:hover,
+.book-package-selector-grid button:focus-visible,
+.book-package-selector-grid button.selected {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--brand-primary) 42%, var(--line));
+  background: color-mix(in srgb, var(--brand-primary) 7%, white);
+  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+  outline: none;
+}
+.book-package-selector-grid strong,
+.book-package-selector-grid small {
+  display: block;
+}
+.book-package-selector-grid small {
+  color: var(--ink-muted);
+  font-weight: 800;
+}
 .book-package-browser {
   display: grid;
   gap: 18px;
@@ -4287,6 +4326,111 @@ input[type="color"] { padding: 4px; height: 46px; }
 .book-unit-list {
   display: grid;
   gap: 14px;
+}
+.english-journey-pages-view {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.28fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.english-journey-page-sidebar {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 8px;
+  max-height: 70vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+.english-journey-page-sidebar button {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  text-align: left;
+  color: #344054;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.english-journey-page-sidebar button:hover,
+.english-journey-page-sidebar button:focus-visible,
+.english-journey-page-sidebar button.selected {
+  border-color: color-mix(in srgb, var(--brand-primary) 44%, var(--line));
+  background: color-mix(in srgb, var(--brand-primary) 7%, white);
+  outline: none;
+}
+.english-journey-page-sidebar strong,
+.english-journey-page-sidebar small {
+  display: block;
+}
+.english-journey-page-sidebar small {
+  color: var(--ink-muted);
+  font-weight: 800;
+}
+.english-journey-page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.english-journey-page-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 26px rgba(16, 24, 40, 0.07);
+}
+.english-journey-page-card.selected {
+  border-color: color-mix(in srgb, var(--brand-primary) 48%, var(--line));
+  box-shadow: 0 14px 30px rgba(16, 24, 40, 0.12);
+}
+.english-journey-page-image-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.english-journey-page-card img {
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  object-fit: contain;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 6px;
+}
+.english-journey-page-card strong,
+.english-journey-page-card small {
+  display: block;
+}
+.english-journey-page-card > div {
+  position: relative;
+  min-height: 44px;
+  padding-right: 42px;
+}
+.english-journey-page-card small {
+  color: var(--ink-muted);
+  font-weight: 800;
+}
+.book-card-copy-link.inline-page-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.english-journey-page-missing {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  color: var(--ink-muted);
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  font-weight: 900;
 }
 .book-unit-list > section,
 .book-locked-unit {
@@ -8122,10 +8266,28 @@ input[type="color"] { padding: 4px; height: 46px; }
   .admin-sidebar,
   .portal-sidebar,
   .lesson-sidebar,
+  .english-journey-page-sidebar,
   .teacher-editor-side,
   .selected-activity-actions {
     position: static;
     top: auto;
+  }
+
+  .english-journey-pages-view,
+  .english-journey-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .english-journey-page-sidebar {
+    display: flex;
+    gap: 8px;
+    max-height: none;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+  }
+
+  .english-journey-page-sidebar button {
+    flex: 0 0 min(170px, 56vw);
   }
 
   .admin-sidebar-card {

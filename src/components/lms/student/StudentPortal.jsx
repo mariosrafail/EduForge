@@ -1,8 +1,9 @@
 import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, Home, KeyRound, Play, Star, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
-import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
+import { buildActivityHash, buildBookHash, buildBookPageHash } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../Shared.jsx";
@@ -82,9 +83,40 @@ function StudentDashboard({ goToSection }) {
   );
 }
 
-function StudentBooks({ openActivity, completedActivities, bookPackage = ultimateB2Package, bookSourceMessage = "", selectedBookId = null, onSelectBook }) {
+function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackage }) {
+  return (
+    <Card className="book-package-selector">
+      <div className="card-heading">
+        <div>
+          <span className="eyebrow"><BookOpen size={15} /> Activated packages</span>
+          <h2>Choose book package</h2>
+        </div>
+      </div>
+      <div className="book-package-selector-grid">
+        {bookPackages.map((bookPackage) => {
+          const packageSlug = bookPackage.slug || bookPackage.id;
+          return (
+            <button
+              key={packageSlug}
+              type="button"
+              className={selectedPackageSlug === packageSlug ? "selected" : ""}
+              onClick={() => onSelectPackage(packageSlug)}
+              data-sound-click="tab"
+            >
+              <strong>{bookPackage.packageTitle}</strong>
+              <small>{bookPackage.level} / {bookPackage.components.length} components</small>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function StudentBooks({ openActivity, completedActivities, bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, onSelectBook, onSelectBookPage }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
+  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || ultimateB2Package;
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
 
   return (
@@ -92,6 +124,7 @@ function StudentBooks({ openActivity, completedActivities, bookPackage = ultimat
       {selectedComponent && (
         <BookSubpageNavigation
           component={selectedComponent}
+          bookPackage={bookPackage}
           mode="student"
           onBack={() => onSelectBook?.(null)}
         />
@@ -105,11 +138,21 @@ function StudentBooks({ openActivity, completedActivities, bookPackage = ultimat
 
 
       {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
+      {!selectedComponent && (
+        <BookPackageSelector
+          bookPackages={bookPackages}
+          selectedPackageSlug={selectedPackageSlug}
+          onSelectPackage={onSelectPackage}
+        />
+      )}
       <BookPackageBrowser
         mode="student"
         bookPackage={bookPackage}
         selectedComponentId={selectedBookId}
+        selectedPageUnitId={selectedPageUnitId}
+        selectedPageId={selectedPageId}
         onSelectComponent={onSelectBook}
+        onSelectBookPage={onSelectBookPage}
         onBackToBooks={() => onSelectBook?.(null)}
         onStartExercise={(exercise) => openActivity(exercise, "books")}
         completedActivities={completedActivities}
@@ -276,6 +319,8 @@ export function StudentPortal({
   initialSection = "dashboard",
   initialActivityKey = null,
   initialSelectedBookId = null,
+  initialSelectedPageUnitId = null,
+  initialSelectedPageId = null,
   course,
   onSubmission,
   navigateTo,
@@ -287,8 +332,11 @@ export function StudentPortal({
   const [activeExercise, setActiveExercise] = useState(null);
   const [previousSection, setPreviousSection] = useState("books");
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
+  const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
+  const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
   const [completedActivities, setCompletedActivities] = useState({});
-  const [bookPackage, setBookPackage] = useState(ultimateB2Package);
+  const [bookPackages, setBookPackages] = useState(demoBookPackages);
+  const [selectedPackageSlug, setSelectedPackageSlug] = useState("ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
 
   useEffect(() => {
@@ -297,8 +345,11 @@ export function StudentPortal({
 
   useEffect(() => {
     setSelectedBookId(initialSelectedBookId);
+    setSelectedPageUnitId(initialSelectedPageUnitId);
+    setSelectedPageId(initialSelectedPageId);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(initialSelectedBookId));
     if (initialSelectedBookId) setActiveSection("books");
-  }, [initialSelectedBookId]);
+  }, [initialSelectedBookId, initialSelectedPageId, initialSelectedPageUnitId]);
 
   useEffect(() => {
     if (!initialActivityKey) return;
@@ -313,7 +364,7 @@ export function StudentPortal({
     let mounted = true;
     getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
       if (!mounted) return;
-      setBookPackage(packageTree);
+      setBookPackages((current) => replaceDemoBookPackage(current, packageTree));
       setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
     });
     return () => {
@@ -345,9 +396,28 @@ export function StudentPortal({
 
   const selectBook = (bookId) => {
     setSelectedBookId(bookId);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
     if (navigateTo) {
       navigateTo(bookId ? buildBookHash("student", bookId) : "student-books");
     }
+  };
+
+  const selectPackage = (packageSlug) => {
+    setSelectedPackageSlug(packageSlug);
+    setSelectedBookId(null);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    if (navigateTo) navigateTo("student-books");
+  };
+
+  const selectBookPage = (bookId, pageUnitId, pageId) => {
+    setSelectedBookId(bookId);
+    setSelectedPageUnitId(pageUnitId);
+    setSelectedPageId(pageId);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
+    if (navigateTo) navigateTo(buildBookPageHash("student", bookId, pageUnitId, pageId));
   };
 
   return (
@@ -366,10 +436,15 @@ export function StudentPortal({
           <StudentBooks
             openActivity={openActivity}
             completedActivities={completedActivities}
-            bookPackage={bookPackage}
+            bookPackages={bookPackages}
+            selectedPackageSlug={selectedPackageSlug}
+            onSelectPackage={selectPackage}
             bookSourceMessage={bookSourceMessage}
             selectedBookId={selectedBookId}
+            selectedPageUnitId={selectedPageUnitId}
+            selectedPageId={selectedPageId}
             onSelectBook={selectBook}
+            onSelectBookPage={selectBookPage}
           />
         )}
         {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}

@@ -51,7 +51,7 @@ function transitionGroupForView(view, activityKey = null) {
 }
 
 export default function App() {
-  const { view, navigateTo, activityKey, selectedBookId, classSlug, mode: routeMode } = useHashView();
+  const { view, navigateTo, activityKey, selectedBookId, selectedPageUnitId, selectedPageId, classSlug, mode: routeMode } = useHashView();
   const auth = useAuth();
   const [brand, setBrand] = useState(brandPresets[0]);
   const courseData = useCourseData();
@@ -134,6 +134,8 @@ export default function App() {
           <TeacherPortal
             initialSection={teacherSectionByView[view]}
             initialSelectedBookId={selectedBookId}
+            initialSelectedPageUnitId={selectedPageUnitId}
+            initialSelectedPageId={selectedPageId}
             initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
             currentUser={auth.currentUser}
             course={courseData.course}
@@ -152,6 +154,8 @@ export default function App() {
             initialSection={studentSection}
             initialActivityKey={routeMode === "student" ? activityKey : null}
             initialSelectedBookId={selectedBookId}
+            initialSelectedPageUnitId={selectedPageUnitId}
+            initialSelectedPageId={selectedPageId}
             course={courseData.course}
             onSubmission={addCourseSubmission}
             navigateTo={navigateTo}

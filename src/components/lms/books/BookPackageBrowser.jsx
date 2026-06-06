@@ -4,8 +4,9 @@ import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_
 import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import testBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg";
 import workbookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg";
+import englishJourney6Cover from "../../../assets/books/english-journey-6/covers/english_journey_6_students_book.png";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
-import { buildActivityHash, buildBookHash } from "../../../utils/hashRoutes.js";
+import { buildActivityHash, buildBookHash, buildBookPageHash } from "../../../utils/hashRoutes.js";
 import { ReadingTextAudioScreen, StudentsBookPageGateway, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
 import { Card, Tag } from "../Shared.jsx";
 
@@ -21,7 +22,23 @@ const coverAssets = {
   "test-book": testBookCover,
   test_book: testBookCover,
   "ultimate-b2-test-book": testBookCover,
+  "ej6-students-book": englishJourney6Cover,
+  "english-journey-6-students-book": englishJourney6Cover,
+  "ej6-workbook": englishJourney6Cover,
+  "english-journey-6-workbook": englishJourney6Cover,
+  "ej6-grammar-book": englishJourney6Cover,
+  "english-journey-6-grammar-book": englishJourney6Cover,
+  "ej6-test-book": englishJourney6Cover,
+  "english-journey-6-test-book": englishJourney6Cover,
+  "ej6-video-bank": englishJourney6Cover,
+  "english-journey-6-video-bank": englishJourney6Cover,
 };
+
+const englishJourneyPageAssets = import.meta.glob("../../../assets/books/english-journey-6/pages/**/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
 
 function statusTone(status) {
   if (status === "Completed" || status === "Available" || status === "Submitted") return "green";
@@ -62,6 +79,7 @@ function resolveCoverAsset(component) {
     component.title,
   ].map((value) => String(value || "").toLowerCase());
 
+  if (lookupValues.some((value) => value.includes("english-journey-6") || value.includes("english journey 6") || value.includes("ej6"))) return englishJourney6Cover;
   if (lookupValues.some((value) => value.includes("students_book") || value.includes("students-book") || value.includes("students book"))) return studentsBookCover;
   if (lookupValues.some((value) => value.includes("workbook"))) return workbookCover;
   if (lookupValues.some((value) => value.includes("grammar"))) return grammarBookCover;
@@ -74,10 +92,12 @@ function getCanonicalBookId(component) {
   const values = [component.id, component.slug, component.componentType, component.component_type, component.title]
     .map((value) => String(value || "").toLowerCase());
 
+  if (values.some((value) => value.includes("english-journey-6") || value.includes("ej6"))) return component.slug || component.id;
   if (values.some((value) => value.includes("students_book") || value.includes("students-book") || value.includes("students book"))) return "students-book";
   if (values.some((value) => value.includes("workbook"))) return "workbook";
   if (values.some((value) => value.includes("grammar"))) return "grammar-book";
   if (values.some((value) => value.includes("test"))) return "test-book";
+  if (values.some((value) => value.includes("video"))) return "video-bank";
   return component.slug || component.id;
 }
 
@@ -357,6 +377,77 @@ function TeacherBookUnitList({ component, onPreviewExercise, classOptions }) {
   );
 }
 
+function resolveEnglishJourneyPageAsset(imagePath) {
+  const normalizedPath = String(imagePath || "").replace(/^\/src\/assets\//, "../../../assets/");
+  return englishJourneyPageAssets[normalizedPath] || null;
+}
+
+function BookPagesView({ component, selectedPageUnitId = null, selectedPageId = null, onSelectPage }) {
+  const [selectedUnitId, setSelectedUnitId] = useState(selectedPageUnitId || component.pageUnits?.[0]?.id || "");
+  const selectedUnit = component.pageUnits?.find((unit) => unit.id === selectedUnitId) || component.pageUnits?.[0];
+
+  useEffect(() => {
+    setSelectedUnitId(selectedPageUnitId || component.pageUnits?.[0]?.id || "");
+  }, [component.id, component.pageUnits, selectedPageUnitId]);
+
+  if (!component.pageUnits?.length) return null;
+
+  return (
+    <div className="english-journey-pages-view">
+      <aside className="english-journey-page-sidebar" aria-label={`${component.title} units`}>
+        {component.pageUnits.map((unit) => (
+          <button
+            key={unit.id}
+            type="button"
+            className={selectedUnit?.id === unit.id ? "selected" : ""}
+            onClick={() => setSelectedUnitId(unit.id)}
+            data-sound-click="tab"
+          >
+            <strong>{unit.title}</strong>
+            <small>{unit.pages.length} page{unit.pages.length === 1 ? "" : "s"}</small>
+          </button>
+        ))}
+      </aside>
+      <div className="english-journey-page-grid">
+        {selectedUnit?.pages.map((page) => {
+          const imageSrc = resolveEnglishJourneyPageAsset(page.imagePath);
+          return (
+            <article key={page.id} className={selectedPageId === page.id ? "english-journey-page-card selected" : "english-journey-page-card"}>
+              {imageSrc ? (
+                <button
+                  className="english-journey-page-image-button"
+                  type="button"
+                  onClick={() => onSelectPage?.(selectedUnit.id, page.id)}
+                  data-sound-click="tab"
+                  aria-label={`Open ${page.label}`}
+                >
+                  <img src={imageSrc} alt={page.label} loading="lazy" />
+                </button>
+              ) : (
+                <div className="english-journey-page-missing">Page asset missing</div>
+              )}
+              <div>
+                <strong>{page.title}</strong>
+                <small>{page.label}</small>
+                <button
+                  className="book-card-copy-link inline-page-link"
+                  type="button"
+                  aria-label={`Copy direct link for ${page.label}`}
+                  title="Copy direct link"
+                  onClick={() => onSelectPage?.(selectedUnit.id, page.id, true)}
+                  data-sound-click="tab"
+                >
+                  <Copy size={15} />
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BackToPageSpreadButton({ onBack }) {
   return (
     <button className="secondary-action compact-action back-to-page-spread-button" type="button" onClick={onBack} data-sound-click="back">
@@ -462,7 +553,7 @@ function BookGrid({ bookPackage, mode, onSelectBook }) {
           <h2>{bookPackage.packageLabel}</h2>
           <p>{bookPackage.publisher} digital book package for {bookPackage.demoSchool}.</p>
         </div>
-        <Tag tone="green">B2 active</Tag>
+        <Tag tone="green">{bookPackage.level} active</Tag>
       </div>
 
       <div className="book-component-grid book-card-grid">
@@ -504,7 +595,7 @@ export function findBookComponentById(bookPackage = ultimateB2Package, selectedC
   return activePackage.components.find((component) => isBookMatch(component, selectedComponentId)) || null;
 }
 
-export function BookSubpageNavigation({ component, mode = "student", onBack }) {
+export function BookSubpageNavigation({ component, bookPackage, mode = "student", onBack }) {
   if (!component) return null;
 
   const role = mode === "teacher" ? "teacher" : "student";
@@ -516,7 +607,7 @@ export function BookSubpageNavigation({ component, mode = "student", onBack }) {
         <ArrowLeft size={17} />
       </button>
       <div className="subpage-breadcrumb" aria-label="Book navigation">
-        <button type="button" onClick={onBack} data-sound-click="tab">Ultimate B2 package</button>
+        <button type="button" onClick={onBack} data-sound-click="tab">{bookPackage?.packageLabel || "Book package"}</button>
         <span aria-current="page">{component.title}</span>
       </div>
       <div className="book-detail-toolbar-actions">
@@ -534,21 +625,26 @@ export function BookSubpageNavigation({ component, mode = "student", onBack }) {
   );
 }
 
-function BookDetailView({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities }) {
+function BookDetailView({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities, selectedPageUnitId, selectedPageId, onSelectBookPage }) {
   const activeCount = getActiveExercises(component).length;
-  const [viewMode, setViewMode] = useState("contents");
+  const [viewMode, setViewMode] = useState(selectedPageId ? "pages" : "contents");
   const canonicalBookId = getCanonicalBookId(component);
   const showBookPagesMode = mode !== "teacher" && canonicalBookId === "students-book";
+  const showImportedPagesMode = Boolean(component.pageUnits?.length);
   const modeOptions = [
-    { id: "contents", label: showBookPagesMode ? "Contents / Exercises" : "Contents" },
-    ...(showBookPagesMode ? [{ id: "pages", label: "Book pages" }] : []),
+    { id: "contents", label: showBookPagesMode || showImportedPagesMode ? "Contents / Exercises" : "Contents" },
+    ...(showBookPagesMode || showImportedPagesMode ? [{ id: "pages", label: "Book pages" }] : []),
   ];
 
   useEffect(() => {
-    if (viewMode === "pages" && !showBookPagesMode) {
+    if (viewMode === "pages" && !showBookPagesMode && !showImportedPagesMode) {
       setViewMode("contents");
     }
-  }, [showBookPagesMode, viewMode]);
+  }, [showBookPagesMode, showImportedPagesMode, viewMode]);
+
+  useEffect(() => {
+    if (selectedPageId && showImportedPagesMode) setViewMode("pages");
+  }, [selectedPageId, showImportedPagesMode]);
 
   return (
     <Card className="book-detail-view">
@@ -579,7 +675,23 @@ function BookDetailView({ component, bookPackage, mode, onStartExercise, onPrevi
         </div>
       </div>
 
-      {viewMode === "pages" && showBookPagesMode ? (
+      {viewMode === "pages" && showImportedPagesMode ? (
+        <BookPagesView
+          component={component}
+          selectedPageUnitId={selectedPageUnitId}
+          selectedPageId={selectedPageId}
+          onSelectPage={(pageUnitId, pageId, copyOnly = false) => {
+            const role = mode === "teacher" ? "teacher" : "student";
+            const bookId = getCanonicalBookId(component);
+            const hash = buildBookPageHash(role, bookId, pageUnitId, pageId);
+            if (copyOnly) {
+              copyHashLink(hash);
+              return;
+            }
+            onSelectBookPage?.(bookId, pageUnitId, pageId);
+          }}
+        />
+      ) : viewMode === "pages" && showBookPagesMode ? (
         <StudentBookGatewayExperience mode={mode} onExitPages={() => setViewMode("contents")} />
       ) : mode === "teacher" ? (
         <TeacherBookUnitList component={component} onPreviewExercise={onPreviewExercise} classOptions={classOptions} />
@@ -644,8 +756,11 @@ export function BookPackageBrowser({
   classOptions = ultimateB2Package.classes,
   bookPackage = ultimateB2Package,
   selectedComponentId: controlledSelectedComponentId,
+  selectedPageUnitId = null,
+  selectedPageId = null,
   initialSelectedComponentId = null,
   onSelectComponent,
+  onSelectBookPage,
   onBackToBooks,
 }) {
   const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
@@ -689,6 +804,9 @@ export function BookPackageBrowser({
           onPreviewExercise={onPreviewExercise}
           classOptions={classOptions}
           completedActivities={completedActivities}
+          selectedPageUnitId={selectedPageUnitId}
+          selectedPageId={selectedPageId}
+          onSelectBookPage={onSelectBookPage}
         />
       ) : (
         <BookGrid

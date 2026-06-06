@@ -1,4 +1,5 @@
 import { ultimateB2Package } from "../data/ultimateB2DemoData.js";
+import { getDemoBookPackage } from "../data/bookPackages.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -7,6 +8,7 @@ const componentTypeLabels = {
   workbook: "Workbook",
   grammar_book: "Grammar Book",
   test_book: "Test Book",
+  video_bank: "Video Bank",
 };
 
 const coverTones = {
@@ -14,6 +16,7 @@ const coverTones = {
   workbook: "blue",
   grammar_book: "green",
   test_book: "slate",
+  video_bank: "purple",
 };
 
 const activityTypeLabels = {
@@ -32,6 +35,7 @@ const activityTypeLabels = {
   timed_quiz: "Timed test",
   writing: "Writing",
   matching: "Matching",
+  imported_air_resource: "Imported AIR resource",
 };
 
 async function parseJsonResponse(response) {
@@ -93,10 +97,11 @@ function normalizeDbActivity(activity, component, unit, lesson) {
 }
 
 export function normalizeBookPackageTree(bookPackage) {
-  if (!bookPackage?.components?.length) return ultimateB2Package;
+  const fallbackPackage = getDemoBookPackage(bookPackage?.slug || bookPackage?.id);
+  if (!bookPackage?.components?.length) return fallbackPackage;
 
   return {
-    ...ultimateB2Package,
+    ...fallbackPackage,
     id: bookPackage.id,
     slug: bookPackage.slug,
     packageTitle: bookPackage.packageTitle || bookPackage.title,
@@ -156,8 +161,8 @@ export async function getBookPackageTreeWithFallback(slugOrId = "ultimate-b2") {
   try {
     return await getBookPackageTree(slugOrId);
   } catch (error) {
-    console.warn("Using mock Ultimate B2 package fallback.", error);
-    return { ...ultimateB2Package, source: "mock-fallback" };
+    console.warn(`Using mock ${slugOrId} package fallback.`, error);
+    return { ...getDemoBookPackage(slugOrId), source: "mock-fallback" };
   }
 }
 

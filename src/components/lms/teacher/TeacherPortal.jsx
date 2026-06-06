@@ -1,10 +1,12 @@
 import { BookOpen, CheckCircle2, ClipboardList, Copy, Edit3, GraduationCap, Home, KeyRound, Link2, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
+import { englishJourney6ComponentTitles } from "../../../data/englishJourney6DemoData.js";
 import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
-import { buildActivityHash, buildBookHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
+import { buildActivityHash, buildBookHash, buildBookPageHash, buildClassInviteUrl } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -65,7 +67,7 @@ const teacherNavItems = [
 ];
 
 const classLevelOptions = ["A1", "A2", "B1", "B2", "C1", "C2"];
-const classBookOptions = Array.from(new Set(["Ultimate B2", ...ultimateB2ComponentTitles]));
+const classBookOptions = Array.from(new Set(["Ultimate B2", ...ultimateB2ComponentTitles, "English Journey 6", ...englishJourney6ComponentTitles]));
 
 function CopyInviteLink({ classItem }) {
   const [copied, setCopied] = useState(false);
@@ -150,10 +152,41 @@ function TeacherDashboard({ goToSection }) {
   );
 }
 
-function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, onSelectBook, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
+function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackage }) {
+  return (
+    <Card className="book-package-selector">
+      <div className="card-heading">
+        <div>
+          <span className="eyebrow"><BookOpen size={15} /> Activated packages</span>
+          <h2>Choose book package</h2>
+        </div>
+      </div>
+      <div className="book-package-selector-grid">
+        {bookPackages.map((bookPackage) => {
+          const packageSlug = bookPackage.slug || bookPackage.id;
+          return (
+            <button
+              key={packageSlug}
+              type="button"
+              className={selectedPackageSlug === packageSlug ? "selected" : ""}
+              onClick={() => onSelectPackage(packageSlug)}
+              data-sound-click="tab"
+            >
+              <strong>{bookPackage.packageTitle}</strong>
+              <small>{bookPackage.level} / {bookPackage.components.length} components</small>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, onSelectBook, onSelectBookPage, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
+  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || ultimateB2Package;
 
   useEffect(() => {
     if (!initialPreviewActivityKey) {
@@ -208,35 +241,46 @@ function TeacherBooks({ bookPackage, bookSourceMessage, selectedBookId = null, o
       {selectedComponent && (
         <BookSubpageNavigation
           component={selectedComponent}
+          bookPackage={bookPackage}
           mode="teacher"
           onBack={() => onSelectBook?.(null)}
         />
       )}
       <SectionTitle
         eyebrow="Books"
-        title="Digital book access for the Ultimate B2 package."
-        text="Activate publisher book access, browse the B2 package, and assign Unit 2 exercises to class groups."
+        title={`Digital book access for the ${bookPackage.packageTitle} package.`}
+        text={`Activate publisher book access, browse ${bookPackage.packageTitle}, and assign available exercises to class groups.`}
       />
 
       <Card className="teacher-activation-card">
         <div>
           <span className="eyebrow"><KeyRound size={15} /> Book activation code</span>
           <h2>Activate teacher book access</h2>
-          <p>Use the demo code to unlock the Hamilton House Ultimate B2 package for this teacher portal.</p>
+          <p>Use the demo code to unlock the {bookPackage.packageTitle} package for this teacher portal.</p>
         </div>
         <div className="activation-form">
-          <input value={activationCode} placeholder={ultimateB2Package.activationCodeExample} onChange={(event) => setActivationCode(event.target.value)} />
+          <input value={activationCode} placeholder={bookPackage.activationCodeExample || ultimateB2Package.activationCodeExample} onChange={(event) => setActivationCode(event.target.value)} />
           <button className="primary-action" type="button" onClick={() => setActivated(true)} data-sound-click="submit">Activate book</button>
         </div>
-        {activated && <div className="inline-status success">Ultimate B2 package activated for Paris Georgoulakis (Teacher).</div>}
+        {activated && <div className="inline-status success">{bookPackage.packageTitle} package activated for Paris Georgoulakis (Teacher).</div>}
       </Card>
       {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
+      {!selectedComponent && (
+        <BookPackageSelector
+          bookPackages={bookPackages}
+          selectedPackageSlug={selectedPackageSlug}
+          onSelectPackage={onSelectPackage}
+        />
+      )}
       <BookPackageBrowser
         mode="teacher"
         bookPackage={bookPackage}
         classOptions={classOptions}
         selectedComponentId={selectedBookId}
+        selectedPageUnitId={selectedPageUnitId}
+        selectedPageId={selectedPageId}
         onSelectComponent={onSelectBook}
+        onSelectBookPage={onSelectBookPage}
         onBackToBooks={() => onSelectBook?.(null)}
         onPreviewExercise={previewActivity}
       />
@@ -693,11 +737,14 @@ function TeacherCustomAssignment(props) {
   );
 }
 
-export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
+export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
   const [selectedBookId, setSelectedBookId] = useState(initialSelectedBookId);
-  const [bookPackage, setBookPackage] = useState(ultimateB2Package);
+  const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
+  const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
+  const [bookPackages, setBookPackages] = useState(demoBookPackages);
+  const [selectedPackageSlug, setSelectedPackageSlug] = useState("ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
   const {
     classes: teacherClasses,
@@ -713,14 +760,17 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   useEffect(() => {
     setSelectedBookId(initialSelectedBookId);
+    setSelectedPageUnitId(initialSelectedPageUnitId);
+    setSelectedPageId(initialSelectedPageId);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(initialSelectedBookId));
     if (initialSelectedBookId || initialPreviewActivityKey) setActiveSection("books");
-  }, [initialPreviewActivityKey, initialSelectedBookId]);
+  }, [initialPreviewActivityKey, initialSelectedBookId, initialSelectedPageId, initialSelectedPageUnitId]);
 
   useEffect(() => {
     let mounted = true;
     getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
       if (!mounted) return;
-      setBookPackage(packageTree);
+      setBookPackages((current) => replaceDemoBookPackage(current, packageTree));
       setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
     });
     return () => {
@@ -739,9 +789,28 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   const selectBook = (bookId) => {
     setSelectedBookId(bookId);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
     if (navigateTo) {
       navigateTo(bookId ? buildBookHash("teacher", bookId) : "teacher-books");
     }
+  };
+
+  const selectPackage = (packageSlug) => {
+    setSelectedPackageSlug(packageSlug);
+    setSelectedBookId(null);
+    setSelectedPageUnitId(null);
+    setSelectedPageId(null);
+    if (navigateTo) navigateTo("teacher-books");
+  };
+
+  const selectBookPage = (bookId, pageUnitId, pageId) => {
+    setSelectedBookId(bookId);
+    setSelectedPageUnitId(pageUnitId);
+    setSelectedPageId(pageId);
+    setSelectedPackageSlug(inferPackageSlugFromBookId(bookId));
+    if (navigateTo) navigateTo(buildBookPageHash("teacher", bookId, pageUnitId, pageId));
   };
 
   return (
@@ -758,10 +827,15 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
         {activeSection === "books" && (
           <TeacherBooks
-            bookPackage={bookPackage}
+            bookPackages={bookPackages}
+            selectedPackageSlug={selectedPackageSlug}
+            onSelectPackage={selectPackage}
             bookSourceMessage={bookSourceMessage}
             selectedBookId={selectedBookId}
+            selectedPageUnitId={selectedPageUnitId}
+            selectedPageId={selectedPageId}
             onSelectBook={selectBook}
+            onSelectBookPage={selectBookPage}
             initialPreviewActivityKey={initialPreviewActivityKey}
             navigateTo={navigateTo}
             classOptions={classOptions}
@@ -770,7 +844,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         {activeSection === "classes" && (
           <TeacherClasses
             currentUser={currentUser}
-            bookPackage={bookPackage}
+            bookPackage={bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0]}
             classes={teacherClasses}
             loadingClasses={loadingClasses}
             usingDemoClasses={usingDemoClasses}

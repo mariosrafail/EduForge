@@ -1,4 +1,15 @@
-export const bookIds = ["students-book", "workbook", "grammar-book", "test-book"];
+export const bookIds = [
+  "students-book",
+  "workbook",
+  "grammar-book",
+  "test-book",
+  "video-bank",
+  "english-journey-6-students-book",
+  "english-journey-6-workbook",
+  "english-journey-6-grammar-book",
+  "english-journey-6-test-book",
+  "english-journey-6-video-bank",
+];
 
 export const activityKeys = [
   "video-intro",
@@ -59,6 +70,10 @@ export function buildBookHash(role, bookId) {
   return `${role}-book-${bookId}`;
 }
 
+export function buildBookPageHash(role, bookId, pageUnitId, pageId) {
+  return `${buildBookHash(role, bookId)}/pages/${pageUnitId}/${pageId}`;
+}
+
 export function buildActivityHash(activityKey, mode = "student") {
   return mode === "teacher-preview" ? `teacher-preview-${activityKey}` : `activity-${activityKey}`;
 }
@@ -76,12 +91,14 @@ export function buildClassInviteUrl(classItem = {}) {
 
 export function getBookFromHash(hash) {
   const hashView = cleanHash(hash);
-  const bookMatch = hashView.match(/^(student|teacher)-book-(.+)$/);
+  const bookMatch = hashView.match(/^(student|teacher)-book-([^/]+)(?:\/pages\/([^/]+)\/([^/]+))?$/);
   if (!bookMatch || !bookIds.includes(bookMatch[2])) return null;
 
   return {
     role: bookMatch[1],
     selectedBookId: bookMatch[2],
+    selectedPageUnitId: bookMatch[3] || null,
+    selectedPageId: bookMatch[4] || null,
   };
 }
 
@@ -124,6 +141,8 @@ export function parseHashRoute(hash = "") {
       role: bookRoute.role,
       section: "books",
       selectedBookId: bookRoute.selectedBookId,
+      selectedPageUnitId: bookRoute.selectedPageUnitId,
+      selectedPageId: bookRoute.selectedPageId,
       activityKey: null,
       mode: bookRoute.role,
       valid: true,
