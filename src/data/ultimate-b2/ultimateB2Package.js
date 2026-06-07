@@ -1,6 +1,49 @@
 import { ultimateB2StudentsBookPageUnits } from "./ultimateB2PageUnits.js";
 import { lockedUnit } from "./lockedContent.js";
 
+const ultimateB2WorkbookPageUnits = [
+  {
+    id: "ub2-wb-unit-2-pages",
+    title: "Unit 2",
+    unit: "Unit 2",
+    pages: [
+      { id: "wb-listening-20", title: "Listening", label: "pg 20", pageNumber: 20, images: [] },
+      { id: "wb-consolidation-21", title: "Consolidation", label: "pg 21", pageNumber: 21, images: [] },
+    ],
+  },
+];
+
+const ultimateB2GrammarBookPageUnits = [
+  {
+    id: "ub2-gb-unit-2-pages",
+    title: "Unit 2",
+    unit: "Unit 2",
+    pages: [
+      { id: "gb-grammar-opening", title: "Grammar opening", label: "pg 18", pageNumber: 18, images: [] },
+      { id: "gb-grammar-exercise-4", title: "Join the sentences", label: "pg 19", pageNumber: 19, images: [] },
+    ],
+  },
+];
+
+const ultimateB2TestBookPageUnits = [
+  {
+    id: "ub2-tb-quiz-1-pages",
+    title: "Quiz 1",
+    unit: "Quiz 1",
+    pages: [
+      { id: "tb-quiz-1-reading-vocabulary", title: "Reading and Vocabulary", label: "pg 6", pageNumber: 6, images: [] },
+    ],
+  },
+  {
+    id: "ub2-tb-quiz-2-pages",
+    title: "Quiz 2",
+    unit: "Quiz 2",
+    pages: [
+      { id: "tb-quiz-2-progress-check", title: "Timed test", label: "pg 10", pageNumber: 10, images: [] },
+    ],
+  },
+];
+
 export const ultimateB2Package = {
   packageTitle: "Ultimate B2",
   packageLabel: "Ultimate B2 package",
@@ -135,6 +178,7 @@ export const ultimateB2Package = {
       subtitle: "Extra listening and consolidation practice",
       type: "Workbook",
       coverTone: "blue",
+      pageUnits: ultimateB2WorkbookPageUnits,
       units: [
         lockedUnit({
           id: "wb-unit-1",
@@ -205,6 +249,7 @@ export const ultimateB2Package = {
       subtitle: "Grammar explanations and controlled practice",
       type: "Grammar Book",
       coverTone: "green",
+      pageUnits: ultimateB2GrammarBookPageUnits,
       units: [
         lockedUnit({
           id: "gb-unit-1",
@@ -292,6 +337,7 @@ export const ultimateB2Package = {
       subtitle: "Timed quizzes and exam-style checks",
       type: "Test Book",
       coverTone: "slate",
+      pageUnits: ultimateB2TestBookPageUnits,
       units: [
         {
           id: "tb-quiz-1",

@@ -1,5 +1,5 @@
 import { ultimateB2Package } from "../data/ultimateB2DemoData.js";
-import { getDemoBookPackage } from "../data/bookPackages.js";
+import { getDemoBookPackage, mergeBookPackageWithDemoFallback } from "../data/bookPackages.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -108,7 +108,7 @@ export function normalizeBookPackageTree(bookPackage) {
   const fallbackPackage = getDemoBookPackage(bookPackage?.slug || bookPackage?.id);
   if (!bookPackage?.components?.length) return fallbackPackage;
 
-  return {
+  return mergeBookPackageWithDemoFallback({
     ...fallbackPackage,
     id: bookPackage.id,
     slug: bookPackage.slug,
@@ -141,7 +141,7 @@ export function normalizeBookPackageTree(bookPackage) {
         })),
       })),
     })),
-  };
+  });
 }
 
 export async function listBookPackages() {

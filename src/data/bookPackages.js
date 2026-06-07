@@ -11,16 +11,64 @@ export function getDemoBookPackage(slugOrId = "ultimate-b2") {
   )) || ultimateB2Package;
 }
 
+function normalizeMatchKey(value = "") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function componentMatchKeys(component = {}) {
+  return [
+    component.id,
+    component.slug,
+    component.routeSlug,
+    component.title,
+    component.type,
+    component.componentType,
+  ].map(normalizeMatchKey).filter(Boolean);
+}
+
+function findMatchingDemoComponent(demoPackage, replacementComponent) {
+  const replacementKeys = new Set(componentMatchKeys(replacementComponent));
+  return (demoPackage?.components || []).find((demoComponent) => (
+    componentMatchKeys(demoComponent).some((key) => replacementKeys.has(key))
+  ));
+}
+
+function mergeComponentWithDemoFallback(replacementComponent, demoComponent) {
+  if (!demoComponent) return replacementComponent;
+  return {
+    ...demoComponent,
+    ...replacementComponent,
+    pageUnits: replacementComponent.pageUnits?.length ? replacementComponent.pageUnits : demoComponent.pageUnits,
+  };
+}
+
+export function mergeBookPackageWithDemoFallback(replacement) {
+  const demoPackage = getDemoBookPackage(replacement.slug || replacement.id || replacement.packageTitle);
+  const replacementComponents = replacement.components?.length ? replacement.components : demoPackage.components;
+  return {
+    ...demoPackage,
+    ...replacement,
+    components: replacementComponents.map((component) => (
+      mergeComponentWithDemoFallback(component, findMatchingDemoComponent(demoPackage, component))
+    )),
+  };
+}
+
 export function replaceDemoBookPackage(bookPackages, replacement) {
   if (!replacement?.slug && !replacement?.id) return bookPackages;
-  const replacementKey = replacement.slug || replacement.id;
+  const mergedReplacement = mergeBookPackageWithDemoFallback(replacement);
+  const replacementKey = mergedReplacement.slug || mergedReplacement.id;
   const nextPackages = bookPackages.map((bookPackage) => {
     const packageKey = bookPackage.slug || bookPackage.id;
-    return packageKey === replacementKey ? replacement : bookPackage;
+    return packageKey === replacementKey ? mergedReplacement : bookPackage;
   });
   return nextPackages.some((bookPackage) => (bookPackage.slug || bookPackage.id) === replacementKey)
     ? nextPackages
-    : [...nextPackages, replacement];
+    : [...nextPackages, mergedReplacement];
 }
 
 export function inferPackageSlugFromBookId(bookId = "") {
