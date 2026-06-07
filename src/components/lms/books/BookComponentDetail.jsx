@@ -9,7 +9,10 @@ import { BookPagesView } from "./BookPageViewer.jsx";
 import { getActiveExercises, isExerciseActive } from "./bookBrowserUtils.js";
 import { BookActivityRunner } from "./activity-runner/BookActivityRunner.jsx";
 import { listBookActivities } from "../../../services/bookActivitiesApi.js";
+import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
+
+const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
 
 function CustomBookActivitySection({ activities, loading, error, mode, onOpenActivity }) {
   if (loading) {
@@ -93,6 +96,14 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
   }, [selectedSubview]);
 
   useEffect(() => {
+    // TODO: Re-enable after DATABASE_URL + backend hotspot/activity system is finalized.
+    if (!enableBookActivityBuilder) {
+      setCustomActivities([]);
+      setCustomActivitiesLoading(false);
+      setCustomActivitiesError("");
+      setOpenCustomActivity(null);
+      return undefined;
+    }
     if (viewMode !== "contents" || !packageSlug || !componentSlug) return undefined;
     let mounted = true;
     setCustomActivitiesLoading(true);
@@ -160,8 +171,12 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
       ) : mode === "teacher" ? (
         <>
           <TeacherBookUnitList component={component} onPreviewExercise={onPreviewExercise} classOptions={classOptions} />
-          <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
-          {openCustomActivity && <BookActivityRunner activity={openCustomActivity} onClose={() => setOpenCustomActivity(null)} />}
+          {enableBookActivityBuilder && (
+            <>
+              <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
+              {openCustomActivity && <BookActivityRunner activity={openCustomActivity} onClose={() => setOpenCustomActivity(null)} />}
+            </>
+          )}
         </>
       ) : (
         <>
@@ -212,8 +227,12 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
             );
           })}
           </div>
-          <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
-          {openCustomActivity && <BookActivityRunner activity={openCustomActivity} onClose={() => setOpenCustomActivity(null)} />}
+          {enableBookActivityBuilder && (
+            <>
+              <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
+              {openCustomActivity && <BookActivityRunner activity={openCustomActivity} onClose={() => setOpenCustomActivity(null)} />}
+            </>
+          )}
         </>
       )}
     </Card>

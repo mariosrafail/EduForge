@@ -10,7 +10,11 @@ import { BookActivityBuilderModal } from "./activity-builder/BookActivityBuilder
 import { BookActivityRunner } from "./activity-runner/BookActivityRunner.jsx";
 import { PageHotspotSettingsPanel } from "./hotspots/PageHotspotSettingsPanel.jsx";
 import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bookPageHotspotsApi.js";
+import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
+
+const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
+const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
 
 const englishJourneyPageAssets = import.meta.glob("../../../assets/books/english-journey-6/pages/**/*.png", {
   eager: true,
@@ -172,6 +176,8 @@ export function BookPagesView({
   }, [selectedPageId, selectedPageNumber]);
 
   useEffect(() => {
+    // TODO: Re-enable after DATABASE_URL + backend hotspot/activity system is finalized.
+    if (!enableBookHotspotEditor) return undefined;
     if (!selectedPageIdentity || editingHotspots || loadedHotspotKeys[selectedPageIdentity.storageKey]) return undefined;
 
     let mounted = true;
@@ -200,6 +206,7 @@ export function BookPagesView({
   }, [componentSlug, editingHotspots, loadedHotspotKeys, packageSlug, selectedPageIdentity]);
 
   useEffect(() => {
+    if (!enableBookHotspotEditor) return undefined;
     if (!editingHotspots || !selectedHotspotId) return undefined;
 
     const deleteSelectedHotspot = (event) => {
@@ -263,6 +270,7 @@ export function BookPagesView({
   };
 
   const startHotspotEditing = (pageKey) => {
+    if (!enableBookHotspotEditor) return;
     setDraftHotspots(customHotspotsByPage[pageKey] || []);
     setSelectedHotspotId(null);
     setHotspotMessage("");
@@ -271,6 +279,7 @@ export function BookPagesView({
   };
 
   const saveHotspotEditing = async (pageIdentity) => {
+    if (!enableBookHotspotEditor) return;
     if (!pageIdentity) return;
     setHotspotsSaving(true);
     setHotspotSaveError("");
@@ -313,6 +322,7 @@ export function BookPagesView({
   };
 
   const assignSelectedHotspotAction = (activity, action) => {
+    if (!enableBookActivityBuilder) return;
     if (!selectedHotspotId) return;
     setDraftHotspots((current) => current.map((area) => (
       area.id === selectedHotspotId
@@ -330,6 +340,7 @@ export function BookPagesView({
   };
 
   const activateCustomHotspot = (area) => {
+    if (!enableBookHotspotEditor) return;
     const actionType = area.actionType || "none";
     if (actionType === "none") {
       setHotspotMessage("No action assigned to this hotspot.");
@@ -375,8 +386,12 @@ export function BookPagesView({
     const isFirstSection = selectedUnitSectionIndex === 0;
     const isLastSection = selectedUnitSectionIndex === unitSections.length - 1;
     const pageHotspotKey = selectedPageIdentity.storageKey;
-    const currentCustomHotspots = editingHotspots ? draftHotspots : customHotspotsByPage[pageHotspotKey] || [];
-    const selectedDraftHotspot = editingHotspots ? draftHotspots.find((area) => area.id === selectedHotspotId) : null;
+    const hotspotEditingActive = enableBookHotspotEditor && editingHotspots;
+    // TODO: Re-enable custom DB hotspots after the backend hotspot/activity system is finalized.
+    const currentCustomHotspots = enableBookHotspotEditor
+      ? (hotspotEditingActive ? draftHotspots : customHotspotsByPage[pageHotspotKey] || [])
+      : [];
+    const selectedDraftHotspot = hotspotEditingActive ? draftHotspots.find((area) => area.id === selectedHotspotId) : null;
     const goToUnitSection = (nextUnitIndex) => {
       const nextSection = unitSections[nextUnitIndex];
       if (!nextSection) return;
@@ -420,12 +435,12 @@ export function BookPagesView({
               <h2>{selectedSection.title} {selectedSection.pages}</h2>
               <small className="book-page-section-counter">{selectedUnitSectionIndex + 1} / {unitSections.length}</small>
             </div>
-            <div className="page-hotspot-editor-toolbar" aria-label="Clickable area editor controls">
-              {hotspotMessage && <span className="editable-hotspot-click-message">{hotspotMessage}</span>}
-              {hotspotsLoading && <span className="editable-hotspot-click-message">Loading areas...</span>}
-              {hotspotLoadError && <span className="editable-hotspot-click-message warning">{hotspotLoadError}</span>}
-              {hotspotSaveError && <span className="editable-hotspot-click-message warning">{hotspotSaveError}</span>}
-              {!editingHotspots && selectedSection.continuesToVideo && (
+            <div className="page-hotspot-editor-toolbar" aria-label="Book page actions">
+              {enableBookHotspotEditor && hotspotMessage && <span className="editable-hotspot-click-message">{hotspotMessage}</span>}
+              {enableBookHotspotEditor && hotspotsLoading && <span className="editable-hotspot-click-message">Loading areas...</span>}
+              {enableBookHotspotEditor && hotspotLoadError && <span className="editable-hotspot-click-message warning">{hotspotLoadError}</span>}
+              {enableBookHotspotEditor && hotspotSaveError && <span className="editable-hotspot-click-message warning">{hotspotSaveError}</span>}
+              {!hotspotEditingActive && selectedSection.continuesToVideo && (
                 <motion.button
                   className="primary-action compact-action"
                   type="button"
@@ -437,28 +452,30 @@ export function BookPagesView({
                   Continue to video
                 </motion.button>
               )}
-              {!editingHotspots ? (
-                <button className="secondary-action compact-action" type="button" onClick={() => startHotspotEditing(pageHotspotKey)} data-sound-click="tab">
-                  <MousePointer2 size={16} /> Edit
-                </button>
-              ) : (
-                <>
-                  <button className="primary-action compact-action" type="button" onClick={() => saveHotspotEditing(selectedPageIdentity)} disabled={hotspotsSaving} data-sound-click="submit">
-                    <Save size={16} /> {hotspotsSaving ? "Saving..." : "Save"}
+              {enableBookHotspotEditor && (
+                !hotspotEditingActive ? (
+                  <button className="secondary-action compact-action" type="button" onClick={() => startHotspotEditing(pageHotspotKey)} data-sound-click="tab">
+                    <MousePointer2 size={16} /> Edit
                   </button>
-                  <button className="secondary-action compact-action" type="button" onClick={cancelHotspotEditing} disabled={hotspotsSaving} data-sound-click="back">
-                    <X size={16} /> Cancel
-                  </button>
-                  {selectedHotspotId && (
-                    <button className="secondary-action compact-action danger-action" type="button" onClick={deleteSelectedHotspot} disabled={hotspotsSaving} data-sound-click="deleteRemove">
-                      <Trash2 size={16} /> Delete selected
+                ) : (
+                  <>
+                    <button className="primary-action compact-action" type="button" onClick={() => saveHotspotEditing(selectedPageIdentity)} disabled={hotspotsSaving} data-sound-click="submit">
+                      <Save size={16} /> {hotspotsSaving ? "Saving..." : "Save"}
                     </button>
-                  )}
-                </>
+                    <button className="secondary-action compact-action" type="button" onClick={cancelHotspotEditing} disabled={hotspotsSaving} data-sound-click="back">
+                      <X size={16} /> Cancel
+                    </button>
+                    {selectedHotspotId && (
+                      <button className="secondary-action compact-action danger-action" type="button" onClick={deleteSelectedHotspot} disabled={hotspotsSaving} data-sound-click="deleteRemove">
+                        <Trash2 size={16} /> Delete selected
+                      </button>
+                    )}
+                  </>
+                )
               )}
             </div>
           </div>
-          <div className={`book-page-viewer-shell ${editingHotspots ? "with-hotspot-settings" : ""}`}>
+          <div className={`book-page-viewer-shell ${hotspotEditingActive ? "with-hotspot-settings" : ""}`}>
             <motion.button className="book-page-turn-button previous" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex - 1)} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
               <ArrowLeft size={18} />
               <span>Previous</span>
@@ -489,21 +506,23 @@ export function BookPagesView({
                     <div className="book-page-missing">Page asset missing</div>
                   )}
                   <BookPageHotspots actions={selectedSection.actions} onAction={setActiveAction} />
-                  <EditableHotspotLayer
-                    pageId={pageHotspotKey}
-                    areas={currentCustomHotspots}
-                    editing={editingHotspots}
-                    selectedAreaId={selectedHotspotId}
-                    onSelectArea={setSelectedHotspotId}
-                    onChangeAreas={setDraftHotspots}
-                    onActivateArea={(area) => {
-                      activateCustomHotspot(area);
-                    }}
-                  />
+                  {enableBookHotspotEditor && (
+                    <EditableHotspotLayer
+                      pageId={pageHotspotKey}
+                      areas={currentCustomHotspots}
+                      editing={hotspotEditingActive}
+                      selectedAreaId={selectedHotspotId}
+                      onSelectArea={setSelectedHotspotId}
+                      onChangeAreas={setDraftHotspots}
+                      onActivateArea={(area) => {
+                        activateCustomHotspot(area);
+                      }}
+                    />
+                  )}
                 </div>
               </motion.div>
             </AnimatePresence>
-            {editingHotspots && (
+            {hotspotEditingActive && (
               <PageHotspotSettingsPanel
                 hotspot={selectedDraftHotspot}
                 onChange={updateSelectedHotspot}
@@ -532,7 +551,7 @@ export function BookPagesView({
               </button>
             ))}
           </div>
-          {builderType && selectedPageIdentity && (
+          {enableBookActivityBuilder && builderType && selectedPageIdentity && (
             <BookActivityBuilderModal
               context={{ packageSlug, componentSlug, pageId: selectedPageIdentity.pageId, pageNumber: selectedPageIdentity.pageNumber }}
               initialType={builderType}
@@ -541,7 +560,7 @@ export function BookPagesView({
               onExistingSelected={(activity, action) => assignSelectedHotspotAction(activity, { ...action, actionType: "existing_activity" })}
             />
           )}
-          {activeBookActivityId && <BookActivityRunner activityId={activeBookActivityId} onClose={() => setActiveBookActivityId(null)} />}
+          {enableBookActivityBuilder && activeBookActivityId && <BookActivityRunner activityId={activeBookActivityId} onClose={() => setActiveBookActivityId(null)} />}
         </motion.div>
       </AnimatePresence>
     );

@@ -1,0 +1,4 @@
+export const FEATURE_FLAGS = {
+  ENABLE_BOOK_HOTSPOT_EDITOR: false,
+  ENABLE_BOOK_ACTIVITY_BUILDER: false,
+};
