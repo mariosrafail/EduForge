@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
+import { dedupeBookPackages, demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { buildTeacherSectionHash } from "../../../utils/hashRoutes.js";
@@ -44,7 +44,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
     let mounted = true;
     getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
       if (!mounted) return;
-      setBookPackages((current) => replaceDemoBookPackage(current, packageTree));
+      setBookPackages((current) => dedupeBookPackages(replaceDemoBookPackage(current, packageTree)));
       setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
     });
     return () => {

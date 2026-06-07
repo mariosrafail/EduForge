@@ -1,5 +1,5 @@
 import { ultimateB2Package } from "../data/ultimateB2DemoData.js";
-import { getDemoBookPackage, mergeBookPackageWithDemoFallback } from "../data/bookPackages.js";
+import { getDemoBookPackage, mergeBookPackageWithDemoFallback, normalizeBookPackageKey } from "../data/bookPackages.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -105,13 +105,14 @@ function normalizeDbActivity(activity, component, unit, lesson) {
 }
 
 export function normalizeBookPackageTree(bookPackage) {
-  const fallbackPackage = getDemoBookPackage(bookPackage?.slug || bookPackage?.id);
+  const packageIdentity = normalizeBookPackageKey(bookPackage);
+  const fallbackPackage = getDemoBookPackage(packageIdentity || bookPackage?.slug || bookPackage?.id);
   if (!bookPackage?.components?.length) return fallbackPackage;
 
   return mergeBookPackageWithDemoFallback({
     ...fallbackPackage,
     id: bookPackage.id,
-    slug: bookPackage.slug,
+    slug: packageIdentity || bookPackage.slug,
     packageTitle: bookPackage.packageTitle || bookPackage.title,
     packageLabel: bookPackage.packageLabel || `${bookPackage.title} package`,
     level: bookPackage.level,

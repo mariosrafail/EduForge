@@ -1,6 +1,6 @@
 import { BookOpen, CheckCircle2, KeyRound, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { demoBookPackages } from "../../../data/bookPackages.js";
+import { dedupeBookPackages, demoBookPackages, normalizeBookPackageKey } from "../../../data/bookPackages.js";
 import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { createTeacherClass } from "../../../services/classApi.js";
 import { buildActivityHash, buildBookHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
@@ -46,6 +46,28 @@ export function TeacherDashboard({ goToSection }) {
 }
 
 export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackage }) {
+  const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.table(bookPackages.map((bookPackage) => ({
+      title: bookPackage.packageTitle || bookPackage.title,
+      slug: bookPackage.slug,
+      id: bookPackage.id,
+      source: bookPackage.source,
+      key: normalizeBookPackageKey(bookPackage),
+      components: bookPackage.components?.length || 0,
+    })));
+    console.table(visibleBookPackages.map((bookPackage) => ({
+      title: bookPackage.packageTitle || bookPackage.title,
+      slug: bookPackage.slug,
+      id: bookPackage.id,
+      source: bookPackage.source,
+      key: normalizeBookPackageKey(bookPackage),
+      components: bookPackage.components?.length || 0,
+    })));
+  }, [bookPackages, visibleBookPackages]);
+
   return (
     <Card className="book-package-selector">
       <div className="card-heading">
@@ -55,7 +77,7 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
         </div>
       </div>
       <div className="book-package-selector-grid">
-        {bookPackages.map((bookPackage) => {
+        {visibleBookPackages.map((bookPackage) => {
           const packageSlug = bookPackage.slug || bookPackage.id || bookPackage.packageTitle;
           const packageKey = packageSlug || `${bookPackage.publisher || "package"}-${bookPackage.level || "level"}`;
           return (
@@ -80,7 +102,9 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
-  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || ultimateB2Package;
+  const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
+  const selectedPackageKey = normalizeBookPackageKey({ slug: selectedPackageSlug, packageTitle: selectedPackageSlug });
+  const bookPackage = visibleBookPackages.find((item) => normalizeBookPackageKey(item) === selectedPackageKey || item.slug === selectedPackageSlug || item.id === selectedPackageSlug) || visibleBookPackages[0] || ultimateB2Package;
 
   useEffect(() => {
     if (!initialPreviewActivityKey) {
