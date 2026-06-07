@@ -15,6 +15,7 @@ import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from 
 
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
+const SCROLLABLE_OVERFLOW_VALUES = new Set(["auto", "scroll", "overlay"]);
 
 const englishJourneyPageAssets = import.meta.glob("../../../assets/books/english-journey-6/pages/**/*.png", {
   eager: true,
@@ -62,6 +63,36 @@ export function BackToPagesButton({ onBack, label = "Back to pages" }) {
       <ArrowLeft size={16} /> {label}
     </button>
   );
+}
+
+function canScrollVertically(element, deltaY) {
+  if (!element || !(element instanceof HTMLElement)) return false;
+  const style = window.getComputedStyle(element);
+  if (!SCROLLABLE_OVERFLOW_VALUES.has(style.overflowY)) return false;
+  if (element.scrollHeight <= element.clientHeight + 1) return false;
+  if (deltaY > 0) return element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+  if (deltaY < 0) return element.scrollTop > 1;
+  return false;
+}
+
+function handleBookViewportWheel(event) {
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey) return;
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+  if (typeof document === "undefined") return;
+
+  let current = event.target;
+  while (current && current !== event.currentTarget) {
+    if (canScrollVertically(current, event.deltaY)) return;
+    current = current.parentElement;
+  }
+
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  const maxScrollTop = scrollingElement.scrollHeight - scrollingElement.clientHeight;
+  const nextScrollTop = Math.min(Math.max(scrollingElement.scrollTop + event.deltaY, 0), maxScrollTop);
+  if (nextScrollTop === scrollingElement.scrollTop) return;
+
+  event.preventDefault();
+  scrollingElement.scrollTop = nextScrollTop;
 }
 
 export function BookPageActionExperience({ action, mode = "student", onBack, onAction }) {
@@ -419,6 +450,7 @@ export function BookPagesView({
         <motion.div
           key="page-open"
           className="students-book-gateway book-page-spread-view book-page-selection-gateway"
+          onWheelCapture={handleBookViewportWheel}
           initial={{ opacity: 0, y: 22, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -18, scale: 0.98 }}
@@ -569,6 +601,7 @@ export function BookPagesView({
   return (
     <motion.div
       className="students-book-gateway book-page-selection-gateway"
+      onWheelCapture={handleBookViewportWheel}
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.2, 0.9, 0.2, 1] }}

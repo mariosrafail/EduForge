@@ -35,8 +35,7 @@
   }
 
   .book-page-spread-view.book-page-selection-gateway {
-    height: calc(100dvh - 122px);
-    max-height: calc(100dvh - 122px);
+    min-height: 0;
     padding: 4px;
     gap: 5px;
   }
@@ -68,8 +67,7 @@
   }
   .book-page-spread-toolbar { grid-template-columns: 1fr; }
   .book-page-spread-view.book-page-selection-gateway {
-    height: calc(100dvh - 178px);
-    max-height: calc(100dvh - 178px);
+    min-height: 0;
   }
   .book-page-viewer-shell {
     grid-template-columns: 1fr;

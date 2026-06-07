@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 const pieces = Array.from({ length: 24 }, (_, index) => index + 1);
 const LOGO_ANIMATION_MS = 1100;
@@ -23,9 +24,17 @@ export function AppIntro() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!visible) return undefined;
+    document.body.classList.add("is-app-loading");
+    return () => {
+      document.body.classList.remove("is-app-loading");
+    };
+  }, [visible]);
+
   if (!visible) return null;
 
-  return (
+  return createPortal(
     <div className={`app-intro-overlay ${exiting ? "is-exiting" : ""}`} aria-hidden="true">
       <div className="app-intro-mark">
         {pieces.map((piece) => <span key={piece} className={`intro-piece piece-${piece}`} />)}
@@ -34,6 +43,7 @@ export function AppIntro() {
         <strong>Hamilton House Publishers</strong>
         <span>Digital ELT lesson platform</span>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -52,6 +52,10 @@ body.mobile-nav-open {
   overflow: hidden;
 }
 
+body.is-app-loading {
+  overflow: hidden;
+}
+
 input, textarea, select {
   width: 100%;
   min-height: 42px;

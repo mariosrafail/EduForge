@@ -37,7 +37,10 @@
 
 .role-screen, .workspace { width: min(1480px, calc(100% - (var(--app-page-padding) * 2))); margin: 0 auto; }
 
-.workspace { padding: var(--app-content-top-offset) 0 42px; }
+.workspace {
+  overflow: visible;
+  padding: var(--app-content-top-offset) 0 42px;
+}
 
 .role-screen { padding: var(--app-content-top-offset) 0 24px; }
 
@@ -281,6 +284,7 @@
   grid-template-columns: var(--portal-sidebar-width) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+  overflow: visible;
   transition: grid-template-columns 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -403,6 +407,7 @@
 .portal-main {
   min-width: 0;
   display: grid;
+  overflow: visible;
   transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

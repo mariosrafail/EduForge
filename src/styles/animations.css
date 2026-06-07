@@ -1,21 +1,32 @@
 .app-intro-overlay {
   position: fixed;
   inset: 0;
-  z-index: 300;
-  display: grid;
-  place-items: center;
-  align-content: center;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   gap: 18px;
+  width: 100vw;
+  min-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(circle at 50% 42%, rgba(249, 115, 22, 0.12), transparent 34%),
     linear-gradient(135deg, #fbfcff, #edf3f9);
   animation: appIntroFadeIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: none;
+  pointer-events: all;
 }
 
 .app-intro-overlay.is-exiting {
   animation: appIntroFadeOut 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: none;
+  pointer-events: all;
+}
+
+.app-intro-overlay.is-exiting .app-intro-mark,
+.app-intro-overlay.is-exiting .app-intro-copy {
+  animation: appIntroContentFadeOut 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-intro-mark {
@@ -169,9 +180,11 @@
 
 @keyframes tabUnderlineIn { from { opacity: 0; transform: scaleX(0.35); } to { opacity: 1; transform: scaleX(1); } }
 
-@keyframes appIntroFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes appIntroFadeIn { from { opacity: 1; } to { opacity: 1; } }
 
-@keyframes appIntroFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.018); } }
+@keyframes appIntroFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 1; transform: scale(1.018); } }
+
+@keyframes appIntroContentFadeOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(6px) scale(0.985); } }
 
 @keyframes introPieceAssemble {
   0% { opacity: 0; transform: translate(var(--intro-x, 0), var(--intro-y, 0)) scale(0.72); }
@@ -250,5 +263,5 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   .drag-trail-ghost, .drag-trail-streak { display: none; }
-  .app-intro-overlay { display: none; }
+  .app-intro-overlay { animation: none; }
 }

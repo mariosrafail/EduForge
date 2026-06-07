@@ -1405,15 +1405,15 @@
 
 .book-page-spread-view.book-page-selection-gateway {
   align-content: stretch;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, auto) auto;
   width: min(100%, 1680px);
   aspect-ratio: auto;
-  height: calc(100dvh - 132px);
-  max-height: calc(100dvh - 132px);
+  height: auto;
+  max-height: none;
   min-height: 0;
   padding: clamp(4px, 0.55vw, 9px);
   gap: clamp(4px, 0.6vw, 8px);
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--brand-primary) 16%, transparent), transparent 34%),
     radial-gradient(circle at 86% 16%, rgba(245, 158, 11, 0.18), transparent 28%),
@@ -1484,9 +1484,9 @@
 .book-page-spread-view.book-page-selection-gateway .book-page-viewer-shell {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   padding-bottom: 0;
   gap: 8px;
 }
@@ -1559,10 +1559,10 @@
 
 .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage {
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
   max-height: none;
-  overflow: hidden;
+  overflow: visible;
   padding: 2px;
 }
 
@@ -1589,12 +1589,12 @@
 
 .book-page-spread-view.book-page-selection-gateway .book-page-image-layer {
   width: 100%;
-  height: 100%;
+  height: auto;
   max-height: none;
   min-height: 0;
   align-items: center;
   justify-items: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .page-hotspot-editor-toolbar {
@@ -2027,12 +2027,12 @@
 }
 
 .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage img {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
   min-width: 0;
   min-height: 0;
   max-width: 100%;
-  max-height: 100%;
+  max-height: min(78dvh, calc(100dvh - 220px));
   object-fit: contain;
 }
 
