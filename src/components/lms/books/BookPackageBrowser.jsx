@@ -521,20 +521,14 @@ function BookPagesView({
   const [activeUnitId, setActiveUnitId] = useState(selectedPageUnitId || selectedSection?.unitId || pageUnits[0]?.id || "");
   const activeUnit = pageUnits.find((unit) => unit.id === activeUnitId) || pageUnits[0] || null;
   const activeUnitSections = activeUnit ? sections.filter((section) => section.unitId === activeUnit.id) : sections;
+  const visibleUnitSections = activeUnitSections.slice(0, 10);
   const activeUnitLabel = activeUnit?.displayLabel || activeUnit?.label || activeUnit?.title || activeUnit?.unit || "Pages";
   const activeUnitHeading = activeUnit?.number && activeUnit?.title
     ? `Unit ${activeUnit.number}, ${activeUnit.title}`
     : activeUnitLabel;
   const showUnitTabs = pageUnits.length > 1;
-  const sectionGridColumns = activeUnitSections.length <= 3
-    ? Math.max(activeUnitSections.length, 1)
-    : activeUnitSections.length <= 4
-      ? 2
-      : activeUnitSections.length <= 6
-        ? 3
-        : activeUnitSections.length <= 8
-          ? 4
-          : 5;
+  const sectionGridColumns = Math.min(5, Math.max(1, Math.ceil(visibleUnitSections.length / 2)));
+  const sectionGridMaxWidth = `${(sectionGridColumns * 228) + ((sectionGridColumns - 1) * 14)}px`;
 
   useEffect(() => {
     const nextUnitId = selectedPageUnitId || selectedSection?.unitId || pageUnits[0]?.id || "";
@@ -756,8 +750,8 @@ function BookPagesView({
           <h3>{activeUnitHeading}</h3>
         </div>
       )}
-      <div className="book-section-grid" style={{ "--book-section-columns": sectionGridColumns }}>
-        {activeUnitSections.map((section, index) => (
+      <div className="book-section-grid" style={{ "--book-section-columns": sectionGridColumns, "--book-section-grid-max-width": sectionGridMaxWidth }}>
+        {visibleUnitSections.map((section, index) => (
           <motion.article
             key={section.id}
             className={`book-section-card available ${openingSectionId === section.id ? "opening" : ""}`}
@@ -915,6 +909,7 @@ function BookDetailView({ component, bookPackage, mode, onStartExercise, onPrevi
   const [viewMode, setViewMode] = useState((selectedSubview === "pages" || selectedSubview === "flipbook" || selectedPageId || selectedPageNumber) ? "pages" : "contents");
   const canonicalBookId = getComponentRouteSlug(component);
   const showPagesMode = Boolean(component.pageUnits?.length);
+  const hasSelectedPage = Boolean(selectedPageId || selectedPageNumber);
   const modeOptions = [
     { id: "contents", label: showPagesMode ? "Contents / Exercises" : "Contents" },
     ...(showPagesMode ? [{ id: "pages", label: "Book pages" }] : []),
@@ -939,36 +934,38 @@ function BookDetailView({ component, bookPackage, mode, onStartExercise, onPrevi
   }, [selectedSubview]);
 
   return (
-    <Card className="book-detail-view">
-      <div className="book-detail-hero">
-        <BookCover component={component} bookPackage={bookPackage} size="large" />
-        <div>
-          <span className="eyebrow"><Layers3 size={15} /> {component.type}</span>
-          <h2>{component.title}</h2>
-          <p>{component.subtitle}</p>
-          <div className="book-detail-stats">
-            <span>{component.units.length} units visible</span>
-            <span>{activeCount} demo item{activeCount === 1 ? "" : "s"} active</span>
-            <span>Publisher content placeholders locked</span>
-          </div>
-          <div className="book-detail-mode-toggle" aria-label="Book view mode">
-            {modeOptions.map((option) => (
-              <button
-                key={option.id}
-                className={viewMode === option.id ? "selected" : ""}
-                type="button"
-                onClick={() => {
-                  setViewMode(option.id);
-                  onSelectSubview?.(getComponentRouteSlug(component), option.id === "pages" ? "pages" : "exercises");
-                }}
-                data-sound-click="tab"
-              >
-                {option.label}
-              </button>
-            ))}
+    <Card className={`book-detail-view ${hasSelectedPage ? "selected-page-detail" : ""}`}>
+      {!hasSelectedPage && (
+        <div className="book-detail-hero">
+          <BookCover component={component} bookPackage={bookPackage} size="large" />
+          <div>
+            <span className="eyebrow"><Layers3 size={15} /> {component.type}</span>
+            <h2>{component.title}</h2>
+            <p>{component.subtitle}</p>
+            <div className="book-detail-stats">
+              <span>{component.units.length} units visible</span>
+              <span>{activeCount} demo item{activeCount === 1 ? "" : "s"} active</span>
+              <span>Publisher content placeholders locked</span>
+            </div>
+            <div className="book-detail-mode-toggle" aria-label="Book view mode">
+              {modeOptions.map((option) => (
+                <button
+                  key={option.id}
+                  className={viewMode === option.id ? "selected" : ""}
+                  type="button"
+                  onClick={() => {
+                    setViewMode(option.id);
+                    onSelectSubview?.(getComponentRouteSlug(component), option.id === "pages" ? "pages" : "exercises");
+                  }}
+                  data-sound-click="tab"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {viewMode === "pages" && showPagesMode ? (
         <BookPagesView
