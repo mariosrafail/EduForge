@@ -248,9 +248,16 @@ export function useCourseData() {
     });
   }, []);
 
+  const resetCourse = useCallback(() => {
+    setCourseState(applyLessonMetadata(cloneCourseDemo()));
+    setError("");
+    setLastSavedAt("");
+  }, []);
+
   return useMemo(() => ({
     course,
     setCourse,
+    resetCourse,
     loading,
     error,
     lastSavedAt,
@@ -259,5 +266,5 @@ export function useCourseData() {
     saveLesson,
     saveActivity,
     submitCourseLesson,
-  }), [course, loading, error, lastSavedAt, reloadCourse, saveCourse, saveLesson, saveActivity, submitCourseLesson, setCourse]);
+  }), [course, loading, error, lastSavedAt, reloadCourse, saveCourse, saveLesson, saveActivity, submitCourseLesson, setCourse, resetCourse]);
 }

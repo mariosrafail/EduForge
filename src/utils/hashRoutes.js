@@ -81,6 +81,58 @@ function withLeadingSlash(hash = "") {
   return cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
 }
 
+function matchBookPageRoute(hash = "") {
+  const normalizedHash = withLeadingSlash(hash);
+  const courseMatch = normalizedHash.match(/^\/courses\/([^/]+)\/components\/([^/]+)\/(pages|flipbook)\/([^/]+)$/);
+  if (courseMatch) {
+    return {
+      role: "student",
+      packageSlug: courseMatch[1],
+      componentSlug: courseMatch[2],
+      subview: courseMatch[3],
+      pageToken: courseMatch[4],
+    };
+  }
+
+  const teacherMatch = normalizedHash.match(/^\/teacher\/books\/([^/]+)\/components\/([^/]+)\/(pages|flipbook)\/([^/]+)$/);
+  if (teacherMatch) {
+    return {
+      role: "teacher",
+      packageSlug: teacherMatch[1],
+      componentSlug: teacherMatch[2],
+      subview: teacherMatch[3],
+      pageToken: teacherMatch[4],
+    };
+  }
+
+  const legacyBookMatch = normalizedHash.match(/^\/(student|teacher)-book-([^/]+)\/pages\/([^/]+)\/([^/]+)$/);
+  if (legacyBookMatch) {
+    return {
+      role: legacyBookMatch[1],
+      packageSlug: "",
+      componentSlug: legacyBookMatch[2],
+      subview: "pages",
+      pageToken: `${legacyBookMatch[3]}/${legacyBookMatch[4]}`,
+    };
+  }
+
+  return null;
+}
+
+export function isSameBookPageRoute(previousHash = "", nextHash = "") {
+  const previousRoute = matchBookPageRoute(previousHash);
+  const nextRoute = matchBookPageRoute(nextHash);
+  if (!previousRoute || !nextRoute) return false;
+
+  return (
+    previousRoute.role === nextRoute.role &&
+    previousRoute.packageSlug === nextRoute.packageSlug &&
+    previousRoute.componentSlug === nextRoute.componentSlug &&
+    previousRoute.subview === nextRoute.subview &&
+    previousRoute.pageToken !== nextRoute.pageToken
+  );
+}
+
 export function slugifyRoute(value = "") {
   return String(value || "")
     .trim()

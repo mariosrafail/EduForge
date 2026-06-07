@@ -175,9 +175,9 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
                 <span>{Math.round(volume * 100)}%</span>
               </label>
               {showSignOut && onSignOut && (
-                <button className="header-logout-button" type="button" onClick={handleSignOut} title="Log out" data-sound-click="tab">
+                <button className="header-logout-button" type="button" onClick={handleSignOut} title="Log out and reset progress" data-sound-click="tab">
                   <LogOut size={17} />
-                  <span>Log out</span>
+                  <span>Log out and reset progress</span>
                 </button>
               )}
             </nav>
@@ -257,7 +257,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
           {showSignOut && onSignOut && (
             <button className="mobile-nav-button" type="button" onClick={handleSignOut} data-sound-click="tab">
               <LogOut size={18} />
-              <span>Log out</span>
+              <span>Log out and reset progress</span>
             </button>
           )}
         </nav>

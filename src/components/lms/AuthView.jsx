@@ -163,7 +163,7 @@ export function AuthView({
                 <span>{currentUser.email}</span>
               </div>
               <button className="secondary-action compact-action" onClick={() => navigateTo(dashboardForRole(currentUser.role))}>Open dashboard</button>
-              <button className="secondary-action compact-action" onClick={signOut}>Logout</button>
+              <button className="secondary-action compact-action" onClick={signOut}>Log out and reset progress</button>
             </div>
           )}
         </div>

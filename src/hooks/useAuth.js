@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createSchoolAccount, getCurrentUser, signIn, signOut } from "../services/authApi.js";
+import { resetDemoProgressAndLogout } from "../services/demoReset.js";
 
 export function dashboardForRole(role) {
   const normalized = String(role ?? "").toLowerCase();
@@ -53,7 +54,13 @@ export function useAuth() {
 
   const handleSignOut = async () => {
     setAuthError("");
-    await signOut();
+    try {
+      await signOut();
+    } catch (error) {
+      console.warn(error);
+    } finally {
+      resetDemoProgressAndLogout();
+    }
     setCurrentUser(null);
   };
 

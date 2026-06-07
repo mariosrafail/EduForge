@@ -87,12 +87,51 @@ function handleBookViewportWheel(event) {
   }
 
   const scrollingElement = document.scrollingElement || document.documentElement;
-  const maxScrollTop = scrollingElement.scrollHeight - scrollingElement.clientHeight;
-  const nextScrollTop = Math.min(Math.max(scrollingElement.scrollTop + event.deltaY, 0), maxScrollTop);
-  if (nextScrollTop === scrollingElement.scrollTop) return;
+  const startScrollTop = scrollingElement.scrollTop;
+  const deltaY = event.deltaY;
 
-  event.preventDefault();
-  scrollingElement.scrollTop = nextScrollTop;
+  window.requestAnimationFrame(() => {
+    if (scrollingElement.scrollTop !== startScrollTop) return;
+
+    const maxScrollTop = scrollingElement.scrollHeight - scrollingElement.clientHeight;
+    const nextScrollTop = Math.min(Math.max(startScrollTop + deltaY, 0), maxScrollTop);
+    if (nextScrollTop !== startScrollTop) scrollingElement.scrollTop = nextScrollTop;
+  });
+}
+
+function captureWindowScrollPosition() {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  return {
+    x: window.scrollX,
+    y: window.scrollY,
+    top: scrollingElement?.scrollTop ?? window.scrollY,
+    left: scrollingElement?.scrollLeft ?? window.scrollX,
+  };
+}
+
+function restoreWindowScrollPosition(scrollPosition) {
+  if (!scrollPosition || typeof window === "undefined" || typeof document === "undefined") return;
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  window.scrollTo(scrollPosition.x, scrollPosition.y);
+  if (scrollingElement) {
+    scrollingElement.scrollTop = scrollPosition.top;
+    scrollingElement.scrollLeft = scrollPosition.left;
+  }
+}
+
+function preserveWindowScrollPosition(callback) {
+  const scrollPosition = captureWindowScrollPosition();
+  callback();
+  if (!scrollPosition || typeof window === "undefined") return;
+
+  const restore = () => restoreWindowScrollPosition(scrollPosition);
+  window.requestAnimationFrame(() => {
+    restore();
+    window.requestAnimationFrame(restore);
+  });
+  window.setTimeout(restore, 60);
+  window.setTimeout(restore, 180);
 }
 
 export function BookPageActionExperience({ action, mode = "student", onBack, onAction }) {
@@ -191,6 +230,13 @@ export function BookPagesView({
   }, [componentSlug, packageSlug, selectedSection]);
 
   useEffect(() => {
+    document.body.classList.add("is-book-pages-view");
+    return () => {
+      document.body.classList.remove("is-book-pages-view");
+    };
+  }, []);
+
+  useEffect(() => {
     const nextUnitId = selectedPageUnitId || selectedSection?.unitId || pageUnits[0]?.id || "";
     if (nextUnitId) setActiveUnitId(nextUnitId);
   }, [pageUnits, selectedPageUnitId, selectedSection?.unitId]);
@@ -261,12 +307,12 @@ export function BookPagesView({
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        goToSection(selectedSectionIndex + 1);
+        goToSection(selectedSectionIndex + 1, { preserveScroll: true });
         return;
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        goToSection(selectedSectionIndex - 1);
+        goToSection(selectedSectionIndex - 1, { preserveScroll: true });
       }
     };
 
@@ -293,11 +339,20 @@ export function BookPagesView({
     copyHashLink(hash);
   };
 
-  const goToSection = (nextIndex) => {
+  const goToSection = (nextIndex, { preserveScroll = false } = {}) => {
     if (nextIndex < 0 || nextIndex >= sections.length) return;
-    setNavigationDirection(nextIndex > selectedSectionIndex ? 1 : -1);
-    const nextSection = sections[nextIndex];
-    onSelectPage?.(nextSection.unitId, nextSection.pageId, nextSection.pageNumber);
+    const selectNextSection = () => {
+      setNavigationDirection(nextIndex > selectedSectionIndex ? 1 : -1);
+      const nextSection = sections[nextIndex];
+      onSelectPage?.(nextSection.unitId, nextSection.pageId, nextSection.pageNumber);
+    };
+
+    if (preserveScroll) {
+      preserveWindowScrollPosition(selectNextSection);
+      return;
+    }
+
+    selectNextSection();
   };
 
   const startHotspotEditing = (pageKey) => {
@@ -423,11 +478,11 @@ export function BookPagesView({
       ? (hotspotEditingActive ? draftHotspots : customHotspotsByPage[pageHotspotKey] || [])
       : [];
     const selectedDraftHotspot = hotspotEditingActive ? draftHotspots.find((area) => area.id === selectedHotspotId) : null;
-    const goToUnitSection = (nextUnitIndex) => {
+    const goToUnitSection = (nextUnitIndex, options) => {
       const nextSection = unitSections[nextUnitIndex];
       if (!nextSection) return;
       const nextGlobalIndex = sections.findIndex((section) => section.id === nextSection.id);
-      goToSection(nextGlobalIndex);
+      goToSection(nextGlobalIndex, options);
     };
     const pageTurnVariants = {
       enter: (direction) => ({
@@ -508,7 +563,7 @@ export function BookPagesView({
             </div>
           </div>
           <div className={`book-page-viewer-shell ${hotspotEditingActive ? "with-hotspot-settings" : ""}`}>
-            <motion.button className="book-page-turn-button previous" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex - 1)} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
+            <motion.button className="book-page-turn-button previous" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex - 1, { preserveScroll: true })} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
               <ArrowLeft size={18} />
               <span>Previous</span>
             </motion.button>
@@ -528,6 +583,7 @@ export function BookPagesView({
                   {selectedSection.images.length ? selectedSection.images.map((image, index) => (
                     <motion.img
                       key={`${selectedSection.id}-${index}`}
+                      className="book-page-spread-image"
                       src={image}
                       alt={`${component.title} ${selectedSection.title} ${selectedSection.pages}${selectedSection.images.length > 1 ? ` page ${index + 1}` : ""}`}
                       initial={{ opacity: 0, y: 14, rotateY: navigationDirection > 0 ? -4 : 4 }}
@@ -562,7 +618,7 @@ export function BookPagesView({
                 onOpenBuilder={setBuilderType}
               />
             )}
-            <motion.button className="book-page-turn-button next" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex + 1)} disabled={isLastSection} aria-label="Next book section" data-sound-click="tab" whileHover={isLastSection ? undefined : { x: 3 }} whileTap={isLastSection ? undefined : { scale: 0.96 }}>
+            <motion.button className="book-page-turn-button next" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex + 1, { preserveScroll: true })} disabled={isLastSection} aria-label="Next book section" data-sound-click="tab" whileHover={isLastSection ? undefined : { x: 3 }} whileTap={isLastSection ? undefined : { scale: 0.96 }}>
               <span>Next</span>
               <ArrowLeft size={18} />
             </motion.button>

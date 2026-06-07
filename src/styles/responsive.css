@@ -78,7 +78,16 @@
     width: 100%;
   }
   .book-page-spread-stage.two-page-spread { grid-template-columns: 1fr; }
-  .book-page-image-layer.two-page-spread { grid-template-columns: 1fr; }
+  .book-page-image-layer.two-page-spread {
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+  .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: min(72dvh, 620px);
+  }
   .book-page-turn-button.previous { order: 2; }
   .book-page-turn-button.next { order: 3; }
   .book-page-viewer-shell .book-page-spread-stage { order: 1; }

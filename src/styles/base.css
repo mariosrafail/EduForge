@@ -56,6 +56,28 @@ body.is-app-loading {
   overflow: hidden;
 }
 
+body.is-book-pages-view:not(.is-app-loading):not(.mobile-nav-open) {
+  overflow-y: auto;
+}
+
+body.is-book-pages-view .eduforge-app,
+body.is-book-pages-view .workspace,
+body.is-book-pages-view .portal-shell,
+body.is-book-pages-view .portal-main,
+body.is-book-pages-view .book-package-browser,
+body.is-book-pages-view .book-detail-view,
+body.is-book-pages-view .student-book-pages-shell,
+body.is-book-pages-view .students-book-gateway,
+body.is-book-pages-view .book-page-selection-gateway,
+body.is-book-pages-view .book-section-grid,
+body.is-book-pages-view .book-page-viewer-shell,
+body.is-book-pages-view .book-page-spread-stage,
+body.is-book-pages-view .book-page-image-layer {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
 input, textarea, select {
   width: 100%;
   min-height: 42px;

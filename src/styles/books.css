@@ -1558,12 +1558,15 @@
 }
 
 .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: auto;
   min-height: 0;
   max-height: none;
-  overflow: visible;
-  padding: 2px;
+  overflow: hidden;
+  padding: clamp(8px, 1.1vw, 16px);
 }
 
 .book-page-spread-stage.two-page-spread {
@@ -1588,13 +1591,16 @@
 }
 
 .book-page-spread-view.book-page-selection-gateway .book-page-image-layer {
-  width: 100%;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
   height: auto;
   max-height: none;
   min-height: 0;
   align-items: center;
-  justify-items: center;
+  justify-content: center;
   overflow: visible;
+  margin-inline: auto;
 }
 
 .page-hotspot-editor-toolbar {
@@ -2002,6 +2008,7 @@
 
 .book-page-spread-view.book-page-selection-gateway .book-page-image-layer.two-page-spread {
   align-items: center;
+  justify-content: center;
 }
 
 .book-page-image-layer.two-page-spread {
@@ -2034,6 +2041,12 @@
   max-width: 100%;
   max-height: min(78dvh, calc(100dvh - 220px));
   object-fit: contain;
+}
+
+.book-page-spread-view.book-page-selection-gateway .book-page-spread-stage.two-page-spread .book-page-spread-image {
+  height: min(72dvh, calc(100dvh - 230px), 620px);
+  max-width: min(46%, calc((100vw - 280px) / 2));
+  max-height: min(72dvh, calc(100dvh - 230px), 620px);
 }
 
 .reading-text-audio-image .book-image-scroll-frame {

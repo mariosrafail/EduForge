@@ -133,6 +133,7 @@ export default function App() {
             navigateTo={navigateTo}
             onSignOut={async () => {
               await auth.signOut();
+              courseData.resetCourse();
               navigateTo("home");
             }}
             showSignOut={!view.startsWith("auth-")}
@@ -155,6 +156,7 @@ export default function App() {
             createSchoolAccount={auth.createSchoolAccount}
             signOut={async () => {
               await auth.signOut();
+              courseData.resetCourse();
               navigateTo("home");
             }}
           />
