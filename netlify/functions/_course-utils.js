@@ -1,10 +1,10 @@
-import { getSql, json } from "./_auth-utils.js";
+import { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json } from "./_auth-utils.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const courseStatuses = new Set(["draft", "active", "archived"]);
 const lessonStatuses = new Set(["draft", "published", "archived"]);
 
-export { getSql, json, uuidPattern };
+export { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, uuidPattern };
 
 export function parseBody(event) {
   try {

@@ -31,6 +31,10 @@ database/001_init_lms_demo.sql
 database/002_basic_auth.sql
 database/003_activities_assignments.sql
 database/004_course_content.sql
+database/006_book_content_platform.sql
+database/007_teacher_classes.sql
+database/008_english_journey_6_book_package.sql
+database/009_book_page_hotspots.sql
 ```
 
 The migration creates:
@@ -46,6 +50,9 @@ The migration creates:
 - `lessons`
 - `lesson_activities`
 - `lesson_submissions`
+- `book_page_hotspots`
+- `book_activities`
+- `book_media_assets`
 
 It also seeds a demo school:
 
@@ -88,15 +95,25 @@ It seeds:
 
 This is demo/MVP persistence for course content, not a full production CMS yet.
 
+`database/009_book_page_hotspots.sql` adds generic page hotspot and custom book activity persistence:
+
+- editable rectangular book page hotspots
+- custom book activities created from hotspots
+- media asset URL records for video/audio fallback
+
+Run migrations manually in Neon/Postgres. The app does not run database migrations automatically.
+
 ## Required Environment Variable
 
 Set this only in Netlify or your local Netlify dev environment:
 
 ```bash
-DATABASE_URL=your_neon_connection_string
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
 ```
 
 Do not add `DATABASE_URL` to frontend code. React components call Netlify Functions under `/.netlify/functions/...`.
+
+The database helper also accepts `NETLIFY_DATABASE_URL`, `POSTGRES_URL`, or `NEON_DATABASE_URL` as fallback names, but `DATABASE_URL` is the documented local variable.
 
 ## Local Netlify Functions
 
@@ -110,13 +127,13 @@ npm install -g netlify-cli
 Create a local `.env` file for Netlify dev only:
 
 ```bash
-DATABASE_URL=your_neon_connection_string
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
 ```
 
 Run:
 
 ```bash
-netlify dev
+npm run dev:netlify
 ```
 
 Open:
@@ -136,6 +153,14 @@ Test the course content function:
 ```bash
 curl http://localhost:8888/.netlify/functions/course
 ```
+
+Test book hotspot/activity functions:
+
+```bash
+curl "http://localhost:8888/.netlify/functions/book-content?action=book-activities&packageSlug=english-journey-6&componentSlug=students-book"
+```
+
+If `DATABASE_URL` is missing, Netlify Functions return a JSON `503` response explaining that the database is not configured. Write actions such as saving page hotspots or creating book activities do not fake success.
 
 Test editable course persistence:
 

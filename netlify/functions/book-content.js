@@ -8,7 +8,9 @@ import {
   fetchActivity,
   fetchBookPackages,
   fetchPackageTree,
+  databaseNotConfiguredResponse,
   getSql,
+  isDatabaseNotConfiguredError,
   json,
   parseBody,
   readQuery,
@@ -16,6 +18,39 @@ import {
 
 function badRequest(message) {
   return json(400, { error: message });
+}
+
+const supportedBookActivityTypes = new Set([
+  "multiple_choice",
+  "open_answer",
+  "typed_gap_fill",
+  "media_video",
+  "media_audio",
+  "text_panel",
+  "external_link",
+  "existing_activity_link",
+]);
+
+const supportedBookMediaKinds = new Set(["video", "audio", "image", "document", "other"]);
+
+const supportedHotspotActionTypes = new Set([
+  "none",
+  "activity",
+  "media_video",
+  "media_audio",
+  "text_panel",
+  "external_url",
+  "existing_activity",
+]);
+
+function requireText(value, fieldName) {
+  const text = String(value || "").trim();
+  if (!text) throw new Error(`${fieldName} is required`);
+  return text;
+}
+
+function optionalJson(value, fallback = {}) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
 }
 
 async function activateBookCode(sql, body) {
@@ -232,6 +267,379 @@ async function getStudentGrades(sql, studentId) {
   }));
 }
 
+function normalizePercent(value, fallback = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(Math.max(numeric, 0), 100);
+}
+
+function normalizeHotspotPayload(hotspot = {}) {
+  const left = normalizePercent(hotspot.left ?? hotspot.left_percent);
+  const top = normalizePercent(hotspot.top ?? hotspot.top_percent);
+  const width = normalizePercent(hotspot.width ?? hotspot.width_percent);
+  const height = normalizePercent(hotspot.height ?? hotspot.height_percent);
+  const safeWidth = Math.min(Math.max(width, 0.0001), 100 - left);
+  const safeHeight = Math.min(Math.max(height, 0.0001), 100 - top);
+
+  if (safeWidth <= 0 || safeHeight <= 0 || left + safeWidth > 100 || top + safeHeight > 100) {
+    throw new Error("Invalid hotspot coordinates");
+  }
+
+  return {
+    label: String(hotspot.label || "Clickable area").trim() || "Clickable area",
+    left,
+    top,
+    width: safeWidth,
+    height: safeHeight,
+    actionType: String(hotspot.actionType || hotspot.action_type || "none").trim() || "none",
+    actionTargetId: hotspot.actionTargetId || hotspot.action_target_id || null,
+    actionPayload: hotspot.actionPayload || hotspot.action_payload || {},
+  };
+}
+
+function pageHotspotRowToUi(row) {
+  return {
+    id: row.id,
+    package_slug: row.package_slug,
+    component_slug: row.component_slug,
+    page_id: row.page_id,
+    page_number: row.page_number,
+    label: row.label,
+    left_percent: Number(row.left_percent),
+    top_percent: Number(row.top_percent),
+    width_percent: Number(row.width_percent),
+    height_percent: Number(row.height_percent),
+    action_type: row.action_type,
+    action_target_id: row.action_target_id,
+    action_payload: row.action_payload || {},
+    created_by: row.created_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+async function listPageHotspots(sql, query) {
+  if (!query.packageSlug) return badRequest("packageSlug is required");
+  if (!query.componentSlug) return badRequest("componentSlug is required");
+  if (!query.pageId) return badRequest("pageId is required");
+
+  const rows = await sql`
+    select *
+    from book_page_hotspots
+    where package_slug = ${query.packageSlug}
+      and component_slug = ${query.componentSlug}
+      and page_id = ${query.pageId}
+    order by created_at asc, id asc
+  `;
+
+  return json(200, { hotspots: rows.map(pageHotspotRowToUi) });
+}
+
+async function savePageHotspots(sql, body) {
+  const packageSlug = String(body.packageSlug || body.package_slug || "").trim();
+  const componentSlug = String(body.componentSlug || body.component_slug || "").trim();
+  const pageId = String(body.pageId || body.page_id || "").trim();
+  const pageNumber = body.pageNumber ?? body.page_number ?? null;
+  const createdBy = body.createdBy || body.created_by || null;
+  const hotspots = Array.isArray(body.hotspots) ? body.hotspots : [];
+
+  if (!packageSlug) return badRequest("packageSlug is required");
+  if (!componentSlug) return badRequest("componentSlug is required");
+  if (!pageId) return badRequest("pageId is required");
+
+  const normalizedHotspots = hotspots.map(normalizeHotspotPayload);
+  const invalidHotspot = normalizedHotspots.find((hotspot) => !supportedHotspotActionTypes.has(hotspot.actionType));
+  if (invalidHotspot) return badRequest(`Unsupported hotspot action type: ${invalidHotspot.actionType}`);
+
+  await sql`
+    delete from book_page_hotspots
+    where package_slug = ${packageSlug}
+      and component_slug = ${componentSlug}
+      and page_id = ${pageId}
+  `;
+
+  const inserted = [];
+  for (const hotspot of normalizedHotspots) {
+    const rows = await sql`
+      insert into book_page_hotspots (
+        package_slug,
+        component_slug,
+        page_id,
+        page_number,
+        label,
+        left_percent,
+        top_percent,
+        width_percent,
+        height_percent,
+        action_type,
+        action_target_id,
+        action_payload,
+        created_by
+      )
+      values (
+        ${packageSlug},
+        ${componentSlug},
+        ${pageId},
+        ${pageNumber ? Number(pageNumber) : null},
+        ${hotspot.label},
+        ${hotspot.left},
+        ${hotspot.top},
+        ${hotspot.width},
+        ${hotspot.height},
+        ${hotspot.actionType},
+        ${hotspot.actionTargetId},
+        ${JSON.stringify(hotspot.actionPayload)}::jsonb,
+        ${createdBy}
+      )
+      returning *
+    `;
+    inserted.push(pageHotspotRowToUi(rows[0]));
+  }
+
+  return json(200, { hotspots: inserted });
+}
+
+function bookActivityRowToUi(row) {
+  return {
+    id: row.id,
+    package_slug: row.package_slug,
+    component_slug: row.component_slug,
+    page_id: row.page_id,
+    page_number: row.page_number,
+    title: row.title,
+    type: row.type,
+    instructions: row.instructions || "",
+    content: row.content || {},
+    correct_answers: row.correct_answers || {},
+    feedback: row.feedback || {},
+    media_id: row.media_id,
+    status: row.status,
+    created_by: row.created_by,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+function normalizeBookActivityPayload(body = {}, existing = {}) {
+  const packageSlug = requireText(body.packageSlug ?? body.package_slug ?? existing.package_slug, "packageSlug");
+  const componentSlug = requireText(body.componentSlug ?? body.component_slug ?? existing.component_slug, "componentSlug");
+  const title = requireText(body.title ?? existing.title, "title");
+  const type = String(body.type ?? existing.type ?? "").trim();
+  const status = String(body.status ?? existing.status ?? "published").trim() || "published";
+
+  if (!supportedBookActivityTypes.has(type)) throw new Error(`Unsupported activity type: ${type}`);
+  if (!["draft", "published"].includes(status)) throw new Error(`Unsupported activity status: ${status}`);
+
+  return {
+    packageSlug,
+    componentSlug,
+    pageId: body.pageId ?? body.page_id ?? existing.page_id ?? null,
+    pageNumber: body.pageNumber ?? body.page_number ?? existing.page_number ?? null,
+    title,
+    type,
+    instructions: body.instructions ?? existing.instructions ?? "",
+    content: optionalJson(body.content ?? existing.content),
+    correctAnswers: optionalJson(body.correctAnswers ?? body.correct_answers ?? existing.correct_answers),
+    feedback: optionalJson(body.feedback ?? existing.feedback),
+    mediaId: body.mediaId ?? body.media_id ?? existing.media_id ?? null,
+    status,
+    createdBy: body.createdBy ?? body.created_by ?? existing.created_by ?? null,
+  };
+}
+
+async function listBookActivities(sql, query) {
+  if (!query.packageSlug) return badRequest("packageSlug is required");
+  if (!query.componentSlug) return badRequest("componentSlug is required");
+
+  const rows = await sql`
+    select *
+    from book_activities
+    where package_slug = ${query.packageSlug}
+      and component_slug = ${query.componentSlug}
+      and (${query.pageId || null}::text is null or page_id = ${query.pageId || null})
+      and (${query.status || null}::text is null or status = ${query.status || null})
+    order by coalesce(page_number, 999999) asc, created_at asc, title asc
+  `;
+
+  return json(200, { activities: rows.map(bookActivityRowToUi) });
+}
+
+async function getBookActivity(sql, query) {
+  if (!query.activityId) return badRequest("activityId is required");
+  const rows = await sql`select * from book_activities where id = ${query.activityId} limit 1`;
+  const activity = rows[0];
+  return activity ? json(200, { activity: bookActivityRowToUi(activity) }) : json(404, { error: "Book activity not found" });
+}
+
+async function createBookActivity(sql, body) {
+  let activity;
+  try {
+    activity = normalizeBookActivityPayload(body);
+  } catch (error) {
+    return badRequest(error.message);
+  }
+
+  const rows = await sql`
+    insert into book_activities (
+      package_slug,
+      component_slug,
+      page_id,
+      page_number,
+      title,
+      type,
+      instructions,
+      content,
+      correct_answers,
+      feedback,
+      media_id,
+      status,
+      created_by
+    )
+    values (
+      ${activity.packageSlug},
+      ${activity.componentSlug},
+      ${activity.pageId},
+      ${activity.pageNumber ? Number(activity.pageNumber) : null},
+      ${activity.title},
+      ${activity.type},
+      ${activity.instructions},
+      ${JSON.stringify(activity.content)}::jsonb,
+      ${JSON.stringify(activity.correctAnswers)}::jsonb,
+      ${JSON.stringify(activity.feedback)}::jsonb,
+      ${activity.mediaId},
+      ${activity.status},
+      ${activity.createdBy}
+    )
+    returning *
+  `;
+
+  return json(200, { activity: bookActivityRowToUi(rows[0]) });
+}
+
+async function updateBookActivity(sql, body) {
+  const id = body.id || body.activityId || body.activity_id;
+  if (!id) return badRequest("activityId is required");
+
+  const existingRows = await sql`select * from book_activities where id = ${id} limit 1`;
+  const existing = existingRows[0];
+  if (!existing) return json(404, { error: "Book activity not found" });
+
+  let activity;
+  try {
+    activity = normalizeBookActivityPayload(body, existing);
+  } catch (error) {
+    return badRequest(error.message);
+  }
+
+  const rows = await sql`
+    update book_activities
+    set package_slug = ${activity.packageSlug},
+        component_slug = ${activity.componentSlug},
+        page_id = ${activity.pageId},
+        page_number = ${activity.pageNumber ? Number(activity.pageNumber) : null},
+        title = ${activity.title},
+        type = ${activity.type},
+        instructions = ${activity.instructions},
+        content = ${JSON.stringify(activity.content)}::jsonb,
+        correct_answers = ${JSON.stringify(activity.correctAnswers)}::jsonb,
+        feedback = ${JSON.stringify(activity.feedback)}::jsonb,
+        media_id = ${activity.mediaId},
+        status = ${activity.status},
+        created_by = ${activity.createdBy}
+    where id = ${id}
+    returning *
+  `;
+
+  return json(200, { activity: bookActivityRowToUi(rows[0]) });
+}
+
+async function deleteBookActivity(sql, body) {
+  const id = body.id || body.activityId || body.activity_id;
+  if (!id) return badRequest("activityId is required");
+  await sql`delete from book_activities where id = ${id}`;
+  return json(200, { deleted: true });
+}
+
+function bookMediaAssetRowToUi(row) {
+  return {
+    id: row.id,
+    package_slug: row.package_slug,
+    component_slug: row.component_slug,
+    page_id: row.page_id,
+    file_name: row.file_name,
+    original_file_name: row.original_file_name,
+    mime_type: row.mime_type,
+    file_size_bytes: row.file_size_bytes,
+    public_url: row.public_url,
+    storage_path: row.storage_path,
+    kind: row.kind,
+    created_by: row.created_by,
+    created_at: row.created_at,
+  };
+}
+
+async function listBookMediaAssets(sql, query) {
+  if (!query.packageSlug) return badRequest("packageSlug is required");
+  if (!query.componentSlug) return badRequest("componentSlug is required");
+
+  const rows = await sql`
+    select *
+    from book_media_assets
+    where package_slug = ${query.packageSlug}
+      and component_slug = ${query.componentSlug}
+      and (${query.pageId || null}::text is null or page_id = ${query.pageId || null})
+      and (${query.kind || null}::text is null or kind = ${query.kind || null})
+    order by created_at desc, file_name asc
+  `;
+
+  return json(200, { mediaAssets: rows.map(bookMediaAssetRowToUi) });
+}
+
+async function createBookMediaAsset(sql, body) {
+  const packageSlug = String(body.packageSlug || body.package_slug || "").trim();
+  const componentSlug = String(body.componentSlug || body.component_slug || "").trim();
+  const publicUrl = String(body.publicUrl || body.public_url || "").trim();
+  const kind = String(body.kind || "other").trim();
+
+  if (!packageSlug) return badRequest("packageSlug is required");
+  if (!componentSlug) return badRequest("componentSlug is required");
+  if (!publicUrl) return badRequest("publicUrl is required");
+  if (!supportedBookMediaKinds.has(kind)) return badRequest(`Unsupported media kind: ${kind}`);
+
+  const fileName = String(body.fileName || body.file_name || publicUrl.split("/").pop() || "media").trim();
+  const rows = await sql`
+    insert into book_media_assets (
+      package_slug,
+      component_slug,
+      page_id,
+      file_name,
+      original_file_name,
+      mime_type,
+      file_size_bytes,
+      public_url,
+      storage_path,
+      kind,
+      created_by
+    )
+    values (
+      ${packageSlug},
+      ${componentSlug},
+      ${body.pageId || body.page_id || null},
+      ${fileName},
+      ${body.originalFileName || body.original_file_name || fileName},
+      ${body.mimeType || body.mime_type || "application/octet-stream"},
+      ${body.fileSizeBytes || body.file_size_bytes || null},
+      ${publicUrl},
+      ${body.storagePath || body.storage_path || null},
+      ${kind},
+      ${body.createdBy || body.created_by || null}
+    )
+    returning *
+  `;
+
+  return json(200, { mediaAsset: bookMediaAssetRowToUi(rows[0]) });
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
 
@@ -253,6 +661,10 @@ export async function handler(event) {
       if (query.action === "access") return json(200, { bookAccess: await listUserBookAccess(sql, query.userId) });
       if (query.action === "assignments") return json(200, { assignments: await listAssignmentsForStudent(sql, query.studentId) });
       if (query.action === "grades") return json(200, { grades: await getStudentGrades(sql, query.studentId) });
+      if (query.action === "page-hotspots") return listPageHotspots(sql, query);
+      if (query.action === "book-activities") return listBookActivities(sql, query);
+      if (query.action === "book-activity") return getBookActivity(sql, query);
+      if (query.action === "book-media-assets") return listBookMediaAssets(sql, query);
       if (query.action === "classes") return json(200, { classes: await listTeacherClasses(sql, query.teacherId) });
       if (query.action === "class-by-invite") {
         const classItem = await findClassByInviteOrSlug(sql, { inviteCode: query.inviteCode });
@@ -274,12 +686,18 @@ export async function handler(event) {
       if (query.action === "submit") return submitActivity(sql, body);
       if (query.action === "create-class") return createTeacherClass(sql, body);
       if (query.action === "join-class") return joinClass(sql, body);
+      if (query.action === "save-page-hotspots") return savePageHotspots(sql, body);
+      if (query.action === "create-book-activity") return createBookActivity(sql, body);
+      if (query.action === "update-book-activity") return updateBookActivity(sql, body);
+      if (query.action === "delete-book-activity") return deleteBookActivity(sql, body);
+      if (query.action === "create-book-media-asset") return createBookMediaAsset(sql, body);
       return badRequest("Unsupported POST action");
     }
 
     return json(405, { error: "Method not allowed" });
   } catch (error) {
     console.error(error);
+    if (isDatabaseNotConfiguredError(error)) return databaseNotConfiguredResponse();
     return json(500, { error: "Book content API failed", detail: error.message });
   }
 }

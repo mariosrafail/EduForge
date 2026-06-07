@@ -39,10 +39,18 @@ const activityTypeLabels = {
 };
 
 async function parseJsonResponse(response) {
-  const payload = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let payload = {};
+  try {
+    payload = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    payload = {};
+  }
   if (!response.ok) {
-    const error = new Error(payload.error || payload.detail || "Book content API request failed");
+    const serverMessage = payload.detail || payload.details || payload.error || responseText || "Book content API request failed";
+    const error = new Error(`Book content API request failed (${response.status}): ${serverMessage}`);
     error.status = response.status;
+    error.payload = payload;
     throw error;
   }
   return payload;

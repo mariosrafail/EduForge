@@ -1,4 +1,4 @@
-import { fetchCourseById, fetchDemoCourse, getSql, json, parseBody, sanitizeRequiredText, sanitizeText, validateCourseStatus } from "./_course-utils.js";
+import { databaseNotConfiguredResponse, fetchCourseById, fetchDemoCourse, getSql, isDatabaseNotConfiguredError, json, parseBody, sanitizeRequiredText, sanitizeText, validateCourseStatus } from "./_course-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
@@ -48,6 +48,7 @@ export async function handler(event) {
     return json(405, { error: "Method not allowed" });
   } catch (error) {
     console.error(error);
+    if (isDatabaseNotConfiguredError(error)) return databaseNotConfiguredResponse();
     return json(500, { error: "Course API failed", detail: error.message });
   }
 }

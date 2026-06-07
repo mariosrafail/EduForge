@@ -1,6 +1,6 @@
-import { getSql, json, parseBody } from "./_course-utils.js";
+import { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody } from "./_course-utils.js";
 
-export { getSql, json, parseBody };
+export { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody };
 
 export function readQuery(event) {
   const params = event.queryStringParameters || {};
@@ -16,6 +16,14 @@ export function readQuery(event) {
     studentId: params.studentId || "",
     classId: params.classId || "",
     inviteCode: params.inviteCode || "",
+    packageSlug: params.packageSlug || params.package_slug || "",
+    componentSlug: params.componentSlug || params.component_slug || "",
+    pageId: params.pageId || params.page_id || "",
+    pageNumber: params.pageNumber || params.page_number || "",
+    status: params.status || "",
+    type: params.type || "",
+    kind: params.kind || "",
+    mediaId: params.mediaId || params.media_id || "",
   };
 }
 

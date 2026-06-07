@@ -1,0 +1,13 @@
+﻿@import "./tailwind.css";
+@import "./base.css";
+@import "./animations.css";
+@import "./shared-components.css";
+@import "./layout.css";
+@import "./header.css";
+@import "./admin.css";
+@import "./teacher.css";
+@import "./student.css";
+@import "./books.css";
+@import "./activities.css";
+@import "./editor.css";
+@import "./responsive.css";

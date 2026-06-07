@@ -2,9 +2,11 @@ node_modules/
 dist/
 .env
 .env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
+English Journey 6.app/
 
 # Local Netlify folder
 .netlify

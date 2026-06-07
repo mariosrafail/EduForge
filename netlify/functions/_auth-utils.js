@@ -23,11 +23,30 @@ export function serverError(message = "Authentication service failed") {
   return json(500, { error: message });
 }
 
+export function getDatabaseUrl() {
+  return process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL || "";
+}
+
+export function isDatabaseNotConfiguredError(error) {
+  return error?.code === "DATABASE_NOT_CONFIGURED" || String(error?.message || "").includes("DATABASE_URL is not configured");
+}
+
+export function databaseNotConfiguredResponse() {
+  return json(503, {
+    error: "Database is not configured",
+    detail: "Set DATABASE_URL in .env when running npm run dev:netlify",
+    details: "Set DATABASE_URL in .env when running npm run dev:netlify",
+  });
+}
+
 export function getSql() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not configured");
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
+    const error = new Error("DATABASE_URL is not configured");
+    error.code = "DATABASE_NOT_CONFIGURED";
+    throw error;
   }
-  return neon(process.env.DATABASE_URL);
+  return neon(databaseUrl);
 }
 
 export async function ensureAuthSchema(sql) {
