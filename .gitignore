@@ -3,10 +3,15 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.android-offline
 *.log
 .DS_Store
 Thumbs.db
 English Journey 6.app/
+Ultimate English B2.app/
+android/app/src/main/assets/public/
+android/app/build/
+android/.idea/
 
 # Local Netlify folder
 .netlify

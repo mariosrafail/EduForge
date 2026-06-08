@@ -1,0 +1,757 @@
+html[data-app-mode="android-offline"],
+html[data-app-mode="android-offline"] body,
+html[data-app-mode="android-offline"] #root {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f4f0e8;
+}
+
+html[data-app-mode="android-offline"] body {
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+}
+
+.android-offline-app {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: #f4f0e8;
+  color: #172033;
+  overflow: hidden;
+}
+
+.android-offline-app button,
+.android-offline-app textarea {
+  font: inherit;
+}
+
+.android-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: #b64b1f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.android-book-list-screen,
+.android-book-viewer {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.android-library-header,
+.android-viewer-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 50px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(23, 32, 51, 0.12);
+  box-shadow: 0 10px 30px rgba(23, 32, 51, 0.08);
+  z-index: 3;
+}
+
+.android-library-header h1,
+.android-viewer-header h1 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.1vw, 1.5rem);
+  line-height: 1.1;
+}
+
+.android-library-header p {
+  max-width: 420px;
+  margin: 0;
+  color: #657084;
+  font-weight: 700;
+}
+
+.android-book-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  overflow: auto;
+}
+
+.android-book-card button {
+  width: 100%;
+  min-height: 184px;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  color: inherit;
+  text-align: left;
+  box-shadow: 0 16px 34px rgba(23, 32, 51, 0.08);
+}
+
+.android-book-cover {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #fff2df;
+  overflow: hidden;
+}
+
+.android-book-cover img,
+.android-component-card-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.android-book-copy {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.android-book-copy strong {
+  font-size: 1.35rem;
+  line-height: 1.14;
+}
+
+.android-book-copy small {
+  color: #657084;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.android-book-meta,
+.android-component-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.android-book-meta span,
+.android-component-chips span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #eef5f7;
+  color: #193d57;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.android-open-book {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  background: #193d57;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.android-viewer-header button,
+.android-reader-toolbar button,
+.android-page-strip button,
+.android-progress-actions button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(23, 32, 51, 0.14);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #172033;
+  font-weight: 900;
+}
+
+.android-existing-viewer-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px;
+  background: #ebe4da;
+}
+
+.android-existing-viewer-shell .book-package-browser {
+  height: 100%;
+  min-height: 0;
+}
+
+.android-existing-viewer-shell .book-package-grid {
+  gap: 10px;
+  padding: 8px;
+}
+
+.android-existing-viewer-shell .book-package-component-card {
+  padding: 10px;
+}
+
+.android-existing-viewer-shell .book-package-component-card .book-cover-frame {
+  min-height: 120px;
+}
+
+.android-existing-viewer-shell .book-package-grid,
+.android-existing-viewer-shell .book-detail-view,
+.android-existing-viewer-shell .students-book-gateway {
+  max-width: none;
+}
+
+.android-existing-viewer-shell .book-detail-view {
+  height: 100%;
+  min-height: 0;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.android-existing-viewer-shell .book-detail-view.selected-page-detail {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.android-existing-viewer-shell .book-detail-hero {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px;
+}
+
+.android-existing-viewer-shell .book-detail-hero .book-cover-frame {
+  width: 72px;
+  min-height: 96px;
+}
+
+.android-existing-viewer-shell .book-detail-hero h2 {
+  margin: 1px 0 2px;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.android-existing-viewer-shell .book-detail-hero p,
+.android-existing-viewer-shell .book-detail-stats,
+.android-existing-viewer-shell .book-detail-stats span {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.android-existing-viewer-shell .book-detail-stats {
+  margin-top: 6px;
+}
+
+.android-existing-viewer-shell .book-detail-mode-toggle {
+  margin-top: 7px;
+}
+
+.android-existing-viewer-shell .book-package-component-card,
+.android-existing-viewer-shell .book-section-open-button,
+.android-existing-viewer-shell .book-page-unit-tabs button,
+.android-existing-viewer-shell .book-detail-mode-toggle button,
+.android-existing-viewer-shell .secondary-action,
+.android-existing-viewer-shell .primary-action {
+  min-height: 40px;
+}
+
+.android-existing-viewer-shell .students-book-gateway {
+  min-height: 0;
+  height: 100%;
+  gap: 8px;
+  padding: 8px;
+  overflow: auto;
+  border-radius: 8px;
+}
+
+.android-existing-viewer-shell .students-book-gateway::before,
+.android-existing-viewer-shell .book-gateway-bg-orb,
+.android-existing-viewer-shell .book-page-ambient-orb {
+  display: none;
+}
+
+.android-existing-viewer-shell .students-book-gateway-hero {
+  gap: 8px;
+  align-items: center;
+}
+
+.android-existing-viewer-shell .students-book-gateway-hero h2,
+.android-existing-viewer-shell .book-page-selection-gateway .students-book-gateway-hero h2 {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.28rem);
+  line-height: 1.1;
+}
+
+.android-existing-viewer-shell .students-book-gateway-hero p {
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.android-existing-viewer-shell .book-page-unit-heading h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.android-existing-viewer-shell .book-page-unit-tabs {
+  gap: 5px;
+  padding: 0;
+  overflow-x: auto;
+}
+
+.android-existing-viewer-shell .book-page-unit-tabs-label {
+  min-height: 34px;
+  padding-inline: 8px;
+}
+
+.android-existing-viewer-shell .book-page-unit-tabs button {
+  min-width: 42px;
+  padding: 6px 9px;
+}
+
+.android-existing-viewer-shell .book-section-grid,
+.android-existing-viewer-shell .book-page-selection-gateway .book-section-grid {
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+  padding: 0;
+  overflow: visible;
+}
+
+.android-existing-viewer-shell .book-section-card {
+  min-height: 0;
+}
+
+.android-existing-viewer-shell .book-section-open-button {
+  min-height: 104px;
+  padding: 7px;
+}
+
+.android-existing-viewer-shell .book-section-thumb {
+  min-height: 72px;
+  max-height: 102px;
+}
+
+.android-existing-viewer-shell .book-section-card-copy strong {
+  font-size: 0.82rem;
+  line-height: 1.1;
+}
+
+.android-existing-viewer-shell .book-page-spread-view {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.android-existing-viewer-shell .book-page-viewer-shell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: 4px;
+  margin: 0;
+}
+
+.android-existing-viewer-shell .book-page-spread-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.android-existing-viewer-shell .book-page-image-layer {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+.android-existing-viewer-shell .book-page-spread-image {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100dvh - 112px);
+  object-fit: contain;
+}
+
+.android-existing-viewer-shell .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage img {
+  max-width: 100%;
+  max-height: calc(100dvh - 112px);
+}
+
+.android-existing-viewer-shell .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage.two-page-spread .book-page-spread-image {
+  height: auto;
+  max-width: calc((100vw - 112px) / 2);
+  max-height: calc(100dvh - 112px);
+}
+
+.android-existing-viewer-shell .book-page-spread-toolbar {
+  width: 100%;
+  gap: 6px;
+  margin: 0;
+}
+
+.android-existing-viewer-shell .book-page-spread-toolbar h2 {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  line-height: 1.1;
+}
+
+.android-existing-viewer-shell .book-page-spread-toolbar .eyebrow,
+.android-existing-viewer-shell .book-page-section-counter {
+  display: none;
+}
+
+.android-existing-viewer-shell .book-page-turn-button,
+.android-existing-viewer-shell .book-page-spread-view.book-page-selection-gateway .book-page-turn-button {
+  min-width: 42px;
+  min-height: 38px;
+  padding: 6px 8px;
+}
+
+.android-existing-viewer-shell .book-page-turn-button span {
+  display: none;
+}
+
+.android-existing-viewer-shell .book-page-mini-nav,
+.android-existing-viewer-shell .book-page-spread-view.book-page-selection-gateway .book-page-mini-nav {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+}
+
+.android-existing-viewer-shell .book-page-mini-nav button,
+.android-existing-viewer-shell .book-page-spread-view.book-page-selection-gateway .book-page-mini-nav button {
+  min-width: 30px;
+  max-width: 46px;
+  min-height: 28px;
+  padding: 3px 5px;
+}
+
+.android-existing-viewer-shell .book-page-mini-nav small {
+  display: none;
+}
+
+.android-activity-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  background: #f4f0e8;
+}
+
+.android-activity-frame {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: auto;
+  padding: 6px;
+}
+
+.android-activity-back {
+  justify-self: start;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(23, 32, 51, 0.14);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #172033;
+  font-weight: 900;
+}
+
+.android-activity-frame .ultimate-activity-runner {
+  min-height: 0;
+}
+
+.android-viewer-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+}
+
+.android-viewer-nav {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  overflow: auto;
+  background: #fff8ef;
+  border-right: 1px solid rgba(23, 32, 51, 0.12);
+}
+
+.android-component-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.android-component-card-grid button {
+  min-height: 138px;
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  border-radius: 8px;
+  padding: 11px;
+  background: #ffffff;
+  color: inherit;
+  text-align: left;
+  font-weight: 900;
+}
+
+.android-component-card-grid button.active,
+.android-unit-list button.active,
+.android-page-strip button.active,
+.android-progress-actions .primary {
+  background: #193d57;
+  color: #ffffff;
+  border-color: #193d57;
+}
+
+.android-component-card-grid img {
+  width: 48px;
+  height: 64px;
+  border-radius: 6px;
+}
+
+.android-component-card-grid small {
+  color: inherit;
+  opacity: 0.74;
+}
+
+.android-unit-list {
+  display: grid;
+  gap: 9px;
+}
+
+.android-unit-list button {
+  min-height: 58px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: inherit;
+  text-align: left;
+  font-weight: 900;
+}
+
+.android-unit-list small {
+  color: inherit;
+  opacity: 0.72;
+}
+
+.android-reader {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #ebe4da;
+}
+
+.android-reader-toolbar {
+  display: grid;
+  grid-template-columns: minmax(116px, 170px) minmax(0, 1fr) minmax(116px, 170px);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.86);
+  border-bottom: 1px solid rgba(23, 32, 51, 0.1);
+}
+
+.android-reader-toolbar button:disabled {
+  opacity: 0.45;
+}
+
+.android-reader-toolbar div {
+  min-width: 0;
+  text-align: center;
+}
+
+.android-reader-toolbar span,
+.android-reader-toolbar strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.android-reader-toolbar span {
+  color: #657084;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.android-page-stage {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.android-page-stage img {
+  max-width: min(100%, 760px);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(23, 32, 51, 0.22);
+}
+
+.android-placeholder,
+.android-offline-empty {
+  max-width: 540px;
+  margin: auto;
+  padding: 30px;
+  border: 1px solid rgba(23, 32, 51, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.android-page-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 370px);
+  gap: 14px;
+  padding: 14px 18px 18px;
+  background: rgba(255, 255, 255, 0.78);
+  border-top: 1px solid rgba(23, 32, 51, 0.1);
+}
+
+.android-page-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.android-page-strip button {
+  flex: 0 0 46px;
+  padding: 0;
+}
+
+.android-local-progress {
+  display: grid;
+  gap: 10px;
+}
+
+.android-local-progress label,
+.android-local-progress label span {
+  display: grid;
+  gap: 6px;
+}
+
+.android-local-progress label span {
+  color: #657084;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.android-local-progress textarea {
+  width: 100%;
+  min-height: 74px;
+  resize: vertical;
+  border: 1px solid rgba(23, 32, 51, 0.16);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.android-progress-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .android-offline-app {
+    overflow: hidden;
+  }
+
+  .android-viewer-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .android-viewer-nav {
+    border-right: 0;
+    border-bottom: 1px solid rgba(23, 32, 51, 0.12);
+  }
+
+  .android-component-card-grid,
+  .android-unit-list {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .android-component-card-grid button,
+  .android-unit-list button {
+    flex: 0 0 180px;
+  }
+
+  .android-page-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (orientation: landscape) {
+  .android-book-grid {
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    align-content: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .android-library-header,
+  .android-viewer-header,
+  .android-reader-toolbar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .android-book-card button {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .android-progress-actions {
+    grid-template-columns: 1fr;
+  }
+}

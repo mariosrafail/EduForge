@@ -5,11 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8000",
+    "dev:android-offline": "cross-env VITE_APP_MODE=android-offline vite --host 0.0.0.0 --port 8000",
     "dev:netlify": "npx netlify-cli dev",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 8000"
+    "build:android-offline": "cross-env VITE_APP_MODE=android-offline vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 8000",
+    "android:init": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run build:android-offline && npm run android:sync && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/status-bar": "^8.0.2",
     "@neondatabase/serverless": "^1.1.0",
     "@vitejs/plugin-react": "latest",
     "bcryptjs": "^3.0.3",
@@ -21,6 +31,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
+    "cross-env": "^10.1.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19"
   }
