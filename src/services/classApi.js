@@ -3,7 +3,17 @@ const jsonHeaders = { "Content-Type": "application/json" };
 async function parseJsonResponse(response) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(payload.error || payload.detail || "Book content API request failed");
+    const serverMessage = payload.error || payload.detail || "Book content API request failed";
+    const friendlyMessage = response.status === 401
+      ? "Sign in required"
+      : response.status === 403
+        ? "This account does not have access to this area"
+        : response.status === 503
+          ? "Database not configured, showing demo data"
+          : String(serverMessage).includes("010_assignment_live_flow")
+            ? "Run database/010_assignment_live_flow.sql"
+            : serverMessage;
+    const error = new Error(friendlyMessage);
     error.status = response.status;
     throw error;
   }
@@ -12,6 +22,7 @@ async function parseJsonResponse(response) {
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "include",
     headers: jsonHeaders,
     ...options,
   });

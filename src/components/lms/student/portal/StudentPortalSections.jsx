@@ -466,7 +466,6 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
             await submitStudentAssignment({
               assignmentId: exercise.assignmentId,
               activityId: exercise.activityId,
-              studentId: currentUser.id,
               score: result.score,
               result,
             });

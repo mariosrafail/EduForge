@@ -110,6 +110,14 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
     }
   };
 
+  const goToStudentAuth = (tab = "signin") => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("pendingClassInviteHash", `join-class/${classSlug}`);
+      window.sessionStorage.setItem("pendingStudentAuthTab", tab);
+    }
+    navigateTo?.("auth-student");
+  };
+
   return (
     <main className="workspace join-class-workspace">
       <Card className="join-class-card">
@@ -135,13 +143,19 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
         ) : (
           <form className="join-class-form" onSubmit={submit}>
             {joinError && <div className="inline-status error">{joinError}</div>}
-            {!canJoin && <div className="inline-status warning">Sign in as a student to join this class.</div>}
+            {currentUser?.id && currentUser.role !== "student" && <div className="inline-status warning">This invite is for student accounts.</div>}
+            {!currentUser?.id && <div className="inline-status warning">Sign in as a student to join this class. This invite will stay available after sign-in.</div>}
             <button className="primary-action" type="submit" disabled={!canJoin || joining} data-sound-click="submit">
               {joining ? "Joining..." : "Join class"}
             </button>
-            {!canJoin && (
-              <button className="secondary-action" type="button" onClick={() => navigateTo?.("auth-student")} data-sound-click="tab">
+            {!currentUser?.id && (
+              <button className="secondary-action" type="button" onClick={() => goToStudentAuth("signin")} data-sound-click="tab">
                 Sign in as student
+              </button>
+            )}
+            {!currentUser?.id && (
+              <button className="secondary-action" type="button" onClick={() => goToStudentAuth("join")} data-sound-click="tab">
+                Create student account
               </button>
             )}
           </form>

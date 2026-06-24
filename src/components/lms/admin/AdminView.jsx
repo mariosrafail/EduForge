@@ -13,6 +13,9 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [bookAdded, setBookAdded] = useState(false);
   const [bookUnlocked, setBookUnlocked] = useState(false);
   const [activationBatchGenerated, setActivationBatchGenerated] = useState(false);
+  const [schoolMetricsLive, setSchoolMetricsLive] = useState(null);
+  const [schoolMetricsError, setSchoolMetricsError] = useState("");
+  const [schoolMetricsLoading, setSchoolMetricsLoading] = useState(false);
   const [activationCode, setActivationCode] = useState("");
   const [exported, setExported] = useState(false);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
@@ -48,6 +51,15 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const teacherCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "teacher").length;
   const studentCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "student").length;
   const activeClasses = classes.filter((item) => item.name).length;
+  const schoolMetrics = schoolMetricsLive || {
+    activeUsers,
+    teacherCount,
+    studentCount,
+    activeClasses,
+    activeBookPackages: 1,
+    activeAssignments: 0,
+    submittedWorkCount: 0,
+  };
 
   const loadUsers = async ({ fallbackToMock = true } = {}) => {
     setUsersLoading(true);
@@ -70,6 +82,43 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
 
   useEffect(() => {
     loadUsers().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSchoolMetrics() {
+      setSchoolMetricsLoading(true);
+      setSchoolMetricsError("");
+      try {
+        const response = await fetch("/.netlify/functions/book-content?action=school-metrics", {
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = response.status === 401
+            ? "Sign in required"
+            : response.status === 403
+              ? "This account does not have access to this area"
+              : response.status === 503
+                ? "Database not configured, showing demo data"
+                : payload.detail || payload.error || "School metrics could not be loaded";
+          throw new Error(message);
+        }
+        if (!cancelled) setSchoolMetricsLive(payload.metrics || null);
+      } catch (error) {
+        if (!cancelled) {
+          setSchoolMetricsLive(null);
+          setSchoolMetricsError(error.message || "School metrics could not be loaded");
+        }
+      } finally {
+        if (!cancelled) setSchoolMetricsLoading(false);
+      }
+    }
+    loadSchoolMetrics();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -439,15 +488,19 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                     <h2>School activation batch</h2>
                     <p>MVP planning card for school-wide book access batches. This action is demo only and does not create licenses.</p>
                   </div>
-                  <Tag tone="gold">Demo only</Tag>
+                  <Tag tone={schoolMetricsLive ? "green" : "gold"}>{schoolMetricsLive ? "Database" : "Demo fallback"}</Tag>
                 </div>
+                {schoolMetricsLoading && <div className="inline-status">Loading school metrics...</div>}
+                {schoolMetricsError && <div className="inline-status warning">{schoolMetricsError}</div>}
                 <section className="student-grade-summary">
                   <article className="panel"><strong>{brand.schoolName || brandPresets[0].schoolName}</strong><span>School</span></article>
-                  <article className="panel"><strong>{activeUsers}</strong><span>Active users</span></article>
-                  <article className="panel"><strong>{teacherCount}</strong><span>Teachers</span></article>
-                  <article className="panel"><strong>{studentCount}</strong><span>Students</span></article>
-                  <article className="panel"><strong>{activeClasses}</strong><span>Active classes</span></article>
-                  <article className="panel"><strong>1</strong><span>Active book packages</span></article>
+                  <article className="panel"><strong>{schoolMetrics.activeUsers}</strong><span>Active users</span></article>
+                  <article className="panel"><strong>{schoolMetrics.teacherCount}</strong><span>Teachers</span></article>
+                  <article className="panel"><strong>{schoolMetrics.studentCount}</strong><span>Students</span></article>
+                  <article className="panel"><strong>{schoolMetrics.activeClasses}</strong><span>Active classes</span></article>
+                  <article className="panel"><strong>{schoolMetrics.activeBookPackages}</strong><span>Active book packages</span></article>
+                  <article className="panel"><strong>{schoolMetrics.activeAssignments}</strong><span>Active assignments</span></article>
+                  <article className="panel"><strong>{schoolMetrics.submittedWorkCount}</strong><span>Submitted work</span></article>
                 </section>
                 <button className="secondary-action" type="button" onClick={() => setActivationBatchGenerated(true)} data-sound-click="submit">
                   <Plus size={17} /> Generate activation batch

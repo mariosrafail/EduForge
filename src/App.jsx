@@ -5,7 +5,7 @@ import { AuthView } from "./components/lms/AuthView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
 import { JoinClassView } from "./components/lms/JoinClassView.jsx";
 import { RoleSelection } from "./components/lms/RoleSelection.jsx";
-import { Header, PageTransition } from "./components/lms/Shared.jsx";
+import { Card, Header, PageTransition } from "./components/lms/Shared.jsx";
 import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
 import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
 import { StudentPortal } from "./components/lms/student/StudentPortal.jsx";
@@ -70,6 +70,37 @@ function InvalidRouteView({ attemptedHash, navigateTo }) {
   );
 }
 
+function AccessGate({ requiredRole, currentUser, authLoading, navigateTo }) {
+  const roleLabel = requiredRole === "admin" ? "admin" : requiredRole === "teacher" ? "teacher" : "student";
+  if (authLoading) {
+    return (
+      <main className="route-fallback-screen">
+        <Card className="route-fallback-card"><p>Checking current session...</p></Card>
+      </main>
+    );
+  }
+  const signedIn = Boolean(currentUser);
+  const allowed = requiredRole === "teacher" ? ["teacher", "admin"].includes(currentUser?.role) : currentUser?.role === requiredRole;
+  return (
+    <main className="route-fallback-screen">
+      <Card className="route-fallback-card">
+        <AlertTriangle size={30} />
+        <span className="eyebrow">{signedIn ? "Access restricted" : "Sign in required"}</span>
+        <h1>{signedIn ? "This account does not have access to this area." : "Sign in to continue."}</h1>
+        <p>{signedIn ? `You are signed in as ${currentUser.role}. This area requires ${roleLabel} access.` : `This area requires a ${roleLabel} account.`}</p>
+        <button className="primary-action" type="button" onClick={() => navigateTo(signedIn && !allowed ? "home" : `auth-${requiredRole}`)} data-sound-click="submit">
+          {signedIn ? "Back to role selection" : `Sign in as ${roleLabel}`}
+        </button>
+      </Card>
+    </main>
+  );
+}
+
+function readDemoRole() {
+  if (typeof window === "undefined") return "";
+  return window.sessionStorage.getItem("eduforgeDemoRole") || "";
+}
+
 export default function App() {
   const {
     view,
@@ -102,6 +133,10 @@ export default function App() {
   );
   const transitionKey = transitionGroupForView(view, activityKey);
   const studentSection = studentSectionByView[view] || (activityKey && routeMode === "student" ? "activity" : null);
+  const demoRole = auth.currentUser ? "" : readDemoRole();
+  const teacherAccessAllowed = ["teacher", "admin"].includes(auth.currentUser?.role) || demoRole === "teacher";
+  const adminAccessAllowed = auth.currentUser?.role === "admin" || demoRole === "admin";
+  const studentAccessAllowed = auth.currentUser?.role === "student" || demoRole === "student";
 
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
@@ -133,6 +168,7 @@ export default function App() {
             navigateTo={navigateTo}
             onSignOut={async () => {
               await auth.signOut();
+              if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
               courseData.resetCourse();
               navigateTo("home");
             }}
@@ -156,12 +192,16 @@ export default function App() {
             createSchoolAccount={auth.createSchoolAccount}
             signOut={async () => {
               await auth.signOut();
+              if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
               courseData.resetCourse();
               navigateTo("home");
             }}
           />
         )}
-        {adminSectionByView[view] && (
+        {adminSectionByView[view] && !adminAccessAllowed && (
+          <AccessGate requiredRole="admin" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {adminSectionByView[view] && adminAccessAllowed && (
           <AdminView
             initialSection={adminSectionByView[view]}
             brand={brand}
@@ -169,7 +209,10 @@ export default function App() {
             navigateTo={navigateTo}
           />
         )}
-        {teacherSectionByView[view] && (
+        {teacherSectionByView[view] && !teacherAccessAllowed && (
+          <AccessGate requiredRole="teacher" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {teacherSectionByView[view] && teacherAccessAllowed && (
           <TeacherPortal
             initialSection={teacherSectionByView[view]}
             initialSelectedPackageSlug={selectedPackageSlug}
@@ -194,7 +237,10 @@ export default function App() {
             reloadCourse={courseData.reloadCourse}
           />
         )}
-        {studentSection && (
+        {studentSection && !studentAccessAllowed && (
+          <AccessGate requiredRole="student" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {studentSection && studentAccessAllowed && (
           <StudentPortal
             initialSection={studentSection}
             initialActivityKey={routeMode === "student" ? activityKey : null}

@@ -88,7 +88,7 @@ export async function fetchClassById(sql, classId) {
   return rows[0] ? normalizeClassRow(rows[0]) : null;
 }
 
-export async function listTeacherClasses(sql, teacherId = "") {
+export async function listTeacherClasses(sql, teacherId = "", schoolId = "") {
   const rows = teacherId
     ? await sql`
         select c.*,
@@ -108,6 +108,7 @@ export async function listTeacherClasses(sql, teacherId = "") {
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
         where c.teacher_id = ${teacherId}
+          and (${schoolId || null}::uuid is null or c.school_id = ${schoolId || null})
         group by c.id, u.full_name
         order by c.created_at desc
       `
@@ -128,6 +129,7 @@ export async function listTeacherClasses(sql, teacherId = "") {
         from classes c
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
+        where (${schoolId || null}::uuid is null or c.school_id = ${schoolId || null})
         group by c.id, u.full_name
         order by c.created_at desc
       `;

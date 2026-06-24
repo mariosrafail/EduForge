@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, KeyRound, LogIn, School, ShieldCheck, TicketCheck, UserPlus } from "lucide-react";
 import { dashboardForRole } from "../../hooks/useAuth.js";
 import { Card, Tag } from "./Shared.jsx";
@@ -67,6 +67,20 @@ function redirectAfterDemo(navigateTo, route) {
   window.setTimeout(() => navigateTo(route), 450);
 }
 
+function getPendingInviteRoute() {
+  if (typeof window === "undefined") return "";
+  return window.sessionStorage.getItem("pendingClassInviteHash") || "";
+}
+
+function consumePendingInviteRoute() {
+  const route = getPendingInviteRoute();
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem("pendingClassInviteHash");
+    window.sessionStorage.removeItem("pendingStudentAuthTab");
+  }
+  return route;
+}
+
 export function AuthView({
   role = "admin",
   navigateTo,
@@ -92,6 +106,12 @@ export function AuthView({
     setLocalStatus("");
   };
 
+  useEffect(() => {
+    if (role !== "student" || typeof window === "undefined") return;
+    const pendingTab = window.sessionStorage.getItem("pendingStudentAuthTab");
+    if (pendingTab === "signin" || pendingTab === "join") setActiveTab(pendingTab);
+  }, [role]);
+
   const handleSignin = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -99,7 +119,8 @@ export function AuthView({
 
     try {
       await signIn(signinForm);
-      navigateTo(config.primaryRoute);
+      const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
+      navigateTo(pendingInvite || config.primaryRoute);
     } catch (error) {
       setAuthError(error.message);
     } finally {
@@ -133,11 +154,13 @@ export function AuthView({
     event.preventDefault();
     clearMessages();
     setLocalStatus("Class and book codes accepted for demo. Opening the learner portal...");
-    redirectAfterDemo(navigateTo, "student");
+    const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
+    redirectAfterDemo(navigateTo, pendingInvite || "student");
   };
 
   const continueDemo = () => {
     clearMessages();
+    if (typeof window !== "undefined") window.sessionStorage.setItem("eduforgeDemoRole", role);
     setLocalStatus("Demo mode confirmed. Opening dashboard...");
     redirectAfterDemo(navigateTo, config.primaryRoute);
   };

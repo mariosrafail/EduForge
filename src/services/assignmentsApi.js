@@ -10,7 +10,16 @@ async function parseJsonResponse(response) {
   }
   if (!response.ok) {
     const serverMessage = payload.detail || payload.details || payload.error || responseText || "Assignments API request failed";
-    const error = new Error(`Assignments API request failed (${response.status}): ${serverMessage}`);
+    const friendlyMessage = response.status === 401
+      ? "Sign in required"
+      : response.status === 403
+        ? "This account does not have access to this area"
+        : response.status === 503
+          ? "Database not configured, showing demo data"
+          : String(serverMessage).includes("010_assignment_live_flow")
+            ? "Run database/010_assignment_live_flow.sql"
+            : serverMessage;
+    const error = new Error(friendlyMessage);
     error.status = response.status;
     error.payload = payload;
     throw error;
@@ -20,6 +29,7 @@ async function parseJsonResponse(response) {
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "include",
     headers: jsonHeaders,
     ...options,
   });
@@ -93,7 +103,8 @@ export async function exportAssignmentResultsCsv(assignmentId) {
 }
 
 export async function listStudentAssignments(studentId) {
-  const query = new URLSearchParams({ action: "assignments", studentId });
+  const query = new URLSearchParams({ action: "assignments" });
+  if (studentId) query.set("studentId", studentId);
   const payload = await request(`/.netlify/functions/book-content?${query}`);
   return payload.assignments || [];
 }
@@ -107,7 +118,8 @@ export async function submitStudentAssignment(payload) {
 }
 
 export async function listStudentGrades(studentId) {
-  const query = new URLSearchParams({ action: "grades", studentId });
+  const query = new URLSearchParams({ action: "grades" });
+  if (studentId) query.set("studentId", studentId);
   const payload = await request(`/.netlify/functions/book-content?${query}`);
   return payload.grades || [];
 }

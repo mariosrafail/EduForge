@@ -4,6 +4,7 @@ import {
   joinClass,
   listTeacherClasses,
 } from "./_class-utils.js";
+import { currentUserFromEvent } from "./_auth-utils.js";
 import {
   fetchActivity,
   fetchBookPackages,
@@ -18,6 +19,14 @@ import {
 
 function badRequest(message) {
   return json(400, { error: message });
+}
+
+function unauthorized(message = "Sign in required") {
+  return json(401, { error: message });
+}
+
+function forbidden(message = "This account does not have access to this area") {
+  return json(403, { error: message });
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,6 +47,33 @@ function numericOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function requireUser(currentUser) {
+  return currentUser ? null : unauthorized();
+}
+
+function requireRole(currentUser, allowedRoles) {
+  const userError = requireUser(currentUser);
+  if (userError) return userError;
+  return allowedRoles.includes(currentUser.role) ? null : forbidden();
+}
+
+function isAdmin(currentUser) {
+  return currentUser?.role === "admin";
+}
+
+function isTeacher(currentUser) {
+  return currentUser?.role === "teacher";
+}
+
+function isStudent(currentUser) {
+  return currentUser?.role === "student";
+}
+
+function sameSchool(currentUser, rowSchoolId) {
+  if (!currentUser?.school_id || !rowSchoolId) return false;
+  return String(currentUser.school_id) === String(rowSchoolId);
 }
 
 const supportedBookActivityTypes = new Set([
@@ -71,6 +107,89 @@ function requireText(value, fieldName) {
 
 function optionalJson(value, fallback = {}) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
+}
+
+async function getUserSchoolId(sql, userId) {
+  if (!userId || !isValidUuid(userId)) return null;
+  const rows = await sql`select school_id from app_users where id = ${userId} limit 1`;
+  return rows[0]?.school_id || null;
+}
+
+async function getClassAccessRow(sql, classId) {
+  if (!classId || !isValidUuid(classId)) return null;
+  const rows = await sql`
+    select c.id, c.teacher_id, c.school_id
+    from classes c
+    where c.id = ${classId}
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+async function getAssignmentAccessRow(sql, assignmentId) {
+  if (!assignmentId || !isValidUuid(assignmentId)) return null;
+  const rows = await sql`
+    select aa.id, aa.teacher_id, aa.class_id, aa.student_id, aa.status,
+           coalesce(c.school_id, teacher.school_id, student.school_id) as school_id
+    from activity_assignments aa
+    left join classes c on c.id = aa.class_id
+    left join app_users teacher on teacher.id = aa.teacher_id
+    left join app_users student on student.id = aa.student_id
+    where aa.id = ${assignmentId}
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+async function getSubmissionAccessRow(sql, submissionId) {
+  if (!submissionId || !isValidUuid(submissionId)) return null;
+  const rows = await sql`
+    select s.id, s.student_id, s.activity_assignment_id,
+           aa.teacher_id, aa.class_id,
+           coalesce(c.school_id, teacher.school_id, student.school_id) as school_id
+    from activity_submissions s
+    left join activity_assignments aa on aa.id = s.activity_assignment_id
+    left join classes c on c.id = aa.class_id
+    left join app_users teacher on teacher.id = aa.teacher_id
+    left join app_users student on student.id = s.student_id
+    where s.id = ${submissionId}
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+function canAccessTeacherScopedRow(currentUser, row) {
+  if (!currentUser || !row) return false;
+  if (isTeacher(currentUser)) return String(row.teacher_id || "") === String(currentUser.id);
+  if (isAdmin(currentUser)) return sameSchool(currentUser, row.school_id);
+  return false;
+}
+
+async function verifyClassAccess(sql, currentUser, classId) {
+  if (!classId) return badRequest("classId is required");
+  if (!isValidUuid(classId)) return invalidUuidResponse("classId");
+  const classRow = await getClassAccessRow(sql, classId);
+  if (!classRow) return json(404, { error: "Class not found" });
+  return canAccessTeacherScopedRow(currentUser, classRow) ? null : forbidden();
+}
+
+async function verifyAssignmentAccess(sql, currentUser, assignmentId) {
+  if (!assignmentId) return badRequest("assignmentId is required");
+  if (!isValidUuid(assignmentId)) return invalidUuidResponse("assignmentId");
+  const assignmentRow = await getAssignmentAccessRow(sql, assignmentId);
+  if (!assignmentRow) return json(404, { error: "Assignment not found" });
+  return canAccessTeacherScopedRow(currentUser, assignmentRow) ? null : forbidden();
+}
+
+async function verifyStudentAccess(sql, currentUser, studentId) {
+  if (!studentId) return badRequest("studentId is required");
+  if (!isValidUuid(studentId)) return invalidUuidResponse("studentId");
+  if (isStudent(currentUser)) return String(studentId) === String(currentUser.id) ? null : forbidden("Students can only access their own work");
+  if (isAdmin(currentUser)) {
+    const schoolId = await getUserSchoolId(sql, studentId);
+    return sameSchool(currentUser, schoolId) ? null : forbidden();
+  }
+  return forbidden();
 }
 
 async function activateBookCode(sql, body) {
@@ -210,7 +329,7 @@ function assignmentRowToUi(row = {}) {
   };
 }
 
-async function createAssignment(sql, body) {
+async function createAssignment(sql, body, currentUser = null) {
   const activityId = body.activityId || body.bookActivityId;
   const teacherId = body.teacherId;
   const classIds = toArray(body.classIds || body.classId);
@@ -232,6 +351,18 @@ async function createAssignment(sql, body) {
   const invalidStudentId = studentIds.find((studentId) => !isValidUuid(studentId));
   if (invalidStudentId) return invalidUuidResponse("studentId");
   if (!["assigned", "closed"].includes(status)) return badRequest("status must be assigned or closed");
+
+  for (const classId of classIds) {
+    const accessError = await verifyClassAccess(sql, currentUser, classId);
+    if (accessError) return accessError;
+  }
+  if (studentIds.length && !isAdmin(currentUser)) return forbidden("Only admins can create direct student assignments in this MVP");
+  for (const studentId of studentIds) {
+    if (isAdmin(currentUser)) {
+      const accessError = await verifyStudentAccess(sql, currentUser, studentId);
+      if (accessError) return accessError;
+    }
+  }
 
   const activityRows = await sql`select id, title from activities where id = ${activityId} limit 1`;
   const activity = activityRows[0];
@@ -303,7 +434,7 @@ async function createAssignment(sql, body) {
   return json(200, { assignments: inserted.map(assignmentRowToUi), assignment: assignmentRowToUi(inserted[0]) });
 }
 
-async function listTeacherAssignments(sql, teacherId = "") {
+async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
   const rows = await sql`
     select aa.id, aa.activity_id, aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
@@ -332,6 +463,10 @@ async function listTeacherAssignments(sql, teacherId = "") {
     left join app_users teacher on teacher.id = aa.teacher_id
     left join activity_submissions s on s.activity_assignment_id = aa.id
     where (${teacherId || null}::uuid is null or aa.teacher_id = ${teacherId || null})
+      and (
+        ${isAdmin(currentUser) ? currentUser.school_id : null}::uuid is null
+        or coalesce(c.school_id, teacher.school_id) = ${isAdmin(currentUser) ? currentUser.school_id : null}
+      )
     group by aa.id, a.id, l.title, u.title, bc.title, bp.title, c.name, teacher.full_name
     order by aa.assigned_at desc
   `;
@@ -404,9 +539,39 @@ async function listAssignmentsForStudent(sql, studentId) {
   }));
 }
 
-async function submitActivity(sql, body) {
+async function submitActivity(sql, body, currentUser = null) {
   if (!body.activityId) return badRequest("activityId is required");
-  if (!body.studentId) return badRequest("studentId is required");
+  if (!body.assignmentId) return badRequest("assignmentId is required");
+  if (!isValidUuid(body.activityId)) return invalidUuidResponse("activityId");
+  if (body.assignmentId && !isValidUuid(body.assignmentId)) return invalidUuidResponse("assignmentId");
+  if (!isStudent(currentUser)) return forbidden("Only student accounts can submit assignments");
+  const studentId = currentUser.id;
+  if (body.studentId && String(body.studentId) !== String(studentId)) return forbidden("Students can only submit their own work");
+
+  if (body.assignmentId) {
+    const assignmentRows = await sql`
+      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id
+      from activity_assignments aa
+      where aa.id = ${body.assignmentId}
+      limit 1
+    `;
+    const assignment = assignmentRows[0];
+    if (!assignment) return json(404, { error: "Assignment not found" });
+    if (assignment.status === "closed") return forbidden("This assignment is closed");
+    if (String(assignment.activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
+    if (assignment.student_id && String(assignment.student_id) !== String(studentId)) return forbidden("This assignment is not assigned to this student");
+    if (assignment.class_id) {
+      const enrollmentRows = await sql`
+        select id
+        from class_students
+        where class_id = ${assignment.class_id}
+          and student_id = ${studentId}
+          and coalesce(status, 'active') = 'active'
+        limit 1
+      `;
+      if (!enrollmentRows.length) return forbidden("This assignment is not assigned to this student");
+    }
+  }
 
   const activity = await fetchActivity(sql, { activityId: body.activityId });
   if (!activity) return json(404, { error: "Activity not found" });
@@ -444,7 +609,7 @@ async function submitActivity(sql, body) {
     values (
       ${body.assignmentId || null},
       ${body.activityId},
-      ${body.studentId},
+      ${studentId},
       ${JSON.stringify(answers)}::jsonb,
       ${scorePercent},
       ${scorePercent},
@@ -672,7 +837,7 @@ async function listClassStudents(sql, classId) {
   return json(200, { students: rows.map(studentProgressRow) });
 }
 
-async function listTeacherStudents(sql, teacherId) {
+async function listTeacherStudents(sql, teacherId, currentUser = null) {
   if (!teacherId) return badRequest("teacherId is required");
   if (!isValidUuid(teacherId)) return invalidUuidResponse("teacherId");
 
@@ -704,6 +869,7 @@ async function listTeacherStudents(sql, teacherId) {
     left join latest_submissions ls on ls.activity_assignment_id = aa.id and ls.student_id = u.id
     left join latest_work lw on lw.student_id = u.id and lw.class_id = c.id
     where c.teacher_id = ${teacherId}
+      and (${isAdmin(currentUser) ? currentUser.school_id : null}::uuid is null or c.school_id = ${isAdmin(currentUser) ? currentUser.school_id : null})
     group by u.id, u.full_name, u.email, c.name, c.level, cs.joined_at, cs.status, lw.latest_work, lw.latest_submitted_at
     order by c.name asc, u.full_name asc
   `;
@@ -737,6 +903,57 @@ async function reviewSubmission(sql, body) {
       teacherFeedback: submission.teacher_feedback || "",
       reviewedAt: submission.reviewed_at,
       reviewedBy: submission.reviewed_by,
+    },
+  });
+}
+
+async function getSchoolMetrics(sql, currentUser) {
+  if (!isAdmin(currentUser)) return forbidden("Admin access required");
+  const schoolId = currentUser.school_id;
+  if (!schoolId) return json(200, {
+    metrics: {
+      activeUsers: 0,
+      teacherCount: 0,
+      studentCount: 0,
+      activeClasses: 0,
+      activeBookPackages: 0,
+      activeAssignments: 0,
+      submittedWorkCount: 0,
+    },
+  });
+
+  const rows = await sql`
+    select
+      (select count(*)::int from app_users where school_id = ${schoolId} and coalesce(status, 'active') = 'active') as active_users,
+      (select count(*)::int from app_users where school_id = ${schoolId} and role = 'teacher') as teacher_count,
+      (select count(*)::int from app_users where school_id = ${schoolId} and role = 'student') as student_count,
+      (select count(*)::int from classes where school_id = ${schoolId} and coalesce(status, 'active') = 'active') as active_classes,
+      (select count(distinct book_package_id)::int from book_access ba join app_users u on u.id = ba.user_id where u.school_id = ${schoolId}) as active_book_packages,
+      (
+        select count(*)::int
+        from activity_assignments aa
+        left join classes c on c.id = aa.class_id
+        left join app_users teacher on teacher.id = aa.teacher_id
+        where coalesce(c.school_id, teacher.school_id) = ${schoolId}
+          and coalesce(aa.status, 'assigned') = 'assigned'
+      ) as active_assignments,
+      (
+        select count(*)::int
+        from activity_submissions s
+        join app_users u on u.id = s.student_id
+        where u.school_id = ${schoolId}
+      ) as submitted_work_count
+  `;
+  const row = rows[0] || {};
+  return json(200, {
+    metrics: {
+      activeUsers: Number(row.active_users || 0),
+      teacherCount: Number(row.teacher_count || 0),
+      studentCount: Number(row.student_count || 0),
+      activeClasses: Number(row.active_classes || 0),
+      activeBookPackages: Number(row.active_book_packages || 0),
+      activeAssignments: Number(row.active_assignments || 0),
+      submittedWorkCount: Number(row.submitted_work_count || 0),
     },
   });
 }
@@ -1120,6 +1337,7 @@ export async function handler(event) {
   try {
     const sql = getSql();
     const query = readQuery(event);
+    const currentUser = await currentUserFromEvent(sql, event);
 
     if (event.httpMethod === "GET") {
       if (query.action === "list") return json(200, { bookPackages: await fetchBookPackages(sql) });
@@ -1133,21 +1351,66 @@ export async function handler(event) {
         return component ? json(200, { component }) : json(404, { error: "Component not found" });
       }
       if (query.action === "access") return json(200, { bookAccess: await listUserBookAccess(sql, query.userId) });
-      if (query.action === "teacher-assignments" && query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
-      if (query.action === "assignments" && query.studentId && !isValidUuid(query.studentId)) return invalidUuidResponse("studentId");
-      if (query.action === "grades" && query.studentId && !isValidUuid(query.studentId)) return invalidUuidResponse("studentId");
-      if (query.action === "assignment-results" && query.assignmentId && !isValidUuid(query.assignmentId)) return invalidUuidResponse("assignmentId");
-      if (query.action === "assignments") return json(200, { assignments: await listAssignmentsForStudent(sql, query.studentId) });
-      if (query.action === "grades") return json(200, { grades: await getStudentGrades(sql, query.studentId) });
-      if (query.action === "teacher-assignments") return json(200, { assignments: await listTeacherAssignments(sql, query.teacherId) });
-      if (query.action === "assignment-results") return getAssignmentResults(sql, query.assignmentId);
-      if (query.action === "class-students") return listClassStudents(sql, query.classId);
-      if (query.action === "teacher-students") return listTeacherStudents(sql, query.teacherId);
+      if (query.action === "school-metrics") {
+        const roleError = requireRole(currentUser, ["admin"]);
+        return roleError || getSchoolMetrics(sql, currentUser);
+      }
+      if (query.action === "teacher-assignments") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+        if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
+        const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId || "";
+        return json(200, { assignments: await listTeacherAssignments(sql, teacherId, currentUser) });
+      }
+      if (query.action === "assignments") {
+        const roleError = requireRole(currentUser, ["student", "admin"]);
+        if (roleError) return roleError;
+        const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
+        const accessError = await verifyStudentAccess(sql, currentUser, studentId);
+        return accessError || json(200, { assignments: await listAssignmentsForStudent(sql, studentId) });
+      }
+      if (query.action === "grades") {
+        const roleError = requireRole(currentUser, ["student", "admin"]);
+        if (roleError) return roleError;
+        const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
+        const accessError = await verifyStudentAccess(sql, currentUser, studentId);
+        return accessError || json(200, { grades: await getStudentGrades(sql, studentId) });
+      }
+      if (query.action === "assignment-results") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (!query.assignmentId) return badRequest("assignmentId is required");
+        if (!isValidUuid(query.assignmentId)) return invalidUuidResponse("assignmentId");
+        const accessError = await verifyAssignmentAccess(sql, currentUser, query.assignmentId);
+        return accessError || getAssignmentResults(sql, query.assignmentId);
+      }
+      if (query.action === "class-students") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        const accessError = await verifyClassAccess(sql, currentUser, query.classId);
+        return accessError || listClassStudents(sql, query.classId);
+      }
+      if (query.action === "teacher-students") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+        if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
+        const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId;
+        if (!teacherId) return badRequest("teacherId is required");
+        return listTeacherStudents(sql, teacherId, currentUser);
+      }
       if (query.action === "page-hotspots") return listPageHotspots(sql, query);
       if (query.action === "book-activities") return listBookActivities(sql, query);
       if (query.action === "book-activity") return getBookActivity(sql, query);
       if (query.action === "book-media-assets") return listBookMediaAssets(sql, query);
-      if (query.action === "classes") return json(200, { classes: await listTeacherClasses(sql, query.teacherId) });
+      if (query.action === "classes") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+        if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
+        return json(200, { classes: await listTeacherClasses(sql, isTeacher(currentUser) ? currentUser.id : query.teacherId, isAdmin(currentUser) ? currentUser.school_id : "") });
+      }
       if (query.action === "class-by-invite") {
         const classItem = await findClassByInviteOrSlug(sql, { inviteCode: query.inviteCode });
         return classItem ? json(200, { classItem, class: classItem }) : json(404, { error: "Class not found" });
@@ -1164,12 +1427,54 @@ export async function handler(event) {
     if (event.httpMethod === "POST") {
       const body = parseBody(event);
       if (query.action === "activate") return activateBookCode(sql, body);
-      if (query.action === "assign") return assignActivityToClass(sql, body);
-      if (query.action === "create-assignment") return createAssignment(sql, body);
-      if (query.action === "submit") return submitActivity(sql, body);
-      if (query.action === "review-submission") return reviewSubmission(sql, body);
-      if (query.action === "create-class") return createTeacherClass(sql, body);
-      if (query.action === "join-class") return joinClass(sql, body);
+      if (query.action === "assign") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (body.classId) {
+          const accessError = await verifyClassAccess(sql, currentUser, body.classId);
+          if (accessError) return accessError;
+        }
+        if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
+        return assignActivityToClass(sql, { ...body, teacherId: isTeacher(currentUser) ? currentUser.id : body.teacherId });
+      }
+      if (query.action === "create-assignment") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        const bodyTeacherId = body.teacherId;
+        if (isTeacher(currentUser) && bodyTeacherId && String(bodyTeacherId) !== String(currentUser.id)) return forbidden();
+        return createAssignment(sql, { ...body, teacherId: isTeacher(currentUser) ? currentUser.id : body.teacherId }, currentUser);
+      }
+      if (query.action === "submit") {
+        const roleError = requireRole(currentUser, ["student"]);
+        if (roleError) return roleError;
+        return submitActivity(sql, { ...body, studentId: body.studentId || currentUser.id }, currentUser);
+      }
+      if (query.action === "review-submission") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (!body.submissionId) return badRequest("submissionId is required");
+        if (!isValidUuid(body.submissionId)) return invalidUuidResponse("submissionId");
+        const submission = await getSubmissionAccessRow(sql, body.submissionId);
+        if (!submission) return json(404, { error: "Submission not found" });
+        if (!canAccessTeacherScopedRow(currentUser, submission)) return forbidden();
+        return reviewSubmission(sql, { ...body, teacherId: currentUser.id });
+      }
+      if (query.action === "create-class") {
+        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
+        return createTeacherClass(sql, {
+          ...body,
+          teacherId: isTeacher(currentUser) ? currentUser.id : body.teacherId,
+          schoolId: currentUser.school_id || body.schoolId || null,
+        });
+      }
+      if (query.action === "join-class") {
+        const roleError = requireRole(currentUser, ["student"]);
+        if (roleError) return roleError;
+        if (body.studentId && String(body.studentId) !== String(currentUser.id)) return forbidden("Students can only join classes for their own account");
+        return joinClass(sql, { ...body, studentId: currentUser.id });
+      }
       if (query.action === "save-page-hotspots") return savePageHotspots(sql, body);
       if (query.action === "create-book-activity") return createBookActivity(sql, body);
       if (query.action === "update-book-activity") return updateBookActivity(sql, body);
