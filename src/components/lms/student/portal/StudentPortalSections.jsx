@@ -1,8 +1,8 @@
-import { BookOpen, CheckCircle2, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
 import { useState } from "react";
 import { demoBookPackages } from "../../../../data/bookPackages.js";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../../data/ultimateB2DemoData.js";
-import { buildCourseComponentsHash } from "../../../../utils/hashRoutes.js";
+import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
