@@ -1,7 +1,15 @@
 import { BookOpen, CheckCircle2, KeyRound, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { dedupeBookPackages, demoBookPackages, normalizeBookPackageKey } from "../../../data/bookPackages.js";
-import { findUltimateB2Exercise, ultimateB2ComponentTitles, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import {
+  createAssignment,
+  downloadAssignmentResultsCsv,
+  exportAssignmentResultsCsv,
+  getAssignmentResults,
+  listTeacherAssignments,
+} from "../../../services/assignmentsApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
 import { buildActivityHash, buildBookHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
@@ -399,7 +407,7 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
   );
 }
 
-function ResultsModal({ student, assignment, label = "Student results", onClose }) {
+function ResultsModal({ student, assignment, liveResults = null, label = "Student results", onClose }) {
   useEffect(() => {
     if (!student && !assignment) return undefined;
 
@@ -412,11 +420,11 @@ function ResultsModal({ student, assignment, label = "Student results", onClose 
 
   if (!student && !assignment) return null;
 
-  const title = assignment?.title || student?.name;
+  const title = liveResults?.assignment?.title || assignment?.title || student?.name;
   const summary = assignment
-    ? `${assignment.className} / ${assignment.submitted}/${assignment.total} submitted / ${assignment.averageScore}% average`
+    ? `${liveResults?.assignment?.className || assignment.className} / ${liveResults?.summary?.submittedCount ?? assignment.submitted}/${liveResults?.summary?.totalStudents ?? assignment.total} submitted / ${liveResults?.summary?.averageScore ?? assignment.averageScore}% average`
     : `${sampleExerciseResult.exercise} / Score ${sampleExerciseResult.score}`;
-  const tag = assignment ? "Mock results" : student.className;
+  const tag = assignment ? (liveResults ? "Live results" : "Demo results") : student.className;
 
   return (
     <div
@@ -439,9 +447,19 @@ function ResultsModal({ student, assignment, label = "Student results", onClose 
 
         {assignment ? (
           <div className="review-list results-modal-list">
-            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
-            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
-            <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
+            {(liveResults?.rows || []).length > 0 ? (liveResults.rows.map((row) => (
+              <article key={row.studentId || row.email}>
+                <strong>{row.studentName}<span>{row.score === null || row.score === undefined ? "No score" : `${row.score}%`}</span></strong>
+                <p>{row.email || "No email"} / {row.submittedAt ? `Submitted ${new Date(row.submittedAt).toLocaleString()}` : "Missing submission"}</p>
+                <Tag tone={row.status === "Submitted" ? "green" : "gold"}>{row.status}</Tag>
+              </article>
+            ))) : (
+              <>
+                <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
+                <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
+                <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
+              </>
+            )}
           </div>
         ) : (
           <div className="answer-feedback-list results-modal-list">
@@ -518,37 +536,90 @@ export function TeacherStudents({ classOptions = [] }) {
   );
 }
 
-export function TeacherAssignments({ classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
-  const [selectedExercises, setSelectedExercises] = useState(["Unit 2 Reading: Exercise 3"]);
+export function TeacherAssignments({ currentUser = null, classes = [], classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
+  const [assignments, setAssignments] = useState([]);
+  const [usingDemoAssignments, setUsingDemoAssignments] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [assignmentError, setAssignmentError] = useState("");
+  const [activityOptions, setActivityOptions] = useState([]);
+  const [selectedActivityId, setSelectedActivityId] = useState("");
   const [selectedClasses, setSelectedClasses] = useState([]);
-  const [dueDate, setDueDate] = useState("2026-06-04");
-  const [assigned, setAssigned] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [teacherNotes, setTeacherNotes] = useState("");
+  const [worksheetLinks, setWorksheetLinks] = useState("");
+  const [assigned, setAssigned] = useState("");
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
-  const exerciseOptions = [
-    "Unit 2 Reading: Exercise 3",
-    "Unit 2 Reading: Exercise 4",
-    "Unit 2 Listening: Workbook page 20",
-    "Unit 2 Grammar: Opening exercise",
-    "Unit 2 Grammar: Exercise 4",
-    "Quiz 1: Reading and Vocabulary",
-    "Quiz 2: Timed test",
-  ];
+  const [selectedAssignmentLiveResults, setSelectedAssignmentLiveResults] = useState(null);
+  const visibleAssignments = usingDemoAssignments ? teacherPortalAssignments : assignments;
+
+  const loadAssignments = async () => {
+    setLoadingAssignments(true);
+    setAssignmentError("");
+    try {
+      const liveAssignments = await listTeacherAssignments(currentUser?.id || "");
+      setAssignments(liveAssignments);
+      setUsingDemoAssignments(false);
+    } catch (error) {
+      console.warn("Using demo assignment fallback.", error);
+      setAssignments([]);
+      setUsingDemoAssignments(true);
+      setAssignmentError(error.message || "Backend unavailable. Showing demo assignments.");
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAssignments();
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    let mounted = true;
+    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
+      if (!mounted) return;
+      const options = [];
+      for (const component of packageTree.components || []) {
+        for (const unit of component.units || []) {
+          for (const lesson of unit.lessons || []) {
+            for (const exercise of lesson.exercises || []) {
+              if (exercise.assignable === false || exercise.isAssignable === false) continue;
+              options.push({
+                id: exercise.id,
+                title: exercise.title,
+                label: `${component.title} / ${unit.title} / ${exercise.title}`,
+                component: component.title,
+                dbActivity: exercise.dbActivity || exercise,
+              });
+            }
+          }
+        }
+      }
+      setActivityOptions(options);
+      setSelectedActivityId((current) => current || options[0]?.id || "");
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedAssignmentId || selectedAssignmentId === "new") {
       setSelectedAssignmentResult(null);
+      setSelectedAssignmentLiveResults(null);
       return;
     }
-    const match = teacherPortalAssignments.find((assignment) => (
+    const match = visibleAssignments.find((assignment) => (
       slugifyRoute(`${assignment.title}-${assignment.className}`) === slugifyRoute(selectedAssignmentId) ||
       slugifyRoute(assignment.title) === slugifyRoute(selectedAssignmentId)
     ));
     setSelectedAssignmentResult(match || null);
-  }, [selectedAssignmentId]);
+    setSelectedAssignmentLiveResults(null);
+  }, [selectedAssignmentId, visibleAssignments]);
 
   const toggleListItem = (value, list, setter) => {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
-    setAssigned(false);
+    setAssigned("");
   };
 
   useEffect(() => {
@@ -557,6 +628,81 @@ export function TeacherAssignments({ classOptions = [], selectedAssignmentId = n
       return validClasses.length ? validClasses : classOptions.slice(0, 1);
     });
   }, [classOptions]);
+
+  const createLiveAssignment = async (event) => {
+    event.preventDefault();
+    setAssigned("");
+    setAssignmentError("");
+    if (!currentUser?.id) {
+      setAssignmentError("Sign in as a teacher before creating assignments.");
+      return;
+    }
+    if (!selectedActivityId) {
+      setAssignmentError("Choose an exercise before assigning.");
+      return;
+    }
+    const classIds = classes.filter((classItem) => selectedClasses.includes(classItem.name)).map((classItem) => classItem.id).filter(Boolean);
+    if (!classIds.length) {
+      setAssignmentError("Choose at least one live class before assigning.");
+      return;
+    }
+
+    setSavingAssignment(true);
+    try {
+      const selectedActivity = activityOptions.find((item) => item.id === selectedActivityId);
+      await createAssignment({
+        activityId: selectedActivityId,
+        teacherId: currentUser.id,
+        classIds,
+        dueAt: dueDate ? `${dueDate}T23:59:00` : null,
+        title: selectedActivity?.title || "",
+        teacherNotes,
+        worksheetLinks,
+        attachedFiles: [],
+        status: "assigned",
+      });
+      setAssigned(`Assignment created for ${selectedClasses.join(", ")}.`);
+      setTeacherNotes("");
+      setWorksheetLinks("");
+      await loadAssignments();
+    } catch (error) {
+      setAssignmentError(error.message || "Assignment could not be saved.");
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
+  const openResults = async (assignment) => {
+    setSelectedAssignmentResult(assignment);
+    setSelectedAssignmentLiveResults(null);
+    navigateTo?.(buildTeacherSectionHash("assignments", `${assignment.title}-${assignment.className}`));
+    if (usingDemoAssignments || !assignment.id) return;
+    try {
+      const results = await getAssignmentResults(assignment.id);
+      setSelectedAssignmentLiveResults(results);
+    } catch (error) {
+      setAssignmentError(error.message || "Assignment results could not be loaded.");
+    }
+  };
+
+  const exportResults = async (assignment) => {
+    if (usingDemoAssignments || !assignment.id) {
+      downloadAssignmentResultsCsv({
+        assignment,
+        rows: [
+          { studentName: "Anna Georgiou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 84, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
+          { studentName: "Nikos Stavrou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 76, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
+          { studentName: "Maria Ioannou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 91, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
+        ],
+      });
+      return;
+    }
+    try {
+      await exportAssignmentResultsCsv(assignment.id);
+    } catch (error) {
+      setAssignmentError(error.message || "CSV export failed.");
+    }
+  };
 
   return (
     <section className="teacher-section-stack">
@@ -572,80 +718,72 @@ export function TeacherAssignments({ classOptions = [], selectedAssignmentId = n
             <span className="eyebrow"><ListChecks size={15} /> Active assignments</span>
             <h2>Submit status</h2>
           </div>
-          <Tag tone="green">Grouped by class</Tag>
+          <Tag tone={usingDemoAssignments ? "gold" : "green"}>{usingDemoAssignments ? "Demo fallback" : "Database"}</Tag>
         </div>
+        {assignmentError && <div className={`inline-status ${usingDemoAssignments ? "warning" : "error"}`}>{assignmentError}</div>}
+        {loadingAssignments && <div className="teacher-loading-state">Loading assignments...</div>}
         <div className="teacher-assignment-table">
-          {teacherPortalAssignments.map((assignment) => (
-            <article key={`${assignment.title}-${assignment.className}`}>
+          {!loadingAssignments && visibleAssignments.length === 0 && <div className="teacher-loading-state">No assignments yet. Create one below.</div>}
+          {!loadingAssignments && visibleAssignments.map((assignment) => (
+            <article key={assignment.id || `${assignment.title}-${assignment.className}`}>
               <div>
                 <strong>{assignment.title}</strong>
                 <small>{assignment.component} / {assignment.className}</small>
-                <small>Assigned {assignment.assignedDate} / Due {assignment.dueDate}</small>
+                <small>Assigned {assignment.assignedDate || (assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : "Today")} / Due {assignment.dueDate || assignment.dueAt ? new Date(assignment.dueDate || assignment.dueAt).toLocaleDateString() : "No due date"}</small>
               </div>
-              <Tag tone={dueDateTone(assignment.dueDate) === "overdue" ? "red" : dueDateTone(assignment.dueDate) === "soon" ? "gold" : "green"}>
-                {dueDateLabel(assignment.dueDate)}
+              <Tag tone={dueDateTone(assignment.dueDate || assignment.dueAt) === "overdue" ? "red" : dueDateTone(assignment.dueDate || assignment.dueAt) === "soon" ? "gold" : "green"}>
+                {dueDateLabel(assignment.dueDate || assignment.dueAt)}
               </Tag>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.averageScore}% average</span>
               <button
                 className="secondary-action compact-action"
                 type="button"
-                onClick={() => {
-                  setSelectedAssignmentResult(assignment);
-                  navigateTo?.(buildTeacherSectionHash("assignments", `${assignment.title}-${assignment.className}`));
-                }}
+                onClick={() => openResults(assignment)}
                 data-sound-click="tab"
               >
                 View results
               </button>
+              <button className="secondary-action compact-action" type="button" onClick={() => exportResults(assignment)} data-sound-click="submit">Export CSV</button>
             </article>
           ))}
         </div>
       </Card>
       <ResultsModal
         assignment={selectedAssignmentResult}
-        label="Results preview"
+        liveResults={selectedAssignmentLiveResults}
+        label={usingDemoAssignments ? "Results preview" : "Assignment results"}
         onClose={() => {
           setSelectedAssignmentResult(null);
+          setSelectedAssignmentLiveResults(null);
           navigateTo?.(buildTeacherSectionHash("assignments"));
         }}
       />
 
       <Card className="teacher-book-assign-panel">
+        <form onSubmit={createLiveAssignment}>
         <div className="card-heading">
           <div>
             <span className="eyebrow"><BookOpen size={15} /> Assign from book</span>
             <h2>Ultimate B2 Unit 2</h2>
-            <p>Select exercises and classes. This is mock UI for the demo workflow.</p>
+            <p>Select an exercise, classes, a due date, and optional worksheet links.</p>
           </div>
-          <button className="primary-action" type="button" onClick={() => setAssigned(true)} data-sound-click="submit">Assign selected exercises</button>
+          <button className="primary-action" type="submit" disabled={savingAssignment} data-sound-click="submit">{savingAssignment ? "Assigning..." : "Assign selected exercise"}</button>
         </div>
 
         <div className="teacher-book-assign-grid">
           <label>
-            Book/component
-            <select defaultValue="Ultimate B2 Students Book">
-              {ultimateB2ComponentTitles.map((book) => <option key={book}>{book}</option>)}
+            Exercise/activity
+            <select value={selectedActivityId} onChange={(event) => { setSelectedActivityId(event.target.value); setAssigned(""); }}>
+              {activityOptions.length ? activityOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>) : (
+                <option value="">Loading activities...</option>
+              )}
             </select>
           </label>
           <label>
-            Unit 2 lesson
-            <select defaultValue="Reading">
-              <option>Reading</option>
-              <option>Listening</option>
-              <option>Grammar</option>
-              <option>Test</option>
-            </select>
+            Due date
+            <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setAssigned(""); }} />
           </label>
-          <div className="teacher-checkbox-panel">
-            <strong>Exercises</strong>
-            {exerciseOptions.map((exercise) => (
-              <label key={exercise}>
-                <input type="checkbox" checked={selectedExercises.includes(exercise)} onChange={() => toggleListItem(exercise, selectedExercises, setSelectedExercises)} />
-                <span>{exercise}</span>
-              </label>
-            ))}
-          </div>
           <div className="teacher-checkbox-panel">
             <strong>Classes</strong>
             {classOptions.map((className) => (
@@ -654,13 +792,19 @@ export function TeacherAssignments({ classOptions = [], selectedAssignmentId = n
                 <span>{className}</span>
               </label>
             ))}
+            {!classOptions.length && <small>No live classes yet. Create a class first.</small>}
           </div>
           <label>
-            Due date
-            <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setAssigned(false); }} />
+            Teacher notes
+            <textarea value={teacherNotes} rows={4} placeholder="Focus on text evidence and submit by Friday." onChange={(event) => setTeacherNotes(event.target.value)} />
+          </label>
+          <label>
+            Worksheet/link URLs
+            <textarea value={worksheetLinks} rows={4} placeholder="One URL per line, or comma separated" onChange={(event) => setWorksheetLinks(event.target.value)} />
           </label>
         </div>
-        {assigned && <div className="inline-status success">Selected exercises assigned to {selectedClasses.join(", ")}. Due {new Date(`${dueDate}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.</div>}
+        {assigned && <div className="inline-status success">{assigned}</div>}
+        </form>
       </Card>
     </section>
   );

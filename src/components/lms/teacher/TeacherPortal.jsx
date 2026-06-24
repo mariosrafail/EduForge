@@ -152,6 +152,8 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         {activeSection === "students" && <TeacherStudents classOptions={classOptions} />}
         {activeSection === "assignments" && (
           <TeacherAssignments
+            currentUser={currentUser}
+            classes={teacherClasses}
             classOptions={classOptions}
             selectedAssignmentId={editorProps.initialSelectedAssignmentId}
             routeAction={editorProps.routeAction}

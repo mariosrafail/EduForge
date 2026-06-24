@@ -1,21 +1,22 @@
-import { BookOpen, CheckCircle2, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
-import { useState } from "react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
 import { demoBookPackages } from "../../../../data/bookPackages.js";
 import { findUltimateB2Exercise, ultimateB2Package } from "../../../../data/ultimateB2DemoData.js";
-import { buildCourseComponentsHash } from "../../../../utils/hashRoutes.js";
+import { listStudentAssignments, listStudentGrades, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
+import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { correctedExercise, studentAssignments, studentDashboardCards, studentGradeRows } from "../studentPortalData.js";
 import { sectionIcons } from "./studentPortalConfig.js";
 
-export function StudentProfileStrip() {
+export function StudentProfileStrip({ currentUser = null }) {
   return (
     <Card className="student-profile-strip">
       <div>
         <span><UserRound size={19} /></span>
         <div>
-          <strong>Anna Georgiou (Student)</strong>
+          <strong>{currentUser?.full_name || "Student"} (Student)</strong>
           <small>Ultimate B2 A / Hamilton House demo</small>
         </div>
       </div>
@@ -24,15 +25,16 @@ export function StudentProfileStrip() {
   );
 }
 
-export function StudentDashboard({ goToSection }) {
+export function StudentDashboard({ goToSection, currentUser = null }) {
+  const firstName = currentUser?.full_name?.split(" ")?.[0] || "there";
   return (
     <>
       <SectionTitle
         eyebrow="Student portal"
-        title="Welcome back, Anna."
+        title={`Welcome back, ${firstName}.`}
         text="Open your Ultimate B2 package, complete assigned exercises, and review corrected work from your teacher."
       />
-      <StudentProfileStrip />
+      <StudentProfileStrip currentUser={currentUser} />
       <section className="student-dashboard-grid" aria-label="Student dashboard sections">
         {studentDashboardCards.map((card) => {
           const Icon = sectionIcons[card.id];
@@ -141,9 +143,91 @@ export function StudentBooks({ openActivity, completedActivities, bookPackages =
   );
 }
 
-export function StudentAssignments({ openActivity }) {
-  const [selectedTitle, setSelectedTitle] = useState(studentAssignments[0].title);
-  const selectedAssignment = studentAssignments.find((assignment) => assignment.title === selectedTitle) || studentAssignments[0];
+function formatDueStatus(dueAt) {
+  if (!dueAt) return "No due date";
+  const due = new Date(dueAt);
+  if (Number.isNaN(due.getTime())) return "No due date";
+  const diffDays = Math.ceil((due.getTime() - Date.now()) / 86400000);
+  if (diffDays < 0) return "Overdue";
+  if (diffDays === 0) return "Due today";
+  if (diffDays === 1) return "Due tomorrow";
+  if (diffDays <= 7) return "This week";
+  return due.toLocaleDateString();
+}
+
+function normalizeStudentAssignment(assignment = {}) {
+  const activity = assignment.activity || {};
+  return {
+    ...assignment,
+    title: assignment.title || activity.title || "Untitled assignment",
+    component: assignment.componentTitle || assignment.component || assignment.packageTitle || "Ultimate B2",
+    className: assignment.className || "Individual",
+    dueStatus: assignment.dueStatus || formatDueStatus(assignment.dueAt),
+    estimatedTime: assignment.estimatedTime || (activity.estimatedMinutes ? `${activity.estimatedMinutes} min` : "Activity"),
+    completionStatus: assignment.completionStatus || (assignment.submittedAt ? "Submitted" : "Not started"),
+    demoActivityKey: activity.demoActivityKey === "quiz-1-vocabulary" ? "quiz-1" : activity.demoActivityKey || assignment.demoActivityKey || activity.slug,
+    activityId: activity.id || assignment.activityId,
+    assignmentId: assignment.assignmentId || assignment.id,
+    score: assignment.scorePercent === null || assignment.scorePercent === undefined ? null : assignment.scorePercent,
+    dbActivity: {
+      ...activity,
+      id: activity.id || assignment.activityId,
+      title: activity.title || assignment.title,
+      demoActivityKey: activity.demoActivityKey || activity.slug,
+    },
+  };
+}
+
+export function StudentAssignments({ openActivity, currentUser = null }) {
+  const [liveAssignments, setLiveAssignments] = useState([]);
+  const [usingDemoAssignments, setUsingDemoAssignments] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [assignmentError, setAssignmentError] = useState("");
+  const [selectedId, setSelectedId] = useState("");
+  const assignments = usingDemoAssignments ? studentAssignments : liveAssignments.map(normalizeStudentAssignment);
+  const selectedAssignment = assignments.find((assignment) => (assignment.assignmentId || assignment.title) === selectedId) || assignments[0];
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let mounted = true;
+    setLoadingAssignments(true);
+    setAssignmentError("");
+    listStudentAssignments(currentUser.id).then((rows) => {
+      if (!mounted) return;
+      const normalized = rows.map(normalizeStudentAssignment);
+      setLiveAssignments(normalized);
+      setUsingDemoAssignments(false);
+      setSelectedId((current) => current || normalized[0]?.assignmentId || "");
+    }).catch((error) => {
+      if (!mounted) return;
+      console.warn("Using demo student assignments fallback.", error);
+      setLiveAssignments([]);
+      setUsingDemoAssignments(true);
+      setAssignmentError(error.message || "Backend unavailable. Showing demo assignments.");
+      setSelectedId((current) => current || studentAssignments[0]?.title || "");
+    }).finally(() => {
+      if (mounted) setLoadingAssignments(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (currentUser?.id) return;
+    setUsingDemoAssignments(false);
+    setLiveAssignments([]);
+    setSelectedId("");
+  }, [currentUser?.id]);
+
+  if (!currentUser?.id) {
+    return (
+      <section className="student-section-stack">
+        <SectionTitle eyebrow="Assigned exercises" title="Sign in needed." text="Sign in as a student to see live assignments from your classes." />
+        <Card><p>No student account is currently signed in.</p></Card>
+      </section>
+    );
+  }
 
   return (
     <section className="student-section-stack">
@@ -156,12 +240,15 @@ export function StudentAssignments({ openActivity }) {
       <div className="student-assignments-layout">
         <aside className="student-assignment-sidebar">
           <strong>Assignments</strong>
-          {studentAssignments.map((assignment) => (
+          {loadingAssignments && <small>Loading assignments...</small>}
+          {assignmentError && <small>{assignmentError}</small>}
+          {!loadingAssignments && assignments.length === 0 && <small>No assignments yet.</small>}
+          {assignments.map((assignment) => (
             <button
-              key={assignment.title}
+              key={assignment.assignmentId || assignment.title}
               type="button"
-              className={selectedTitle === assignment.title ? "selected" : ""}
-              onClick={() => setSelectedTitle(assignment.title)}
+              className={(selectedAssignment?.assignmentId || selectedAssignment?.title) === (assignment.assignmentId || assignment.title) ? "selected" : ""}
+              onClick={() => setSelectedId(assignment.assignmentId || assignment.title)}
               data-sound-click="tab"
             >
               <span>{assignment.title}</span>
@@ -171,26 +258,91 @@ export function StudentAssignments({ openActivity }) {
         </aside>
 
         <Card className="student-assignment-detail">
-          <span className="eyebrow"><ClipboardList size={15} /> Assignment details</span>
-          <h2>{selectedAssignment.title}</h2>
-          <div className="student-detail-grid">
-            <div><strong>Book/component</strong><span>{selectedAssignment.component}</span></div>
-            <div><strong>Class</strong><span>{selectedAssignment.className}</span></div>
-            <div><strong>Due status</strong><span>{selectedAssignment.dueStatus}</span></div>
-            <div><strong>Estimated time</strong><span>{selectedAssignment.estimatedTime}</span></div>
-            <div><strong>Completion</strong><span>{selectedAssignment.completionStatus}</span></div>
-          </div>
-          <button className="primary-action" type="button" onClick={() => openActivity(selectedAssignment, "assignments")} data-sound-click="submit">
-            <Play size={17} /> Start exercise
-          </button>
+          {selectedAssignment ? (
+            <>
+              <span className="eyebrow"><ClipboardList size={15} /> Assignment details</span>
+              <h2>{selectedAssignment.title}</h2>
+              {usingDemoAssignments && <div className="inline-status warning">Using demo assignments because the backend could not be loaded.</div>}
+              <div className="student-detail-grid">
+                <div><strong>Book/component</strong><span>{selectedAssignment.component}</span></div>
+                <div><strong>Class</strong><span>{selectedAssignment.className}</span></div>
+                <div><strong>Due status</strong><span>{selectedAssignment.dueStatus}</span></div>
+                <div><strong>Estimated time</strong><span>{selectedAssignment.estimatedTime}</span></div>
+                <div><strong>Completion</strong><span>{selectedAssignment.completionStatus}</span></div>
+                {selectedAssignment.score !== null && selectedAssignment.score !== undefined && <div><strong>Score</strong><span>{selectedAssignment.score}%</span></div>}
+              </div>
+              {selectedAssignment.teacherNotes && <p>{selectedAssignment.teacherNotes}</p>}
+              {selectedAssignment.worksheetLinks?.length > 0 && (
+                <div className="student-detail-grid">
+                  {selectedAssignment.worksheetLinks.map((link) => <div key={link}><strong>Worksheet</strong><a href={link} target="_blank" rel="noreferrer">{link}</a></div>)}
+                </div>
+              )}
+              <button className="primary-action" type="button" onClick={() => openActivity(selectedAssignment, "assignments")} data-sound-click="submit">
+                <Play size={17} /> Start exercise
+              </button>
+            </>
+          ) : (
+            <p>No assignments yet.</p>
+          )}
         </Card>
       </div>
     </section>
   );
 }
 
-export function StudentGrades() {
+export function StudentGrades({ currentUser = null }) {
+  const [grades, setGrades] = useState([]);
+  const [usingDemoGrades, setUsingDemoGrades] = useState(false);
+  const [loadingGrades, setLoadingGrades] = useState(false);
+  const [gradeError, setGradeError] = useState("");
   const [selectedResult, setSelectedResult] = useState(studentGradeRows[0].title);
+  const visibleGrades = usingDemoGrades ? studentGradeRows : grades;
+  const submittedGrades = visibleGrades.filter((row) => row.scorePercent !== null && row.scorePercent !== undefined);
+  const averageScore = submittedGrades.length
+    ? Math.round(submittedGrades.reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / submittedGrades.length)
+    : 0;
+  const selectedLiveGrade = visibleGrades.find((row) => (row.id || row.title) === selectedResult || row.title === selectedResult);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    let mounted = true;
+    setLoadingGrades(true);
+    setGradeError("");
+    listStudentGrades(currentUser.id).then((rows) => {
+      if (!mounted) return;
+      const normalized = rows.map((row) => ({
+        ...row,
+        title: row.title || row.activityTitle,
+        component: row.componentTitle || row.packageTitle || "Ultimate B2",
+        date: row.submittedAt ? new Date(row.submittedAt).toLocaleDateString() : "",
+        score: row.scorePercent === null || row.scorePercent === undefined ? "No score" : `${Math.round(Number(row.scorePercent))}%`,
+        status: row.status || "Submitted",
+      }));
+      setGrades(normalized);
+      setUsingDemoGrades(false);
+      setSelectedResult(normalized[0]?.id || "");
+    }).catch((error) => {
+      if (!mounted) return;
+      console.warn("Using demo grades fallback.", error);
+      setGrades([]);
+      setUsingDemoGrades(true);
+      setGradeError(error.message || "Backend unavailable. Showing demo grades.");
+    }).finally(() => {
+      if (mounted) setLoadingGrades(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
+
+  if (!currentUser?.id) {
+    return (
+      <section className="student-section-stack">
+        <SectionTitle eyebrow="My grades" title="Sign in needed." text="Sign in as a student to review live grades and corrected work." />
+        <Card><p>No student account is currently signed in.</p></Card>
+      </section>
+    );
+  }
 
   return (
     <section className="student-section-stack">
@@ -201,10 +353,10 @@ export function StudentGrades() {
       />
 
       <section className="student-grade-summary">
-        <Card><strong>78%</strong><span>Overall average score</span></Card>
-        <Card><strong>18/24</strong><span>Completed exercises</span></Card>
-        <Card><strong>3</strong><span>Pending assignments</span></Card>
-        <Card><strong>Revise text evidence in Reading Exercise 4.</strong><span>Latest teacher feedback</span></Card>
+        <Card><strong>{usingDemoGrades ? "78%" : `${averageScore}%`}</strong><span>Overall average score</span></Card>
+        <Card><strong>{usingDemoGrades ? "18/24" : visibleGrades.length}</strong><span>Completed assignments</span></Card>
+        <Card><strong>{usingDemoGrades ? "3" : "0"}</strong><span>Pending assignments</span></Card>
+        <Card><strong>{selectedLiveGrade?.teacherFeedback || "No feedback yet."}</strong><span>Latest teacher feedback</span></Card>
       </section>
 
       <Card>
@@ -214,15 +366,18 @@ export function StudentGrades() {
             <h2>Corrected exercises</h2>
           </div>
         </div>
+        {loadingGrades && <div className="teacher-loading-state">Loading grades...</div>}
+        {gradeError && <div className="inline-status warning">{gradeError}</div>}
         <div className="student-grades-table">
-          {studentGradeRows.map((row) => (
-            <article key={row.title}>
+          {!loadingGrades && visibleGrades.length === 0 && <div className="teacher-loading-state">No submitted work yet.</div>}
+          {visibleGrades.map((row) => (
+            <article key={row.id || row.title}>
               <strong>{row.title}</strong>
               <span>{row.component}</span>
               <span>{row.date}</span>
               <span>{row.score}</span>
               <Tag tone="green">{row.status}</Tag>
-              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedResult(row.title)} data-sound-click="tab">View feedback</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => setSelectedResult(row.id || row.title)} data-sound-click="tab">View feedback</button>
             </article>
           ))}
         </div>
@@ -232,12 +387,24 @@ export function StudentGrades() {
         <div className="card-heading">
           <div>
             <span className="eyebrow"><CheckCircle2 size={15} /> Corrected work</span>
-            <h2>{selectedResult}</h2>
-            <p>Sample corrected work for the Hamilton House demo. Replace with live submitted answers when backend results are connected.</p>
+            <h2>{selectedLiveGrade?.title || selectedResult}</h2>
+            <p>{usingDemoGrades ? "Sample corrected work for the Hamilton House demo." : "Live submitted answer payload from the assignment result."}</p>
           </div>
           <Tag tone="gold">Review feedback</Tag>
         </div>
-        <div className="student-answer-feedback">
+        {!usingDemoGrades && selectedLiveGrade?.answers && Object.keys(selectedLiveGrade.answers).length > 0 ? (
+          <div className="student-answer-feedback">
+            {Object.entries(selectedLiveGrade.answers).map(([questionId, answer]) => (
+              <article key={questionId} className="correct">
+                <div>
+                  <strong>{questionId}</strong>
+                  <span>Student answer: {String(answer)}</span>
+                </div>
+                <b>Submitted</b>
+              </article>
+            ))}
+          </div>
+        ) : <div className="student-answer-feedback">
           {correctedExercise.rows.map((row) => (
             <article key={row.question} className={row.correct ? "correct" : "wrong"}>
               <div>
@@ -249,21 +416,22 @@ export function StudentGrades() {
               <b>{row.correct ? "Correct" : "Wrong"}</b>
             </article>
           ))}
-        </div>
-        <div className="student-writing-feedback">
+        </div>}
+        {usingDemoGrades && <div className="student-writing-feedback">
           <strong>{correctedExercise.writing.prompt}</strong>
           <p>Student answer: {correctedExercise.writing.studentAnswer}</p>
           <p>Teacher comment: {correctedExercise.writing.teacherComment}</p>
           <p>Suggested improvement: {correctedExercise.writing.suggestedImprovement}</p>
           <Tag tone="blue">Final score {correctedExercise.writing.finalScore}</Tag>
-        </div>
+        </div>}
       </Card>
     </section>
   );
 }
 
-export function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, selectedPackageSlug, selectedBookId, goToSection, navigateTo }) {
+export function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, selectedPackageSlug, selectedBookId, goToSection, navigateTo, currentUser = null }) {
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
+  const [submitError, setSubmitError] = useState("");
   const exerciseContext = findUltimateB2Exercise(exercise.demoActivityKey || exercise.id);
   const backToPrevious = () => {
     if (previousSection === "books" && navigateTo) {
@@ -287,7 +455,22 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
         activity={exercise.dbActivity || exercise}
         mode="student"
         onBack={backToPrevious}
-        onSubmit={(result) => setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }))}
+        onSubmit={async (result) => {
+          setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }));
+          if (!exercise.assignmentId || !exercise.activityId || !currentUser?.id) return;
+          setSubmitError("");
+          try {
+            await submitStudentAssignment({
+              assignmentId: exercise.assignmentId,
+              activityId: exercise.activityId,
+              studentId: currentUser.id,
+              score: result.score,
+              result,
+            });
+          } catch (error) {
+            setSubmitError(error.message || "Assignment submission could not be saved.");
+          }
+        }}
         navigateTo={navigateTo}
         onNextActivity={(activityKey) => {
           const next = findUltimateB2Exercise(activityKey);
@@ -297,6 +480,7 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
           }
         }}
       />
+      {submitError && <div className="inline-status error">{submitError}</div>}
     </section>
   );
 }

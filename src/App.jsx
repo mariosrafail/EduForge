@@ -207,6 +207,7 @@ export default function App() {
             course={courseData.course}
             onSubmission={addCourseSubmission}
             navigateTo={navigateTo}
+            currentUser={auth.currentUser}
             courseLoading={courseData.loading}
             courseError={courseData.error}
             submitLesson={courseData.submitCourseLesson}

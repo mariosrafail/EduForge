@@ -68,7 +68,16 @@ export async function fetchClassById(sql, classId) {
     select c.*,
            u.full_name as teacher_name,
            count(cs.id)::int as students,
-           0::int as completion
+           coalesce((
+             select round(
+               100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
+               / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
+             )::int
+             from activity_assignments aa
+             join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
+             left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
+             where aa.class_id = c.id
+           ), 0)::int as completion
     from classes c
     left join app_users u on u.id = c.teacher_id
     left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
@@ -85,7 +94,16 @@ export async function listTeacherClasses(sql, teacherId = "") {
         select c.*,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
-               0::int as completion
+               coalesce((
+                 select round(
+                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
+                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
+                 )::int
+                 from activity_assignments aa
+                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
+                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
+                 where aa.class_id = c.id
+               ), 0)::int as completion
         from classes c
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
@@ -97,7 +115,16 @@ export async function listTeacherClasses(sql, teacherId = "") {
         select c.*,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
-               0::int as completion
+               coalesce((
+                 select round(
+                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
+                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
+                 )::int
+                 from activity_assignments aa
+                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
+                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
+                 where aa.class_id = c.id
+               ), 0)::int as completion
         from classes c
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
@@ -143,7 +170,16 @@ export async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = 
         select c.*,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
-               0::int as completion
+               coalesce((
+                 select round(
+                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
+                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
+                 )::int
+                 from activity_assignments aa
+                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
+                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
+                 where aa.class_id = c.id
+               ), 0)::int as completion
         from classes c
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
@@ -155,7 +191,16 @@ export async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = 
         select c.*,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
-               0::int as completion
+               coalesce((
+                 select round(
+                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
+                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
+                 )::int
+                 from activity_assignments aa
+                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
+                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
+                 where aa.class_id = c.id
+               ), 0)::int as completion
         from classes c
         left join app_users u on u.id = c.teacher_id
         left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'

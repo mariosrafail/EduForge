@@ -1,7 +1,7 @@
 export function dueDateTone(dueDate) {
   const due = new Date(dueDate);
   if (Number.isNaN(due.getTime())) return "neutral";
-  const now = new Date("2026-05-31T12:00:00");
+  const now = new Date();
   const diffDays = Math.ceil((due.getTime() - now.getTime()) / 86400000);
   if (diffDays < 0) return "overdue";
   if (diffDays <= 2) return "soon";

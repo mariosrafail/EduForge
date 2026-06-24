@@ -31,6 +31,7 @@ export function StudentPortal({
   courseLoading = false,
   courseError = "",
   submitLesson,
+  currentUser = null,
 }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [activeExercise, setActiveExercise] = useState(null);
@@ -161,14 +162,14 @@ export function StudentPortal({
     <div className="workspace student-portal-workspace">
       <PortalShell
         title="Student portal"
-        profile="Anna Georgiou (Student)"
+        profile={currentUser?.full_name ? `${currentUser.full_name} (Student)` : "Student portal"}
         subtitle="Ultimate B2 A"
         navItems={studentNavItems}
         activeItem={activeSection === "activity" ? previousSection : activeSection}
         onNavigate={goToSection}
         variant="student-portal-shell"
       >
-        {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} />}
+        {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} currentUser={currentUser} />}
         {activeSection === "books" && (
           <StudentBooks
             openActivity={openActivity}
@@ -187,8 +188,8 @@ export function StudentPortal({
             onSelectBookSubview={selectBookSubview}
           />
         )}
-        {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} />}
-        {activeSection === "grades" && <StudentGrades />}
+        {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} currentUser={currentUser} />}
+        {activeSection === "grades" && <StudentGrades currentUser={currentUser} />}
         {activeSection === "activity" && (
           <StudentActivitySection
             activeExercise={activeExercise}
@@ -200,6 +201,7 @@ export function StudentPortal({
             selectedBookId={selectedBookId}
             goToSection={goToSection}
             navigateTo={navigateTo}
+            currentUser={currentUser}
           />
         )}
       </PortalShell>
