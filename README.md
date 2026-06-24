@@ -35,6 +35,7 @@ database/006_book_content_platform.sql
 database/007_teacher_classes.sql
 database/008_english_journey_6_book_package.sql
 database/009_book_page_hotspots.sql
+database/010_assignment_live_flow.sql
 ```
 
 The migration creates:
@@ -100,6 +101,12 @@ This is demo/MVP persistence for course content, not a full production CMS yet.
 - editable rectangular book page hotspots
 - custom book activities created from hotspots
 - media asset URL records for video/audio fallback
+
+`database/010_assignment_live_flow.sql` adds safe incremental columns and indexes for the live assignment MVP:
+
+- assignment title, teacher notes, worksheet links, and attached file metadata
+- teacher feedback and review metadata on submissions
+- lookup indexes for teacher, class, student, activity, due date, and submissions
 
 Run migrations manually in Neon/Postgres. The app does not run database migrations automatically.
 

@@ -42,6 +42,8 @@ export function StudentPortal({
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
   const [selectedPageNumber, setSelectedPageNumber] = useState(initialSelectedPageNumber);
   const [completedActivities, setCompletedActivities] = useState({});
+  const [assignmentRefreshKey, setAssignmentRefreshKey] = useState(0);
+  const [assignmentSubmitMessage, setAssignmentSubmitMessage] = useState("");
   const [bookPackages, setBookPackages] = useState(demoBookPackages);
   const [selectedPackageSlug, setSelectedPackageSlug] = useState(initialSelectedPackageSlug || "ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
@@ -188,8 +190,15 @@ export function StudentPortal({
             onSelectBookSubview={selectBookSubview}
           />
         )}
-        {activeSection === "assignments" && <StudentAssignments openActivity={openActivity} currentUser={currentUser} />}
-        {activeSection === "grades" && <StudentGrades currentUser={currentUser} />}
+        {activeSection === "assignments" && (
+          <StudentAssignments
+            openActivity={openActivity}
+            currentUser={currentUser}
+            refreshKey={assignmentRefreshKey}
+            submitMessage={assignmentSubmitMessage}
+          />
+        )}
+        {activeSection === "grades" && <StudentGrades currentUser={currentUser} refreshKey={assignmentRefreshKey} />}
         {activeSection === "activity" && (
           <StudentActivitySection
             activeExercise={activeExercise}
@@ -202,6 +211,10 @@ export function StudentPortal({
             goToSection={goToSection}
             navigateTo={navigateTo}
             currentUser={currentUser}
+            onAssignmentSubmitted={() => {
+              setAssignmentRefreshKey((current) => current + 1);
+              setAssignmentSubmitMessage("Assignment submission saved.");
+            }}
           />
         )}
       </PortalShell>

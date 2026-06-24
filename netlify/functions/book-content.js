@@ -20,6 +20,26 @@ function badRequest(message) {
   return json(400, { error: message });
 }
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value) {
+  return uuidPattern.test(String(value || ""));
+}
+
+function invalidUuidResponse(fieldName) {
+  return badRequest(`${fieldName} must be a valid UUID`);
+}
+
+function jsonArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function numericOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 const supportedBookActivityTypes = new Set([
   "multiple_choice",
   "open_answer",
@@ -151,7 +171,8 @@ function normalizeLinks(value) {
 function assignmentRowToUi(row = {}) {
   const total = Number(row.total_students || row.total || 0);
   const submitted = Number(row.submitted_count || row.submitted || 0);
-  const averageScore = row.average_score === null || row.average_score === undefined ? 0 : Math.round(Number(row.average_score));
+  const averageScoreValue = numericOrNull(row.average_score);
+  const averageScore = averageScoreValue === null ? 0 : Math.round(averageScoreValue);
 
   return {
     id: row.id,
@@ -168,8 +189,8 @@ function assignmentRowToUi(row = {}) {
     dueDate: row.due_at,
     status: row.status || "assigned",
     teacherNotes: row.teacher_notes || "",
-    worksheetLinks: row.worksheet_links || [],
-    attachedFiles: row.attached_files || [],
+    worksheetLinks: jsonArray(row.worksheet_links),
+    attachedFiles: jsonArray(row.attached_files),
     className: row.class_name || (row.student_id ? "Individual" : "Class assignment"),
     teacherName: row.teacher_name || "",
     lessonTitle: row.lesson_title || "",
@@ -203,7 +224,13 @@ async function createAssignment(sql, body) {
 
   if (!activityId) return badRequest("activityId is required");
   if (!teacherId) return badRequest("teacherId is required");
+  if (!isValidUuid(activityId)) return invalidUuidResponse("activityId");
+  if (!isValidUuid(teacherId)) return invalidUuidResponse("teacherId");
   if (!classIds.length && !studentIds.length) return badRequest("classId or studentId is required");
+  const invalidClassId = classIds.find((classId) => !isValidUuid(classId));
+  if (invalidClassId) return invalidUuidResponse("classId");
+  const invalidStudentId = studentIds.find((studentId) => !isValidUuid(studentId));
+  if (invalidStudentId) return invalidUuidResponse("studentId");
   if (!["assigned", "closed"].includes(status)) return badRequest("status must be assigned or closed");
 
   const activityRows = await sql`select id, title from activities where id = ${activityId} limit 1`;
@@ -350,13 +377,13 @@ async function listAssignmentsForStudent(sql, studentId) {
     status: row.status,
     title: row.assignment_title || row.activity_title,
     teacherNotes: row.teacher_notes || "",
-    worksheetLinks: row.worksheet_links || [],
-    attachedFiles: row.attached_files || [],
+    worksheetLinks: jsonArray(row.worksheet_links),
+    attachedFiles: jsonArray(row.attached_files),
     className: row.class_name || "Individual",
     teacherName: row.teacher_name || "",
     completionStatus: row.submission_id ? "Submitted" : "Not started",
     submittedAt: row.submitted_at || null,
-    scorePercent: row.score_percent === null || row.score_percent === undefined ? null : Number(row.score_percent),
+    scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
     activity: {
@@ -392,10 +419,11 @@ async function submitActivity(sql, body) {
     return { question, answer, correctText, isCorrect };
   });
   const hasClientScore = body.score !== undefined || body.result?.score !== undefined;
-  const correctCount = body.correctCount ?? body.result?.correctCount ?? rows.filter((row) => row.isCorrect).length;
-  const totalCount = body.totalCount ?? body.result?.totalCount ?? rows.length;
+  const correctCount = Number(body.correctCount ?? body.result?.correctCount ?? rows.filter((row) => row.isCorrect).length) || 0;
+  const totalCount = Number(body.totalCount ?? body.result?.totalCount ?? rows.length) || 0;
+  const clientScore = numericOrNull(body.score ?? body.result?.score);
   const scorePercent = hasClientScore
-    ? Math.round(Number(body.score ?? body.result?.score))
+    ? clientScore
     : totalCount
       ? Math.round((correctCount / totalCount) * 100)
       : null;
@@ -474,7 +502,7 @@ async function getStudentGrades(sql, studentId) {
     id: row.id,
     assignmentId: row.assignment_id,
     submittedAt: row.submitted_at,
-    scorePercent: row.score_percent,
+    scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
     status: row.status,
@@ -484,7 +512,8 @@ async function getStudentGrades(sql, studentId) {
     componentTitle: row.component_title,
     packageTitle: row.package_title,
     className: row.class_name || "",
-    teacherFeedback: row.teacher_feedback || row.teacher_notes || "",
+    teacherFeedback: row.teacher_feedback || "",
+    teacherNotes: row.teacher_notes || "",
     answers: row.answers || {},
   }));
 }
@@ -530,7 +559,8 @@ async function getAssignmentResults(sql, assignmentId) {
       order by s.student_id, s.submitted_at desc
     )
     select ts.id as student_id, ts.full_name, ts.email, ts.class_name,
-           s.id as submission_id, s.score_percent, s.correct_count, s.total_count, s.status as submission_status, s.submitted_at
+           s.id as submission_id, s.score_percent, s.correct_count, s.total_count, s.status as submission_status,
+           s.submitted_at, s.teacher_feedback, s.reviewed_at, s.reviewed_by
     from target_students ts
     left join latest_submissions s on s.student_id = ts.id
     order by ts.full_name asc
@@ -543,17 +573,21 @@ async function getAssignmentResults(sql, assignmentId) {
     className: row.class_name || assignment.class_name || "Individual",
     assignment: assignment.assignment_title || assignment.activity_title,
     status: row.submission_id ? "Submitted" : "Missing",
-    score: row.score_percent === null || row.score_percent === undefined ? null : Number(row.score_percent),
-    scorePercent: row.score_percent === null || row.score_percent === undefined ? null : Number(row.score_percent),
+    score: numericOrNull(row.score_percent),
+    scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
     submittedAt: row.submitted_at || null,
+    teacherFeedback: row.teacher_feedback || "",
+    reviewedAt: row.reviewed_at || null,
+    reviewedBy: row.reviewed_by || null,
     dueAt: assignment.due_at,
     submissionId: row.submission_id,
   }));
   const submitted = resultRows.filter((row) => row.submissionId).length;
-  const averageScore = submitted
-    ? Math.round(resultRows.filter((row) => row.scorePercent !== null).reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / submitted)
+  const scoredRows = resultRows.filter((row) => row.scorePercent !== null);
+  const averageScore = scoredRows.length
+    ? Math.round(scoredRows.reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / scoredRows.length)
     : 0;
 
   return json(200, {
@@ -572,6 +606,138 @@ async function getAssignmentResults(sql, assignmentId) {
       latestSubmittedAt: resultRows.map((row) => row.submittedAt).filter(Boolean).sort().slice(-1)[0] || null,
     },
     rows: resultRows,
+  });
+}
+
+function studentProgressRow(row = {}) {
+  const assignedCount = Number(row.assigned_count || 0);
+  const submittedCount = Number(row.submitted_count || 0);
+  const averageScore = numericOrNull(row.average_score);
+  return {
+    studentId: row.student_id,
+    id: row.student_id,
+    name: row.full_name || "Unnamed student",
+    email: row.email || "",
+    className: row.class_name || "",
+    level: row.level || "",
+    joinedAt: row.joined_at || null,
+    status: row.status || "active",
+    assignedCount,
+    submittedCount,
+    completionPercent: assignedCount ? Math.round((submittedCount / assignedCount) * 100) : 0,
+    averageScore: averageScore === null ? 0 : Math.round(averageScore),
+    latestWork: row.latest_work || "",
+    latestSubmittedAt: row.latest_submitted_at || null,
+  };
+}
+
+async function listClassStudents(sql, classId) {
+  if (!classId) return badRequest("classId is required");
+  if (!isValidUuid(classId)) return invalidUuidResponse("classId");
+
+  const rows = await sql`
+    with latest_submissions as (
+      select distinct on (s.student_id, s.activity_assignment_id)
+             s.student_id, s.activity_assignment_id, s.score_percent, s.submitted_at
+      from activity_submissions s
+      order by s.student_id, s.activity_assignment_id, s.submitted_at desc
+    ),
+    latest_work as (
+      select distinct on (s.student_id)
+             s.student_id, a.title as latest_work, s.submitted_at as latest_submitted_at
+      from activity_submissions s
+      join activity_assignments aa on aa.id = s.activity_assignment_id
+      join activities a on a.id = aa.activity_id
+      where aa.class_id = ${classId}
+      order by s.student_id, s.submitted_at desc
+    )
+    select u.id as student_id, u.full_name, u.email, c.name as class_name, c.level,
+           cs.joined_at, cs.status,
+           count(distinct aa.id)::int as assigned_count,
+           count(distinct ls.activity_assignment_id)::int as submitted_count,
+           avg(ls.score_percent) as average_score,
+           lw.latest_work, lw.latest_submitted_at
+    from class_students cs
+    join app_users u on u.id = cs.student_id
+    join classes c on c.id = cs.class_id
+    left join activity_assignments aa on aa.class_id = cs.class_id
+    left join latest_submissions ls on ls.activity_assignment_id = aa.id and ls.student_id = u.id
+    left join latest_work lw on lw.student_id = u.id
+    where cs.class_id = ${classId}
+      and coalesce(cs.status, 'active') = 'active'
+    group by u.id, u.full_name, u.email, c.name, c.level, cs.joined_at, cs.status, lw.latest_work, lw.latest_submitted_at
+    order by u.full_name asc
+  `;
+
+  return json(200, { students: rows.map(studentProgressRow) });
+}
+
+async function listTeacherStudents(sql, teacherId) {
+  if (!teacherId) return badRequest("teacherId is required");
+  if (!isValidUuid(teacherId)) return invalidUuidResponse("teacherId");
+
+  const rows = await sql`
+    with latest_submissions as (
+      select distinct on (s.student_id, s.activity_assignment_id)
+             s.student_id, s.activity_assignment_id, s.score_percent, s.submitted_at
+      from activity_submissions s
+      order by s.student_id, s.activity_assignment_id, s.submitted_at desc
+    ),
+    latest_work as (
+      select distinct on (s.student_id, aa.class_id)
+             s.student_id, aa.class_id, a.title as latest_work, s.submitted_at as latest_submitted_at
+      from activity_submissions s
+      join activity_assignments aa on aa.id = s.activity_assignment_id
+      join activities a on a.id = aa.activity_id
+      order by s.student_id, aa.class_id, s.submitted_at desc
+    )
+    select u.id as student_id, u.full_name, u.email, c.name as class_name, c.level,
+           cs.joined_at, cs.status,
+           count(distinct aa.id)::int as assigned_count,
+           count(distinct ls.activity_assignment_id)::int as submitted_count,
+           avg(ls.score_percent) as average_score,
+           lw.latest_work, lw.latest_submitted_at
+    from classes c
+    join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
+    join app_users u on u.id = cs.student_id
+    left join activity_assignments aa on aa.class_id = c.id
+    left join latest_submissions ls on ls.activity_assignment_id = aa.id and ls.student_id = u.id
+    left join latest_work lw on lw.student_id = u.id and lw.class_id = c.id
+    where c.teacher_id = ${teacherId}
+    group by u.id, u.full_name, u.email, c.name, c.level, cs.joined_at, cs.status, lw.latest_work, lw.latest_submitted_at
+    order by c.name asc, u.full_name asc
+  `;
+
+  return json(200, { students: rows.map(studentProgressRow) });
+}
+
+async function reviewSubmission(sql, body) {
+  const submissionId = body.submissionId;
+  const teacherId = body.teacherId;
+  const teacherFeedback = String(body.teacherFeedback || "").trim();
+  if (!submissionId) return badRequest("submissionId is required");
+  if (!teacherId) return badRequest("teacherId is required");
+  if (!isValidUuid(submissionId)) return invalidUuidResponse("submissionId");
+  if (!isValidUuid(teacherId)) return invalidUuidResponse("teacherId");
+
+  const rows = await sql`
+    update activity_submissions
+    set teacher_feedback = ${teacherFeedback},
+        reviewed_at = now(),
+        reviewed_by = ${teacherId}
+    where id = ${submissionId}
+    returning id, teacher_feedback, reviewed_at, reviewed_by
+  `;
+
+  if (!rows.length) return json(404, { error: "Submission not found" });
+  const submission = rows[0];
+  return json(200, {
+    submission: {
+      id: submission.id,
+      teacherFeedback: submission.teacher_feedback || "",
+      reviewedAt: submission.reviewed_at,
+      reviewedBy: submission.reviewed_by,
+    },
   });
 }
 
@@ -967,10 +1133,16 @@ export async function handler(event) {
         return component ? json(200, { component }) : json(404, { error: "Component not found" });
       }
       if (query.action === "access") return json(200, { bookAccess: await listUserBookAccess(sql, query.userId) });
+      if (query.action === "teacher-assignments" && query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+      if (query.action === "assignments" && query.studentId && !isValidUuid(query.studentId)) return invalidUuidResponse("studentId");
+      if (query.action === "grades" && query.studentId && !isValidUuid(query.studentId)) return invalidUuidResponse("studentId");
+      if (query.action === "assignment-results" && query.assignmentId && !isValidUuid(query.assignmentId)) return invalidUuidResponse("assignmentId");
       if (query.action === "assignments") return json(200, { assignments: await listAssignmentsForStudent(sql, query.studentId) });
       if (query.action === "grades") return json(200, { grades: await getStudentGrades(sql, query.studentId) });
       if (query.action === "teacher-assignments") return json(200, { assignments: await listTeacherAssignments(sql, query.teacherId) });
       if (query.action === "assignment-results") return getAssignmentResults(sql, query.assignmentId);
+      if (query.action === "class-students") return listClassStudents(sql, query.classId);
+      if (query.action === "teacher-students") return listTeacherStudents(sql, query.teacherId);
       if (query.action === "page-hotspots") return listPageHotspots(sql, query);
       if (query.action === "book-activities") return listBookActivities(sql, query);
       if (query.action === "book-activity") return getBookActivity(sql, query);
@@ -995,6 +1167,7 @@ export async function handler(event) {
       if (query.action === "assign") return assignActivityToClass(sql, body);
       if (query.action === "create-assignment") return createAssignment(sql, body);
       if (query.action === "submit") return submitActivity(sql, body);
+      if (query.action === "review-submission") return reviewSubmission(sql, body);
       if (query.action === "create-class") return createTeacherClass(sql, body);
       if (query.action === "join-class") return joinClass(sql, body);
       if (query.action === "save-page-hotspots") return savePageHotspots(sql, body);
@@ -1009,6 +1182,12 @@ export async function handler(event) {
   } catch (error) {
     console.error(error);
     if (isDatabaseNotConfiguredError(error)) return databaseNotConfiguredResponse();
+    if (error?.code === "42703") {
+      return json(500, {
+        error: "Assignment database migration is missing",
+        detail: "Run database/010_assignment_live_flow.sql in Neon/Postgres, then retry.",
+      });
+    }
     return json(500, { error: "Book content API failed", detail: error.message });
   }
 }

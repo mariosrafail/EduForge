@@ -111,3 +111,23 @@ export async function listStudentGrades(studentId) {
   const payload = await request(`/.netlify/functions/book-content?${query}`);
   return payload.grades || [];
 }
+
+export async function listClassStudents(classId) {
+  const query = new URLSearchParams({ action: "class-students", classId });
+  const payload = await request(`/.netlify/functions/book-content?${query}`);
+  return payload.students || [];
+}
+
+export async function listTeacherStudents(teacherId) {
+  const query = new URLSearchParams({ action: "teacher-students", teacherId });
+  const payload = await request(`/.netlify/functions/book-content?${query}`);
+  return payload.students || [];
+}
+
+export async function reviewSubmission(payload) {
+  const response = await request("/.netlify/functions/book-content?action=review-submission", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.submission;
+}

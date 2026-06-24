@@ -8,7 +8,10 @@ import {
   downloadAssignmentResultsCsv,
   exportAssignmentResultsCsv,
   getAssignmentResults,
+  listClassStudents,
   listTeacherAssignments,
+  listTeacherStudents,
+  reviewSubmission,
 } from "../../../services/assignmentsApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
 import { buildActivityHash, buildBookHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
@@ -227,8 +230,12 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
   const [successMessage, setSuccessMessage] = useState("");
   const [savingClass, setSavingClass] = useState(false);
   const [selectedWorkStudent, setSelectedWorkStudent] = useState(null);
+  const [liveStudents, setLiveStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentsError, setStudentsError] = useState("");
+  const [usingDemoStudents, setUsingDemoStudents] = useState(false);
   const selectedClass = classes.find((classItem) => classItem.slug === selectedClassSlug) || classes[0];
-  const students = teacherPortalStudents.filter((student) => student.className === selectedClass?.name);
+  const students = usingDemoStudents ? teacherPortalStudents.filter((student) => student.className === selectedClass?.name) : liveStudents;
 
   useEffect(() => {
     setSelectedClassSlug((currentSlug) => {
@@ -237,6 +244,32 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
       return classes[0]?.slug || "";
     });
   }, [classes, routeSelectedClassSlug]);
+
+  useEffect(() => {
+    if (!selectedClass?.id) {
+      setLiveStudents([]);
+      return;
+    }
+    let mounted = true;
+    setLoadingStudents(true);
+    setStudentsError("");
+    listClassStudents(selectedClass.id).then((rows) => {
+      if (!mounted) return;
+      setLiveStudents(rows);
+      setUsingDemoStudents(false);
+    }).catch((error) => {
+      if (!mounted) return;
+      console.warn("Using demo class students fallback.", error);
+      setLiveStudents([]);
+      setUsingDemoStudents(true);
+      setStudentsError(error.message || "Backend unavailable. Showing demo students.");
+    }).finally(() => {
+      if (mounted) setLoadingStudents(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [selectedClass?.id]);
 
   const createClass = async (event) => {
     event.preventDefault();
@@ -379,23 +412,26 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
             <h2>Students</h2>
           </div>
         </div>
-        {!selectedClass ? (
+        {studentsError && <div className="inline-status warning">{studentsError}</div>}
+        {loadingStudents && <div className="teacher-loading-state">Loading class students...</div>}
+        {!loadingStudents && !selectedClass ? (
           <div className="teacher-empty-class-state">
             <p>Create a class or select one from the list to view students.</p>
           </div>
-        ) : students.length > 0 ? (
+        ) : !loadingStudents && students.length > 0 ? (
           <div className="teacher-student-table compact">
             {students.map((student) => (
-              <article key={student.name}>
+              <article key={student.studentId || student.name}>
                 <strong>{student.name}</strong>
-                <span>{student.completion}% complete</span>
-                <span>{student.lastActivity}</span>
+                <span>{student.email || "No email"}</span>
+                <span>{student.completionPercent ?? student.completion ?? 0}% complete</span>
+                <span>{student.submittedCount !== undefined ? `${student.submittedCount}/${student.assignedCount} submitted` : student.lastActivity}</span>
                 <span>{student.averageScore}% average</span>
                 <button className="secondary-action compact-action" type="button" onClick={() => setSelectedWorkStudent(student)} data-sound-click="tab">View work</button>
               </article>
             ))}
           </div>
-        ) : (
+        ) : !loadingStudents && (
           <div className="teacher-empty-class-state">
             <p>No students have joined this class yet. Copy the invite link and share it with students.</p>
             {selectedClass && <ClassInviteLink classItem={selectedClass} />}
@@ -407,7 +443,11 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
   );
 }
 
-function ResultsModal({ student, assignment, liveResults = null, label = "Student results", onClose }) {
+function ResultsModal({ student, assignment, liveResults = null, currentUser = null, label = "Student results", onClose, onReviewSaved }) {
+  const [feedbackDrafts, setFeedbackDrafts] = useState({});
+  const [savingFeedbackId, setSavingFeedbackId] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+
   useEffect(() => {
     if (!student && !assignment) return undefined;
 
@@ -417,6 +457,15 @@ function ResultsModal({ student, assignment, liveResults = null, label = "Studen
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [assignment, onClose, student]);
+
+  useEffect(() => {
+    const drafts = {};
+    for (const row of liveResults?.rows || []) {
+      if (row.submissionId) drafts[row.submissionId] = row.teacherFeedback || "";
+    }
+    setFeedbackDrafts(drafts);
+    setReviewMessage("");
+  }, [liveResults]);
 
   if (!student && !assignment) return null;
 
@@ -445,21 +494,72 @@ function ResultsModal({ student, assignment, liveResults = null, label = "Studen
           <Tag tone="gold">{tag}</Tag>
         </div>
 
-        {assignment ? (
+        {assignment && liveResults ? (
+          <>
+            <section className="student-grade-summary">
+              <article className="panel"><strong>{liveResults.summary?.totalStudents ?? 0}</strong><span>Total students</span></article>
+              <article className="panel"><strong>{liveResults.summary?.submittedCount ?? 0}</strong><span>Submitted</span></article>
+              <article className="panel"><strong>{liveResults.summary?.missingCount ?? 0}</strong><span>Missing</span></article>
+              <article className="panel"><strong>{liveResults.summary?.averageScore ?? 0}%</strong><span>Average score</span></article>
+            </section>
+            {reviewMessage && <div className="inline-status success">{reviewMessage}</div>}
+            <div className="review-list results-modal-list">
+              {(liveResults.rows || []).map((row) => (
+                <article key={row.studentId || row.email}>
+                  <strong>{row.studentName}<span>{row.score === null || row.score === undefined ? "No score" : `${row.score}%`}</span></strong>
+                  <p>{row.email || "No email"} / {row.submittedAt ? `Submitted ${new Date(row.submittedAt).toLocaleString()}` : "Missing submission"}</p>
+                  <Tag tone={row.status === "Submitted" ? "green" : "gold"}>{row.status}</Tag>
+                  {row.submissionId ? (
+                    <label>
+                      Teacher feedback
+                      <textarea
+                        rows={2}
+                        value={feedbackDrafts[row.submissionId] || ""}
+                        onChange={(event) => setFeedbackDrafts((current) => ({ ...current, [row.submissionId]: event.target.value }))}
+                        placeholder="Short feedback note"
+                      />
+                      <button
+                        className="secondary-action compact-action"
+                        type="button"
+                        disabled={savingFeedbackId === row.submissionId}
+                        onClick={async () => {
+                          if (!currentUser?.id) {
+                            setReviewMessage("Sign in as a teacher before saving feedback.");
+                            return;
+                          }
+                          setSavingFeedbackId(row.submissionId);
+                          setReviewMessage("");
+                          try {
+                            await reviewSubmission({
+                              submissionId: row.submissionId,
+                              teacherId: currentUser.id,
+                              teacherFeedback: feedbackDrafts[row.submissionId] || "",
+                            });
+                            setReviewMessage("Feedback saved.");
+                            onReviewSaved?.();
+                          } catch (error) {
+                            setReviewMessage(error.message || "Feedback could not be saved.");
+                          } finally {
+                            setSavingFeedbackId("");
+                          }
+                        }}
+                        data-sound-click="submit"
+                      >
+                        {savingFeedbackId === row.submissionId ? "Saving..." : "Save feedback"}
+                      </button>
+                    </label>
+                  ) : (
+                    <p>Missing students are waiting for submission.</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </>
+        ) : assignment ? (
           <div className="review-list results-modal-list">
-            {(liveResults?.rows || []).length > 0 ? (liveResults.rows.map((row) => (
-              <article key={row.studentId || row.email}>
-                <strong>{row.studentName}<span>{row.score === null || row.score === undefined ? "No score" : `${row.score}%`}</span></strong>
-                <p>{row.email || "No email"} / {row.submittedAt ? `Submitted ${new Date(row.submittedAt).toLocaleString()}` : "Missing submission"}</p>
-                <Tag tone={row.status === "Submitted" ? "green" : "gold"}>{row.status}</Tag>
-              </article>
-            ))) : (
-              <>
-                <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
-                <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
-                <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
-              </>
-            )}
+            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
+            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
+            <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
           </div>
         ) : (
           <div className="answer-feedback-list results-modal-list">
@@ -480,18 +580,51 @@ function ResultsModal({ student, assignment, liveResults = null, label = "Studen
   );
 }
 
-export function TeacherStudents({ classOptions = [] }) {
+export function TeacherStudents({ currentUser = null, classes = [], classOptions = [] }) {
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("All classes");
   const [selectedStudentResult, setSelectedStudentResult] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentsError, setStudentsError] = useState("");
+  const [usingDemoStudents, setUsingDemoStudents] = useState(false);
+  const filterOptions = classOptions.length ? classOptions : classes.map((classItem) => classItem.name).filter(Boolean);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setStudents([]);
+      setUsingDemoStudents(false);
+      return;
+    }
+    let mounted = true;
+    setLoadingStudents(true);
+    setStudentsError("");
+    listTeacherStudents(currentUser.id).then((rows) => {
+      if (!mounted) return;
+      setStudents(rows);
+      setUsingDemoStudents(false);
+    }).catch((error) => {
+      if (!mounted) return;
+      console.warn("Using demo teacher students fallback.", error);
+      setStudents([]);
+      setUsingDemoStudents(true);
+      setStudentsError(error.message || "Backend unavailable. Showing demo students.");
+    }).finally(() => {
+      if (mounted) setLoadingStudents(false);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?.id]);
 
   const visibleStudents = useMemo(() => {
-    return teacherPortalStudents.filter((student) => {
+    const sourceStudents = usingDemoStudents ? teacherPortalStudents : students;
+    return sourceStudents.filter((student) => {
       const matchesQuery = student.name.toLowerCase().includes(query.toLowerCase());
       const matchesClass = classFilter === "All classes" || student.className === classFilter;
       return matchesQuery && matchesClass;
     });
-  }, [classFilter, query]);
+  }, [classFilter, query, students, usingDemoStudents]);
   return (
     <section className="teacher-section-stack">
       <SectionTitle
@@ -510,21 +643,24 @@ export function TeacherStudents({ classOptions = [] }) {
             Class
             <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
               <option>All classes</option>
-              {classOptions.map((className) => <option key={className}>{className}</option>)}
+              {filterOptions.map((className) => <option key={className}>{className}</option>)}
             </select>
           </label>
-          <Tag tone="blue">Sort: average score</Tag>
+          <Tag tone={usingDemoStudents ? "gold" : "blue"}>{usingDemoStudents ? "Demo fallback" : "Database"}</Tag>
         </div>
+        {loadingStudents && <div className="teacher-loading-state">Loading students...</div>}
+        {studentsError && <div className="inline-status warning">{studentsError}</div>}
 
         <div className="teacher-student-table">
-          {visibleStudents.map((student) => (
-            <article key={student.name}>
+          {!loadingStudents && visibleStudents.length === 0 && <div className="teacher-loading-state">No students found for these filters.</div>}
+          {!loadingStudents && visibleStudents.map((student) => (
+            <article key={`${student.studentId || student.name}-${student.className}`}>
               <strong>{student.name}</strong>
               <span>{student.className}</span>
-              <span>{student.level}</span>
-              <span>{student.completedExercises}</span>
+              <span>{student.email || student.level}</span>
+              <span>{student.assignedCount !== undefined ? `${student.submittedCount}/${student.assignedCount} submitted` : student.completedExercises}</span>
               <span>{student.averageScore}%</span>
-              <span>{student.latestWork}</span>
+              <span>{student.latestWork || (student.latestSubmittedAt ? new Date(student.latestSubmittedAt).toLocaleDateString() : "No submissions")}</span>
               <button className="secondary-action compact-action" type="button" onClick={() => setSelectedStudentResult(student)} data-sound-click="tab">View results</button>
             </article>
           ))}
@@ -752,7 +888,11 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
       <ResultsModal
         assignment={selectedAssignmentResult}
         liveResults={selectedAssignmentLiveResults}
+        currentUser={currentUser}
         label={usingDemoAssignments ? "Results preview" : "Assignment results"}
+        onReviewSaved={() => {
+          if (selectedAssignmentResult) openResults(selectedAssignmentResult);
+        }}
         onClose={() => {
           setSelectedAssignmentResult(null);
           setSelectedAssignmentLiveResults(null);

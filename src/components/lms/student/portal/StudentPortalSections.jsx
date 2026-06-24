@@ -178,7 +178,7 @@ function normalizeStudentAssignment(assignment = {}) {
   };
 }
 
-export function StudentAssignments({ openActivity, currentUser = null }) {
+export function StudentAssignments({ openActivity, currentUser = null, refreshKey = 0, submitMessage = "" }) {
   const [liveAssignments, setLiveAssignments] = useState([]);
   const [usingDemoAssignments, setUsingDemoAssignments] = useState(false);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
@@ -211,7 +211,7 @@ export function StudentAssignments({ openActivity, currentUser = null }) {
     return () => {
       mounted = false;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshKey]);
 
   useEffect(() => {
     if (currentUser?.id) return;
@@ -258,6 +258,7 @@ export function StudentAssignments({ openActivity, currentUser = null }) {
         </aside>
 
         <Card className="student-assignment-detail">
+          {submitMessage && <div className="inline-status success">{submitMessage}</div>}
           {selectedAssignment ? (
             <>
               <span className="eyebrow"><ClipboardList size={15} /> Assignment details</span>
@@ -290,7 +291,7 @@ export function StudentAssignments({ openActivity, currentUser = null }) {
   );
 }
 
-export function StudentGrades({ currentUser = null }) {
+export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
   const [grades, setGrades] = useState([]);
   const [usingDemoGrades, setUsingDemoGrades] = useState(false);
   const [loadingGrades, setLoadingGrades] = useState(false);
@@ -333,7 +334,7 @@ export function StudentGrades({ currentUser = null }) {
     return () => {
       mounted = false;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshKey]);
 
   if (!currentUser?.id) {
     return (
@@ -429,9 +430,10 @@ export function StudentGrades({ currentUser = null }) {
   );
 }
 
-export function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, selectedPackageSlug, selectedBookId, goToSection, navigateTo, currentUser = null }) {
+export function StudentActivitySection({ activeExercise, setActiveExercise, completedActivities, setCompletedActivities, previousSection, selectedPackageSlug, selectedBookId, goToSection, navigateTo, currentUser = null, onAssignmentSubmitted }) {
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
   const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
   const exerciseContext = findUltimateB2Exercise(exercise.demoActivityKey || exercise.id);
   const backToPrevious = () => {
     if (previousSection === "books" && navigateTo) {
@@ -459,6 +461,7 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
           setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }));
           if (!exercise.assignmentId || !exercise.activityId || !currentUser?.id) return;
           setSubmitError("");
+          setSubmitSuccess("");
           try {
             await submitStudentAssignment({
               assignmentId: exercise.assignmentId,
@@ -467,6 +470,8 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
               score: result.score,
               result,
             });
+            setSubmitSuccess("Assignment submission saved.");
+            onAssignmentSubmitted?.();
           } catch (error) {
             setSubmitError(error.message || "Assignment submission could not be saved.");
           }
@@ -480,6 +485,7 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
           }
         }}
       />
+      {submitSuccess && <div className="inline-status success">{submitSuccess}</div>}
       {submitError && <div className="inline-status error">{submitError}</div>}
     </section>
   );

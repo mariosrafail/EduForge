@@ -12,6 +12,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [userCreated, setUserCreated] = useState(false);
   const [bookAdded, setBookAdded] = useState(false);
   const [bookUnlocked, setBookUnlocked] = useState(false);
+  const [activationBatchGenerated, setActivationBatchGenerated] = useState(false);
   const [activationCode, setActivationCode] = useState("");
   const [exported, setExported] = useState(false);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
@@ -43,6 +44,10 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     { id: "publisher-intelligence", route: "admin-publisher-intelligence", label: "Publisher intelligence", description: "Adoption evidence and exports", icon: BarChart3 },
     { id: "integrations", route: "admin-integrations", label: "Integrations", description: "Integration-ready architecture", icon: Link2 },
   ];
+  const activeUsers = createdUsers.filter((user) => String(user.status || "").toLowerCase() === "active").length;
+  const teacherCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "teacher").length;
+  const studentCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "student").length;
+  const activeClasses = classes.filter((item) => item.name).length;
 
   const loadUsers = async ({ fallbackToMock = true } = {}) => {
     setUsersLoading(true);
@@ -426,6 +431,28 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                   </div>
                   {bookUnlocked && <div className="inline-status success">Ultimate B2 Students Book unlocked for Ultimate B2 A.</div>}
                 </div>
+              </Card>
+              <Card>
+                <div className="card-heading">
+                  <div>
+                    <span className="eyebrow"><KeyRound size={15} /> Bulk activation model</span>
+                    <h2>School activation batch</h2>
+                    <p>MVP planning card for school-wide book access batches. This action is demo only and does not create licenses.</p>
+                  </div>
+                  <Tag tone="gold">Demo only</Tag>
+                </div>
+                <section className="student-grade-summary">
+                  <article className="panel"><strong>{brand.schoolName || brandPresets[0].schoolName}</strong><span>School</span></article>
+                  <article className="panel"><strong>{activeUsers}</strong><span>Active users</span></article>
+                  <article className="panel"><strong>{teacherCount}</strong><span>Teachers</span></article>
+                  <article className="panel"><strong>{studentCount}</strong><span>Students</span></article>
+                  <article className="panel"><strong>{activeClasses}</strong><span>Active classes</span></article>
+                  <article className="panel"><strong>1</strong><span>Active book packages</span></article>
+                </section>
+                <button className="secondary-action" type="button" onClick={() => setActivationBatchGenerated(true)} data-sound-click="submit">
+                  <Plus size={17} /> Generate activation batch
+                </button>
+                {activationBatchGenerated && <div className="inline-status success">Demo batch prepared for Ultimate B2. No database licenses were created.</div>}
               </Card>
             </section>
           )}

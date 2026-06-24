@@ -149,7 +149,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             onClassCreated={addCreatedClass}
           />
         )}
-        {activeSection === "students" && <TeacherStudents classOptions={classOptions} />}
+        {activeSection === "students" && <TeacherStudents currentUser={currentUser} classes={teacherClasses} classOptions={classOptions} />}
         {activeSection === "assignments" && (
           <TeacherAssignments
             currentUser={currentUser}
