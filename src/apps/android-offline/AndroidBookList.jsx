@@ -15,7 +15,7 @@ export default function AndroidBookList({ books, progress, onOpenBook }) {
     <section className="android-book-list-screen" aria-label="Offline book library">
       <header className="android-library-header">
         <div>
-          <span className="android-eyebrow">EduForge Offline</span>
+          <span className="android-eyebrow">Offline Library</span>
           <h1>Interactive Books</h1>
         </div>
         <p>Local classroom books available on this device.</p>

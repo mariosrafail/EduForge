@@ -101,6 +101,14 @@ function readDemoRole() {
   return window.sessionStorage.getItem("eduforgeDemoRole") || "";
 }
 
+function DemoModeNotice() {
+  return (
+    <div className="inline-status warning demo-mode-notice">
+      Demo mode, live database actions disabled.
+    </div>
+  );
+}
+
 export default function App() {
   const {
     view,
@@ -190,6 +198,7 @@ export default function App() {
             setAuthError={auth.setAuthError}
             signIn={auth.signIn}
             createSchoolAccount={auth.createSchoolAccount}
+            createStudentAccount={auth.createStudentAccount}
             signOut={async () => {
               await auth.signOut();
               if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
@@ -202,62 +211,71 @@ export default function App() {
           <AccessGate requiredRole="admin" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {adminSectionByView[view] && adminAccessAllowed && (
-          <AdminView
-            initialSection={adminSectionByView[view]}
-            brand={brand}
-            setBrand={setBrand}
-            navigateTo={navigateTo}
-          />
+          <>
+            {demoRole === "admin" && <DemoModeNotice />}
+            <AdminView
+              initialSection={adminSectionByView[view]}
+              brand={brand}
+              setBrand={setBrand}
+              navigateTo={navigateTo}
+            />
+          </>
         )}
         {teacherSectionByView[view] && !teacherAccessAllowed && (
           <AccessGate requiredRole="teacher" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {teacherSectionByView[view] && teacherAccessAllowed && (
-          <TeacherPortal
-            initialSection={teacherSectionByView[view]}
-            initialSelectedPackageSlug={selectedPackageSlug}
-            initialSelectedBookId={selectedBookId}
-            initialSelectedBookSubview={selectedBookSubview}
-            initialSelectedPageUnitId={selectedPageUnitId}
-            initialSelectedPageId={selectedPageId}
-            initialSelectedPageNumber={selectedPageNumber}
-            initialSelectedAssignmentId={selectedAssignmentId}
-            initialSelectedClassSlug={selectedClassSlug}
-            routeAction={routeAction}
-            initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
-            currentUser={auth.currentUser}
-            course={courseData.course}
-            onCourseChange={courseData.setCourse}
-            navigateTo={navigateTo}
-            courseLoading={courseData.loading}
-            courseError={courseData.error}
-            saveCourse={courseData.saveCourse}
-            saveLesson={courseData.saveLesson}
-            saveActivity={courseData.saveActivity}
-            reloadCourse={courseData.reloadCourse}
-          />
+          <>
+            {demoRole === "teacher" && <DemoModeNotice />}
+            <TeacherPortal
+              initialSection={teacherSectionByView[view]}
+              initialSelectedPackageSlug={selectedPackageSlug}
+              initialSelectedBookId={selectedBookId}
+              initialSelectedBookSubview={selectedBookSubview}
+              initialSelectedPageUnitId={selectedPageUnitId}
+              initialSelectedPageId={selectedPageId}
+              initialSelectedPageNumber={selectedPageNumber}
+              initialSelectedAssignmentId={selectedAssignmentId}
+              initialSelectedClassSlug={selectedClassSlug}
+              routeAction={routeAction}
+              initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
+              currentUser={auth.currentUser}
+              course={courseData.course}
+              onCourseChange={courseData.setCourse}
+              navigateTo={navigateTo}
+              courseLoading={courseData.loading}
+              courseError={courseData.error}
+              saveCourse={courseData.saveCourse}
+              saveLesson={courseData.saveLesson}
+              saveActivity={courseData.saveActivity}
+              reloadCourse={courseData.reloadCourse}
+            />
+          </>
         )}
         {studentSection && !studentAccessAllowed && (
           <AccessGate requiredRole="student" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {studentSection && studentAccessAllowed && (
-          <StudentPortal
-            initialSection={studentSection}
-            initialActivityKey={routeMode === "student" ? activityKey : null}
-            initialSelectedPackageSlug={selectedPackageSlug}
-            initialSelectedBookId={selectedBookId}
-            initialSelectedBookSubview={selectedBookSubview}
-            initialSelectedPageUnitId={selectedPageUnitId}
-            initialSelectedPageId={selectedPageId}
-            initialSelectedPageNumber={selectedPageNumber}
-            course={courseData.course}
-            onSubmission={addCourseSubmission}
-            navigateTo={navigateTo}
-            currentUser={auth.currentUser}
-            courseLoading={courseData.loading}
-            courseError={courseData.error}
-            submitLesson={courseData.submitCourseLesson}
-          />
+          <>
+            {demoRole === "student" && <DemoModeNotice />}
+            <StudentPortal
+              initialSection={studentSection}
+              initialActivityKey={routeMode === "student" ? activityKey : null}
+              initialSelectedPackageSlug={selectedPackageSlug}
+              initialSelectedBookId={selectedBookId}
+              initialSelectedBookSubview={selectedBookSubview}
+              initialSelectedPageUnitId={selectedPageUnitId}
+              initialSelectedPageId={selectedPageId}
+              initialSelectedPageNumber={selectedPageNumber}
+              course={courseData.course}
+              onSubmission={addCourseSubmission}
+              navigateTo={navigateTo}
+              currentUser={auth.currentUser}
+              courseLoading={courseData.loading}
+              courseError={courseData.error}
+              submitLesson={courseData.submitCourseLesson}
+            />
+          </>
         )}
         {view === "student-course" && (
           <StudentCourseView

@@ -131,7 +131,8 @@ export async function listClassStudents(classId) {
 }
 
 export async function listTeacherStudents(teacherId) {
-  const query = new URLSearchParams({ action: "teacher-students", teacherId });
+  const query = new URLSearchParams({ action: "teacher-students" });
+  if (teacherId) query.set("teacherId", teacherId);
   const payload = await request(`/.netlify/functions/book-content?${query}`);
   return payload.students || [];
 }

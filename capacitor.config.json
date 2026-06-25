@@ -1,6 +1,6 @@
 {
   "appId": "com.eduforge.offlinebooks",
-  "appName": "EduForge Offline Books",
+  "appName": "Offline Interactive Books",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "plugins": {

@@ -11,7 +11,7 @@ function hideAndroidSystemBars() {
   StatusBar.hide().catch(() => {});
 }
 
-export function renderEduForgeApp(root) {
+export function renderApp(root) {
   hideAndroidSystemBars();
 
   if (typeof document !== "undefined") {

@@ -1,5 +1,6 @@
 import { englishJourney6Package } from "../../data/englishJourney6DemoData.js";
 import { ultimateB2Package } from "../../data/ultimateB2DemoData.js";
+import { applyUltimateB2Unit2StudentsBookAndroidOverlay } from "./data/ultimateB2Unit2StudentsBook.js";
 
 const englishJourneyPageAssets = import.meta.glob("../../assets/books/english-journey-6/pages/**/*.png", {
   eager: true,
@@ -63,7 +64,7 @@ const configuredSlug = import.meta.env.VITE_OFFLINE_BOOK_SLUG || "";
 export const androidBooks = [
   resolveBookPackage(englishJourney6Package),
   resolveBookPackage({
-    ...ultimateB2Package,
+    ...applyUltimateB2Unit2StudentsBookAndroidOverlay(ultimateB2Package),
     description: "Ultimate B2 interactive demo package with local pages, media, and activities where available.",
   }),
 ].filter((book) => (

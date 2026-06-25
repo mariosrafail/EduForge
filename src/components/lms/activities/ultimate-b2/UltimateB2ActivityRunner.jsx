@@ -14,12 +14,44 @@ function ReadingExercise({ activityKey, mode, onSubmit }) {
   return <ReadingExercise3 mode={mode} onSubmit={onSubmit} />;
 }
 
+function ImportedActivityPlaceholder({ activity }) {
+  return (
+    <Card className="imported-activity-placeholder">
+      <h2>{activity?.title || "Imported activity"}</h2>
+      <p>{activity?.description || "Activity data imported, interaction pending."}</p>
+      <div className="book-exercise-meta">
+        {activity?.pageNumber && <span>Page {activity.pageNumber}</span>}
+        {activity?.type && <span>{activity.type}</span>}
+        {activity?.skill && <span>{activity.skill}</span>}
+      </div>
+      {activity?.sourcePaths?.length ? (
+        <div className="imported-activity-source">
+          <strong>Imported source</strong>
+          <ul>
+            {activity.sourcePaths.map((sourcePath) => <li key={sourcePath}>{sourcePath}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {activity?.assetIds?.length ? (
+        <div className="imported-activity-source">
+          <strong>Related local assets</strong>
+          <ul>
+            {activity.assetIds.map((assetId) => <li key={assetId}>{assetId}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      <p className="inline-status">Activity data imported, interaction pending.</p>
+    </Card>
+  );
+}
+
 function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity }) {
   if (activityKey === "video-intro") return <VideoIntroScreen mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningPage20 mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "grammar-opening" || activityKey === "grammar-ex4") return <GrammarOpening activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "quiz-1" || activityKey === "quiz-2") return <QuizActivity activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
+  if (activity?.imported) return <ImportedActivityPlaceholder activity={activity} />;
   if (activity?.questions?.length || activity?.activityType === "media_video" || activity?.activity_type === "media_video") {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }

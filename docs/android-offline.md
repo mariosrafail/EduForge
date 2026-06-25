@@ -106,6 +106,7 @@ Requirements for each offline book:
 
 - English Journey 6 as the first offline book.
 - Ultimate B2 as a second local interactive demo package.
+- Ultimate B2 Student's Book Unit 2 Android-only imported activity mapping from `Ultimate English B2.app`; see `docs/ultimate-b2-import.md`.
 - Book list with title, level, description, components, and open action.
 - Component cards for available local data, such as Students Book, Workbook, Grammar Book, Test Book, and Video Bank.
 - Unit/page navigation where page data exists.

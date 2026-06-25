@@ -12,11 +12,11 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: [
         {
-          find: "virtual:eduforge-entry",
+          find: "virtual:app-entry",
           replacement: isAndroidOffline ? "/src/apps/android-offline/offlineEntry.jsx" : "/src/webEntry.jsx",
         },
         {
-          find: "virtual:eduforge-styles",
+          find: "virtual:app-styles",
           replacement: isAndroidOffline ? "/src/apps/android-offline/offlineRoot.css" : "/src/styles/index.css",
         },
         ...(isAndroidOffline

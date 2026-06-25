@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { renderEduForgeApp } from "virtual:eduforge-entry";
-import "virtual:eduforge-styles";
+import { renderApp } from "virtual:app-entry";
+import "virtual:app-styles";
 
 const root = createRoot(document.getElementById("root"));
 const appMode = import.meta.env.VITE_APP_MODE === "android-offline" ? "android-offline" : "lms";
@@ -10,17 +10,17 @@ document.documentElement.dataset.appMode = appMode;
 
 root.render(
   <div className="app-loading-screen" role="status" aria-live="polite">
-    Loading...
+    {appMode === "android-offline" ? "Loading books..." : "Loading..."}
   </div>,
 );
 
 try {
-  renderEduForgeApp(root);
+  renderApp(root);
 } catch (error) {
-  console.error("EduForge failed to start", error);
+  console.error("Application failed to start", error);
   root.render(
     <div className="app-loading-screen" role="alert">
-      EduForge could not start.
+      {appMode === "android-offline" ? "Interactive Books could not start." : "Application could not start."}
     </div>,
   );
 }

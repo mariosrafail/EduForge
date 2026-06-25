@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSchoolAccount, getCurrentUser, signIn, signOut } from "../services/authApi.js";
+import { createSchoolAccount, createStudentAccount, getCurrentUser, signIn, signOut } from "../services/authApi.js";
 import { resetDemoProgressAndLogout } from "../services/demoReset.js";
 
 export function dashboardForRole(role) {
@@ -52,6 +52,13 @@ export function useAuth() {
     return user;
   };
 
+  const handleCreateStudentAccount = async (account) => {
+    setAuthError("");
+    const user = await createStudentAccount(account);
+    setCurrentUser(user);
+    return user;
+  };
+
   const handleSignOut = async () => {
     setAuthError("");
     try {
@@ -71,6 +78,7 @@ export function useAuth() {
     setAuthError,
     signIn: handleSignIn,
     createSchoolAccount: handleCreateSchoolAccount,
+    createStudentAccount: handleCreateStudentAccount,
     signOut: handleSignOut,
   };
 }

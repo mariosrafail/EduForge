@@ -1,6 +1,7 @@
 import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../../data/lmsDemoData.js";
+import { getSchoolMetrics } from "../../../services/adminMetricsApi.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "../Shared.jsx";
 import { AdminInviteLink } from "./AdminInviteLink.jsx";
@@ -51,7 +52,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const teacherCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "teacher").length;
   const studentCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "student").length;
   const activeClasses = classes.filter((item) => item.name).length;
-  const schoolMetrics = schoolMetricsLive || {
+  const schoolMetricsSummary = schoolMetricsLive || {
     activeUsers,
     teacherCount,
     studentCount,
@@ -90,22 +91,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
       setSchoolMetricsLoading(true);
       setSchoolMetricsError("");
       try {
-        const response = await fetch("/.netlify/functions/book-content?action=school-metrics", {
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const message = response.status === 401
-            ? "Sign in required"
-            : response.status === 403
-              ? "This account does not have access to this area"
-              : response.status === 503
-                ? "Database not configured, showing demo data"
-                : payload.detail || payload.error || "School metrics could not be loaded";
-          throw new Error(message);
-        }
-        if (!cancelled) setSchoolMetricsLive(payload.metrics || null);
+        const metrics = await getSchoolMetrics();
+        if (!cancelled) setSchoolMetricsLive(metrics);
       } catch (error) {
         if (!cancelled) {
           setSchoolMetricsLive(null);
@@ -494,13 +481,13 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                 {schoolMetricsError && <div className="inline-status warning">{schoolMetricsError}</div>}
                 <section className="student-grade-summary">
                   <article className="panel"><strong>{brand.schoolName || brandPresets[0].schoolName}</strong><span>School</span></article>
-                  <article className="panel"><strong>{schoolMetrics.activeUsers}</strong><span>Active users</span></article>
-                  <article className="panel"><strong>{schoolMetrics.teacherCount}</strong><span>Teachers</span></article>
-                  <article className="panel"><strong>{schoolMetrics.studentCount}</strong><span>Students</span></article>
-                  <article className="panel"><strong>{schoolMetrics.activeClasses}</strong><span>Active classes</span></article>
-                  <article className="panel"><strong>{schoolMetrics.activeBookPackages}</strong><span>Active book packages</span></article>
-                  <article className="panel"><strong>{schoolMetrics.activeAssignments}</strong><span>Active assignments</span></article>
-                  <article className="panel"><strong>{schoolMetrics.submittedWorkCount}</strong><span>Submitted work</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.activeUsers}</strong><span>Active users</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.teacherCount}</strong><span>Teachers</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.studentCount}</strong><span>Students</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.activeClasses}</strong><span>Active classes</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.activeBookPackages}</strong><span>Active book packages</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.activeAssignments}</strong><span>Active assignments</span></article>
+                  <article className="panel"><strong>{schoolMetricsSummary.submittedWorkCount}</strong><span>Submitted work</span></article>
                 </section>
                 <button className="secondary-action" type="button" onClick={() => setActivationBatchGenerated(true)} data-sound-click="submit">
                   <Plus size={17} /> Generate activation batch

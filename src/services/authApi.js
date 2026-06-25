@@ -51,6 +51,14 @@ export async function createSchoolAccount(account) {
   return payload.user;
 }
 
+export async function createStudentAccount(account) {
+  const payload = await authFetch("/.netlify/functions/auth-student-signup", {
+    method: "POST",
+    body: JSON.stringify(account),
+  });
+  return payload.user;
+}
+
 export async function signOut() {
   await authFetch("/.netlify/functions/auth-signout", {
     method: "POST",

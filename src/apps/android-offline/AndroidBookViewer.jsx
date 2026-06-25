@@ -23,6 +23,7 @@ export default function AndroidBookViewer({
   book,
   initialLocation = null,
   initialActivityKey = null,
+  initialExercise = null,
   onBackToLibrary,
   onLocationChange,
   onOpenActivity,
@@ -30,6 +31,7 @@ export default function AndroidBookViewer({
   const [progress, setProgress] = useState(() => getAndroidOfflineProgress());
   const [location, setLocation] = useState(() => initialLocation || getInitialLocation());
   const [activeActivityKey, setActiveActivityKey] = useState(initialActivityKey);
+  const [activeExercise, setActiveExercise] = useState(initialExercise);
 
   const component = location.componentId ? book.components?.find((item) => item.id === location.componentId) || null : null;
   const unit = component?.pageUnits?.find((item) => item.id === location.unitId) || component?.pageUnits?.[0] || null;
@@ -48,7 +50,8 @@ export default function AndroidBookViewer({
   useEffect(() => {
     if (initialLocation) setLocation(initialLocation);
     setActiveActivityKey(initialActivityKey || null);
-  }, [initialActivityKey, initialLocation]);
+    setActiveExercise(initialExercise || null);
+  }, [initialActivityKey, initialExercise, initialLocation]);
 
   const updateLocation = (nextLocation) => {
     const resolvedLocation = {
@@ -57,6 +60,7 @@ export default function AndroidBookViewer({
     };
     setLocation(resolvedLocation);
     setActiveActivityKey(null);
+    setActiveExercise(null);
     onLocationChange?.(resolvedLocation);
   };
 
@@ -136,7 +140,8 @@ export default function AndroidBookViewer({
           onStartExercise={(exercise) => {
             if (!exercise?.demoActivityKey) return;
             setActiveActivityKey(exercise.demoActivityKey);
-            onOpenActivity?.(exercise.demoActivityKey, location);
+            setActiveExercise(exercise);
+            onOpenActivity?.(exercise.demoActivityKey, location, exercise);
           }}
         />
       </div>
@@ -146,6 +151,7 @@ export default function AndroidBookViewer({
           <div className="android-activity-frame">
             <button className="android-activity-back" type="button" onClick={() => {
               setActiveActivityKey(null);
+              setActiveExercise(null);
               onLocationChange?.(location);
             }}>
               <ArrowLeft size={20} /> Back to book
@@ -155,6 +161,7 @@ export default function AndroidBookViewer({
               mode="student"
               onBack={() => {
                 setActiveActivityKey(null);
+                setActiveExercise(null);
                 onLocationChange?.(location);
               }}
               onSubmit={(result) => {
@@ -163,6 +170,7 @@ export default function AndroidBookViewer({
                   activityKey: activeActivityKey,
                 }));
               }}
+              activity={activeExercise}
               hideBreadcrumb
             />
           </div>

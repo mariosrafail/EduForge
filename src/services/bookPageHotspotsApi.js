@@ -10,7 +10,11 @@ async function parseJsonResponse(response) {
   }
   if (!response.ok) {
     const serverMessage = payload.detail || payload.details || payload.error || responseText || "Book page hotspots API request failed";
-    const message = payload.error === "Database is not configured"
+    const message = response.status === 401
+      ? "Sign in required"
+      : response.status === 403
+        ? "This account does not have access to this area"
+        : payload.error === "Database is not configured"
       ? "Database is not configured. Hotspots cannot be saved locally until DATABASE_URL is set."
       : `Book page hotspots API request failed (${response.status}): ${serverMessage}`;
     const error = new Error(message);
@@ -23,6 +27,7 @@ async function parseJsonResponse(response) {
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "include",
     headers: jsonHeaders,
     ...options,
   });

@@ -10,6 +10,7 @@ export default function AndroidOfflineApp() {
   const [selectedBookSlug, setSelectedBookSlug] = useState("");
   const [viewerLocation, setViewerLocation] = useState(null);
   const [activeActivityKey, setActiveActivityKey] = useState(null);
+  const [activeExercise, setActiveExercise] = useState(null);
   const selectedBook = selectedBookSlug ? getAndroidBook(selectedBookSlug) : null;
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function AndroidOfflineApp() {
         setSelectedBookSlug("");
         setViewerLocation(null);
         setActiveActivityKey(null);
+        setActiveExercise(null);
         setProgress(getAndroidOfflineProgress());
         return;
       }
@@ -28,6 +30,7 @@ export default function AndroidOfflineApp() {
       setSelectedBookSlug(state.bookSlug || "");
       setViewerLocation(state.location || null);
       setActiveActivityKey(state.activityKey || null);
+      setActiveExercise(state.exercise || null);
       setProgress(getAndroidOfflineProgress());
     };
 
@@ -39,6 +42,7 @@ export default function AndroidOfflineApp() {
     setSelectedBookSlug(bookSlug);
     setViewerLocation(null);
     setActiveActivityKey(null);
+    setActiveExercise(null);
     setProgress(setLastSelectedBook(bookSlug));
     window.history.pushState({ androidOffline: true, view: "book", bookSlug, location: null }, "", `#book/${bookSlug}`);
   };
@@ -47,6 +51,7 @@ export default function AndroidOfflineApp() {
     setSelectedBookSlug("");
     setViewerLocation(null);
     setActiveActivityKey(null);
+    setActiveExercise(null);
     setProgress(getAndroidOfflineProgress());
     window.history.pushState({ androidOffline: true, view: "library" }, "", window.location.pathname);
   };
@@ -54,6 +59,7 @@ export default function AndroidOfflineApp() {
   const updateViewerLocation = (location) => {
     setViewerLocation(location);
     setActiveActivityKey(null);
+    setActiveExercise(null);
     window.history.pushState(
       { androidOffline: true, view: "book", bookSlug: selectedBookSlug, location },
       "",
@@ -61,11 +67,12 @@ export default function AndroidOfflineApp() {
     );
   };
 
-  const openActivity = (activityKey, location) => {
+  const openActivity = (activityKey, location, exercise = null) => {
     setViewerLocation(location);
     setActiveActivityKey(activityKey);
+    setActiveExercise(exercise);
     window.history.pushState(
-      { androidOffline: true, view: "activity", bookSlug: selectedBookSlug, location, activityKey },
+      { androidOffline: true, view: "activity", bookSlug: selectedBookSlug, location, activityKey, exercise },
       "",
       `#book/${selectedBookSlug}/activity/${activityKey}`,
     );
@@ -79,6 +86,7 @@ export default function AndroidOfflineApp() {
           book={selectedBook}
           initialLocation={viewerLocation}
           initialActivityKey={activeActivityKey}
+          initialExercise={activeExercise}
           onBackToLibrary={backToLibrary}
           onLocationChange={updateViewerLocation}
           onOpenActivity={openActivity}

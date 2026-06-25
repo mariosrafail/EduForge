@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">EduForge Offline Books</string>
-    <string name="title_activity_main">EduForge Offline Books</string>
+    <string name="app_name">Offline Interactive Books</string>
+    <string name="title_activity_main">Offline Interactive Books</string>
     <string name="package_name">com.eduforge.offlinebooks</string>
     <string name="custom_url_scheme">com.eduforge.offlinebooks</string>
 </resources>

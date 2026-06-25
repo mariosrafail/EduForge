@@ -10,7 +10,12 @@ async function parseJsonResponse(response) {
   }
   if (!response.ok) {
     const serverMessage = payload.detail || payload.details || payload.error || responseText || "Book activities API request failed";
-    const error = new Error(`Book activities API request failed (${response.status}): ${serverMessage}`);
+    const friendlyMessage = response.status === 401
+      ? "Sign in required"
+      : response.status === 403
+        ? "This account does not have access to this area"
+        : `Book activities API request failed (${response.status}): ${serverMessage}`;
+    const error = new Error(friendlyMessage);
     error.status = response.status;
     error.payload = payload;
     throw error;
@@ -20,6 +25,7 @@ async function parseJsonResponse(response) {
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "include",
     headers: jsonHeaders,
     ...options,
   });

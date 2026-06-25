@@ -100,7 +100,6 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
         classId: classItem.id || null,
         inviteCode: classItem.inviteCode || null,
         slug: classItem.slug || classSlug,
-        studentId: currentUser.id,
       });
       setSubmitted(true);
     } catch (error) {
@@ -135,7 +134,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
 
         {submitted ? (
           <div className="join-class-success">
-            <div className="inline-status success">Account created. You have joined {classItem.name}.</div>
+            <div className="inline-status success">You have joined {classItem.name}.</div>
             <button className="primary-action" type="button" onClick={() => navigateTo?.("student")} data-sound-click="submit">
               Continue to student portal
             </button>

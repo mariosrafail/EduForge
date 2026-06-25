@@ -10,6 +10,7 @@ export function readQuery(event) {
     packageId: params.packageId || "",
     componentId: params.componentId || "",
     activityId: params.activityId || "",
+    assignmentId: params.assignmentId || params.assignment_id || "",
     activitySlug: params.activitySlug || "",
     userId: params.userId || "",
     teacherId: params.teacherId || "",

@@ -81,6 +81,11 @@ function consumePendingInviteRoute() {
   return route;
 }
 
+function pendingInviteCode() {
+  const route = getPendingInviteRoute();
+  return route.startsWith("join-class/") ? route.slice("join-class/".length) : "";
+}
+
 export function AuthView({
   role = "admin",
   navigateTo,
@@ -90,6 +95,7 @@ export function AuthView({
   setAuthError,
   signIn,
   createSchoolAccount,
+  createStudentAccount,
   signOut,
 }) {
   const config = roleConfig[role] ?? roleConfig.admin;
@@ -150,12 +156,25 @@ export function AuthView({
     redirectAfterDemo(navigateTo, "teacher");
   };
 
-  const handleStudentJoin = (event) => {
+  const handleStudentJoin = async (event) => {
     event.preventDefault();
+    setSubmitting(true);
     clearMessages();
-    setLocalStatus("Class and book codes accepted for demo. Opening the learner portal...");
-    const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
-    redirectAfterDemo(navigateTo, pendingInvite || "student");
+    try {
+      await createStudentAccount({
+        fullName: studentJoin.studentName,
+        email: studentJoin.email,
+        password: studentJoin.password,
+        classCode: pendingInviteCode() || studentJoin.classCode,
+        bookCode: studentJoin.bookCode,
+      });
+      const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
+      navigateTo(pendingInvite || "student");
+    } catch (error) {
+      setAuthError(error.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const continueDemo = () => {
@@ -283,14 +302,14 @@ export function AuthView({
                 <input value={studentJoin.studentName} onChange={(event) => setStudentJoin({ ...studentJoin, studentName: event.target.value })} placeholder="Anna Georgiou" />
               </label>
               <label>
-                Optional email for demo
-                <input value={studentJoin.email} onChange={(event) => setStudentJoin({ ...studentJoin, email: event.target.value })} placeholder="student@example.com" />
+                Email
+                <input type="email" value={studentJoin.email} onChange={(event) => setStudentJoin({ ...studentJoin, email: event.target.value })} placeholder="student@example.com" />
               </label>
               <label>
-                Optional password for demo
-                <input type="password" value={studentJoin.password} onChange={(event) => setStudentJoin({ ...studentJoin, password: event.target.value })} placeholder="Optional for presentation" />
+                Password
+                <input type="password" value={studentJoin.password} onChange={(event) => setStudentJoin({ ...studentJoin, password: event.target.value })} placeholder="Minimum 8 characters" />
               </label>
-              <button className="primary-action" type="submit"><TicketCheck size={17} /> Join learner portal</button>
+              <button className="primary-action" disabled={submitting} type="submit"><TicketCheck size={17} /> {submitting ? "Creating..." : "Create student account"}</button>
             </form>
           )}
 

@@ -1,4 +1,4 @@
-const STORAGE_KEY = "eduforge:android-offline:v2";
+const STORAGE_KEY = "offline-books:android:v2";
 
 const defaultState = {
   lastSelectedBookSlug: "",

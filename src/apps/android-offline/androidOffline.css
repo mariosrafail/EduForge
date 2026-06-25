@@ -701,6 +701,34 @@ html[data-app-mode="android-offline"] body {
   gap: 10px;
 }
 
+.android-activity-frame .imported-activity-placeholder {
+  max-height: 100%;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.android-activity-frame .imported-activity-placeholder h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+}
+
+.android-activity-frame .imported-activity-source {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.android-activity-frame .imported-activity-source ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #536075;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .android-offline-app {
     overflow: hidden;
