@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
+import { loadProductionMigrationFiles, loadProductionMigrationManifest, parseProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
+import { classifyQaCleanupState } from "../scripts/_staging-cleanup-safety.mjs";
 
 function withEnvironment(values, callback) {
   const previous = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
@@ -56,9 +57,44 @@ test("staging database guard accepts a visibly isolated confirmed target without
   });
 });
 
-test("production migration manifest excludes demo passwords and ends with phase 2", async () => {
+test("production migration manifest excludes demo passwords, includes phase 2, and supports later migrations", async () => {
   const migrations = await loadProductionMigrationManifest();
   assert.equal(migrations.some(({ filename }) => filename === "012_demo_login_passwords.sql"), false);
-  assert.equal(migrations.at(-1).filename, "013_authorization_phase2.sql");
+  assert.equal(migrations.some(({ filename }) => filename === "013_authorization_phase2.sql"), true);
   assert.ok(migrations.every(({ checksum }) => /^[a-f0-9]{64}$/.test(checksum)));
+
+  const future = parseProductionMigrationManifest([
+    "1. `010_assignment_live_flow.sql`",
+    "2. `010_assignment_mvp_metadata.sql`",
+    "3. `013_authorization_phase2.sql`",
+    "4. `014_future_safe.sql`",
+    "5. `015_later.sql`",
+  ].join("\n"));
+  assert.deepEqual(future, [
+    "010_assignment_live_flow.sql", "010_assignment_mvp_metadata.sql", "013_authorization_phase2.sql",
+    "014_future_safe.sql", "015_later.sql",
+  ]);
+  assert.throws(() => parseProductionMigrationManifest("1. `014_future_safe.sql`"), /013_authorization_phase2.*present/);
+  assert.throws(() => parseProductionMigrationManifest([
+    "1. `013_authorization_phase2.sql`", "2. `012_demo_login_passwords.sql`",
+  ].join("\n")), /Demo password migration/);
+  assert.throws(() => parseProductionMigrationManifest([
+    "1. `013_authorization_phase2.sql`", "2. `013_authorization_phase2.sql`",
+  ].join("\n")), /duplicate filename/);
+  await assert.rejects(
+    loadProductionMigrationFiles(["013_authorization_phase2.sql", "014_missing.sql"], async (filename) => {
+      if (filename === "014_missing.sql") throw Object.assign(new Error("missing"), { code: "ENOENT" });
+      return "select 1;";
+    }),
+    /listed in manifest does not exist: 014_missing.sql/,
+  );
+});
+
+test("QA cleanup accepts only an exact registry and is idempotent only after roots are gone", () => {
+  const expected = new Set(["school:a", "school:b", "publisher:p"]);
+  assert.equal(classifyQaCleanupState(new Set(expected), expected, 3), "ready");
+  assert.equal(classifyQaCleanupState(new Set(), expected, 0), "already-clean");
+  assert.throws(() => classifyQaCleanupState(new Set(["school:a"]), expected, 2), /does not exactly match/);
+  assert.throws(() => classifyQaCleanupState(new Set([...expected, "school:foreign"]), expected, 3), /does not exactly match/);
+  assert.throws(() => classifyQaCleanupState(new Set(expected), expected, 0), /roots are missing/);
 });

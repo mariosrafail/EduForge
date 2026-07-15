@@ -24,7 +24,7 @@ When running only Vite, Netlify Functions are not available. Authentication and 
 
 ## Database Setup
 
-Create a Neon/PostgreSQL database and apply the production migrations in the exact order documented in [`database/MIGRATIONS.md`](database/MIGRATIONS.md). The two historical `010` files keep their existing names because they may already be deployed; the manifest defines their canonical order. Apply `013_authorization_phase2.sql` last.
+Create a Neon/PostgreSQL database and apply the production migrations in the exact order documented in [`database/MIGRATIONS.md`](database/MIGRATIONS.md). The two historical `010` files keep their existing names because they may already be deployed; the manifest defines their canonical order. Migration `013_authorization_phase2.sql` is required, and any later migrations follow it in manifest order.
 
 `012_demo_login_passwords.sql` is demo-only and must not be included in a production migration run.
 

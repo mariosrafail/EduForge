@@ -84,8 +84,9 @@ export async function handler(event) {
     }
 
     const session = await createSession(sql, users[0].id, event);
+    const { school_id: _internalSchoolId, ...signupUser } = publicUser(users[0]);
     return json(201, {
-      user: publicUser(users[0]),
+      user: signupUser,
       joinedClass: publicClassInviteRow(classItem),
       bookActivated,
       bookPackageTitle,

@@ -1,4 +1,5 @@
 import { createSafePool, loadProductionMigrationManifest } from "./_staging-db.mjs";
+import { relationshipChecks } from "./_tenant-integrity-checks.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
 let failures = 0;
@@ -11,33 +12,6 @@ function fail(message) {
 function pass(message) {
   console.log(`PASS: ${message}`);
 }
-
-const relationshipChecks = [
-  ["users_without_school", "select count(*)::int as count from app_users where school_id is null"],
-  ["classes_with_cross_school_teacher", `select count(*)::int as count from classes c join app_users t on t.id = c.teacher_id where c.school_id is distinct from t.school_id`],
-  ["cross_school_class_memberships", `select count(*)::int as count from class_students cs join classes c on c.id = cs.class_id join app_users s on s.id = cs.student_id where c.school_id is distinct from s.school_id`],
-  ["activity_assignments_cross_school_class", `select count(*)::int as count from activity_assignments a join classes c on c.id = a.class_id where a.school_id is distinct from c.school_id`],
-  ["activity_assignments_cross_school_teacher", `select count(*)::int as count from activity_assignments a join app_users t on t.id = a.teacher_id where a.school_id is distinct from t.school_id`],
-  ["activity_assignments_cross_school_student", `select count(*)::int as count from activity_assignments a join app_users s on s.id = a.student_id where a.school_id is distinct from s.school_id`],
-  ["legacy_assignments_cross_school_owner", `select count(*)::int as count from assignments a join app_users u on u.id = a.assigned_by where a.school_id is distinct from u.school_id`],
-  ["legacy_assignments_cross_school_class", `select count(*)::int as count from assignments a join classes c on a.target_type = 'class' and c.id = a.target_id where a.school_id is distinct from c.school_id`],
-  ["legacy_assignments_cross_school_student", `select count(*)::int as count from assignments a join app_users s on a.target_type = 'student' and s.id = a.target_id where a.school_id is distinct from s.school_id`],
-  ["activity_submissions_cross_school_student", `select count(*)::int as count from activity_submissions s join app_users u on u.id = s.student_id where s.school_id is distinct from u.school_id`],
-  ["activity_submissions_cross_school_assignment", `select count(*)::int as count from activity_submissions s join activity_assignments a on a.id = s.activity_assignment_id where s.school_id is distinct from a.school_id`],
-  ["lesson_submissions_cross_school_student", `select count(*)::int as count from lesson_submissions s join app_users u on u.id = s.student_id where s.school_id is distinct from u.school_id`],
-  ["lessons_cross_school_course", `select count(*)::int as count from lessons l join courses c on c.id = l.course_id where l.school_id is distinct from c.school_id`],
-  ["lesson_activities_cross_school_lesson", `select count(*)::int as count from lesson_activities a join lessons l on l.id = a.lesson_id where a.school_id is not null and l.school_id is not null and a.school_id is distinct from l.school_id`],
-  ["custom_activities_without_creator", `select count(*)::int as count from activities where ownership_type = 'custom' and created_by is null`],
-  ["custom_lesson_activities_without_creator", `select count(*)::int as count from lesson_activities where ownership_type = 'custom' and created_by is null`],
-  ["custom_hotspots_without_creator", `select count(*)::int as count from book_page_hotspots where created_by is null`],
-  ["custom_book_activities_without_creator", `select count(*)::int as count from book_activities where created_by is null`],
-  ["custom_media_without_creator", `select count(*)::int as count from book_media_assets where created_by is null`],
-  ["custom_activities_cross_school_creator", `select count(*)::int as count from activities a join app_users u on u.id = a.created_by where a.ownership_type = 'custom' and a.school_id is distinct from u.school_id`],
-  ["custom_lesson_activities_cross_school_creator", `select count(*)::int as count from lesson_activities a join app_users u on u.id = a.created_by where a.ownership_type = 'custom' and a.school_id is distinct from u.school_id`],
-  ["custom_hotspots_cross_school_creator", `select count(*)::int as count from book_page_hotspots a join app_users u on u.id = a.created_by where a.school_id is distinct from u.school_id`],
-  ["custom_book_activities_cross_school_creator", `select count(*)::int as count from book_activities a join app_users u on u.id = a.created_by where a.school_id is distinct from u.school_id`],
-  ["book_access_missing_relationship", `select count(*)::int as count from book_access a left join app_users u on u.id = a.user_id left join book_packages p on p.id = a.book_package_id where u.id is null or p.id is null`],
-];
 
 const requiredNotNull = [
   ["app_users", "school_id"], ["classes", "school_id"], ["courses", "school_id"],

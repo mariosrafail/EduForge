@@ -51,3 +51,6 @@ jobs:
       - run: npm ci
       - name: Run isolated PostgreSQL integration tests
         run: npm run test:integration
+      - name: Remove temporary integration schemas
+        if: always()
+        run: npm run test:integration:cleanup

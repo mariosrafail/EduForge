@@ -73,18 +73,34 @@ export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export async function loadProductionMigrationManifest() {
-  const markdown = await readFile("database/MIGRATIONS.md", "utf8");
+export function parseProductionMigrationManifest(markdown) {
   const files = [...markdown.matchAll(/^\d+\. `([^`]+\.sql)`$/gm)].map((match) => match[1]);
   if (!files.length) throw new Error("database/MIGRATIONS.md contains no ordered production migrations");
   if (files.includes("012_demo_login_passwords.sql")) throw new Error("Demo password migration must not be in the production manifest");
-  if (files.at(-1) !== "013_authorization_phase2.sql") throw new Error("013_authorization_phase2.sql must be the final production migration");
+  if (!files.includes("013_authorization_phase2.sql")) throw new Error("013_authorization_phase2.sql must be present in the production manifest");
+  const duplicates = files.filter((filename, index) => files.indexOf(filename) !== index);
+  if (duplicates.length) throw new Error(`Production migration manifest contains duplicate filename: ${duplicates[0]}`);
+  return files;
+}
+
+export async function loadProductionMigrationFiles(files, readMigration = (filename) => readFile(`database/${filename}`, "utf8")) {
   const migrations = [];
   for (const filename of files) {
-    const sql = await readFile(`database/${filename}`, "utf8");
+    let sql;
+    try {
+      sql = await readMigration(filename);
+    } catch (error) {
+      if (error.code === "ENOENT") throw new Error(`Production migration listed in manifest does not exist: ${filename}`);
+      throw error;
+    }
     migrations.push({ filename, sql, checksum: sha256(sql) });
   }
   return migrations;
+}
+
+export async function loadProductionMigrationManifest() {
+  const markdown = await readFile("database/MIGRATIONS.md", "utf8");
+  return loadProductionMigrationFiles(parseProductionMigrationManifest(markdown));
 }
 
 export async function withAdvisoryLock(client, lockName, callback) {

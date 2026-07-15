@@ -13,6 +13,7 @@ import { handler as bookContentHandler } from "../../netlify/functions/book-cont
 import { handler as courseHandler } from "../../netlify/functions/course.js";
 import { handler as lessonHandler } from "../../netlify/functions/lesson.js";
 import { handler as activityHandler } from "../../netlify/functions/activity.js";
+import { relationshipChecks } from "../../scripts/_tenant-integrity-checks.mjs";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const confirmedIsolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
@@ -274,5 +275,35 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     });
     assert.equal(tamper.status, 404);
     assert.equal((await pool.query("select title from book_activities where id = $1", [customId])).rows[0].title, "Custom");
+  });
+
+  await t.test("integrity checks allow official master content without a teacher creator and detect semantic custom gaps", async () => {
+    await pool.query(
+      `insert into book_page_hotspots (package_slug, component_slug, page_id, label, left_percent, top_percent, width_percent, height_percent, created_by, school_id)
+       values ($1, $2, 'official-page', 'Official', 1, 1, 5, 5, null, $3)`,
+      [bookPackage.slug, `component-${schema}`, schoolA],
+    );
+    const mediaId = (await pool.query(
+      `insert into book_media_assets (package_slug, component_slug, page_id, file_name, mime_type, public_url, kind, created_by, school_id)
+       values ($1, $2, 'official-page', 'official.pdf', 'application/pdf', '/official.pdf', 'document', null, $3) returning id`,
+      [bookPackage.slug, `component-${schema}`, schoolA],
+    )).rows[0].id;
+    await pool.query(
+      `insert into book_activities (package_slug, component_slug, page_id, title, type, media_id, status, created_by, school_id)
+       values ($1, $2, 'official-page', 'Official master activity', 'text_panel', $3, 'published', null, $4)`,
+      [bookPackage.slug, `component-${schema}`, mediaId, schoolA],
+    );
+    const checks = new Map(relationshipChecks);
+    for (const name of ["hotspots_missing_content_context", "media_missing_content_context", "book_activities_missing_relationship"]) {
+      assert.equal(Number((await pool.query(checks.get(name))).rows[0].count), 0, name);
+    }
+
+    const customId = (await pool.query(
+      `insert into activities (school_id, created_by, ownership_type, lesson_id, title, type, slug, activity_type, content, content_json)
+       values ($1, null, 'custom', $2, 'Missing creator', 'multiple_choice', $3, 'multiple_choice', '{}', '{}') returning id`,
+      [schoolA, bookLesson.id, `missing-creator-${schema}`],
+    )).rows[0].id;
+    assert.equal(Number((await pool.query(checks.get("custom_activities_without_creator"))).rows[0].count), 1);
+    await pool.query("delete from activities where id = $1", [customId]);
   });
 });

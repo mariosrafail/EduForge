@@ -9,6 +9,7 @@
     "dev:netlify": "npx netlify-cli dev",
     "test": "node --test",
     "test:integration": "node --test tests/integration/*.test.js",
+    "test:integration:cleanup": "node scripts/cleanup-integration-schemas.mjs",
     "staging:migrate": "node scripts/run-staging-migrations.mjs",
     "staging:integrity": "node scripts/verify-tenant-integrity.mjs",
     "staging:seed": "node scripts/seed-staging-qa.mjs",

@@ -21,7 +21,7 @@ npm ci
 npm run staging:verify
 ```
 
-This runs `staging:migrate`, `staging:seed`, `staging:integrity`, and `staging:smoke` in order. The canonical migration list comes from `database/MIGRATIONS.md`; demo password migration `012` is excluded, checksums are recorded, and migration `013` is last. The QA seed is idempotent and leaves its data available for UI checks.
+This runs `staging:migrate`, `staging:seed`, `staging:integrity`, and `staging:smoke` in order. The canonical order comes only from `database/MIGRATIONS.md`; demo password migration `012` is excluded, `013` must be present, and later listed migrations are allowed. Filenames must be unique, every listed file must exist, and applied checksums are verified. The QA seed is idempotent and leaves its data available for UI checks.
 
 To run individual stages:
 
@@ -99,7 +99,7 @@ npm run staging:cleanup
 npm run staging:integrity
 ```
 
-Cleanup requires the same explicit staging confirmation, validates registry ownership, and deletes only the deterministic QA roots registered by the seed. It refuses an unknown or mismatched registry. The command confirms that no QA schools, accounts, or publisher root remain. Keep migration history; do not drop staging data manually.
+Cleanup requires the same explicit staging confirmation, validates the complete registry, and deletes only deterministic QA roots and known smoke-test fingerprints. It refuses an unknown, partial, or mismatched registry, is safe to run repeatedly after a successful cleanup, verifies QA sessions are gone, and confirms migration history is unchanged. Keep migration history; do not drop staging data manually.
 
 ## Sign-off
 

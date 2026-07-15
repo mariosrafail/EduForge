@@ -1,5 +1,21 @@
+import { createHash } from "node:crypto";
+
 export const QA_SEED_KEY = "eduforge-staging-qa-v1";
 export const QA_PASSWORD = process.env.EDUFORGE_STAGING_QA_PASSWORD || "StagingOnly!2026";
+export const QA_INVITE_TEST_IPS = [
+  "127.0.0.50",
+  "127.77.0.1", "127.77.0.2", "127.77.0.3",
+  "127.78.0.1", "127.78.0.2", "127.78.0.3", "127.78.0.4", "127.78.0.10", "127.78.0.20",
+];
+
+export function qaInviteFingerprint(ip) {
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || "eduforge-invite-rate-limit";
+  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+}
+
+export function qaInviteFingerprints() {
+  return QA_INVITE_TEST_IPS.map(qaInviteFingerprint);
+}
 
 export const QA = {
   publisher: { id: "e0f10000-0000-4000-8000-000000001000", name: "EduForge QA Publisher", slug: "eduforge-qa-publisher" },

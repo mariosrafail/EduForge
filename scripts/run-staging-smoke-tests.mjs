@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { createSafePool, callHandler, postgresTemplate } from "./_staging-db.mjs";
-import { QA, QA_PASSWORD, QA_SEED_KEY } from "./_staging-qa-data.mjs";
-import { setSqlForVerification } from "../netlify/functions/_auth-utils.js";
+import { QA, QA_PASSWORD, QA_SEED_KEY, qaInviteFingerprint } from "./_staging-qa-data.mjs";
+import { hashToken, sessionCookieName, setSqlForVerification } from "../netlify/functions/_auth-utils.js";
 import { handler as signIn } from "../netlify/functions/auth-signin.js";
+import { handler as studentSignup } from "../netlify/functions/auth-student-signup.js";
 import { handler as users } from "../netlify/functions/users.js";
 import { handler as user } from "../netlify/functions/user.js";
 import { handler as course } from "../netlify/functions/course.js";
@@ -17,7 +18,7 @@ setSqlForVerification(postgresTemplate(pool));
 const [schoolA, schoolB] = QA.schools;
 const artifacts = {
   users: [], assignments: [], activities: [], activitySubmissions: [], lessonSubmissions: [],
-  courses: [], classMemberships: [], inviteFingerprints: [],
+  bookActivities: [], courses: [], classes: [], classMemberships: [], inviteFingerprints: [],
 };
 let failures = 0;
 
@@ -42,8 +43,7 @@ async function login(account, password = QA_PASSWORD) {
 }
 
 function fingerprint(ip) {
-  const salt = process.env.INVITE_RATE_LIMIT_SALT || "eduforge-invite-rate-limit";
-  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+  return qaInviteFingerprint(ip);
 }
 
 async function count(sql, values = []) {
@@ -58,7 +58,7 @@ try {
   const sessions = {};
   await check("authentication succeeds for both schools and all active roles", async () => {
     for (const school of QA.schools) {
-      for (const role of ["admin", "teacher1", "student1"]) {
+      for (const role of ["admin", "teacher1", "teacher2", "student1", "student2"]) {
         const result = await login(school.users[role]);
         assert.equal(result.status, 200);
         assert.ok(result.cookie);
@@ -127,6 +127,9 @@ try {
     assert.equal((await pool.query("select title from lesson_activities where id = $1", [schoolA.customLessonActivityId])).rows[0].title, changed);
     assert.equal((await callHandler(activity, { method: "PATCH", cookie: sessions["b-teacher1"], query: { id: schoolA.customLessonActivityId }, body: { title: "Stolen" } })).status, 404);
     assert.equal((await pool.query("select title from lesson_activities where id = $1", [schoolA.customLessonActivityId])).rows[0].title, changed);
+    assert.equal((await callHandler(activity, { method: "PATCH", cookie: sessions["a-teacher2"], query: { id: schoolA.customLessonActivityId }, body: { title: "Same-school stolen" } })).status, 403);
+    assert.equal((await callHandler(activity, { method: "DELETE", cookie: sessions["a-teacher2"], query: { id: schoolA.customLessonActivityId } })).status, 405);
+    assert.equal((await pool.query("select title from lesson_activities where id = $1", [schoolA.customLessonActivityId])).rows[0].title, changed);
     await pool.query("update lesson_activities set title = $1 where id = $2", [original, schoolA.customLessonActivityId]);
     const title = `QA transient custom ${randomUUID()}`;
     const created = await callHandler(activity, { method: "POST", cookie: sessions["a-teacher1"], body: {
@@ -138,6 +141,38 @@ try {
     assert.deepEqual(custom, { id: custom.id, school_id: schoolA.id, created_by: schoolA.users.teacher1.id, ownership_type: "custom" });
   });
 
+  await check("same-school teachers cannot replace hotspots or edit/delete another teacher's book activity", async () => {
+    const hotspotBefore = (await pool.query(
+      "select id, label, created_by, school_id, left_percent::text, top_percent::text, width_percent::text, height_percent::text from book_page_hotspots where id = $1",
+      [schoolA.hotspotId],
+    )).rows[0];
+    const hotspotAttempt = await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "save-page-hotspots" }, body: {
+      packageSlug: QA.package.slug, componentSlug: QA.component.slug, pageId: "qa-page-1",
+      hotspots: [{ label: "Same-school stolen", left: 1, top: 1, width: 5, height: 5, actionType: "none" }],
+    } });
+    assert.equal(hotspotAttempt.status, 403);
+    assert.deepEqual((await pool.query(
+      "select id, label, created_by, school_id, left_percent::text, top_percent::text, width_percent::text, height_percent::text from book_page_hotspots where id = $1",
+      [schoolA.hotspotId],
+    )).rows[0], hotspotBefore);
+
+    const created = await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher1"], query: { action: "create-book-activity" }, body: {
+      packageSlug: QA.package.slug, componentSlug: QA.component.slug, pageId: "qa-owner-page",
+      title: `QA owned book activity ${randomUUID()}`, type: "open_answer",
+    } });
+    assert.equal(created.status, 200);
+    const bookActivityId = created.body.activity.id;
+    artifacts.bookActivities.push(bookActivityId);
+    const before = (await pool.query("select title, created_by, school_id, content, status from book_activities where id = $1", [bookActivityId])).rows[0];
+    assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "update-book-activity" }, body: {
+      activityId: bookActivityId, title: "Same-school stolen", type: "open_answer",
+    } })).status, 404);
+    assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "delete-book-activity" }, body: {
+      activityId: bookActivityId,
+    } })).status, 404);
+    assert.deepEqual((await pool.query("select title, created_by, school_id, content, status from book_activities where id = $1", [bookActivityId])).rows[0], before);
+  });
+
   await check("assignment creation, result visibility, and review stay with the owning teacher", async () => {
     const created = await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher1"], query: { action: "create-assignment" }, body: {
       activityId: schoolA.activityId, classId: schoolA.classes[0].id, title: "QA transient assignment",
@@ -147,12 +182,19 @@ try {
     artifacts.assignments.push(id);
     const row = (await pool.query("select school_id, teacher_id, class_id from activity_assignments where id = $1", [id])).rows[0];
     assert.deepEqual(row, { school_id: schoolA.id, teacher_id: schoolA.users.teacher1.id, class_id: schoolA.classes[0].id });
+    const assignmentCount = await count("select count(*) from activity_assignments where teacher_id = $1 and class_id = $2", [schoolA.users.teacher2.id, schoolA.classes[0].id]);
+    assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "create-assignment" }, body: {
+      activityId: schoolA.activityId, classId: schoolA.classes[0].id, title: "Same-school unauthorized",
+    } })).status, 403);
+    assert.equal(await count("select count(*) from activity_assignments where teacher_id = $1 and class_id = $2", [schoolA.users.teacher2.id, schoolA.classes[0].id]), assignmentCount);
     assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher1"], query: { action: "create-assignment" }, body: {
       activityId: schoolB.activityId, classId: schoolB.classes[0].id,
     } })).status >= 403, true);
     assert.equal((await callHandler(bookContent, { cookie: sessions["b-teacher1"], query: { action: "assignment-results", assignmentId: schoolA.classAssignmentId } })).status, 403);
+    assert.equal((await callHandler(bookContent, { cookie: sessions["a-teacher2"], query: { action: "assignment-results", assignmentId: schoolA.classAssignmentId } })).status, 403);
     const before = (await pool.query("select teacher_feedback from activity_submissions where id = $1", [schoolA.unreviewedSubmissionId])).rows[0].teacher_feedback;
     assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["b-teacher1"], query: { action: "review-submission" }, body: { submissionId: schoolA.unreviewedSubmissionId, teacherFeedback: "Stolen" } })).status >= 403, true);
+    assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "review-submission" }, body: { submissionId: schoolA.unreviewedSubmissionId, teacherFeedback: "Same-school stolen" } })).status, 403);
     assert.equal((await pool.query("select teacher_feedback from activity_submissions where id = $1", [schoolA.unreviewedSubmissionId])).rows[0].teacher_feedback, before);
     const submitted = await callHandler(bookContent, { method: "POST", cookie: sessions["a-student1"], query: { action: "submit" }, body: {
       activityId: schoolA.activityId, assignmentId: id, answers: { [schoolA.questionId]: "yes" },
@@ -191,6 +233,127 @@ try {
     assert.equal((await callHandler(lessonSubmit, { method: "POST", cookie: sessions["a-student1"], body: { lesson_id: schoolB.lessonId, answers: {} } })).status, 404);
   });
 
+  await check("same-school and cross-school students cannot read or mutate another student's work", async () => {
+    const cookie = sessions["a-student1"];
+    const grades = await callHandler(bookContent, { cookie, query: { action: "grades", studentId: schoolA.users.student2.id } });
+    assert.equal(grades.status, 200);
+    const encoded = JSON.stringify(grades.body);
+    assert.equal(encoded.includes(schoolA.unreviewedSubmissionId), false);
+    assert.equal(encoded.includes(schoolB.unreviewedSubmissionId), false);
+
+    for (const target of [
+      [schoolA, schoolA.directAssignmentId, schoolA.unreviewedSubmissionId],
+      [schoolB, schoolB.directAssignmentId, schoolB.unreviewedSubmissionId],
+    ]) {
+      const [school, assignmentId, submissionId] = target;
+      const before = (await pool.query(
+        "select student_id, answers, teacher_feedback, reviewed_at, reviewed_by from activity_submissions where id = $1",
+        [submissionId],
+      )).rows[0];
+      const countBefore = await count("select count(*) from activity_submissions where activity_assignment_id = $1", [assignmentId]);
+      assert.equal((await callHandler(bookContent, { method: "POST", cookie, query: { action: "submit" }, body: {
+        activityId: school.activityId, assignmentId, studentId: school.users.student2.id, answers: { [school.questionId]: "yes" },
+      } })).status, 403);
+      assert.equal((await callHandler(bookContent, { method: "POST", cookie, query: { action: "submit" }, body: {
+        activityId: school.activityId, assignmentId, answers: { [school.questionId]: "yes" },
+      } })).status, 403);
+      assert.equal((await callHandler(bookContent, { method: "POST", cookie, query: { action: "review-submission" }, body: {
+        submissionId, teacherFeedback: "Student overwrite",
+      } })).status, 403);
+      assert.equal((await callHandler(bookContent, { method: "POST", cookie, query: { action: "delete-submission" }, body: { submissionId } })).status, 400);
+      assert.equal(await count("select count(*) from activity_submissions where activity_assignment_id = $1", [assignmentId]), countBefore);
+      assert.deepEqual((await pool.query(
+        "select student_id, answers, teacher_feedback, reviewed_at, reviewed_by from activity_submissions where id = $1",
+        [submissionId],
+      )).rows[0], before);
+    }
+  });
+
+  await check("complete student signup is atomic, school-bound, sanitized, and throttled", async () => {
+    const inactiveClass = (await pool.query(
+      `insert into classes (school_id, teacher_id, name, level, slug, invite_code, status)
+       values ($1, $2, 'QA inactive signup class', 'B2', $3, 'QAINAC01', 'archived') returning id`,
+      [schoolA.id, schoolA.users.teacher1.id, `qa-inactive-${randomUUID()}`],
+    )).rows[0];
+    artifacts.classes.push(inactiveClass.id);
+
+    const base = await count("select count(*) from app_users");
+    const membershipBase = await count("select count(*) from class_students");
+    const failureCases = [
+      { email: `qa.signup.slug.${randomUUID()}@eduforge.invalid`, classCode: schoolA.classes[0].slug, classSlug: schoolA.classes[0].slug },
+      { email: `qa.signup.uuid.${randomUUID()}@eduforge.invalid`, classCode: schoolA.classes[0].id, classId: schoolA.classes[0].id },
+      { email: `qa.signup.invalid.${randomUUID()}@eduforge.invalid`, classCode: "NOCLASS9" },
+      { email: `qa.signup.inactive.${randomUUID()}@eduforge.invalid`, classCode: "QAINAC01" },
+    ];
+    for (const [index, failure] of failureCases.entries()) {
+      const ip = `127.78.0.${index + 1}`;
+      artifacts.inviteFingerprints.push(fingerprint(ip));
+      const response = await callHandler(studentSignup, { method: "POST", ip, body: {
+        fullName: "QA Failed Signup", password: "SignupOnly!2026", ...failure,
+      } });
+      assert.equal(response.status >= 400, true);
+      assert.equal(await count("select count(*) from app_users where email = $1", [failure.email]), 0);
+      assert.equal(await count("select count(*) from app_users"), base);
+      assert.equal(await count("select count(*) from class_students"), membershipBase);
+    }
+
+    const email = `qa.signup.valid.${randomUUID()}@eduforge.invalid`;
+    const signupIp = "127.78.0.10";
+    artifacts.inviteFingerprints.push(fingerprint(signupIp));
+    const signup = await callHandler(studentSignup, { method: "POST", ip: signupIp, body: {
+      fullName: "QA Transient Signup", email, password: "SignupOnly!2026", classCode: schoolA.classes[0].invite,
+      schoolId: schoolB.id,
+    } });
+    assert.equal(signup.status, 201);
+    const signupUserId = signup.body.user.id;
+    artifacts.users.push(signupUserId);
+    const userRow = (await pool.query("select id, school_id, role, status from app_users where id = $1", [signupUserId])).rows[0];
+    assert.deepEqual(userRow, { id: signupUserId, school_id: schoolA.id, role: "student", status: "active" });
+    assert.equal(await count("select count(*) from class_students where class_id = $1 and student_id = $2 and status = 'active'", [schoolA.classes[0].id, signupUserId]), 1);
+    const responseText = JSON.stringify(signup.body);
+    for (const hidden of ["password_hash", "token_hash", "session_token", "school_id", schoolA.id, schoolB.id,
+      schoolA.classes[0].id, schoolA.classes[0].slug, schoolA.classes[0].invite, "students"]) {
+      assert.equal(responseText.includes(hidden), false);
+    }
+    const cookie = signup.headers["Set-Cookie"] || signup.headers["set-cookie"] || "";
+    const token = cookie.split(";")[0].split("=")[1] || "";
+    assert.equal(cookie.startsWith(`${sessionCookieName}=`), true);
+    assert.equal(await count("select count(*) from auth_sessions where user_id = $1 and token_hash = $2", [signupUserId, hashToken(token)]), 1);
+
+    const membershipAfterSignup = await count("select count(*) from class_students where student_id = $1", [signupUserId]);
+    const duplicate = await callHandler(studentSignup, { method: "POST", ip: signupIp, body: {
+      fullName: "QA Duplicate", email, password: "SignupOnly!2026", classCode: schoolA.classes[1].invite,
+    } });
+    assert.equal(duplicate.status, 409);
+    assert.equal(await count("select count(*) from app_users where email = $1", [email]), 1);
+    assert.equal(await count("select count(*) from class_students where student_id = $1", [signupUserId]), membershipAfterSignup);
+
+    const pausedMembershipBefore = await count("select count(*) from class_students where student_id = $1", [schoolA.users.paused.id]);
+    assert.equal((await callHandler(studentSignup, { method: "POST", ip: signupIp, body: {
+      fullName: "QA Paused Duplicate", email: schoolA.users.paused.email, password: "SignupOnly!2026", classCode: schoolA.classes[1].invite,
+    } })).status, 409);
+    assert.equal(await count("select count(*) from class_students where student_id = $1", [schoolA.users.paused.id]), pausedMembershipBefore);
+
+    const throttleIp = "127.78.0.20";
+    const throttleFingerprint = fingerprint(throttleIp);
+    artifacts.inviteFingerprints.push(throttleFingerprint);
+    await pool.query("delete from class_invite_attempts where request_fingerprint = $1", [throttleFingerprint]);
+    const throttleEmail = `qa.signup.throttle.${randomUUID()}@eduforge.invalid`;
+    const throttleUsersBefore = await count("select count(*) from app_users where email = $1", [throttleEmail]);
+    for (let index = 0; index < 20; index += 1) {
+      assert.equal((await callHandler(studentSignup, { method: "POST", ip: throttleIp, body: {
+        fullName: "QA Throttled", email: throttleEmail, password: "SignupOnly!2026", classCode: "NOCLASS9",
+      } })).status, 400);
+    }
+    const limited = await callHandler(studentSignup, { method: "POST", ip: throttleIp, body: {
+      fullName: "QA Throttled", email: throttleEmail, password: "SignupOnly!2026", classCode: "NOCLASS9",
+    } });
+    assert.equal(limited.status, 429);
+    assert.ok(limited.headers["Retry-After"] || limited.headers["retry-after"]);
+    assert.equal(await count("select count(*) from class_invite_attempts where request_fingerprint = $1", [throttleFingerprint]), 20);
+    assert.equal(await count("select count(*) from app_users where email = $1", [throttleEmail]), throttleUsersBefore);
+  });
+
   await check("students join only by valid active invite code, never by slug or UUID", async () => {
     const cookie = sessions["a-student1"];
     const classId = schoolA.classes[1].id;
@@ -227,16 +390,23 @@ try {
     await pool.query("update class_invite_attempts set attempted_at = now() - interval '16 minutes' where request_fingerprint = $1", [fp]);
     assert.equal((await callHandler(bookContent, { query: { action: "class-by-invite", inviteCode: "ZZZZZZ99" }, ip })).status, 404);
   });
+  if (process.env.EDUFORGE_STAGING_SMOKE_FORCE_FAILURE === "after-transient-artifacts") {
+    await check("forced partial-failure cleanup regression", async () => {
+      throw new Error("Intentional smoke failure requested for cleanup verification");
+    });
+  }
 } finally {
   try {
     if (artifacts.lessonSubmissions.length) await pool.query("delete from lesson_submissions where id = any($1::uuid[])", [artifacts.lessonSubmissions]);
     if (artifacts.activitySubmissions.length) await pool.query("delete from activity_submissions where id = any($1::uuid[])", [artifacts.activitySubmissions]);
     if (artifacts.assignments.length) await pool.query("delete from activity_assignments where id = any($1::uuid[])", [artifacts.assignments]);
     if (artifacts.activities.length) await pool.query("delete from lesson_activities where id = any($1::uuid[])", [artifacts.activities]);
+    if (artifacts.bookActivities.length) await pool.query("delete from book_activities where id = any($1::uuid[])", [artifacts.bookActivities]);
     for (const [classId, studentId] of artifacts.classMemberships) {
       await pool.query("delete from class_students where class_id = $1 and student_id = $2", [classId, studentId]);
     }
     if (artifacts.courses.length) await pool.query("delete from courses where id = any($1::uuid[])", [artifacts.courses]);
+    if (artifacts.classes.length) await pool.query("delete from classes where id = any($1::uuid[])", [artifacts.classes]);
     if (artifacts.users.length) await pool.query("delete from app_users where id = any($1::uuid[])", [artifacts.users]);
     if (artifacts.inviteFingerprints.length) await pool.query("delete from class_invite_attempts where request_fingerprint = any($1::text[])", [artifacts.inviteFingerprints]);
   } finally {
