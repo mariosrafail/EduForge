@@ -50,6 +50,11 @@ export async function handler(event) {
       return json(401, { error: "Invalid email or password" });
     }
 
+    if (user.status !== "active") {
+      await sql`delete from auth_sessions where user_id = ${user.id}`;
+      return json(403, { error: "This account is not active" });
+    }
+
     const updated = await sql`
       update app_users
       set last_login_at = now()

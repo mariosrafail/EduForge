@@ -1,30 +1,30 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, LogIn, School, ShieldCheck, TicketCheck, UserPlus } from "lucide-react";
+import { ArrowLeft, KeyRound, LogIn, School, ShieldCheck, TicketCheck } from "lucide-react";
 import { dashboardForRole } from "../../hooks/useAuth.js";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleConfig = {
   admin: {
-    title: "Enter as School Admin",
+    title: "School Admin access",
     tag: "School rollout access",
     signinTitle: "Sign in as School Admin",
-    joinTitle: "Create school account",
+    joinTitle: "Create account",
     primaryRoute: "admin",
     copy: "School admins manage their Hamilton House demo profile, teachers, students, book activation codes, and Ultimate B2 rollout.",
   },
   teacher: {
-    title: "Enter as Teacher",
+    title: "Teacher access",
     tag: "Teacher workspace access",
     signinTitle: "Sign in as Teacher",
-    joinTitle: "Join with invitation code",
+    joinTitle: "Create account",
     primaryRoute: "teacher",
     copy: "Teachers are invited by the school, then assign Ultimate B2 book exercises, author interactive activities, and review student results.",
   },
   student: {
-    title: "Enter as Student",
+    title: "Student access",
     tag: "Learner portal access",
     signinTitle: "Sign in as Student",
-    joinTitle: "Join with class/book code",
+    joinTitle: "Create account",
     primaryRoute: "student",
     copy: "Students join through their school and book activation code, complete assigned book exercises, and receive guided revision feedback.",
   },
@@ -42,13 +42,6 @@ const initialSignup = {
   password: "",
 };
 
-const initialTeacherJoin = {
-  invitationCode: "HH-TEACHER-DEMO",
-  fullName: "Paris Georgoulakis",
-  email: "",
-  password: "",
-};
-
 const initialStudentJoin = {
   classCode: "ULTIMATE-B2-A",
   bookCode: "ULT-B2-DEMO-2026",
@@ -61,10 +54,6 @@ function roleLabel(role) {
   const normalized = String(role ?? "").toLowerCase();
   if (normalized === "admin") return "School Admin";
   return normalized ? `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}` : "User";
-}
-
-function redirectAfterDemo(navigateTo, route) {
-  window.setTimeout(() => navigateTo(route), 450);
 }
 
 function getPendingInviteRoute() {
@@ -102,7 +91,6 @@ export function AuthView({
   const [activeTab, setActiveTab] = useState("signin");
   const [signinForm, setSigninForm] = useState(initialSignin);
   const [signupForm, setSignupForm] = useState(initialSignup);
-  const [teacherJoin, setTeacherJoin] = useState(initialTeacherJoin);
   const [studentJoin, setStudentJoin] = useState(initialStudentJoin);
   const [submitting, setSubmitting] = useState(false);
   const [localStatus, setLocalStatus] = useState("");
@@ -149,13 +137,6 @@ export function AuthView({
     }
   };
 
-  const handleTeacherJoin = (event) => {
-    event.preventDefault();
-    clearMessages();
-    setLocalStatus("Invitation accepted for demo. Opening the teacher workspace...");
-    redirectAfterDemo(navigateTo, "teacher");
-  };
-
   const handleStudentJoin = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -183,13 +164,6 @@ export function AuthView({
     }
   };
 
-  const continueDemo = () => {
-    clearMessages();
-    if (typeof window !== "undefined") window.sessionStorage.setItem("eduforgeDemoRole", role);
-    setLocalStatus("Demo mode confirmed. Opening dashboard...");
-    redirectAfterDemo(navigateTo, config.primaryRoute);
-  };
-
   return (
     <main className="role-screen auth-screen">
       <button className="secondary-action compact-action auth-back-button" onClick={() => navigateTo("home")} type="button">
@@ -201,7 +175,7 @@ export function AuthView({
           <Tag tone="gold">{config.tag}</Tag>
           <h1>{config.title}</h1>
           <p>{config.copy}</p>
-          <div className="demo-login-note"><KeyRound size={16} /> Demo mode available without real login</div>
+          <div className="demo-login-note"><ShieldCheck size={16} /> Sign in requires a verified active account</div>
 
           {currentUser && (
             <div className="signed-in-panel">
@@ -219,7 +193,7 @@ export function AuthView({
         <div className="auth-form-shell">
           <div className="auth-tabs" role="tablist" aria-label={`${config.title} options`}>
             <button className={activeTab === "signin" ? "selected" : ""} onClick={() => { setActiveTab("signin"); clearMessages(); }} type="button">
-              <LogIn size={16} /> {config.signinTitle}
+              <LogIn size={16} /> Sign in
             </button>
             <button className={activeTab === "join" ? "selected" : ""} onClick={() => { setActiveTab("join"); clearMessages(); }} type="button">
               {role === "admin" ? <School size={16} /> : <TicketCheck size={16} />} {config.joinTitle}
@@ -245,7 +219,7 @@ export function AuthView({
                 Password
                 <input type="password" value={signinForm.password} onChange={(event) => setSigninForm({ ...signinForm, password: event.target.value })} placeholder="Minimum 8 characters" />
               </label>
-              <button className="primary-action" disabled={submitting} type="submit"><KeyRound size={17} /> {submitting ? "Signing in..." : config.signinTitle}</button>
+              <button className="primary-action" disabled={submitting} type="submit"><KeyRound size={17} /> {submitting ? "Signing in..." : "Sign in"}</button>
             </form>
           )}
 
@@ -267,30 +241,12 @@ export function AuthView({
                 Password
                 <input type="password" value={signupForm.password} onChange={(event) => setSignupForm({ ...signupForm, password: event.target.value })} placeholder="Minimum 8 characters" />
               </label>
-              <button className="primary-action" disabled={submitting} type="submit"><School size={17} /> {submitting ? "Creating..." : "Create school account"}</button>
+              <button className="primary-action" disabled={submitting} type="submit"><School size={17} /> {submitting ? "Creating..." : "Create account"}</button>
             </form>
           )}
 
           {activeTab === "join" && role === "teacher" && (
-            <form className="auth-form" onSubmit={handleTeacherJoin}>
-              <label>
-                Invitation code
-                <input value={teacherJoin.invitationCode} onChange={(event) => setTeacherJoin({ ...teacherJoin, invitationCode: event.target.value })} />
-              </label>
-              <label>
-                Full name
-                <input value={teacherJoin.fullName} onChange={(event) => setTeacherJoin({ ...teacherJoin, fullName: event.target.value })} placeholder="Paris Georgoulakis" />
-              </label>
-              <label>
-                Email
-                <input type="email" value={teacherJoin.email} onChange={(event) => setTeacherJoin({ ...teacherJoin, email: event.target.value })} placeholder="teacher@example.com" />
-              </label>
-              <label>
-                Password
-                <input type="password" value={teacherJoin.password} onChange={(event) => setTeacherJoin({ ...teacherJoin, password: event.target.value })} placeholder="Minimum 8 characters" />
-              </label>
-              <button className="primary-action" type="submit"><UserPlus size={17} /> Join teacher workspace</button>
-            </form>
+            <div className="inline-status">Teacher accounts are created and activated by a school administrator. Use Sign in after receiving your credentials.</div>
           )}
 
           {activeTab === "join" && role === "student" && (
@@ -315,13 +271,10 @@ export function AuthView({
                 Password
                 <input type="password" value={studentJoin.password} onChange={(event) => setStudentJoin({ ...studentJoin, password: event.target.value })} placeholder="Minimum 8 characters" />
               </label>
-              <button className="primary-action" disabled={submitting} type="submit"><TicketCheck size={17} /> {submitting ? "Creating..." : "Create student account"}</button>
+              <button className="primary-action" disabled={submitting} type="submit"><TicketCheck size={17} /> {submitting ? "Creating..." : "Create account"}</button>
             </form>
           )}
 
-          <button className="secondary-action" onClick={continueDemo} type="button">
-            <KeyRound size={17} /> Continue in demo mode
-          </button>
         </div>
       </Card>
     </main>

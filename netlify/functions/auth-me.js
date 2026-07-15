@@ -1,4 +1,4 @@
-import { currentUserFromEvent, ensureAuthSchema, getCookie, getSql, json, publicUser, sessionCookieName } from "./_auth-utils.js";
+import { ensureAuthSchema, getSql, json, publicUser, requireAuth } from "./_auth-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
@@ -10,19 +10,12 @@ export async function handler(event) {
   }
 
   try {
-    if (!getCookie(event, sessionCookieName)) {
-      return json(200, { user: null, authenticated: false });
-    }
-
     const sql = getSql();
     await ensureAuthSchema(sql);
-    const user = await currentUserFromEvent(sql, event);
+    const auth = await requireAuth(event, sql);
+    if (auth.error) return auth.error;
 
-    if (!user) {
-      return json(200, { user: null, authenticated: false });
-    }
-
-    return json(200, { user: publicUser(user), authenticated: true });
+    return json(200, { user: publicUser(auth.currentUser), authenticated: true });
   } catch (error) {
     console.error(error);
     return json(500, { error: "Auth check failed" });

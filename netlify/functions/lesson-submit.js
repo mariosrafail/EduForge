@@ -1,4 +1,5 @@
 import { fetchCourseById, getSql, json, parseBody, validateUuid } from "./_course-utils.js";
+import { requireRole, safeServerError } from "./_auth-utils.js";
 
 function scoreActivity(activity, answers = {}) {
   if (activity.type === "gap-fill") {
@@ -31,10 +32,18 @@ export async function handler(event) {
     if (idError) return json(400, { error: idError });
 
     const sql = getSql();
-    const lessonRows = await sql`select id, course_id from lessons where id = ${lessonId} limit 1`;
+    const auth = await requireRole(event, ["student"], sql);
+    if (auth.error) return auth.error;
+    if (body.student_id && String(body.student_id) !== String(auth.currentUser.id)) return json(403, { error: "Forbidden" });
+    const lessonRows = await sql`
+      select l.id, l.course_id
+      from lessons l join courses c on c.id = l.course_id
+      where l.id = ${lessonId} and c.school_id = ${auth.currentUser.school_id}
+      limit 1
+    `;
     if (!lessonRows.length) return json(404, { error: "Lesson not found" });
 
-    const course = await fetchCourseById(sql, lessonRows[0].course_id);
+    const course = await fetchCourseById(sql, lessonRows[0].course_id, auth.currentUser);
     const lesson = course?.lessons?.find((item) => item.id === lessonId) || null;
     if (!lesson) return json(404, { error: "Lesson not found" });
 
@@ -56,13 +65,12 @@ export async function handler(event) {
     const revisionGuidanceJson = JSON.stringify(revisionGuidance);
 
     await sql`
-      insert into lesson_submissions (lesson_id, student_id, answers, score, activity_scores, mistakes, revision_guidance)
-      values (${lessonId}, ${body.student_id || null}, ${answersJson}::jsonb, ${score}, ${activityScoresJson}::jsonb, ${mistakesJson}::jsonb, ${revisionGuidanceJson}::jsonb)
+      insert into lesson_submissions (school_id, lesson_id, student_id, answers, score, activity_scores, mistakes, revision_guidance)
+      values (${auth.currentUser.school_id}, ${lessonId}, ${auth.currentUser.id}, ${answersJson}::jsonb, ${score}, ${activityScoresJson}::jsonb, ${mistakesJson}::jsonb, ${revisionGuidanceJson}::jsonb)
     `;
 
     return json(200, { score, activity_scores: activityScores, mistakes, revision_guidance: revisionGuidance });
   } catch (error) {
-    console.error(error);
-    return json(500, { error: "Lesson submission failed", detail: error.message });
+    return safeServerError(error, "Lesson submission failed");
   }
 }

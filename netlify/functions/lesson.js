@@ -1,4 +1,5 @@
 import { fetchCourseById, getSql, json, parseBody, sanitizeRequiredText, sanitizeText, validateLessonStatus, validateUuid } from "./_course-utils.js";
+import { requireRole, safeServerError } from "./_auth-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
@@ -16,7 +17,14 @@ export async function handler(event) {
     if (statusError) return json(400, { error: statusError });
 
     const sql = getSql();
-    const existing = await sql`select id, course_id, title, subtitle, instructions, status from lessons where id = ${id} limit 1`;
+    const auth = await requireRole(event, ["admin", "teacher"], sql);
+    if (auth.error) return auth.error;
+    const existing = await sql`
+      select l.id, l.course_id, l.title, l.subtitle, l.instructions, l.status
+      from lessons l join courses c on c.id = l.course_id
+      where l.id = ${id} and c.school_id = ${auth.currentUser.school_id}
+      limit 1
+    `;
     if (!existing.length) return json(404, { error: "Lesson not found" });
     const lesson = existing[0];
     const title = body.title === undefined ? lesson.title : sanitizeRequiredText(body.title);
@@ -31,9 +39,8 @@ export async function handler(event) {
       where id = ${id}
     `;
 
-    return json(200, { course: await fetchCourseById(sql, lesson.course_id) });
+    return json(200, { course: await fetchCourseById(sql, lesson.course_id, auth.currentUser) });
   } catch (error) {
-    console.error(error);
-    return json(500, { error: "Lesson API failed", detail: error.message });
+    return safeServerError(error, "Lesson API failed");
   }
 }

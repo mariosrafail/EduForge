@@ -70,5 +70,7 @@ cross join (
     ('Anna Georgiou', 'anna.student@example.com', 'student', 'B1 Junior', 'invited')
 ) as seed(full_name, email, role, level, status)
 where not exists (
-  select 1 from app_users where school_id = demo_school.id
+  select 1
+  from app_users
+  where lower(app_users.email) = lower(seed.email)
 );

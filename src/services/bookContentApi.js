@@ -1,4 +1,3 @@
-import { ultimateB2Package } from "../data/ultimateB2DemoData.js";
 import { getDemoBookPackage, mergeBookPackageWithDemoFallback, normalizeBookPackageKey } from "../data/bookPackages.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
@@ -167,12 +166,7 @@ export async function getBookPackageTree(slugOrId = "ultimate-b2") {
 }
 
 export async function getBookPackageTreeWithFallback(slugOrId = "ultimate-b2") {
-  try {
-    return await getBookPackageTree(slugOrId);
-  } catch (error) {
-    console.warn(`Using mock ${slugOrId} package fallback.`, error);
-    return { ...getDemoBookPackage(slugOrId), source: "mock-fallback" };
-  }
+  return getBookPackageTree(slugOrId);
 }
 
 export async function getActivity(activityIdOrSlug) {

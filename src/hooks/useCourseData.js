@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cloneCourseDemo } from "../data/courseDemoData.js";
 import { createActivity, getCourse, submitLesson, updateActivity, updateCourse, updateLesson } from "../services/courseApi.js";
 
-const unavailableMessage = "Database connection unavailable, using local demo content.";
+const unavailableMessage = "Course data could not be loaded from the server.";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LESSON_META_STORAGE_KEY = "hh_lms_lesson_metadata";
-
-function canUseLocalFallback(error) {
-  return !error?.status || error.status === 404;
-}
 
 function normalizeFeedback(feedback = {}) {
   return {
@@ -114,7 +109,7 @@ function apiActivityPatchToUi(activity, patch = {}) {
 }
 
 export function useCourseData() {
-  const [course, setCourseState] = useState(() => applyLessonMetadata(cloneCourseDemo()));
+  const [course, setCourseState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastSavedAt, setLastSavedAt] = useState("");
@@ -129,9 +124,8 @@ export function useCourseData() {
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      const fallback = applyLessonMetadata(cloneCourseDemo());
-      setCourseState((current) => current || fallback);
-      return fallback;
+      setCourseState(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -151,7 +145,6 @@ export function useCourseData() {
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      setCourseState((current) => ({ ...current, ...patch }));
       throw requestError;
     }
   }, []);
@@ -166,50 +159,22 @@ export function useCourseData() {
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      setCourseState((current) => ({
-        ...current,
-        lesson: { ...current.lesson, ...patch },
-        lessons: current.lessons?.map((lesson) => (lesson.id === lessonId ? { ...lesson, ...patch } : lesson)),
-      }));
       throw requestError;
     }
   }, []);
 
   const saveActivity = useCallback(async (activityId, patch) => {
-    const saveLocalActivity = () => {
-      const savedAt = new Date().toISOString();
-      let nextCourse = null;
-      setCourseState((current) => {
-        nextCourse = {
-          ...current,
-          lesson: {
-            ...current.lesson,
-            activities: current.lesson.activities.map((activity) => (
-              activity.id === activityId ? apiActivityPatchToUi(activity, patch) : activity
-            )),
-          },
-        };
-        return nextCourse;
-      });
-      setLastSavedAt(savedAt);
-      return nextCourse;
-    };
-
     if (!uuidPattern.test(activityId)) {
       try {
-        const nextCourse = await createActivity(course.lesson.id, patch);
+        const nextCourse = await createActivity(course?.lesson?.id, patch);
         setCourseState(applyLessonMetadata(nextCourse));
         setError("");
         setLastSavedAt(new Date().toISOString());
         return nextCourse;
       } catch (requestError) {
         console.warn(requestError);
-        if (!canUseLocalFallback(requestError)) {
-          setError("Activity save failed. Check the database migration and try again.");
-          throw requestError;
-        }
-        setError(unavailableMessage);
-        return saveLocalActivity();
+        setError("Activity save failed. Check your access and database migration, then try again.");
+        throw requestError;
       }
     }
 
@@ -221,14 +186,10 @@ export function useCourseData() {
       return nextCourse;
     } catch (requestError) {
       console.warn(requestError);
-      if (!canUseLocalFallback(requestError)) {
-        setError("Activity save failed. Check the database migration and try again.");
-        throw requestError;
-      }
-      setError(unavailableMessage);
-      return saveLocalActivity();
+      setError("Activity save failed. Check your access and database migration, then try again.");
+      throw requestError;
     }
-  }, [course.lesson.id]);
+  }, [course?.lesson?.id]);
 
   const submitCourseLesson = useCallback(async (payload) => {
     try {
@@ -236,20 +197,20 @@ export function useCourseData() {
     } catch (requestError) {
       console.warn(requestError);
       setError(unavailableMessage);
-      return null;
+      throw requestError;
     }
   }, []);
 
   const setCourse = useCallback((nextCourseOrUpdater) => {
     setCourseState((current) => {
       const nextCourse = typeof nextCourseOrUpdater === "function" ? nextCourseOrUpdater(current) : nextCourseOrUpdater;
-      writeLessonMetadata(nextCourse.lesson);
+      if (nextCourse?.lesson) writeLessonMetadata(nextCourse.lesson);
       return nextCourse;
     });
   }, []);
 
   const resetCourse = useCallback(() => {
-    setCourseState(applyLessonMetadata(cloneCourseDemo()));
+    setCourseState(null);
     setError("");
     setLastSavedAt("");
   }, []);

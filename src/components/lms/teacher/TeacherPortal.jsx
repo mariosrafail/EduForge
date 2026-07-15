@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { dedupeBookPackages, demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
+import { dedupeBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import { buildTeacherSectionHash } from "../../../utils/hashRoutes.js";
@@ -16,13 +16,13 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
   const [selectedPageNumber, setSelectedPageNumber] = useState(editorProps.initialSelectedPageNumber || null);
-  const [bookPackages, setBookPackages] = useState(demoBookPackages);
+  const [bookPackages, setBookPackages] = useState([]);
   const [bookSourceMessage, setBookSourceMessage] = useState("");
   const {
     classes: teacherClasses,
     classOptions,
     loadingClasses,
-    usingDemoClasses,
+    classLoadError,
     addCreatedClass,
   } = useTeacherClasses(currentUser);
 
@@ -45,7 +45,11 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
     getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
       if (!mounted) return;
       setBookPackages((current) => dedupeBookPackages(replaceDemoBookPackage(current, packageTree)));
-      setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
+      setBookSourceMessage("Loaded from book content database.");
+    }).catch((error) => {
+      if (!mounted) return;
+      setBookPackages([]);
+      setBookSourceMessage(error.message || "Book packages could not be loaded.");
     });
     return () => {
       mounted = false;
@@ -142,7 +146,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             bookPackage={bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0]}
             classes={teacherClasses}
             loadingClasses={loadingClasses}
-            usingDemoClasses={usingDemoClasses}
+            classLoadError={classLoadError}
             selectedClassSlug={editorProps.initialSelectedClassSlug}
             routeAction={editorProps.routeAction}
             navigateTo={navigateTo}

@@ -1,18 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { classes } from "../../data/lmsDemoData.js";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getClassByInvite, getClassBySlug, joinClass } from "../../services/classApi.js";
-import { slugifyClassName } from "../../utils/hashRoutes.js";
 import { Card, SectionTitle, Tag } from "./Shared.jsx";
 
-function findClassBySlug(classSlug) {
-  return classes.find((classItem) => (classItem.slug || slugifyClassName(classItem.name)) === classSlug) || null;
-}
-
 export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
-  const demoClassItem = useMemo(() => findClassBySlug(classSlug), [classSlug]);
   const [classItem, setClassItem] = useState(null);
   const [loadingClass, setLoadingClass] = useState(true);
-  const [usingDemoClass, setUsingDemoClass] = useState(false);
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -39,13 +31,11 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
 
         if (!cancelled) {
           setClassItem(loadedClass);
-          setUsingDemoClass(false);
         }
       } catch (error) {
         if (!cancelled) {
-          setClassItem(demoClassItem);
-          setUsingDemoClass(Boolean(demoClassItem));
-          if (!demoClassItem) setJoinError(error.message || "Class invite could not be loaded.");
+          setClassItem(null);
+          setJoinError(error.message || "Class invite could not be loaded.");
         }
       } finally {
         if (!cancelled) setLoadingClass(false);
@@ -57,7 +47,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
     return () => {
       cancelled = true;
     };
-  }, [classSlug, demoClassItem]);
+  }, [classSlug]);
 
   const attemptJoin = useCallback(async () => {
     if (!canJoin || !classItem) return;
@@ -114,7 +104,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
           <SectionTitle
             eyebrow="Class invite"
             title="This invite link is not active."
-            text="The class could not be found in the current demo data. Ask your teacher for a fresh invite link."
+            text="The class invite could not be found. Ask your teacher for a fresh invite link."
           />
           {joinError && <div className="inline-status error">{joinError}</div>}
           <button className="primary-action" type="button" onClick={() => navigateTo?.("home")} data-sound-click="back">
@@ -142,7 +132,6 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
           text={`${classItem.teacher || "Paris Georgoulakis"} invited you to join the ${classItem.assignedBook || classItem.book || "Ultimate B2"} class workspace.`}
           action={<Tag tone="green">{classItem.students} students</Tag>}
         />
-        {usingDemoClass && <div className="inline-status warning">Using demo class details because this invite was not found in the database.</div>}
         <div className="join-class-meta">
           <span>Level: {classItem.level || "B2"}</span>
           <span>Assigned book: {classItem.assignedBook || classItem.book || "Ultimate B2"}</span>

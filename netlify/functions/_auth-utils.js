@@ -19,6 +19,18 @@ export function json(statusCode, body, extraHeaders = {}) {
   };
 }
 
+export function unauthorized(message = "Unauthorized") {
+  return json(401, { error: message });
+}
+
+export function forbidden(message = "Forbidden") {
+  return json(403, { error: message });
+}
+
+export function notFound(message = "Resource not found") {
+  return json(404, { error: message });
+}
+
 export function serverError(message = "Authentication service failed") {
   return json(500, { error: message });
 }
@@ -96,7 +108,21 @@ export function publicUser(user) {
     email: user.email,
     role: user.role,
     status: user.status,
+    level: user.level ?? null,
   };
+}
+
+export const safePublicUser = publicUser;
+
+export function isValidUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
+export function requireSameSchool(resourceSchoolId, currentUser) {
+  if (!resourceSchoolId || !currentUser?.school_id || String(resourceSchoolId) !== String(currentUser.school_id)) {
+    return forbidden();
+  }
+  return null;
 }
 
 export function hashToken(token) {
@@ -150,13 +176,41 @@ export async function currentUserFromEvent(sql, event) {
 
   const tokenHash = hashToken(token);
   const rows = await sql`
-    select u.id, u.school_id, u.full_name, u.email, u.role, u.status
+    select u.id, u.school_id, u.full_name, u.email, u.role, u.status, u.level
     from auth_sessions s
     join app_users u on u.id = s.user_id
     where s.token_hash = ${tokenHash}
       and s.expires_at > now()
+      and u.status = 'active'
     limit 1
   `;
 
   return rows[0] ?? null;
+}
+
+/**
+ * Resolve the existing opaque session cookie to an active database user.
+ * Callers receive a response object instead of an exception for expected auth failures.
+ */
+export async function requireAuth(event, sql = null) {
+  const database = sql || getSql();
+  const token = getCookie(event, sessionCookieName);
+  if (!token) return { error: unauthorized() };
+
+  const currentUser = await currentUserFromEvent(database, event);
+  if (!currentUser) return { error: unauthorized() };
+  return { sql: database, currentUser };
+}
+
+export async function requireRole(event, allowedRoleList, sql = null) {
+  const auth = await requireAuth(event, sql);
+  if (auth.error) return auth;
+  const roles = Array.isArray(allowedRoleList) ? allowedRoleList : [allowedRoleList];
+  if (!roles.includes(auth.currentUser.role)) return { ...auth, error: forbidden() };
+  return auth;
+}
+
+export function safeServerError(error, message = "Request failed") {
+  console.error(error);
+  return json(500, { error: message });
 }

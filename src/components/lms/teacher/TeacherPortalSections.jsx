@@ -5,7 +5,6 @@ import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimat
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import {
   createAssignment,
-  downloadAssignmentResultsCsv,
   exportAssignmentResultsCsv,
   getAssignmentResults,
   listClassStudents,
@@ -22,7 +21,6 @@ import { TeacherCourseEditor } from "./TeacherCourseEditor.jsx";
 import { ClassInviteLink } from "./ClassInviteLink.jsx";
 import { classBookOptions, classLevelOptions, teacherSections } from "./teacherPortalConfig.js";
 import { dueDateLabel, dueDateTone } from "./teacherPortalUtils.js";
-import { sampleExerciseResult, teacherPortalAssignments, teacherPortalStudents } from "./teacherPortalData.js";
 
 export function TeacherDashboard({ goToSection }) {
   return (
@@ -115,7 +113,7 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
   const [previewExercise, setPreviewExercise] = useState(null);
   const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
   const selectedPackageKey = normalizeBookPackageKey({ slug: selectedPackageSlug, packageTitle: selectedPackageSlug });
-  const bookPackage = visibleBookPackages.find((item) => normalizeBookPackageKey(item) === selectedPackageKey || item.slug === selectedPackageSlug || item.id === selectedPackageSlug) || visibleBookPackages[0] || ultimateB2Package;
+  const bookPackage = visibleBookPackages.find((item) => normalizeBookPackageKey(item) === selectedPackageKey || item.slug === selectedPackageSlug || item.id === selectedPackageSlug) || visibleBookPackages[0] || null;
 
   useEffect(() => {
     if (!initialPreviewActivityKey) {
@@ -164,6 +162,16 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
   }
 
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
+
+  if (!bookPackage) {
+    return (
+      <section className="teacher-section-stack">
+        <SectionTitle eyebrow="Books" title="No book packages loaded." text="Book packages could not be loaded for this account." />
+        {bookSourceMessage && <div className="inline-status warning">{bookSourceMessage}</div>}
+        <Card><p>Activated teacher book packages are unavailable.</p></Card>
+      </section>
+    );
+  }
 
   return (
     <section className="teacher-section-stack">
@@ -220,7 +228,7 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
   );
 }
 
-export function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, usingDemoClasses = false, selectedClassSlug: routeSelectedClassSlug = null, routeAction = null, navigateTo, onClassCreated }) {
+export function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, classLoadError = "", selectedClassSlug: routeSelectedClassSlug = null, routeAction = null, navigateTo, onClassCreated }) {
   const [selectedClassSlug, setSelectedClassSlug] = useState(routeSelectedClassSlug || "");
   const [newClassName, setNewClassName] = useState("");
   const [newClassLevel, setNewClassLevel] = useState("B2");
@@ -233,9 +241,8 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
   const [liveStudents, setLiveStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studentsError, setStudentsError] = useState("");
-  const [usingDemoStudents, setUsingDemoStudents] = useState(false);
   const selectedClass = classes.find((classItem) => classItem.slug === selectedClassSlug) || classes[0];
-  const students = usingDemoStudents ? teacherPortalStudents.filter((student) => student.className === selectedClass?.name) : liveStudents;
+  const students = liveStudents;
 
   useEffect(() => {
     setSelectedClassSlug((currentSlug) => {
@@ -256,13 +263,11 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
     listClassStudents(selectedClass.id).then((rows) => {
       if (!mounted) return;
       setLiveStudents(rows);
-      setUsingDemoStudents(false);
     }).catch((error) => {
       if (!mounted) return;
-      console.warn("Using demo class students fallback.", error);
+      console.warn("Class students could not be loaded.", error);
       setLiveStudents([]);
-      setUsingDemoStudents(true);
-      setStudentsError(error.message || "Backend unavailable. Showing demo students.");
+      setStudentsError(error.message || "Class students could not be loaded.");
     }).finally(() => {
       if (mounted) setLoadingStudents(false);
     });
@@ -324,7 +329,7 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
             <span className="eyebrow">New class group</span>
             <h2>Create new class</h2>
           </div>
-          <Tag tone={usingDemoClasses ? "gold" : "blue"}>{usingDemoClasses ? "Demo fallback" : "Database"}</Tag>
+          <Tag tone={classLoadError ? "gold" : "blue"}>{classLoadError ? "Unavailable" : "Database"}</Tag>
         </div>
         <form className="teacher-create-class-form" onSubmit={createClass}>
           <label>
@@ -356,7 +361,7 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
             {savingClass ? "Saving..." : "Create class"}
           </button>
         </form>
-        {usingDemoClasses && <div className="inline-status warning">Using demo classes because database classes could not be loaded.</div>}
+        {classLoadError && <div className="inline-status warning">{classLoadError}</div>}
         {classSaveError && <div className="inline-status error">{classSaveError}</div>}
         {successMessage && <div className="inline-status success">{successMessage}</div>}
       </Card>
@@ -472,8 +477,8 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
   const title = liveResults?.assignment?.title || assignment?.title || student?.name;
   const summary = assignment
     ? `${liveResults?.assignment?.className || assignment.className} / ${liveResults?.summary?.submittedCount ?? assignment.submitted}/${liveResults?.summary?.totalStudents ?? assignment.total} submitted / ${liveResults?.summary?.averageScore ?? assignment.averageScore}% average`
-    : `${sampleExerciseResult.exercise} / Score ${sampleExerciseResult.score}`;
-  const tag = assignment ? (liveResults ? "Live results" : "Demo results") : student.className;
+    : student?.className || "Student";
+  const tag = assignment ? (liveResults ? "Live results" : "Results unavailable") : student?.className || "Student";
 
   return (
     <div
@@ -557,22 +562,11 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
           </>
         ) : assignment ? (
           <div className="review-list results-modal-list">
-            <article><strong>Anna Georgiou<span>84%</span></strong><p>Strong text evidence. One grammar item needs review.</p><Tag tone="green">Teacher feedback ready</Tag></article>
-            <article><strong>Nikos Stavrou<span>76%</span></strong><p>Listening details need a second replay before next attempt.</p><Tag tone="gold">Needs review</Tag></article>
-            <article><strong>Maria Ioannou<span>91%</span></strong><p>Accurate answers and clear reading strategy notes.</p><Tag tone="green">Reviewed</Tag></article>
+            <article><strong>Results are not loaded</strong><p>Live assignment results could not be loaded for this assignment.</p><Tag tone="gold">Unavailable</Tag></article>
           </div>
         ) : (
           <div className="answer-feedback-list results-modal-list">
-            {sampleExerciseResult.answers.map((answer) => (
-              <article key={answer.prompt} className={answer.correct ? "correct" : "wrong"}>
-                <div>
-                  <strong>{answer.prompt}</strong>
-                  <span>Student chose: {answer.studentAnswer}</span>
-                  {!answer.correct && <small>Correct answer: {answer.correctAnswer}</small>}
-                </div>
-                <b>{answer.correct ? "Correct" : "Wrong"}</b>
-              </article>
-            ))}
+            <article><strong>No detailed submission selected</strong><span>Open a live assignment result to review answers and feedback.</span></article>
           </div>
         )}
       </Card>
@@ -587,13 +581,11 @@ export function TeacherStudents({ currentUser = null, classes = [], classOptions
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studentsError, setStudentsError] = useState("");
-  const [usingDemoStudents, setUsingDemoStudents] = useState(false);
   const filterOptions = classOptions.length ? classOptions : classes.map((classItem) => classItem.name).filter(Boolean);
 
   useEffect(() => {
     if (!currentUser?.id) {
       setStudents([]);
-      setUsingDemoStudents(false);
       return;
     }
     let mounted = true;
@@ -602,13 +594,11 @@ export function TeacherStudents({ currentUser = null, classes = [], classOptions
     listTeacherStudents(currentUser.id).then((rows) => {
       if (!mounted) return;
       setStudents(rows);
-      setUsingDemoStudents(false);
     }).catch((error) => {
       if (!mounted) return;
-      console.warn("Using demo teacher students fallback.", error);
+      console.warn("Teacher students could not be loaded.", error);
       setStudents([]);
-      setUsingDemoStudents(true);
-      setStudentsError(error.message || "Backend unavailable. Showing demo students.");
+      setStudentsError(error.message || "Students could not be loaded.");
     }).finally(() => {
       if (mounted) setLoadingStudents(false);
     });
@@ -618,13 +608,12 @@ export function TeacherStudents({ currentUser = null, classes = [], classOptions
   }, [currentUser?.id]);
 
   const visibleStudents = useMemo(() => {
-    const sourceStudents = usingDemoStudents ? teacherPortalStudents : students;
-    return sourceStudents.filter((student) => {
+    return students.filter((student) => {
       const matchesQuery = student.name.toLowerCase().includes(query.toLowerCase());
       const matchesClass = classFilter === "All classes" || student.className === classFilter;
       return matchesQuery && matchesClass;
     });
-  }, [classFilter, query, students, usingDemoStudents]);
+  }, [classFilter, query, students]);
   return (
     <section className="teacher-section-stack">
       <SectionTitle
@@ -646,7 +635,7 @@ export function TeacherStudents({ currentUser = null, classes = [], classOptions
               {filterOptions.map((className) => <option key={className}>{className}</option>)}
             </select>
           </label>
-          <Tag tone={usingDemoStudents ? "gold" : "blue"}>{usingDemoStudents ? "Demo fallback" : "Database"}</Tag>
+          <Tag tone={studentsError ? "gold" : "blue"}>{studentsError ? "Unavailable" : "Database"}</Tag>
         </div>
         {loadingStudents && <div className="teacher-loading-state">Loading students...</div>}
         {studentsError && <div className="inline-status warning">{studentsError}</div>}
@@ -674,7 +663,6 @@ export function TeacherStudents({ currentUser = null, classes = [], classOptions
 
 export function TeacherAssignments({ currentUser = null, classes = [], classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
   const [assignments, setAssignments] = useState([]);
-  const [usingDemoAssignments, setUsingDemoAssignments] = useState(false);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentError, setAssignmentError] = useState("");
   const [activityOptions, setActivityOptions] = useState([]);
@@ -687,7 +675,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
   const [selectedAssignmentLiveResults, setSelectedAssignmentLiveResults] = useState(null);
-  const visibleAssignments = usingDemoAssignments ? teacherPortalAssignments : assignments;
+  const visibleAssignments = assignments;
 
   const loadAssignments = async () => {
     setLoadingAssignments(true);
@@ -695,12 +683,10 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     try {
       const liveAssignments = await listTeacherAssignments(currentUser?.id || "");
       setAssignments(liveAssignments);
-      setUsingDemoAssignments(false);
     } catch (error) {
-      console.warn("Using demo assignment fallback.", error);
+      console.warn("Teacher assignments could not be loaded.", error);
       setAssignments([]);
-      setUsingDemoAssignments(true);
-      setAssignmentError(error.message || "Backend unavailable. Showing demo assignments.");
+      setAssignmentError(error.message || "Assignments could not be loaded.");
     } finally {
       setLoadingAssignments(false);
     }
@@ -733,6 +719,11 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
       }
       setActivityOptions(options);
       setSelectedActivityId((current) => current || options[0]?.id || "");
+    }).catch((error) => {
+      if (!mounted) return;
+      setActivityOptions([]);
+      setSelectedActivityId("");
+      setAssignmentError(error.message || "Assignable activities could not be loaded.");
     });
     return () => {
       mounted = false;
@@ -812,7 +803,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     setSelectedAssignmentResult(assignment);
     setSelectedAssignmentLiveResults(null);
     navigateTo?.(buildTeacherSectionHash("assignments", `${assignment.title}-${assignment.className}`));
-    if (usingDemoAssignments || !assignment.id) return;
+    if (!assignment.id) return;
     try {
       const results = await getAssignmentResults(assignment.id);
       setSelectedAssignmentLiveResults(results);
@@ -822,15 +813,8 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
   };
 
   const exportResults = async (assignment) => {
-    if (usingDemoAssignments || !assignment.id) {
-      downloadAssignmentResultsCsv({
-        assignment,
-        rows: [
-          { studentName: "Anna Georgiou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 84, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
-          { studentName: "Nikos Stavrou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 76, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
-          { studentName: "Maria Ioannou", email: "", className: assignment.className, assignment: assignment.title, status: "Submitted", score: 91, correctCount: "", totalCount: "", submittedAt: "", dueAt: assignment.dueDate },
-        ],
-      });
+    if (!assignment.id) {
+      setAssignmentError("Only live assignments can be exported.");
       return;
     }
     try {
@@ -854,9 +838,9 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
             <span className="eyebrow"><ListChecks size={15} /> Active assignments</span>
             <h2>Submit status</h2>
           </div>
-          <Tag tone={usingDemoAssignments ? "gold" : "green"}>{usingDemoAssignments ? "Demo fallback" : "Database"}</Tag>
+          <Tag tone={assignmentError ? "gold" : "green"}>{assignmentError ? "Unavailable" : "Database"}</Tag>
         </div>
-        {assignmentError && <div className={`inline-status ${usingDemoAssignments ? "warning" : "error"}`}>{assignmentError}</div>}
+        {assignmentError && <div className="inline-status error">{assignmentError}</div>}
         {loadingAssignments && <div className="teacher-loading-state">Loading assignments...</div>}
         <div className="teacher-assignment-table">
           {!loadingAssignments && visibleAssignments.length === 0 && <div className="teacher-loading-state">No assignments yet. Create one below.</div>}
@@ -889,7 +873,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
         assignment={selectedAssignmentResult}
         liveResults={selectedAssignmentLiveResults}
         currentUser={currentUser}
-        label={usingDemoAssignments ? "Results preview" : "Assignment results"}
+        label="Assignment results"
         onReviewSaved={() => {
           if (selectedAssignmentResult) openResults(selectedAssignmentResult);
         }}

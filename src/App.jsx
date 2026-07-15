@@ -12,7 +12,7 @@ import { StudentPortal } from "./components/lms/student/StudentPortal.jsx";
 import { TeacherPortal } from "./components/lms/teacher/TeacherPortal.jsx";
 import houseLogoMark from "./assets/branding/hamilton-house-logo-houseonly.png";
 import { brandPresets } from "./data/lmsDemoData.js";
-import { useAuth } from "./hooks/useAuth.js";
+import { dashboardForRole, useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
 
@@ -80,7 +80,6 @@ function AccessGate({ requiredRole, currentUser, authLoading, navigateTo }) {
     );
   }
   const signedIn = Boolean(currentUser);
-  const allowed = requiredRole === "teacher" ? ["teacher", "admin"].includes(currentUser?.role) : currentUser?.role === requiredRole;
   return (
     <main className="route-fallback-screen">
       <Card className="route-fallback-card">
@@ -88,25 +87,16 @@ function AccessGate({ requiredRole, currentUser, authLoading, navigateTo }) {
         <span className="eyebrow">{signedIn ? "Access restricted" : "Sign in required"}</span>
         <h1>{signedIn ? "This account does not have access to this area." : "Sign in to continue."}</h1>
         <p>{signedIn ? `You are signed in as ${currentUser.role}. This area requires ${roleLabel} access.` : `This area requires a ${roleLabel} account.`}</p>
-        <button className="primary-action" type="button" onClick={() => navigateTo(signedIn && !allowed ? "home" : `auth-${requiredRole}`)} data-sound-click="submit">
-          {signedIn ? "Back to role selection" : `Sign in as ${roleLabel}`}
+        <button className="primary-action" type="button" onClick={() => navigateTo(signedIn ? dashboardForRole(currentUser.role) : `auth-${requiredRole}`)} data-sound-click="submit">
+          {signedIn ? "Go to my dashboard" : `Sign in as ${roleLabel}`}
         </button>
       </Card>
     </main>
   );
 }
 
-function readDemoRole() {
-  if (typeof window === "undefined") return "";
-  return window.sessionStorage.getItem("eduforgeDemoRole") || "";
-}
-
-function DemoModeNotice() {
-  return (
-    <div className="inline-status warning demo-mode-notice">
-      Demo mode, live database actions disabled.
-    </div>
-  );
+export function canAccessRole(currentUser, requiredRole) {
+  return Boolean(currentUser && currentUser.role === requiredRole);
 }
 
 export default function App() {
@@ -141,10 +131,9 @@ export default function App() {
   );
   const transitionKey = transitionGroupForView(view, activityKey);
   const studentSection = studentSectionByView[view] || (activityKey && routeMode === "student" ? "activity" : null);
-  const demoRole = auth.currentUser ? "" : readDemoRole();
-  const teacherAccessAllowed = ["teacher", "admin"].includes(auth.currentUser?.role) || demoRole === "teacher";
-  const adminAccessAllowed = auth.currentUser?.role === "admin" || demoRole === "admin";
-  const studentAccessAllowed = auth.currentUser?.role === "student" || demoRole === "student";
+  const teacherAccessAllowed = canAccessRole(auth.currentUser, "teacher");
+  const adminAccessAllowed = canAccessRole(auth.currentUser, "admin");
+  const studentAccessAllowed = canAccessRole(auth.currentUser, "student");
 
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
@@ -211,23 +200,18 @@ export default function App() {
           <AccessGate requiredRole="admin" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {adminSectionByView[view] && adminAccessAllowed && (
-          <>
-            {demoRole === "admin" && <DemoModeNotice />}
-            <AdminView
+          <AdminView
               initialSection={adminSectionByView[view]}
               brand={brand}
               setBrand={setBrand}
               navigateTo={navigateTo}
-            />
-          </>
+          />
         )}
         {teacherSectionByView[view] && !teacherAccessAllowed && (
           <AccessGate requiredRole="teacher" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {teacherSectionByView[view] && teacherAccessAllowed && (
-          <>
-            {demoRole === "teacher" && <DemoModeNotice />}
-            <TeacherPortal
+          <TeacherPortal
               initialSection={teacherSectionByView[view]}
               initialSelectedPackageSlug={selectedPackageSlug}
               initialSelectedBookId={selectedBookId}
@@ -249,16 +233,13 @@ export default function App() {
               saveLesson={courseData.saveLesson}
               saveActivity={courseData.saveActivity}
               reloadCourse={courseData.reloadCourse}
-            />
-          </>
+          />
         )}
         {studentSection && !studentAccessAllowed && (
           <AccessGate requiredRole="student" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
         )}
         {studentSection && studentAccessAllowed && (
-          <>
-            {demoRole === "student" && <DemoModeNotice />}
-            <StudentPortal
+          <StudentPortal
               initialSection={studentSection}
               initialActivityKey={routeMode === "student" ? activityKey : null}
               initialSelectedPackageSlug={selectedPackageSlug}
@@ -274,10 +255,12 @@ export default function App() {
               courseLoading={courseData.loading}
               courseError={courseData.error}
               submitLesson={courseData.submitCourseLesson}
-            />
-          </>
+          />
         )}
-        {view === "student-course" && (
+        {view === "student-course" && !studentAccessAllowed && (
+          <AccessGate requiredRole="student" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {view === "student-course" && studentAccessAllowed && (
           <StudentCourseView
             course={courseData.course}
             onSubmission={addCourseSubmission}
@@ -287,7 +270,10 @@ export default function App() {
             submitLesson={courseData.submitCourseLesson}
           />
         )}
-        {view === "student-preview" && (
+        {view === "student-preview" && !teacherAccessAllowed && (
+          <AccessGate requiredRole="teacher" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {view === "student-preview" && teacherAccessAllowed && (
           <StudentCourseView course={courseData.course} navigateTo={navigateTo} courseError={courseData.error} previewMode />
         )}
         {view === "flow" && <FullDemoFlow navigateTo={navigateTo} />}

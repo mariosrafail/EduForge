@@ -1,6 +1,6 @@
 import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics, users } from "../../../data/lmsDemoData.js";
+import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics } from "../../../data/lmsDemoData.js";
 import { getSchoolMetrics } from "../../../services/adminMetricsApi.js";
 import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -21,7 +21,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [exported, setExported] = useState(false);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
-  const [createdUsers, setCreatedUsers] = useState(users.map(userToUi));
+  const [createdUsers, setCreatedUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState("");
   const [apiFallback, setApiFallback] = useState(false);
@@ -51,18 +51,18 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const activeUsers = createdUsers.filter((user) => String(user.status || "").toLowerCase() === "active").length;
   const teacherCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "teacher").length;
   const studentCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "student").length;
-  const activeClasses = classes.filter((item) => item.name).length;
+  const creatableRoleOptions = roleOptions.filter((role) => role !== "School Admin");
   const schoolMetricsSummary = schoolMetricsLive || {
     activeUsers,
     teacherCount,
     studentCount,
-    activeClasses,
-    activeBookPackages: 1,
+    activeClasses: 0,
+    activeBookPackages: 0,
     activeAssignments: 0,
     submittedWorkCount: 0,
   };
 
-  const loadUsers = async ({ fallbackToMock = true } = {}) => {
+  const loadUsers = async () => {
     setUsersLoading(true);
     setUsersError("");
 
@@ -72,9 +72,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     } catch (error) {
       setUsersError(error.message);
       setApiFallback(true);
-      if (fallbackToMock) {
-        setCreatedUsers(users.map(userToUi));
-      }
+      setCreatedUsers([]);
       throw error;
     } finally {
       setUsersLoading(false);
@@ -125,6 +123,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     const name = newUser.name.trim() || `Demo ${newUser.role}`;
     setSavingUser(true);
     setUsersError("");
+    let created = false;
 
     try {
       const createdUser = await createUser({
@@ -137,21 +136,20 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
       });
 
       try {
-        await loadUsers({ fallbackToMock: false });
+        await loadUsers();
       } catch {
         setCreatedUsers((current) => [createdUser, ...current]);
         setUsersError("User was created, but the list reload failed.");
+        setApiFallback(true);
       }
-      setApiFallback(false);
+      created = true;
     } catch (error) {
-      setApiFallback(true);
       setUsersError(error.message);
-      setCreatedUsers((current) => [
-        { ...newUser, id: `mock-${Date.now()}`, name, source: "mock" },
-        ...current,
-      ]);
+      setUserCreated(false);
     } finally {
       setSavingUser(false);
+    }
+    if (created) {
       setUserCreated(true);
       setNewUser({ name: "", email: "", password: "", role: "Student", level: "B2", status: "Invited" });
     }
@@ -160,11 +158,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const updateUser = async (id, field, value) => {
     setCreatedUsers((current) => current.map((user) => user.id === id ? { ...user, [field]: value } : user));
 
-    if (String(id).startsWith("mock-")) {
-      setApiFallback(true);
-      return;
-    }
-
     try {
       const updatedUser = await updateUserRequest(id, { [field]: roleToDb(value) });
       setCreatedUsers((current) => current.map((user) => user.id === id ? updatedUser : user));
@@ -172,17 +165,13 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     } catch (error) {
       setApiFallback(true);
       setUsersError(error.message);
+      loadUsers().catch(() => {});
     }
   };
 
   const deleteUser = async (id) => {
     const previousUsers = createdUsers;
     setCreatedUsers((current) => current.filter((user) => user.id !== id));
-
-    if (String(id).startsWith("mock-")) {
-      setApiFallback(true);
-      return;
-    }
 
     try {
       await deleteUserRequest(id);
@@ -384,7 +373,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                   <label>
                     Role
                     <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
-                      {roleOptions.map((role) => <option key={role}>{role}</option>)}
+                      {creatableRoleOptions.map((role) => <option key={role}>{role}</option>)}
                     </select>
                   </label>
                   <label>
@@ -404,7 +393,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                 {usersLoading && <div className="inline-status">Loading users from Neon through Netlify Functions...</div>}
                 {apiFallback && (
                   <div className="inline-status warning">
-                    Database API unavailable. Showing local mock fallback only. Check Netlify Functions configuration.
+                    Database API unavailable. No local user changes were applied. Check Netlify Functions configuration.
                     {usersError ? ` (${usersError})` : ""}
                   </div>
                 )}
@@ -475,7 +464,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                     <h2>School activation batch</h2>
                     <p>MVP planning card for school-wide book access batches. This action is demo only and does not create licenses.</p>
                   </div>
-                  <Tag tone={schoolMetricsLive ? "green" : "gold"}>{schoolMetricsLive ? "Database" : "Demo fallback"}</Tag>
+                  <Tag tone={schoolMetricsLive ? "green" : "gold"}>{schoolMetricsLive ? "Database" : "Unavailable"}</Tag>
                 </div>
                 {schoolMetricsLoading && <div className="inline-status">Loading school metrics...</div>}
                 {schoolMetricsError && <div className="inline-status warning">{schoolMetricsError}</div>}

@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { listTeacherClasses } from "../services/classApi.js";
-import { teacherPortalClasses } from "../components/lms/teacher/teacherPortalData.js";
-
-const demoTeacherClasses = teacherPortalClasses.map((classItem) => ({ level: "B2", ...classItem }));
 
 export function useTeacherClasses(currentUser = null) {
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
-  const [usingDemoClasses, setUsingDemoClasses] = useState(false);
+  const [classLoadError, setClassLoadError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -19,12 +16,12 @@ export function useTeacherClasses(currentUser = null) {
         const databaseClasses = await listTeacherClasses(currentUser?.id || null);
         if (cancelled) return;
         setClasses(databaseClasses);
-        setUsingDemoClasses(false);
+        setClassLoadError("");
       } catch (error) {
-        console.warn("Using demo classes because database classes could not be loaded.", error);
+        console.warn("Teacher classes could not be loaded.", error);
         if (cancelled) return;
-        setClasses(demoTeacherClasses);
-        setUsingDemoClasses(true);
+        setClasses([]);
+        setClassLoadError(error.message || "Classes could not be loaded.");
       } finally {
         if (!cancelled) setLoadingClasses(false);
       }
@@ -48,7 +45,7 @@ export function useTeacherClasses(currentUser = null) {
     classes,
     classOptions,
     loadingClasses,
-    usingDemoClasses,
+    classLoadError,
     addCreatedClass,
   };
 }

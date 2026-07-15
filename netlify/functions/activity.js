@@ -1,4 +1,5 @@
 import { fetchCourseById, getSql, json, parseBody, sanitizeRequiredText, sanitizeText, validateUuid } from "./_course-utils.js";
+import { requireRole, safeServerError } from "./_auth-utils.js";
 
 const allowedTypes = new Set(["gap_fill", "line_matching", "multiple_choice", "word_search"]);
 
@@ -47,15 +48,17 @@ export async function handler(event) {
 
     const body = parseBody(event);
     const sql = getSql();
+    const auth = await requireRole(event, ["admin", "teacher"], sql);
+    if (auth.error) return auth.error;
 
     if (event.httpMethod === "POST") {
       const lessonIdError = validateUuid(body.lesson_id, "lesson_id");
       if (lessonIdError) return json(400, { error: lessonIdError });
 
       const lessons = await sql`
-        select id, course_id
-        from lessons
-        where id = ${body.lesson_id}
+        select l.id, l.course_id
+        from lessons l join courses c on c.id = l.course_id
+        where l.id = ${body.lesson_id} and c.school_id = ${auth.currentUser.school_id}
         limit 1
       `;
       if (!lessons.length) return json(404, { error: "Lesson not found" });
@@ -87,7 +90,7 @@ export async function handler(event) {
         )
       `;
 
-      return json(200, { course: await fetchCourseById(sql, lessons[0].course_id) });
+      return json(200, { course: await fetchCourseById(sql, lessons[0].course_id, auth.currentUser) });
     }
 
     const params = new URLSearchParams(event.rawQuery || "");
@@ -99,7 +102,8 @@ export async function handler(event) {
       select la.id, la.type, la.title, la.instructions, la.position, la.content, la.correct_answers, la.feedback, la.skill, l.course_id
       from lesson_activities la
       join lessons l on l.id = la.lesson_id
-      where la.id = ${id}
+      join courses c on c.id = l.course_id
+      where la.id = ${id} and c.school_id = ${auth.currentUser.school_id}
       limit 1
     `;
     if (!existing.length) return json(404, { error: "Activity not found" });
@@ -132,9 +136,8 @@ export async function handler(event) {
       where id = ${id}
     `;
 
-    return json(200, { course: await fetchCourseById(sql, activity.course_id) });
+    return json(200, { course: await fetchCourseById(sql, activity.course_id, auth.currentUser) });
   } catch (error) {
-    console.error(error);
-    return json(500, { error: "Activity API failed", detail: error.message });
+    return safeServerError(error, "Activity API failed");
   }
 }

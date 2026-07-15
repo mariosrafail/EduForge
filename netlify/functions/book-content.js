@@ -6,7 +6,7 @@ import {
   publicClassInviteRow,
 } from "./_class-utils.js";
 import { grantBookAccessByCode } from "./_activation-utils.js";
-import { currentUserFromEvent } from "./_auth-utils.js";
+import { forbidden, requireAuth, safeServerError, unauthorized } from "./_auth-utils.js";
 import {
   fetchActivity,
   fetchBookPackages,
@@ -21,14 +21,6 @@ import {
 
 function badRequest(message) {
   return json(400, { error: message });
-}
-
-function unauthorized(message = "Sign in required") {
-  return json(401, { error: message });
-}
-
-function forbidden(message = "This account does not have access to this area") {
-  return json(403, { error: message });
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -76,6 +68,100 @@ function isStudent(currentUser) {
 function sameSchool(currentUser, rowSchoolId) {
   if (!currentUser?.school_id || !rowSchoolId) return false;
   return String(currentUser.school_id) === String(rowSchoolId);
+}
+
+async function accessiblePackageIds(sql, currentUser) {
+  if (isAdmin(currentUser)) {
+    const rows = await sql`select id from book_packages where status = 'active'`;
+    return rows.map((row) => String(row.id));
+  }
+  if (isTeacher(currentUser)) {
+    const rows = await sql`
+      select distinct package_id as id
+      from (
+        select ba.book_package_id as package_id
+        from book_access ba
+        where ba.user_id = ${currentUser.id}
+        union
+        select c.book_package_id as package_id
+        from classes c
+        where c.teacher_id = ${currentUser.id}
+          and c.school_id = ${currentUser.school_id}
+          and c.book_package_id is not null
+          and coalesce(c.status, 'active') = 'active'
+      ) access
+    `;
+    return rows.map((row) => String(row.id));
+  }
+  const rows = await sql`
+    select distinct package_id as id
+    from (
+      select ba.book_package_id as package_id
+      from book_access ba
+      where ba.user_id = ${currentUser.id}
+      union
+      select c.book_package_id as package_id
+      from class_students cs
+      join classes c on c.id = cs.class_id
+      where cs.student_id = ${currentUser.id}
+        and c.school_id = ${currentUser.school_id}
+        and c.book_package_id is not null
+        and coalesce(cs.status, 'active') = 'active'
+        and coalesce(c.status, 'active') = 'active'
+    ) access
+  `;
+  return rows.map((row) => String(row.id));
+}
+
+async function packageIdForQuery(sql, query = {}) {
+  if (query.packageId) {
+    if (!isValidUuid(query.packageId)) return null;
+    const rows = await sql`select id from book_packages where id = ${query.packageId} limit 1`;
+    return rows[0]?.id || null;
+  }
+  if (query.packageSlug || query.slug) {
+    const rows = await sql`select id from book_packages where slug = ${query.packageSlug || query.slug} limit 1`;
+    if (rows[0]) return rows[0].id;
+  }
+  if (query.componentId) {
+    if (!isValidUuid(query.componentId)) return null;
+    const rows = await sql`select book_package_id as id from book_components where id = ${query.componentId} limit 1`;
+    return rows[0]?.id || null;
+  }
+  if (query.componentSlug) {
+    const rows = await sql`
+      select bp.id
+      from book_components bc join book_packages bp on bp.id = bc.book_package_id
+      where bc.slug = ${query.componentSlug}
+        and (${query.packageSlug || null}::text is null or bp.slug = ${query.packageSlug || null})
+      limit 1
+    `;
+    return rows[0]?.id || null;
+  }
+  if (query.activityId || query.activitySlug) {
+    const rows = query.activityId
+      ? await sql`
+          select bp.id
+          from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
+          join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
+          where a.id = ${query.activityId} limit 1
+        `
+      : await sql`
+          select bp.id
+          from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
+          join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
+          where a.slug = ${query.activitySlug} limit 1
+        `;
+    return rows[0]?.id || null;
+  }
+  return null;
+}
+
+async function verifyPackageAccess(sql, currentUser, query) {
+  const packageId = await packageIdForQuery(sql, query);
+  if (!packageId) return json(404, { error: "Book package not found" });
+  const allowed = await accessiblePackageIds(sql, currentUser);
+  return allowed.includes(String(packageId)) ? null : forbidden();
 }
 
 const supportedBookActivityTypes = new Set([
@@ -160,7 +246,7 @@ async function getAssignmentAccessRow(sql, assignmentId) {
   if (!assignmentId || !isValidUuid(assignmentId)) return null;
   const rows = await sql`
     select aa.id, aa.teacher_id, aa.class_id, aa.student_id, aa.status,
-           coalesce(c.school_id, teacher.school_id, student.school_id) as school_id
+           coalesce(aa.school_id, c.school_id, teacher.school_id, student.school_id) as school_id
     from activity_assignments aa
     left join classes c on c.id = aa.class_id
     left join app_users teacher on teacher.id = aa.teacher_id
@@ -188,9 +274,16 @@ async function getSubmissionAccessRow(sql, submissionId) {
   return rows[0] || null;
 }
 
-function canAccessTeacherScopedRow(currentUser, row) {
+export function canAccessTeacherScopedRow(currentUser, row) {
   if (!currentUser || !row) return false;
-  if (isTeacher(currentUser)) return String(row.teacher_id || "") === String(currentUser.id);
+  if (isTeacher(currentUser)) return sameSchool(currentUser, row.school_id) && String(row.teacher_id || "") === String(currentUser.id);
+  if (isAdmin(currentUser)) return sameSchool(currentUser, row.school_id);
+  return false;
+}
+
+export function canAccessStudentScopedRow(currentUser, row) {
+  if (!currentUser || !row) return false;
+  if (isStudent(currentUser)) return sameSchool(currentUser, row.school_id) && String(row.student_id || "") === String(currentUser.id);
   if (isAdmin(currentUser)) return sameSchool(currentUser, row.school_id);
   return false;
 }
@@ -216,8 +309,9 @@ async function verifyStudentAccess(sql, currentUser, studentId) {
   if (!isValidUuid(studentId)) return invalidUuidResponse("studentId");
   if (isStudent(currentUser)) return String(studentId) === String(currentUser.id) ? null : forbidden("Students can only access their own work");
   if (isAdmin(currentUser)) {
-    const schoolId = await getUserSchoolId(sql, studentId);
-    return sameSchool(currentUser, schoolId) ? null : forbidden();
+    const user = await getUserAccessRow(sql, studentId);
+    if (!user || user.role !== "student") return json(404, { error: "Student not found" });
+    return sameSchool(currentUser, user.school_id) ? null : forbidden();
   }
   return forbidden();
 }
@@ -396,11 +490,14 @@ async function createAssignment(sql, body, currentUser = null) {
   const activityRows = await sql`select id, title from activities where id = ${activityId} limit 1`;
   const activity = activityRows[0];
   if (!activity) return json(404, { error: "Activity not found" });
+  const packageError = await verifyPackageAccess(sql, currentUser, { activityId });
+  if (packageError) return packageError;
 
   const inserted = [];
   for (const classId of classIds) {
     const rows = await sql`
       insert into activity_assignments (
+        school_id,
         activity_id,
         teacher_id,
         class_id,
@@ -413,6 +510,7 @@ async function createAssignment(sql, body, currentUser = null) {
         attached_files
       )
       values (
+        ${currentUser.school_id},
         ${activityId},
         ${teacherId},
         ${classId},
@@ -432,6 +530,7 @@ async function createAssignment(sql, body, currentUser = null) {
   for (const studentId of studentIds) {
     const rows = await sql`
       insert into activity_assignments (
+        school_id,
         activity_id,
         teacher_id,
         class_id,
@@ -444,6 +543,7 @@ async function createAssignment(sql, body, currentUser = null) {
         attached_files
       )
       values (
+        ${currentUser.school_id},
         ${activityId},
         ${teacherId},
         null,
@@ -492,10 +592,7 @@ async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
     left join app_users teacher on teacher.id = aa.teacher_id
     left join activity_submissions s on s.activity_assignment_id = aa.id
     where (${teacherId || null}::uuid is null or aa.teacher_id = ${teacherId || null})
-      and (
-        ${isAdmin(currentUser) ? currentUser.school_id : null}::uuid is null
-        or coalesce(c.school_id, teacher.school_id) = ${isAdmin(currentUser) ? currentUser.school_id : null}
-      )
+      and aa.school_id = ${currentUser.school_id}
     group by aa.id, a.id, l.title, u.title, bc.title, bp.title, c.name, teacher.full_name
     order by aa.assigned_at desc
   `;
@@ -503,7 +600,7 @@ async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
   return rows.map(assignmentRowToUi);
 }
 
-async function listAssignmentsForStudent(sql, studentId) {
+async function listAssignmentsForStudent(sql, studentId, currentUser) {
   if (!studentId) return [];
   const rows = await sql`
     select aa.id, aa.assigned_at, aa.due_at, aa.status,
@@ -528,8 +625,9 @@ async function listAssignmentsForStudent(sql, studentId) {
       order by s.submitted_at desc
       limit 1
     ) latest on true
-    where aa.student_id = ${studentId}
-       or aa.class_id in (select class_id from class_students where student_id = ${studentId} and coalesce(status, 'active') = 'active')
+    where aa.school_id = ${currentUser.school_id}
+      and (aa.student_id = ${studentId}
+       or aa.class_id in (select class_id from class_students where student_id = ${studentId} and coalesce(status, 'active') = 'active'))
     order by aa.assigned_at desc
   `;
 
@@ -579,13 +677,14 @@ async function submitActivity(sql, body, currentUser = null) {
 
   if (body.assignmentId) {
     const assignmentRows = await sql`
-      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id
+      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id, aa.school_id
       from activity_assignments aa
       where aa.id = ${body.assignmentId}
       limit 1
     `;
     const assignment = assignmentRows[0];
     if (!assignment) return json(404, { error: "Assignment not found" });
+    if (!sameSchool(currentUser, assignment.school_id)) return forbidden();
     if (assignment.status === "closed") return forbidden("This assignment is closed");
     if (String(assignment.activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
     if (assignment.student_id && String(assignment.student_id) !== String(studentId)) return forbidden("This assignment is not assigned to this student");
@@ -612,19 +711,14 @@ async function submitActivity(sql, body, currentUser = null) {
     const isCorrect = String(answer).trim().toLowerCase() === String(correctText).trim().toLowerCase();
     return { question, answer, correctText, isCorrect };
   });
-  const hasClientScore = body.score !== undefined || body.result?.score !== undefined;
-  const correctCount = Number(body.correctCount ?? body.result?.correctCount ?? rows.filter((row) => row.isCorrect).length) || 0;
-  const totalCount = Number(body.totalCount ?? body.result?.totalCount ?? rows.length) || 0;
-  const clientScore = numericOrNull(body.score ?? body.result?.score);
-  const scorePercent = hasClientScore
-    ? clientScore
-    : totalCount
-      ? Math.round((correctCount / totalCount) * 100)
-      : null;
+  const correctCount = rows.filter((row) => row.isCorrect).length;
+  const totalCount = rows.length;
+  const scorePercent = totalCount ? Math.round((correctCount / totalCount) * 100) : null;
 
   const submissions = await sql`
     insert into activity_submissions (
       activity_assignment_id,
+      school_id,
       activity_id,
       student_id,
       answers,
@@ -637,6 +731,7 @@ async function submitActivity(sql, body, currentUser = null) {
     )
     values (
       ${body.assignmentId || null},
+      ${currentUser.school_id},
       ${body.activityId},
       ${studentId},
       ${JSON.stringify(answers)}::jsonb,
@@ -673,7 +768,7 @@ async function submitActivity(sql, body, currentUser = null) {
   });
 }
 
-async function getStudentGrades(sql, studentId) {
+async function getStudentGrades(sql, studentId, currentUser) {
   if (!studentId) return [];
   const rows = await sql`
     select s.id, s.submitted_at, s.score_percent, s.correct_count, s.total_count, s.status, s.answers,
@@ -688,7 +783,7 @@ async function getStudentGrades(sql, studentId) {
     left join units u on u.id = l.unit_id
     left join book_components bc on bc.id = u.book_component_id
     left join book_packages bp on bp.id = bc.book_package_id
-    where s.student_id = ${studentId}
+    where s.student_id = ${studentId} and s.school_id = ${currentUser.school_id}
     order by s.submitted_at desc
   `;
 
@@ -1035,7 +1130,7 @@ function pageHotspotRowToUi(row) {
   };
 }
 
-async function listPageHotspots(sql, query) {
+async function listPageHotspots(sql, query, currentUser) {
   if (!query.packageSlug) return badRequest("packageSlug is required");
   if (!query.componentSlug) return badRequest("componentSlug is required");
   if (!query.pageId) return badRequest("pageId is required");
@@ -1046,13 +1141,14 @@ async function listPageHotspots(sql, query) {
     where package_slug = ${query.packageSlug}
       and component_slug = ${query.componentSlug}
       and page_id = ${query.pageId}
+      and school_id = ${currentUser.school_id}
     order by created_at asc, id asc
   `;
 
   return json(200, { hotspots: rows.map(pageHotspotRowToUi) });
 }
 
-async function savePageHotspots(sql, body) {
+async function savePageHotspots(sql, body, currentUser) {
   const packageSlug = String(body.packageSlug || body.package_slug || "").trim();
   const componentSlug = String(body.componentSlug || body.component_slug || "").trim();
   const pageId = String(body.pageId || body.page_id || "").trim();
@@ -1068,11 +1164,22 @@ async function savePageHotspots(sql, body) {
   const invalidHotspot = normalizedHotspots.find((hotspot) => !supportedHotspotActionTypes.has(hotspot.actionType));
   if (invalidHotspot) return badRequest(`Unsupported hotspot action type: ${invalidHotspot.actionType}`);
 
+  if (isTeacher(currentUser)) {
+    const foreignRows = await sql`
+      select id from book_page_hotspots
+      where package_slug = ${packageSlug} and component_slug = ${componentSlug} and page_id = ${pageId}
+        and school_id = ${currentUser.school_id} and created_by is distinct from ${currentUser.id}
+      limit 1
+    `;
+    if (foreignRows.length) return forbidden("Teachers can only modify their own page hotspots");
+  }
+
   await sql`
     delete from book_page_hotspots
     where package_slug = ${packageSlug}
       and component_slug = ${componentSlug}
       and page_id = ${pageId}
+      and school_id = ${currentUser.school_id}
   `;
 
   const inserted = [];
@@ -1091,7 +1198,8 @@ async function savePageHotspots(sql, body) {
         action_type,
         action_target_id,
         action_payload,
-        created_by
+        created_by,
+        school_id
       )
       values (
         ${packageSlug},
@@ -1106,7 +1214,8 @@ async function savePageHotspots(sql, body) {
         ${hotspot.actionType},
         ${hotspot.actionTargetId},
         ${JSON.stringify(hotspot.actionPayload)}::jsonb,
-        ${createdBy}
+        ${createdBy},
+        ${currentUser.school_id}
       )
       returning *
     `;
@@ -1164,7 +1273,7 @@ function normalizeBookActivityPayload(body = {}, existing = {}) {
   };
 }
 
-async function listBookActivities(sql, query) {
+async function listBookActivities(sql, query, currentUser) {
   if (!query.packageSlug) return badRequest("packageSlug is required");
   if (!query.componentSlug) return badRequest("componentSlug is required");
 
@@ -1175,20 +1284,24 @@ async function listBookActivities(sql, query) {
       and component_slug = ${query.componentSlug}
       and (${query.pageId || null}::text is null or page_id = ${query.pageId || null})
       and (${query.status || null}::text is null or status = ${query.status || null})
+      and school_id = ${currentUser.school_id}
     order by coalesce(page_number, 999999) asc, created_at asc, title asc
   `;
 
   return json(200, { activities: rows.map(bookActivityRowToUi) });
 }
 
-async function getBookActivity(sql, query) {
+async function getBookActivity(sql, query, currentUser) {
   if (!query.activityId) return badRequest("activityId is required");
-  const rows = await sql`select * from book_activities where id = ${query.activityId} limit 1`;
+  if (!isValidUuid(query.activityId)) return invalidUuidResponse("activityId");
+  const rows = await sql`select * from book_activities where id = ${query.activityId} and school_id = ${currentUser.school_id} limit 1`;
   const activity = rows[0];
-  return activity ? json(200, { activity: bookActivityRowToUi(activity) }) : json(404, { error: "Book activity not found" });
+  if (!activity) return json(404, { error: "Book activity not found" });
+  const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: activity.package_slug });
+  return accessError || json(200, { activity: bookActivityRowToUi(activity) });
 }
 
-async function createBookActivity(sql, body) {
+async function createBookActivity(sql, body, currentUser) {
   let activity;
   try {
     activity = normalizeBookActivityPayload(body);
@@ -1210,7 +1323,8 @@ async function createBookActivity(sql, body) {
       feedback,
       media_id,
       status,
-      created_by
+      created_by,
+      school_id
     )
     values (
       ${activity.packageSlug},
@@ -1225,7 +1339,8 @@ async function createBookActivity(sql, body) {
       ${JSON.stringify(activity.feedback)}::jsonb,
       ${activity.mediaId},
       ${activity.status},
-      ${activity.createdBy}
+      ${activity.createdBy},
+      ${currentUser.school_id}
     )
     returning *
   `;
@@ -1233,11 +1348,17 @@ async function createBookActivity(sql, body) {
   return json(200, { activity: bookActivityRowToUi(rows[0]) });
 }
 
-async function updateBookActivity(sql, body) {
+async function updateBookActivity(sql, body, currentUser) {
   const id = body.id || body.activityId || body.activity_id;
   if (!id) return badRequest("activityId is required");
 
-  const existingRows = await sql`select * from book_activities where id = ${id} limit 1`;
+  if (!isValidUuid(id)) return invalidUuidResponse("activityId");
+  const existingRows = await sql`
+    select * from book_activities
+    where id = ${id} and school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or created_by = ${currentUser.id})
+    limit 1
+  `;
   const existing = existingRows[0];
   if (!existing) return json(404, { error: "Book activity not found" });
 
@@ -1247,6 +1368,9 @@ async function updateBookActivity(sql, body) {
   } catch (error) {
     return badRequest(error.message);
   }
+
+  const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: activity.packageSlug });
+  if (accessError) return accessError;
 
   const rows = await sql`
     update book_activities
@@ -1263,17 +1387,38 @@ async function updateBookActivity(sql, body) {
         media_id = ${activity.mediaId},
         status = ${activity.status},
         created_by = ${activity.createdBy}
-    where id = ${id}
+    where id = ${id} and school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or created_by = ${currentUser.id})
     returning *
   `;
 
   return json(200, { activity: bookActivityRowToUi(rows[0]) });
 }
 
-async function deleteBookActivity(sql, body) {
+async function deleteBookActivity(sql, body, currentUser) {
   const id = body.id || body.activityId || body.activity_id;
   if (!id) return badRequest("activityId is required");
-  await sql`delete from book_activities where id = ${id}`;
+  if (!isValidUuid(id)) return invalidUuidResponse("activityId");
+  const existingRows = await sql`
+    select id, package_slug
+    from book_activities
+    where id = ${id} and school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or created_by = ${currentUser.id})
+    limit 1
+  `;
+  const existing = existingRows[0];
+  if (!existing) return json(404, { error: "Book activity not found" });
+
+  const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: existing.package_slug });
+  if (accessError) return accessError;
+
+  const rows = await sql`
+    delete from book_activities
+    where id = ${id} and school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or created_by = ${currentUser.id})
+    returning id
+  `;
+  if (!rows.length) return json(404, { error: "Book activity not found" });
   return json(200, { deleted: true });
 }
 
@@ -1295,7 +1440,7 @@ function bookMediaAssetRowToUi(row) {
   };
 }
 
-async function listBookMediaAssets(sql, query) {
+async function listBookMediaAssets(sql, query, currentUser) {
   if (!query.packageSlug) return badRequest("packageSlug is required");
   if (!query.componentSlug) return badRequest("componentSlug is required");
 
@@ -1306,13 +1451,14 @@ async function listBookMediaAssets(sql, query) {
       and component_slug = ${query.componentSlug}
       and (${query.pageId || null}::text is null or page_id = ${query.pageId || null})
       and (${query.kind || null}::text is null or kind = ${query.kind || null})
+      and school_id = ${currentUser.school_id}
     order by created_at desc, file_name asc
   `;
 
   return json(200, { mediaAssets: rows.map(bookMediaAssetRowToUi) });
 }
 
-async function createBookMediaAsset(sql, body) {
+async function createBookMediaAsset(sql, body, currentUser) {
   const packageSlug = String(body.packageSlug || body.package_slug || "").trim();
   const componentSlug = String(body.componentSlug || body.component_slug || "").trim();
   const publicUrl = String(body.publicUrl || body.public_url || "").trim();
@@ -1336,7 +1482,8 @@ async function createBookMediaAsset(sql, body) {
       public_url,
       storage_path,
       kind,
-      created_by
+      created_by,
+      school_id
     )
     values (
       ${packageSlug},
@@ -1349,7 +1496,8 @@ async function createBookMediaAsset(sql, body) {
       ${publicUrl},
       ${body.storagePath || body.storage_path || null},
       ${kind},
-      ${body.createdBy || body.created_by || null}
+      ${body.createdBy || body.created_by || null},
+      ${currentUser.school_id}
     )
     returning *
   `;
@@ -1363,15 +1511,34 @@ export async function handler(event) {
   try {
     const sql = getSql();
     const query = readQuery(event);
-    const currentUser = await currentUserFromEvent(sql, event);
+
+    if (event.httpMethod === "GET" && ["class-by-invite", "class-by-slug"].includes(query.action)) {
+      const classItem = await findClassByInviteOrSlug(sql, query.action === "class-by-invite"
+        ? { inviteCode: query.inviteCode }
+        : { slug: query.slug });
+      const publicClassItem = publicClassInviteRow(classItem);
+      return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
+    }
+
+    const auth = await requireAuth(event, sql);
+    if (auth.error) return auth.error;
+    const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
-      if (query.action === "list") return json(200, { bookPackages: await fetchBookPackages(sql) });
+      if (query.action === "list") {
+        const allowedIds = await accessiblePackageIds(sql, currentUser);
+        const packages = await fetchBookPackages(sql);
+        return json(200, { bookPackages: packages.filter((item) => allowedIds.includes(String(item.id))) });
+      }
       if (query.action === "activity") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { activityId: query.activityId, activitySlug: query.activitySlug || query.slug });
+        if (accessError) return accessError;
         const activity = await fetchActivity(sql, query);
         return activity ? json(200, { activity }) : json(404, { error: "Activity not found" });
       }
       if (query.action === "component") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.packageSlug });
+        if (accessError) return accessError;
         const tree = await fetchPackageTree(sql, query);
         const component = tree?.components.find((item) => item.id === query.componentId || item.slug === query.slug);
         return component ? json(200, { component }) : json(404, { error: "Component not found" });
@@ -1397,14 +1564,14 @@ export async function handler(event) {
         if (roleError) return roleError;
         const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
         const accessError = await verifyStudentAccess(sql, currentUser, studentId);
-        return accessError || json(200, { assignments: await listAssignmentsForStudent(sql, studentId) });
+        return accessError || json(200, { assignments: await listAssignmentsForStudent(sql, studentId, currentUser) });
       }
       if (query.action === "grades") {
         const roleError = requireRole(currentUser, ["student", "admin"]);
         if (roleError) return roleError;
         const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
         const accessError = await verifyStudentAccess(sql, currentUser, studentId);
-        return accessError || json(200, { grades: await getStudentGrades(sql, studentId) });
+        return accessError || json(200, { grades: await getStudentGrades(sql, studentId, currentUser) });
       }
       if (query.action === "assignment-results") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
@@ -1428,10 +1595,19 @@ export async function handler(event) {
         const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId || "";
         return listTeacherStudents(sql, teacherId, currentUser);
       }
-      if (query.action === "page-hotspots") return listPageHotspots(sql, query);
-      if (query.action === "book-activities") return listBookActivities(sql, query);
-      if (query.action === "book-activity") return getBookActivity(sql, query);
-      if (query.action === "book-media-assets") return listBookMediaAssets(sql, query);
+      if (query.action === "page-hotspots") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.packageSlug });
+        return accessError || listPageHotspots(sql, query, currentUser);
+      }
+      if (query.action === "book-activities") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.packageSlug });
+        return accessError || listBookActivities(sql, query, currentUser);
+      }
+      if (query.action === "book-activity") return getBookActivity(sql, query, currentUser);
+      if (query.action === "book-media-assets") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.packageSlug });
+        return accessError || listBookMediaAssets(sql, query, currentUser);
+      }
       if (query.action === "classes") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
@@ -1439,17 +1615,8 @@ export async function handler(event) {
         if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
         return json(200, { classes: await listTeacherClasses(sql, isTeacher(currentUser) ? currentUser.id : query.teacherId, isAdmin(currentUser) ? currentUser.school_id : "") });
       }
-      if (query.action === "class-by-invite") {
-        const classItem = await findClassByInviteOrSlug(sql, { inviteCode: query.inviteCode });
-        const publicClassItem = publicClassInviteRow(classItem);
-        return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
-      }
-      if (query.action === "class-by-slug") {
-        const classItem = await findClassByInviteOrSlug(sql, { slug: query.slug });
-        const publicClassItem = publicClassInviteRow(classItem);
-        return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
-      }
-
+      const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.slug || query.packageSlug || "ultimate-b2" });
+      if (accessError) return accessError;
       const tree = await fetchPackageTree(sql, query);
       return tree ? json(200, { bookPackage: tree }) : json(404, { error: "Book package not found. Run database/006_book_content_platform.sql." });
     }
@@ -1500,47 +1667,44 @@ export async function handler(event) {
       }
       if (query.action === "save-page-hotspots") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
-        // TODO: package/component/page ownership is not tenant-modeled yet, so page-only edits are role-guarded for the MVP.
-        return referenceError || savePageHotspots(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
+        const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
+        return referenceError || savePageHotspots(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "create-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
-        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity edits are role-guarded for the MVP.
-        return referenceError || createBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
+        const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
+        return referenceError || createBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "update-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
         const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
-        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity edits are role-guarded for the MVP.
-        return referenceError || updateBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        return referenceError || updateBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "delete-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
         const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
-        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity deletes are role-guarded for the MVP.
-        return referenceError || deleteBookActivity(sql, body);
+        return referenceError || deleteBookActivity(sql, body, currentUser);
       }
       if (query.action === "create-book-media-asset") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
-        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only media edits are role-guarded for the MVP.
-        return referenceError || createBookMediaAsset(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
+        const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
+        return referenceError || createBookMediaAsset(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       return badRequest("Unsupported POST action");
     }
 
     return json(405, { error: "Method not allowed" });
   } catch (error) {
-    console.error(error);
     if (isDatabaseNotConfiguredError(error)) return databaseNotConfiguredResponse();
     if (error?.code === "42703") {
       return json(500, {
         error: "Assignment database migration is missing",
-        detail: "Run database/010_assignment_live_flow.sql in Neon/Postgres, then retry.",
+        migration: "database/010_assignment_live_flow.sql",
       });
     }
-    return json(500, { error: "Book content API failed", detail: error.message });
+    return safeServerError(error, "Book content API failed");
   }
 }

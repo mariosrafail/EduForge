@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { demoBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../../data/bookPackages.js";
+import { inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../../data/bookPackages.js";
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
 import {
@@ -44,7 +44,7 @@ export function StudentPortal({
   const [completedActivities, setCompletedActivities] = useState({});
   const [assignmentRefreshKey, setAssignmentRefreshKey] = useState(0);
   const [assignmentSubmitMessage, setAssignmentSubmitMessage] = useState("");
-  const [bookPackages, setBookPackages] = useState(demoBookPackages);
+  const [bookPackages, setBookPackages] = useState([]);
   const [selectedPackageSlug, setSelectedPackageSlug] = useState(initialSelectedPackageSlug || "ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
 
@@ -81,7 +81,11 @@ export function StudentPortal({
     getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
       if (!mounted) return;
       setBookPackages((current) => replaceDemoBookPackage(current, packageTree));
-      setBookSourceMessage(packageTree.source === "database" ? "Loaded from book content database." : "Using mock Ultimate B2 fallback.");
+      setBookSourceMessage("Loaded from book content database.");
+    }).catch((error) => {
+      if (!mounted) return;
+      setBookPackages([]);
+      setBookSourceMessage(error.message || "Book packages could not be loaded.");
     });
     return () => {
       mounted = false;

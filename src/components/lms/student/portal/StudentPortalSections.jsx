@@ -1,13 +1,12 @@
-import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, Play, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { demoBookPackages } from "../../../../data/bookPackages.js";
-import { findUltimateB2Exercise, ultimateB2Package } from "../../../../data/ultimateB2DemoData.js";
+import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { listStudentAssignments, listStudentGrades, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
 import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
-import { correctedExercise, studentAssignments, studentDashboardCards, studentGradeRows } from "../studentPortalData.js";
+import { studentDashboardCards } from "../studentPortalData.js";
 import { sectionIcons } from "./studentPortalConfig.js";
 
 export function StudentProfileStrip({ currentUser = null }) {
@@ -89,12 +88,22 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
   );
 }
 
-export function StudentBooks({ openActivity, completedActivities, bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview }) {
+export function StudentBooks({ openActivity, completedActivities, bookPackages = [], selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageNumber = null, selectedPageId = null, onSelectBook, onSelectBookPage, onSelectBookSubview }) {
   const [activationCode, setActivationCode] = useState("");
   const [activated, setActivated] = useState(false);
-  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || ultimateB2Package;
+  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || null;
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
   const hasSelectedPage = Boolean(selectedPageId || selectedPageNumber);
+
+  if (!bookPackage) {
+    return (
+      <section className="student-section-stack">
+        <SectionTitle eyebrow="My digital books" title="No book packages loaded." />
+        {bookSourceMessage && <div className="inline-status warning">{bookSourceMessage}</div>}
+        <Card><p>Your activated book packages could not be loaded.</p></Card>
+      </section>
+    );
+  }
 
   return (
     <section className="student-section-stack">
@@ -180,11 +189,10 @@ function normalizeStudentAssignment(assignment = {}) {
 
 export function StudentAssignments({ openActivity, currentUser = null, refreshKey = 0, submitMessage = "" }) {
   const [liveAssignments, setLiveAssignments] = useState([]);
-  const [usingDemoAssignments, setUsingDemoAssignments] = useState(false);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentError, setAssignmentError] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const assignments = usingDemoAssignments ? studentAssignments : liveAssignments.map(normalizeStudentAssignment);
+  const assignments = liveAssignments;
   const selectedAssignment = assignments.find((assignment) => (assignment.assignmentId || assignment.title) === selectedId) || assignments[0];
 
   useEffect(() => {
@@ -196,15 +204,13 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
       if (!mounted) return;
       const normalized = rows.map(normalizeStudentAssignment);
       setLiveAssignments(normalized);
-      setUsingDemoAssignments(false);
       setSelectedId((current) => current || normalized[0]?.assignmentId || "");
     }).catch((error) => {
       if (!mounted) return;
-      console.warn("Using demo student assignments fallback.", error);
+      console.warn("Student assignments could not be loaded.", error);
       setLiveAssignments([]);
-      setUsingDemoAssignments(true);
-      setAssignmentError(error.message || "Backend unavailable. Showing demo assignments.");
-      setSelectedId((current) => current || studentAssignments[0]?.title || "");
+      setAssignmentError(error.message || "Assignments could not be loaded.");
+      setSelectedId("");
     }).finally(() => {
       if (mounted) setLoadingAssignments(false);
     });
@@ -215,7 +221,6 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
 
   useEffect(() => {
     if (currentUser?.id) return;
-    setUsingDemoAssignments(false);
     setLiveAssignments([]);
     setSelectedId("");
   }, [currentUser?.id]);
@@ -263,7 +268,6 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
             <>
               <span className="eyebrow"><ClipboardList size={15} /> Assignment details</span>
               <h2>{selectedAssignment.title}</h2>
-              {usingDemoAssignments && <div className="inline-status warning">Using demo assignments because the backend could not be loaded.</div>}
               <div className="student-detail-grid">
                 <div><strong>Book/component</strong><span>{selectedAssignment.component}</span></div>
                 <div><strong>Class</strong><span>{selectedAssignment.className}</span></div>
@@ -293,11 +297,10 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
 
 export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
   const [grades, setGrades] = useState([]);
-  const [usingDemoGrades, setUsingDemoGrades] = useState(false);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [gradeError, setGradeError] = useState("");
-  const [selectedResult, setSelectedResult] = useState(studentGradeRows[0].title);
-  const visibleGrades = usingDemoGrades ? studentGradeRows : grades;
+  const [selectedResult, setSelectedResult] = useState("");
+  const visibleGrades = grades;
   const submittedGrades = visibleGrades.filter((row) => row.scorePercent !== null && row.scorePercent !== undefined);
   const averageScore = submittedGrades.length
     ? Math.round(submittedGrades.reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / submittedGrades.length)
@@ -320,14 +323,13 @@ export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
         status: row.status || "Submitted",
       }));
       setGrades(normalized);
-      setUsingDemoGrades(false);
       setSelectedResult(normalized[0]?.id || "");
     }).catch((error) => {
       if (!mounted) return;
-      console.warn("Using demo grades fallback.", error);
+      console.warn("Student grades could not be loaded.", error);
       setGrades([]);
-      setUsingDemoGrades(true);
-      setGradeError(error.message || "Backend unavailable. Showing demo grades.");
+      setSelectedResult("");
+      setGradeError(error.message || "Grades could not be loaded.");
     }).finally(() => {
       if (mounted) setLoadingGrades(false);
     });
@@ -354,9 +356,9 @@ export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
       />
 
       <section className="student-grade-summary">
-        <Card><strong>{usingDemoGrades ? "78%" : `${averageScore}%`}</strong><span>Overall average score</span></Card>
-        <Card><strong>{usingDemoGrades ? "18/24" : visibleGrades.length}</strong><span>Completed assignments</span></Card>
-        <Card><strong>{usingDemoGrades ? "3" : "0"}</strong><span>Pending assignments</span></Card>
+        <Card><strong>{`${averageScore}%`}</strong><span>Overall average score</span></Card>
+        <Card><strong>{visibleGrades.length}</strong><span>Completed assignments</span></Card>
+        <Card><strong>0</strong><span>Pending assignments</span></Card>
         <Card><strong>{selectedLiveGrade?.teacherFeedback || "No feedback yet."}</strong><span>Latest teacher feedback</span></Card>
       </section>
 
@@ -389,11 +391,11 @@ export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
           <div>
             <span className="eyebrow"><CheckCircle2 size={15} /> Corrected work</span>
             <h2>{selectedLiveGrade?.title || selectedResult}</h2>
-            <p>{usingDemoGrades ? "Sample corrected work for the Hamilton House demo." : "Live submitted answer payload from the assignment result."}</p>
+            <p>Live submitted answer payload from the assignment result.</p>
           </div>
           <Tag tone="gold">Review feedback</Tag>
         </div>
-        {!usingDemoGrades && selectedLiveGrade?.answers && Object.keys(selectedLiveGrade.answers).length > 0 ? (
+        {selectedLiveGrade?.answers && Object.keys(selectedLiveGrade.answers).length > 0 ? (
           <div className="student-answer-feedback">
             {Object.entries(selectedLiveGrade.answers).map(([questionId, answer]) => (
               <article key={questionId} className="correct">
@@ -405,26 +407,7 @@ export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
               </article>
             ))}
           </div>
-        ) : <div className="student-answer-feedback">
-          {correctedExercise.rows.map((row) => (
-            <article key={row.question} className={row.correct ? "correct" : "wrong"}>
-              <div>
-                <strong>{row.question}</strong>
-                <span>Student answer: {row.studentAnswer}</span>
-                <small>Correct answer: {row.correctAnswer}</small>
-                <p>{row.feedback}</p>
-              </div>
-              <b>{row.correct ? "Correct" : "Wrong"}</b>
-            </article>
-          ))}
-        </div>}
-        {usingDemoGrades && <div className="student-writing-feedback">
-          <strong>{correctedExercise.writing.prompt}</strong>
-          <p>Student answer: {correctedExercise.writing.studentAnswer}</p>
-          <p>Teacher comment: {correctedExercise.writing.teacherComment}</p>
-          <p>Suggested improvement: {correctedExercise.writing.suggestedImprovement}</p>
-          <Tag tone="blue">Final score {correctedExercise.writing.finalScore}</Tag>
-        </div>}
+        ) : <div className="teacher-loading-state">No submitted answer payload is available for this result.</div>}
       </Card>
     </section>
   );

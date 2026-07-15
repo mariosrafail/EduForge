@@ -216,7 +216,7 @@ export function courseRowsToUi(course, lessonRows, activityRows, submissionRows 
   };
 }
 
-async function hydrateCourse(sql, course) {
+async function hydrateCourse(sql, course, currentUser = null) {
   const lessons = await sql`
     select id, course_id, title, subtitle, position, instructions, status, created_at, updated_at
     from lessons
@@ -232,26 +232,38 @@ async function hydrateCourse(sql, course) {
         order by la.position asc, la.created_at asc
       `
     : [];
-  const submissions = lessons.length
-    ? await sql`
+  let submissions = [];
+  if (lessons.length && currentUser?.role === "student") {
+    submissions = await sql`
         select s.id, s.lesson_id, s.score, s.submitted_at, u.full_name as student_name
         from lesson_submissions s
         join lessons l on l.id = s.lesson_id
         left join app_users u on u.id = s.student_id
-        where l.course_id = ${course.id}
+        where l.course_id = ${course.id} and s.student_id = ${currentUser.id}
         order by s.submitted_at desc
         limit 8
-      `
-    : [];
+      `;
+  } else if (lessons.length && currentUser?.role === "admin") {
+    submissions = await sql`
+        select s.id, s.lesson_id, s.score, s.submitted_at, u.full_name as student_name
+        from lesson_submissions s
+        join lessons l on l.id = s.lesson_id
+        join app_users u on u.id = s.student_id
+        where l.course_id = ${course.id} and u.school_id = ${currentUser.school_id}
+        order by s.submitted_at desc
+        limit 8
+      `;
+  }
 
   return courseRowsToUi(course, lessons, activities, submissions);
 }
 
-export async function fetchCourseById(sql, courseId) {
+export async function fetchCourseById(sql, courseId, currentUser = null) {
   const courses = await sql`
     select id, school_id, title, subtitle, book_code, level, status, created_at, updated_at
     from courses
     where id = ${courseId}
+      and (${currentUser?.school_id || null}::uuid is null or school_id = ${currentUser?.school_id || null})
     limit 1
   `;
 
@@ -259,14 +271,15 @@ export async function fetchCourseById(sql, courseId) {
     return null;
   }
 
-  return hydrateCourse(sql, courses[0]);
+  return hydrateCourse(sql, courses[0], currentUser);
 }
 
-export async function fetchDemoCourse(sql) {
+export async function fetchDemoCourse(sql, currentUser = null) {
   const courses = await sql`
     select id, school_id, title, subtitle, book_code, level, status, created_at, updated_at
     from courses
-    where book_code = 'B1-DEMO-2026' or status = 'active'
+    where (book_code = 'B1-DEMO-2026' or status = 'active')
+      and (${currentUser?.school_id || null}::uuid is null or school_id = ${currentUser?.school_id || null})
     order by case when book_code = 'B1-DEMO-2026' then 0 else 1 end, created_at asc
     limit 1
   `;
@@ -275,5 +288,5 @@ export async function fetchDemoCourse(sql) {
     return null;
   }
 
-  return hydrateCourse(sql, courses[0]);
+  return hydrateCourse(sql, courses[0], currentUser);
 }

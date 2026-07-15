@@ -161,7 +161,12 @@ export async function createTeacherClass(sql, body) {
 
   let teacher = null;
   if (body.teacherId) {
-    const teacherRows = await sql`select id, school_id, full_name from app_users where id = ${body.teacherId} limit 1`;
+    const teacherRows = await sql`
+      select id, school_id, full_name
+      from app_users
+      where id = ${body.teacherId} and role = 'teacher' and status = 'active'
+      limit 1
+    `;
     teacher = teacherRows[0] || null;
     if (!teacher) return json(404, { error: "Teacher not found" });
   }
@@ -170,7 +175,14 @@ export async function createTeacherClass(sql, body) {
   const slug = await ensureUniqueClassSlug(sql, baseSlug);
   const inviteCode = await ensureUniqueInviteCode(sql);
   const schoolId = body.schoolId || teacher?.school_id || null;
+  if (!schoolId) return badRequest("schoolId is required");
+  if (teacher && String(teacher.school_id) !== String(schoolId)) return json(403, { error: "Forbidden" });
   const assignedBook = String(body.assignedBook || "").trim() || null;
+
+  if (body.bookPackageId) {
+    const packageRows = await sql`select id from book_packages where id = ${body.bookPackageId} and status = 'active' limit 1`;
+    if (!packageRows.length) return json(404, { error: "Book package not found" });
+  }
 
   const rows = await sql`
     insert into classes (teacher_id, school_id, book_package_id, name, slug, level, assigned_book, invite_code, status)
@@ -232,7 +244,12 @@ export async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = 
 
 export async function joinClass(sql, body) {
   if (!body.studentId) return badRequest("studentId is required");
-  const studentRows = await sql`select id from app_users where id = ${body.studentId} and role = 'student' limit 1`;
+  const studentRows = await sql`
+    select id, school_id
+    from app_users
+    where id = ${body.studentId} and role = 'student' and status = 'active'
+    limit 1
+  `;
   if (!studentRows.length) return json(404, { error: "Student not found" });
 
   const classItem = await findClassByInviteOrSlug(sql, {
@@ -241,6 +258,10 @@ export async function joinClass(sql, body) {
     slug: body.slug || "",
   });
   if (!classItem) return json(404, { error: "Class not found" });
+  if (classItem.status !== "active") return json(403, { error: "This class is not active" });
+  if (!studentRows[0].school_id || String(studentRows[0].school_id) !== String(classItem.schoolId)) {
+    return json(403, { error: "Forbidden" });
+  }
 
   const existingRows = await sql`
     select id, status
