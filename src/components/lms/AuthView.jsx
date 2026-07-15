@@ -161,7 +161,7 @@ export function AuthView({
     setSubmitting(true);
     clearMessages();
     try {
-      await createStudentAccount({
+      const result = await createStudentAccount({
         fullName: studentJoin.studentName,
         email: studentJoin.email,
         password: studentJoin.password,
@@ -169,7 +169,13 @@ export function AuthView({
         bookCode: studentJoin.bookCode,
       });
       const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
-      navigateTo(pendingInvite || "student");
+      if (result?.bookActivated) {
+        const packageTitle = result.bookPackageTitle || "your book";
+        setLocalStatus(`${packageTitle} activated. Returning to your class invite...`);
+        window.setTimeout(() => navigateTo(pendingInvite || "student"), 700);
+      } else {
+        navigateTo(pendingInvite || "student");
+      }
     } catch (error) {
       setAuthError(error.message);
     } finally {

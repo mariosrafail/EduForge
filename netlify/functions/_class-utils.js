@@ -29,6 +29,22 @@ export function normalizeClassRow(row = {}) {
   };
 }
 
+export function publicClassInviteRow(classItem = {}) {
+  if (!classItem?.id) return null;
+  return {
+    id: classItem.id,
+    name: classItem.name,
+    slug: classItem.slug,
+    inviteCode: classItem.inviteCode,
+    level: classItem.level,
+    assignedBook: classItem.assignedBook,
+    teacher: classItem.teacherName || classItem.teacher,
+    teacherName: classItem.teacherName || classItem.teacher,
+    students: Number(classItem.students || 0),
+    status: classItem.status || "active",
+  };
+}
+
 export function slugifyClassName(name = "") {
   return String(name || "")
     .trim()
@@ -226,12 +242,22 @@ export async function joinClass(sql, body) {
   });
   if (!classItem) return json(404, { error: "Class not found" });
 
+  const existingRows = await sql`
+    select id, status
+    from class_students
+    where class_id = ${classItem.id}
+      and student_id = ${body.studentId}
+    limit 1
+  `;
+  const alreadyJoined = existingRows.length > 0;
+
   await sql`
     insert into class_students (class_id, student_id, joined_at, status)
     values (${classItem.id}, ${body.studentId}, now(), 'active')
     on conflict (class_id, student_id) do update
-    set status = 'active'
+    set status = 'active',
+        updated_at = now()
   `;
 
-  return json(200, { success: true, classItem, class: classItem });
+  return json(200, { success: true, alreadyJoined, classItem, class: classItem });
 }

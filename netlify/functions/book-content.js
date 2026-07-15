@@ -3,7 +3,9 @@ import {
   findClassByInviteOrSlug,
   joinClass,
   listTeacherClasses,
+  publicClassInviteRow,
 } from "./_class-utils.js";
+import { grantBookAccessByCode } from "./_activation-utils.js";
 import { currentUserFromEvent } from "./_auth-utils.js";
 import {
   fetchActivity,
@@ -220,47 +222,45 @@ async function verifyStudentAccess(sql, currentUser, studentId) {
   return forbidden();
 }
 
+async function verifyContentEditorReferences(sql, currentUser, body = {}) {
+  const classId = body.classId || body.class_id || "";
+  const teacherId = body.teacherId || body.teacher_id || "";
+  if (classId) {
+    const classError = await verifyClassAccess(sql, currentUser, classId);
+    if (classError) return classError;
+  }
+  if (teacherId) {
+    if (!isValidUuid(teacherId)) return invalidUuidResponse("teacherId");
+    if (isTeacher(currentUser) && String(teacherId) !== String(currentUser.id)) return forbidden();
+    if (isAdmin(currentUser)) {
+      const teacherRows = await sql`
+        select id, school_id, role
+        from app_users
+        where id = ${teacherId} and role = 'teacher'
+        limit 1
+      `;
+      const teacher = teacherRows[0];
+      if (!teacher) return json(404, { error: "Teacher not found" });
+      if (!sameSchool(currentUser, teacher.school_id)) return forbidden();
+    }
+  }
+  return null;
+}
+
 async function activateBookCode(sql, body, currentUser = null) {
   const code = String(body.code || "").trim();
   if (!code) return badRequest("code is required");
   const userScope = await resolveScopedUserId(sql, currentUser, body.userId || body.user_id || "");
   if (userScope.error) return userScope.error;
 
-  const rows = await sql`
-    select ac.*, bp.title as package_title
-    from activation_codes ac
-    join book_packages bp on bp.id = ac.book_package_id
-    where ac.code = ${code}
-    limit 1
-  `;
-  const activationCode = rows[0];
-  if (!activationCode) return json(404, { error: "Activation code not found" });
-  if (activationCode.status !== "active") return badRequest("Activation code is not active");
-  if (activationCode.max_uses !== null && activationCode.used_count >= activationCode.max_uses) return badRequest("Activation code usage limit reached");
-
-  const userRows = await sql`select id, role from app_users where id = ${userScope.userId} limit 1`;
-  const user = userRows[0];
-  if (!user) return json(404, { error: "User not found" });
-  const roleScope = user.role === "admin" ? "school_admin" : user.role;
-
-  await sql`
-    insert into book_access (user_id, book_package_id, activation_code_id, role_scope)
-    values (${user.id}, ${activationCode.book_package_id}, ${activationCode.id}, ${roleScope})
-    on conflict (user_id, book_package_id, role_scope) do update
-    set activation_code_id = excluded.activation_code_id,
-        granted_at = now()
-  `;
-
-  await sql`
-    update activation_codes
-    set used_count = used_count + 1
-    where id = ${activationCode.id}
-  `;
+  const result = await grantBookAccessByCode(sql, { code, userId: userScope.userId });
+  if (result.error) return result.error;
 
   return json(200, {
     activated: true,
-    bookPackageId: activationCode.book_package_id,
-    bookPackageTitle: activationCode.package_title,
+    alreadyActivated: result.alreadyActivated,
+    bookPackageId: result.bookPackageId,
+    bookPackageTitle: result.bookPackageTitle,
   });
 }
 
@@ -286,19 +286,6 @@ async function listUserBookAccess(sql, userId) {
       publisher: row.publisher,
     },
   }));
-}
-
-async function assignActivityToClass(sql, body) {
-  if (!body.activityId) return badRequest("activityId is required");
-  if (!body.teacherId && !body.classId && !body.studentId) return badRequest("teacherId, classId, or studentId is required");
-
-  const rows = await sql`
-    insert into activity_assignments (activity_id, teacher_id, class_id, student_id, due_at, status)
-    values (${body.activityId}, ${body.teacherId || null}, ${body.classId || null}, ${body.studentId || null}, ${body.dueAt || null}, 'assigned')
-    returning *
-  `;
-
-  return json(200, { assignment: rows[0] });
 }
 
 function toArray(value) {
@@ -1454,11 +1441,13 @@ export async function handler(event) {
       }
       if (query.action === "class-by-invite") {
         const classItem = await findClassByInviteOrSlug(sql, { inviteCode: query.inviteCode });
-        return classItem ? json(200, { classItem, class: classItem }) : json(404, { error: "Class not found" });
+        const publicClassItem = publicClassInviteRow(classItem);
+        return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
       }
       if (query.action === "class-by-slug") {
         const classItem = await findClassByInviteOrSlug(sql, { slug: query.slug });
-        return classItem ? json(200, { classItem, class: classItem }) : json(404, { error: "Class not found" });
+        const publicClassItem = publicClassInviteRow(classItem);
+        return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
       }
 
       const tree = await fetchPackageTree(sql, query);
@@ -1471,12 +1460,7 @@ export async function handler(event) {
       if (query.action === "assign") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
-        if (body.classId) {
-          const accessError = await verifyClassAccess(sql, currentUser, body.classId);
-          if (accessError) return accessError;
-        }
-        if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
-        return assignActivityToClass(sql, { ...body, teacherId: isTeacher(currentUser) ? currentUser.id : body.teacherId });
+        return createAssignment(sql, body, currentUser);
       }
       if (query.action === "create-assignment") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
@@ -1516,23 +1500,33 @@ export async function handler(event) {
       }
       if (query.action === "save-page-hotspots") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        return roleError || savePageHotspots(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
+        // TODO: package/component/page ownership is not tenant-modeled yet, so page-only edits are role-guarded for the MVP.
+        return referenceError || savePageHotspots(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
       }
       if (query.action === "create-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        return roleError || createBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
+        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity edits are role-guarded for the MVP.
+        return referenceError || createBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
       }
       if (query.action === "update-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        return roleError || updateBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
+        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity edits are role-guarded for the MVP.
+        return referenceError || updateBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
       }
       if (query.action === "delete-book-activity") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        return roleError || deleteBookActivity(sql, body);
+        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
+        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only activity deletes are role-guarded for the MVP.
+        return referenceError || deleteBookActivity(sql, body);
       }
       if (query.action === "create-book-media-asset") {
         const roleError = requireRole(currentUser, ["teacher", "admin"]);
-        return roleError || createBookMediaAsset(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
+        const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
+        // TODO: package/component/page ownership is not tenant-modeled yet, so package-only media edits are role-guarded for the MVP.
+        return referenceError || createBookMediaAsset(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id });
       }
       return badRequest("Unsupported POST action");
     }

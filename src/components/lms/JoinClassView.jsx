@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { classes } from "../../data/lmsDemoData.js";
 import { getClassByInvite, getClassBySlug, joinClass } from "../../services/classApi.js";
 import { slugifyClassName } from "../../utils/hashRoutes.js";
@@ -16,6 +16,8 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
   const [joinError, setJoinError] = useState("");
   const [joining, setJoining] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyJoined, setAlreadyJoined] = useState(false);
+  const autoJoinAttemptedRef = useRef("");
   const canJoin = currentUser?.id && currentUser?.role === "student";
 
   useEffect(() => {
@@ -25,6 +27,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
       setLoadingClass(true);
       setJoinError("");
       setSubmitted(false);
+      setAlreadyJoined(false);
 
       try {
         let loadedClass = null;
@@ -55,6 +58,39 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
       cancelled = true;
     };
   }, [classSlug, demoClassItem]);
+
+  const attemptJoin = useCallback(async () => {
+    if (!canJoin || !classItem) return;
+    setJoining(true);
+    setJoinError("");
+
+    try {
+      const result = await joinClass({
+        classId: classItem.id || null,
+        inviteCode: classItem.inviteCode || null,
+        slug: classItem.slug || classSlug,
+      });
+      setAlreadyJoined(Boolean(result?.alreadyJoined));
+      setSubmitted(true);
+    } catch (error) {
+      setJoinError(error.message || "Could not join this class. Try again.");
+    } finally {
+      setJoining(false);
+    }
+  }, [canJoin, classItem, classSlug]);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    await attemptJoin();
+  };
+
+  useEffect(() => {
+    if (!canJoin || !classItem?.id || submitted || joining) return;
+    const attemptKey = `${currentUser.id}:${classItem.id}`;
+    if (autoJoinAttemptedRef.current === attemptKey) return;
+    autoJoinAttemptedRef.current = attemptKey;
+    attemptJoin();
+  }, [attemptJoin, canJoin, classItem?.id, currentUser?.id, joining, submitted]);
 
   if (loadingClass) {
     return (
@@ -89,26 +125,6 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
     );
   }
 
-  const submit = async (event) => {
-    event.preventDefault();
-    if (!canJoin) return;
-    setJoining(true);
-    setJoinError("");
-
-    try {
-      await joinClass({
-        classId: classItem.id || null,
-        inviteCode: classItem.inviteCode || null,
-        slug: classItem.slug || classSlug,
-      });
-      setSubmitted(true);
-    } catch (error) {
-      setJoinError(error.message || "Could not join this class. Try again.");
-    } finally {
-      setJoining(false);
-    }
-  };
-
   const goToStudentAuth = (tab = "signin") => {
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("pendingClassInviteHash", `join-class/${classSlug}`);
@@ -134,7 +150,9 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
 
         {submitted ? (
           <div className="join-class-success">
-            <div className="inline-status success">You have joined {classItem.name}.</div>
+            <div className="inline-status success">
+              {alreadyJoined ? "You are already in this class." : `You have joined ${classItem.name}.`}
+            </div>
             <button className="primary-action" type="button" onClick={() => navigateTo?.("student")} data-sound-click="submit">
               Continue to student portal
             </button>

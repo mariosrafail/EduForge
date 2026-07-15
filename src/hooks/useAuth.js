@@ -54,9 +54,10 @@ export function useAuth() {
 
   const handleCreateStudentAccount = async (account) => {
     setAuthError("");
-    const user = await createStudentAccount(account);
+    const payload = await createStudentAccount(account);
+    const user = payload.user;
     setCurrentUser(user);
-    return user;
+    return payload;
   };
 
   const handleSignOut = async () => {

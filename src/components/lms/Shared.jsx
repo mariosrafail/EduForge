@@ -116,6 +116,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
           <span>
             <strong>Hamilton House Ultimate</strong>
             <small>Digital book platform demo</small>
+            <small className="build-label">EduForge LMS Demo v0.4</small>
           </span>
         </button>
 

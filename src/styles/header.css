@@ -75,6 +75,13 @@
 
 .brand-lockup small, .school-preview { color: var(--ink-muted); font-size: 12px; }
 
+.brand-lockup .build-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .header-context { justify-self: center; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
 .role-chip {
