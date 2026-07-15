@@ -179,7 +179,7 @@ export default function App() {
       <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
         {view === "invalid-route" && <InvalidRouteView attemptedHash={attemptedHash} navigateTo={navigateTo} />}
-        {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} navigateTo={navigateTo} />}
+        {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView key={view} mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} onSignOut={auth.signOut} navigateTo={navigateTo} />}
         {view.startsWith("auth-") && (
           <AuthView
             role={view.replace("auth-", "")}

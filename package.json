@@ -34,6 +34,7 @@
     "bcryptjs": "^3.0.3",
     "framer-motion": "latest",
     "lucide-react": "latest",
+    "nodemailer": "^9.0.3",
     "react": "latest",
     "react-dom": "latest",
     "vite": "^8.1.4"

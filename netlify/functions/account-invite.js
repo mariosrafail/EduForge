@@ -4,7 +4,7 @@ import {
   checkRateLimit, createAccountToken, hashPrivateValue, initialPasswordLifetimeMinutes,
   lifecycleUser, parseJsonBody, recordRateLimitAttempt, requestFingerprint, tokenExpiry, validateEmail,
 } from "./_account-lifecycle-utils.js";
-import { deliverAccountEmail, markEmailDelivery } from "./_email-utils.js";
+import { deliverAccountEmail, markEmailDelivery, recordDeliveryFailureEvent } from "./_email-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
@@ -28,7 +28,7 @@ export async function handler(event) {
     const emailHash = hashPrivateValue(email);
     if (resend && await checkRateLimit(sql, { scope: "invitation_resend", fingerprint, emailHash, limit: 5 })) {
       await recordRateLimitAttempt(sql, { scope: "invitation_resend", fingerprint, emailHash });
-      return json(429, { error: "Too many invitation requests. Try again later." });
+      return json(429, { error: "Too many invitation requests. Try again later." }, { "Retry-After": "900" });
     }
 
     const rawToken = createAccountToken();
@@ -77,15 +77,18 @@ export async function handler(event) {
           select ${outboxId}, id, ${auth.currentUser.id}, email, 'account_invitation', jsonb_build_object('name', full_name::text) from created
         ), event_row as (
           insert into account_security_events (user_id, actor_user_id, school_id, event_type, request_fingerprint)
-          select id, ${auth.currentUser.id}, school_id, 'account_invited', ${fingerprint} from created
+          select id, ${auth.currentUser.id}, school_id, 'invitation_issued', ${fingerprint} from created
         ) select id, full_name, email, role, status from created
       `;
     }
     if (!rows[0]) return json(resend ? 404 : 409, { error: resend ? "Invited account not found" : "An account with this email already exists" });
     if (resend) await recordRateLimitAttempt(sql, { scope: "invitation_resend", fingerprint, emailHash, succeeded: true });
-    const delivery = await deliverAccountEmail({ recipient: email, templateType: "account_invitation", rawToken, outboxId, name: rows[0].full_name });
+    let delivery;
+    try { delivery = await deliverAccountEmail({ recipient: email, templateType: "account_invitation", rawToken, outboxId, name: rows[0].full_name }); }
+    catch { delivery = { state: "failed", errorCode: "email_configuration_error" }; }
     await markEmailDelivery(sql, outboxId, delivery);
-    return json(resend ? 200 : 201, { user: lifecycleUser(rows[0]), ...(delivery.previewUrl ? { preview_url: delivery.previewUrl } : {}) });
+    if (delivery.state === "failed") await recordDeliveryFailureEvent(sql, { userId: rows[0].id, actorUserId: auth.currentUser.id, schoolId: auth.currentUser.school_id, fingerprint, templateType: "account_invitation" });
+    return json(resend ? 200 : 201, { user: lifecycleUser(rows[0]), delivery_status: delivery.state, ...(delivery.previewUrl ? { preview_url: delivery.previewUrl } : {}) });
   } catch (error) {
     return safeServerError(error, "Invitation could not be created");
   }

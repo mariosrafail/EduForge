@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import { Bell, BookOpen, Building2, Download, GraduationCap, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves, X } from "lucide-react";
+import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves, X } from "lucide-react";
 import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
@@ -142,6 +142,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
                 );
               })}
               <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
+              {currentUser && <button className="nav-secondary-link" onClick={() => navigateTo("account-security")}><KeyRound size={16}/><span>Account security</span></button>}
               <button
                 className="nav-secondary-link sound-toggle-button"
                 type="button"
@@ -233,6 +234,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
             <BookOpen size={18} />
             <span>Home</span>
           </button>
+          {currentUser && <button className="mobile-nav-button" onClick={() => handleNavigate("account-security")}><KeyRound size={18}/><span>Account security</span></button>}
           <button className="mobile-nav-button" type="button" aria-pressed={!muted} onClick={toggleMuted}>
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             <span>{muted ? "Sound Off" : "Sound On"}</span>

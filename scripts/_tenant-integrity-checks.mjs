@@ -57,4 +57,8 @@ export const relationshipChecks = [
   ["invitation_creator_cross_school", `select count(*)::int as count from app_users u join app_users inviter on inviter.id = u.invited_by where u.school_id is distinct from inviter.school_id`],
   ["account_outbox_invalid_user_reference", `select count(*)::int as count from account_email_outbox o left join app_users u on u.id = o.user_id where o.user_id is not null and u.id is null`],
   ["active_account_tokens_expired_beyond_retention", `select count(*)::int as count from account_tokens where used_at is null and revoked_at is null and expires_at < now() - interval '30 days'`],
+  ["security_events_actor_cross_school", `select count(*)::int as count from account_security_events e join app_users actor on actor.id=e.actor_user_id where e.school_id is not null and actor.school_id is distinct from e.school_id`],
+  ["security_events_user_cross_school", `select count(*)::int as count from account_security_events e join app_users u on u.id=e.user_id where e.school_id is not null and u.school_id is distinct from e.school_id`],
+  ["account_outbox_creator_cross_school", `select count(*)::int as count from account_email_outbox o join app_users u on u.id=o.user_id join app_users creator on creator.id=o.created_by where u.school_id is distinct from creator.school_id`],
+  ["account_outbox_stale_claims", `select count(*)::int as count from account_email_outbox where delivery_state='sending' and claimed_at < now()-interval '30 minutes'`],
 ];

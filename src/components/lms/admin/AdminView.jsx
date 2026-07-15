@@ -26,6 +26,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [usersError, setUsersError] = useState("");
   const [apiFallback, setApiFallback] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
+  const [pendingUserAction, setPendingUserAction] = useState("");
+  const [userActionStatus, setUserActionStatus] = useState("");
   const [primaryColorWarning, setPrimaryColorWarning] = useState("");
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const sidebarCloseTimerRef = useRef(null);
@@ -132,13 +134,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
         level: newUser.level,
       });
 
-      try {
-        await loadUsers();
-      } catch {
-        setCreatedUsers((current) => [createdUser, ...current]);
-        setUsersError("User was created, but the list reload failed.");
-        setApiFallback(true);
-      }
+      await loadUsers();
+      setUserActionStatus(createdUser.invitationDeliveryState === "failed" ? "Invitation created, but email delivery failed. You can resend it." : "Invitation sent successfully.");
       created = true;
     } catch (error) {
       setUsersError(error.message);
@@ -153,31 +150,46 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   };
 
   const updateUser = async (id, field, value) => {
-    setCreatedUsers((current) => current.map((user) => user.id === id ? { ...user, [field]: value } : user));
-
+    const existing = createdUsers.find((user) => user.id === id);
+    if (!existing || !window.confirm(`Confirm ${field} change for ${existing.name}? Existing sessions will be revoked.`)) return;
+    setPendingUserAction(`${id}:${field}`);
     try {
-      const updatedUser = await updateUserRequest(id, { [field]: roleToDb(value) });
-      setCreatedUsers((current) => current.map((user) => user.id === id ? updatedUser : user));
+      await updateUserRequest(id, { [field]: roleToDb(value) });
+      await loadUsers();
       setUsersError("");
+      setUserActionStatus("Account updated and existing sessions revoked.");
     } catch (error) {
-      setApiFallback(true);
       setUsersError(error.message);
-      loadUsers().catch(() => {});
-    }
+    } finally { setPendingUserAction(""); }
   };
 
   const deleteUser = async (id) => {
-    const previousUsers = createdUsers;
-    setCreatedUsers((current) => current.filter((user) => user.id !== id));
-
+    const existing = createdUsers.find((user) => user.id === id);
+    if (!existing || !window.confirm(`Permanently delete ${existing.name}? This cannot be undone.`)) return;
+    setPendingUserAction(`${id}:delete`);
     try {
       await deleteUserRequest(id);
+      await loadUsers();
       setUsersError("");
+      setUserActionStatus("Account deleted.");
     } catch (error) {
-      setCreatedUsers(previousUsers);
-      setApiFallback(true);
       setUsersError(error.message);
-    }
+    } finally { setPendingUserAction(""); }
+  };
+
+  const resendInvitation = async (user) => {
+    setPendingUserAction(`${user.id}:resend`); setUsersError("");
+    try { const result = await inviteUser(user, true); await loadUsers(); setUserActionStatus(result.invitationDeliveryState === "failed" ? "Invitation renewed, but email delivery failed." : "Invitation resent successfully."); }
+    catch (error) { setUsersError(error.message); }
+    finally { setPendingUserAction(""); }
+  };
+
+  const forceRevokeSessions = async (user) => {
+    if (!window.confirm(`Sign ${user.name} out of all current sessions?`)) return;
+    setPendingUserAction(`${user.id}:revoke`); setUsersError("");
+    try { await revokeUserSessions(user.id); await loadUsers(); setUserActionStatus("Sessions revoked successfully."); }
+    catch (error) { setUsersError(error.message); }
+    finally { setPendingUserAction(""); }
   };
 
   const toggleRolloutAction = (action) => {
@@ -384,7 +396,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                     {usersError ? ` (${usersError})` : ""}
                   </div>
                 )}
-                {userCreated && !apiFallback && <div className="inline-status success">User saved to Neon and added to the database-backed table.</div>}
+                {userCreated && !apiFallback && <div className="inline-status success">Invitation account saved to the database.</div>}
+                {userActionStatus && <div className="inline-status success">{userActionStatus}</div>}
                 {!usersLoading && createdUsers.length === 0 ? (
                   <div className="empty-user-state">
                     <strong>Create your first user</strong>
@@ -395,17 +408,19 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                     {createdUsers.map((user, index) => (
                       <div key={user.id ?? `${user.name}-${index}`}>
                         <strong>{user.name}<small>{user.email || "No email"}</small></strong>
-                        <select value={user.role} onChange={(event) => updateUser(user.id, "role", event.target.value)}>
-                          {roleOptions.map((role) => <option key={role}>{role}</option>)}
+                        <select disabled={user.role === "School Admin" || Boolean(pendingUserAction)} value={user.role} onChange={(event) => updateUser(user.id, "role", event.target.value)}>
+                          {(user.role === "School Admin" ? ["School Admin"] : creatableRoleOptions).map((role) => <option key={role}>{role}</option>)}
                         </select>
                         <small>{user.level || "No level"}</small>
-                        <select value={user.status} onChange={(event) => updateUser(user.id, "status", event.target.value)}>
+                        <select disabled={Boolean(pendingUserAction)} value={user.status} onChange={(event) => updateUser(user.id, "status", event.target.value)}>
                           {statusOptions.map((status) => <option key={status}>{status}</option>)}
                         </select>
                         <Tag tone={user.source === "database" ? "green" : "gold"}>{user.source === "database" ? "DB" : "Mock"}</Tag>
-                        {String(user.status).toLowerCase() === "invited" && <button className="secondary-action compact-action" onClick={async()=>{try{await inviteUser(user,true);setUsersError("");}catch(error){setUsersError(error.message);}}}>Resend invite</button>}
-                        <button className="secondary-action compact-action" onClick={async()=>{try{await revokeUserSessions(user.id);setUsersError("");}catch(error){setUsersError(error.message);}}}>Revoke sessions</button>
-                        <button className="danger-action" data-sound-click="deleteRemove" onClick={() => deleteUser(user.id)}>Delete</button>
+                        <Tag tone={String(user.status).toLowerCase() === "active" ? "green" : String(user.status).toLowerCase() === "paused" ? "gold" : "blue"}>{user.status}</Tag>
+                        {user.invitationDeliveryState && <small>Email: {user.invitationDeliveryState}</small>}
+                        {String(user.status).toLowerCase() === "invited" && <button disabled={Boolean(pendingUserAction)} className="secondary-action compact-action" onClick={()=>resendInvitation(user)}>{pendingUserAction === `${user.id}:resend` ? "Resending…" : "Resend invite"}</button>}
+                        {String(user.status).toLowerCase() === "active" && user.role !== "School Admin" && <button disabled={Boolean(pendingUserAction)} className="secondary-action compact-action" onClick={()=>forceRevokeSessions(user)}>{pendingUserAction === `${user.id}:revoke` ? "Revoking…" : "Revoke sessions"}</button>}
+                        <button disabled={Boolean(pendingUserAction)} className="danger-action" data-sound-click="deleteRemove" onClick={() => deleteUser(user.id)}>{pendingUserAction === `${user.id}:delete` ? "Deleting…" : "Delete"}</button>
                       </div>
                     ))}
                   </div>

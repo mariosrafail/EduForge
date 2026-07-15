@@ -7,10 +7,11 @@ async function authFetch(url, options = {}) {
       ...options.headers,
     },
   });
-  const payload = await response.json();
+  let payload = {};
+  try { payload = await response.json(); } catch { payload = {}; }
 
   if (!response.ok) {
-    throw new Error(payload.error || "Authentication request failed");
+    throw new Error(payload.error || payload.message || (response.status === 429 ? "Too many requests. Try again later." : "Authentication request failed"));
   }
 
   return payload;

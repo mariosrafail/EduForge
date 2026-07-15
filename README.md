@@ -62,6 +62,8 @@ If the database has no users, the Admin screen shows `Create your first user`. T
 
 Passwords are hashed in Netlify Functions. Plain text passwords are never stored. Migration `014_account_lifecycle.sql` adds invitation acceptance, password reset/change, session revocation, hashed single-use tokens, rate limits, security events, and a provider-neutral email outbox. See [`docs/account-lifecycle.md`](docs/account-lifecycle.md) for configuration and operations.
 
+Migration `015_account_lifecycle_hardening.sql` adds production SMTP/outbox dispatch metadata, bounded retry support, history-preserving security-event foreign keys, cleanup retention, and lifecycle query indexes. Production account email requires the server-only SMTP variables documented in the lifecycle guide; automated tests never contact external SMTP.
+
 `database/003_activities_assignments.sql` adds the demo/MVP activity authoring flow for interactive book-based practice:
 
 - teacher-created interactive activities

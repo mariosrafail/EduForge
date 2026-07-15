@@ -1,5 +1,5 @@
 import { getSql, hashToken, json, safeServerError } from "./_auth-utils.js";
-import { checkRateLimit, parseJsonBody, recordRateLimitAttempt, requestFingerprint } from "./_account-lifecycle-utils.js";
+import { checkRateLimit, genericTokenError, parseJsonBody, recordRateLimitAttempt, requestFingerprint, retryAfterHeaders, validAccountTokenInput } from "./_account-lifecycle-utils.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
@@ -8,10 +8,10 @@ export async function handler(event) {
     if (parsed.error) return json(400, { error: parsed.error });
     const rawToken = String(parsed.value.token || "");
     const purpose = String(parsed.value.purpose || "");
-    if (!rawToken || !["initial_password", "password_reset"].includes(purpose)) return json(400, { error: "Token and purpose are required" });
+    if (!validAccountTokenInput(rawToken) || !["initial_password", "password_reset"].includes(purpose)) return json(400, { valid: false, error: genericTokenError });
     const sql = getSql();
     const fingerprint = requestFingerprint(event);
-    if (await checkRateLimit(sql, { scope: "token_validation", fingerprint, limit: 20 })) return json(429, { error: "Too many token checks. Try again later." });
+    if (await checkRateLimit(sql, { scope: "token_validation", fingerprint, limit: 20 })) return json(429, { error: "Too many token checks. Try again later." }, retryAfterHeaders());
     const rows = await sql`
       select t.purpose from account_tokens t join app_users u on u.id = t.user_id
       where t.token_hash = ${hashToken(rawToken)} and t.purpose = ${purpose}
@@ -19,6 +19,6 @@ export async function handler(event) {
         and ((t.purpose = 'initial_password' and u.status = 'invited') or (t.purpose = 'password_reset' and u.status = 'active')) limit 1
     `;
     await recordRateLimitAttempt(sql, { scope: "token_validation", fingerprint, succeeded: Boolean(rows[0]) });
-    return rows[0] ? json(200, { valid: true, purpose: rows[0].purpose }) : json(400, { valid: false, error: "This link is invalid or has expired" });
+    return rows[0] ? json(200, { valid: true, purpose: rows[0].purpose }) : json(400, { valid: false, error: genericTokenError });
   } catch (error) { return safeServerError(error, "Token validation failed"); }
 }

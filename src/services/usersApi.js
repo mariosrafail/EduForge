@@ -40,6 +40,7 @@ export function userToUi(user) {
     level: user.level ?? "",
     status: roleToLabel(user.status),
     source: user.id ? "database" : "mock",
+    invitationDeliveryState: user.invitation_delivery_state ?? user.delivery_status ?? null,
   };
 }
 
@@ -84,7 +85,7 @@ export async function inviteUser(user, resend = false) {
     method: "POST",
     body: JSON.stringify({ full_name: user.name, email: user.email, role: roleToDb(user.role), level: user.level, resend }),
   });
-  return userToUi(payload.user);
+  return userToUi({ ...payload.user, delivery_status: payload.delivery_status });
 }
 
 export async function revokeUserSessions(id) {

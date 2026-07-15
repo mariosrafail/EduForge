@@ -10,6 +10,8 @@ In a fresh PowerShell window, set the variables without saving credentials in th
 $env:STAGING_DATABASE_URL = "postgresql://USER:PASSWORD@STAGING_HOST/STAGING_DATABASE?sslmode=require"
 $env:STAGING_DATABASE_CONFIRMATION = "isolated-staging-database"
 $env:EDUFORGE_STAGING_QA_PASSWORD = Read-Host "Temporary QA password"
+$env:APP_PUBLIC_URL = "https://your-isolated-preview.example"
+$env:ACCOUNT_EMAIL_MODE = "preview"
 ```
 
 Do not set `DATABASE_URL` to the staging value. If `DATABASE_URL` is already set to the same database, every staging command refuses to run. The host or database name must visibly contain `staging`, `stage`, `qa`, `sandbox`, `preview`, or `test`; names containing `prod` or `production` are rejected. Connection strings and passwords are never printed.
@@ -61,6 +63,15 @@ Admin:
 - Try School B user UUIDs with direct `GET`, `PATCH`, and `DELETE /user?id=...`; expect non-disclosing `404` and unchanged rows.
 - Try to pause or delete the final active admin; expect `409`.
 - Inspect responses in DevTools and confirm there are no password hashes, session tokens, invite codes, or cross-school identifiers.
+- Invite a disposable teacher and student, verify preview delivery, resend only while invited, and confirm admin invitation/session revocation is unavailable.
+
+Account lifecycle:
+
+- Accept one invitation and confirm the token is removed from the visible URL before interacting with the form.
+- Request forgot-password for known, unknown, and paused QA addresses; public messages must be equivalent.
+- Complete reset/change-password and verify old cookies fail while the fresh current session works.
+- Force-revoke a same-school teacher/student, reject cross-school/admin targets, and inspect non-sensitive security events/outbox states.
+- For SMTP verification, use only a dedicated non-production inbox and `ACCOUNT_EMAIL_MODE=smtp`; never use a real user address.
 
 Teacher:
 

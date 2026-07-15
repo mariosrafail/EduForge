@@ -26,6 +26,7 @@ const [schoolA, schoolB] = QA.schools;
 const artifacts = {
   users: [], assignments: [], activities: [], activitySubmissions: [], lessonSubmissions: [],
   bookActivities: [], courses: [], classes: [], classMemberships: [], inviteFingerprints: [],
+  accountEmails: [],
 };
 const lifecycleFingerprints = [];
 let failures = 0;
@@ -101,6 +102,7 @@ try {
 
   await check("admin creates and removes an account only in the authenticated school", async () => {
     const email = `qa.transient.${randomUUID()}@eduforge.invalid`;
+    artifacts.accountEmails.push(email);
     const created = await callHandler(users, { method: "POST", cookie: sessions["a-admin"], body: {
       full_name: "QA Transient Teacher", email, role: "teacher", status: "active", password: "Transient!2026",
     } });
@@ -108,7 +110,6 @@ try {
     artifacts.users.push(created.body.user.id);
     assert.equal((await pool.query("select school_id from app_users where id = $1", [created.body.user.id])).rows[0].school_id, schoolA.id);
     assert.equal((await callHandler(user, { method: "DELETE", cookie: sessions["a-admin"], query: { id: created.body.user.id } })).status, 200);
-    artifacts.users = artifacts.users.filter((id) => id !== created.body.user.id);
     assert.equal(await count("select count(*) from app_users where id = $1", [created.body.user.id]), 0);
   });
 
@@ -442,7 +443,9 @@ try {
     if (artifacts.users.length) {
       await pool.query("delete from account_email_outbox where user_id = any($1::uuid[])", [artifacts.users]);
       await pool.query("delete from account_security_events where user_id = any($1::uuid[]) or actor_user_id = any($1::uuid[])", [artifacts.users]);
+      await pool.query("delete from account_security_events where metadata->>'target_user_id' = any($1::text[])", [artifacts.users]);
     }
+    if (artifacts.accountEmails.length) await pool.query("delete from account_email_outbox where recipient_email = any($1::text[])", [artifacts.accountEmails]);
     if (lifecycleFingerprints.length) await pool.query("delete from account_rate_limit_attempts where request_fingerprint = any($1::text[])", [lifecycleFingerprints]);
     if (artifacts.lessonSubmissions.length) await pool.query("delete from lesson_submissions where id = any($1::uuid[])", [artifacts.lessonSubmissions]);
     if (artifacts.activitySubmissions.length) await pool.query("delete from activity_submissions where id = any($1::uuid[])", [artifacts.activitySubmissions]);

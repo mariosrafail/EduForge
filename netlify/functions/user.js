@@ -69,22 +69,36 @@ export async function handler(event) {
         return json(409, { error: "A school must retain at least one active admin" });
       }
 
+      if (user.role !== "admin" && role === "admin") return json(400, { error: "Admin role changes are not available through user management" });
+      const securityChanged = status !== user.status || role !== user.role;
+      const eventType = role !== user.role ? "account_role_changed" : status === "paused" ? "account_paused" : status === "active" && user.status !== "active" ? "account_reactivated" : "account_updated";
       const updated = await sql`
-        update app_users
-        set full_name = ${fullName}, role = ${role}, status = ${status}, level = ${level}
-        where id = ${id} and school_id = ${auth.currentUser.school_id}
-        returning id, school_id, full_name, email, role, level, status, created_at, updated_at
+        with changed as (
+          update app_users set full_name=${fullName},role=${role},status=${status},level=${level}
+          where id=${id} and school_id=${auth.currentUser.school_id}
+          returning id,school_id,full_name,email,role,level,status,created_at,updated_at
+        ), removed as (
+          select case when ${securityChanged} then revoke_account_sessions(id) else 0 end as count from changed
+        ), event_row as (
+          insert into account_security_events(user_id,actor_user_id,school_id,event_type,metadata)
+          select id,${auth.currentUser.id},school_id,${eventType},jsonb_build_object('previous_role',${user.role}::text,'new_role',role,'previous_status',${user.status}::text,'new_status',status) from changed
+        ) select * from changed
       `;
-      if (status !== user.status || role !== user.role) {
-        await sql`delete from auth_sessions where user_id = ${id}`;
-      }
       return json(200, { user: publicUser(updated[0]) });
     }
 
     if (await wouldRemoveFinalActiveAdmin(sql, user, "deleted", "deleted")) {
       return json(409, { error: "A school must retain at least one active admin" });
     }
-    await sql`delete from app_users where id = ${id} and school_id = ${auth.currentUser.school_id}`;
+    await sql`
+      with target as (select id,school_id,role,status from app_users where id=${id} and school_id=${auth.currentUser.school_id}),
+      event_row as (
+        insert into account_security_events(user_id,actor_user_id,school_id,event_type,metadata)
+        select null,${auth.currentUser.id},school_id,'account_deleted',jsonb_build_object('role',role,'status',status,'target_user_id',id::text) from target returning id
+      ), deleted as (
+        delete from app_users where id in (select id from target) and (select count(*) from event_row)>=0 returning id
+      ) select id from deleted
+    `;
     return json(200, { deleted: true });
   } catch (error) {
     return safeServerError(error, "User API failed");

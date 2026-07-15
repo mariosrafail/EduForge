@@ -10,6 +10,10 @@ import {
 
 export const initialPasswordLifetimeMinutes = 60 * 24 * 3;
 export const passwordResetLifetimeMinutes = 30;
+export const maximumPasswordLength = 128;
+export const maximumAccountTokenLength = 128;
+export const genericTokenError = "This link is invalid or has expired";
+export const rateLimitWindowSeconds = 15 * 60;
 export const genericForgotPasswordMessage = "If an active account matches that email, password reset instructions will be sent.";
 const demoPasswords = new Set(["admin123", "teacher123", "student123", "password123"]);
 
@@ -24,10 +28,20 @@ export function hashPrivateValue(value) {
 export function validatePassword(password, normalizedEmail, { allowDemo = false } = {}) {
   const value = String(password ?? "");
   if (value.length < 10) return "Password must be at least 10 characters";
+  if (value.length > maximumPasswordLength) return `Password must be at most ${maximumPasswordLength} characters`;
   if (!value.trim()) return "Password cannot contain only whitespace";
   if (value.toLowerCase() === String(normalizedEmail || "").toLowerCase()) return "Password cannot be the same as the email address";
   if (!allowDemo && demoPasswords.has(value.toLowerCase())) return "Choose a password that is not a documented demo password";
   return "";
+}
+
+export function validAccountTokenInput(token) {
+  const value = String(token ?? "");
+  return value.length >= 32 && value.length <= maximumAccountTokenLength && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+export function retryAfterHeaders(seconds = rateLimitWindowSeconds) {
+  return { "Retry-After": String(seconds) };
 }
 
 export async function hashPassword(password) {
@@ -66,6 +80,10 @@ export async function checkRateLimit(sql, { scope, fingerprint, emailHash = null
 
 export async function recordRateLimitAttempt(sql, { scope, fingerprint, emailHash = null, succeeded = false }) {
   await sql`insert into account_rate_limit_attempts (scope, request_fingerprint, email_hash, succeeded) values (${scope}, ${fingerprint}, ${emailHash}, ${succeeded})`;
+}
+
+export async function cleanupLifecycleHistory(sql) {
+  await sql`select * from cleanup_account_lifecycle_history()`;
 }
 
 export function tokenExpiry(minutes) {
@@ -111,16 +129,20 @@ export async function consumePasswordToken(sql, { rawToken, purpose, passwordHas
       where id in (select user_id from consumed)
       returning id, full_name, email, role, status, school_id, level
     ), sessions_removed as (
-      delete from auth_sessions where user_id in (select id from updated)
+      select revoke_account_sessions(id) as count from updated
     ), other_tokens as (
       update account_tokens set revoked_at = now()
       where user_id in (select id from updated) and used_at is null and revoked_at is null
     ), fresh_session as (
       insert into auth_sessions (user_id, token_hash, expires_at)
-      select id, ${session.tokenHash}, ${session.expiresAt} from updated
+      select updated.id, ${session.tokenHash}, ${session.expiresAt} from updated cross join (select count(*) from sessions_removed) session_revocation
     ), event_row as (
       insert into account_security_events (user_id, actor_user_id, school_id, event_type, request_fingerprint)
-      select id, id, school_id, case when ${purpose} = 'initial_password' then 'invitation_accepted' else 'password_reset' end, ${fingerprint} from updated
+      select id, id, school_id, case when ${purpose} = 'initial_password' then 'invitation_accepted' else 'password_reset_completed' end, ${fingerprint} from updated
     ) select id, full_name, email, role, status, level from updated
   `;
+}
+
+export async function revokeAllUserSessions(sql, userId) {
+  await sql`select revoke_account_sessions(${userId})`;
 }

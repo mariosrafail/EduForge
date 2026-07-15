@@ -35,6 +35,7 @@ const requiredIndexes = [
   "book_access_user_package_idx", "courses_school_package_idx", "lessons_school_course_idx",
   "lesson_activities_school_owner_idx", "activities_school_owner_type_idx",
   "lesson_assignments_student_idx", "lesson_assignments_class_idx", "class_invite_attempts_window_idx",
+  "account_tokens_hash_purpose_idx", "account_email_outbox_dispatch_idx", "account_rate_limit_retention_idx",
 ];
 
 try {

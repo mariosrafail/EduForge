@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { accountActionUrl, createAccountToken, genericForgotPasswordMessage, hashPrivateValue, validatePassword } from "../netlify/functions/_account-lifecycle-utils.js";
+import { accountActionUrl, createAccountToken, genericForgotPasswordMessage, hashPrivateValue, validAccountTokenInput, validatePassword } from "../netlify/functions/_account-lifecycle-utils.js";
 
 test("account tokens are high entropy and hashes do not expose input", () => {
   const first=createAccountToken(); const second=createAccountToken();
@@ -13,6 +13,10 @@ test("lifecycle password policy rejects weak and demo credentials", () => {
   assert.match(validatePassword("user@example.com","user@example.com"),/email/);
   assert.match(validatePassword("password123","user@example.com"),/demo/);
   assert.equal(validatePassword("A-unique-long-passphrase","user@example.com"),"");
+  assert.match(validatePassword("x".repeat(129),"user@example.com"),/at most 128/);
+  assert.equal(validAccountTokenInput(createAccountToken()),true);
+  assert.equal(validAccountTokenInput("x".repeat(129)),false);
+  assert.equal(validAccountTokenInput("not valid token spaces"),false);
 });
 
 test("action URLs require an absolute http(s) public URL", () => {
