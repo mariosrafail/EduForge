@@ -9,6 +9,7 @@ import { deliverAccountEmail, markEmailDelivery, recordDeliveryFailureEvent } fr
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
+  if (String(process.env.ACCOUNT_INVITATIONS_ENABLED || "true").toLowerCase() === "false") return json(503, { error: "Account invitations are temporarily unavailable" });
   try {
     const sql = getSql();
     const auth = await requireRole(event, "admin", sql);

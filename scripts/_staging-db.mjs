@@ -29,18 +29,18 @@ function parsePostgresUrl(value, variableName) {
   return url;
 }
 
-export function requireSafeDatabase(kind = "staging") {
+export function requireSafeDatabase(kind = "staging", environment = process.env) {
   const definition = confirmations[kind];
   if (!definition) throw new Error(`Unsupported database safety mode: ${kind}`);
   const [urlName, confirmationName, expectedConfirmation] = definition;
-  const rawUrl = process.env[urlName];
+  const rawUrl = environment[urlName];
   if (!rawUrl) throw new Error(`${urlName} is required`);
-  if (process.env[confirmationName] !== expectedConfirmation) {
+  if (environment[confirmationName] !== expectedConfirmation) {
     throw new Error(`${confirmationName} must equal ${expectedConfirmation}`);
   }
 
   const url = parsePostgresUrl(rawUrl, urlName);
-  const runtimeRaw = process.env.DATABASE_URL;
+  const runtimeRaw = environment.DATABASE_URL;
   if (runtimeRaw) {
     const runtimeUrl = parsePostgresUrl(runtimeRaw, "DATABASE_URL");
     if (databaseIdentity(runtimeUrl) === databaseIdentity(url)) {

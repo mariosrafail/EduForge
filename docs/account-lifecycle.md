@@ -26,7 +26,7 @@ Token-bearing invitation/reset email uses option A: the database operation commi
 
 Password-change confirmation contains no token and is durable-retry eligible. `account-email-dispatch` claims queued/retryable rows with `FOR UPDATE SKIP LOCKED`, uses a claim UUID, and applies bounded exponential delays up to five attempts before `exhausted`. Provider errors are reduced to non-sensitive internal codes. Successful rows retain only the SMTP message reference.
 
-Run `select * from cleanup_account_lifecycle_history();` from a controlled maintenance job to remove rate-limit rows older than 7 days and terminal/expired token rows older than 30 days. Recent audit history is preserved.
+The internal `scheduled-lifecycle-cleanup` worker runs daily and reuses `cleanup_account_lifecycle_history()`. Defaults retain rate-limit/invite attempts for 7 days, terminal tokens for 30 days, and completed outbox audit rows for 90 days. Environment overrides are bounded and documented in `.env.example`; active tokens, recent audit history, security events, users, sessions, and migration history are preserved.
 
 ## Email failure behavior
 
@@ -44,10 +44,10 @@ Run `select * from cleanup_account_lifecycle_history();` from a controlled maint
 
 ## Production deployment checklist
 
-- Back up the database; apply `015`; run integrity checks and verify lifecycle indexes.
+- Back up the database; apply migrations through `016`; run integrity checks and verify lifecycle/operations indexes.
 - Configure `APP_PUBLIC_URL`, private rate-limit/dispatcher secrets, and tested SMTP credentials.
 - Send to a dedicated non-production inbox first; inspect both HTML and plain text.
-- Configure a scheduled POST to `account-email-dispatch` with the private dispatcher header.
+- Confirm Netlify deploys the internal `scheduled-account-email-dispatch` (every 15 minutes) and `scheduled-lifecycle-cleanup` (daily) workers. Keep the separately authenticated dispatcher endpoint private.
 - Monitor `failed`, `retryable`, `exhausted`, stale claims, security-event volume, and SMTP rejection rates.
 - Enable edge/WAF request limits and schedule lifecycle-history cleanup.
 

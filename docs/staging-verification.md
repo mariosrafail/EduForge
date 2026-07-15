@@ -123,3 +123,35 @@ Cleanup requires the same explicit staging confirmation, validates the complete 
 | Cross-school tampering |  |  |  |  |  |
 | Invites and throttling |  |  |  |  |  |
 | Cleanup |  |  |  |  |  |
+
+## Hosted staging operations sign-off
+
+Run `npm run staging:preflight` before migrations. A hosted target must use HTTPS, a visibly non-production hostname, its own database/secrets, and either gated preview mode or a dedicated staging SMTP inbox. After deploy, verify `operational-health` publicly and with the private monitoring header, then use Netlify **Run now** once for both scheduled functions. Scheduled functions run only on published deploys and use UTC schedules.
+
+Hosted browser QA uses `npm run test:e2e:staging` with runtime-only `E2E_*` values. Screenshots and traces are retained only on failure and must be reviewed for tokens before sharing. Invitation/reset journeys that require inbox access remain manual when no provider-neutral mailbox API is configured.
+
+Leave every item unchecked until it is actually executed:
+
+- [ ] Chrome desktop and mobile-width
+- [ ] Edge desktop
+- [ ] Firefox desktop
+- [ ] Safari/WebKit where accessible
+- [ ] Admin, teacher, and student sign-in
+- [ ] Teacher/student invitation, resend, and delivery state
+- [ ] Acceptance URL sanitization, weak/mismatch rejection, activation, and replay failure
+- [ ] Known/unknown forgot-password equivalence and reset-email rendering
+- [ ] Reset invalidates old session and creates a working new session
+- [ ] Password change for all roles and explicit logout
+- [ ] Self session rotation preserves the current session
+- [ ] Paused user and expired/used tokens fail safely
+- [ ] School A cannot read or mutate School B
+- [ ] Dispatcher, cleanup, health, and operational history
+- [ ] Final tenant integrity and QA cleanup
+
+| Area | Environment | Tester | Result | Evidence | Blocker | Date |
+|---|---|---|---|---|---|---|
+| Hosted deployment | Pending | — | Not run | — | Netlify staging access required | — |
+| Dedicated SMTP | Pending | — | Not run | — | SMTP inbox and sender DNS required | — |
+| Browser matrix | Pending | — | Not run | — | Hosted URL and QA credentials required | — |
+| Scheduler/health | Pending | — | Not run | — | Published Netlify deploy required | — |
+| WAF rules | Pending | — | Not configured | — | Netlify security access required | — |

@@ -30,6 +30,7 @@ const artifacts = {
 };
 const lifecycleFingerprints = [];
 let failures = 0;
+let unexpectedFailure = false;
 
 async function check(name, callback) {
   try {
@@ -438,6 +439,9 @@ try {
       throw new Error("Intentional smoke failure requested for cleanup verification");
     });
   }
+} catch (error) {
+  unexpectedFailure = true;
+  throw error;
 } finally {
   try {
     if (artifacts.users.length) {
@@ -460,6 +464,10 @@ try {
     if (artifacts.users.length) await pool.query("delete from app_users where id = any($1::uuid[])", [artifacts.users]);
     if (artifacts.inviteFingerprints.length) await pool.query("delete from class_invite_attempts where request_fingerprint = any($1::text[])", [artifacts.inviteFingerprints]);
   } finally {
+    await pool.query(
+      "insert into operational_runs(run_type,finished_at,succeeded,aggregate_counts,failure_code,build_identifier) values('staging_smoke',now(),$1,jsonb_build_object('failed_checks',$2::int),$3,$4)",
+      [!unexpectedFailure && failures === 0, failures, unexpectedFailure || failures ? "staging_smoke_failed" : null, String(process.env.COMMIT_REF || process.env.DEPLOY_ID || process.env.BUILD_ID || "unknown").slice(0, 128)],
+    );
     setSqlForVerification(null);
     await pool.end();
   }

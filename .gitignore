@@ -4,6 +4,16 @@ dist/
 .env.*
 !.env.example
 !.env.android-offline
+*.env
+*.env.local
+*.dump
+*.sql.gz
+playwright-report/
+test-results/
+blob-report/
+staging-artifacts/
+staging-credentials*
+qa-password*
 *.log
 .DS_Store
 Thumbs.db

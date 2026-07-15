@@ -3,6 +3,7 @@ import { relationshipChecks } from "./_tenant-integrity-checks.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
 let failures = 0;
+let unexpectedFailure = false;
 
 function fail(message) {
   failures += 1;
@@ -36,6 +37,7 @@ const requiredIndexes = [
   "lesson_activities_school_owner_idx", "activities_school_owner_type_idx",
   "lesson_assignments_student_idx", "lesson_assignments_class_idx", "class_invite_attempts_window_idx",
   "account_tokens_hash_purpose_idx", "account_email_outbox_dispatch_idx", "account_rate_limit_retention_idx",
+  "operational_runs_type_finished_idx", "operational_runs_failures_idx",
 ];
 
 try {
@@ -93,6 +95,13 @@ try {
 
   if (failures) throw new Error(`Tenant integrity verification failed with ${failures} issue(s)`);
   console.log("Tenant integrity verification passed.");
+} catch (error) {
+  unexpectedFailure = true;
+  throw error;
 } finally {
+  await pool.query(
+    "insert into operational_runs(run_type,finished_at,succeeded,aggregate_counts,failure_code,build_identifier) values('tenant_integrity',now(),$1,jsonb_build_object('issues',$2::int),$3,$4)",
+    [!unexpectedFailure && failures === 0, failures, unexpectedFailure || failures ? "integrity_check_failed" : null, String(process.env.COMMIT_REF || process.env.DEPLOY_ID || process.env.BUILD_ID || "unknown").slice(0, 128)],
+  );
   await pool.end();
 }
