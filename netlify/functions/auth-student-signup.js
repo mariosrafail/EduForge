@@ -1,41 +1,23 @@
 import bcrypt from "bcryptjs";
 import { grantBookAccessByCode, validateActivationCodeForUser } from "./_activation-utils.js";
 import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
-
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { enforceInviteRateLimit, findClassByInviteCode, isValidInviteCode, publicClassInviteRow, recordInviteAttempt } from "./_class-utils.js";
 
 function validate(payload) {
   const fullName = String(payload.fullName ?? payload.studentName ?? "").trim();
   const email = normalizeEmail(payload.email);
   const password = String(payload.password ?? "");
-  const classCode = String(payload.classCode ?? payload.inviteCode ?? payload.classSlug ?? "").trim();
+  const classCode = String(payload.classCode ?? payload.inviteCode ?? "").trim().toUpperCase();
   const bookCode = String(payload.bookCode ?? "").trim();
 
   if (!fullName) return { error: "fullName is required" };
   if (!emailPattern.test(email)) return { error: "A valid email is required" };
   if (password.length < 8) return { error: "Password must be at least 8 characters" };
-  if (!classCode) return { error: "Class invite code is required for student signup in this MVP" };
+  if (!isValidInviteCode(classCode) || payload.classSlug || payload.classId) {
+    return { error: "A valid class invite code is required for student signup" };
+  }
 
   return { value: { fullName, email, password, classCode, bookCode } };
-}
-
-async function findClass(sql, classCode) {
-  const rows = uuidPattern.test(classCode)
-    ? await sql`
-        select c.id, c.school_id, c.invite_code, c.slug, c.name, u.full_name as teacher_name
-        from classes c
-        left join app_users u on u.id = c.teacher_id
-        where c.id = ${classCode} or c.invite_code = ${classCode} or c.slug = ${classCode}
-        limit 1
-      `
-    : await sql`
-        select c.id, c.school_id, c.invite_code, c.slug, c.name, u.full_name as teacher_name
-        from classes c
-        left join app_users u on u.id = c.teacher_id
-        where c.invite_code = ${classCode} or c.slug = ${classCode}
-        limit 1
-      `;
-  return rows[0] || null;
 }
 
 export async function handler(event) {
@@ -56,15 +38,18 @@ export async function handler(event) {
     await ensureAuthSchema(sql);
     const { fullName, email, password, classCode, bookCode } = validation.value;
 
-    const classItem = await findClass(sql, classCode);
-    if (!classItem?.school_id) {
-      return json(400, { error: "A valid class invite code is required for student signup in this MVP" });
+    const rateLimitError = await enforceInviteRateLimit(sql, event);
+    if (rateLimitError) return rateLimitError;
+    const classItem = await findClassByInviteCode(sql, classCode);
+    await recordInviteAttempt(sql, event, Boolean(classItem));
+    if (!classItem?.schoolId) {
+      return json(400, { error: "A valid class invite code is required for student signup" });
     }
 
     if (bookCode) {
       const activationValidation = await validateActivationCodeForUser(sql, {
         code: bookCode,
-        schoolId: classItem.school_id,
+        schoolId: classItem.schoolId,
         enforceUsageLimit: true,
       });
       if (activationValidation.error) return activationValidation.error;
@@ -75,9 +60,18 @@ export async function handler(event) {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const users = await sql`
-      insert into app_users (school_id, full_name, email, role, level, status, password_hash, auth_provider)
-      values (${classItem.school_id}, ${fullName}, ${email}, 'student', null, 'active', ${passwordHash}, 'password')
-      returning id, school_id, full_name, email, role, status
+      with inserted_user as (
+        insert into app_users (school_id, full_name, email, role, level, status, password_hash, auth_provider)
+        values (${classItem.schoolId}, ${fullName}, ${email}, 'student', null, 'active', ${passwordHash}, 'password')
+        returning id, school_id, full_name, email, role, status
+      ), inserted_membership as (
+        insert into class_students (class_id, student_id, joined_at, status)
+        select ${classItem.id}, id, now(), 'active' from inserted_user
+        returning student_id
+      )
+      select u.*
+      from inserted_user u
+      join inserted_membership m on m.student_id = u.id
     `;
 
     let bookActivated = false;
@@ -92,12 +86,7 @@ export async function handler(event) {
     const session = await createSession(sql, users[0].id, event);
     return json(201, {
       user: publicUser(users[0]),
-      joinedClassCandidate: {
-        id: classItem.id,
-        slug: classItem.slug,
-        inviteCode: classItem.invite_code,
-        name: classItem.name,
-      },
+      joinedClass: publicClassInviteRow(classItem),
       bookActivated,
       bookPackageTitle,
     }, { "Set-Cookie": session.cookie });

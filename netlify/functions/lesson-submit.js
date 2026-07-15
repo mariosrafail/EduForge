@@ -1,5 +1,6 @@
 import { fetchCourseById, getSql, json, parseBody, validateUuid } from "./_course-utils.js";
 import { requireRole, safeServerError } from "./_auth-utils.js";
+import { studentCanAccessLesson } from "./_resource-access.js";
 
 function scoreActivity(activity, answers = {}) {
   if (activity.type === "gap-fill") {
@@ -35,13 +36,11 @@ export async function handler(event) {
     const auth = await requireRole(event, ["student"], sql);
     if (auth.error) return auth.error;
     if (body.student_id && String(body.student_id) !== String(auth.currentUser.id)) return json(403, { error: "Forbidden" });
-    const lessonRows = await sql`
-      select l.id, l.course_id
-      from lessons l join courses c on c.id = l.course_id
-      where l.id = ${lessonId} and c.school_id = ${auth.currentUser.school_id}
-      limit 1
-    `;
-    if (!lessonRows.length) return json(404, { error: "Lesson not found" });
+    if (!await studentCanAccessLesson(sql, auth.currentUser, lessonId)) {
+      return json(404, { error: "Lesson not found" });
+    }
+    const lessonRows = await sql`select id, course_id from lessons where id = ${lessonId} limit 1`;
+    if (!lessonRows.length || !lessonRows[0].course_id) return json(404, { error: "Lesson not found" });
 
     const course = await fetchCourseById(sql, lessonRows[0].course_id, auth.currentUser);
     const lesson = course?.lessons?.find((item) => item.id === lessonId) || null;

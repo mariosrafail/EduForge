@@ -1,4 +1,5 @@
 import { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json } from "./_auth-utils.js";
+import { accessibleLessonIdsForStudent, isStudent, studentCanAccessCourse } from "./_resource-access.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const courseStatuses = new Set(["draft", "active", "archived"]);
@@ -217,12 +218,16 @@ export function courseRowsToUi(course, lessonRows, activityRows, submissionRows 
 }
 
 async function hydrateCourse(sql, course, currentUser = null) {
-  const lessons = await sql`
+  let lessons = await sql`
     select id, course_id, title, subtitle, position, instructions, status, created_at, updated_at
     from lessons
     where course_id = ${course.id}
     order by position asc, created_at asc
   `;
+  if (isStudent(currentUser)) {
+    const allowedLessonIds = await accessibleLessonIdsForStudent(sql, currentUser, { courseId: course.id });
+    lessons = lessons.filter((lesson) => allowedLessonIds.includes(String(lesson.id)));
+  }
   const activities = lessons.length
     ? await sql`
         select la.id, la.lesson_id, la.type, la.title, la.instructions, la.position, la.content, la.correct_answers, la.feedback, la.skill, la.created_at, la.updated_at
@@ -271,6 +276,8 @@ export async function fetchCourseById(sql, courseId, currentUser = null) {
     return null;
   }
 
+  if (isStudent(currentUser) && !await studentCanAccessCourse(sql, currentUser, courseId)) return null;
+
   return hydrateCourse(sql, courses[0], currentUser);
 }
 
@@ -281,10 +288,17 @@ export async function fetchDemoCourse(sql, currentUser = null) {
     where (book_code = 'B1-DEMO-2026' or status = 'active')
       and (${currentUser?.school_id || null}::uuid is null or school_id = ${currentUser?.school_id || null})
     order by case when book_code = 'B1-DEMO-2026' then 0 else 1 end, created_at asc
-    limit 1
+    limit 20
   `;
 
   if (!courses.length) {
+    return null;
+  }
+
+  if (isStudent(currentUser)) {
+    for (const course of courses) {
+      if (await studentCanAccessCourse(sql, currentUser, course.id)) return hydrateCourse(sql, course, currentUser);
+    }
     return null;
   }
 

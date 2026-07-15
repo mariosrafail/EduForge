@@ -15,3 +15,6 @@ android/.idea/
 
 # Local Netlify folder
 .netlify
+
+# Local Codex workspace
+.codex/

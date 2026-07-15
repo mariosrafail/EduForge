@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getClassByInvite, getClassBySlug, joinClass } from "../../services/classApi.js";
+import { getClassByInvite, joinClass } from "../../services/classApi.js";
 import { Card, SectionTitle, Tag } from "./Shared.jsx";
 
 export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
@@ -22,12 +22,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
       setAlreadyJoined(false);
 
       try {
-        let loadedClass = null;
-        try {
-          loadedClass = await getClassByInvite(classSlug);
-        } catch {
-          loadedClass = await getClassBySlug(classSlug);
-        }
+        const loadedClass = await getClassByInvite(classSlug);
 
         if (!cancelled) {
           setClassItem(loadedClass);
@@ -56,9 +51,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
 
     try {
       const result = await joinClass({
-        classId: classItem.id || null,
-        inviteCode: classItem.inviteCode || null,
-        slug: classItem.slug || classSlug,
+        inviteCode: classSlug,
       });
       setAlreadyJoined(Boolean(result?.alreadyJoined));
       setSubmitted(true);
@@ -75,12 +68,12 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
   };
 
   useEffect(() => {
-    if (!canJoin || !classItem?.id || submitted || joining) return;
-    const attemptKey = `${currentUser.id}:${classItem.id}`;
+    if (!canJoin || !classItem || submitted || joining) return;
+    const attemptKey = `${currentUser.id}:${classSlug}`;
     if (autoJoinAttemptedRef.current === attemptKey) return;
     autoJoinAttemptedRef.current = attemptKey;
     attemptJoin();
-  }, [attemptJoin, canJoin, classItem?.id, currentUser?.id, joining, submitted]);
+  }, [attemptJoin, canJoin, classItem, classSlug, currentUser?.id, joining, submitted]);
 
   if (loadingClass) {
     return (
@@ -130,7 +123,7 @@ export function JoinClassView({ classSlug, currentUser = null, navigateTo }) {
           eyebrow="Class invite"
           title={`You are joining: ${classItem.name}`}
           text={`${classItem.teacher || "Paris Georgoulakis"} invited you to join the ${classItem.assignedBook || classItem.book || "Ultimate B2"} class workspace.`}
-          action={<Tag tone="green">{classItem.students} students</Tag>}
+          action={<Tag tone="green">Invite verified</Tag>}
         />
         <div className="join-class-meta">
           <span>Level: {classItem.level || "B2"}</span>

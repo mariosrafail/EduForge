@@ -11,6 +11,15 @@ export const jsonHeaders = {
   "Content-Type": "application/json",
 };
 
+let testSqlOverride = null;
+
+export function setSqlForTests(sql) {
+  if (process.env.TEST_DATABASE_CONFIRMATION !== "isolated-test-database") {
+    throw new Error("SQL test override requires an explicitly confirmed isolated test database");
+  }
+  testSqlOverride = sql || null;
+}
+
 export function json(statusCode, body, extraHeaders = {}) {
   return {
     statusCode,
@@ -52,6 +61,7 @@ export function databaseNotConfiguredResponse() {
 }
 
 export function getSql() {
+  if (testSqlOverride) return testSqlOverride;
   const databaseUrl = getDatabaseUrl();
   if (!databaseUrl) {
     const error = new Error("DATABASE_URL is not configured");

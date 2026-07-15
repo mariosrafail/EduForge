@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  unit-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  integration-database:
+    needs: unit-and-build
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      TEST_DATABASE_CONFIRMATION: isolated-test-database
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run isolated PostgreSQL integration tests
+        if: env.TEST_DATABASE_URL != ''
+        run: npm run test:integration
+      - name: Report unconfigured integration database
+        if: env.TEST_DATABASE_URL == ''
+        run: echo "Integration tests skipped because TEST_DATABASE_URL is not configured."

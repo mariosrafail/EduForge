@@ -1,12 +1,15 @@
 import {
   createTeacherClass,
-  findClassByInviteOrSlug,
+  enforceInviteRateLimit,
+  findClassByInviteCode,
   joinClass,
   listTeacherClasses,
   publicClassInviteRow,
+  recordInviteAttempt,
 } from "./_class-utils.js";
 import { grantBookAccessByCode } from "./_activation-utils.js";
 import { forbidden, requireAuth, safeServerError, unauthorized } from "./_auth-utils.js";
+import { isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool } from "./_resource-access.js";
 import {
   fetchActivity,
   fetchBookPackages,
@@ -41,33 +44,6 @@ function numericOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
-}
-
-function requireUser(currentUser) {
-  return currentUser ? null : unauthorized();
-}
-
-function requireRole(currentUser, allowedRoles) {
-  const userError = requireUser(currentUser);
-  if (userError) return userError;
-  return allowedRoles.includes(currentUser.role) ? null : forbidden();
-}
-
-function isAdmin(currentUser) {
-  return currentUser?.role === "admin";
-}
-
-function isTeacher(currentUser) {
-  return currentUser?.role === "teacher";
-}
-
-function isStudent(currentUser) {
-  return currentUser?.role === "student";
-}
-
-function sameSchool(currentUser, rowSchoolId) {
-  if (!currentUser?.school_id || !rowSchoolId) return false;
-  return String(currentUser.school_id) === String(rowSchoolId);
 }
 
 async function accessiblePackageIds(sql, currentUser) {
@@ -215,7 +191,7 @@ async function getUserAccessRow(sql, userId) {
 }
 
 async function resolveScopedUserId(sql, currentUser, requestedUserId = "") {
-  const roleError = requireRole(currentUser, ["student", "teacher", "admin"]);
+  const roleError = requireResourceRole(currentUser, ["student", "teacher", "admin"]);
   if (roleError) return { error: roleError };
   const userId = requestedUserId || currentUser.id;
   if (!userId) return { error: badRequest("userId is required") };
@@ -1013,6 +989,13 @@ async function reviewSubmission(sql, body, currentUser = null) {
         reviewed_at = now(),
         reviewed_by = ${currentUser.id}
     where id = ${submissionId}
+      and school_id = ${currentUser.school_id}
+      and exists (
+        select 1 from activity_assignments aa
+        where aa.id = activity_submissions.activity_assignment_id
+          and aa.school_id = ${currentUser.school_id}
+          and (${isAdmin(currentUser)} or aa.teacher_id = ${currentUser.id})
+      )
     returning id, teacher_feedback, reviewed_at, reviewed_by
   `;
 
@@ -1180,6 +1163,7 @@ async function savePageHotspots(sql, body, currentUser) {
       and component_slug = ${componentSlug}
       and page_id = ${pageId}
       and school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or created_by = ${currentUser.id})
   `;
 
   const inserted = [];
@@ -1512,10 +1496,15 @@ export async function handler(event) {
     const sql = getSql();
     const query = readQuery(event);
 
-    if (event.httpMethod === "GET" && ["class-by-invite", "class-by-slug"].includes(query.action)) {
-      const classItem = await findClassByInviteOrSlug(sql, query.action === "class-by-invite"
-        ? { inviteCode: query.inviteCode }
-        : { slug: query.slug });
+    if (event.httpMethod === "GET" && query.action === "class-by-slug") {
+      return json(404, { error: "Class not found" });
+    }
+
+    if (event.httpMethod === "GET" && query.action === "class-by-invite") {
+      const rateLimitError = await enforceInviteRateLimit(sql, event);
+      if (rateLimitError) return rateLimitError;
+      const classItem = await findClassByInviteCode(sql, query.inviteCode);
+      await recordInviteAttempt(sql, event, Boolean(classItem));
       const publicClassItem = publicClassInviteRow(classItem);
       return publicClassItem ? json(200, { classItem: publicClassItem, class: publicClassItem }) : json(404, { error: "Class not found" });
     }
@@ -1548,11 +1537,11 @@ export async function handler(event) {
         return userScope.error || json(200, { bookAccess: await listUserBookAccess(sql, userScope.userId) });
       }
       if (query.action === "school-metrics") {
-        const roleError = requireRole(currentUser, ["admin"]);
+        const roleError = requireResourceRole(currentUser, ["admin"]);
         return roleError || getSchoolMetrics(sql, currentUser);
       }
       if (query.action === "teacher-assignments") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
         if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
@@ -1560,21 +1549,21 @@ export async function handler(event) {
         return json(200, { assignments: await listTeacherAssignments(sql, teacherId, currentUser) });
       }
       if (query.action === "assignments") {
-        const roleError = requireRole(currentUser, ["student", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["student", "admin"]);
         if (roleError) return roleError;
         const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
         const accessError = await verifyStudentAccess(sql, currentUser, studentId);
         return accessError || json(200, { assignments: await listAssignmentsForStudent(sql, studentId, currentUser) });
       }
       if (query.action === "grades") {
-        const roleError = requireRole(currentUser, ["student", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["student", "admin"]);
         if (roleError) return roleError;
         const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
         const accessError = await verifyStudentAccess(sql, currentUser, studentId);
         return accessError || json(200, { grades: await getStudentGrades(sql, studentId, currentUser) });
       }
       if (query.action === "assignment-results") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (!query.assignmentId) return badRequest("assignmentId is required");
         if (!isValidUuid(query.assignmentId)) return invalidUuidResponse("assignmentId");
@@ -1582,13 +1571,13 @@ export async function handler(event) {
         return accessError || getAssignmentResults(sql, query.assignmentId);
       }
       if (query.action === "class-students") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         const accessError = await verifyClassAccess(sql, currentUser, query.classId);
         return accessError || listClassStudents(sql, query.classId);
       }
       if (query.action === "teacher-students") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
         if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
@@ -1609,7 +1598,7 @@ export async function handler(event) {
         return accessError || listBookMediaAssets(sql, query, currentUser);
       }
       if (query.action === "classes") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
         if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
@@ -1625,22 +1614,22 @@ export async function handler(event) {
       const body = parseBody(event);
       if (query.action === "activate") return activateBookCode(sql, body, currentUser);
       if (query.action === "assign") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         return createAssignment(sql, body, currentUser);
       }
       if (query.action === "create-assignment") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         return createAssignment(sql, body, currentUser);
       }
       if (query.action === "submit") {
-        const roleError = requireRole(currentUser, ["student"]);
+        const roleError = requireResourceRole(currentUser, ["student"]);
         if (roleError) return roleError;
         return submitActivity(sql, body, currentUser);
       }
       if (query.action === "review-submission") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (!body.submissionId) return badRequest("submissionId is required");
         if (!isValidUuid(body.submissionId)) return invalidUuidResponse("submissionId");
@@ -1650,7 +1639,7 @@ export async function handler(event) {
         return reviewSubmission(sql, body, currentUser);
       }
       if (query.action === "create-class") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
         return createTeacherClass(sql, {
@@ -1660,35 +1649,40 @@ export async function handler(event) {
         });
       }
       if (query.action === "join-class") {
-        const roleError = requireRole(currentUser, ["student"]);
+        const roleError = requireResourceRole(currentUser, ["student"]);
         if (roleError) return roleError;
         if (body.studentId && String(body.studentId) !== String(currentUser.id)) return forbidden("Students can only join classes for their own account");
-        return joinClass(sql, { ...body, studentId: currentUser.id });
+        if (body.classId || body.slug) return badRequest("A valid class invite code is required");
+        const rateLimitError = await enforceInviteRateLimit(sql, event);
+        if (rateLimitError) return rateLimitError;
+        const response = await joinClass(sql, { inviteCode: body.inviteCode, studentId: currentUser.id });
+        await recordInviteAttempt(sql, event, response.statusCode === 200);
+        return response;
       }
       if (query.action === "save-page-hotspots") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
         const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
         return referenceError || savePageHotspots(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "create-book-activity") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
         const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
         return referenceError || createBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "update-book-activity") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
         return referenceError || updateBookActivity(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);
       }
       if (query.action === "delete-book-activity") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         const referenceError = roleError || await verifyContentEditorReferences(sql, currentUser, body);
         return referenceError || deleteBookActivity(sql, body, currentUser);
       }
       if (query.action === "create-book-media-asset") {
-        const roleError = requireRole(currentUser, ["teacher", "admin"]);
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         const packageError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: body.packageSlug || body.package_slug });
         const referenceError = packageError || await verifyContentEditorReferences(sql, currentUser, body);
         return referenceError || createBookMediaAsset(sql, { ...body, createdBy: currentUser.id, created_by: currentUser.id }, currentUser);

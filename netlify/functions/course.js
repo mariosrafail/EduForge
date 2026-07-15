@@ -16,14 +16,14 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === "PATCH") {
-      if (!['admin', 'teacher'].includes(auth.currentUser.role)) return json(403, { error: "Forbidden" });
+      if (auth.currentUser.role !== "admin") return json(403, { error: "Forbidden" });
       const body = parseBody(event);
       const current = await fetchDemoCourse(sql, auth.currentUser);
       if (!current) return json(404, { error: "Demo course not found" });
       const currentRows = await sql`
         select id, title, subtitle, book_code, level, status
         from courses
-        where id = ${current.id} and school_id = ${auth.currentUser.school_id}
+        where id = ${current.id} and school_id = ${auth.currentUser.school_id} and ownership_type = 'official'
         limit 1
       `;
       if (!currentRows.length) return json(404, { error: "Demo course not found" });
@@ -42,7 +42,7 @@ export async function handler(event) {
             level = ${body.level === undefined ? currentRow.level : sanitizeText(body.level)},
             book_code = ${body.book_code === undefined ? currentRow.book_code : sanitizeText(body.book_code)},
             status = ${body.status === undefined ? currentRow.status : body.status}
-        where id = ${currentRow.id} and school_id = ${auth.currentUser.school_id}
+        where id = ${currentRow.id} and school_id = ${auth.currentUser.school_id} and ownership_type = 'official'
       `;
 
       const course = await fetchCourseById(sql, currentRow.id, auth.currentUser);

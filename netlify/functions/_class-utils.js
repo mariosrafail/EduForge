@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { json } from "./_book-content-utils.js";
 
 const classLevels = new Set(["A1", "A2", "B1", "B2", "C1", "C2"]);
@@ -32,17 +32,48 @@ export function normalizeClassRow(row = {}) {
 export function publicClassInviteRow(classItem = {}) {
   if (!classItem?.id) return null;
   return {
-    id: classItem.id,
     name: classItem.name,
-    slug: classItem.slug,
-    inviteCode: classItem.inviteCode,
     level: classItem.level,
     assignedBook: classItem.assignedBook,
     teacher: classItem.teacherName || classItem.teacher,
     teacherName: classItem.teacherName || classItem.teacher,
-    students: Number(classItem.students || 0),
     status: classItem.status || "active",
   };
+}
+
+export function normalizeInviteCode(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+export function isValidInviteCode(value) {
+  return /^[A-Z0-9]{6,16}$/.test(normalizeInviteCode(value));
+}
+
+function inviteFingerprint(event = {}) {
+  const headers = event.headers || {};
+  const address = headers["x-nf-client-connection-ip"] || headers["x-forwarded-for"]?.split(",")[0] || "unknown";
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || "eduforge-invite-rate-limit";
+  return createHash("sha256").update(`${salt}:${String(address).trim()}`).digest("hex");
+}
+
+export async function enforceInviteRateLimit(sql, event) {
+  const fingerprint = inviteFingerprint(event);
+  const rows = await sql`
+    select count(*)::int as attempts
+    from class_invite_attempts
+    where request_fingerprint = ${fingerprint}
+      and attempted_at > now() - interval '15 minutes'
+  `;
+  return Number(rows[0]?.attempts || 0) >= 20
+    ? json(429, { error: "Too many invite attempts. Try again later." }, { "Retry-After": "900" })
+    : null;
+}
+
+export async function recordInviteAttempt(sql, event, succeeded) {
+  await sql`
+    insert into class_invite_attempts (request_fingerprint, succeeded)
+    values (${inviteFingerprint(event)}, ${Boolean(succeeded)})
+  `;
 }
 
 export function slugifyClassName(name = "") {
@@ -193,57 +224,28 @@ export async function createTeacherClass(sql, body) {
   return json(200, { classItem, class: classItem });
 }
 
-export async function findClassByInviteOrSlug(sql, { classId = "", inviteCode = "", slug = "" } = {}) {
-  const lookup = inviteCode || slug;
-  const rows = classId
-    ? await sql`
-        select c.*,
-               u.full_name as teacher_name,
-               count(cs.id)::int as students,
-               coalesce((
-                 select round(
-                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
-                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
-                 )::int
-                 from activity_assignments aa
-                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
-                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
-                 where aa.class_id = c.id
-               ), 0)::int as completion
-        from classes c
-        left join app_users u on u.id = c.teacher_id
-        left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
-        where c.id = ${classId}
-        group by c.id, u.full_name
-        limit 1
-      `
-    : await sql`
-        select c.*,
-               u.full_name as teacher_name,
-               count(cs.id)::int as students,
-               coalesce((
-                 select round(
-                   100.0 * count(distinct s.student_id::text || ':' || aa.id::text)
-                   / nullif(count(distinct cs_expected.student_id::text || ':' || aa.id::text), 0)
-                 )::int
-                 from activity_assignments aa
-                 join class_students cs_expected on cs_expected.class_id = c.id and coalesce(cs_expected.status, 'active') = 'active'
-                 left join activity_submissions s on s.activity_assignment_id = aa.id and s.student_id = cs_expected.student_id
-                 where aa.class_id = c.id
-               ), 0)::int as completion
-        from classes c
-        left join app_users u on u.id = c.teacher_id
-        left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
-        where c.invite_code = ${lookup} or c.slug = ${lookup}
-        group by c.id, u.full_name
-        limit 1
-      `;
+export async function findClassByInviteCode(sql, inviteCode, { activeOnly = true } = {}) {
+  const normalizedCode = normalizeInviteCode(inviteCode);
+  if (!isValidInviteCode(normalizedCode)) return null;
+  const rows = await sql`
+    select c.*, u.full_name as teacher_name, count(cs.id)::int as students
+    from classes c
+    left join app_users u on u.id = c.teacher_id
+    left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'
+    where upper(c.invite_code) = ${normalizedCode}
+      and (${activeOnly} = false or c.status = 'active')
+    group by c.id, u.full_name
+    limit 1
+  `;
 
   return rows[0] ? normalizeClassRow(rows[0]) : null;
 }
 
 export async function joinClass(sql, body) {
   if (!body.studentId) return badRequest("studentId is required");
+  if (!isValidInviteCode(body.inviteCode) || body.classId || body.slug) {
+    return badRequest("A valid class invite code is required");
+  }
   const studentRows = await sql`
     select id, school_id
     from app_users
@@ -252,11 +254,7 @@ export async function joinClass(sql, body) {
   `;
   if (!studentRows.length) return json(404, { error: "Student not found" });
 
-  const classItem = await findClassByInviteOrSlug(sql, {
-    classId: body.classId || "",
-    inviteCode: body.inviteCode || "",
-    slug: body.slug || "",
-  });
+  const classItem = await findClassByInviteCode(sql, body.inviteCode);
   if (!classItem) return json(404, { error: "Class not found" });
   if (classItem.status !== "active") return json(403, { error: "This class is not active" });
   if (!studentRows[0].school_id || String(studentRows[0].school_id) !== String(classItem.schoolId)) {
@@ -280,5 +278,6 @@ export async function joinClass(sql, body) {
         updated_at = now()
   `;
 
-  return json(200, { success: true, alreadyJoined, classItem, class: classItem });
+  const publicClass = publicClassInviteRow(classItem);
+  return json(200, { success: true, alreadyJoined, classItem: publicClass, class: publicClass });
 }

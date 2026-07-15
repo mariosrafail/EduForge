@@ -48,11 +48,6 @@ export async function getClassByInvite(inviteCode) {
   return payload.classItem || payload.class;
 }
 
-export async function getClassBySlug(slug) {
-  const payload = await request(`/.netlify/functions/book-content?action=class-by-slug&slug=${encodeURIComponent(slug)}`);
-  return payload.classItem || payload.class;
-}
-
 export async function joinClass(joinPayload) {
   return request("/.netlify/functions/book-content?action=join-class", {
     method: "POST",

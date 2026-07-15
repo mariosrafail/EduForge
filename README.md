@@ -20,23 +20,13 @@ Open:
 http://localhost:8000
 ```
 
-When running only Vite, Netlify Functions are not available. Admin user creation will show a visible mock fallback warning.
+When running only Vite, Netlify Functions are not available. Authentication and protected LMS data require the Netlify local environment on port `8888`.
 
 ## Database Setup
 
-Create a Neon PostgreSQL database and run:
+Create a Neon/PostgreSQL database and apply the production migrations in the exact order documented in [`database/MIGRATIONS.md`](database/MIGRATIONS.md). The two historical `010` files keep their existing names because they may already be deployed; the manifest defines their canonical order. Apply `013_authorization_phase2.sql` last.
 
-```sql
-database/001_init_lms_demo.sql
-database/002_basic_auth.sql
-database/003_activities_assignments.sql
-database/004_course_content.sql
-database/006_book_content_platform.sql
-database/007_teacher_classes.sql
-database/008_english_journey_6_book_package.sql
-database/009_book_page_hotspots.sql
-database/010_assignment_live_flow.sql
-```
+`012_demo_login_passwords.sql` is demo-only and must not be included in a production migration run.
 
 The migration creates:
 
@@ -108,7 +98,7 @@ This is demo/MVP persistence for course content, not a full production CMS yet.
 - teacher feedback and review metadata on submissions
 - lookup indexes for teacher, class, student, activity, due date, and submissions
 
-Run migrations manually in Neon/Postgres. The app does not run database migrations automatically.
+Run migrations manually in Neon/Postgres. The app does not run production database migrations automatically. After migration `013`, query `tenant_integrity_issues`; every non-zero result requires explicit data reconciliation before tenant constraints can be considered complete.
 
 ## Required Environment Variable
 
@@ -243,8 +233,38 @@ Allowed statuses:
 
 - `DATABASE_URL` is read only inside Netlify Functions.
 - The frontend never imports database code.
-- Functions validate role and status values.
+- Authentication uses bcrypt password hashes, opaque httpOnly `SameSite=Lax` session cookies, hashed server-side session tokens, expiration checks, and active-account checks.
+- Shared request authentication and role gates live in `_auth-utils.js`; reusable resource ownership and student lesson-access policy lives in `_resource-access.js`.
+- Admin, teacher, and student APIs enforce role-based authorization and school tenant predicates. Admin user management is restricted to the authenticated admin's school.
+- Student lesson reads/submissions require explicit book access, active membership in a class assigned that package, a direct lesson/activity assignment, or an assignment through an active class membership. A matching `school_id` alone is not access.
+- Student identity is derived from the authenticated session for submissions and class joins. Client-provided `student_id` cannot select another account.
+- Public class discovery accepts only an active invite code and returns safe display fields without the class UUID, slug, invite code, or enrollment counts. Invite attempts have a database-backed rolling-window throttle; production should also configure edge/WAF rate limiting.
+- Official course, lesson, and activity records are master content. School admins may edit their school's official content. Teachers may read official content and mutate only custom records they own in their school. Students are read-only except for their own submissions.
+- Mutation queries include tenant and ownership predicates as defense in depth, in addition to pre-mutation authorization checks.
 - Queries use Neon parameterized template queries.
-- Demo/MVP authentication uses bcrypt password hashes and httpOnly session cookies.
-- Session tokens are hashed before being stored in Neon.
-- This demo does not implement full enterprise authentication, OAuth, MFA, forgot password, or role-based authorization yet.
+
+### Demo credentials
+
+Migration `012_demo_login_passwords.sql` optionally enables the three documented local/demo accounts with password `password123`. Never apply this migration to production, and never reuse demo passwords for real users.
+
+### Authorization tests
+
+`npm test` runs unit/policy tests and skips PostgreSQL integration tests when no isolated test database is configured. Handler-level integration tests cover user CRUD, invite signup/joining, lesson submissions, assignments/results/review, custom hotspots/activities, UUID tampering, role escalation, and database state.
+
+To run them, provision a disposable PostgreSQL database that is not the production database, then set:
+
+```bash
+TEST_DATABASE_URL=postgresql://TEST_USER:TEST_PASSWORD@TEST_HOST/TEST_DATABASE?sslmode=require
+TEST_DATABASE_CONFIRMATION=isolated-test-database
+npm run test:integration
+```
+
+The suite creates and drops a unique schema. It refuses to run unless the explicit confirmation value is present and rejects a test URL equal to `DATABASE_URL`. CI keeps this in a separate job and runs it only when the `TEST_DATABASE_URL` repository secret is configured.
+
+### Production requirements and remaining risks
+
+- Configure `DATABASE_URL` and a private `INVITE_RATE_LIMIT_SALT` only in Netlify/server environment variables; never expose either through Vite variables.
+- Apply migrations in the manifest order, review `tenant_integrity_issues`, and take a backup before reconciling legacy rows.
+- Add platform/edge rate limiting, centralized security logging/alerting, session revocation tooling, password reset/email verification, CSRF review for future cross-site deployments, and regular dependency/security scanning.
+- OAuth, MFA, SSO/SAML, automated account recovery, and enterprise audit retention are not implemented.
+- Publisher-global content versus school-cloned master content needs a product decision before supporting cross-school publisher editing workflows.

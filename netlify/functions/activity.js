@@ -1,5 +1,6 @@
 import { fetchCourseById, getSql, json, parseBody, sanitizeRequiredText, sanitizeText, validateUuid } from "./_course-utils.js";
 import { requireRole, safeServerError } from "./_auth-utils.js";
+import { canEditOwnedContent, isAdmin } from "./_resource-access.js";
 
 const allowedTypes = new Set(["gap_fill", "line_matching", "multiple_choice", "word_search"]);
 
@@ -76,9 +77,12 @@ export async function handler(event) {
       const feedbackJson = JSON.stringify(body.feedback || {});
 
       await sql`
-        insert into lesson_activities (lesson_id, type, title, instructions, position, content, correct_answers, feedback, skill)
+        insert into lesson_activities (lesson_id, school_id, ownership_type, created_by, type, title, instructions, position, content, correct_answers, feedback, skill)
         values (
           ${body.lesson_id},
+          ${auth.currentUser.school_id},
+          ${isAdmin(auth.currentUser) ? "official" : "custom"},
+          ${auth.currentUser.id},
           ${type},
           ${title},
           ${sanitizeText(body.instructions)},
@@ -99,7 +103,8 @@ export async function handler(event) {
     if (idError) return json(400, { error: idError });
 
     const existing = await sql`
-      select la.id, la.type, la.title, la.instructions, la.position, la.content, la.correct_answers, la.feedback, la.skill, l.course_id
+      select la.id, la.type, la.title, la.instructions, la.position, la.content, la.correct_answers, la.feedback, la.skill,
+             la.school_id, la.ownership_type, la.created_by, l.course_id
       from lesson_activities la
       join lessons l on l.id = la.lesson_id
       join courses c on c.id = l.course_id
@@ -108,6 +113,7 @@ export async function handler(event) {
     `;
     if (!existing.length) return json(404, { error: "Activity not found" });
     const activity = existing[0];
+    if (!canEditOwnedContent(auth.currentUser, activity)) return json(403, { error: "Forbidden" });
 
     const type = body.type === undefined ? activity.type : body.type;
     const typeError = validateActivityType(type);
@@ -134,6 +140,8 @@ export async function handler(event) {
           feedback = ${feedbackJson}::jsonb,
           skill = ${body.skill === undefined ? activity.skill : sanitizeText(body.skill)}
       where id = ${id}
+        and school_id = ${auth.currentUser.school_id}
+        and (${isAdmin(auth.currentUser)} or (ownership_type = 'custom' and created_by = ${auth.currentUser.id}))
     `;
 
     return json(200, { course: await fetchCourseById(sql, activity.course_id, auth.currentUser) });
