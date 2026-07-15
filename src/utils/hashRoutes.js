@@ -494,6 +494,15 @@ export function parseHashRoute(hash = "") {
   const hashView = rawHashView ? withLeadingSlash(rawHashView) : "/";
   const legacyHashView = rawHashView || "home";
 
+  const accountMatch = rawHashView.match(/^\/?(accept-invitation|reset-password|account-security)(?:\?(.*))?$/);
+  if (accountMatch) {
+    return baseRoute(rawHashView, {
+      view: accountMatch[1],
+      accountToken: new URLSearchParams(accountMatch[2] || "").get("token") || "",
+      role: "account",
+    });
+  }
+
   const joinClassMatch = rawHashView.match(/^join-class\/([^/]+)$/) || hashView.match(/^\/join-class\/([^/]+)$/);
   if (joinClassMatch) {
     return baseRoute(rawHashView || hashView, {

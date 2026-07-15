@@ -60,7 +60,7 @@ If the database has no users, the Admin screen shows `Create your first user`. T
 - `auth_provider`
 - `auth_sessions`
 
-Passwords are hashed in Netlify Functions. Plain text passwords are never stored.
+Passwords are hashed in Netlify Functions. Plain text passwords are never stored. Migration `014_account_lifecycle.sql` adds invitation acceptance, password reset/change, session revocation, hashed single-use tokens, rate limits, security events, and a provider-neutral email outbox. See [`docs/account-lifecycle.md`](docs/account-lifecycle.md) for configuration and operations.
 
 `database/003_activities_assignments.sql` adds the demo/MVP activity authoring flow for interactive book-based practice:
 

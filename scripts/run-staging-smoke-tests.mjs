@@ -12,6 +12,13 @@ import { handler as lesson } from "../netlify/functions/lesson.js";
 import { handler as activity } from "../netlify/functions/activity.js";
 import { handler as lessonSubmit } from "../netlify/functions/lesson-submit.js";
 import { handler as bookContent } from "../netlify/functions/book-content.js";
+import { requestFingerprint } from "../netlify/functions/_account-lifecycle-utils.js";
+import { clearCapturedEmailsForTests, getCapturedEmailsForTests } from "../netlify/functions/_email-utils.js";
+import { handler as accountInvite } from "../netlify/functions/account-invite.js";
+import { handler as accountSetPassword } from "../netlify/functions/account-set-password.js";
+import { handler as forgotPassword } from "../netlify/functions/auth-forgot-password.js";
+import { handler as resetPassword } from "../netlify/functions/auth-reset-password.js";
+import { handler as revokeSessions } from "../netlify/functions/auth-revoke-sessions.js";
 
 const { pool, safeLabel } = createSafePool("staging");
 setSqlForVerification(postgresTemplate(pool));
@@ -20,6 +27,7 @@ const artifacts = {
   users: [], assignments: [], activities: [], activitySubmissions: [], lessonSubmissions: [],
   bookActivities: [], courses: [], classes: [], classMemberships: [], inviteFingerprints: [],
 };
+const lifecycleFingerprints = [];
 let failures = 0;
 
 async function check(name, callback) {
@@ -102,6 +110,40 @@ try {
     assert.equal((await callHandler(user, { method: "DELETE", cookie: sessions["a-admin"], query: { id: created.body.user.id } })).status, 200);
     artifacts.users = artifacts.users.filter((id) => id !== created.body.user.id);
     assert.equal(await count("select count(*) from app_users where id = $1", [created.body.user.id]), 0);
+  });
+
+  await check("account invitation, reset and session revocation complete without exposing raw tokens", async () => {
+    process.env.APP_PUBLIC_URL ||= "https://staging.local";
+    process.env.ACCOUNT_EMAIL_MODE = "capture";
+    clearCapturedEmailsForTests();
+    const email = `qa.lifecycle.${randomUUID()}@eduforge.invalid`;
+    const inviteIp = "127.76.0.1";
+    lifecycleFingerprints.push(requestFingerprint({ headers: { "x-nf-client-connection-ip": inviteIp } }));
+    const invited = await callHandler(accountInvite, { method: "POST", cookie: sessions["a-admin"], ip: inviteIp, body: {
+      full_name: "QA Lifecycle Teacher", email, role: "teacher", school_id: schoolB.id,
+    } });
+    assert.equal(invited.status, 400);
+    const created = await callHandler(accountInvite, { method: "POST", cookie: sessions["a-admin"], ip: inviteIp, body: {
+      full_name: "QA Lifecycle Teacher", email, role: "teacher",
+    } });
+    assert.equal(created.status, 201);
+    artifacts.users.push(created.body.user.id);
+    assert.equal(JSON.stringify(created.body).includes(schoolA.id), false);
+    const invitationUrl = getCapturedEmailsForTests().at(-1).actionUrl;
+    const invitationToken = new URL(invitationUrl).hash.split("token=")[1];
+    const accepted = await callHandler(accountSetPassword, { method: "POST", ip: "127.76.0.2", body: { token: invitationToken, password: "Qa-Lifecycle-Teacher-2026" } });
+    assert.equal(accepted.status, 200);
+    assert.equal((await callHandler(accountSetPassword, { method: "POST", ip: "127.76.0.2", body: { token: invitationToken, password: "Qa-Replay-Teacher-2026" } })).status, 400);
+    const forgotIp = "127.76.0.3";
+    lifecycleFingerprints.push(requestFingerprint({ headers: { "x-nf-client-connection-ip": forgotIp } }));
+    assert.equal((await callHandler(forgotPassword, { method: "POST", ip: forgotIp, body: { email } })).status, 200);
+    const resetToken = new URL(getCapturedEmailsForTests().at(-1).actionUrl).hash.split("token=")[1];
+    const resetResult = await callHandler(resetPassword, { method: "POST", ip: "127.76.0.4", body: { token: resetToken, password: "Qa-Lifecycle-Reset-2026" } });
+    assert.equal(resetResult.status, 200);
+    const resetCookie = resetResult.headers["Set-Cookie"] || resetResult.headers["set-cookie"];
+    assert.equal((await callHandler(revokeSessions, { method: "POST", cookie: resetCookie, ip: "127.76.0.5", body: {} })).status, 200);
+    const tokenRows = await pool.query("select token_hash from account_tokens where user_id = $1", [created.body.user.id]);
+    assert.equal(JSON.stringify(tokenRows.rows).includes(invitationToken), false);
   });
 
   await check("teachers see only owned classes and cannot change official master content", async () => {
@@ -397,6 +439,11 @@ try {
   }
 } finally {
   try {
+    if (artifacts.users.length) {
+      await pool.query("delete from account_email_outbox where user_id = any($1::uuid[])", [artifacts.users]);
+      await pool.query("delete from account_security_events where user_id = any($1::uuid[]) or actor_user_id = any($1::uuid[])", [artifacts.users]);
+    }
+    if (lifecycleFingerprints.length) await pool.query("delete from account_rate_limit_attempts where request_fingerprint = any($1::text[])", [lifecycleFingerprints]);
     if (artifacts.lessonSubmissions.length) await pool.query("delete from lesson_submissions where id = any($1::uuid[])", [artifacts.lessonSubmissions]);
     if (artifacts.activitySubmissions.length) await pool.query("delete from activity_submissions where id = any($1::uuid[])", [artifacts.activitySubmissions]);
     if (artifacts.assignments.length) await pool.query("delete from activity_assignments where id = any($1::uuid[])", [artifacts.assignments]);

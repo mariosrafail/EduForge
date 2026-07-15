@@ -15,6 +15,7 @@ Apply production migrations in this exact order:
 11. `010_assignment_mvp_metadata.sql`
 12. `011_authorization_tenant_isolation.sql`
 13. `013_authorization_phase2.sql`
+14. `014_account_lifecycle.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

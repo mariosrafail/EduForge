@@ -2,7 +2,7 @@ import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2
 import { useEffect, useRef, useState } from "react";
 import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics } from "../../../data/lmsDemoData.js";
 import { getSchoolMetrics } from "../../../services/adminMetricsApi.js";
-import { createUser, deleteUser as deleteUserRequest, listUsers, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest, userToUi } from "../../../services/usersApi.js";
+import { deleteUser as deleteUserRequest, inviteUser, listUsers, revokeUserSessions, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest } from "../../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "../Shared.jsx";
 import { AdminInviteLink } from "./AdminInviteLink.jsx";
 import { ALLOWED_PRIMARY_COLORS } from "./adminConfig.js";
@@ -32,7 +32,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
-    password: "",
     role: "Student",
     level: "B2",
     status: "Invited",
@@ -126,13 +125,11 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     let created = false;
 
     try {
-      const createdUser = await createUser({
+      const createdUser = await inviteUser({
         name,
         email: newUser.email,
-        password: newUser.password,
         role: newUser.role,
         level: newUser.level,
-        status: newUser.status,
       });
 
       try {
@@ -151,7 +148,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     }
     if (created) {
       setUserCreated(true);
-      setNewUser({ name: "", email: "", password: "", role: "Student", level: "B2", status: "Invited" });
+      setNewUser({ name: "", email: "", role: "Student", level: "B2", status: "Invited" });
     }
   };
 
@@ -367,10 +364,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                     <input type="email" value={newUser.email} placeholder="sofia@example.com" onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
                   </label>
                   <label>
-                    Temporary password
-                    <input type="password" value={newUser.password} placeholder="Optional, min 8 characters" onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
-                  </label>
-                  <label>
                     Role
                     <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
                       {creatableRoleOptions.map((role) => <option key={role}>{role}</option>)}
@@ -382,13 +375,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                       {cefrLevels.map((level) => <option key={level}>{level}</option>)}
                     </select>
                   </label>
-                  <label>
-                    Status
-                    <select value={newUser.status} onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}>
-                      {statusOptions.map((status) => <option key={status}>{status}</option>)}
-                    </select>
-                  </label>
-                  <button className="primary-action" data-sound-click="submit" type="submit" disabled={savingUser}><UserPlus size={17} /> {savingUser ? "Creating..." : "Create user"}</button>
+                  <button className="primary-action" data-sound-click="submit" type="submit" disabled={savingUser}><UserPlus size={17} /> {savingUser ? "Inviting..." : "Send invitation"}</button>
                 </form>
                 {usersLoading && <div className="inline-status">Loading users from Neon through Netlify Functions...</div>}
                 {apiFallback && (
@@ -416,6 +403,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                           {statusOptions.map((status) => <option key={status}>{status}</option>)}
                         </select>
                         <Tag tone={user.source === "database" ? "green" : "gold"}>{user.source === "database" ? "DB" : "Mock"}</Tag>
+                        {String(user.status).toLowerCase() === "invited" && <button className="secondary-action compact-action" onClick={async()=>{try{await inviteUser(user,true);setUsersError("");}catch(error){setUsersError(error.message);}}}>Resend invite</button>}
+                        <button className="secondary-action compact-action" onClick={async()=>{try{await revokeUserSessions(user.id);setUsersError("");}catch(error){setUsersError(error.message);}}}>Revoke sessions</button>
                         <button className="danger-action" data-sound-click="deleteRemove" onClick={() => deleteUser(user.id)}>Delete</button>
                       </div>
                     ))}

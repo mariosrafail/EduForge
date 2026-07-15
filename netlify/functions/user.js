@@ -75,7 +75,9 @@ export async function handler(event) {
         where id = ${id} and school_id = ${auth.currentUser.school_id}
         returning id, school_id, full_name, email, role, level, status, created_at, updated_at
       `;
-      if (status !== "active") await sql`delete from auth_sessions where user_id = ${id}`;
+      if (status !== user.status || role !== user.role) {
+        await sql`delete from auth_sessions where user_id = ${id}`;
+      }
       return json(200, { user: publicUser(updated[0]) });
     }
 

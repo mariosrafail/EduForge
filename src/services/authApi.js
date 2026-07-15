@@ -64,3 +64,10 @@ export async function signOut() {
     body: JSON.stringify({}),
   });
 }
+
+export const requestPasswordReset = (email) => authFetch("/.netlify/functions/auth-forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+export const checkAccountToken = (token, purpose) => authFetch("/.netlify/functions/account-token-check", { method: "POST", body: JSON.stringify({ token, purpose }) });
+export const acceptInvitation = (token, password) => authFetch("/.netlify/functions/account-set-password", { method: "POST", body: JSON.stringify({ token, password }) });
+export const resetPassword = (token, password) => authFetch("/.netlify/functions/auth-reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
+export const changePassword = (currentPassword, newPassword) => authFetch("/.netlify/functions/auth-change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
+export const revokeSessions = (userId) => authFetch("/.netlify/functions/auth-revoke-sessions", { method: "POST", body: JSON.stringify(userId ? { userId } : {}) });

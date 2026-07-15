@@ -77,6 +77,7 @@ export function useAuth() {
     authLoading,
     authError,
     setAuthError,
+    adoptAuthenticatedUser: setCurrentUser,
     signIn: handleSignIn,
     createSchoolAccount: handleCreateSchoolAccount,
     createStudentAccount: handleCreateStudentAccount,

@@ -8,7 +8,7 @@
     "dev:android-offline": "cross-env VITE_APP_MODE=android-offline vite --host 0.0.0.0 --port 8000",
     "dev:netlify": "npx netlify-cli dev",
     "test": "node --test",
-    "test:integration": "node --test tests/integration/*.test.js",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
     "test:integration:cleanup": "node scripts/cleanup-integration-schemas.mjs",
     "staging:migrate": "node scripts/run-staging-migrations.mjs",
     "staging:integrity": "node scripts/verify-tenant-integrity.mjs",

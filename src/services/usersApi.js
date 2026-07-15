@@ -78,3 +78,15 @@ export async function deleteUser(id) {
     method: "DELETE",
   });
 }
+
+export async function inviteUser(user, resend = false) {
+  const payload = await fetchJson("/.netlify/functions/account-invite", {
+    method: "POST",
+    body: JSON.stringify({ full_name: user.name, email: user.email, role: roleToDb(user.role), level: user.level, resend }),
+  });
+  return userToUi(payload.user);
+}
+
+export async function revokeUserSessions(id) {
+  return fetchJson("/.netlify/functions/auth-revoke-sessions", { method: "POST", body: JSON.stringify({ userId: id }) });
+}

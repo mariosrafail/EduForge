@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, KeyRound, LogIn, School, ShieldCheck, TicketCheck } from "lucide-react";
 import { dashboardForRole } from "../../hooks/useAuth.js";
+import { requestPasswordReset } from "../../services/authApi.js";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleConfig = {
@@ -94,6 +95,7 @@ export function AuthView({
   const [studentJoin, setStudentJoin] = useState(initialStudentJoin);
   const [submitting, setSubmitting] = useState(false);
   const [localStatus, setLocalStatus] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const clearMessages = () => {
     setAuthError("");
@@ -164,6 +166,13 @@ export function AuthView({
     }
   };
 
+  const handleForgot = async (event) => {
+    event.preventDefault(); setSubmitting(true); clearMessages();
+    try { const result = await requestPasswordReset(forgotEmail); setLocalStatus(result.message); }
+    catch (error) { setAuthError(error.message); }
+    finally { setSubmitting(false); }
+  };
+
   return (
     <main className="role-screen auth-screen">
       <button className="secondary-action compact-action auth-back-button" onClick={() => navigateTo("home")} type="button">
@@ -220,8 +229,11 @@ export function AuthView({
                 <input type="password" value={signinForm.password} onChange={(event) => setSigninForm({ ...signinForm, password: event.target.value })} placeholder="Minimum 8 characters" />
               </label>
               <button className="primary-action" disabled={submitting} type="submit"><KeyRound size={17} /> {submitting ? "Signing in..." : "Sign in"}</button>
+              <button className="secondary-action" type="button" onClick={() => { setForgotEmail(signinForm.email); setActiveTab("forgot"); clearMessages(); }}>Forgot password?</button>
             </form>
           )}
+
+          {activeTab === "forgot" && <form className="auth-form" onSubmit={handleForgot}><label>Email<input type="email" value={forgotEmail} onChange={(event)=>setForgotEmail(event.target.value)} required /></label><button className="primary-action" disabled={submitting}><KeyRound size={17}/>{submitting ? "Sending…" : "Send reset instructions"}</button><button className="secondary-action" type="button" onClick={()=>setActiveTab("signin")}>Back to sign in</button></form>}
 
           {activeTab === "join" && role === "admin" && (
             <form className="auth-form" onSubmit={handleAdminSignup}>

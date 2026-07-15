@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
+import { AccountLifecycleView } from "./components/lms/AccountLifecycleView.jsx";
 import { FullDemoFlow } from "./components/lms/FullDemoFlow.jsx";
 import { JoinClassView } from "./components/lms/JoinClassView.jsx";
 import { RoleSelection } from "./components/lms/RoleSelection.jsx";
@@ -115,6 +116,7 @@ export default function App() {
     classSlug,
     attemptedHash,
     routeAction,
+    accountToken,
     mode: routeMode,
   } = useHashView();
   const auth = useAuth();
@@ -177,6 +179,7 @@ export default function App() {
       <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
         {view === "invalid-route" && <InvalidRouteView attemptedHash={attemptedHash} navigateTo={navigateTo} />}
+        {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} navigateTo={navigateTo} />}
         {view.startsWith("auth-") && (
           <AuthView
             role={view.replace("auth-", "")}

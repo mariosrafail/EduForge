@@ -53,4 +53,8 @@ export const relationshipChecks = [
   ["book_activities_missing_relationship", `select count(*)::int as count from book_activities a left join book_packages p on p.slug = a.package_slug left join book_components c on c.book_package_id = p.id and c.slug = a.component_slug left join book_media_assets m on m.id = a.media_id where p.id is null or c.id is null or (a.media_id is not null and m.id is null)`],
   ["custom_book_activities_cross_school_creator", `select count(*)::int as count from book_activities a join app_users u on u.id = a.created_by where a.school_id is distinct from u.school_id`],
   ["book_access_missing_relationship", `select count(*)::int as count from book_access a left join app_users u on u.id = a.user_id left join book_packages p on p.id = a.book_package_id where u.id is null or p.id is null`],
+  ["account_tokens_missing_user", `select count(*)::int as count from account_tokens t left join app_users u on u.id = t.user_id where u.id is null`],
+  ["invitation_creator_cross_school", `select count(*)::int as count from app_users u join app_users inviter on inviter.id = u.invited_by where u.school_id is distinct from inviter.school_id`],
+  ["account_outbox_invalid_user_reference", `select count(*)::int as count from account_email_outbox o left join app_users u on u.id = o.user_id where o.user_id is not null and u.id is null`],
+  ["active_account_tokens_expired_beyond_retention", `select count(*)::int as count from account_tokens where used_at is null and revoked_at is null and expires_at < now() - interval '30 days'`],
 ];
