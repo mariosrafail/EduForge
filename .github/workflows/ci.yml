@@ -9,6 +9,7 @@ on:
 jobs:
   unit-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,12 +19,28 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run build:android-offline
 
   integration-database:
     needs: unit-and-build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: eduforge_test
+          POSTGRES_PASSWORD: eduforge_test
+          POSTGRES_DB: eduforge_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eduforge_test -d eduforge_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      TEST_DATABASE_URL: postgresql://eduforge_test:eduforge_test@localhost:5432/eduforge_test
       TEST_DATABASE_CONFIRMATION: isolated-test-database
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +50,4 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run isolated PostgreSQL integration tests
-        if: env.TEST_DATABASE_URL != ''
         run: npm run test:integration
-      - name: Report unconfigured integration database
-        if: env.TEST_DATABASE_URL == ''
-        run: echo "Integration tests skipped because TEST_DATABASE_URL is not configured."

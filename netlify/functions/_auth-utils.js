@@ -13,12 +13,16 @@ export const jsonHeaders = {
 
 let testSqlOverride = null;
 
-export function setSqlForTests(sql) {
-  if (process.env.TEST_DATABASE_CONFIRMATION !== "isolated-test-database") {
-    throw new Error("SQL test override requires an explicitly confirmed isolated test database");
+export function setSqlForVerification(sql) {
+  const testConfirmed = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
+  const stagingConfirmed = process.env.STAGING_DATABASE_CONFIRMATION === "isolated-staging-database";
+  if (!testConfirmed && !stagingConfirmed) {
+    throw new Error("SQL verification override requires an explicitly confirmed isolated database");
   }
   testSqlOverride = sql || null;
 }
+
+export const setSqlForTests = setSqlForVerification;
 
 export function json(statusCode, body, extraHeaders = {}) {
   return {
