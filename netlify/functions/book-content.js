@@ -7,7 +7,6 @@ import {
   publicClassInviteRow,
   recordInviteAttempt,
 } from "./_class-utils.js";
-import { grantBookAccessByCode } from "./_activation-utils.js";
 import { forbidden, requireAuth, safeServerError, unauthorized } from "./_auth-utils.js";
 import { isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool } from "./_resource-access.js";
 import {
@@ -95,21 +94,10 @@ async function accessiblePackageIds(sql, currentUser) {
     return rows.map((row) => String(row.id));
   }
   const rows = await sql`
-    select distinct package_id as id
-    from (
-      select ba.book_package_id as package_id
-      from book_access ba
-      where ba.user_id = ${currentUser.id}
-      union
-      select c.book_package_id as package_id
-      from class_students cs
-      join classes c on c.id = cs.class_id
-      where cs.student_id = ${currentUser.id}
-        and c.school_id = ${currentUser.school_id}
-        and c.book_package_id is not null
-        and coalesce(cs.status, 'active') = 'active'
-        and coalesce(c.status, 'active') = 'active'
-    ) access
+    select distinct ba.book_package_id as id
+    from book_access ba
+    join app_users u on u.id=ba.user_id
+    where ba.user_id=${currentUser.id} and u.school_id=${currentUser.school_id} and ba.role_scope='student'
   `;
   return rows.map((row) => String(row.id));
 }
@@ -340,23 +328,6 @@ async function verifyContentEditorReferences(sql, currentUser, body = {}) {
     }
   }
   return null;
-}
-
-async function activateBookCode(sql, body, currentUser = null) {
-  const code = String(body.code || "").trim();
-  if (!code) return badRequest("code is required");
-  const userScope = await resolveScopedUserId(sql, currentUser, body.userId || body.user_id || "");
-  if (userScope.error) return userScope.error;
-
-  const result = await grantBookAccessByCode(sql, { code, userId: userScope.userId });
-  if (result.error) return result.error;
-
-  return json(200, {
-    activated: true,
-    alreadyActivated: result.alreadyActivated,
-    bookPackageId: result.bookPackageId,
-    bookPackageTitle: result.bookPackageTitle,
-  });
 }
 
 async function listUserBookAccess(sql, userId) {
@@ -1645,7 +1616,7 @@ export async function handler(event) {
 
     if (event.httpMethod === "POST") {
       const body = parseBody(event);
-      if (query.action === "activate") return activateBookCode(sql, body, currentUser);
+      if (query.action === "activate") return json(410, { error: "Use the signed-in book licensing redemption endpoint" });
       if (query.action === "assign") {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;

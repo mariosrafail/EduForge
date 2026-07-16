@@ -59,17 +59,19 @@ test("scheduled operations, cleanup retention and private health are safe", { sk
 
   await pool.query("insert into account_rate_limit_attempts(scope,request_fingerprint,attempted_at) values('token_validation','old',now()-interval '8 days'),('token_validation','recent',now())");
   await pool.query("insert into class_invite_attempts(request_fingerprint,attempted_at) values('old',now()-interval '8 days'),('recent',now())");
+  await pool.query("insert into book_code_redemption_attempts(school_id,user_id,request_fingerprint,code_hash,attempted_at) values($1,$2,$3,$4,now()-interval '8 days'),($1,$2,$3,$4,now())", [school.id, user.id, "a".repeat(64), "b".repeat(64)]);
   await pool.query("insert into account_tokens(user_id,purpose,token_hash,expires_at,revoked_at) values($1,'password_reset','old-terminal',now()-interval '40 days',now()-interval '39 days'),($1,'password_reset','active-current',now()+interval '1 day',null)", [user.id]);
   await pool.query("insert into account_email_outbox(user_id,recipient_email,template_type,delivery_state,created_at) values($1,'operations@qa.test','password_changed','sent',now()-interval '100 days')", [user.id]);
   const cleanup = await runScheduledLifecycleCleanup(sql);
   assert.equal(cleanup.rate_limit_rows, 1);
   assert.equal(cleanup.token_rows, 1);
   assert.equal(cleanup.invite_attempt_rows, 1);
+  assert.equal(cleanup.book_code_attempt_rows, 1);
   assert.equal(cleanup.outbox_rows, 1);
   assert.equal((await pool.query("select count(*)::int count from account_tokens where token_hash='active-current'")).rows[0].count, 1);
   assert.equal((await pool.query("select count(*)::int count from eduforge_migration_history")).rows[0].count, files.length);
   const repeat = await runScheduledLifecycleCleanup(sql);
-  assert.equal(repeat.rate_limit_rows + repeat.token_rows + repeat.invite_attempt_rows + repeat.outbox_rows, 0);
+  assert.equal(repeat.rate_limit_rows + repeat.token_rows + repeat.invite_attempt_rows + repeat.book_code_attempt_rows + repeat.outbox_rows, 0);
 
   const publicHealth = parse(await health({ httpMethod: "GET", headers: {}, queryStringParameters: {} }));
   assert.equal(publicHealth.status, 200);
@@ -78,7 +80,7 @@ test("scheduled operations, cleanup retention and private health are safe", { sk
   assert.equal(rejected.status, 401);
   const privateHealth = parse(await health({ httpMethod: "GET", headers: { "x-operational-monitoring-secret": "monitoring-test-secret" }, queryStringParameters: { detail: "private" } }));
   assert.equal(privateHealth.status, 200);
-  assert.equal(privateHealth.body.migration, "016_operations_readiness.sql");
+  assert.equal(privateHealth.body.migration, "017_book_licensing.sql");
   assert.equal("recipient_email" in privateHealth.body, false);
   assert.ok((await pool.query("select count(*)::int count from operational_runs where succeeded=true")).rows[0].count >= 3);
 });

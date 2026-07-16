@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../../data/bookPackages.js";
+import { useCallback, useEffect, useState } from "react";
+import { inferPackageSlugFromBookId } from "../../../../data/bookPackages.js";
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
-import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
+import { getBookPackageTreeWithFallback, listBookPackages } from "../../../../services/bookContentApi.js";
 import {
   buildCourseComponentHash,
   buildCourseComponentsHash,
@@ -76,21 +76,25 @@ export function StudentPortal({
     setActiveSection("activity");
   }, [initialActivityKey]);
 
+  const reloadBookPackages = useCallback(async () => {
+    const available = await listBookPackages();
+    const trees = await Promise.all(available.map((item) => getBookPackageTreeWithFallback(item.id)));
+    setBookPackages(trees);
+    setBookSourceMessage(trees.length ? "Loaded from your activated book access." : "Activate a book code to unlock a package.");
+    if (trees.length && !trees.some((item) => (item.slug || item.id) === selectedPackageSlug)) {
+      setSelectedPackageSlug(trees[0].slug || trees[0].id);
+    }
+  }, [selectedPackageSlug]);
+
   useEffect(() => {
     let mounted = true;
-    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
-      if (!mounted) return;
-      setBookPackages((current) => replaceDemoBookPackage(current, packageTree));
-      setBookSourceMessage("Loaded from book content database.");
-    }).catch((error) => {
+    reloadBookPackages().catch((error) => {
       if (!mounted) return;
       setBookPackages([]);
       setBookSourceMessage(error.message || "Book packages could not be loaded.");
     });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    return () => { mounted = false; };
+  }, [reloadBookPackages]);
 
   const goToSection = (section) => {
     if (section === "books") {
@@ -192,6 +196,7 @@ export function StudentPortal({
             onSelectBook={selectBook}
             onSelectBookPage={selectBookPage}
             onSelectBookSubview={selectBookSubview}
+            onLicenseActivated={reloadBookPackages}
           />
         )}
         {activeSection === "assignments" && (

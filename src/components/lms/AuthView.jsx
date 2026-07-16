@@ -27,7 +27,7 @@ const roleConfig = {
     signinTitle: "Sign in as Student",
     joinTitle: "Create account",
     primaryRoute: "student",
-    copy: "Students join through their school and book activation code, complete assigned book exercises, and receive guided revision feedback.",
+    copy: "Students join through their school class invite, then activate book access securely from their signed-in portal.",
   },
 };
 
@@ -45,7 +45,6 @@ const initialSignup = {
 
 const initialStudentJoin = {
   classCode: "ULTIMATE-B2-A",
-  bookCode: "ULT-B2-DEMO-2026",
   studentName: "Anna Georgiou",
   email: "",
   password: "",
@@ -149,16 +148,9 @@ export function AuthView({
         email: studentJoin.email,
         password: studentJoin.password,
         classCode: pendingInviteCode() || studentJoin.classCode,
-        bookCode: studentJoin.bookCode,
       });
       const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
-      if (result?.bookActivated) {
-        const packageTitle = result.bookPackageTitle || "your book";
-        setLocalStatus(`${packageTitle} activated. Returning to your class invite...`);
-        window.setTimeout(() => navigateTo(pendingInvite || "student"), 700);
-      } else {
-        navigateTo(pendingInvite || "student");
-      }
+      navigateTo(pendingInvite || "student");
     } catch (error) {
       setAuthError(error.message);
     } finally {
@@ -266,10 +258,6 @@ export function AuthView({
               <label>
                 Class code
                 <input value={studentJoin.classCode} onChange={(event) => setStudentJoin({ ...studentJoin, classCode: event.target.value })} />
-              </label>
-              <label>
-                Book activation code
-                <input value={studentJoin.bookCode} onChange={(event) => setStudentJoin({ ...studentJoin, bookCode: event.target.value })} />
               </label>
               <label>
                 Student name

@@ -16,6 +16,7 @@ export function lifecycleRetentionConfiguration() {
     tokenDays: boundedDays("ACCOUNT_TOKEN_RETENTION_DAYS", 30),
     outboxDays: boundedDays("ACCOUNT_OUTBOX_RETENTION_DAYS", 90, 30),
     inviteAttemptDays: boundedDays("INVITE_ATTEMPT_RETENTION_DAYS", 7),
+    bookCodeAttemptDays: boundedDays("BOOK_CODE_ATTEMPT_RETENTION_DAYS", 7),
     staleClaimMinutes: boundedMinutes("STALE_OUTBOX_CLAIM_MINUTES", 15),
   };
 }
@@ -30,6 +31,11 @@ export async function runLifecycleCleanup({ sql, configuration = lifecycleRetent
   const inviteAttempts = await sql`
     delete from class_invite_attempts
     where attempted_at < now() - (${configuration.inviteAttemptDays} * interval '1 day')
+    returning id
+  `;
+  const bookCodeAttempts = await sql`
+    delete from book_code_redemption_attempts
+    where attempted_at < now() - (${configuration.bookCodeAttemptDays} * interval '1 day')
     returning id
   `;
   const recoveredClaims = await sql`
@@ -49,6 +55,7 @@ export async function runLifecycleCleanup({ sql, configuration = lifecycleRetent
     rate_limit_rows: Number(core[0]?.rate_limit_rows || 0),
     token_rows: Number(core[0]?.token_rows || 0),
     invite_attempt_rows: inviteAttempts.length,
+    book_code_attempt_rows: bookCodeAttempts.length,
     stale_claims_recovered: recoveredClaims.length,
     outbox_rows: outboxRows.length,
   };

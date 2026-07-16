@@ -27,6 +27,8 @@ const requiredForeignKeys = [
   ["lessons", "school_id", "schools"], ["lessons", "created_by", "app_users"],
   ["lesson_activities", "school_id", "schools"], ["lesson_activities", "created_by", "app_users"],
   ["lesson_assignments", "school_id", "schools"], ["lesson_assignments", "lesson_id", "lessons"],
+  ["activation_code_batches", "school_id", "schools"], ["activation_code_batches", "book_package_id", "book_packages"],
+  ["activation_codes", "redeemed_by", "app_users"], ["book_license_audit_events", "school_id", "schools"],
 ];
 
 const requiredIndexes = [
@@ -38,6 +40,9 @@ const requiredIndexes = [
   "lesson_assignments_student_idx", "lesson_assignments_class_idx", "class_invite_attempts_window_idx",
   "account_tokens_hash_purpose_idx", "account_email_outbox_dispatch_idx", "account_rate_limit_retention_idx",
   "operational_runs_type_finished_idx", "operational_runs_failures_idx",
+  "activation_codes_code_hash_unique_idx", "activation_code_batches_school_created_idx",
+  "activation_codes_batch_status_idx", "book_code_redemption_attempts_window_idx",
+  "book_license_audit_events_school_created_idx",
 ];
 
 try {

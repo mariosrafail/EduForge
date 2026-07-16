@@ -176,13 +176,6 @@ export async function getActivity(activityIdOrSlug) {
   return payload.activity;
 }
 
-export async function activateBookCode(code, userId) {
-  return request("/.netlify/functions/book-content?action=activate", {
-    method: "POST",
-    body: JSON.stringify({ code, userId }),
-  });
-}
-
 export async function listUserBookAccess(userId) {
   const payload = await request(`/.netlify/functions/book-content?action=access&userId=${encodeURIComponent(userId)}`);
   return payload.bookAccess || [];

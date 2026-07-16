@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { grantBookAccessByCode, validateActivationCodeForUser } from "./_activation-utils.js";
 import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
 import { enforceInviteRateLimit, findClassByInviteCode, isValidInviteCode, publicClassInviteRow, recordInviteAttempt } from "./_class-utils.js";
 
@@ -8,7 +7,6 @@ function validate(payload) {
   const email = normalizeEmail(payload.email);
   const password = String(payload.password ?? "");
   const classCode = String(payload.classCode ?? payload.inviteCode ?? "").trim().toUpperCase();
-  const bookCode = String(payload.bookCode ?? "").trim();
 
   if (!fullName) return { error: "fullName is required" };
   if (!emailPattern.test(email)) return { error: "A valid email is required" };
@@ -17,7 +15,7 @@ function validate(payload) {
     return { error: "A valid class invite code is required for student signup" };
   }
 
-  return { value: { fullName, email, password, classCode, bookCode } };
+  return { value: { fullName, email, password, classCode } };
 }
 
 export async function handler(event) {
@@ -36,7 +34,7 @@ export async function handler(event) {
 
     const sql = getSql();
     await ensureAuthSchema(sql);
-    const { fullName, email, password, classCode, bookCode } = validation.value;
+    const { fullName, email, password, classCode } = validation.value;
 
     const rateLimitError = await enforceInviteRateLimit(sql, event);
     if (rateLimitError) return rateLimitError;
@@ -44,15 +42,6 @@ export async function handler(event) {
     await recordInviteAttempt(sql, event, Boolean(classItem));
     if (!classItem?.schoolId) {
       return json(400, { error: "A valid class invite code is required for student signup" });
-    }
-
-    if (bookCode) {
-      const activationValidation = await validateActivationCodeForUser(sql, {
-        code: bookCode,
-        schoolId: classItem.schoolId,
-        enforceUsageLimit: true,
-      });
-      if (activationValidation.error) return activationValidation.error;
     }
 
     const existing = await sql`select id from app_users where lower(email) = ${email} limit 1`;
@@ -74,22 +63,11 @@ export async function handler(event) {
       join inserted_membership m on m.student_id = u.id
     `;
 
-    let bookActivated = false;
-    let bookPackageTitle = null;
-    if (bookCode) {
-      const activation = await grantBookAccessByCode(sql, { code: bookCode, userId: users[0].id });
-      if (activation.error) return activation.error;
-      bookActivated = Boolean(activation.activated);
-      bookPackageTitle = activation.bookPackageTitle || null;
-    }
-
     const session = await createSession(sql, users[0].id, event);
     const { school_id: _internalSchoolId, ...signupUser } = publicUser(users[0]);
     return json(201, {
       user: signupUser,
       joinedClass: publicClassInviteRow(classItem),
-      bookActivated,
-      bookPackageTitle,
     }, { "Set-Cookie": session.cookie });
   } catch (error) {
     console.error(error);

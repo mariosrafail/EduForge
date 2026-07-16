@@ -1,7 +1,7 @@
-import { BookOpen, CheckCircle2, KeyRound, ListChecks, Search, Users, X } from "lucide-react";
+import { BookOpen, CheckCircle2, ListChecks, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { dedupeBookPackages, demoBookPackages, normalizeBookPackageKey } from "../../../data/bookPackages.js";
-import { findUltimateB2Exercise, ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
+import { findUltimateB2Exercise } from "../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
 import {
   createAssignment,
@@ -108,8 +108,6 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
 }
 
 export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
-  const [activationCode, setActivationCode] = useState("");
-  const [activated, setActivated] = useState(false);
   const [previewExercise, setPreviewExercise] = useState(null);
   const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
   const selectedPackageKey = normalizeBookPackageKey({ slug: selectedPackageSlug, packageTitle: selectedPackageSlug });
@@ -186,21 +184,8 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
       <SectionTitle
         eyebrow="Books"
         title={`Digital book access for the ${bookPackage.packageTitle} package.`}
-        text={`Activate publisher book access, browse ${bookPackage.packageTitle}, and assign available exercises to class groups.`}
+        text={`Browse the packages available to this teacher account and assign exercises to permitted class groups.`}
       />
-
-      <Card className="teacher-activation-card">
-        <div>
-          <span className="eyebrow"><KeyRound size={15} /> Book activation code</span>
-          <h2>Activate teacher book access</h2>
-          <p>Use the demo code to unlock the {bookPackage.packageTitle} package for this teacher portal.</p>
-        </div>
-        <div className="activation-form">
-          <input value={activationCode} placeholder={bookPackage.activationCodeExample || ultimateB2Package.activationCodeExample} onChange={(event) => setActivationCode(event.target.value)} />
-          <button className="primary-action" type="button" onClick={() => setActivated(true)} data-sound-click="submit">Activate book</button>
-        </div>
-        {activated && <div className="inline-status success">{bookPackage.packageTitle} package activated for Paris Georgoulakis (Teacher).</div>}
-      </Card>
       {bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}
       {!selectedComponent && (
         <BookPackageSelector

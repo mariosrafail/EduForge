@@ -1,27 +1,23 @@
-import { BarChart3, BookOpen, Building2, CheckCircle2, Download, KeyRound, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, CheckCircle2, Download, Link2, Palette, Plus, UploadCloud, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { brandPresets, cefrLevels, classes, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics } from "../../../data/lmsDemoData.js";
-import { getSchoolMetrics } from "../../../services/adminMetricsApi.js";
+import { brandPresets, cefrLevels, exerciseTypes, integrationOptions, publisherIntelligence, rolloutActions, schoolMetrics } from "../../../data/lmsDemoData.js";
+import { listTeacherClasses } from "../../../services/classApi.js";
 import { deleteUser as deleteUserRequest, inviteUser, listUsers, revokeUserSessions, roleOptions, roleToDb, statusOptions, updateUser as updateUserRequest } from "../../../services/usersApi.js";
 import { Card, MetricCard, PortalPreview, Progress, SectionTitle, Tag } from "../Shared.jsx";
 import { AdminInviteLink } from "./AdminInviteLink.jsx";
+import { AdminLicensingPanel } from "./AdminLicensingPanel.jsx";
 import { ALLOWED_PRIMARY_COLORS } from "./adminConfig.js";
 import { contrastWithWhite } from "./adminColorUtils.js";
 
 export function AdminView({ brand, setBrand, initialSection = "overview", navigateTo }) {
   const [activeAdminSection, setActiveAdminSection] = useState(initialSection);
   const [userCreated, setUserCreated] = useState(false);
-  const [bookAdded, setBookAdded] = useState(false);
-  const [bookUnlocked, setBookUnlocked] = useState(false);
-  const [activationBatchGenerated, setActivationBatchGenerated] = useState(false);
-  const [schoolMetricsLive, setSchoolMetricsLive] = useState(null);
-  const [schoolMetricsError, setSchoolMetricsError] = useState("");
-  const [schoolMetricsLoading, setSchoolMetricsLoading] = useState(false);
-  const [activationCode, setActivationCode] = useState("");
   const [exported, setExported] = useState(false);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
   const [createdUsers, setCreatedUsers] = useState([]);
+  const [adminClasses, setAdminClasses] = useState([]);
+  const [classesError, setClassesError] = useState("");
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState("");
   const [apiFallback, setApiFallback] = useState(false);
@@ -49,19 +45,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     { id: "publisher-intelligence", route: "admin-publisher-intelligence", label: "Publisher intelligence", description: "Adoption evidence and exports", icon: BarChart3 },
     { id: "integrations", route: "admin-integrations", label: "Integrations", description: "Integration-ready architecture", icon: Link2 },
   ];
-  const activeUsers = createdUsers.filter((user) => String(user.status || "").toLowerCase() === "active").length;
-  const teacherCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "teacher").length;
-  const studentCount = createdUsers.filter((user) => String(user.role || "").toLowerCase() === "student").length;
   const creatableRoleOptions = roleOptions.filter((role) => role !== "School Admin");
-  const schoolMetricsSummary = schoolMetricsLive || {
-    activeUsers,
-    teacherCount,
-    studentCount,
-    activeClasses: 0,
-    activeBookPackages: 0,
-    activeAssignments: 0,
-    submittedWorkCount: 0,
-  };
 
   const loadUsers = async () => {
     setUsersLoading(true);
@@ -82,29 +66,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
 
   useEffect(() => {
     loadUsers().catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadSchoolMetrics() {
-      setSchoolMetricsLoading(true);
-      setSchoolMetricsError("");
-      try {
-        const metrics = await getSchoolMetrics();
-        if (!cancelled) setSchoolMetricsLive(metrics);
-      } catch (error) {
-        if (!cancelled) {
-          setSchoolMetricsLive(null);
-          setSchoolMetricsError(error.message || "School metrics could not be loaded");
-        }
-      } finally {
-        if (!cancelled) setSchoolMetricsLoading(false);
-      }
-    }
-    loadSchoolMetrics();
-    return () => {
-      cancelled = true;
-    };
+    listTeacherClasses().then(setAdminClasses).catch((error) => setClassesError(error.message));
   }, []);
 
   useEffect(() => {
@@ -274,6 +236,7 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                   <MetricCard key={label} label={label} value={value} note={note} icon={index === 3 ? BookOpen : index === 1 ? Users : Building2} delay={index} />
                 ))}
               </section>
+              <div className="inline-status">Overview cards are a demo preview. Users and Books &amp; classes licensing panels load live school-scoped database data.</div>
               <Card className="rollout-actions priority-panel">
                 <div className="card-heading">
                   <div>
@@ -291,18 +254,20 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                       <button
                         key={action}
                         className={`${isCompleted ? "completed" : ""} ${isCodeAction ? "code-action" : ""}`}
-                        onClick={() => toggleRolloutAction(action)}
+                        onClick={() => {
+                          if (isCodeAction) {
+                            setActiveAdminSection("books-classes");
+                            navigateTo?.("admin-books-classes");
+                          } else toggleRolloutAction(action);
+                        }}
                       >
                         <span>{isCompleted ? <CheckCircle2 size={17} /> : <Plus size={17} />}</span>
                         <strong>{action}</strong>
-                        <small>{isCompleted ? "Ready" : isCodeAction ? "Publisher code batch" : "Run demo action"}</small>
+                        <small>{isCodeAction ? "Open live licensing" : isCompleted ? "Ready" : "Run demo action"}</small>
                       </button>
                     );
                   })}
                 </div>
-                {completedRollout.includes("Generate book activation codes") && (
-                  <div className="inline-status success">Book activation code batch generated: ULT-B2-DEMO-2026 through ULT-B2-DEMO-2075.</div>
-                )}
               </Card>
             </section>
           )}
@@ -433,16 +398,17 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
             <section className="admin-section-panel">
               <Card>
                 <div className="card-heading">
-                  <div><span className="eyebrow"><BookOpen size={15} /> Books and classes</span><h2>Assign digital book access to sections</h2></div>
-                  <button className="primary-action" data-sound-click="submit" onClick={() => setBookAdded(true)}><Plus size={17} /> Add book</button>
+                  <div><span className="eyebrow"><BookOpen size={15} /> School classes</span><h2>Live class-to-book access</h2><p>Classes, teachers, student counts, and assignment completion are scoped to this school.</p></div>
+                  <Tag tone="green">Database-backed</Tag>
                 </div>
-                {bookAdded && <div className="inline-status success">Digital book added: Ultimate B2 Students Book with reading, listening, grammar, vocabulary, and writing activities.</div>}
+                {classesError && <div className="inline-status warning">{classesError}</div>}
+                {!classesError && !adminClasses.length && <div className="inline-status">No classes are configured for this school.</div>}
                 <div className="class-list">
-                  {classes.map((item) => (
+                  {adminClasses.map((item) => (
                     <article key={item.name}>
                       <div>
                         <strong>{item.name}</strong>
-                        <span>{item.teacher} / {item.students} students / {item.book}</span>
+                        <span>{item.teacher} / {item.students} students / {item.assignedBook}</span>
                         <AdminInviteLink classItem={item} />
                       </div>
                       <Progress value={item.completion} color="linear-gradient(90deg, var(--brand-primary), var(--brand-secondary))" />
@@ -452,41 +418,8 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
                 <div className="exercise-type-row">
                   {exerciseTypes.slice(0, 4).map((type) => <Tag key={type} tone="violet">{type}</Tag>)}
                 </div>
-                <div className="activation-mini">
-                  <span className="eyebrow"><KeyRound size={15} /> Activation code</span>
-                  <div className="activation-form">
-                    <input value={activationCode} placeholder="ULT-B2-DEMO-2026" onChange={(event) => setActivationCode(event.target.value)} />
-                    <button className="secondary-action" data-sound-click="submit" onClick={() => setBookUnlocked(true)}>Activate book</button>
-                  </div>
-                  {bookUnlocked && <div className="inline-status success">Ultimate B2 Students Book unlocked for Ultimate B2 A.</div>}
-                </div>
               </Card>
-              <Card>
-                <div className="card-heading">
-                  <div>
-                    <span className="eyebrow"><KeyRound size={15} /> Bulk activation model</span>
-                    <h2>School activation batch</h2>
-                    <p>MVP planning card for school-wide book access batches. This action is demo only and does not create licenses.</p>
-                  </div>
-                  <Tag tone={schoolMetricsLive ? "green" : "gold"}>{schoolMetricsLive ? "Database" : "Unavailable"}</Tag>
-                </div>
-                {schoolMetricsLoading && <div className="inline-status">Loading school metrics...</div>}
-                {schoolMetricsError && <div className="inline-status warning">{schoolMetricsError}</div>}
-                <section className="student-grade-summary">
-                  <article className="panel"><strong>{brand.schoolName || brandPresets[0].schoolName}</strong><span>School</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.activeUsers}</strong><span>Active users</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.teacherCount}</strong><span>Teachers</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.studentCount}</strong><span>Students</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.activeClasses}</strong><span>Active classes</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.activeBookPackages}</strong><span>Active book packages</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.activeAssignments}</strong><span>Active assignments</span></article>
-                  <article className="panel"><strong>{schoolMetricsSummary.submittedWorkCount}</strong><span>Submitted work</span></article>
-                </section>
-                <button className="secondary-action" type="button" onClick={() => setActivationBatchGenerated(true)} data-sound-click="submit">
-                  <Plus size={17} /> Generate activation batch
-                </button>
-                {activationBatchGenerated && <div className="inline-status success">Demo batch prepared for Ultimate B2. No database licenses were created.</div>}
-              </Card>
+              <AdminLicensingPanel />
             </section>
           )}
 

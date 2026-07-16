@@ -1,7 +1,8 @@
-import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, Play, UserRound } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { listStudentAssignments, listStudentGrades, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
+import { redeemBookLicense } from "../../../../services/licensingApi.js";
 import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
@@ -88,25 +89,40 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
   );
 }
 
-export function StudentBooks({ openActivity, completedActivities, bookPackages = [], selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageNumber = null, selectedPageId = null, onSelectBook, onSelectBookPage, onSelectBookSubview }) {
+export function StudentBooks({ openActivity, completedActivities, bookPackages = [], selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageNumber = null, selectedPageId = null, onSelectBook, onSelectBookPage, onSelectBookSubview, onLicenseActivated }) {
   const [activationCode, setActivationCode] = useState("");
-  const [activated, setActivated] = useState(false);
+  const [activationStatus, setActivationStatus] = useState("");
+  const [activationError, setActivationError] = useState("");
+  const [activationBusy, setActivationBusy] = useState(false);
   const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || null;
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
   const hasSelectedPage = Boolean(selectedPageId || selectedPageNumber);
 
-  if (!bookPackage) {
-    return (
-      <section className="student-section-stack">
-        <SectionTitle eyebrow="My digital books" title="No book packages loaded." />
-        {bookSourceMessage && <div className="inline-status warning">{bookSourceMessage}</div>}
-        <Card><p>Your activated book packages could not be loaded.</p></Card>
-      </section>
-    );
-  }
+  const activate = async (event) => {
+    event.preventDefault();
+    setActivationBusy(true); setActivationError(""); setActivationStatus("");
+    try {
+      const result = await redeemBookLicense(activationCode);
+      setActivationStatus(`${result.bookPackage.title} is now active on your account.`);
+      setActivationCode("");
+      await onLicenseActivated?.();
+    } catch (error) { setActivationError(error.message); }
+    finally { setActivationBusy(false); }
+  };
 
   return (
     <section className="student-section-stack">
+      <Card>
+        <div className="card-heading"><div><span className="eyebrow"><KeyRound size={15} /> Book access</span><h2>Activate a book code</h2><p>Each code can be redeemed once and is permanently linked to your account unless a school administrator explicitly resets it.</p></div></div>
+        <form className="activation-form" onSubmit={activate}>
+          <input aria-label="Book access code" autoComplete="off" value={activationCode} onChange={(event) => setActivationCode(event.target.value)} placeholder="Enter your access code" required />
+          <button className="primary-action" disabled={activationBusy} type="submit">{activationBusy ? "Activating..." : "Activate book"}</button>
+        </form>
+        {activationStatus && <div className="inline-status success">{activationStatus}</div>}
+        {activationError && <div className="inline-status warning">{activationError}</div>}
+      </Card>
+      {!bookPackage && <><SectionTitle eyebrow="My digital books" title="No activated book packages yet." />{bookSourceMessage && <div className="inline-status">{bookSourceMessage}</div>}</>}
+      {bookPackage && <>
       {selectedComponent && (
         <BookSubpageNavigation
           component={selectedComponent}
@@ -148,6 +164,7 @@ export function StudentBooks({ openActivity, completedActivities, bookPackages =
         onStartExercise={(exercise) => openActivity(exercise, "books")}
         completedActivities={completedActivities}
       />
+      </>}
     </section>
   );
 }
