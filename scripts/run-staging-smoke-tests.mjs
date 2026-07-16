@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createSafePool, callHandler, postgresTemplate } from "./_staging-db.mjs";
-import { QA, QA_PASSWORD, QA_SEED_KEY, qaInviteFingerprint } from "./_staging-qa-data.mjs";
+import { QA, QA_SEED_KEY, qaInviteFingerprint, requireQaPassword } from "./_staging-qa-data.mjs";
 import { hashToken, sessionCookieName, setSqlForVerification } from "../netlify/functions/_auth-utils.js";
 import { handler as signIn } from "../netlify/functions/auth-signin.js";
 import { handler as studentSignup } from "../netlify/functions/auth-student-signup.js";
@@ -22,6 +22,7 @@ import { handler as revokeSessions } from "../netlify/functions/auth-revoke-sess
 import { handler as operationalHealth } from "../netlify/functions/operational-health.js";
 
 const { pool, safeLabel } = createSafePool("staging");
+const QA_PASSWORD = requireQaPassword();
 setSqlForVerification(postgresTemplate(pool));
 const [schoolA, schoolB] = QA.schools;
 const artifacts = {

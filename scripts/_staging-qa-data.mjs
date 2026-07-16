@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 
 export const QA_SEED_KEY = "eduforge-staging-qa-v1";
-export const QA_PASSWORD = process.env.EDUFORGE_STAGING_QA_PASSWORD || "StagingOnly!2026";
+export function requireQaPassword(environment = process.env) {
+  const password = String(environment.EDUFORGE_STAGING_QA_PASSWORD || "");
+  if (password.length < 16) throw new Error("EDUFORGE_STAGING_QA_PASSWORD must be set to at least 16 characters");
+  if (password === "StagingOnly!2026") throw new Error("EDUFORGE_STAGING_QA_PASSWORD must not use the retired shared staging password");
+  return password;
+}
 export const QA_INVITE_TEST_IPS = [
   "127.0.0.50",
   "127.77.0.1", "127.77.0.2", "127.77.0.3",
@@ -9,7 +14,7 @@ export const QA_INVITE_TEST_IPS = [
 ];
 
 export function qaInviteFingerprint(ip) {
-  const salt = process.env.INVITE_RATE_LIMIT_SALT || "eduforge-invite-rate-limit";
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || "isolated-eduforge-invite-rate-limit";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 

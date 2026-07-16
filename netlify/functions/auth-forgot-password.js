@@ -29,6 +29,6 @@ export async function handler(event) {
       if (delivery.state === "failed") await recordDeliveryFailureEvent(sql, { userId: user.id, schoolId: user.school_id, fingerprint, templateType: "password_reset" });
     }
     await recordRateLimitAttempt(sql, { scope: "forgot_password", fingerprint, emailHash, succeeded: Boolean(user) });
-    return json(200, { message: genericForgotPasswordMessage, ...(delivery?.previewUrl ? { preview_url: delivery.previewUrl } : {}) });
+    return json(200, { message: genericForgotPasswordMessage });
   } catch (error) { return safeServerError(error, "Password reset request failed"); }
 }

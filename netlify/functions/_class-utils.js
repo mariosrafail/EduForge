@@ -49,15 +49,18 @@ export function isValidInviteCode(value) {
   return /^[A-Z0-9]{6,16}$/.test(normalizeInviteCode(value));
 }
 
-function inviteFingerprint(event = {}) {
+export function inviteRequestFingerprint(event = {}) {
   const headers = event.headers || {};
   const address = headers["x-nf-client-connection-ip"] || headers["x-forwarded-for"]?.split(",")[0] || "unknown";
-  const salt = process.env.INVITE_RATE_LIMIT_SALT || "eduforge-invite-rate-limit";
+  const isolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database"
+    || process.env.STAGING_DATABASE_CONFIRMATION === "isolated-staging-database";
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || (isolated ? "isolated-eduforge-invite-rate-limit" : "");
+  if (!salt) throw new Error("INVITE_RATE_LIMIT_SALT is required");
   return createHash("sha256").update(`${salt}:${String(address).trim()}`).digest("hex");
 }
 
 export async function enforceInviteRateLimit(sql, event) {
-  const fingerprint = inviteFingerprint(event);
+  const fingerprint = inviteRequestFingerprint(event);
   const rows = await sql`
     select count(*)::int as attempts
     from class_invite_attempts
@@ -72,7 +75,7 @@ export async function enforceInviteRateLimit(sql, event) {
 export async function recordInviteAttempt(sql, event, succeeded) {
   await sql`
     insert into class_invite_attempts (request_fingerprint, succeeded)
-    values (${inviteFingerprint(event)}, ${Boolean(succeeded)})
+    values (${inviteRequestFingerprint(event)}, ${Boolean(succeeded)})
   `;
 }
 

@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import { createSafePool, withAdvisoryLock } from "./_staging-db.mjs";
-import { QA, QA_PASSWORD, QA_SEED_KEY, qaEntityIds } from "./_staging-qa-data.mjs";
+import { QA, QA_SEED_KEY, qaEntityIds, requireQaPassword } from "./_staging-qa-data.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
+const QA_PASSWORD = requireQaPassword();
 const client = await pool.connect();
 
 try {
@@ -194,7 +195,7 @@ try {
     }
   });
   console.log("Staging QA seed applied idempotently.");
-  console.log(`QA accounts use ${process.env.EDUFORGE_STAGING_QA_PASSWORD ? "the runtime-provided password" : "the documented unsafe staging-only default password"}.`);
+  console.log("QA accounts use the runtime-provided staging password.");
 } finally {
   client.release();
   await pool.end();

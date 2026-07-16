@@ -37,9 +37,9 @@ export async function runAccountEmailDispatch({ sql, deliver = deliverAccountEma
     } catch {
       delivery = { state: "failed", errorCode: "email_configuration_error" };
     }
-    if (delivery.state === "sent") {
+    if (["sent", "captured", "preview"].includes(delivery.state)) {
       sent += 1;
-      await sql`update account_email_outbox set delivery_state='sent',provider_reference=${delivery.reference || null},last_error_code=null,attempt_count=attempt_count+1,delivered_at=now(),next_attempt_at=null,claim_id=null,claimed_at=null where id=${row.id} and claim_id=${claimId}`;
+      await sql`update account_email_outbox set delivery_state=${delivery.state},provider_reference=${delivery.reference || null},last_error_code=null,attempt_count=attempt_count+1,delivered_at=case when ${delivery.state}='sent' then now() else delivered_at end,next_attempt_at=null,claim_id=null,claimed_at=null where id=${row.id} and claim_id=${claimId}`;
       continue;
     }
     failed += 1;

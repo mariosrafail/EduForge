@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 import { loadProductionMigrationManifest, requireSafeDatabase } from "./_staging-db.mjs";
+import { requireQaPassword } from "./_staging-qa-data.mjs";
 
 const requiredNames = [
   "STAGING_DATABASE_URL", "STAGING_DATABASE_CONFIRMATION", "STAGING_ENVIRONMENT_CONFIRMATION",
   "DATABASE_URL", "APP_PUBLIC_URL", "STAGING_PRODUCTION_APP_URL", "PRODUCTION_DATABASE_FINGERPRINT",
   "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET",
   "OPERATIONAL_MONITORING_SECRET", "ACCOUNT_EMAIL_MODE",
+  "EDUFORGE_STAGING_QA_PASSWORD",
 ];
 const placeholderPattern = /(replace|placeholder|example\.invalid|changeme|change-me|your[_-]|dummy|secret123)/i;
 const commonMailboxDomains = new Set(["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"]);
@@ -40,6 +42,7 @@ export function validateDedicatedStagingRecipient(value, confirmation) {
 
 export async function checkStagingDeployment(environment = process.env) {
   required(environment);
+  requireQaPassword(environment);
   if (environment.STAGING_ENVIRONMENT_CONFIRMATION !== "hosted-nonproduction-staging") throw new Error("Hosted staging confirmation is invalid");
   requireSafeDatabase("staging", { ...environment, DATABASE_URL: "" });
   if (databaseFingerprint(environment.DATABASE_URL) !== databaseFingerprint(environment.STAGING_DATABASE_URL)) {

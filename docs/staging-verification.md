@@ -44,7 +44,7 @@ The seed creates School A and School B, each with one admin, two teachers, two s
 - the same pattern with `qa.b.*`
 - paused accounts: `qa.a.paused@eduforge.invalid` and `qa.b.paused@eduforge.invalid`
 
-All accounts use the runtime value of `EDUFORGE_STAGING_QA_PASSWORD`. If it was omitted, the intentionally unsafe staging-only fallback is `StagingOnly!2026`; never use it outside isolated staging.
+All accounts use the required runtime value of `EDUFORGE_STAGING_QA_PASSWORD`. There is no shared fallback password; preflight and seed fail closed when it is missing, too short, or uses the retired shared value.
 
 Start the UI and functions with the staging database supplied only to that process:
 

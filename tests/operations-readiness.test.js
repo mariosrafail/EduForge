@@ -7,6 +7,7 @@ import { checkStagingDeployment, validateDedicatedStagingRecipient } from "../sc
 import { handler as publicDispatcher } from "../netlify/functions/account-email-dispatch.js";
 import { config as dispatchSchedule } from "../netlify/functions/scheduled-account-email-dispatch.js";
 import { config as cleanupSchedule } from "../netlify/functions/scheduled-lifecycle-cleanup.js";
+import { inviteRequestFingerprint } from "../netlify/functions/_class-utils.js";
 
 function fingerprint(urlText) {
   const url = new URL(urlText);
@@ -28,6 +29,12 @@ test("public dispatcher rejects unauthenticated calls and workers declare intern
   assert.equal(response.statusCode, 401);
   assert.equal(dispatchSchedule.schedule, "*/15 * * * *");
   assert.equal(cleanupSchedule.schedule, "17 2 * * *");
+  const previous = { salt: process.env.INVITE_RATE_LIMIT_SALT, test: process.env.TEST_DATABASE_CONFIRMATION, staging: process.env.STAGING_DATABASE_CONFIRMATION };
+  delete process.env.INVITE_RATE_LIMIT_SALT; delete process.env.TEST_DATABASE_CONFIRMATION; delete process.env.STAGING_DATABASE_CONFIRMATION;
+  assert.throws(() => inviteRequestFingerprint({ headers: {} }), /INVITE_RATE_LIMIT_SALT/);
+  if (previous.salt === undefined) delete process.env.INVITE_RATE_LIMIT_SALT; else process.env.INVITE_RATE_LIMIT_SALT = previous.salt;
+  if (previous.test === undefined) delete process.env.TEST_DATABASE_CONFIRMATION; else process.env.TEST_DATABASE_CONFIRMATION = previous.test;
+  if (previous.staging === undefined) delete process.env.STAGING_DATABASE_CONFIRMATION; else process.env.STAGING_DATABASE_CONFIRMATION = previous.staging;
 });
 
 test("staging preflight rejects unsafe inboxes and accepts non-secret hosted metadata", async () => {
@@ -46,8 +53,10 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     ACCOUNT_EMAIL_DISPATCH_SECRET: "c".repeat(40),
     OPERATIONAL_MONITORING_SECRET: "d".repeat(40),
     ACCOUNT_EMAIL_MODE: "preview",
+    EDUFORGE_STAGING_QA_PASSWORD: "Unique-QA-Password-2026",
   };
   const result = await checkStagingDeployment(environment);
   assert.equal(result.latest_migration, "016_operations_readiness.sql");
   await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
+  await assert.rejects(checkStagingDeployment({ ...environment, EDUFORGE_STAGING_QA_PASSWORD: "StagingOnly!2026" }), /retired shared staging password/);
 });

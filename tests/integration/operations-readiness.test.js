@@ -42,6 +42,10 @@ test("scheduled operations, cleanup retention and private health are safe", { sk
   await pool.query("insert into account_email_outbox(user_id,recipient_email,template_type,template_variables) values($1,'operations@qa.test','password_changed','{}')", [user.id]);
   const dispatch = await runAccountEmailDispatch({ sql, deliver: async () => ({ state: "sent", reference: "test-reference" }) });
   assert.deepEqual({ claimed: dispatch.claimed, sent: dispatch.sent, failed: dispatch.failed }, { claimed: 1, sent: 1, failed: 0 });
+  const previewId = (await pool.query("insert into account_email_outbox(user_id,recipient_email,template_type,template_variables) values($1,'operations@qa.test','password_changed','{}') returning id", [user.id])).rows[0].id;
+  const preview = await runAccountEmailDispatch({ sql, deliver: async () => ({ state: "preview", reference: "preview:test" }) });
+  assert.deepEqual({ claimed: preview.claimed, sent: preview.sent, failed: preview.failed }, { claimed: 1, sent: 1, failed: 0 });
+  assert.equal((await pool.query("select delivery_state from account_email_outbox where id=$1", [previewId])).rows[0].delivery_state, "preview");
   const zeroWork = await runScheduledEmailDispatch(sql);
   assert.equal(zeroWork.claimed, 0);
   await pool.query("insert into account_email_outbox(user_id,recipient_email,template_type,template_variables,delivery_state,claim_id,claimed_at) values($1,'operations@qa.test','password_changed','{}','sending',gen_random_uuid(),now()-interval '20 minutes')", [user.id]);
