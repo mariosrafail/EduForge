@@ -7,6 +7,7 @@ import { FeedbackRows } from "./shared/FeedbackRows.jsx";
 import { CustomAudioProgress } from "./shared/CustomAudioProgress.jsx";
 import { formatMediaTime } from "./shared/MediaTime.js";
 import { isTypedAnswerCorrect } from "./shared/typedAnswerUtils.js";
+import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
 
 function ThamesAudioPlayer({ onPlayed }) {
   const audioRef = useRef(null);
@@ -103,7 +104,12 @@ export function ListeningGapFillExercise({ mode, onSubmit, activity, questions =
       };
     });
     setSubmittedRows(rows);
-    onSubmit?.({ activityKey: "listening-page-20", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
+    onSubmit?.(buildScoredAssignmentResult({
+      activityKey: activity?.demoActivityKey || activity?.contentJson?.demoActivityKey || activity?.content_json?.demoActivityKey || "listening-page-20",
+      activityId: activity?.id,
+      answers,
+      rows,
+    }));
   };
 
   return (

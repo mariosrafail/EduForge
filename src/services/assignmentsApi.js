@@ -60,7 +60,8 @@ export function assignmentResultsToCsv({ assignment = {}, rows = [] } = {}) {
   const headers = ["Student Name", "Email", "Class", "Assignment", "Status", "Score", "Correct Count", "Total Count", "Submitted At", "Due At"];
   const escapeCell = (value) => {
     const text = value === null || value === undefined ? "" : String(value);
-    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    const spreadsheetSafe = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
+    return /[",\r\n]/.test(spreadsheetSafe) ? `"${spreadsheetSafe.replace(/"/g, '""')}"` : spreadsheetSafe;
   };
   const csvRows = rows.map((row) => [
     row.studentName,

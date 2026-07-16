@@ -46,6 +46,31 @@ function numericOrNull(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function normalizeSubmittedAnswer(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/,/g, "")
+    .replace(/[.!?]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+export function isSubmittedAnswerCorrect(question = {}, submittedAnswer = "") {
+  const feedback = question.feedbackJson || question.feedback_json || {};
+  const content = question.contentJson || question.content_json || {};
+  const accepted = [
+    question.answer,
+    ...(Array.isArray(feedback.acceptedAnswers) ? feedback.acceptedAnswers : []),
+    ...(Array.isArray(feedback.accepted_answers) ? feedback.accepted_answers : []),
+    ...(Array.isArray(content.acceptedAnswers) ? content.acceptedAnswers : []),
+    ...(Array.isArray(content.accepted_answers) ? content.accepted_answers : []),
+  ].filter((value) => value !== null && value !== undefined && String(value).trim());
+  const normalizedSubmitted = normalizeSubmittedAnswer(submittedAnswer);
+  return accepted.some((value) => normalizeSubmittedAnswer(value) === normalizedSubmitted);
+}
+
 async function accessiblePackageIds(sql, currentUser) {
   if (isAdmin(currentUser)) {
     const rows = await sql`select id from book_packages where status = 'active'`;
@@ -607,6 +632,13 @@ async function listAssignmentsForStudent(sql, studentId, currentUser) {
     order by aa.assigned_at desc
   `;
 
+  const activityIds = [...new Set(rows.map((row) => String(row.activity_id)))];
+  const hydratedActivities = new Map();
+  for (const activityId of activityIds) {
+    const activity = await fetchActivity(sql, { activityId });
+    if (activity) hydratedActivities.set(activityId, activity);
+  }
+
   return rows.map((row) => ({
     id: row.id,
     assignmentId: row.id,
@@ -624,7 +656,7 @@ async function listAssignmentsForStudent(sql, studentId, currentUser) {
     scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
-    activity: {
+    activity: hydratedActivities.get(String(row.activity_id)) || {
       id: row.activity_id,
       title: row.activity_title,
       slug: row.activity_slug,
@@ -634,6 +666,7 @@ async function listAssignmentsForStudent(sql, studentId, currentUser) {
       contentJson: row.content_json || {},
       content_json: row.content_json || {},
       demoActivityKey: row.content_json?.demoActivityKey || row.activity_slug,
+      questions: [],
     },
     lessonTitle: row.lesson_title,
     unitTitle: row.unit_title,
@@ -684,7 +717,7 @@ async function submitActivity(sql, body, currentUser = null) {
   const rows = activity.questions.map((question) => {
     const answer = answers[question.id] ?? answers[question.questionNumber] ?? "";
     const correctText = question.answer || "";
-    const isCorrect = String(answer).trim().toLowerCase() === String(correctText).trim().toLowerCase();
+    const isCorrect = isSubmittedAnswerCorrect(question, answer);
     return { question, answer, correctText, isCorrect };
   });
   const correctCount = rows.filter((row) => row.isCorrect).length;

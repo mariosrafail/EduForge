@@ -46,6 +46,9 @@ function ImportedActivityPlaceholder({ activity }) {
 }
 
 function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity }) {
+  if (activity?.questions?.length) {
+    return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
+  }
   if (activityKey === "video-intro") return <VideoIntroScreen mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningPage20 mode={mode} onSubmit={onSubmit} />;

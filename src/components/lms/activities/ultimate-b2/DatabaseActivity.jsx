@@ -12,6 +12,7 @@ import { formatTime } from "./shared/MediaTime.js";
 import { VideoIntroScreen } from "./VideoIntroScreen.jsx";
 import { ListeningGapFillExercise } from "./ListeningPage20.jsx";
 import { GrammarExercise4, GrammarRulesHelp } from "./GrammarExercise4.jsx";
+import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
 
 function dbQuestionsToChoiceQuestions(questions = []) {
   return questions.map((question, index) => ({
@@ -55,11 +56,12 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   const submit = () => {
     const rows = scoreAnswers(questions, answers);
     setSubmittedRows(rows);
-    onSubmit?.({
+    onSubmit?.(buildScoredAssignmentResult({
       activityKey: activity.demoActivityKey || contentJson.demoActivityKey || activity.slug || activity.id,
       activityId: activity.id,
-      score: Math.round((rows.filter((row) => row.correct).length / Math.max(rows.length, 1)) * 100),
-    });
+      answers,
+      rows,
+    }));
   };
 
   if (activityType === "media_video") {
@@ -87,7 +89,13 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
           alt="Grammar rules reference"
           zoomTitle="Grammar rules"
         />
-        <GrammarExercise4 mode={mode} onSubmit={onSubmit} />
+        <GrammarExercise4
+          mode={mode}
+          onSubmit={onSubmit}
+          questions={gapFillQuestions}
+          activityKey={demoActivityKey}
+          activityId={activity.id}
+        />
       </Card>
     );
   }

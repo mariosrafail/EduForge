@@ -29,7 +29,7 @@ export function readQuery(event) {
 }
 
 function correctOption(options = []) {
-  return options.find((option) => option.is_correct) || null;
+  return options.find((option) => option.correct || option.is_correct) || null;
 }
 
 export function questionRowsToUi(questionRows = [], optionRows = []) {

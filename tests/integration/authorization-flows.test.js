@@ -13,6 +13,7 @@ import { handler as bookContentHandler } from "../../netlify/functions/book-cont
 import { handler as courseHandler } from "../../netlify/functions/course.js";
 import { handler as lessonHandler } from "../../netlify/functions/lesson.js";
 import { handler as activityHandler } from "../../netlify/functions/activity.js";
+import { handler as operationalHealthHandler } from "../../netlify/functions/operational-health.js";
 import { relationshipChecks } from "../../scripts/_tenant-integrity-checks.mjs";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -112,6 +113,14 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   const otherTeacherCookie = await createSession(pool, otherTeacherId);
   const studentCookie = await createSession(pool, studentId);
   const pausedCookie = await createSession(pool, pausedStudentId);
+
+  await t.test("operational health reports the migrated isolated database without identifiers", async () => {
+    const health = await call(operationalHealthHandler);
+    assert.equal(health.status, 200);
+    assert.equal(health.body.status, "ok");
+    assert.equal(health.body.database, "ok");
+    assert.equal(typeof health.body.build, "string");
+  });
 
   await t.test("users GET/POST/PATCH/DELETE remain school-scoped", async () => {
     const created = await call(usersHandler, {
@@ -230,7 +239,7 @@ test("handler-level authorization flows preserve tenant and resource state", { s
      values ($1, $2, 'Book Activity', 'multiple_choice', $3, 'multiple_choice', '{}', '{}', 'official') returning id`,
     [schoolA, bookLesson.id, `activity-${schema}`],
   )).rows[0];
-  const question = (await pool.query("insert into questions (activity_id, question_number, prompt, question_type) values ($1, 1, 'Answer yes', 'multiple_choice') returning id", [activity.id])).rows[0];
+  const question = (await pool.query("insert into questions (activity_id, question_number, prompt, question_type, feedback_json) values ($1, 1, 'Answer yes', 'multiple_choice', '{\"acceptedAnswers\":[\"affirmative\"]}') returning id", [activity.id])).rows[0];
   await pool.query("insert into question_options (question_id, option_label, option_text, is_correct) values ($1, 'A', 'yes', true), ($1, 'B', 'no', false)", [question.id]);
   await pool.query("insert into book_access (user_id, book_package_id, role_scope) values ($1, $2, 'teacher')", [teacherId, bookPackage.id]);
 
@@ -242,13 +251,18 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     assert.equal(createdAssignment.status, 200);
     const assignmentId = createdAssignment.body.assignment.id;
     assert.equal((await pool.query("select school_id from activity_assignments where id = $1", [assignmentId])).rows[0].school_id, schoolA);
+    const visibleAssignments = await call(bookContentHandler, { cookie: studentCookie, query: { action: "assignments" } });
+    assert.equal(visibleAssignments.status, 200);
+    const visibleAssignment = visibleAssignments.body.assignments.find((item) => item.assignmentId === assignmentId);
+    assert.equal(visibleAssignment.activity.questions[0].id, question.id);
     const escalated = await call(bookContentHandler, { method: "POST", cookie: studentCookie, query: { action: "create-assignment" }, body: { activityId: activity.id, classId: classA.id } });
     assert.equal(escalated.status, 403);
     const submitted = await call(bookContentHandler, {
       method: "POST", cookie: studentCookie, query: { action: "submit" },
-      body: { activityId: activity.id, assignmentId, studentId: studentId, answers: { [question.id]: "yes" } },
+      body: { activityId: activity.id, assignmentId, studentId: studentId, result: { answers: { [question.id]: "affirmative" } } },
     });
     assert.equal(submitted.status, 200);
+    assert.equal(submitted.body.submission.scorePercent, 100);
     const submissionId = submitted.body.submission.id;
     const results = await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId } });
     assert.equal(results.status, 200);

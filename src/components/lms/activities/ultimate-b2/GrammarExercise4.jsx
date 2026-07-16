@@ -5,7 +5,8 @@ import { Card } from "../../Shared.jsx";
 import { ImageZoomModal } from "../../shared/BookImageFrame.jsx";
 import { grammarExercise4 } from "../ultimateB2ActivityContent.js";
 import { FeedbackRows } from "./shared/FeedbackRows.jsx";
-import { isSentenceAnswerCorrect } from "./shared/typedAnswerUtils.js";
+import { isTypedAnswerCorrect } from "./shared/typedAnswerUtils.js";
+import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
 
 export function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "Grammar rules" }) {
   const [isGrammarHelpOpen, setIsGrammarHelpOpen] = useState(false);
@@ -29,21 +30,21 @@ export function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "
   );
 }
 
-export function GrammarExercise4({ mode, onSubmit }) {
+export function GrammarExercise4({ mode, onSubmit, questions = grammarExercise4, activityKey = "grammar-ex4", activityId = null }) {
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
 
   const submit = () => {
-    const rows = grammarExercise4.map((item) => {
+    const rows = questions.map((item) => {
       const studentAnswer = answers[item.id] || "";
       return {
         ...item,
         studentAnswer,
-        correct: isSentenceAnswerCorrect(studentAnswer, item.answer),
+        correct: isTypedAnswerCorrect(studentAnswer, item),
       };
     });
     setSubmittedRows(rows);
-    onSubmit?.({ activityKey: "grammar-ex4", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
+    onSubmit?.(buildScoredAssignmentResult({ activityKey, activityId, answers, rows }));
   };
 
   return (
@@ -56,15 +57,15 @@ export function GrammarExercise4({ mode, onSubmit }) {
         </div>
       </div>
       <div className="grammar-joining-list">
-        {grammarExercise4.map((item, index) => {
+        {questions.map((item, index) => {
           const submitted = submittedRows?.find((row) => row.id === item.id);
           return (
             <label key={item.id} className={`grammar-joining-row ${submitted ? (submitted.correct ? "correct" : "wrong") : ""}`}>
               <span>{index + 1}</span>
               <div>
-                <strong>{item.firstSentence}</strong>
-                <strong>{item.secondSentence}</strong>
-                <small>Use <b>{item.connector}</b></small>
+                <strong>{item.firstSentence || item.prompt}</strong>
+                {item.secondSentence && <strong>{item.secondSentence}</strong>}
+                {item.connector && <small>Use <b>{item.connector}</b></small>}
               </div>
               <textarea
                 aria-label={`Answer ${index + 1}`}

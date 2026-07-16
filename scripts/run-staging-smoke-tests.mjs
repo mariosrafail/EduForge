@@ -19,6 +19,7 @@ import { handler as accountSetPassword } from "../netlify/functions/account-set-
 import { handler as forgotPassword } from "../netlify/functions/auth-forgot-password.js";
 import { handler as resetPassword } from "../netlify/functions/auth-reset-password.js";
 import { handler as revokeSessions } from "../netlify/functions/auth-revoke-sessions.js";
+import { handler as operationalHealth } from "../netlify/functions/operational-health.js";
 
 const { pool, safeLabel } = createSafePool("staging");
 setSqlForVerification(postgresTemplate(pool));
@@ -65,6 +66,14 @@ try {
   assert.equal(await count("select count(*) from staging_qa_registry where seed_key = $1", [QA_SEED_KEY]) > 0, true,
     "Run npm run staging:seed before smoke tests");
 
+  await check("operational health reports a ready migrated database", async () => {
+    const response = await callHandler(operationalHealth);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.status, "ok");
+    assert.equal(response.body.database, "ok");
+    assert.equal(typeof response.body.build, "string");
+  });
+
   const sessions = {};
   await check("authentication succeeds for both schools and all active roles", async () => {
     for (const school of QA.schools) {
@@ -99,6 +108,13 @@ try {
     assert.deepEqual((await pool.query("select full_name, status from app_users where id = $1", [schoolB.users.teacher1.id])).rows[0], before);
     assert.equal((await callHandler(user, { method: "DELETE", cookie, query: { id: schoolA.users.admin.id } })).status, 409);
     assert.equal(await count("select count(*) from app_users where id = $1 and status = 'active'", [schoolA.users.admin.id]), 1);
+    const metrics = await callHandler(bookContent, { cookie, query: { action: "school-metrics" } });
+    assert.equal(metrics.status, 200);
+    assert.deepEqual(metrics.body.metrics, {
+      activeUsers: 5, teacherCount: 2, studentCount: 3, activeClasses: 2,
+      activeBookPackages: 1, activeAssignments: 2, submittedWorkCount: 2,
+    });
+    assert.equal((await callHandler(bookContent, { cookie: sessions["a-teacher1"], query: { action: "school-metrics" } })).status, 403);
   });
 
   await check("admin creates and removes an account only in the authenticated school", async () => {
@@ -226,6 +242,11 @@ try {
     artifacts.assignments.push(id);
     const row = (await pool.query("select school_id, teacher_id, class_id from activity_assignments where id = $1", [id])).rows[0];
     assert.deepEqual(row, { school_id: schoolA.id, teacher_id: schoolA.users.teacher1.id, class_id: schoolA.classes[0].id });
+    const visible = await callHandler(bookContent, { cookie: sessions["a-student1"], query: { action: "assignments" } });
+    assert.equal(visible.status, 200);
+    const visibleQuestion = visible.body.assignments.find((assignment) => assignment.assignmentId === id).activity.questions[0];
+    assert.equal(visibleQuestion.id, schoolA.questionId);
+    assert.equal(visibleQuestion.answer, "yes");
     const assignmentCount = await count("select count(*) from activity_assignments where teacher_id = $1 and class_id = $2", [schoolA.users.teacher2.id, schoolA.classes[0].id]);
     assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "create-assignment" }, body: {
       activityId: schoolA.activityId, classId: schoolA.classes[0].id, title: "Same-school unauthorized",
@@ -241,15 +262,21 @@ try {
     assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "review-submission" }, body: { submissionId: schoolA.unreviewedSubmissionId, teacherFeedback: "Same-school stolen" } })).status, 403);
     assert.equal((await pool.query("select teacher_feedback from activity_submissions where id = $1", [schoolA.unreviewedSubmissionId])).rows[0].teacher_feedback, before);
     const submitted = await callHandler(bookContent, { method: "POST", cookie: sessions["a-student1"], query: { action: "submit" }, body: {
-      activityId: schoolA.activityId, assignmentId: id, answers: { [schoolA.questionId]: "yes" },
+      activityId: schoolA.activityId, assignmentId: id, result: { answers: { [schoolA.questionId]: "yes" } },
     } });
     assert.equal(submitted.status, 200);
+    assert.equal(submitted.body.submission.scorePercent, 100);
     artifacts.activitySubmissions.push(submitted.body.submission.id);
     const reviewed = await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher1"], query: { action: "review-submission" }, body: {
       submissionId: submitted.body.submission.id, teacherFeedback: "QA verified",
     } });
     assert.equal(reviewed.status, 200);
     assert.equal((await pool.query("select teacher_feedback, reviewed_by from activity_submissions where id = $1", [submitted.body.submission.id])).rows[0].teacher_feedback, "QA verified");
+    const studentGrades = await callHandler(bookContent, { cookie: sessions["a-student1"], query: { action: "grades", studentId: schoolB.users.student1.id } });
+    assert.equal(studentGrades.status, 200);
+    const visibleGrade = studentGrades.body.grades.find((grade) => grade.id === submitted.body.submission.id);
+    assert.equal(visibleGrade.scorePercent, 100);
+    assert.equal(visibleGrade.teacherFeedback, "QA verified");
   });
 
   await check("students see accessible books, cannot override identity, and cannot cross lessons", async () => {
