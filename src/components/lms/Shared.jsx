@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, Waves, X } from "lucide-react";
+import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, X } from "lucide-react";
 import { useSoundEffects } from "../../context/SoundContext.jsx";
 
 export const roles = {
@@ -33,7 +33,7 @@ function displayRole(role) {
 }
 
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, showSignOut = true }) {
-  const { muted, audioReady, volume, toggleMuted, enableSound, setVolume, unlockAudio, playSound } = useSoundEffects();
+  const { muted, volume, toggleMuted, setVolume } = useSoundEffects();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobileNav, setIsMobileNav] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(max-width: 1100px)").matches));
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
@@ -87,14 +87,6 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
   const handleSignOut = async () => {
     await onSignOut?.();
     setMobileMenuOpen(false);
-  };
-
-  const testSound = async () => {
-    if (muted) {
-      enableSound();
-    }
-    await unlockAudio();
-    await playSound("clickConfirm");
   };
 
   return (
@@ -152,16 +144,6 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
               >
                 {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 <span>{muted ? "Sound Off" : "Sound On"}</span>
-              </button>
-              <button
-                className="nav-secondary-link sound-test-button"
-                type="button"
-                data-sound-ignore="true"
-                onClick={testSound}
-                title={audioReady ? "Test UI sound" : "Enable audio and test"}
-              >
-                <Waves size={16} />
-                <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
               </button>
               <label className="sound-volume-control" title="Sound volume">
                 <Volume2 size={15} />
@@ -238,10 +220,6 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
           <button className="mobile-nav-button" type="button" aria-pressed={!muted} onClick={toggleMuted}>
             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             <span>{muted ? "Sound Off" : "Sound On"}</span>
-          </button>
-          <button className="mobile-nav-button" type="button" data-sound-ignore="true" onClick={testSound}>
-            <Waves size={18} />
-            <span>{audioReady ? "Test Sound" : "Enable Sound"}</span>
           </button>
           <label className="mobile-volume-row">
             <Volume2 size={18} />

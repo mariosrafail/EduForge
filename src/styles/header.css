@@ -170,17 +170,6 @@
   background: #ffedd5 !important;
 }
 
-.sound-test-button {
-  color: #114066;
-  background: #eff8ff;
-  border-color: #b2ddff;
-}
-
-.sound-test-button:hover {
-  border-color: #84caff !important;
-  background: #d1e9ff !important;
-}
-
 .sound-volume-control {
   display: inline-flex;
   align-items: center;
