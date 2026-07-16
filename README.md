@@ -66,6 +66,8 @@ Migration `015_account_lifecycle_hardening.sql` adds production SMTP/outbox disp
 
 Migration `016_operations_readiness.sql` adds aggregate operational run history for the scheduled email dispatcher, lifecycle cleanup, staging smoke checks, and tenant integrity verification. Hosted staging must pass `npm run staging:preflight`; deployment, monitoring, backup, and incident procedures are documented in [`docs/pilot-operations.md`](docs/pilot-operations.md).
 
+Migration `017_book_licensing.sql` adds hashed one-time student book codes, school-scoped batches, persistent entitlements, rate-limited atomic redemption, and licensing audit events. Admin/student operation, fictional three-school QA data, cleanup safety, role visibility, and test commands are documented in [`docs/book-licensing.md`](docs/book-licensing.md).
+
 `database/003_activities_assignments.sql` adds the demo/MVP activity authoring flow for interactive book-based practice:
 
 - teacher-created interactive activities

@@ -34,6 +34,19 @@ npm run staging:integrity
 npm run staging:smoke
 ```
 
+For the optional production-oriented licensing and three-school isolation dataset, use the additional explicit guard and commands. This dataset is separate from the smaller canonical QA seed:
+
+```powershell
+$env:ALLOW_DEMO_SEED = "true"
+$env:MULTI_SCHOOL_SEED_CONFIRMATION = "fictional-multi-school-development-data"
+$env:MULTI_SCHOOL_DEMO_PASSWORD = Read-Host "Temporary fictional account password"
+npm run staging:seed:multi-school
+npm run staging:integrity
+npm run staging:cleanup:multi-school
+```
+
+The generated account/class table and development codes are printed only during the seed run. Do not capture them in shared build logs, and never reuse them in production. See [`book-licensing.md`](book-licensing.md) for the lifecycle, visibility matrix, deterministic accounts, and hosted E2E variables.
+
 The integrity command must report zero rows in `tenant_integrity_issues`, zero relationship inconsistencies, and all required constraints, foreign keys, and indexes present. It reports problems but never rewrites ambiguous ownership.
 
 ## Accounts and URLs
@@ -109,6 +122,8 @@ After manual verification:
 npm run staging:cleanup
 npm run staging:integrity
 ```
+
+If the optional multi-school seed was also applied, run `npm run staging:cleanup:multi-school` before the final integrity check.
 
 Cleanup requires the same explicit staging confirmation, validates the complete registry, and deletes only deterministic QA roots and known smoke-test fingerprints. It refuses an unknown, partial, or mismatched registry, is safe to run repeatedly after a successful cleanup, verifies QA sessions are gone, and confirms migration history is unchanged. Keep migration history; do not drop staging data manually.
 
