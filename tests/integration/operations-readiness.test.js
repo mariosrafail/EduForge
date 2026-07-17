@@ -80,7 +80,7 @@ test("scheduled operations, cleanup retention and private health are safe", { sk
   assert.equal(rejected.status, 401);
   const privateHealth = parse(await health({ httpMethod: "GET", headers: { "x-operational-monitoring-secret": "monitoring-test-secret" }, queryStringParameters: { detail: "private" } }));
   assert.equal(privateHealth.status, 200);
-  assert.equal(privateHealth.body.migration, "017_book_licensing.sql");
+  assert.equal(privateHealth.body.migration, "018_book_assets.sql");
   assert.equal("recipient_email" in privateHealth.body, false);
   assert.ok((await pool.query("select count(*)::int count from operational_runs where succeeded=true")).rows[0].count >= 3);
 });

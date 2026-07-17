@@ -20,6 +20,7 @@ import {
   parseBody,
   readQuery,
 } from "./_book-content-utils.js";
+import { getBookAssetAccess } from "./_book-asset-access.js";
 
 function badRequest(message) {
   return json(400, { error: message });
@@ -1518,6 +1519,7 @@ export async function handler(event) {
     const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
+      if (query.action === "asset-access") return getBookAssetAccess(sql, currentUser, query);
       if (query.action === "list") {
         const allowedIds = await accessiblePackageIds(sql, currentUser);
         const packages = await fetchBookPackages(sql);

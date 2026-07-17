@@ -29,7 +29,13 @@
     "android:init": "npx cap add android",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
-    "android:build": "npm run build:android-offline && npm run android:sync && cd android && gradlew.bat assembleDebug"
+    "android:build": "npm run build:android-offline && npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "books:validate": "node scripts/books/cli.mjs validate",
+    "books:inventory": "node scripts/books/cli.mjs inventory",
+    "books:import:dry-run": "node scripts/books/cli.mjs import --dry-run",
+    "books:import": "node scripts/books/cli.mjs import",
+    "books:verify": "node scripts/books/cli.mjs verify",
+    "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -37,6 +43,8 @@
     "@capacitor/core": "^8.4.0",
     "@capacitor/status-bar": "^8.0.2",
     "@neondatabase/serverless": "^1.1.0",
+    "@aws-sdk/client-s3": "^3.848.0",
+    "@aws-sdk/s3-request-presigner": "^3.848.0",
     "@vitejs/plugin-react": "latest",
     "bcryptjs": "^3.0.3",
     "framer-motion": "latest",
@@ -44,6 +52,7 @@
     "nodemailer": "^9.0.3",
     "react": "latest",
     "react-dom": "latest",
+    "sharp": "^0.34.3",
     "vite": "^8.1.4"
   },
   "devDependencies": {

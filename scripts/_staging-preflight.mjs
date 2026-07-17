@@ -68,6 +68,6 @@ export async function checkStagingDeployment(environment = process.env) {
   }
   const migrations = await loadProductionMigrationManifest();
   if (migrations.some((item) => item.filename === "012_demo_login_passwords.sql")) throw new Error("Demo-password migration is forbidden");
-  if (migrations.at(-1)?.filename !== "017_book_licensing.sql") throw new Error("Production migration manifest must end at 017_book_licensing.sql");
+  if (migrations.at(-1)?.filename !== "018_book_assets.sql") throw new Error("Production migration manifest must end at 018_book_assets.sql");
   return { environment: "hosted-staging", app_host: app.hostname, email_mode: environment.ACCOUNT_EMAIL_MODE, migration_count: migrations.length, latest_migration: migrations.at(-1).filename };
 }

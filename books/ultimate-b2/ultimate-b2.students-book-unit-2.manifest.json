@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "publisher": { "id": "publisher-hamilton-house", "name": "Hamilton House", "slug": "hamilton-house" },
+  "book": { "id": "book-ultimate-b2", "slug": "ultimate-b2", "title": "Ultimate B2", "level": "B2", "description": "Controlled production asset proof for the currently usable Students Book Unit 2 slice.", "version": "1.0.0" },
+  "edition": { "id": "edition-current", "identifier": "current", "title": "Current implemented digital edition" },
+  "components": [
+    {
+      "id": "component-students-book",
+      "slug": "ultimate-b2-students-book",
+      "title": "Ultimate B2 Students Book",
+      "type": "students_book",
+      "units": [
+        {
+          "id": "unit-students-book-2",
+          "slug": "unit-2",
+          "title": "Unit 2",
+          "number": 2,
+          "lessons": [
+            {
+              "id": "lesson-unit-2-reading",
+              "slug": "unit-2-reading",
+              "title": "Unit 2 Reading",
+              "type": "reading",
+              "activities": [
+                { "id": "activity-video-intro", "slug": "unit-2-reading-video-intro", "title": "Reading video intro", "type": "media_video", "instructions": "Watch the supplied Unit 2 video.", "assignable": true, "accessLevel": "entitled", "answers": {}, "feedback": {}, "assetIds": ["asset-reading-video"], "sourceReference": "src/components/lms/activities/ultimate-b2/CustomVideoPlayer.jsx", "status": "media-only" },
+                { "id": "activity-reading-audio", "slug": "unit-2-reading-text-audio", "title": "Reading text and audio", "type": "media_audio", "instructions": "Read and listen to the supplied text.", "assignable": false, "accessLevel": "entitled", "answers": {}, "feedback": {}, "assetIds": ["asset-reading-audio", "asset-reading-text"], "sourceReference": "src/components/lms/activities/ultimate-b2/ReadingTextAudioScreen.jsx", "status": "media-only" },
+                { "id": "activity-reading-ex3", "slug": "unit-2-reading-exercise-3", "title": "Reading Exercise 3", "type": "multiple_choice", "instructions": "Choose the correct answers.", "assignable": true, "accessLevel": "entitled", "answers": { "source": "existing-database-and-react-activity" }, "feedback": { "source": "existing-database-and-react-activity" }, "assetIds": [], "sourceReference": "src/components/lms/activities/ultimate-b2/ReadingExercise3.jsx", "status": "fully-interactive" },
+                { "id": "activity-reading-ex4", "slug": "unit-2-reading-exercise-4", "title": "Reading Exercise 4", "type": "multiple_choice", "instructions": "Choose the correct words and evidence.", "assignable": true, "accessLevel": "entitled", "answers": { "source": "existing-database-and-react-activity" }, "feedback": { "source": "existing-database-and-react-activity" }, "assetIds": [], "sourceReference": "src/components/lms/activities/ultimate-b2/ReadingExercise4.jsx", "status": "fully-interactive" }
+              ]
+            }
+          ],
+          "pages": [
+            { "id": "page-reading-19", "stableKey": "students-book/unit-2/reading-19", "number": 19, "label": "pg 19", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-19"], "hotspots": [] },
+            { "id": "page-reading-20-21", "stableKey": "students-book/unit-2/reading-20-21", "number": 20, "label": "pg 20-21", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-20-21"], "hotspots": [
+              { "id": "hotspot-video", "label": "Video", "left": 3.2, "top": 7, "width": 45, "height": 14, "activityId": "activity-video-intro" },
+              { "id": "hotspot-text-audio", "label": "Text and audio", "left": 3.4, "top": 22, "width": 46.2, "height": 66, "activityId": "activity-reading-audio" },
+              { "id": "hotspot-exercise-3", "label": "Exercise 3", "left": 53.2, "top": 8, "width": 43.5, "height": 38, "activityId": "activity-reading-ex3" },
+              { "id": "hotspot-exercise-4", "label": "Exercise 4", "left": 53.3, "top": 48, "width": 43.4, "height": 29, "activityId": "activity-reading-ex4" }
+            ] },
+            { "id": "page-vocabulary-22-23", "stableKey": "students-book/unit-2/vocabulary-22-23", "number": 22, "label": "pg 22-23", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-22-23"], "hotspots": [] },
+            { "id": "page-grammar-24-25", "stableKey": "students-book/unit-2/grammar-24-25", "number": 24, "label": "pg 24-25", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-24-25"], "hotspots": [] },
+            { "id": "page-listening-26", "stableKey": "students-book/unit-2/listening-26", "number": 26, "label": "pg 26", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-26"], "hotspots": [] },
+            { "id": "page-speaking-27", "stableKey": "students-book/unit-2/speaking-27", "number": 27, "label": "pg 27", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-27"], "hotspots": [] },
+            { "id": "page-writing-28-29", "stableKey": "students-book/unit-2/writing-28-29", "number": 28, "label": "pg 28-29", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-28-29"], "hotspots": [] },
+            { "id": "page-review-30", "stableKey": "students-book/unit-2/review-30", "number": 30, "label": "pg 30", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-30"], "hotspots": [] },
+            { "id": "page-practice-31-32", "stableKey": "students-book/unit-2/practice-31-32", "number": 31, "label": "pg 31-32", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-31", "asset-page-32"], "hotspots": [] },
+            { "id": "page-progress-33-34", "stableKey": "students-book/unit-2/progress-33-34", "number": 33, "label": "pg 33-34", "sourceReference": "src/data/ultimate-b2/ultimateB2PageUnits.js", "assetIds": ["asset-page-33", "asset-page-34"], "hotspots": [] }
+          ]
+        }
+      ]
+    }
+  ],
+  "assets": [
+    { "id": "asset-cover", "logicalKey": "ultimate-b2.students-book.cover", "role": "cover", "source": "src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg", "mimeType": "image/jpeg", "accessLevel": "public", "publicationStatus": "published", "classification": "preview", "componentId": "component-students-book", "sourceReference": "src/components/lms/books/bookCoverAssets.js", "imageStrategy": "preserve" },
+    { "id": "asset-page-19", "logicalKey": "ultimate-b2.students-book.unit-2.page-19", "role": "page_image", "source": "selides/19.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-reading-19", "sourceReference": "unit/2/parts/HD/parts_part_1.png", "imageStrategy": "page" },
+    { "id": "asset-page-20-21", "logicalKey": "ultimate-b2.students-book.unit-2.page-20-21", "role": "page_image", "source": "selides/20-21.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-reading-20-21", "sourceReference": "unit/2/parts/HD/parts_part_2.png", "imageStrategy": "page" },
+    { "id": "asset-page-22-23", "logicalKey": "ultimate-b2.students-book.unit-2.page-22-23", "role": "page_image", "source": "selides/22-23.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-vocabulary-22-23", "sourceReference": "unit/2/parts/HD/parts_part_3.png", "imageStrategy": "page" },
+    { "id": "asset-page-24-25", "logicalKey": "ultimate-b2.students-book.unit-2.page-24-25", "role": "page_image", "source": "selides/24-25.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-grammar-24-25", "sourceReference": "unit/2/parts/HD/parts_part_4.png", "imageStrategy": "page" },
+    { "id": "asset-page-26", "logicalKey": "ultimate-b2.students-book.unit-2.page-26", "role": "page_image", "source": "selides/26.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-listening-26", "sourceReference": "unit/2/parts/HD/parts_part_5.png", "imageStrategy": "page" },
+    { "id": "asset-page-27", "logicalKey": "ultimate-b2.students-book.unit-2.page-27", "role": "page_image", "source": "selides/27.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-speaking-27", "sourceReference": "unit/2/parts/HD/parts_part_6.png", "imageStrategy": "page" },
+    { "id": "asset-page-28-29", "logicalKey": "ultimate-b2.students-book.unit-2.page-28-29", "role": "page_image", "source": "selides/28-29.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-writing-28-29", "sourceReference": "unit/2/parts/HD/parts_part_7.png", "imageStrategy": "page" },
+    { "id": "asset-page-30", "logicalKey": "ultimate-b2.students-book.unit-2.page-30", "role": "page_image", "source": "selides/30.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-review-30", "sourceReference": "unit/2/parts/HD/parts_part_8.png", "imageStrategy": "page" },
+    { "id": "asset-page-31", "logicalKey": "ultimate-b2.students-book.unit-2.page-31", "role": "page_image", "source": "selides/31.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-practice-31-32", "sourceReference": "unit/2/parts/HD/parts_part_9.png", "imageStrategy": "page" },
+    { "id": "asset-page-32", "logicalKey": "ultimate-b2.students-book.unit-2.page-32", "role": "page_image", "source": "selides/32.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-practice-31-32", "sourceReference": "unit/2/parts/HD/parts_part_10.png", "imageStrategy": "page" },
+    { "id": "asset-page-33", "logicalKey": "ultimate-b2.students-book.unit-2.page-33", "role": "page_image", "source": "selides/33.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-progress-33-34", "sourceReference": "unit/2/parts/HD/parts_part_11.png", "imageStrategy": "page" },
+    { "id": "asset-page-34", "logicalKey": "ultimate-b2.students-book.unit-2.page-34", "role": "page_image", "source": "selides/34.png", "mimeType": "image/png", "accessLevel": "entitled", "publicationStatus": "published", "classification": "page-image", "componentId": "component-students-book", "unitId": "unit-students-book-2", "pageId": "page-progress-33-34", "sourceReference": "unit/2/parts/HD/parts_part_12.png", "imageStrategy": "page" },
+    { "id": "asset-reading-video", "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro", "role": "video", "source": "src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4", "mimeType": "video/mp4", "accessLevel": "entitled", "publicationStatus": "published", "classification": "media-only", "componentId": "component-students-book", "unitId": "unit-students-book-2", "activityId": "activity-video-intro", "sourceReference": "src/components/lms/activities/ultimate-b2/CustomVideoPlayer.jsx", "imageStrategy": "preserve" },
+    { "id": "asset-reading-audio", "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio", "role": "audio", "source": "src/assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3", "mimeType": "audio/mpeg", "accessLevel": "entitled", "publicationStatus": "published", "classification": "media-only", "componentId": "component-students-book", "unitId": "unit-students-book-2", "activityId": "activity-reading-audio", "sourceReference": "src/components/lms/activities/ultimate-b2/shared/ReadingAudioPlayer.jsx", "imageStrategy": "preserve" },
+    { "id": "asset-reading-text", "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-image", "role": "illustration", "source": "src/assets/books/ultimate-b2/student-text.jpg", "mimeType": "image/jpeg", "accessLevel": "entitled", "publicationStatus": "published", "classification": "fully-interactive", "componentId": "component-students-book", "unitId": "unit-students-book-2", "activityId": "activity-reading-audio", "sourceReference": "src/components/lms/activities/ultimate-b2/ReadingTextAudioScreen.jsx", "imageStrategy": "page" }
+  ]
+}

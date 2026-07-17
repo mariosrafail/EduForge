@@ -25,6 +25,8 @@ export function readQuery(event) {
     type: params.type || "",
     kind: params.kind || "",
     mediaId: params.mediaId || params.media_id || "",
+    assetId: params.assetId || params.asset_id || "",
+    logicalKey: params.logicalKey || params.logical_key || "",
   };
 }
 
