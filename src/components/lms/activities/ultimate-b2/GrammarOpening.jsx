@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
-import grammarRulesImage from "../../../../assets/books/ultimate-b2/grammar-rules.jpg";
+import { ultimateB2GrammarRulesImage } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { Card } from "../../Shared.jsx";
 import { BookImageFrame } from "../../shared/BookImageFrame.jsx";
 import { grammarOpening } from "../ultimateB2ActivityContent.js";
@@ -9,6 +10,7 @@ import { scoreAnswers } from "./shared/activityScoringUtils.js";
 import { GrammarExercise4, GrammarRulesHelp } from "./GrammarExercise4.jsx";
 
 export function GrammarOpening({ activityKey, mode, onSubmit }) {
+  const grammarRules = useBookAsset(ultimateB2GrammarRulesImage.logicalKey, { devFallbackUrl: ultimateB2GrammarRulesImage.devFallbackUrl || ultimateB2GrammarRulesImage.localUrl });
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
   const questions = grammarOpening;
@@ -21,13 +23,15 @@ export function GrammarOpening({ activityKey, mode, onSubmit }) {
 
   return (
     <Card>
-      <BookImageFrame
-        title="Grammar rules"
-        subtitle="Review the rules before you start. You can open them larger anytime."
-        imageSrc={grammarRulesImage}
-        alt="Grammar rules reference"
-        zoomTitle="Grammar rules"
-      />
+      {grammarRules.url ? (
+        <BookImageFrame
+          title="Grammar rules"
+          subtitle="Review the rules before you start. You can open them larger anytime."
+          imageSrc={grammarRules.url}
+          alt="Grammar rules reference"
+          zoomTitle="Grammar rules"
+        />
+      ) : <div className="book-page-missing">Grammar Book media has not been migrated for online delivery.</div>}
       {activityKey === "grammar-ex4" ? (
         <GrammarExercise4 mode={mode} onSubmit={onSubmit} />
       ) : (

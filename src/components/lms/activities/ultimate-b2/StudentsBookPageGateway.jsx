@@ -1,31 +1,21 @@
 ﻿import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookOpen } from "lucide-react";
-import page19Image from "../../../../../selides/19.png";
-import page20To21Image from "../../../../../selides/20-21.png";
-import page22To23Image from "../../../../../selides/22-23.png";
-import page24To25Image from "../../../../../selides/24-25.png";
-import page26Image from "../../../../../selides/26.png";
-import page27Image from "../../../../../selides/27.png";
-import page28To29Image from "../../../../../selides/28-29.png";
-import page30Image from "../../../../../selides/30.png";
-import page31Image from "../../../../../selides/31.png";
-import page32Image from "../../../../../selides/32.png";
-import page33Image from "../../../../../selides/33.png";
-import page34Image from "../../../../../selides/34.png";
+import { getUltimateB2Unit2Asset } from "virtual:ultimate-b2-page-assets";
 import { Tag } from "../../Shared.jsx";
+import { requestBookAssetAccess } from "../../../../services/bookAssetsApi.js";
 
 const unit2PageSections = [
-  { id: "reading-19", title: "Reading", pages: "pg 19", images: [page19Image] },
-  { id: "reading-20-21", title: "Reading", pages: "pg 20-21", images: [page20To21Image], continuesToVideo: true },
-  { id: "vocabulary-22-23", title: "Vocabulary in Use", pages: "pg 22-23", images: [page22To23Image] },
-  { id: "grammar-24-25", title: "Grammar in Use", pages: "pg 24-25", images: [page24To25Image] },
-  { id: "listening-26", title: "Listening", pages: "pg 26", images: [page26Image] },
-  { id: "speaking-27", title: "Speaking", pages: "pg 27", images: [page27Image] },
-  { id: "writing-28-29", title: "Writing", pages: "pg 28-29", images: [page28To29Image] },
-  { id: "review-30", title: "Review 2", pages: "pg 30", images: [page30Image] },
-  { id: "practice-31-32", title: "Practice 2", pages: "pg 31-32", images: [page31Image, page32Image] },
-  { id: "progress-check-33-34", title: "Progress check 1", pages: "pg 33-34", images: [page33Image, page34Image] },
+  { id: "reading-19", title: "Reading", pages: "pg 19", images: [getUltimateB2Unit2Asset("19.png")] },
+  { id: "reading-20-21", title: "Reading", pages: "pg 20-21", images: [getUltimateB2Unit2Asset("20-21.png")], continuesToVideo: true },
+  { id: "vocabulary-22-23", title: "Vocabulary in Use", pages: "pg 22-23", images: [getUltimateB2Unit2Asset("22-23.png")] },
+  { id: "grammar-24-25", title: "Grammar in Use", pages: "pg 24-25", images: [getUltimateB2Unit2Asset("24-25.png")] },
+  { id: "listening-26", title: "Listening", pages: "pg 26", images: [getUltimateB2Unit2Asset("26.png")] },
+  { id: "speaking-27", title: "Speaking", pages: "pg 27", images: [getUltimateB2Unit2Asset("27.png")] },
+  { id: "writing-28-29", title: "Writing", pages: "pg 28-29", images: [getUltimateB2Unit2Asset("28-29.png")] },
+  { id: "review-30", title: "Review 2", pages: "pg 30", images: [getUltimateB2Unit2Asset("30.png")] },
+  { id: "practice-31-32", title: "Practice 2", pages: "pg 31-32", images: [getUltimateB2Unit2Asset("31.png"), getUltimateB2Unit2Asset("32.png")] },
+  { id: "progress-check-33-34", title: "Progress check 1", pages: "pg 33-34", images: [getUltimateB2Unit2Asset("33.png"), getUltimateB2Unit2Asset("34.png")] },
 ];
 
 const readingSpreadHotspots = [
@@ -64,7 +54,30 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
   const [activeSectionIndex, setActiveSectionIndex] = useState(null);
   const [navigationDirection, setNavigationDirection] = useState(1);
   const [openingSectionId, setOpeningSectionId] = useState(null);
+  const [assetUrls, setAssetUrls] = useState({});
+  const [assetLoading, setAssetLoading] = useState(false);
+  const [assetError, setAssetError] = useState("");
+  const [assetAttempt, setAssetAttempt] = useState(0);
   const selectedSection = activeSectionIndex === null ? null : unit2PageSections[activeSectionIndex];
+
+  useEffect(() => {
+    if (!selectedSection) return undefined;
+    const controller = new AbortController();
+    const currentAssets = selectedSection.images;
+    const adjacentAssets = [unit2PageSections[activeSectionIndex - 1], unit2PageSections[activeSectionIndex + 1]].filter(Boolean).flatMap((section) => section.images);
+    setAssetLoading(true);
+    setAssetError("");
+    Promise.all(currentAssets.map(async (asset) => {
+      if (typeof asset === "string") return { key: asset, url: asset };
+      try { const access = await requestBookAssetAccess(asset.assetLogicalKey, { signal: controller.signal }); return { key: asset.assetLogicalKey, url: access.url }; }
+      catch (error) { if (import.meta.env.DEV && asset.devFallbackUrl) return { key: asset.assetLogicalKey, url: asset.devFallbackUrl }; throw error; }
+    })).then((items) => {
+      setAssetUrls((current) => ({ ...current, ...Object.fromEntries(items.map((item) => [item.key, item.url])) }));
+      setAssetLoading(false);
+      for (const asset of adjacentAssets) if (asset?.assetLogicalKey) requestBookAssetAccess(asset.assetLogicalKey, { signal: controller.signal, retries: 1 }).then((access) => setAssetUrls((current) => ({ ...current, [asset.assetLogicalKey]: access.url }))).catch(() => {});
+    }).catch((error) => { if (error.name !== "AbortError") { setAssetLoading(false); setAssetError(error.message || "Book page unavailable"); } });
+    return () => controller.abort();
+  }, [activeSectionIndex, assetAttempt, selectedSection]);
 
   useEffect(() => {
     if (!initialOpenSectionId) return;
@@ -131,6 +144,7 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
   };
 
   if (selectedSection) {
+    const selectedImages = selectedSection.images.map((asset) => typeof asset === "string" ? asset : assetUrls[asset.assetLogicalKey]).filter(Boolean);
     const spreadClass = selectedSection.images.length > 1 ? "two-page-spread" : "single-page-spread";
     const isFirstSection = activeSectionIndex === 0;
     const isLastSection = activeSectionIndex === unit2PageSections.length - 1;
@@ -202,16 +216,18 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
                 transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
               >
                 <div className={`book-page-image-layer ${spreadClass}`}>
-                  {selectedSection.images.map((image, index) => (
+                  {selectedImages.map((image, index) => (
                     <motion.img
                       key={`${selectedSection.id}-${index}`}
                       src={image}
-                      alt={`Students Book Unit 2 ${selectedSection.title} ${selectedSection.pages}${selectedSection.images.length > 1 ? ` page ${index + 1}` : ""}`}
+                      alt={`Students Book Unit 2 ${selectedSection.title} ${selectedSection.pages}${selectedImages.length > 1 ? ` page ${index + 1}` : ""}`}
                       initial={{ opacity: 0, y: 14, rotateY: navigationDirection > 0 ? -4 : 4 }}
                       animate={{ opacity: 1, y: 0, rotateY: 0 }}
                       transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
                     />
                   ))}
+                  {assetLoading && !selectedImages.length && <div className="book-page-missing" role="status">Loading protected page...</div>}
+                  {assetError && !selectedImages.length && <div className="book-page-missing" role="alert">Page unavailable. <button type="button" className="secondary-action compact-action" onClick={() => setAssetAttempt((value) => value + 1)}>Retry</button></div>}
                   {selectedSection.id === "reading-20-21" && <ReadingSpreadHotspots onHotspot={handleReadingHotspot} />}
                 </div>
               </motion.div>
@@ -276,9 +292,7 @@ export function StudentsBookPageGateway({ onContinue, onTextAudio, onExercise3, 
             whileTap={{ scale: 0.975 }}
           >
             <motion.span className="book-section-thumb" layoutId={`unit2-page-${section.id}`}>
-              {section.images.map((image, imageIndex) => (
-                <img key={`${section.id}-thumb-${imageIndex}`} src={image} alt="" loading="lazy" />
-              ))}
+              <strong>{section.pages.replace("pg ", "")}</strong>
             </motion.span>
             <span className="book-section-card-copy">
               <strong>{section.title}</strong>

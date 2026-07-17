@@ -1,8 +1,10 @@
-import grammarBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg";
-import studentsBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
-import testBookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg";
-import workbookCover from "../../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg";
+import { ultimateB2StudentsBookCover } from "virtual:ultimate-b2-cover-assets";
 import englishJourney6Cover from "../../../assets/books/english-journey-6/covers/english_journey_6_students_book.png";
+
+const studentsBookCover = ultimateB2StudentsBookCover.localUrl;
+const workbookCover = null;
+const grammarBookCover = null;
+const testBookCover = null;
 
 export const coverAssets = {
   "students-book": studentsBookCover,

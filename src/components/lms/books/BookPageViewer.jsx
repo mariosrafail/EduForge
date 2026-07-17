@@ -12,6 +12,7 @@ import { PageHotspotSettingsPanel } from "./hotspots/PageHotspotSettingsPanel.js
 import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bookPageHotspotsApi.js";
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
+import { requestBookAssetAccess } from "../../../services/bookAssetsApi.js";
 
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
@@ -31,13 +32,24 @@ export function resolveEnglishJourneyPageAsset(imagePath) {
 export function resolvePageImage(image) {
   if (!image) return null;
   if (typeof image === "string") return image.startsWith("/src/assets/") ? resolveEnglishJourneyPageAsset(image) : image;
+  if (image.assetLogicalKey) return null;
   return image.src || image.imageSrc || image.url || resolveEnglishJourneyPageAsset(image.imagePath || image.path);
+}
+
+export function normalizePageImageAsset(image) {
+  if (!image) return null;
+  return {
+    logicalKey: typeof image === "object" ? image.assetLogicalKey || null : null,
+    devFallbackUrl: typeof image === "object" ? image.devFallbackUrl || null : null,
+    localUrl: resolvePageImage(image),
+  };
 }
 
 export function normalizeBookPageSections(component = {}) {
   return (component.pageUnits || []).flatMap((unit) => (
     (unit.pages || []).map((page, pageIndex) => {
-      const images = (page.images?.length ? page.images : [page.imageSrc || page.imagePath || page.image]).map(resolvePageImage).filter(Boolean);
+      const imageAssets = (page.images?.length ? page.images : [page.imageSrc || page.imagePath || page.image]).map(normalizePageImageAsset).filter(Boolean);
+      const images = imageAssets.map((asset) => asset.localUrl).filter(Boolean);
       const pageNumber = page.pageNumber || page.number || pageIndex + 1;
       return {
         id: page.id || `${unit.id}-page-${pageNumber}`,
@@ -50,6 +62,7 @@ export function normalizeBookPageSections(component = {}) {
         title: page.title || unit.title || `Page ${pageNumber}`,
         pages: page.label || page.pages || `pg ${pageNumber}`,
         images,
+        imageAssets,
         actions: page.actions || [],
         continuesToVideo: page.continuesToVideo,
       };
@@ -199,6 +212,10 @@ export function BookPagesView({
   const [loadedHotspotKeys, setLoadedHotspotKeys] = useState({});
   const [builderType, setBuilderType] = useState(null);
   const [activeBookActivityId, setActiveBookActivityId] = useState(null);
+  const [pageAssetUrls, setPageAssetUrls] = useState({});
+  const [pageAssetLoading, setPageAssetLoading] = useState(false);
+  const [pageAssetError, setPageAssetError] = useState("");
+  const [pageAssetAttempt, setPageAssetAttempt] = useState(0);
   const pageUnits = component.pageUnits || [];
   const selectedSectionIndex = sections.findIndex((section) => (
     (selectedPageId && section.pageId === selectedPageId) ||
@@ -228,6 +245,40 @@ export function BookPagesView({
       storageKey: `${packageSlug}:${componentSlug}:${pageId}`,
     };
   }, [componentSlug, packageSlug, selectedSection]);
+
+  useEffect(() => {
+    if (!selectedSection) return undefined;
+    const currentRefs = selectedSection.imageAssets.filter((asset) => asset.logicalKey);
+    if (!currentRefs.length) { setPageAssetLoading(false); setPageAssetError(""); return undefined; }
+    const controller = new AbortController();
+    const prefetchCount = Math.max(0, Math.min(Number(import.meta.env.VITE_BOOK_PAGE_PREFETCH_COUNT || 1), 2));
+    const adjacentSections = sections.filter((_, index) => Math.abs(index - selectedSectionIndex) > 0 && Math.abs(index - selectedSectionIndex) <= prefetchCount);
+    const adjacentRefs = adjacentSections.flatMap((section) => section.imageAssets.filter((asset) => asset.logicalKey));
+    setPageAssetLoading(true);
+    setPageAssetError("");
+    Promise.all(currentRefs.map(async (asset) => {
+      try {
+        const access = await requestBookAssetAccess(asset.logicalKey, { signal: controller.signal });
+        return { logicalKey: asset.logicalKey, url: access.url, expiresAt: access.expiresAt };
+      } catch (error) {
+        if (import.meta.env.DEV && asset.devFallbackUrl) return { logicalKey: asset.logicalKey, url: asset.devFallbackUrl, expiresAt: null, fallback: true };
+        throw error;
+      }
+    })).then((resolved) => {
+      setPageAssetUrls((current) => ({ ...current, ...Object.fromEntries(resolved.map((item) => [item.logicalKey, item])) }));
+      setPageAssetLoading(false);
+      for (const asset of adjacentRefs) requestBookAssetAccess(asset.logicalKey, { signal: controller.signal, retries: 1 }).then((access) => {
+        setPageAssetUrls((current) => ({ ...current, [asset.logicalKey]: { logicalKey: asset.logicalKey, url: access.url, expiresAt: access.expiresAt } }));
+        const image = new Image();
+        image.src = access.url;
+      }).catch(() => {});
+    }).catch((error) => {
+      if (error.name === "AbortError") return;
+      setPageAssetLoading(false);
+      setPageAssetError(error.message || "Book page asset could not be loaded.");
+    });
+    return () => controller.abort();
+  }, [pageAssetAttempt, sections, selectedSection, selectedSectionIndex]);
 
   useEffect(() => {
     document.body.classList.add("is-book-pages-view");
@@ -466,7 +517,8 @@ export function BookPagesView({
   }
 
   if (selectedSection) {
-    const spreadClass = selectedSection.images.length > 1 ? "two-page-spread" : "single-page-spread";
+    const selectedImages = selectedSection.imageAssets.map((asset) => asset.logicalKey ? pageAssetUrls[asset.logicalKey]?.url : asset.localUrl).filter(Boolean);
+    const spreadClass = selectedSection.imageAssets.length > 1 ? "two-page-spread" : "single-page-spread";
     const unitSections = sections.filter((section) => section.unitId === selectedSection.unitId);
     const selectedUnitSectionIndex = unitSections.findIndex((section) => section.id === selectedSection.id);
     const isFirstSection = selectedUnitSectionIndex === 0;
@@ -580,18 +632,22 @@ export function BookPagesView({
                 transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
               >
                 <div className={`book-page-image-layer ${spreadClass}`}>
-                  {selectedSection.images.length ? selectedSection.images.map((image, index) => (
+                  {selectedImages.length ? selectedImages.map((image, index) => (
                     <motion.img
                       key={`${selectedSection.id}-${index}`}
                       className="book-page-spread-image"
                       src={image}
-                      alt={`${component.title} ${selectedSection.title} ${selectedSection.pages}${selectedSection.images.length > 1 ? ` page ${index + 1}` : ""}`}
+                      alt={`${component.title} ${selectedSection.title} ${selectedSection.pages}${selectedImages.length > 1 ? ` page ${index + 1}` : ""}`}
                       initial={{ opacity: 0, y: 14, rotateY: navigationDirection > 0 ? -4 : 4 }}
                       animate={{ opacity: 1, y: 0, rotateY: 0 }}
                       transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
                     />
-                  )) : (
-                    <div className="book-page-missing">Page asset missing</div>
+                  )) : pageAssetLoading ? (
+                    <div className="book-page-missing" role="status">Loading protected page...</div>
+                  ) : pageAssetError ? (
+                    <div className="book-page-missing" role="alert">Page unavailable. <button type="button" className="secondary-action compact-action" onClick={() => setPageAssetAttempt((value) => value + 1)}>Retry</button></div>
+                  ) : (
+                    <div className="book-page-missing">Page asset is not available for online delivery.</div>
                   )}
                   <BookPageHotspots actions={selectedSection.actions} onAction={setActiveAction} />
                   {enableBookHotspotEditor && (

@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import { BookOpen } from "lucide-react";
-import grammarRulesImage from "../../../../assets/books/ultimate-b2/grammar-rules.jpg";
+import { ultimateB2GrammarRulesImage } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { Card } from "../../Shared.jsx";
 import { ImageZoomModal } from "../../shared/BookImageFrame.jsx";
 import { grammarExercise4 } from "../ultimateB2ActivityContent.js";
@@ -8,20 +9,23 @@ import { FeedbackRows } from "./shared/FeedbackRows.jsx";
 import { isTypedAnswerCorrect } from "./shared/typedAnswerUtils.js";
 import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
 
-export function GrammarRulesHelp({ imageSrc = grammarRulesImage, buttonLabel = "Grammar rules" }) {
+export function GrammarRulesHelp({ imageSrc = null, buttonLabel = "Grammar rules" }) {
+  const asset = useBookAsset(ultimateB2GrammarRulesImage.logicalKey, { devFallbackUrl: ultimateB2GrammarRulesImage.devFallbackUrl || ultimateB2GrammarRulesImage.localUrl });
+  const resolvedImage = imageSrc || asset.url;
   const [isGrammarHelpOpen, setIsGrammarHelpOpen] = useState(false);
 
   return (
     <div className="grammar-help">
-      <button className="grammar-help-button" type="button" onClick={() => setIsGrammarHelpOpen(true)} data-sound-click="tab">
+      <button className="grammar-help-button" type="button" onClick={() => setIsGrammarHelpOpen(true)} disabled={!resolvedImage} data-sound-click="tab">
         <BookOpen size={16} />
         <span>{buttonLabel}</span>
       </button>
+      {!resolvedImage && <small>Grammar Book media is unavailable online until a later controlled import.</small>}
       {isGrammarHelpOpen && (
         <ImageZoomModal
           title="Grammar rules"
           subtitle="Review the rules before you continue the exercise."
-          imageSrc={imageSrc}
+          imageSrc={resolvedImage}
           alt="Grammar rules reference"
           onClose={() => setIsGrammarHelpOpen(false)}
         />

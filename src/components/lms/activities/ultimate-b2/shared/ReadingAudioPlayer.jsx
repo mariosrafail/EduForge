@@ -1,10 +1,12 @@
 ﻿import { useRef, useState } from "react";
 import { Pause, Play, RotateCcw } from "lucide-react";
-import unit2ReadingAudio from "../../../../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
+import { ultimateB2ReadingAudio } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../../hooks/useBookAsset.js";
 import { CustomAudioProgress } from "./CustomAudioProgress.jsx";
 import { formatMediaTime } from "./MediaTime.js";
 
 export function ReadingAudioPlayer() {
+  const asset = useBookAsset(ultimateB2ReadingAudio.logicalKey, { devFallbackUrl: ultimateB2ReadingAudio.devFallbackUrl || ultimateB2ReadingAudio.localUrl });
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -42,7 +44,7 @@ export function ReadingAudioPlayer() {
         ref={audioRef}
         className="sr-only"
         preload="metadata"
-        src={unit2ReadingAudio}
+        src={asset.url || undefined}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={(event) => {
           const nextTime = event.currentTarget.currentTime || 0;
@@ -62,7 +64,7 @@ export function ReadingAudioPlayer() {
         <strong>On a fast track</strong>
         <small>Listen to the text before placing the missing sentences.</small>
       </div>
-      <button type="button" className="thames-play-button" onClick={togglePlayback} aria-label={playing ? "Pause reading audio" : "Play reading audio"} data-sound-click="tab">
+      <button type="button" className="thames-play-button" onClick={togglePlayback} disabled={!asset.url} aria-label={playing ? "Pause reading audio" : "Play reading audio"} data-sound-click="tab">
         {playing ? <Pause size={20} /> : <Play size={20} />}
       </button>
       <div className="custom-audio-progress-row">
@@ -73,6 +75,8 @@ export function ReadingAudioPlayer() {
       <button type="button" className="thames-replay-button" onClick={replay} aria-label="Replay reading audio" data-sound-click="tab">
         <RotateCcw size={17} />
       </button>
+      {asset.loading && <small>Loading protected audio...</small>}
+      {asset.error && !asset.url && <button type="button" className="secondary-action compact-action" onClick={asset.retry}>Retry audio</button>}
     </div>
   );
 }

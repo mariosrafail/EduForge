@@ -1,21 +1,4 @@
-import page19Image from "../../../selides/19.png";
-import page20To21Image from "../../../selides/20-21.png";
-import page22To23Image from "../../../selides/22-23.png";
-import page24To25Image from "../../../selides/24-25.png";
-import page26Image from "../../../selides/26.png";
-import page27Image from "../../../selides/27.png";
-import page28To29Image from "../../../selides/28-29.png";
-import page30Image from "../../../selides/30.png";
-import page31Image from "../../../selides/31.png";
-import page32Image from "../../../selides/32.png";
-import page33Image from "../../../selides/33.png";
-import page34Image from "../../../selides/34.png";
-
-const ultimateB2UnitPartAssets = import.meta.glob("../../../unit/*/parts/HD/parts_part_*.png", {
-  eager: true,
-  query: "?url",
-  import: "default",
-});
+import { getUltimateB2Unit2Asset, getUltimateB2UnitPartAsset, getUltimateB2UnitPartNumbers } from "virtual:ultimate-b2-page-assets";
 
 const sectionTitles = [
   "Unit opener",
@@ -45,15 +28,11 @@ const unitPageStarts = {
 };
 
 function getUnitPartImage(unitNumber, partNumber) {
-  return ultimateB2UnitPartAssets[`../../../unit/${unitNumber}/parts/HD/parts_part_${partNumber}.png`] || null;
+  return getUltimateB2UnitPartAsset(unitNumber, partNumber);
 }
 
 function buildUltimateB2PageUnit(unitNumber) {
-  const partNumbers = Object.keys(ultimateB2UnitPartAssets)
-    .map((path) => path.match(new RegExp(`../../../unit/${unitNumber}/parts/HD/parts_part_(\\d+)\\.png$`))?.[1])
-    .filter(Boolean)
-    .map(Number)
-    .sort((a, b) => a - b);
+  const partNumbers = getUltimateB2UnitPartNumbers(unitNumber);
 
   return {
     id: `ub2-sb-unit-${unitNumber}-pages`,
@@ -84,13 +63,13 @@ const ultimateB2StudentsBookUnit2PageUnit = {
   unit: "Unit 2",
   displayLabel: "Unit 2",
   pages: [
-    { id: "reading-19", title: "Reading", label: "pg 19", pageNumber: 19, images: [page19Image] },
+    { id: "reading-19", title: "Reading", label: "pg 19", pageNumber: 19, images: [getUltimateB2Unit2Asset("19.png")] },
     {
       id: "reading-20-21",
       title: "Reading",
       label: "pg 20-21",
       pageNumber: 20,
-      images: [page20To21Image],
+      images: [getUltimateB2Unit2Asset("20-21.png")],
       continuesToVideo: true,
       actions: [
         { id: "video", label: "Video", top: "7%", left: "3.2%", width: "45%", height: "14%", ariaLabel: "Open video activity from page 20", target: "video" },
@@ -99,14 +78,14 @@ const ultimateB2StudentsBookUnit2PageUnit = {
         { id: "exercise-4", label: "Exercise 4", top: "48%", left: "53.3%", width: "43.4%", height: "29%", ariaLabel: "Open Exercise 4 circle the correct words", target: "exercise-4", activityKey: "reading-ex4" },
       ],
     },
-    { id: "vocabulary-22-23", title: "Vocabulary in Use", label: "pg 22-23", pageNumber: 22, images: [page22To23Image] },
-    { id: "grammar-24-25", title: "Grammar in Use", label: "pg 24-25", pageNumber: 24, images: [page24To25Image] },
-    { id: "listening-26", title: "Listening", label: "pg 26", pageNumber: 26, images: [page26Image] },
-    { id: "speaking-27", title: "Speaking", label: "pg 27", pageNumber: 27, images: [page27Image] },
-    { id: "writing-28-29", title: "Writing", label: "pg 28-29", pageNumber: 28, images: [page28To29Image] },
-    { id: "review-30", title: "Review 2", label: "pg 30", pageNumber: 30, images: [page30Image] },
-    { id: "practice-31-32", title: "Practice 2", label: "pg 31-32", pageNumber: 31, images: [page31Image, page32Image] },
-    { id: "progress-check-33-34", title: "Progress check 1", label: "pg 33-34", pageNumber: 33, images: [page33Image, page34Image] },
+    { id: "vocabulary-22-23", title: "Vocabulary in Use", label: "pg 22-23", pageNumber: 22, images: [getUltimateB2Unit2Asset("22-23.png")] },
+    { id: "grammar-24-25", title: "Grammar in Use", label: "pg 24-25", pageNumber: 24, images: [getUltimateB2Unit2Asset("24-25.png")] },
+    { id: "listening-26", title: "Listening", label: "pg 26", pageNumber: 26, images: [getUltimateB2Unit2Asset("26.png")] },
+    { id: "speaking-27", title: "Speaking", label: "pg 27", pageNumber: 27, images: [getUltimateB2Unit2Asset("27.png")] },
+    { id: "writing-28-29", title: "Writing", label: "pg 28-29", pageNumber: 28, images: [getUltimateB2Unit2Asset("28-29.png")] },
+    { id: "review-30", title: "Review 2", label: "pg 30", pageNumber: 30, images: [getUltimateB2Unit2Asset("30.png")] },
+    { id: "practice-31-32", title: "Practice 2", label: "pg 31-32", pageNumber: 31, images: [getUltimateB2Unit2Asset("31.png"), getUltimateB2Unit2Asset("32.png")] },
+    { id: "progress-check-33-34", title: "Progress check 1", label: "pg 33-34", pageNumber: 33, images: [getUltimateB2Unit2Asset("33.png"), getUltimateB2Unit2Asset("34.png")] },
   ],
 };
 

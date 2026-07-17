@@ -1,10 +1,12 @@
 ﻿import { useRef, useState } from "react";
 import { Maximize2, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
-import unit2ReadingVideo from "../../../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
+import { ultimateB2ReadingVideo } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { Tag } from "../../Shared.jsx";
 import { formatMediaTime } from "./shared/MediaTime.js";
 
 export function CustomVideoPlayer({ title = "Unit 2 Video Intro", subtitle = "Prepare for the Unit 2 reading text", durationLabel = "02:15", mode = "student", onWatched }) {
+  const asset = useBookAsset(ultimateB2ReadingVideo.logicalKey, { devFallbackUrl: ultimateB2ReadingVideo.devFallbackUrl || ultimateB2ReadingVideo.localUrl });
   const videoRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -71,11 +73,12 @@ export function CustomVideoPlayer({ title = "Unit 2 Video Intro", subtitle = "Pr
   return (
     <div className={`custom-video-shell ${playing ? "is-playing" : ""} ${ended ? "is-ended" : ""}`}>
       <div className="custom-video-stage" onClick={togglePlayback} role="presentation">
-        {!metadataLoaded && <div className="custom-video-loading">Loading video...</div>}
+        {(asset.loading || (!metadataLoaded && asset.url)) && <div className="custom-video-loading">Loading video...</div>}
+        {asset.error && !asset.url && <div className="custom-video-loading">Video unavailable. <button type="button" onClick={asset.retry}>Retry</button></div>}
         <video
           ref={videoRef}
           preload="metadata"
-          src={unit2ReadingVideo}
+          src={asset.url || undefined}
           playsInline
           onLoadedMetadata={(event) => {
             setMetadataLoaded(true);

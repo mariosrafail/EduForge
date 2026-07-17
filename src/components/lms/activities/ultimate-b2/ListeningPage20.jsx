@@ -1,6 +1,7 @@
 ﻿import { useRef, useState } from "react";
 import { Headphones, Pause, Play, RotateCcw } from "lucide-react";
-import unit2ListeningAudio from "../../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
+import { ultimateB2WorkbookListeningAudio } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { Card, Tag } from "../../Shared.jsx";
 import { listeningGapFillItems } from "../ultimateB2ActivityContent.js";
 import { FeedbackRows } from "./shared/FeedbackRows.jsx";
@@ -10,6 +11,7 @@ import { isTypedAnswerCorrect } from "./shared/typedAnswerUtils.js";
 import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
 
 function ThamesAudioPlayer({ onPlayed }) {
+  const asset = useBookAsset(ultimateB2WorkbookListeningAudio.logicalKey, { devFallbackUrl: ultimateB2WorkbookListeningAudio.devFallbackUrl || ultimateB2WorkbookListeningAudio.localUrl });
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -51,7 +53,7 @@ function ThamesAudioPlayer({ onPlayed }) {
         ref={audioRef}
         className="sr-only"
         preload="metadata"
-        src={unit2ListeningAudio}
+        src={asset.url || undefined}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
         onPlay={() => { setPlaying(true); onPlayed?.(); }}
@@ -71,7 +73,7 @@ function ThamesAudioPlayer({ onPlayed }) {
         <strong>A Thames River cruise</strong>
         <small>Workbook Unit 2 Listening, page 20</small>
         <div className="thames-audio-controls">
-          <button type="button" className="thames-play-button" onClick={togglePlayback} aria-label={playing ? "Pause audio" : "Play audio"} data-sound-click="tab">
+          <button type="button" className="thames-play-button" onClick={togglePlayback} disabled={!asset.url} aria-label={playing ? "Pause audio" : "Play audio"} data-sound-click="tab">
             {playing ? <Pause size={20} /> : <Play size={20} />}
           </button>
           <div className="custom-audio-progress-row">
@@ -83,6 +85,7 @@ function ThamesAudioPlayer({ onPlayed }) {
             <RotateCcw size={17} />
           </button>
         </div>
+        {!asset.url && !asset.loading && <small>This Workbook audio has not been migrated for online delivery.</small>}
       </div>
     </div>
   );

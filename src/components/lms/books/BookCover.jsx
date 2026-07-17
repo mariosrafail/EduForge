@@ -1,7 +1,15 @@
-import { resolveCoverAsset } from "./bookCoverAssets.js";
+import { ultimateB2CoverAssets } from "virtual:ultimate-b2-cover-assets";
+import { useBookAsset } from "../../../hooks/useBookAsset.js";
+import { getCanonicalBookId, resolveCoverAsset } from "./bookCoverAssets.js";
 
 export function BookCover({ component, bookPackage, size = "compact" }) {
-  const coverAsset = resolveCoverAsset(component);
+  const canonicalBookId = getCanonicalBookId(component);
+  const packageIdentity = `${bookPackage?.slug || ""} ${bookPackage?.packageTitle || bookPackage?.title || ""}`.toLowerCase();
+  const componentIdentity = `${component?.slug || ""} ${component?.id || ""}`.toLowerCase();
+  const isUltimateB2 = packageIdentity.includes("ultimate-b2") || packageIdentity.includes("ultimate b2") || componentIdentity.includes("ultimate-b2");
+  const ultimateCover = isUltimateB2 ? ultimateB2CoverAssets[canonicalBookId] || null : null;
+  const remoteCover = useBookAsset(ultimateCover?.logicalKey || null, { devFallbackUrl: ultimateCover?.devFallbackUrl || ultimateCover?.localUrl || null });
+  const coverAsset = ultimateCover ? remoteCover.url : resolveCoverAsset(component);
   if (coverAsset) {
     return (
       <span className={`book-cover-placeholder book-cover-image ${size === "large" ? "large-cover" : ""}`}>

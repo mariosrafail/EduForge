@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { Headphones } from "lucide-react";
-import unit2ListeningAudio from "../../../../assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3";
-import grammarRulesImage from "../../../../assets/books/ultimate-b2/grammar-rules.jpg";
+import { ultimateB2GrammarRulesImage, ultimateB2WorkbookListeningAudio } from "virtual:ultimate-b2-media-assets";
+import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { BookImageFrame } from "../../shared/BookImageFrame.jsx";
 import { Card, Tag } from "../../Shared.jsx";
 import { QUIZ_DURATION_SECONDS, listeningGapFillItems } from "../ultimateB2ActivityContent.js";
@@ -44,6 +44,8 @@ function dbQuestionsToGapFillItems(questions = []) {
 }
 
 export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
+  const grammarRules = useBookAsset(ultimateB2GrammarRulesImage.logicalKey, { devFallbackUrl: ultimateB2GrammarRulesImage.devFallbackUrl || ultimateB2GrammarRulesImage.localUrl });
+  const listeningAudio = useBookAsset(ultimateB2WorkbookListeningAudio.logicalKey, { devFallbackUrl: ultimateB2WorkbookListeningAudio.devFallbackUrl || ultimateB2WorkbookListeningAudio.localUrl });
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
   const [watched, setWatched] = useState(false);
@@ -82,13 +84,15 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   if (demoActivityKey === "grammar-ex4" || activityType === "sentence_transformation" || activityType === "typed_sentence_joining" || activityType === "grammar_sentence_joining") {
     return (
       <Card>
-        <BookImageFrame
-          title="Grammar rules"
-          subtitle="Review the rules before you start. You can open them larger anytime."
-          imageSrc={grammarRulesImage}
-          alt="Grammar rules reference"
-          zoomTitle="Grammar rules"
-        />
+        {grammarRules.url ? (
+          <BookImageFrame
+            title="Grammar rules"
+            subtitle="Review the rules before you start. You can open them larger anytime."
+            imageSrc={grammarRules.url}
+            alt="Grammar rules reference"
+            zoomTitle="Grammar rules"
+          />
+        ) : <div className="book-page-missing">Grammar Book media has not been migrated for online delivery.</div>}
         <GrammarExercise4
           mode={mode}
           onSubmit={onSubmit}
@@ -116,7 +120,7 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
             <strong>Unit 2 listening audio</strong>
             <span>{contentJson.duration || "01:40"} / Ultimate B2 local demo audio asset</span>
           </div>
-          <audio controls preload="metadata" src={unit2ListeningAudio} />
+          {listeningAudio.url ? <audio controls preload="metadata" src={listeningAudio.url} /> : <small>Audio not migrated for online delivery.</small>}
         </div>
       )}
       {activityType === "timed_quiz" && <Tag tone="gold">Timer: {formatTime(activity.timerSeconds || activity.timer_seconds || QUIZ_DURATION_SECONDS)}</Tag>}
