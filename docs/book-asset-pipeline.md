@@ -14,7 +14,9 @@ Use the variables documented in `.env.example`. For Cloudflare R2, set `BOOK_ASS
 
 Credentials must exist only in Netlify server runtime or the CLI environment. Never create `VITE_` versions. The private and archive buckets must have public access disabled. A minimal public-bucket CORS policy should allow only `GET`/`HEAD` from the exact hosted LMS origins. The private bucket normally needs no browser CORS for URL generation; if browsers fetch signed media directly, allow only `GET`/`HEAD`, the LMS origins, and required range headers. Do not allow browser uploads.
 
-Signed URLs default to 120 seconds and are constrained to 30–900 seconds. The API returns one asset URL per request, uses the authenticated session identity, checks a current `book_access` entitlement, denies draft/archived/internal/archive assets, and returns the same 404 response for missing or unauthorized assets.
+Signed URLs are constrained to 30–900 seconds. Page images and protected illustrations use the configured default (120 seconds when unset), downloadable files use at least 600 seconds, and audio/video use 900 seconds. These values are selected by the server from the stored asset role; the browser cannot request an arbitrary TTL. The client retains `expiresAt`, refreshes protected URLs 30 seconds before expiry, cancels stale requests, and never refreshes public URLs. Media keeps the active source during a routine refresh and activates the fresh URL only if an expired range request fails, restoring time, play/pause state, rate, volume, and mute state where supported.
+
+The current asset is selected by explicit publication state, never by creation time. Each package has at most one `published` edition, each edition has at most one `published` import/version, and each package has at most one published row for a logical key. Logical keys must be prefixed by their globally unique package slug. Publishing or rolling back archives the previously current rows in the same transaction, and protected entitlement is evaluated against the package of the resolved current asset.
 
 ## Object keys
 
