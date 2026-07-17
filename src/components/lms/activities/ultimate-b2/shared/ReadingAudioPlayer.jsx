@@ -2,15 +2,19 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { ultimateB2ReadingAudio } from "virtual:ultimate-b2-media-assets";
 import { useBookAsset } from "../../../../../hooks/useBookAsset.js";
+import { captureMediaPlaybackState, restoreMediaPlaybackState } from "../../../../../services/mediaSourceLifecycle.js";
 import { CustomAudioProgress } from "./CustomAudioProgress.jsx";
 import { formatMediaTime } from "./MediaTime.js";
 
 export function ReadingAudioPlayer() {
-  const asset = useBookAsset(ultimateB2ReadingAudio.logicalKey, { devFallbackUrl: ultimateB2ReadingAudio.devFallbackUrl || ultimateB2ReadingAudio.localUrl });
+  const asset = useBookAsset(ultimateB2ReadingAudio.logicalKey, { devFallbackUrl: ultimateB2ReadingAudio.devFallbackUrl || ultimateB2ReadingAudio.localUrl, deferUrlUpdates: true });
   const audioRef = useRef(null);
+  const resumeAfterRefreshRef = useRef(null);
+  const refreshRecoveryAttemptsRef = useRef(0);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [mediaSourceError, setMediaSourceError] = useState("");
 
   const togglePlayback = () => {
     const audio = audioRef.current;
@@ -38,6 +42,13 @@ export function ReadingAudioPlayer() {
     setCurrentTime(clampedTime);
   };
 
+  const retryMediaSource = () => {
+    resumeAfterRefreshRef.current = captureMediaPlaybackState(audioRef.current, playing);
+    refreshRecoveryAttemptsRef.current = 0;
+    setMediaSourceError("");
+    asset.refresh();
+  };
+
   return (
     <div className="reading-audio-player">
       <audio
@@ -45,7 +56,16 @@ export function ReadingAudioPlayer() {
         className="sr-only"
         preload="metadata"
         src={asset.url || undefined}
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onLoadedMetadata={(event) => {
+          refreshRecoveryAttemptsRef.current = 0;
+          setMediaSourceError("");
+          setDuration(event.currentTarget.duration || 0);
+          const resume = resumeAfterRefreshRef.current;
+          if (resume) {
+            resumeAfterRefreshRef.current = null;
+            restoreMediaPlaybackState(event.currentTarget, resume).catch(() => setPlaying(false));
+          }
+        }}
         onTimeUpdate={(event) => {
           const nextTime = event.currentTarget.currentTime || 0;
           setCurrentTime(nextTime);
@@ -55,6 +75,13 @@ export function ReadingAudioPlayer() {
         onEnded={(event) => {
           setPlaying(false);
           setCurrentTime(event.currentTarget.duration || duration);
+        }}
+        onError={(event) => {
+          if (!asset.url) return;
+          if (refreshRecoveryAttemptsRef.current >= 1) { setMediaSourceError("Audio source could not be refreshed"); return; }
+          refreshRecoveryAttemptsRef.current += 1;
+          resumeAfterRefreshRef.current = captureMediaPlaybackState(event.currentTarget, playing);
+          asset.recoverExpiredUrl();
         }}
       >
         <track kind="captions" />
@@ -76,7 +103,7 @@ export function ReadingAudioPlayer() {
         <RotateCcw size={17} />
       </button>
       {asset.loading && <small>Loading protected audio...</small>}
-      {asset.error && !asset.url && <button type="button" className="secondary-action compact-action" onClick={asset.retry}>Retry audio</button>}
+      {(asset.error || mediaSourceError) && <button type="button" className="secondary-action compact-action" onClick={retryMediaSource}>Retry audio</button>}
     </div>
   );
 }

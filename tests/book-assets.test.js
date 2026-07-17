@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { classifyAssetAccess, canDeliverAsset } from "../lib/book-assets/access.js";
-import { normalizeSignedUrlTtl, readBookAssetStorageConfig, signedUrlTtlBounds } from "../lib/book-assets/config.js";
+import { normalizeSignedUrlTtl, readBookAssetStorageConfig, signedUrlTtlBounds, signedUrlTtlForAsset } from "../lib/book-assets/config.js";
 import { validateBookManifestStructure } from "../lib/book-assets/manifest.js";
 import { buildBookAssetObjectKey, ensureSourceWithinRoot, normalizeObjectKeySegment, validateObjectKey } from "../lib/book-assets/object-keys.js";
 import { S3BookAssetStorage } from "../lib/book-assets/storage.js";
@@ -22,6 +22,10 @@ test("signed URL TTL is short, bounded, and storage configuration remains server
   assert.equal(normalizeSignedUrlTtl(30), 30);
   assert.throws(() => normalizeSignedUrlTtl(29), /integer from/);
   assert.throws(() => normalizeSignedUrlTtl(901), /integer from/);
+  assert.equal(signedUrlTtlForAsset({ asset_role: "page_image" }, 120), 120);
+  assert.equal(signedUrlTtlForAsset({ asset_role: "video" }, 120), signedUrlTtlBounds.media);
+  assert.equal(signedUrlTtlForAsset({ asset_role: "audio" }, 120), signedUrlTtlBounds.media);
+  assert.equal(signedUrlTtlForAsset({ asset_role: "download" }, 120), signedUrlTtlBounds.download);
   const config = readBookAssetStorageConfig({ BOOK_ASSET_STORAGE_PROVIDER: "s3", BOOK_ASSET_S3_ENDPOINT: "https://r2.example/", BOOK_ASSET_S3_REGION: "auto", BOOK_ASSET_S3_ACCESS_KEY_ID: "key", BOOK_ASSET_S3_SECRET_ACCESS_KEY: "secret", BOOK_ASSET_PUBLIC_BUCKET: "public", BOOK_ASSET_PRIVATE_BUCKET: "private", BOOK_ASSET_ARCHIVE_BUCKET: "archive", BOOK_ASSET_PUBLIC_BASE_URL: "https://books.example", BOOK_ASSET_SIGNED_URL_TTL_SECONDS: "90" });
   assert.equal(config.endpoint, "https://r2.example");
   assert.equal(config.signedUrlTtlSeconds, 90);
@@ -61,18 +65,25 @@ test("Ultimate B2 manifest rejects duplicate ids, invalid MIME, bad references, 
   invalid.assets[1].id = invalid.assets[0].id;
   invalid.assets[1].mimeType = "text/html";
   invalid.assets[1].pageId = "missing-page";
+  invalid.assets[0].logicalKey = "another-book.cover";
   invalid.components[0].units[0].lessons[0].activities[2].answers = {};
   invalid.components[0].units[0].lessons[0].activities[2].instructions = "<script>alert(1)</script>";
   const result = validateBookManifestStructure(invalid);
   assert.equal(result.valid, false);
-  assert.match(result.errors.join("\n"), /duplicates|unsupported|unknown page|no answers|unsafe HTML/i);
+  assert.match(result.errors.join("\n"), /duplicates|unsupported|unknown page|no answers|unsafe HTML|namespaced/i);
 });
 
 test("protected asset delivery is entitlement-gated and uses non-disclosing denials", async () => {
-  const published = { id: "00000000-0000-4000-8000-000000000001", book_package_id: "00000000-0000-4000-8000-000000000002", package_status: "active", publication_status: "published", access_level: "entitled", storage_profile: "private", object_key: "publishers/test/books/test/file.aaaaaaaaaaaa.webp", stable_logical_key: "book.page-1", asset_role: "page_image", mime_type: "image/webp", byte_size: 10, checksum_sha256: "a".repeat(64), width: 10, height: 10, duration_seconds: null };
-  const storage = { config: { signedUrlTtlSeconds: 60 }, signedGetUrl: async () => "https://signed.invalid/private", publicUrl: () => "https://public.invalid/object" };
+  const published = { id: "00000000-0000-4000-8000-000000000001", book_package_id: "00000000-0000-4000-8000-000000000002", package_slug: "book", package_status: "active", edition_status: "published", import_status: "published", publication_status: "published", access_level: "entitled", storage_profile: "private", object_key: "publishers/test/books/test/file.aaaaaaaaaaaa.webp", stable_logical_key: "book.page-1", asset_role: "page_image", mime_type: "image/webp", byte_size: 10, checksum_sha256: "a".repeat(64), width: 10, height: 10, duration_seconds: null, edition_identifier: "current", version: "1.0.0" };
+  let signedRequest = null;
+  const storage = { config: { signedUrlTtlSeconds: 60 }, signedGetUrl: async (request) => { signedRequest = request; return "https://signed.invalid/private"; }, publicUrl: () => "https://public.invalid/object" };
   let entitled = false;
-  const sql = async (strings) => strings.join("?").includes("from book_assets") ? [published] : entitled ? [{ "?column?": 1 }] : [];
+  let assetQuery = "";
+  const sql = async (strings) => {
+    const query = strings.join("?");
+    if (query.includes("from book_assets")) { assetQuery = query; return [published]; }
+    return entitled ? [{ "?column?": 1 }] : [];
+  };
   const user = { id: "user-1", school_id: "school-1" };
   let response = await getBookAssetAccess(sql, user, { logicalKey: "book.page-1" }, { storage });
   assert.equal(response.statusCode, 404);
@@ -80,7 +91,14 @@ test("protected asset delivery is entitlement-gated and uses non-disclosing deni
   entitled = true;
   response = await getBookAssetAccess(sql, user, { logicalKey: "book.page-1" }, { storage });
   assert.equal(response.statusCode, 200);
-  assert.equal(JSON.parse(response.body).url, "https://signed.invalid/private");
+  const payload = JSON.parse(response.body);
+  assert.equal(payload.url, "https://signed.invalid/private");
+  assert.equal(payload.asset.editionIdentifier, "current");
+  assert.equal(payload.asset.version, "1.0.0");
+  assert.equal(signedRequest.ttlSeconds, 60);
+  assert.match(assetQuery, /join book_editions[\s\S]+be\.status='published'/);
+  assert.match(assetQuery, /join book_asset_imports[\s\S]+bai\.status='published'/);
+  assert.doesNotMatch(assetQuery, /created_at desc/);
   const draftSql = async (strings) => strings.join("?").includes("from book_assets") ? [{ ...published, publication_status: "draft" }] : [{ ok: true }];
   assert.equal((await getBookAssetAccess(draftSql, user, { logicalKey: "book.page-1" }, { storage })).statusCode, 404);
 });

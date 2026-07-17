@@ -1,5 +1,5 @@
 import { classifyAssetAccess } from "../../lib/book-assets/access.js";
-import { readBookAssetStorageConfig } from "../../lib/book-assets/config.js";
+import { readBookAssetStorageConfig, signedUrlTtlForAsset } from "../../lib/book-assets/config.js";
 import { createBookAssetStorage } from "../../lib/book-assets/storage.js";
 import { json } from "./_book-content-utils.js";
 
@@ -16,16 +16,30 @@ export async function getBookAssetAccess(sql, currentUser, query, { storage: sup
   if ((!assetId || !uuidPattern.test(assetId)) && (!logicalKey || !logicalKeyPattern.test(logicalKey) || logicalKey.includes(".."))) return hiddenAssetResponse();
   const rows = assetId
     ? await sql`
-        select ba.*, bp.status as package_status
-        from book_assets ba join book_packages bp on bp.id=ba.book_package_id
-        where ba.id=${assetId} limit 1
+        select ba.*, bp.status as package_status, bp.slug as package_slug,
+          be.status as edition_status, bai.status as import_status
+        from book_assets ba
+        join book_packages bp on bp.id=ba.book_package_id
+        join book_editions be on be.id=ba.edition_id and be.book_package_id=ba.book_package_id
+        join book_asset_imports bai on bai.id=ba.import_id and bai.book_package_id=ba.book_package_id and bai.edition_id=ba.edition_id
+        where ba.id=${assetId}
+          and ba.publication_status='published'
+          and be.status='published'
+          and bai.status='published'
+        limit 1
       `
     : await sql`
-        select ba.*, bp.status as package_status
-        from book_assets ba join book_packages bp on bp.id=ba.book_package_id
+        select ba.*, bp.status as package_status, bp.slug as package_slug,
+          be.status as edition_status, bai.status as import_status
+        from book_assets ba
+        join book_packages bp on bp.id=ba.book_package_id
+        join book_editions be on be.id=ba.edition_id and be.book_package_id=ba.book_package_id
+        join book_asset_imports bai on bai.id=ba.import_id and bai.book_package_id=ba.book_package_id and bai.edition_id=ba.edition_id
         where ba.stable_logical_key=${logicalKey}
           and ba.publication_status='published'
-        order by ba.created_at desc limit 1
+          and be.status='published'
+          and bai.status='published'
+        limit 1
       `;
   const asset = rows[0];
   if (!asset || asset.package_status !== "active") return hiddenAssetResponse();
@@ -47,10 +61,10 @@ export async function getBookAssetAccess(sql, currentUser, query, { storage: sup
   let storage;
   try {
     storage = suppliedStorage || createBookAssetStorage({ config: readBookAssetStorageConfig() });
+    const ttl = classification === "public" ? null : signedUrlTtlForAsset(asset, storage.config.signedUrlTtlSeconds);
     const url = classification === "public"
       ? storage.publicUrl(asset.object_key)
-      : await storage.signedGetUrl({ profile: asset.storage_profile, objectKey: asset.object_key });
-    const ttl = classification === "public" ? null : storage.config.signedUrlTtlSeconds;
+      : await storage.signedGetUrl({ profile: asset.storage_profile, objectKey: asset.object_key, ttlSeconds: ttl });
     return json(200, {
       asset: {
         id: asset.id,
@@ -63,6 +77,9 @@ export async function getBookAssetAccess(sql, currentUser, query, { storage: sup
         durationSeconds: asset.duration_seconds === null ? null : Number(asset.duration_seconds),
         accessLevel: asset.access_level,
         checksumSha256: asset.checksum_sha256,
+        packageSlug: asset.package_slug,
+        editionIdentifier: asset.edition_identifier,
+        version: asset.version,
       },
       url,
       expiresAt: ttl ? new Date(Date.now() + ttl * 1000).toISOString() : null,

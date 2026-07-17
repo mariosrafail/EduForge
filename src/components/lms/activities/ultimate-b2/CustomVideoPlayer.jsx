@@ -2,12 +2,15 @@
 import { Maximize2, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { ultimateB2ReadingVideo } from "virtual:ultimate-b2-media-assets";
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
+import { captureMediaPlaybackState, restoreMediaPlaybackState } from "../../../../services/mediaSourceLifecycle.js";
 import { Tag } from "../../Shared.jsx";
 import { formatMediaTime } from "./shared/MediaTime.js";
 
 export function CustomVideoPlayer({ title = "Unit 2 Video Intro", subtitle = "Prepare for the Unit 2 reading text", durationLabel = "02:15", mode = "student", onWatched }) {
-  const asset = useBookAsset(ultimateB2ReadingVideo.logicalKey, { devFallbackUrl: ultimateB2ReadingVideo.devFallbackUrl || ultimateB2ReadingVideo.localUrl });
+  const asset = useBookAsset(ultimateB2ReadingVideo.logicalKey, { devFallbackUrl: ultimateB2ReadingVideo.devFallbackUrl || ultimateB2ReadingVideo.localUrl, deferUrlUpdates: true });
   const videoRef = useRef(null);
+  const resumeAfterRefreshRef = useRef(null);
+  const refreshRecoveryAttemptsRef = useRef(0);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -15,6 +18,7 @@ export function CustomVideoPlayer({ title = "Unit 2 Video Intro", subtitle = "Pr
   const [volume, setVolume] = useState(0.85);
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [mediaSourceError, setMediaSourceError] = useState("");
   const progress = duration ? (currentTime / duration) * 100 : 0;
 
   const togglePlayback = () => {
@@ -70,25 +74,47 @@ export function CustomVideoPlayer({ title = "Unit 2 Video Intro", subtitle = "Pr
     onWatched?.();
   };
 
+  const retryMediaSource = () => {
+    resumeAfterRefreshRef.current = captureMediaPlaybackState(videoRef.current, playing);
+    refreshRecoveryAttemptsRef.current = 0;
+    setMediaSourceError("");
+    asset.refresh();
+  };
+
   return (
     <div className={`custom-video-shell ${playing ? "is-playing" : ""} ${ended ? "is-ended" : ""}`}>
       <div className="custom-video-stage" onClick={togglePlayback} role="presentation">
         {(asset.loading || (!metadataLoaded && asset.url)) && <div className="custom-video-loading">Loading video...</div>}
-        {asset.error && !asset.url && <div className="custom-video-loading">Video unavailable. <button type="button" onClick={asset.retry}>Retry</button></div>}
+        {(asset.error || mediaSourceError) && <div className="custom-video-loading">Video access needs refresh. <button type="button" onClick={retryMediaSource}>Retry</button></div>}
         <video
           ref={videoRef}
           preload="metadata"
           src={asset.url || undefined}
           playsInline
           onLoadedMetadata={(event) => {
+            refreshRecoveryAttemptsRef.current = 0;
+            setMediaSourceError("");
             setMetadataLoaded(true);
             setDuration(event.currentTarget.duration || 0);
             event.currentTarget.volume = volume;
+            const resume = resumeAfterRefreshRef.current;
+            if (resume) {
+              resumeAfterRefreshRef.current = null;
+              restoreMediaPlaybackState(event.currentTarget, resume).catch(() => setPlaying(false));
+            }
           }}
           onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
           onPlay={() => { setPlaying(true); setEnded(false); }}
           onPause={() => setPlaying(false)}
           onEnded={markEnded}
+          onError={(event) => {
+            if (!asset.url) return;
+            if (refreshRecoveryAttemptsRef.current >= 1) { setMediaSourceError("Video source could not be refreshed"); return; }
+            refreshRecoveryAttemptsRef.current += 1;
+            resumeAfterRefreshRef.current = captureMediaPlaybackState(event.currentTarget, playing);
+            setMetadataLoaded(false);
+            asset.recoverExpiredUrl();
+          }}
         >
           <track kind="captions" />
         </video>

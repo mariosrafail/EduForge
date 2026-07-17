@@ -144,11 +144,14 @@ export async function executeImport({ manifest, rawManifest, manifestChecksum, s
     const context = await resolveDatabaseContext(client, manifest);
     const existingImport = await client.query("select id,status from book_asset_imports where book_package_id=$1 and manifest_checksum_sha256=$2", [context.bookPackageId, manifestChecksum]);
     if (existingImport.rows[0]?.status === "published") return { status: "idempotent", summary: { ...summary, skipped: assets.length } };
+    const isRollback = existingImport.rows[0]?.status === "archived";
     const editionResult = await client.query("insert into book_editions(book_package_id,edition_identifier,title,source_metadata) values($1,$2,$3,$4) on conflict(book_package_id,edition_identifier) do update set title=excluded.title returning id", [context.bookPackageId, manifest.edition.identifier, manifest.edition.title || null, { manifestSchemaVersion: manifest.schemaVersion }]);
     const editionId = editionResult.rows[0].id;
     const importResult = await client.query("insert into book_asset_imports(book_package_id,edition_id,manifest_checksum_sha256,manifest_schema_version,book_version,environment,status,summary) values($1,$2,$3,$4,$5,$6,'processing',$7) on conflict(book_package_id,manifest_checksum_sha256) do update set status='processing',failure_details='[]'::jsonb,summary=excluded.summary,started_at=now(),completed_at=null returning id", [context.bookPackageId, editionId, manifestChecksum, manifest.schemaVersion, manifest.book.version, environment, summary]);
     importId = importResult.rows[0].id;
-    const existingAssets = await client.query("select stable_logical_key,checksum_sha256,publication_status from book_assets where book_package_id=$1 and edition_identifier=$2 and version=$3 and publication_status<>'archived'", [context.bookPackageId, manifest.edition.identifier, manifest.book.version]);
+    const existingAssets = isRollback
+      ? await client.query("select stable_logical_key,checksum_sha256,publication_status from book_assets where import_id=$1 and publication_status='archived'", [importId])
+      : await client.query("select stable_logical_key,checksum_sha256,publication_status from book_assets where book_package_id=$1 and edition_identifier=$2 and version=$3 and publication_status<>'archived'", [context.bookPackageId, manifest.edition.identifier, manifest.book.version]);
     const existingByKey = assertCompatibleExistingAssets(assets, existingAssets.rows);
     const pending = assets.filter((asset) => !existingByKey.has(asset.logicalKey));
     await mapLimit(pending, Math.max(1, Math.min(Number(concurrency) || 4, 12)), async (asset) => {
@@ -178,7 +181,10 @@ export async function executeImport({ manifest, rawManifest, manifestChecksum, s
       const result = await client.query(`insert into book_assets(book_package_id,edition_id,book_component_id,unit_id,page_id,activity_id,import_id,source_asset_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,width,height,duration_seconds,edition_identifier,version,publication_status,access_level,source_metadata) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,'processing',$22,$23) returning id`, [context.bookPackageId, editionId, componentId, unitId, asset.page ? pageIds.get(asset.page.id) : null, activityId, importId, sourceAssetId, asset.logicalKey, asset.role, asset.objectKey, asset.profile, storage.bucket(asset.profile), asset.mimeType, asset.byteSize, asset.checksumSha256, asset.width, asset.height, asset.durationSeconds, manifest.edition.identifier, manifest.book.version, asset.accessLevel, { source: asset.source, sourceReference: asset.sourceReference || null, classification: asset.classification }]);
       insertedIds.set(asset.logicalKey, result.rows[0].id);
     }
-    await client.query("update book_assets set publication_status='published' where import_id=$1 and publication_status='processing'", [importId]);
+    await client.query("update book_assets set publication_status='archived' where book_package_id=$1 and publication_status='published' and import_id is distinct from $2", [context.bookPackageId, importId]);
+    await client.query("update book_asset_imports set status='archived' where book_package_id=$1 and status='published' and id<>$2", [context.bookPackageId, importId]);
+    await client.query("update book_editions set status='archived' where book_package_id=$1 and status='published' and id<>$2", [context.bookPackageId, editionId]);
+    await client.query("update book_assets set publication_status='published' where import_id=$1 and publication_status in ('processing','archived')", [importId]);
     await client.query("update book_editions set status='published' where id=$1", [editionId]);
     if (context.lessonIds.length) await client.query("update lessons set status='published' where id=any($1::uuid[])", [context.lessonIds]);
     if (context.publishActivityIds.length) await client.query("update activities set is_demo_active=true where id=any($1::uuid[])", [context.publishActivityIds]);

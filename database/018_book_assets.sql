@@ -66,12 +66,14 @@ create table if not exists book_asset_imports (
   manifest_schema_version text not null,
   book_version text not null,
   environment text not null default 'staging',
-  status text not null default 'processing' check (status in ('draft', 'processing', 'published', 'failed', 'cleaned')),
+  status text not null default 'processing' check (status in ('draft', 'processing', 'published', 'archived', 'failed', 'cleaned')),
   summary jsonb not null default '{}'::jsonb,
   failure_details jsonb not null default '[]'::jsonb,
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   updated_at timestamptz not null default now(),
+  constraint book_asset_imports_edition_package_fk foreign key (edition_id, book_package_id)
+    references book_editions(id, book_package_id) on delete cascade,
   unique (book_package_id, manifest_checksum_sha256),
   check (manifest_checksum_sha256 ~ '^[a-f0-9]{64}$'),
   check (environment in ('local', 'test', 'staging'))
@@ -144,6 +146,12 @@ create unique index if not exists book_assets_logical_version_unique_idx
   on book_assets (book_package_id, edition_identifier, version, stable_logical_key)
   where publication_status <> 'archived';
 create unique index if not exists book_assets_object_unique_idx on book_assets (storage_bucket, object_key);
+create unique index if not exists book_editions_one_published_per_package_idx
+  on book_editions (book_package_id) where status = 'published';
+create unique index if not exists book_asset_imports_one_published_per_edition_idx
+  on book_asset_imports (edition_id) where status = 'published';
+create unique index if not exists book_assets_one_published_logical_key_idx
+  on book_assets (book_package_id, stable_logical_key) where publication_status = 'published';
 create index if not exists book_assets_package_status_idx on book_assets (book_package_id, publication_status, access_level);
 create index if not exists book_assets_page_idx on book_assets (page_id) where page_id is not null;
 create index if not exists book_assets_activity_idx on book_assets (activity_id) where activity_id is not null;
@@ -158,10 +166,16 @@ declare
   asset_page_component uuid;
   asset_page_unit uuid;
   stored_edition_identifier text;
+  stored_package_slug text;
 begin
   select edition_identifier into stored_edition_identifier from book_editions where id = new.edition_id;
   if stored_edition_identifier is distinct from new.edition_identifier then
     raise exception 'book asset edition identifier does not match edition';
+  end if;
+  select slug into stored_package_slug from book_packages where id = new.book_package_id;
+  if new.stable_logical_key <> stored_package_slug
+     and new.stable_logical_key not like stored_package_slug || '.%' then
+    raise exception 'book asset logical key is not namespaced to its package';
   end if;
   if new.book_component_id is not null then
     select book_package_id into component_package from book_components where id = new.book_component_id;

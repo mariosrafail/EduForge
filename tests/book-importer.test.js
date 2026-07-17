@@ -10,7 +10,7 @@ function fixtureManifest() {
     book: { id: "fixture-book", slug: "fixture-book", title: "Fixture Book", version: "1.0.0" },
     edition: { id: "fixture-edition", identifier: "test-edition" },
     components: [{ id: "fixture-component", slug: "students-book", title: "Students Book", type: "students_book", units: [] }],
-    assets: [{ id: "fixture-icon", logicalKey: "fixture.cover", role: "cover", source: "public/icon.svg", mimeType: "image/svg+xml", accessLevel: "public", publicationStatus: "published", classification: "preview", componentId: "fixture-component", imageStrategy: "preserve" }],
+    assets: [{ id: "fixture-icon", logicalKey: "fixture-book.cover", role: "cover", source: "public/icon.svg", mimeType: "image/svg+xml", accessLevel: "public", publicationStatus: "published", classification: "preview", componentId: "fixture-component", imageStrategy: "preserve" }],
   };
 }
 
@@ -54,7 +54,7 @@ test("invalid source traversal fails before any import side effect", async () =>
 
 test("partial upload failure cleans unpublished objects and never starts publication transaction", async () => {
   const manifest = fixtureManifest();
-  manifest.assets.push({ ...manifest.assets[0], id: "fixture-icon-two", logicalKey: "fixture.cover-two" });
+  manifest.assets.push({ ...manifest.assets[0], id: "fixture-icon-two", logicalKey: "fixture-book.cover-two" });
   const queries = [];
   const client = {
     query: async (text) => {
@@ -79,4 +79,36 @@ test("partial upload failure cleans unpublished objects and never starts publica
   assert.equal(deleted.length, 1);
   assert.equal(queries.includes("begin"), false);
   assert.equal(queries.some((query) => query.startsWith("update book_assets set publication_status='published'")), false);
+});
+
+test("successful publication archives the prior current version before activating the new import", async () => {
+  const queries = [];
+  const client = {
+    query: async (text) => {
+      queries.push(text);
+      if (text.startsWith("insert into publishers")) return { rows: [{ id: "publisher-db" }] };
+      if (text.startsWith("insert into book_packages")) return { rows: [{ id: "package-db", status: "active", publisher_id: "publisher-db" }] };
+      if (text.startsWith("insert into book_components")) return { rows: [{ id: "component-db", slug: "students-book" }] };
+      if (text.startsWith("select id,status from book_asset_imports")) return { rows: [] };
+      if (text.startsWith("insert into book_editions")) return { rows: [{ id: "edition-db" }] };
+      if (text.startsWith("insert into book_asset_imports")) return { rows: [{ id: "import-db" }] };
+      if (text.startsWith("select stable_logical_key")) return { rows: [] };
+      if (text.startsWith("insert into book_assets")) return { rows: [{ id: "asset-db" }] };
+      return { rows: [] };
+    },
+  };
+  const storage = {
+    upload: async () => ({ reused: false }),
+    bucket: (profile) => `${profile}-bucket`,
+    delete: async () => {},
+  };
+  const result = await executeImport({ manifest: fixtureManifest(), rawManifest: "fixture", manifestChecksum: "d".repeat(64), sourceRoot: process.cwd(), environment: "staging", confirmation: "staging", storage, client });
+  assert.equal(result.status, "published");
+  const archiveAssets = queries.findIndex((query) => query.startsWith("update book_assets set publication_status='archived'"));
+  const publishAssets = queries.findIndex((query) => query.startsWith("update book_assets set publication_status='published'"));
+  const archiveImports = queries.findIndex((query) => query.startsWith("update book_asset_imports set status='archived'"));
+  const publishImport = queries.findIndex((query) => query.startsWith("update book_asset_imports set status='published'"));
+  assert.ok(archiveAssets > queries.indexOf("begin") && archiveAssets < publishAssets);
+  assert.ok(archiveImports > queries.indexOf("begin") && archiveImports < publishImport);
+  assert.equal(queries.at(-1), "commit");
 });
