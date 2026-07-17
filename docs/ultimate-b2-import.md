@@ -58,6 +58,8 @@ Readable XML metadata found:
 
 The `.iwb` files appear encoded/binary in this package, so the current import does not infer answer keys from them. Where readable XML does not expose question/answer data, the Android/offline app shows an imported placeholder instead of crashing.
 
+The production-oriented online proof is intentionally narrower: only the usable Students Book Unit 2 page/media subset is represented by `books/ultimate-b2/ultimate-b2.students-book-unit-2.manifest.json`. See `docs/book-asset-pipeline.md`. This does not promote Android placeholders to finished activities and does not import the Workbook, Grammar Book, or Test Book as complete books.
+
 ## Android Mapping
 
 The editable Unit 2 Student's Book mapping lives in:
