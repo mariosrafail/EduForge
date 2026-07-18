@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eduforge.invalid/schemas/ultimate-b2-iwb-analysis-1.0.json",
+  "title": "Ultimate B2 read-only IWB analysis summary",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schemaVersion", "decoder", "totals", "families", "formatSuccesses", "malformedPayloads"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "decoder": {
+      "type": "object",
+      "required": ["deterministic", "process", "executedPublisherCode", "decodedPayloadsCommitted"],
+      "properties": {
+        "deterministic": { "const": true },
+        "process": { "type": "array", "minItems": 3, "items": { "type": "string" } },
+        "executedPublisherCode": { "const": false },
+        "decodedPayloadsCommitted": { "const": false }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["iwbFiles", "strictXml", "partialXml", "definiteExerciseObjects", "explicitAnswerRecords"],
+      "properties": {
+        "iwbFiles": { "type": "integer", "minimum": 0 },
+        "strictXml": { "type": "integer", "minimum": 0 },
+        "partialXml": { "type": "integer", "minimum": 0 },
+        "definiteExerciseObjects": { "type": "integer", "minimum": 0 },
+        "explicitAnswerRecords": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["filename", "root", "classification", "count"],
+        "properties": {
+          "filename": { "type": "string" },
+          "root": { "type": "string" },
+          "classification": {
+            "enum": ["decoded-structured", "decoded-compressed", "decoded-serialized", "decoded-partial", "obfuscated-reversible", "encrypted-or-key-dependent", "unknown-proprietary", "not-activity-data"]
+          },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "formatSuccesses": { "type": "object" },
+    "malformedPayloads": { "type": "array" }
+  }
+}

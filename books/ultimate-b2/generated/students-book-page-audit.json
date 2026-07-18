@@ -1,0 +1,975 @@
+{
+  "schemaVersion": "1.0",
+  "status": "corrected",
+  "confirmedPrintedPageRange": "5-154",
+  "mappingBasis": [
+    "decoded unit_params.iwb navigation labels for every unit",
+    "parts_part_N.png file sequence",
+    "visible printed page numbers sampled at unit boundaries and final practice/progress pages"
+  ],
+  "inference": "Within each navigation-labelled two-page spread, consecutive part images retain publisher part order.",
+  "repeatedOcrUsed": false,
+  "correctionCount": 80,
+  "corrections": [
+    {
+      "unitNumber": 3,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 47,
+        "spreadNumber": "47-48"
+      },
+      "confirmed": {
+        "pageNumber": 47,
+        "spreadNumber": "47"
+      }
+    },
+    {
+      "unitNumber": 3,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 49,
+        "spreadNumber": "49-50"
+      },
+      "confirmed": {
+        "pageNumber": 48,
+        "spreadNumber": "48"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 51,
+        "spreadNumber": "51"
+      },
+      "confirmed": {
+        "pageNumber": 49,
+        "spreadNumber": "49"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 52,
+        "spreadNumber": "52-53"
+      },
+      "confirmed": {
+        "pageNumber": 50,
+        "spreadNumber": "50-51"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 54,
+        "spreadNumber": "54-55"
+      },
+      "confirmed": {
+        "pageNumber": 52,
+        "spreadNumber": "52-53"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 56,
+        "spreadNumber": "56-57"
+      },
+      "confirmed": {
+        "pageNumber": 54,
+        "spreadNumber": "54-55"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 58,
+        "spreadNumber": "58"
+      },
+      "confirmed": {
+        "pageNumber": 56,
+        "spreadNumber": "56"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 59,
+        "spreadNumber": "59"
+      },
+      "confirmed": {
+        "pageNumber": 57,
+        "spreadNumber": "57"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 60,
+        "spreadNumber": "60-61"
+      },
+      "confirmed": {
+        "pageNumber": 58,
+        "spreadNumber": "58-59"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 62,
+        "spreadNumber": "62"
+      },
+      "confirmed": {
+        "pageNumber": 60,
+        "spreadNumber": "60"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 63,
+        "spreadNumber": "63"
+      },
+      "confirmed": {
+        "pageNumber": 61,
+        "spreadNumber": "61"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 64,
+        "spreadNumber": "64"
+      },
+      "confirmed": {
+        "pageNumber": 62,
+        "spreadNumber": "62"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 11,
+      "previous": {
+        "pageNumber": 65,
+        "spreadNumber": "65"
+      },
+      "confirmed": {
+        "pageNumber": 63,
+        "spreadNumber": "63"
+      }
+    },
+    {
+      "unitNumber": 4,
+      "partNumber": 12,
+      "previous": {
+        "pageNumber": 66,
+        "spreadNumber": "66"
+      },
+      "confirmed": {
+        "pageNumber": 64,
+        "spreadNumber": "64"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 67,
+        "spreadNumber": "67"
+      },
+      "confirmed": {
+        "pageNumber": 65,
+        "spreadNumber": "65"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 68,
+        "spreadNumber": "68-69"
+      },
+      "confirmed": {
+        "pageNumber": 66,
+        "spreadNumber": "66-67"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 70,
+        "spreadNumber": "70-71"
+      },
+      "confirmed": {
+        "pageNumber": 68,
+        "spreadNumber": "68-69"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 72,
+        "spreadNumber": "72-73"
+      },
+      "confirmed": {
+        "pageNumber": 70,
+        "spreadNumber": "70-71"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 74,
+        "spreadNumber": "74"
+      },
+      "confirmed": {
+        "pageNumber": 72,
+        "spreadNumber": "72"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 75,
+        "spreadNumber": "75"
+      },
+      "confirmed": {
+        "pageNumber": 73,
+        "spreadNumber": "73"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 76,
+        "spreadNumber": "76-77"
+      },
+      "confirmed": {
+        "pageNumber": 74,
+        "spreadNumber": "74-75"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 78,
+        "spreadNumber": "78"
+      },
+      "confirmed": {
+        "pageNumber": 76,
+        "spreadNumber": "76"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 79,
+        "spreadNumber": "79-80"
+      },
+      "confirmed": {
+        "pageNumber": 77,
+        "spreadNumber": "77"
+      }
+    },
+    {
+      "unitNumber": 5,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 81,
+        "spreadNumber": "81-82"
+      },
+      "confirmed": {
+        "pageNumber": 78,
+        "spreadNumber": "78"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 83,
+        "spreadNumber": "83"
+      },
+      "confirmed": {
+        "pageNumber": 79,
+        "spreadNumber": "79"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 84,
+        "spreadNumber": "84-85"
+      },
+      "confirmed": {
+        "pageNumber": 80,
+        "spreadNumber": "80-81"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 86,
+        "spreadNumber": "86-87"
+      },
+      "confirmed": {
+        "pageNumber": 82,
+        "spreadNumber": "82-83"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 88,
+        "spreadNumber": "88-89"
+      },
+      "confirmed": {
+        "pageNumber": 84,
+        "spreadNumber": "84-85"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 90,
+        "spreadNumber": "90"
+      },
+      "confirmed": {
+        "pageNumber": 86,
+        "spreadNumber": "86"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 91,
+        "spreadNumber": "91"
+      },
+      "confirmed": {
+        "pageNumber": 87,
+        "spreadNumber": "87"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 92,
+        "spreadNumber": "92-93"
+      },
+      "confirmed": {
+        "pageNumber": 88,
+        "spreadNumber": "88-89"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 94,
+        "spreadNumber": "94"
+      },
+      "confirmed": {
+        "pageNumber": 90,
+        "spreadNumber": "90"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 95,
+        "spreadNumber": "95"
+      },
+      "confirmed": {
+        "pageNumber": 91,
+        "spreadNumber": "91"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 96,
+        "spreadNumber": "96"
+      },
+      "confirmed": {
+        "pageNumber": 92,
+        "spreadNumber": "92"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 11,
+      "previous": {
+        "pageNumber": 97,
+        "spreadNumber": "97"
+      },
+      "confirmed": {
+        "pageNumber": 93,
+        "spreadNumber": "93"
+      }
+    },
+    {
+      "unitNumber": 6,
+      "partNumber": 12,
+      "previous": {
+        "pageNumber": 98,
+        "spreadNumber": "98"
+      },
+      "confirmed": {
+        "pageNumber": 94,
+        "spreadNumber": "94"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 99,
+        "spreadNumber": "99"
+      },
+      "confirmed": {
+        "pageNumber": 95,
+        "spreadNumber": "95"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 100,
+        "spreadNumber": "100-101"
+      },
+      "confirmed": {
+        "pageNumber": 96,
+        "spreadNumber": "96-97"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 102,
+        "spreadNumber": "102-103"
+      },
+      "confirmed": {
+        "pageNumber": 98,
+        "spreadNumber": "98-99"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 104,
+        "spreadNumber": "104-105"
+      },
+      "confirmed": {
+        "pageNumber": 100,
+        "spreadNumber": "100-101"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 106,
+        "spreadNumber": "106"
+      },
+      "confirmed": {
+        "pageNumber": 102,
+        "spreadNumber": "102"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 107,
+        "spreadNumber": "107"
+      },
+      "confirmed": {
+        "pageNumber": 103,
+        "spreadNumber": "103"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 108,
+        "spreadNumber": "108-109"
+      },
+      "confirmed": {
+        "pageNumber": 104,
+        "spreadNumber": "104-105"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 110,
+        "spreadNumber": "110"
+      },
+      "confirmed": {
+        "pageNumber": 106,
+        "spreadNumber": "106"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 111,
+        "spreadNumber": "111-112"
+      },
+      "confirmed": {
+        "pageNumber": 107,
+        "spreadNumber": "107"
+      }
+    },
+    {
+      "unitNumber": 7,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 113,
+        "spreadNumber": "113-114"
+      },
+      "confirmed": {
+        "pageNumber": 108,
+        "spreadNumber": "108"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 115,
+        "spreadNumber": "115"
+      },
+      "confirmed": {
+        "pageNumber": 109,
+        "spreadNumber": "109"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 116,
+        "spreadNumber": "116-117"
+      },
+      "confirmed": {
+        "pageNumber": 110,
+        "spreadNumber": "110-111"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 118,
+        "spreadNumber": "118-119"
+      },
+      "confirmed": {
+        "pageNumber": 112,
+        "spreadNumber": "112-113"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 120,
+        "spreadNumber": "120-121"
+      },
+      "confirmed": {
+        "pageNumber": 114,
+        "spreadNumber": "114-115"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 122,
+        "spreadNumber": "122"
+      },
+      "confirmed": {
+        "pageNumber": 116,
+        "spreadNumber": "116"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 123,
+        "spreadNumber": "123"
+      },
+      "confirmed": {
+        "pageNumber": 117,
+        "spreadNumber": "117"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 124,
+        "spreadNumber": "124-125"
+      },
+      "confirmed": {
+        "pageNumber": 118,
+        "spreadNumber": "118-119"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 126,
+        "spreadNumber": "126"
+      },
+      "confirmed": {
+        "pageNumber": 120,
+        "spreadNumber": "120"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 127,
+        "spreadNumber": "127"
+      },
+      "confirmed": {
+        "pageNumber": 121,
+        "spreadNumber": "121"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 128,
+        "spreadNumber": "128"
+      },
+      "confirmed": {
+        "pageNumber": 122,
+        "spreadNumber": "122"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 11,
+      "previous": {
+        "pageNumber": 129,
+        "spreadNumber": "129"
+      },
+      "confirmed": {
+        "pageNumber": 123,
+        "spreadNumber": "123"
+      }
+    },
+    {
+      "unitNumber": 8,
+      "partNumber": 12,
+      "previous": {
+        "pageNumber": 130,
+        "spreadNumber": "130"
+      },
+      "confirmed": {
+        "pageNumber": 124,
+        "spreadNumber": "124"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 131,
+        "spreadNumber": "131"
+      },
+      "confirmed": {
+        "pageNumber": 125,
+        "spreadNumber": "125"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 132,
+        "spreadNumber": "132-133"
+      },
+      "confirmed": {
+        "pageNumber": 126,
+        "spreadNumber": "126-127"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 134,
+        "spreadNumber": "134-135"
+      },
+      "confirmed": {
+        "pageNumber": 128,
+        "spreadNumber": "128-129"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 136,
+        "spreadNumber": "136-137"
+      },
+      "confirmed": {
+        "pageNumber": 130,
+        "spreadNumber": "130-131"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 138,
+        "spreadNumber": "138"
+      },
+      "confirmed": {
+        "pageNumber": 132,
+        "spreadNumber": "132"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 139,
+        "spreadNumber": "139"
+      },
+      "confirmed": {
+        "pageNumber": 133,
+        "spreadNumber": "133"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 140,
+        "spreadNumber": "140-141"
+      },
+      "confirmed": {
+        "pageNumber": 134,
+        "spreadNumber": "134-135"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 142,
+        "spreadNumber": "142"
+      },
+      "confirmed": {
+        "pageNumber": 136,
+        "spreadNumber": "136"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 143,
+        "spreadNumber": "143-144"
+      },
+      "confirmed": {
+        "pageNumber": 137,
+        "spreadNumber": "137"
+      }
+    },
+    {
+      "unitNumber": 9,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 145,
+        "spreadNumber": "145-146"
+      },
+      "confirmed": {
+        "pageNumber": 138,
+        "spreadNumber": "138"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 1,
+      "previous": {
+        "pageNumber": 147,
+        "spreadNumber": "147"
+      },
+      "confirmed": {
+        "pageNumber": 139,
+        "spreadNumber": "139"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 2,
+      "previous": {
+        "pageNumber": 148,
+        "spreadNumber": "148-149"
+      },
+      "confirmed": {
+        "pageNumber": 140,
+        "spreadNumber": "140-141"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 3,
+      "previous": {
+        "pageNumber": 150,
+        "spreadNumber": "150-151"
+      },
+      "confirmed": {
+        "pageNumber": 142,
+        "spreadNumber": "142-143"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 4,
+      "previous": {
+        "pageNumber": 152,
+        "spreadNumber": "152-153"
+      },
+      "confirmed": {
+        "pageNumber": 144,
+        "spreadNumber": "144-145"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 5,
+      "previous": {
+        "pageNumber": 154,
+        "spreadNumber": "154"
+      },
+      "confirmed": {
+        "pageNumber": 146,
+        "spreadNumber": "146"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 6,
+      "previous": {
+        "pageNumber": 155,
+        "spreadNumber": "155"
+      },
+      "confirmed": {
+        "pageNumber": 147,
+        "spreadNumber": "147"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 7,
+      "previous": {
+        "pageNumber": 156,
+        "spreadNumber": "156-157"
+      },
+      "confirmed": {
+        "pageNumber": 148,
+        "spreadNumber": "148-149"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 8,
+      "previous": {
+        "pageNumber": 158,
+        "spreadNumber": "158"
+      },
+      "confirmed": {
+        "pageNumber": 150,
+        "spreadNumber": "150"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 9,
+      "previous": {
+        "pageNumber": 159,
+        "spreadNumber": "159"
+      },
+      "confirmed": {
+        "pageNumber": 151,
+        "spreadNumber": "151"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 10,
+      "previous": {
+        "pageNumber": 160,
+        "spreadNumber": "160"
+      },
+      "confirmed": {
+        "pageNumber": 152,
+        "spreadNumber": "152"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 11,
+      "previous": {
+        "pageNumber": 161,
+        "spreadNumber": "161"
+      },
+      "confirmed": {
+        "pageNumber": 153,
+        "spreadNumber": "153"
+      }
+    },
+    {
+      "unitNumber": 10,
+      "partNumber": 12,
+      "previous": {
+        "pageNumber": 162,
+        "spreadNumber": "162"
+      },
+      "confirmed": {
+        "pageNumber": 154,
+        "spreadNumber": "154"
+      }
+    }
+  ]
+}

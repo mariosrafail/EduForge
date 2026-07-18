@@ -26,87 +26,586 @@
   ],
   "unitCount": 10,
   "pageImageCount": 110,
-  "physicalPageCount": 158,
-  "physicalPageRange": "5-162",
+  "physicalPageCount": 150,
+  "physicalPageRange": "5-154",
   "activityObjectCount": 694,
-  "exerciseDetectedCount": 23,
+  "exerciseDetectedCount": 433,
+  "definiteExerciseCount": 433,
+  "possibleExerciseCount": 0,
+  "nonExerciseInteractiveObjectCount": 128,
+  "mediaOnlyObjectCount": 133,
   "recoverability": {
-    "fully-recoverable": 0,
-    "recoverable-with-manual-review": 2,
+    "fully-recoverable": 20,
+    "recoverable-with-manual-review": 0,
     "question-text-only": 0,
     "media-only": 0,
-    "interaction-known-answer-unknown": 1,
-    "answer-known-interaction-unknown": 0,
-    "encoded-unresolved": 20,
+    "interaction-known-answer-unknown": 239,
+    "answer-known-interaction-unknown": 174,
+    "encoded-unresolved": 0,
     "not-an-exercise": 0
   },
-  "fullyRecoverableCount": 0,
-  "manualReviewCount": 3,
-  "unresolvedCount": 20,
+  "fullyRecoverableCount": 20,
+  "manualReviewCount": 433,
+  "unresolvedCount": 0,
+  "objectsWithExplicitAnswerEvidence": 194,
+  "explicitAnswerRecordCount": 1830,
   "activityTypesDetected": [
-    "listening-gap-fill",
+    "choosingGame",
+    "circle",
     "matching",
     "multiple-choice",
-    "timed-quiz-unknown"
+    "score4",
+    "spinningWheel",
+    "ticTacToe",
+    "typed-short-answer",
+    "writing"
   ],
   "supportedActivityTypesDetected": [
-    "listening-gap-fill",
     "matching",
-    "multiple-choice"
+    "multiple-choice",
+    "typed-short-answer"
   ],
   "unsupportedActivityTypes": [
-    "timed-quiz-unknown",
-    "encoded proprietary IWB interaction"
+    "choosingGame",
+    "circle",
+    "score4",
+    "spinningWheel",
+    "ticTacToe",
+    "writing"
   ],
   "missingAnswerKeys": [
-    "ultimate-b2-sb-u1-p8-o3",
-    "ultimate-b2-sb-u1-p8-o4",
-    "ultimate-b2-sb-u2-p2-o3",
-    "ultimate-b2-sb-u2-p2-o4",
+    "ultimate-b2-sb-u1-p1-o1",
+    "ultimate-b2-sb-u1-p2-o1",
+    "ultimate-b2-sb-u1-p2-o2",
+    "ultimate-b2-sb-u1-p2-o4",
+    "ultimate-b2-sb-u1-p2-o5",
+    "ultimate-b2-sb-u1-p3-o4",
+    "ultimate-b2-sb-u1-p3-o5",
+    "ultimate-b2-sb-u1-p3-o6",
+    "ultimate-b2-sb-u1-p4-o1",
+    "ultimate-b2-sb-u1-p4-o4",
+    "ultimate-b2-sb-u1-p4-o6",
+    "ultimate-b2-sb-u1-p4-o8",
+    "ultimate-b2-sb-u1-p5-o2",
+    "ultimate-b2-sb-u1-p5-o5",
+    "ultimate-b2-sb-u1-p6-o6",
+    "ultimate-b2-sb-u1-p7-o2",
+    "ultimate-b2-sb-u1-p7-o3",
+    "ultimate-b2-sb-u1-p7-o6",
+    "ultimate-b2-sb-u1-p7-o8",
+    "ultimate-b2-sb-u1-p7-o9",
+    "ultimate-b2-sb-u1-p7-o10",
+    "ultimate-b2-sb-u2-p1-o1",
+    "ultimate-b2-sb-u2-p2-o1",
+    "ultimate-b2-sb-u2-p2-o2",
+    "ultimate-b2-sb-u2-p2-o5",
+    "ultimate-b2-sb-u2-p3-o4",
+    "ultimate-b2-sb-u2-p3-o5",
+    "ultimate-b2-sb-u2-p3-o7",
+    "ultimate-b2-sb-u2-p4-o1",
+    "ultimate-b2-sb-u2-p4-o3",
+    "ultimate-b2-sb-u2-p4-o6",
+    "ultimate-b2-sb-u2-p4-o8",
+    "ultimate-b2-sb-u2-p5-o2",
     "ultimate-b2-sb-u2-p5-o3",
-    "ultimate-b2-sb-u2-p8-o3",
-    "ultimate-b2-sb-u2-p8-o4",
-    "ultimate-b2-sb-u3-p8-o3",
-    "ultimate-b2-sb-u3-p8-o4",
-    "ultimate-b2-sb-u4-p8-o3",
-    "ultimate-b2-sb-u4-p8-o4",
-    "ultimate-b2-sb-u5-p8-o3",
-    "ultimate-b2-sb-u5-p8-o4",
-    "ultimate-b2-sb-u6-p8-o3",
-    "ultimate-b2-sb-u6-p8-o4",
-    "ultimate-b2-sb-u7-p8-o3",
-    "ultimate-b2-sb-u7-p8-o4",
-    "ultimate-b2-sb-u8-p8-o3",
-    "ultimate-b2-sb-u8-p8-o4",
-    "ultimate-b2-sb-u9-p8-o3",
-    "ultimate-b2-sb-u9-p8-o4",
-    "ultimate-b2-sb-u10-p8-o3",
-    "ultimate-b2-sb-u10-p8-o4"
+    "ultimate-b2-sb-u2-p5-o4",
+    "ultimate-b2-sb-u2-p6-o1",
+    "ultimate-b2-sb-u2-p6-o2",
+    "ultimate-b2-sb-u2-p6-o5",
+    "ultimate-b2-sb-u2-p7-o2",
+    "ultimate-b2-sb-u2-p7-o4",
+    "ultimate-b2-sb-u2-p7-o6",
+    "ultimate-b2-sb-u2-p7-o7",
+    "ultimate-b2-sb-u2-p7-o8",
+    "ultimate-b2-sb-u2-p7-o10",
+    "ultimate-b2-sb-u2-p10-o1",
+    "ultimate-b2-sb-u2-p10-o3",
+    "ultimate-b2-sb-u2-p11-o1",
+    "ultimate-b2-sb-u2-p11-o3",
+    "ultimate-b2-sb-u2-p12-o2",
+    "ultimate-b2-sb-u2-p12-o3",
+    "ultimate-b2-sb-u2-p12-o4",
+    "ultimate-b2-sb-u3-p1-o1",
+    "ultimate-b2-sb-u3-p1-o2",
+    "ultimate-b2-sb-u3-p2-o1",
+    "ultimate-b2-sb-u3-p2-o2",
+    "ultimate-b2-sb-u3-p2-o5",
+    "ultimate-b2-sb-u3-p3-o4",
+    "ultimate-b2-sb-u3-p3-o6",
+    "ultimate-b2-sb-u3-p4-o1",
+    "ultimate-b2-sb-u3-p4-o7",
+    "ultimate-b2-sb-u3-p4-o8",
+    "ultimate-b2-sb-u3-p5-o1",
+    "ultimate-b2-sb-u3-p5-o2",
+    "ultimate-b2-sb-u3-p5-o3",
+    "ultimate-b2-sb-u3-p6-o2",
+    "ultimate-b2-sb-u3-p6-o4",
+    "ultimate-b2-sb-u3-p6-o6",
+    "ultimate-b2-sb-u3-p7-o2",
+    "ultimate-b2-sb-u3-p7-o4",
+    "ultimate-b2-sb-u3-p7-o6",
+    "ultimate-b2-sb-u3-p7-o10",
+    "ultimate-b2-sb-u3-p9-o1",
+    "ultimate-b2-sb-u3-p9-o3",
+    "ultimate-b2-sb-u4-p1-o1",
+    "ultimate-b2-sb-u4-p1-o2",
+    "ultimate-b2-sb-u4-p2-o1",
+    "ultimate-b2-sb-u4-p2-o5",
+    "ultimate-b2-sb-u4-p3-o3",
+    "ultimate-b2-sb-u4-p3-o4",
+    "ultimate-b2-sb-u4-p3-o5",
+    "ultimate-b2-sb-u4-p4-o1",
+    "ultimate-b2-sb-u4-p4-o4",
+    "ultimate-b2-sb-u4-p4-o5",
+    "ultimate-b2-sb-u4-p4-o7",
+    "ultimate-b2-sb-u4-p5-o1",
+    "ultimate-b2-sb-u4-p6-o5",
+    "ultimate-b2-sb-u4-p7-o2",
+    "ultimate-b2-sb-u4-p7-o5",
+    "ultimate-b2-sb-u4-p7-o6",
+    "ultimate-b2-sb-u4-p7-o9",
+    "ultimate-b2-sb-u4-p7-o10",
+    "ultimate-b2-sb-u4-p11-o1",
+    "ultimate-b2-sb-u4-p11-o3",
+    "ultimate-b2-sb-u4-p12-o1",
+    "ultimate-b2-sb-u4-p12-o2",
+    "ultimate-b2-sb-u5-p1-o1",
+    "ultimate-b2-sb-u5-p1-o2",
+    "ultimate-b2-sb-u5-p2-o1",
+    "ultimate-b2-sb-u5-p2-o5",
+    "ultimate-b2-sb-u5-p3-o4",
+    "ultimate-b2-sb-u5-p3-o5",
+    "ultimate-b2-sb-u5-p3-o6",
+    "ultimate-b2-sb-u5-p3-o7",
+    "ultimate-b2-sb-u5-p4-o1",
+    "ultimate-b2-sb-u5-p4-o6",
+    "ultimate-b2-sb-u5-p4-o7",
+    "ultimate-b2-sb-u5-p5-o4",
+    "ultimate-b2-sb-u5-p6-o2",
+    "ultimate-b2-sb-u5-p6-o5",
+    "ultimate-b2-sb-u5-p7-o4",
+    "ultimate-b2-sb-u5-p7-o5",
+    "ultimate-b2-sb-u5-p7-o7",
+    "ultimate-b2-sb-u5-p7-o8",
+    "ultimate-b2-sb-u5-p7-o9",
+    "ultimate-b2-sb-u6-p1-o1",
+    "ultimate-b2-sb-u6-p1-o2",
+    "ultimate-b2-sb-u6-p2-o1",
+    "ultimate-b2-sb-u6-p2-o2",
+    "ultimate-b2-sb-u6-p2-o5",
+    "ultimate-b2-sb-u6-p3-o2",
+    "ultimate-b2-sb-u6-p3-o4",
+    "ultimate-b2-sb-u6-p4-o1",
+    "ultimate-b2-sb-u6-p4-o3",
+    "ultimate-b2-sb-u6-p4-o7",
+    "ultimate-b2-sb-u6-p5-o1",
+    "ultimate-b2-sb-u6-p5-o2",
+    "ultimate-b2-sb-u6-p5-o5",
+    "ultimate-b2-sb-u6-p6-o2",
+    "ultimate-b2-sb-u6-p6-o3",
+    "ultimate-b2-sb-u6-p6-o7",
+    "ultimate-b2-sb-u6-p7-o2",
+    "ultimate-b2-sb-u6-p7-o3",
+    "ultimate-b2-sb-u6-p7-o5",
+    "ultimate-b2-sb-u6-p7-o6",
+    "ultimate-b2-sb-u6-p7-o8",
+    "ultimate-b2-sb-u6-p7-o9",
+    "ultimate-b2-sb-u6-p9-o1",
+    "ultimate-b2-sb-u6-p9-o3",
+    "ultimate-b2-sb-u6-p11-o2",
+    "ultimate-b2-sb-u6-p11-o3",
+    "ultimate-b2-sb-u6-p12-o1",
+    "ultimate-b2-sb-u6-p12-o2",
+    "ultimate-b2-sb-u6-p12-o4",
+    "ultimate-b2-sb-u7-p1-o1",
+    "ultimate-b2-sb-u7-p1-o2",
+    "ultimate-b2-sb-u7-p2-o1",
+    "ultimate-b2-sb-u7-p2-o3",
+    "ultimate-b2-sb-u7-p2-o5",
+    "ultimate-b2-sb-u7-p2-o6",
+    "ultimate-b2-sb-u7-p3-o5",
+    "ultimate-b2-sb-u7-p3-o7",
+    "ultimate-b2-sb-u7-p4-o1",
+    "ultimate-b2-sb-u7-p4-o3",
+    "ultimate-b2-sb-u7-p4-o6",
+    "ultimate-b2-sb-u7-p4-o7",
+    "ultimate-b2-sb-u7-p5-o2",
+    "ultimate-b2-sb-u7-p5-o3",
+    "ultimate-b2-sb-u7-p5-o4",
+    "ultimate-b2-sb-u7-p6-o2",
+    "ultimate-b2-sb-u7-p6-o3",
+    "ultimate-b2-sb-u7-p6-o6",
+    "ultimate-b2-sb-u7-p7-o2",
+    "ultimate-b2-sb-u7-p7-o8",
+    "ultimate-b2-sb-u7-p7-o9",
+    "ultimate-b2-sb-u7-p10-o1",
+    "ultimate-b2-sb-u8-p1-o1",
+    "ultimate-b2-sb-u8-p2-o1",
+    "ultimate-b2-sb-u8-p2-o5",
+    "ultimate-b2-sb-u8-p3-o4",
+    "ultimate-b2-sb-u8-p3-o5",
+    "ultimate-b2-sb-u8-p3-o6",
+    "ultimate-b2-sb-u8-p4-o1",
+    "ultimate-b2-sb-u8-p4-o3",
+    "ultimate-b2-sb-u8-p4-o5",
+    "ultimate-b2-sb-u8-p4-o6",
+    "ultimate-b2-sb-u8-p5-o1",
+    "ultimate-b2-sb-u8-p5-o4",
+    "ultimate-b2-sb-u8-p6-o3",
+    "ultimate-b2-sb-u8-p6-o4",
+    "ultimate-b2-sb-u8-p6-o6",
+    "ultimate-b2-sb-u8-p7-o2",
+    "ultimate-b2-sb-u8-p7-o6",
+    "ultimate-b2-sb-u8-p7-o9",
+    "ultimate-b2-sb-u8-p7-o10",
+    "ultimate-b2-sb-u8-p11-o1",
+    "ultimate-b2-sb-u8-p11-o4",
+    "ultimate-b2-sb-u8-p12-o2",
+    "ultimate-b2-sb-u8-p12-o3",
+    "ultimate-b2-sb-u8-p12-o4",
+    "ultimate-b2-sb-u9-p1-o1",
+    "ultimate-b2-sb-u9-p1-o2",
+    "ultimate-b2-sb-u9-p2-o1",
+    "ultimate-b2-sb-u9-p2-o2",
+    "ultimate-b2-sb-u9-p2-o5",
+    "ultimate-b2-sb-u9-p3-o2",
+    "ultimate-b2-sb-u9-p3-o5",
+    "ultimate-b2-sb-u9-p3-o6",
+    "ultimate-b2-sb-u9-p3-o7",
+    "ultimate-b2-sb-u9-p4-o1",
+    "ultimate-b2-sb-u9-p4-o3",
+    "ultimate-b2-sb-u9-p4-o6",
+    "ultimate-b2-sb-u9-p4-o7",
+    "ultimate-b2-sb-u9-p5-o1",
+    "ultimate-b2-sb-u9-p5-o2",
+    "ultimate-b2-sb-u9-p5-o3",
+    "ultimate-b2-sb-u9-p6-o2",
+    "ultimate-b2-sb-u9-p6-o4",
+    "ultimate-b2-sb-u9-p6-o5",
+    "ultimate-b2-sb-u9-p7-o2",
+    "ultimate-b2-sb-u9-p7-o3",
+    "ultimate-b2-sb-u9-p7-o4",
+    "ultimate-b2-sb-u9-p7-o5",
+    "ultimate-b2-sb-u9-p7-o7",
+    "ultimate-b2-sb-u9-p7-o8",
+    "ultimate-b2-sb-u10-p1-o1",
+    "ultimate-b2-sb-u10-p1-o2",
+    "ultimate-b2-sb-u10-p2-o1",
+    "ultimate-b2-sb-u10-p2-o2",
+    "ultimate-b2-sb-u10-p2-o5",
+    "ultimate-b2-sb-u10-p3-o5",
+    "ultimate-b2-sb-u10-p3-o6",
+    "ultimate-b2-sb-u10-p4-o1",
+    "ultimate-b2-sb-u10-p4-o3",
+    "ultimate-b2-sb-u10-p4-o6",
+    "ultimate-b2-sb-u10-p4-o7",
+    "ultimate-b2-sb-u10-p5-o4",
+    "ultimate-b2-sb-u10-p6-o3",
+    "ultimate-b2-sb-u10-p6-o6",
+    "ultimate-b2-sb-u10-p7-o2",
+    "ultimate-b2-sb-u10-p7-o3",
+    "ultimate-b2-sb-u10-p7-o4",
+    "ultimate-b2-sb-u10-p7-o5",
+    "ultimate-b2-sb-u10-p7-o6",
+    "ultimate-b2-sb-u10-p7-o7",
+    "ultimate-b2-sb-u10-p7-o9",
+    "ultimate-b2-sb-u10-p7-o10",
+    "ultimate-b2-sb-u10-p11-o2",
+    "ultimate-b2-sb-u10-p12-o1",
+    "ultimate-b2-sb-u10-p12-o2"
   ],
   "units": [
     {
       "number": 1,
       "pageRange": "5-18",
       "pageImageCount": 10,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 39,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 39,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u1-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u1-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/1/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/1/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/1/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u1-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u1-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/1/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/1/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p2-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p3-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p4-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part4/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj2/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p5-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p5-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p5-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part5/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p6-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part6/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p6-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part6/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part6/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj3/color_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj5/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj6/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj8/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part9/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u1-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/1/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/1/part10/obj1/obj_params.iwb"
           ]
         }
       ]
@@ -115,23 +614,163 @@
       "number": 2,
       "pageRange": "19-34",
       "pageImageCount": 12,
-      "exerciseDetectedCount": 5,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 3,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 50,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 50,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
+          "id": "ultimate-b2-sb-u2-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
           "id": "ultimate-b2-sb-u2-p2-o3",
-          "recoverability": "recoverable-with-manual-review",
+          "recoverability": "answer-known-interaction-unknown",
           "sourceMetadataFiles": [
             "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb"
           ]
         },
         {
           "id": "ultimate-b2-sb-u2-p2-o4",
-          "recoverability": "recoverable-with-manual-review",
+          "recoverability": "answer-known-interaction-unknown",
           "sourceMetadataFiles": [
             "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p3-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p4-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part4/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p5-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb"
           ]
         },
         {
@@ -143,235 +782,2761 @@
           ]
         },
         {
-          "id": "ultimate-b2-sb-u2-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u2-p5-o4",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/2/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/2/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part5/obj4/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u2-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u2-p6-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/2/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/2/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/2/part6/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p6-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part6/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part6/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj6/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj8/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o9",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj9/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p10-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p10-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/2/part10/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p11-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p11-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p11-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part11/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p11-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part11/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p12-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p12-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p12-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part12/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u2-p12-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/2/part12/obj4/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 3,
-      "pageRange": "35-50",
+      "pageRange": "35-48",
       "pageImageCount": 10,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 42,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 42,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u3-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u3-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/3/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/3/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/3/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u3-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u3-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/3/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/3/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/3/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p3-o8",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part3/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p4-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p4-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part4/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p5-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p5-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p5-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part6/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p6-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part6/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p6-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part6/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part6/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj6/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o9",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p9-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p9-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part9/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u3-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/3/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/3/part10/obj1/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 4,
-      "pageRange": "51-66",
+      "pageRange": "49-64",
       "pageImageCount": 12,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 46,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 46,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u4-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u4-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/4/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/4/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/4/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u4-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u4-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/4/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/4/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/4/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p2-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p3-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p5-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p5-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p5-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p6-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part6/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part6/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p6-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part6/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part6/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj2/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj6/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj7/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj9/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part9/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/4/part10/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p11-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part11/obj1/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/4/part11/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p11-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part11/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p11-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part11/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p11-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part11/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p12-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part12/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p12-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part12/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p12-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part12/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u4-p12-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/4/part12/obj4/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 5,
-      "pageRange": "67-82",
+      "pageRange": "65-78",
       "pageImageCount": 10,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 38,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 38,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u5-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u5-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/5/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/5/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/5/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u5-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u5-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/5/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/5/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/5/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p2-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p3-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p4-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p5-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p5-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p5-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p5-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part6/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part6/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p6-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part6/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part6/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj3/cicle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj7/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj8/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj9/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u5-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/5/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/5/part10/obj1/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 6,
-      "pageRange": "83-98",
+      "pageRange": "79-94",
       "pageImageCount": 12,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 50,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 50,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u6-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u6-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/6/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/6/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/6/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u6-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u6-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/6/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/6/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/6/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p3-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p4-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p5-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p5-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p5-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p5-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part5/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p6-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p6-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p6-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj7/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part6/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj3/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p9-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p9-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part9/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/6/part10/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p11-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part11/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p11-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part11/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p11-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part11/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p11-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part11/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p12-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part12/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p12-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part12/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p12-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part12/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u6-p12-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/6/part12/obj4/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 7,
-      "pageRange": "99-114",
+      "pageRange": "95-108",
       "pageImageCount": 10,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 38,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 38,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u7-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u7-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/7/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/7/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/7/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u7-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u7-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/7/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/7/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/7/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p2-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p2-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part2/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p3-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj2/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p5-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p5-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part6/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p6-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part6/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p6-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part6/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part6/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj2/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj9/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part9/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u7-p10-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/7/part10/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/7/part10/obj1/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 8,
-      "pageRange": "115-130",
+      "pageRange": "109-124",
       "pageImageCount": 12,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 45,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 45,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u8-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u8-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/8/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/8/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/8/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u8-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u8-p1-o2",
+          "recoverability": "answer-known-interaction-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/8/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/8/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/8/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p2-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p3-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p4-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p5-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p5-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p5-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p5-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/8/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p6-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p6-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p6-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part6/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/8/part10/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p11-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part11/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p11-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part11/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p11-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part11/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p11-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part11/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p12-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part12/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p12-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part12/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p12-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part12/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u8-p12-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/8/part12/obj4/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 9,
-      "pageRange": "131-146",
+      "pageRange": "125-138",
       "pageImageCount": 10,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 39,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 39,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u9-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u9-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/9/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/9/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/9/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u9-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u9-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/9/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/9/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/9/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p3-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p5-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p5-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p5-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p5-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p6-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p6-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p6-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part6/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o6",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj7/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p7-o8",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj8/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part7/obj8/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part9/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u9-p10-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/9/part10/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/9/part10/obj2/obj_params.iwb"
           ]
         }
       ]
     },
     {
       "number": 10,
-      "pageRange": "147-162",
+      "pageRange": "139-154",
       "pageImageCount": 12,
-      "exerciseDetectedCount": 2,
-      "fullyRecoverableCount": 0,
-      "manualReviewCount": 0,
-      "unresolvedCount": 2,
+      "exerciseDetectedCount": 46,
+      "fullyRecoverableCount": 2,
+      "manualReviewCount": 46,
+      "unresolvedCount": 0,
       "manualReviewSources": [
         {
-          "id": "ultimate-b2-sb-u10-p8-o3",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u10-p1-o1",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/10/part8/obj3/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/10/part8/obj3/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/10/part1/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part1/obj1/obj_params.iwb"
           ]
         },
         {
-          "id": "ultimate-b2-sb-u10-p8-o4",
-          "recoverability": "encoded-unresolved",
+          "id": "ultimate-b2-sb-u10-p1-o2",
+          "recoverability": "interaction-known-answer-unknown",
           "sourceMetadataFiles": [
-            "Contents/Resources/assets/books/book1/unit/10/part8/obj4/obj_params.iwb",
-            "Contents/Resources/assets/books/book1/unit/10/part8/obj4/questions_params.iwb"
+            "Contents/Resources/assets/books/book1/unit/10/part1/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part1/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p2-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p2-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p2-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj3/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p2-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p2-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj5/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part2/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p3-o7",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part3/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p4-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj1/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj1/obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj1/video.xml"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p4-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p4-o5",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p4-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p4-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part4/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p5-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj2/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p5-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj3/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p5-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj4/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj4/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part5/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p6-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part6/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p6-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part6/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part6/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj2/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o3",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj3/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o4",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj4/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o5",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj5/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o6",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj6/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj6/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o7",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj7/circle_atlas.xml",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj7/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o9",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj9/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p7-o10",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj10/ebook_obj_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part7/obj10/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p8-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part8/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p8-o2",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part8/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p9-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part9/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part9/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p10-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part10/obj1/highlight_params.iwb",
+            "Contents/Resources/assets/books/book1/unit/10/part10/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p11-o1",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part11/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p11-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part11/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p11-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part11/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p11-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part11/obj4/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p12-o1",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part12/obj1/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p12-o2",
+          "recoverability": "interaction-known-answer-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part12/obj2/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p12-o3",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part12/obj3/obj_params.iwb"
+          ]
+        },
+        {
+          "id": "ultimate-b2-sb-u10-p12-o4",
+          "recoverability": "answer-known-interaction-unknown",
+          "sourceMetadataFiles": [
+            "Contents/Resources/assets/books/book1/unit/10/part12/obj4/obj_params.iwb"
           ]
         }
       ]
@@ -385,6 +3550,6 @@
   "duplicateGroupCount": 987,
   "parseFailureCount": 0,
   "selectedFirstUnit": 2,
-  "selectionReason": "Unit 2 has confirmed page numbering, existing page images and hotspots, readable media metadata, and two existing interactions that can be audited without automatically publishing unresolved IWB activities.",
-  "automaticPublicationBlockedReason": "No publisher answer key is readable outside encoded IWB payloads; existing answer data cannot be promoted as publisher-verified."
+  "selectionReason": "Unit 2 has confirmed page numbering, page images and hotspots, readable media metadata, and decoded publisher XML for the two existing interactions.",
+  "automaticPublicationBlockedReason": "Decoded structure remains evidence for controlled extraction only; no exercise is automatically published without content, answer, scoring, and editorial review."
 }

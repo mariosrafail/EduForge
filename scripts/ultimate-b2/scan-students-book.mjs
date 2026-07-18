@@ -18,6 +18,8 @@ try {
   }, { pretty: false });
   await writeDeterministicJson(path.join(outputRoot, "students-book-structure.json"), result.structure);
   await writeDeterministicJson(path.join(outputRoot, "students-book-review.json"), result.review);
+  await writeDeterministicJson(path.join(outputRoot, "students-book-iwb-analysis.json"), result.iwbAnalysis);
+  await writeDeterministicJson(path.join(outputRoot, "students-book-page-audit.json"), result.pageAudit);
   console.log(JSON.stringify({
     source: result.packageSummary.sourceDescription,
     packageFiles: result.packageSummary.totalFileCount,
@@ -29,6 +31,8 @@ try {
     fullyRecoverable: result.review.fullyRecoverableCount,
     manualReview: result.review.manualReviewCount,
     unresolved: result.review.unresolvedCount,
+    decodedStructuredIwb: result.iwbAnalysis.totals.strictXml,
+    decodedPartialIwb: result.iwbAnalysis.totals.partialXml,
     output: "books/ultimate-b2/generated",
   }, null, 2));
 } catch (error) {
