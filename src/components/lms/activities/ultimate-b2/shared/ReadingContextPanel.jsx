@@ -12,6 +12,8 @@ export function ReadingContextPanel({
   onRemoveGap,
   submittedRows,
   disabled = false,
+  readingContext,
+  options,
 }) {
   return (
     <div className="reading-context-panel">
@@ -27,6 +29,8 @@ export function ReadingContextPanel({
         onRemoveGap={onRemoveGap}
         submittedRows={submittedRows}
         disabled={disabled}
+        readingContext={readingContext}
+        options={options}
       />
     </div>
   );

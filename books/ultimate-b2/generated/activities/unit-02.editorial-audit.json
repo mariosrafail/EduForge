@@ -1,0 +1,1653 @@
+{
+  "schemaVersion": "1.0",
+  "book": "ultimate-b2",
+  "component": "students-book",
+  "unitNumber": 2,
+  "printedRange": "19-34",
+  "fullBookPrintedRange": "5-154",
+  "mappingSource": "decoded publisher unit navigation metadata and corrected page audit",
+  "automaticPublication": false,
+  "summary": {
+    "definiteActivityCount": 50,
+    "readyForImplementationCount": 2,
+    "implementedActivityCount": 2,
+    "manualReviewCount": 50
+  },
+  "activities": [
+    {
+      "sourceId": "ultimate-b2-sb-u2-p1-o1",
+      "partNumber": 1,
+      "physicalPageNumber": 19,
+      "spread": "19",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 3,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [
+        "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb: Attribute 'removeButton' has no space in starting."
+      ],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p2-o1",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "print",
+        "write"
+      ],
+      "questionCount": 2,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml",
+          "type": "video",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/videos/book1/unit/2/part2/obj1.mp4",
+          "type": "video",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [
+        "print"
+      ],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj1/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj1/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p2-o2",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "karaokeScroll",
+        "write"
+      ],
+      "questionCount": 3,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_1.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_2.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_3.mp3",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [
+        "karaokeScroll"
+      ],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p2-o3",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 6,
+      "optionCount": 42,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 6,
+      "mediaDependencies": [
+        {
+          "id": "ultimate-b2.students-book.unit-2.reading.text-audio",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "ready-for-implementation",
+      "currentImplementationStatus": "implemented-from-normalized-catalog",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [],
+      "unsupportedBehavior": [],
+      "canBeEnabled": true,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p2-o4",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 8,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "ready-for-implementation",
+      "currentImplementationStatus": "implemented-from-normalized-catalog",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [],
+      "unsupportedBehavior": [],
+      "canBeEnabled": true,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p2-o5",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 2,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj5/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj5/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o1",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 4,
+      "optionCount": 40,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 4,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o2",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd",
+        "write"
+      ],
+      "questionCount": 5,
+      "optionCount": 30,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 5,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o3",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 8,
+      "optionCount": 64,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o4",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 9,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o5",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 11,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj5/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o6",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 7,
+      "optionCount": 91,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 7,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj6/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p3-o7",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 4,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part3/obj7/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o1",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "print",
+        "write"
+      ],
+      "questionCount": 2,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml",
+          "type": "video",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4",
+          "type": "video",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [
+        "print"
+      ],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj1/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o3",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 6,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o4",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 6,
+      "optionCount": 12,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 6,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o6",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 5,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj6/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o7",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 8,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj7/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p4-o8",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 3,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj8/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p5-o1",
+      "partNumber": 5,
+      "physicalPageNumber": 26,
+      "spread": "26",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 4,
+      "optionCount": 8,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 4,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p5-o2",
+      "partNumber": 5,
+      "physicalPageNumber": 26,
+      "spread": "26",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 4,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p5-o3",
+      "partNumber": 5,
+      "physicalPageNumber": 26,
+      "spread": "26",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 4,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params1.xml"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p5-o4",
+      "partNumber": 5,
+      "physicalPageNumber": 26,
+      "spread": "26",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 6,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_1.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_10.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_2.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_3.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_4.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_5.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_6.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_7.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_8.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_9.mp3",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p6-o1",
+      "partNumber": 6,
+      "physicalPageNumber": 27,
+      "spread": "27",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 2,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj1/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p6-o2",
+      "partNumber": 6,
+      "physicalPageNumber": 27,
+      "spread": "27",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 6,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p6-o5",
+      "partNumber": 6,
+      "physicalPageNumber": 27,
+      "spread": "27",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 0,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "questions",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj5/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj5/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o2",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 3,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj2/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o3",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 4,
+      "optionCount": 32,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 4,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o4",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 4,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj4/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o5",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 6,
+      "optionCount": 12,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 6,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj5/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o6",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "circle",
+        "write"
+      ],
+      "questionCount": 1,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj6/circle_atlas.xml",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj6/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj6/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o7",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 5,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj7/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o8",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 2,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj8/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj8/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o9",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc",
+        "write"
+      ],
+      "questionCount": 3,
+      "optionCount": 6,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 3,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj9/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj9/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p7-o10",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 0,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "questions",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj10/ebook_obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p8-o1",
+      "partNumber": 8,
+      "physicalPageNumber": 30,
+      "spread": "30",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 4,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 4,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p8-o2",
+      "partNumber": 8,
+      "physicalPageNumber": 30,
+      "spread": "30",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 4,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 4,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p8-o3",
+      "partNumber": 8,
+      "physicalPageNumber": 30,
+      "spread": "30",
+      "detectedType": "unsupported-publisher-interaction",
+      "publisherInteractionTypes": [
+        "ticTacToe"
+      ],
+      "questionCount": 25,
+      "optionCount": 100,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 25,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions"
+      ],
+      "unsupportedBehavior": [
+        "ticTacToe"
+      ],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj3/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj3/questions_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p8-o4",
+      "partNumber": 8,
+      "physicalPageNumber": 30,
+      "spread": "30",
+      "detectedType": "unsupported-publisher-interaction",
+      "publisherInteractionTypes": [
+        "choosingGame"
+      ],
+      "questionCount": 25,
+      "optionCount": 100,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 25,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions"
+      ],
+      "unsupportedBehavior": [
+        "choosingGame"
+      ],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj4/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part8/obj4/questions_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p9-o1",
+      "partNumber": 9,
+      "physicalPageNumber": 31,
+      "spread": "31",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd"
+      ],
+      "questionCount": 6,
+      "optionCount": 42,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 6,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p10-o1",
+      "partNumber": 10,
+      "physicalPageNumber": 32,
+      "spread": "32",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 4,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p10-o3",
+      "partNumber": 10,
+      "physicalPageNumber": 32,
+      "spread": "32",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 5,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_1.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_10.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_2.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_3.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_4.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_5.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_6.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_7.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_8.mp3",
+          "type": "audio",
+          "required": false
+        },
+        {
+          "id": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_9.mp3",
+          "type": "audio",
+          "required": false
+        }
+      ],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p11-o1",
+      "partNumber": 11,
+      "physicalPageNumber": 33,
+      "spread": "33",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 8,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p11-o2",
+      "partNumber": 11,
+      "physicalPageNumber": 33,
+      "spread": "33",
+      "detectedType": "drag-and-drop-matching",
+      "publisherInteractionTypes": [
+        "dnd",
+        "write"
+      ],
+      "questionCount": 8,
+      "optionCount": 64,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p11-o3",
+      "partNumber": 11,
+      "physicalPageNumber": 33,
+      "spread": "33",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 8,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part11/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p11-o4",
+      "partNumber": 11,
+      "physicalPageNumber": 33,
+      "spread": "33",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 8,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part11/obj4/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p12-o1",
+      "partNumber": 12,
+      "physicalPageNumber": 34,
+      "spread": "34",
+      "detectedType": "multiple-choice",
+      "publisherInteractionTypes": [
+        "mc"
+      ],
+      "questionCount": 8,
+      "optionCount": 16,
+      "explicitAnswerStatus": "present",
+      "explicitAnswerCount": 8,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p12-o2",
+      "partNumber": 12,
+      "physicalPageNumber": 34,
+      "spread": "34",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 8,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p12-o3",
+      "partNumber": 12,
+      "physicalPageNumber": 34,
+      "spread": "34",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 8,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part12/obj3/obj_params.iwb"
+      ]
+    },
+    {
+      "sourceId": "ultimate-b2-sb-u2-p12-o4",
+      "partNumber": 12,
+      "physicalPageNumber": 34,
+      "spread": "34",
+      "detectedType": "typed-short-answer",
+      "publisherInteractionTypes": [
+        "write"
+      ],
+      "questionCount": 6,
+      "optionCount": 0,
+      "explicitAnswerStatus": "missing",
+      "explicitAnswerCount": 0,
+      "mediaDependencies": [],
+      "implementationReadiness": "manual-review",
+      "currentImplementationStatus": "not-implemented",
+      "editorialReviewStatus": "manual-review-required",
+      "discrepancies": [],
+      "missingFields": [
+        "instructions",
+        "question-text",
+        "explicit-answers"
+      ],
+      "unsupportedBehavior": [],
+      "canBeEnabled": false,
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/2/part12/obj4/obj_params.iwb"
+      ]
+    }
+  ]
+}

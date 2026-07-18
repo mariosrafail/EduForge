@@ -46,11 +46,13 @@ function ImportedActivityPlaceholder({ activity }) {
 }
 
 function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity }) {
+  // These publisher-confirmed activities intentionally take precedence over
+  // the obsolete demo question rows from database/006.
+  if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activity?.questions?.length) {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
   if (activityKey === "video-intro") return <VideoIntroScreen mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
-  if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "listening-page-20") return <ListeningPage20 mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "grammar-opening" || activityKey === "grammar-ex4") return <GrammarOpening activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activityKey === "quiz-1" || activityKey === "quiz-2") return <QuizActivity activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;

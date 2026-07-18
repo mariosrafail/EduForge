@@ -1,0 +1,314 @@
+{
+  "schemaVersion": "1.0",
+  "book": "ultimate-b2",
+  "component": "students-book",
+  "unitNumber": 2,
+  "status": "relationship-fixture-only-no-flipbook-ui",
+  "pages": [
+    {
+      "pageId": "ultimate-b2-sb-u2-part-1",
+      "partNumber": 1,
+      "physicalPageNumber": 19,
+      "spread": "19",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p1-o1"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p1-o1": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-2",
+      "partNumber": 2,
+      "physicalPageNumber": 20,
+      "spread": "20-21",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p2-o1",
+        "ultimate-b2-sb-u2-p2-o2",
+        "ultimate-b2-sb-u2-p2-o3",
+        "ultimate-b2-sb-u2-p2-o4",
+        "ultimate-b2-sb-u2-p2-o5"
+      ],
+      "mediaIds": [
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml",
+        "Contents/Resources/assets/videos/book1/unit/2/part2/obj1.mp4",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_1.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_2.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_3.mp3",
+        "ultimate-b2.students-book.unit-2.reading.text-audio"
+      ],
+      "hotspots": [
+        {
+          "id": "hotspot-exercise-3",
+          "activityId": "ultimate-b2-sb-u2-p2-o3",
+          "coordinates": {
+            "left": 53.2,
+            "top": 8,
+            "width": 43.5,
+            "height": 38
+          },
+          "presentation": "overlay-modal"
+        },
+        {
+          "id": "hotspot-exercise-4",
+          "activityId": "ultimate-b2-sb-u2-p2-o4",
+          "coordinates": {
+            "left": 53.3,
+            "top": 48,
+            "width": 43.4,
+            "height": 29
+          },
+          "presentation": "overlay-modal"
+        }
+      ],
+      "availability": {
+        "ultimate-b2-sb-u2-p2-o1": "manual-review",
+        "ultimate-b2-sb-u2-p2-o2": "manual-review",
+        "ultimate-b2-sb-u2-p2-o3": "ready",
+        "ultimate-b2-sb-u2-p2-o4": "ready",
+        "ultimate-b2-sb-u2-p2-o5": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-3",
+      "partNumber": 3,
+      "physicalPageNumber": 22,
+      "spread": "22-23",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p3-o1",
+        "ultimate-b2-sb-u2-p3-o2",
+        "ultimate-b2-sb-u2-p3-o3",
+        "ultimate-b2-sb-u2-p3-o4",
+        "ultimate-b2-sb-u2-p3-o5",
+        "ultimate-b2-sb-u2-p3-o6",
+        "ultimate-b2-sb-u2-p3-o7"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p3-o1": "manual-review",
+        "ultimate-b2-sb-u2-p3-o2": "manual-review",
+        "ultimate-b2-sb-u2-p3-o3": "manual-review",
+        "ultimate-b2-sb-u2-p3-o4": "manual-review",
+        "ultimate-b2-sb-u2-p3-o5": "manual-review",
+        "ultimate-b2-sb-u2-p3-o6": "manual-review",
+        "ultimate-b2-sb-u2-p3-o7": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-4",
+      "partNumber": 4,
+      "physicalPageNumber": 24,
+      "spread": "24-25",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p4-o1",
+        "ultimate-b2-sb-u2-p4-o3",
+        "ultimate-b2-sb-u2-p4-o4",
+        "ultimate-b2-sb-u2-p4-o6",
+        "ultimate-b2-sb-u2-p4-o7",
+        "ultimate-b2-sb-u2-p4-o8"
+      ],
+      "mediaIds": [
+        "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml",
+        "Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4"
+      ],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p4-o1": "manual-review",
+        "ultimate-b2-sb-u2-p4-o3": "manual-review",
+        "ultimate-b2-sb-u2-p4-o4": "manual-review",
+        "ultimate-b2-sb-u2-p4-o6": "manual-review",
+        "ultimate-b2-sb-u2-p4-o7": "manual-review",
+        "ultimate-b2-sb-u2-p4-o8": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-5",
+      "partNumber": 5,
+      "physicalPageNumber": 26,
+      "spread": "26",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p5-o1",
+        "ultimate-b2-sb-u2-p5-o2",
+        "ultimate-b2-sb-u2-p5-o3",
+        "ultimate-b2-sb-u2-p5-o4"
+      ],
+      "mediaIds": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_1.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_10.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_2.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_3.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_4.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_5.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_6.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_7.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_8.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_9.mp3"
+      ],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p5-o1": "manual-review",
+        "ultimate-b2-sb-u2-p5-o2": "manual-review",
+        "ultimate-b2-sb-u2-p5-o3": "manual-review",
+        "ultimate-b2-sb-u2-p5-o4": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-6",
+      "partNumber": 6,
+      "physicalPageNumber": 27,
+      "spread": "27",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p6-o1",
+        "ultimate-b2-sb-u2-p6-o2",
+        "ultimate-b2-sb-u2-p6-o5"
+      ],
+      "mediaIds": [
+        "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3"
+      ],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p6-o1": "manual-review",
+        "ultimate-b2-sb-u2-p6-o2": "manual-review",
+        "ultimate-b2-sb-u2-p6-o5": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-7",
+      "partNumber": 7,
+      "physicalPageNumber": 28,
+      "spread": "28-29",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p7-o2",
+        "ultimate-b2-sb-u2-p7-o3",
+        "ultimate-b2-sb-u2-p7-o4",
+        "ultimate-b2-sb-u2-p7-o5",
+        "ultimate-b2-sb-u2-p7-o6",
+        "ultimate-b2-sb-u2-p7-o7",
+        "ultimate-b2-sb-u2-p7-o8",
+        "ultimate-b2-sb-u2-p7-o9",
+        "ultimate-b2-sb-u2-p7-o10"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p7-o2": "manual-review",
+        "ultimate-b2-sb-u2-p7-o3": "manual-review",
+        "ultimate-b2-sb-u2-p7-o4": "manual-review",
+        "ultimate-b2-sb-u2-p7-o5": "manual-review",
+        "ultimate-b2-sb-u2-p7-o6": "manual-review",
+        "ultimate-b2-sb-u2-p7-o7": "manual-review",
+        "ultimate-b2-sb-u2-p7-o8": "manual-review",
+        "ultimate-b2-sb-u2-p7-o9": "manual-review",
+        "ultimate-b2-sb-u2-p7-o10": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-8",
+      "partNumber": 8,
+      "physicalPageNumber": 30,
+      "spread": "30",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p8-o1",
+        "ultimate-b2-sb-u2-p8-o2",
+        "ultimate-b2-sb-u2-p8-o3",
+        "ultimate-b2-sb-u2-p8-o4"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p8-o1": "manual-review",
+        "ultimate-b2-sb-u2-p8-o2": "manual-review",
+        "ultimate-b2-sb-u2-p8-o3": "manual-review",
+        "ultimate-b2-sb-u2-p8-o4": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-9",
+      "partNumber": 9,
+      "physicalPageNumber": 31,
+      "spread": "31",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p9-o1"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p9-o1": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-10",
+      "partNumber": 10,
+      "physicalPageNumber": 32,
+      "spread": "32",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p10-o1",
+        "ultimate-b2-sb-u2-p10-o3"
+      ],
+      "mediaIds": [
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_1.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_10.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_2.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_3.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_4.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_5.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_6.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_7.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_8.mp3",
+        "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_9.mp3"
+      ],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p10-o1": "manual-review",
+        "ultimate-b2-sb-u2-p10-o3": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-11",
+      "partNumber": 11,
+      "physicalPageNumber": 33,
+      "spread": "33",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p11-o1",
+        "ultimate-b2-sb-u2-p11-o2",
+        "ultimate-b2-sb-u2-p11-o3",
+        "ultimate-b2-sb-u2-p11-o4"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p11-o1": "manual-review",
+        "ultimate-b2-sb-u2-p11-o2": "manual-review",
+        "ultimate-b2-sb-u2-p11-o3": "manual-review",
+        "ultimate-b2-sb-u2-p11-o4": "manual-review"
+      }
+    },
+    {
+      "pageId": "ultimate-b2-sb-u2-part-12",
+      "partNumber": 12,
+      "physicalPageNumber": 34,
+      "spread": "34",
+      "activityIds": [
+        "ultimate-b2-sb-u2-p12-o1",
+        "ultimate-b2-sb-u2-p12-o2",
+        "ultimate-b2-sb-u2-p12-o3",
+        "ultimate-b2-sb-u2-p12-o4"
+      ],
+      "mediaIds": [],
+      "hotspots": [],
+      "availability": {
+        "ultimate-b2-sb-u2-p12-o1": "manual-review",
+        "ultimate-b2-sb-u2-p12-o2": "manual-review",
+        "ultimate-b2-sb-u2-p12-o3": "manual-review",
+        "ultimate-b2-sb-u2-p12-o4": "manual-review"
+      }
+    }
+  ]
+}

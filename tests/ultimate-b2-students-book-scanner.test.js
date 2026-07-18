@@ -23,6 +23,7 @@ import {
   writeDeterministicJson,
 } from "../scripts/ultimate-b2/students-book-scanner.mjs";
 import { readingExercise3, readingExercise3Options, readingExercise4 } from "../src/components/lms/activities/ultimate-b2/content/readingContent.js";
+import { getNormalizedStudentsBookActivity } from "../src/data/ultimate-b2/normalizedStudentsBookActivities.js";
 
 const fixtureRoot = path.resolve("tests/fixtures/ultimate-b2-source");
 
@@ -165,15 +166,17 @@ test("scanner does not write to publisher source", async () => {
 test("selected Unit 2 controlled content and manifest remain internally consistent", async () => {
   const extraction = JSON.parse(await readFile("books/ultimate-b2/ultimate-b2.students-book-unit-2.extraction.json", "utf8"));
   const manifest = JSON.parse(await readFile("books/ultimate-b2/ultimate-b2.students-book-unit-2.manifest.json", "utf8"));
-  assert.equal(extraction.fullyRecoverableActivities.length, 0);
-  assert.equal(extraction.manualReviewActivities.length, 3);
+  assert.equal(extraction.summary.definiteActivityCount, 50);
+  assert.equal(extraction.summary.implementedFromNormalizedCatalogCount, 2);
   assert.equal(readingExercise3.length, 6);
   assert.equal(readingExercise3Options.length, 7);
-  assert.equal(new Set(readingExercise3.map((item) => item.answer)).size, 6);
+  assert.ok(readingExercise3.every((item) => !("answer" in item)));
   assert.equal(readingExercise4.length, 8);
-  assert.ok(readingExercise4.every((item) => item.options.length === 2 && item.options.includes(item.answer)));
-  assert.deepEqual(extraction.manualReviewActivities[0].explicitAnswerIndexes, [6, 3, 5, 1, 7, 2]);
-  assert.deepEqual(extraction.manualReviewActivities[1].explicitAnswerIndexes, [1, 2, 1, 2, 2, 1, 2, 1]);
+  assert.ok(readingExercise4.every((item) => item.options.length === 2 && !("answer" in item)));
+  assert.deepEqual(getNormalizedStudentsBookActivity("reading-ex3").answerRecords.map((answer) => Number(answer.decodedPublisherValue)), [6, 3, 5, 1, 7, 2]);
+  assert.deepEqual(getNormalizedStudentsBookActivity("reading-ex4").answerRecords.map((answer) => Number(answer.decodedPublisherValue)), [1, 2, 1, 2, 2, 1, 2, 1]);
+  assert.deepEqual(extraction.implementedActivities[0].explicitAnswerIndexes, [6, 3, 5, 1, 7, 2]);
+  assert.deepEqual(extraction.implementedActivities[1].explicitAnswerIndexes, [1, 2, 1, 2, 2, 1, 2, 1]);
   const readingActivities = manifest.components[0].units[0].lessons[0].activities;
   assert.equal(readingActivities.find((item) => item.id === "activity-reading-ex3").type, "matching");
   assert.equal(readingActivities.find((item) => item.id === "activity-reading-ex3").status, "manual-review");

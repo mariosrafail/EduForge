@@ -1,9 +1,14 @@
 ﻿import { useState } from "react";
 import { Card } from "../../Shared.jsx";
-import { readingExercise3, readingExercise3Options } from "../ultimateB2ActivityContent.js";
-import { FeedbackRows } from "./shared/FeedbackRows.jsx";
+import { buildScoredAssignmentResult } from "../../../../utils/assignmentSubmission.js";
+import { buildNormalizedSubmissionAnswers, getNormalizedStudentsBookActivity, scoreNormalizedStudentsBookActivity } from "../../../../data/ultimate-b2/normalizedStudentsBookActivities.js";
 import { ReadingAudioPlayer } from "./shared/ReadingAudioPlayer.jsx";
 import { ReadingContextPanel } from "./shared/ReadingContextPanel.jsx";
+
+const activity = getNormalizedStudentsBookActivity("reading-ex3");
+const optionLabel = (optionId = "") => optionId.split("-option-").at(-1);
+const readingOptions = (activity?.questions?.[0]?.options || []).map((option) => ({ id: optionLabel(option.id), optionId: option.id, text: option.value }));
+const readingQuestions = activity?.questions || [];
 
 export function ReadingExercise3({ mode, onSubmit }) {
   const [selectedGap, setSelectedGap] = useState(1);
@@ -14,17 +19,23 @@ export function ReadingExercise3({ mode, onSubmit }) {
   const [submittedRows, setSubmittedRows] = useState(null);
   const isLocked = mode === "teacher-preview" || Boolean(submittedRows);
 
+  if (!activity) return <Card><p className="inline-status">Normalized activity data could not be loaded.</p></Card>;
+
   const submit = () => {
-    const rows = readingExercise3.map((item) => {
-      const studentAnswer = answers[item.gap] || "";
+    const normalizedAnswers = Object.fromEntries(readingQuestions.map((question, index) => {
+      const label = answers[index + 1] || "";
+      return [question.id, readingOptions.find((option) => option.id === label)?.optionId || ""];
+    }));
+    const rows = scoreNormalizedStudentsBookActivity(activity, normalizedAnswers).map((row, index) => {
       return {
-        ...item,
-        studentAnswer,
-        correct: studentAnswer === item.answer,
+        gap: index + 1,
+        studentAnswer: optionLabel(row.studentAnswer[0]),
+        answer: optionLabel(row.answer[0]),
+        correct: row.correct,
       };
     });
     setSubmittedRows(rows);
-    onSubmit?.({ activityKey: "reading-ex3", score: Math.round((rows.filter((row) => row.correct).length / rows.length) * 100) });
+    onSubmit?.(buildScoredAssignmentResult({ activityKey: "reading-ex3", activityId: activity.id, answers: buildNormalizedSubmissionAnswers(activity, normalizedAnswers), rows }));
   };
 
   const placeOption = (optionId, targetGap = selectedGap) => {
@@ -35,7 +46,7 @@ export function ReadingExercise3({ mode, onSubmit }) {
       return next;
     });
     setSelectedOption("");
-    setSelectedGap((current) => (current === targetGap ? Math.min(targetGap + 1, 6) : current));
+    setSelectedGap((current) => (current === targetGap ? Math.min(targetGap + 1, readingQuestions.length) : current));
   };
 
   const clearGap = (gap) => {
@@ -62,9 +73,9 @@ export function ReadingExercise3({ mode, onSubmit }) {
     setDragOverGap(null);
   };
 
-  const unusedOptions = readingExercise3Options.filter((option) => !Object.values(answers).includes(option.id));
-  const displayedOptions = submittedRows ? readingExercise3Options : unusedOptions;
-  const extraOption = readingExercise3Options.find((option) => option.id === "D");
+  const unusedOptions = readingOptions.filter((option) => !Object.values(answers).includes(option.id));
+  const displayedOptions = submittedRows ? readingOptions : unusedOptions;
+  const extraOption = readingOptions.find((option) => option.id === "D");
 
   return (
     <div className="reading-ex3-shell">
@@ -72,8 +83,8 @@ export function ReadingExercise3({ mode, onSubmit }) {
       <ReadingAudioPlayer />
       <Card className="reading-ex3-header">
         <span className="eyebrow">Students Book / Unit 2 Reading</span>
-        <h2>Exercise 3</h2>
-        <p>Read the text again and insert the missing sentences. There is one extra sentence which you do not need to use.</p>
+        <h2>{activity?.title || "Exercise 3"}</h2>
+        <p>{activity?.instructions}</p>
         <div className="inline-status">Drag each sentence into the correct gap. One sentence is extra.</div>
         {selectedOption && !submittedRows && (
           <div id="selected-reading-option" className="inline-status success">
@@ -94,6 +105,8 @@ export function ReadingExercise3({ mode, onSubmit }) {
           onRemoveGap={clearGap}
           submittedRows={submittedRows}
           disabled={mode === "teacher-preview"}
+          readingContext={activity?.presentationData?.readingContext || []}
+          options={readingOptions}
         />
         <Card className="missing-sentence-panel">
           <span className="eyebrow">Sentence bank</span>
@@ -141,8 +154,8 @@ export function ReadingExercise3({ mode, onSubmit }) {
           <div className="inline-status success">Score: {submittedRows.filter((row) => row.correct).length}/{submittedRows.length}</div>
           <div className="reading-feedback-list">
             {submittedRows.map((row) => {
-              const studentOption = readingExercise3Options.find((option) => option.id === row.studentAnswer);
-              const correctOption = readingExercise3Options.find((option) => option.id === row.answer);
+              const studentOption = readingOptions.find((option) => option.id === row.studentAnswer);
+              const correctOption = readingOptions.find((option) => option.id === row.answer);
               return (
                 <article key={row.gap} className={row.correct ? "correct" : "wrong"}>
                   <strong>Gap {row.gap}</strong>
@@ -153,6 +166,12 @@ export function ReadingExercise3({ mode, onSubmit }) {
             })}
           </div>
           {extraOption && <div className="inline-status">Extra unused sentence: {extraOption.id}. {extraOption.text}</div>}
+          {mode === "student" && <button className="secondary-action" type="button" onClick={() => {
+            setAnswers({});
+            setSubmittedRows(null);
+            setSelectedGap(1);
+            setSelectedOption("");
+          }}>Try again</button>}
         </Card>
       )}
     </div>

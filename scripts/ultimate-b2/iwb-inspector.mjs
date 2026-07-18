@@ -15,6 +15,17 @@ const XML_PARSER = new XMLParser({
   trimValues: false,
 });
 
+const NORMALIZATION_XML_PARSER = new XMLParser({
+  allowBooleanAttributes: false,
+  attributeNamePrefix: "@_",
+  ignoreAttributes: false,
+  isArray: (name) => ["answer", "choice", "drag", "drop", "exercise", "question", "sentence"].includes(name),
+  parseAttributeValue: false,
+  parseTagValue: false,
+  processEntities: false,
+  trimValues: false,
+});
+
 const MEDIA_EXERCISE_TYPES = new Set(["video", "karaokeScroll", "display"]);
 
 function sha256(value) {
@@ -257,6 +268,18 @@ export function inspectIwbPayload(input, { knownPlaintext = [] } = {}) {
     knownPlaintext: correlateKnownPlaintext(decoded, transformed, knownPlaintext),
     parsedRoot,
     validationError: strict ? null : validation?.err?.msg || "Transformed payload is not XML",
+  };
+}
+
+export function decodeIwbXml(input) {
+  const decoded = decodeBase64Wrapper(input);
+  const transformed = applyRepeatingXor(decoded);
+  const xml = new TextDecoder("utf-8", { fatal: true }).decode(transformed);
+  const validation = XMLValidator.validate(xml, { allowBooleanAttributes: false });
+  if (validation !== true) throw new Error(validation?.err?.msg || "Decoded IWB is not strict XML");
+  return {
+    document: NORMALIZATION_XML_PARSER.parse(xml),
+    xml,
   };
 }
 

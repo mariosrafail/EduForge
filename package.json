@@ -36,7 +36,8 @@
     "books:import": "node scripts/books/cli.mjs import",
     "books:verify": "node scripts/books/cli.mjs verify",
     "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed",
-    "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs"
+    "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs",
+    "ultimate-b2:extract:activities": "node scripts/ultimate-b2/extract-activities.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",

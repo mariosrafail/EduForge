@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eduforge.invalid/schemas/ultimate-b2-normalized-activity-1.0.json",
+  "title": "Ultimate B2 normalized publisher activity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "id", "aliases", "publisherSourceActivityId", "book", "component",
+    "unitNumber", "partNumber", "physicalPageNumber", "spread", "activityOrder",
+    "activityType", "publisherInteractionTypes", "title", "titleSource", "instructions",
+    "questions", "answerRecords", "scoringRules", "mediaDependencies", "imageDependencies",
+    "hotspotNavigation", "sourceProvenance", "extractionConfidence", "editorialStatus",
+    "publicationStatus", "qualityCategories", "implementationStatus", "unsupportedSourceFields",
+    "extractionWarnings", "presentationData"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "aliases": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "publisherSourceActivityId": { "type": "string" },
+    "book": { "const": "ultimate-b2" },
+    "component": { "const": "students-book" },
+    "unitNumber": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "partNumber": { "type": "integer", "minimum": 1 },
+    "physicalPageNumber": { "type": "integer", "minimum": 5, "maximum": 154 },
+    "spread": { "type": "string", "pattern": "^[0-9]+(?:-[0-9]+)?$" },
+    "activityOrder": { "type": "integer", "minimum": 1 },
+    "activityType": {
+      "enum": [
+        "multiple-choice", "multiple-select", "matching", "ordering", "true-false",
+        "gap-fill", "listening-gap-fill", "typed-short-answer", "sentence-transformation",
+        "classification-grouping", "drag-and-drop-matching", "timed-quiz",
+        "media-only-interaction", "unsupported-publisher-interaction"
+      ]
+    },
+    "publisherInteractionTypes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "title": { "type": "string", "minLength": 1 },
+    "titleSource": { "type": "string" },
+    "instructions": { "type": ["string", "null"] },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "publisherQuestionId", "prompt", "options", "answerRecordIds", "sourcePath"],
+        "properties": {
+          "id": { "type": "string" },
+          "publisherQuestionId": { "type": "string" },
+          "prompt": { "type": ["string", "null"] },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "value", "sourcePath"],
+              "properties": {
+                "id": { "type": "string" },
+                "value": { "type": ["string", "null"] },
+                "sourcePath": { "type": "string" }
+              }
+            }
+          },
+          "answerRecordIds": { "type": "array", "items": { "type": "string" } },
+          "sourcePath": { "type": "string" },
+          "presentation": { "type": "object" }
+        }
+      }
+    },
+    "answerRecords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "sourceFieldPath", "decodedPublisherValue", "normalizedAnswerValue",
+          "questionId", "optionIds", "answerIndexBase", "orderingSignificant",
+          "multipleAnswersAccepted", "caseSensitive", "punctuationNormalization",
+          "confidence", "warnings"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "sourceFieldPath": { "type": "string" },
+          "decodedPublisherValue": { "type": ["string", "null"] },
+          "normalizedAnswerValue": { "type": ["string", "array", "null"], "items": { "type": "string" } },
+          "questionId": { "type": "string" },
+          "optionIds": { "type": "array", "items": { "type": "string" } },
+          "answerIndexBase": { "enum": ["zero-based", "one-based", "publisher-id", "ambiguous", null] },
+          "orderingSignificant": { "type": "boolean" },
+          "multipleAnswersAccepted": { "type": "boolean" },
+          "caseSensitive": { "type": "boolean" },
+          "punctuationNormalization": { "type": "boolean" },
+          "confidence": { "enum": ["confirmed", "high", "medium", "low"] },
+          "warnings": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "scoringRules": { "type": "object" },
+    "mediaDependencies": { "type": "array", "items": { "type": "object" } },
+    "imageDependencies": { "type": "array", "items": { "type": "object" } },
+    "hotspotNavigation": { "type": "object" },
+    "sourceProvenance": { "type": "array", "minItems": 1, "items": { "type": "string", "not": { "pattern": "^(?:[A-Za-z]:|/)" } },
+    "extractionConfidence": { "enum": ["confirmed-structural", "high", "medium", "low"] },
+    "editorialStatus": { "enum": ["manual-review-required", "approved"] },
+    "publicationStatus": { "const": "disabled" },
+    "qualityCategories": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "ready-for-editorial-review", "ready-for-implementation", "answer-evidence-present",
+          "answer-evidence-missing", "question-structure-incomplete", "media-only",
+          "unsupported-interaction", "malformed-source", "excluded-non-exercise"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "implementationStatus": { "type": "string" },
+    "unsupportedSourceFields": { "type": "array", "items": { "type": "string" } },
+    "extractionWarnings": { "type": "array", "items": { "type": "string" } },
+    "presentationData": { "type": "object" }
+  }
+}

@@ -59,8 +59,8 @@ export const ultimateB2Unit2StudentsBookImportSummary = {
   ],
   notes: [
     "Unit 2 contains 103 .iwb files, 164 .png files, 28 .mp3 files, 16 readable .xml files, and 2 .jpg files.",
-    "The .iwb files appear encoded/binary in this package. This mapping uses readable XML metadata and local asset paths only.",
-    "Existing implemented React activities keep their existing demoActivityKey values and are not duplicated.",
+    "Students Book IWB metadata is normalized at build time; the decoder and XOR key are never shipped to the Android frontend.",
+    "Existing implemented React activities keep their demoActivityKey aliases and consume the generated normalized catalog.",
   ],
 };
 
@@ -122,8 +122,8 @@ export const ultimateB2Unit2StudentsBookLessons = [
         progressLabel: "14/18 submitted",
         studentProgressLabel: "Assigned",
         demoActivityKey: "reading-ex3",
-        sourcePackage: "Existing React implementation",
-        sourcePaths: ["src/components/lms/activities/ultimate-b2/ReadingExercise3.jsx"],
+        sourcePackage: "Normalized publisher activity catalog",
+        sourcePaths: ["books/ultimate-b2/generated/activities/unit-02.activities.json", `${SOURCE_ROOT}/part2/obj3/obj_params.iwb`],
         description: "Check comprehension of the Unit 2 reading text.",
       },
       {
@@ -141,8 +141,8 @@ export const ultimateB2Unit2StudentsBookLessons = [
         progressLabel: "Avg. score 76%",
         studentProgressLabel: "Teacher feedback ready",
         demoActivityKey: "reading-ex4",
-        sourcePackage: "Existing React implementation",
-        sourcePaths: ["src/components/lms/activities/ultimate-b2/ReadingExercise4.jsx"],
+        sourcePackage: "Normalized publisher activity catalog",
+        sourcePaths: ["books/ultimate-b2/generated/activities/unit-02.activities.json", `${SOURCE_ROOT}/part2/obj4/obj_params.iwb`],
         description: "Match reading questions with evidence-based strategies.",
       },
       importedExercise({

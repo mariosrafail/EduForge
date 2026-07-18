@@ -56,12 +56,12 @@ export const readingText = [
 // TODO: add synced reading highlights in a later phase.
 
 export const readingExercise3 = [
-  { gap: 1, answer: "F" },
-  { gap: 2, answer: "C" },
-  { gap: 3, answer: "E" },
-  { gap: 4, answer: "A" },
-  { gap: 5, answer: "G" },
-  { gap: 6, answer: "B" },
+  { gap: 1 },
+  { gap: 2 },
+  { gap: 3 },
+  { gap: 4 },
+  { gap: 5 },
+  { gap: 6 },
 ];
 
 export const readingExercise3Options = [
@@ -75,12 +75,12 @@ export const readingExercise3Options = [
 ];
 
 export const readingExercise4 = [
-  { id: "r4-1", before: "Pilots need permission to enter another country's", options: ["air space", "radar"], answer: "air space", after: "." },
-  { id: "r4-2", before: "Mobile phones should be switched off until you are inside the", options: ["runway", "terminal"], answer: "terminal", after: "building." },
-  { id: "r4-3", before: "Can you", options: ["locate", "control"], answer: "locate", after: "where we are on this map?" },
-  { id: "r4-4", before: "Many physicists believe it's possible to travel to other", options: ["courses", "dimensions"], answer: "dimensions", after: "." },
-  { id: "r4-5", before: "Air traffic", options: ["pilots", "controllers"], answer: "controllers", after: "guide planes from the control tower." },
-  { id: "r4-6", before: "To his", options: ["amazement", "horror"], answer: "amazement", after: ", he had kept the plane on course." },
-  { id: "r4-7", before: "The plane", options: ["took", "touched"], answer: "touched", after: "down smoothly despite the windy conditions." },
-  { id: "r4-8", before: "GPS technology calculates the fastest", options: ["route", "road"], answer: "route", after: "to your destination." },
+  { id: "r4-1", before: "Pilots need permission to enter another country's", options: ["air space", "radar"], after: "." },
+  { id: "r4-2", before: "Mobile phones should be switched off until you are inside the", options: ["runway", "terminal"], after: "building." },
+  { id: "r4-3", before: "Can you", options: ["locate", "control"], after: "where we are on this map?" },
+  { id: "r4-4", before: "Many physicists believe it's possible to travel to other", options: ["courses", "dimensions"], after: "." },
+  { id: "r4-5", before: "Air traffic", options: ["pilots", "controllers"], after: "guide planes from the control tower." },
+  { id: "r4-6", before: "To his", options: ["amazement", "horror"], after: ", he had kept the plane on course." },
+  { id: "r4-7", before: "The plane", options: ["took", "touched"], after: "down smoothly despite the windy conditions." },
+  { id: "r4-8", before: "GPS technology calculates the fastest", options: ["route", "road"], after: "to your destination." },
 ];

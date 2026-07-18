@@ -1,6 +1,5 @@
 ﻿import { BookOpen } from "lucide-react";
 import { Card } from "../../../Shared.jsx";
-import { readingExercise3Options, readingText } from "../../ultimateB2ActivityContent.js";
 
 export function ReadingAudioTextPanel({
   gapAnswers = {},
@@ -14,6 +13,8 @@ export function ReadingAudioTextPanel({
   onRemoveGap,
   submittedRows,
   disabled = false,
+  readingContext = [],
+  options = [],
 }) {
   const renderParts = (paragraph) => {
     const parts = paragraph.parts || [paragraph.text];
@@ -21,9 +22,9 @@ export function ReadingAudioTextPanel({
       if (typeof part === "string") return <span key={`${paragraph.id}-text-${index}`}>{part} </span>;
 
       const selectedAnswer = gapAnswers[part.gap];
-      const selectedOptionData = readingExercise3Options.find((option) => option.id === selectedAnswer);
+      const selectedOptionData = options.find((option) => option.id === selectedAnswer);
       const submitted = submittedRows?.find((row) => row.gap === part.gap);
-      const correctOptionData = readingExercise3Options.find((option) => option.id === submitted?.answer);
+      const correctOptionData = options.find((option) => option.id === submitted?.answer);
       const stateClass = [
         submitted ? (submitted.correct ? "correct" : "wrong") : "",
         selectedGap === part.gap ? "selected" : "",
@@ -97,7 +98,7 @@ export function ReadingAudioTextPanel({
         <h2>On a fast track</h2>
       </div>
       <div className="reading-paragraph-stack">
-        {readingText.map((paragraph, index) => (
+        {readingContext.map((paragraph, index) => (
           <p key={paragraph.id}>
             <b>{index + 1}</b>
             {renderParts(paragraph)}
