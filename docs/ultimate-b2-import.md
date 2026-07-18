@@ -1,5 +1,19 @@
 # Ultimate English B2 Import Notes
 
+## Repeatable Students Book scan
+
+Run the complete read-only forensic scan with:
+
+```text
+npm run ultimate-b2:scan:students-book
+```
+
+The command defaults to the ignored local `Ultimate English B2.app` directory at the repository root and accepts `--source-root <path>` for another local copy. It rejects symlinks that escape the source root, never executes publisher binaries, parses XML/JSON strictly, hashes the full package, and writes deterministic relative-path metadata to `books/ultimate-b2/generated/`.
+
+The generated inventory covers the Students Book boundary (`assets/books/book1/unit`, its unit videos, and media referenced by readable Students Book XML). Sibling `work`, `grammar`, `test`, `companion`, and related roots are identified and excluded. The structure file contains all 110 page/spread images covering 158 physical pages (5-162), page order, activity-object relationships, media dependencies, and empty hotspot arrays ready for later controlled mapping.
+
+The scan does not call encoded IWB objects fully recoverable. Their base64 wrapper is decoded only far enough to identify the payload signature; the proprietary payload remains unresolved. The selected Unit 2 audit is recorded in `books/ultimate-b2/ultimate-b2.students-book-unit-2.extraction.json`. Existing Reading Exercises 3 and 4 remain implemented but require publisher answer-key review before their answers can be described as verified.
+
 Source package:
 
 ```text

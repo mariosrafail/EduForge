@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0",
+  "book": "ultimate-b2",
+  "component": "students-book",
+  "unitNumber": 2,
+  "selectionStatus": "controlled-manual-review-scope",
+  "selectionReason": "Unit 2 has confirmed pages 19-34, existing page assets and hotspot mappings, readable video/listening metadata, and two existing interactions suitable for source-page auditing.",
+  "publisherSourceBoundary": "Contents/Resources/assets/books/book1/unit/2",
+  "automaticPublication": false,
+  "fullyRecoverableActivities": [],
+  "manualReviewActivities": [
+    {
+      "id": "activity-reading-ex3",
+      "sourceActivityId": "ultimate-b2-sb-u2-p2-o3",
+      "title": "Reading Exercise 3",
+      "pageNumber": 20,
+      "spreadNumber": "20-21",
+      "activityType": "matching",
+      "questionCount": 6,
+      "optionCount": 7,
+      "instructionStatus": "confirmed-from-page-image",
+      "questionAndOptionStatus": "confirmed-from-page-image",
+      "answerStatus": "existing-implementation-not-publisher-verified",
+      "scoringStatus": "existing-implementation-not-publisher-verified",
+      "sourceReferences": [
+        "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb"
+      ],
+      "implementationReference": "src/components/lms/activities/ultimate-b2/ReadingExercise3.jsx",
+      "publicationStatus": "manual-review"
+    },
+    {
+      "id": "activity-reading-ex4",
+      "sourceActivityId": "ultimate-b2-sb-u2-p2-o4",
+      "title": "Reading Exercise 4",
+      "pageNumber": 20,
+      "spreadNumber": "20-21",
+      "activityType": "multiple-choice",
+      "questionCount": 8,
+      "optionCount": 16,
+      "instructionStatus": "confirmed-from-page-image",
+      "questionAndOptionStatus": "confirmed-from-page-image",
+      "answerStatus": "existing-implementation-not-publisher-verified",
+      "scoringStatus": "existing-implementation-not-publisher-verified",
+      "sourceReferences": [
+        "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png",
+        "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb"
+      ],
+      "implementationReference": "src/components/lms/activities/ultimate-b2/ReadingExercise4.jsx",
+      "publicationStatus": "manual-review"
+    },
+    {
+      "id": "ultimate-b2-sb-u2-p5-o3",
+      "title": "Listening sentence completion",
+      "pageNumber": 26,
+      "spreadNumber": "26",
+      "activityType": "listening-gap-fill",
+      "questionCount": null,
+      "optionCount": null,
+      "instructionStatus": "activity-kind-confirmed-from-readable-xml",
+      "questionAndOptionStatus": "encoded-unresolved",
+      "answerStatus": "missing-from-readable-source",
+      "scoringStatus": "unavailable",
+      "sourceReferences": [
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params1.xml",
+        "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params.iwb"
+      ],
+      "implementationReference": null,
+      "publicationStatus": "manual-review"
+    }
+  ],
+  "existingImplementationAudit": {
+    "questionText": "confirmed-for-reading-ex3-and-reading-ex4",
+    "options": "confirmed-for-reading-ex3-and-reading-ex4",
+    "correctAnswers": "not-verifiable-from-readable-publisher-metadata",
+    "feedback": "not-present-in-readable-publisher-metadata",
+    "pageRelationship": "confirmed-pages-20-21",
+    "mediaRelationship": "reading-audio-and-video-mapped-separately",
+    "discrepanciesCorrected": [
+      "Reading Exercise 3 was labelled multiple choice although its source behavior is missing-sentence matching.",
+      "The Android overlay labelled Reading Exercise 4 as matching although its source behavior is two-option multiple choice."
+    ]
+  }
+}

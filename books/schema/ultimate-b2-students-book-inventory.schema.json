@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eduforge.invalid/schemas/ultimate-b2-students-book-inventory-1.0.json",
+  "title": "Ultimate B2 Students Book forensic inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "packageSummary", "inventory"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "packageSummary": { "type": "object" },
+    "inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sourceRelativePath", "fileType", "byteSize", "sha256", "detectedMimeType", "classification", "confidence", "extractionStatus"],
+        "properties": {
+          "sourceRelativePath": { "type": "string", "pattern": "^(?![A-Za-z]:|/|.*(?:^|/)\\.\\.(?:/|$)).+$" },
+          "fileType": { "type": "string" },
+          "byteSize": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "detectedMimeType": { "type": "string" },
+          "classification": {
+            "enum": ["students-book-page", "students-book-exercise", "students-book-audio", "students-book-video", "students-book-image", "students-book-answer-data", "students-book-instructions", "students-book-hotspot", "students-book-navigation", "students-book-unknown", "duplicate"]
+          },
+          "confidence": { "enum": ["confirmed", "high", "medium", "low", "unknown"] },
+          "extractionStatus": { "type": "string" }
+        }
+      }
+    }
+  }
+}

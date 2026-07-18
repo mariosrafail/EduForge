@@ -35,18 +35,20 @@
     "books:import:dry-run": "node scripts/books/cli.mjs import --dry-run",
     "books:import": "node scripts/books/cli.mjs import",
     "books:verify": "node scripts/books/cli.mjs verify",
-    "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed"
+    "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed",
+    "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.848.0",
+    "@aws-sdk/s3-request-presigner": "^3.848.0",
     "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/status-bar": "^8.0.2",
     "@neondatabase/serverless": "^1.1.0",
-    "@aws-sdk/client-s3": "^3.848.0",
-    "@aws-sdk/s3-request-presigner": "^3.848.0",
     "@vitejs/plugin-react": "latest",
     "bcryptjs": "^3.0.3",
+    "fast-xml-parser": "5.10.1",
     "framer-motion": "latest",
     "lucide-react": "latest",
     "nodemailer": "^9.0.3",
