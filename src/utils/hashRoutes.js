@@ -1,4 +1,5 @@
 import { demoBookPackages, inferPackageSlugFromBookId } from "../data/bookPackages.js";
+import { isLegacyFlashProofEnabled, isLegacyFlashProofHash, LEGACY_FLASH_PROOF_ROUTE } from "../features/legacyFlash/legacyFlashConfig.js";
 
 export const bookIds = [
   "students-book",
@@ -489,10 +490,18 @@ export function getActivityFromHash(hash) {
   return null;
 }
 
-export function parseHashRoute(hash = "") {
+export function parseHashRoute(hash = "", runtimeEnv = import.meta.env || {}) {
   const rawHashView = cleanHash(hash);
   const hashView = rawHashView ? withLeadingSlash(rawHashView) : "/";
   const legacyHashView = rawHashView || "home";
+
+  if (isLegacyFlashProofEnabled(runtimeEnv) && isLegacyFlashProofHash(hashView)) {
+    return baseRoute(LEGACY_FLASH_PROOF_ROUTE, {
+      view: "legacy-flash-proof",
+      role: "development",
+      mode: "development",
+    });
+  }
 
   const accountMatch = rawHashView.match(/^\/?(accept-invitation|reset-password|account-security)(?:\?(.*))?$/);
   if (accountMatch) {
