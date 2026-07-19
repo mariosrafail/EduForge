@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
@@ -16,12 +16,6 @@ import { brandPresets } from "./data/lmsDemoData.js";
 import { dashboardForRole, useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
-import { isLegacyFlashProofEnabled } from "./features/legacyFlash/legacyFlashConfig.js";
-
-const legacyFlashProofEnabled = isLegacyFlashProofEnabled(import.meta.env);
-const LegacyFlashProofView = legacyFlashProofEnabled
-  ? lazy(() => import("./features/legacyFlash/LegacyFlashProofView.jsx"))
-  : null;
 
 const teacherSectionByView = {
   teacher: "dashboard",
@@ -185,11 +179,6 @@ export default function App() {
       <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
         {view === "invalid-route" && <InvalidRouteView attemptedHash={attemptedHash} navigateTo={navigateTo} />}
-        {view === "legacy-flash-proof" && LegacyFlashProofView && (
-          <Suspense fallback={<main className="route-fallback-screen"><p>Loading isolated compatibility proof…</p></main>}>
-            <LegacyFlashProofView currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
-          </Suspense>
-        )}
         {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView key={view} mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} onSignOut={auth.signOut} navigateTo={navigateTo} />}
         {view.startsWith("auth-") && (
           <AuthView

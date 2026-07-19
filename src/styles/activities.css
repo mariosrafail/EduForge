@@ -2579,3 +2579,53 @@
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
+
+.unit2-normalized-media {
+  display: block;
+  width: 100%;
+  max-height: 540px;
+  margin: 18px 0;
+  border-radius: 12px;
+  background: #101828;
+}
+
+.unit2-normalized-question-list {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.unit2-normalized-question {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px 12px;
+  padding: 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.unit2-normalized-question > span {
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: #344054;
+  font-weight: 800;
+}
+
+.unit2-normalized-question input,
+.unit2-normalized-question select,
+.unit2-normalized-question textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #98a2b3;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.unit2-normalized-question.correct { border-color: #6ce9a6; background: #ecfdf3; }
+.unit2-normalized-question.wrong { border-color: #fda29b; background: #fef3f2; }

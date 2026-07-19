@@ -113,7 +113,8 @@ function uniqueSorted(values) {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
 }
 
-function isEnabledActivity(activity) {
+function isEnabledActivity(activity, implementation = null) {
+  if (implementation) return implementation.implementationMode !== "unsupported-disabled";
   return activity.implementationStatus === "implemented-from-normalized-catalog"
     && activity.qualityCategories?.includes("ready-for-implementation");
 }
@@ -123,25 +124,27 @@ function activityClassification(activity) {
   return "activity";
 }
 
-function activityPresentation(activity) {
-  const enabled = isEnabledActivity(activity);
-  const activityKey = activity.aliases?.[0] || null;
+function activityPresentation(activity, implementation = null) {
+  const enabled = isEnabledActivity(activity, implementation);
+  const activityKey = enabled ? activity.aliases?.[0] || activity.id : null;
+  const runtimeQuestions = implementation?.runtime?.questions || activity.questions || [];
   return {
     id: activity.id,
     publisherSourceActivityId: activity.publisherSourceActivityId,
     classification: activityClassification(activity),
-    title: activity.title || null,
-    titleSource: activity.titleSource || "unavailable",
-    instructions: activity.instructions || null,
+    title: implementation?.title || activity.title || null,
+    titleSource: implementation ? "unit-02-implementation-matrix" : activity.titleSource || "unavailable",
+    instructions: implementation?.visibleInstructionText || activity.instructions || null,
     activityType: activity.activityType,
     activityKey,
     availability: enabled ? "enabled" : "disabled",
-    scoring: activity.answerRecords?.length ? "explicit-publisher-evidence" : "not-automatically-scored",
-    editorialStatus: enabled ? "implemented-reviewed-slice" : activity.editorialStatus,
-    implementationStatus: activity.implementationStatus,
-    questionCount: activity.questions?.length || 0,
-    optionCount: (activity.questions || []).reduce((sum, question) => sum + (question.options?.length || 0), 0),
-    sourceProvenance: uniqueSorted((activity.sourceProvenance || []).map(sourcePathWithoutFragment)),
+    scoring: implementation?.scoringMode || (activity.answerRecords?.length ? "explicit-publisher-evidence" : "not-automatically-scored"),
+    ...(implementation ? { implementationMode: implementation.implementationMode } : {}),
+    editorialStatus: implementation?.editorialStatus || (enabled ? "implemented-reviewed-slice" : activity.editorialStatus),
+    implementationStatus: implementation?.implementationStatus || activity.implementationStatus,
+    questionCount: runtimeQuestions.length,
+    optionCount: runtimeQuestions.reduce((sum, question) => sum + (question.options?.length || 0), 0),
+    sourceProvenance: uniqueSorted((implementation?.sourceProvenance || activity.sourceProvenance || []).map(sourcePathWithoutFragment)),
   };
 }
 
@@ -185,21 +188,21 @@ function contentObjectsForActivity(activity) {
 }
 
 function availableUnit2Actions(unitNumber, partNumber, activities) {
-  if (unitNumber !== 2 || partNumber !== 2) return [];
-  const enabledIds = new Set(activities.filter((activity) => activity.availability === "enabled").map((activity) => activity.id));
-  return [
-    { id: "video", label: "Video", classification: "video", availability: "enabled", target: "video" },
-    { id: "text-audio", label: "Text + Audio", classification: "audio", availability: "enabled", target: "text-audio" },
-    enabledIds.has("ultimate-b2-sb-u2-p2-o3") && { id: "exercise-3", label: "Exercise 3", classification: "activity", availability: "enabled", target: "exercise-3", activityKey: "reading-ex3" },
-    enabledIds.has("ultimate-b2-sb-u2-p2-o4") && { id: "exercise-4", label: "Exercise 4", classification: "activity", availability: "enabled", target: "exercise-4", activityKey: "reading-ex4" },
-  ].filter(Boolean);
+  if (unitNumber !== 2) return [];
+  return activities.filter((activity) => activity.availability === "enabled").map((activity) => {
+    if (activity.id === "ultimate-b2-sb-u2-p2-o1") return { id: `${activity.id}-action`, label: activity.title, classification: "activity", availability: "enabled", target: "normalized-activity", activityKey: activity.activityKey };
+    if (activity.id === "ultimate-b2-sb-u2-p2-o2") return { id: "text-audio", label: "Text + Audio", classification: "audio", availability: "enabled", target: "text-audio", activityKey: activity.activityKey };
+    if (activity.id === "ultimate-b2-sb-u2-p2-o3") return { id: "exercise-3", label: "Exercise 3", classification: "activity", availability: "enabled", target: "exercise-3", activityKey: "reading-ex3" };
+    if (activity.id === "ultimate-b2-sb-u2-p2-o4") return { id: "exercise-4", label: "Exercise 4", classification: "activity", availability: "enabled", target: "exercise-4", activityKey: "reading-ex4" };
+    return { id: `${activity.id}-action`, label: activity.title, classification: "activity", availability: "enabled", target: "normalized-activity", activityKey: activity.activityKey };
+  });
 }
 
-function buildPage(unit, sourcePage, unitActivities) {
+function buildPage(unit, sourcePage, unitActivities, implementationById) {
   const activities = unitActivities
     .filter((activity) => activity.partNumber === sourcePage.partNumber)
     .sort((left, right) => left.activityOrder - right.activityOrder);
-  const activitySummaries = activities.map(activityPresentation);
+  const activitySummaries = activities.map((activity) => activityPresentation(activity, implementationById.get(activity.id)));
   const sourceActivities = unit.activities.filter((activity) => activity.partNumber === sourcePage.partNumber);
   const mediaPaths = uniqueSorted(sourceActivities.flatMap((activity) => activity.media || []).map(sourcePathWithoutFragment));
   const media = mediaPaths.map((sourceRelativePath, index) => ({
@@ -274,10 +277,11 @@ export function validateStudentsBookContentCatalog(catalog) {
   return { valid: errors.length === 0, errors };
 }
 
-export function buildStudentsBookContentCatalog({ structure, activityCatalogs }) {
+export function buildStudentsBookContentCatalog({ structure, activityCatalogs, implementationMatrices = [] }) {
   const activitiesByUnit = new Map(activityCatalogs.map((catalog) => [catalog.unitNumber, catalog.activities || []]));
+  const implementationById = new Map(implementationMatrices.flatMap((matrix) => matrix?.activities || []).map((activity) => [activity.stableNormalizedId, activity]));
   const units = structure.units.map((unit) => {
-    const pages = unit.pages.map((page) => buildPage(unit, page, activitiesByUnit.get(unit.number) || []));
+    const pages = unit.pages.map((page) => buildPage(unit, page, activitiesByUnit.get(unit.number) || [], implementationById));
     return {
       id: `ultimate-b2-students-book-unit-${String(unit.number).padStart(2, "0")}`,
       number: unit.number,

@@ -8,6 +8,7 @@ import { ListeningPage20 } from "./ListeningPage20.jsx";
 import { GrammarOpening } from "./GrammarOpening.jsx";
 import { QuizActivity } from "./QuizActivity.jsx";
 import { DatabaseActivity } from "./DatabaseActivity.jsx";
+import { findUnit2Implementation, NormalizedUnit2Activity } from "./NormalizedUnit2Activity.jsx";
 
 function ReadingExercise({ activityKey, mode, onSubmit }) {
   if (activityKey === "reading-ex4") return <ReadingExercise4 mode={mode} onSubmit={onSubmit} />;
@@ -49,6 +50,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
   // These publisher-confirmed activities intentionally take precedence over
   // the obsolete demo question rows from database/006.
   if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
+  if (findUnit2Implementation(activityKey)) return <NormalizedUnit2Activity activityId={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activity?.questions?.length) {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
@@ -64,6 +66,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
 }
 
 function getBookIdForActivity(activityKey, resolved) {
+  if (findUnit2Implementation(activityKey)) return "students-book";
   if (["video-intro", "reading-ex3", "reading-ex4"].includes(activityKey)) return "students-book";
   if (activityKey === "listening-page-20") return "workbook";
   if (["grammar-opening", "grammar-ex4"].includes(activityKey)) return "grammar-book";
@@ -82,10 +85,11 @@ function getBookHashForActivity(activityKey, mode = "student", resolved = null) 
 
 export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
+  const normalized = findUnit2Implementation(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
   const key = exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
-  const title = activity?.title || exercise?.title || "Ultimate B2 activity";
+  const title = activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
   const routeRole = getActivityRouteRole(mode);
   const packageRoute = `${routeRole}-books`;
   const bookRoute = getBookHashForActivity(key, mode, resolved);

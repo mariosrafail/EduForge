@@ -40,20 +40,22 @@
             "id": "ultimate-b2-sb-u2-p1-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p1-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 1 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Unit opener · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the quote and discuss these questions with a partner.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p1-o1",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 3,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_1.png"
             ]
           }
         ],
@@ -62,7 +64,16 @@
           "Contents/Resources/assets/books/book1/unit/2/part1/obj1/image_1.png",
           "Contents/Resources/assets/books/book1/unit/2/part1/obj1/image_2.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p1-o1-action",
+            "label": "Unit opener · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p1-o1"
+          }
+        ],
         "contentObjects": [
           {
             "id": "reading-19-heading",
@@ -129,7 +140,7 @@
             ]
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb",
@@ -184,100 +195,110 @@
             "id": "ultimate-b2-sb-u2-p2-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p2-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 2 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Reading · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Watch the video and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p2-o1",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 2,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part2/obj1/ebook_obj_params.iwb",
               "Contents/Resources/assets/books/book1/unit/2/part2/obj1/obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml"
+              "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p2-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p2-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 2 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Reading · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Listen and read the text. Then discuss the questions with a partner.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 3,
+            "activityKey": "ultimate-b2-sb-u2-p2-o2",
+            "availability": "enabled",
+            "scoring": "unscored",
+            "implementationMode": "reading-content",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 0,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part2/obj2/ebook_obj_params.iwb",
               "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part2/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part2/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p2-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p2-o3",
             "classification": "activity",
-            "title": "Reading Exercise 3",
-            "titleSource": "confirmed-existing-page-audit",
+            "title": "Reading · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
             "instructions": "Read the text again and insert the missing sentences. There is one extra sentence which you do not need to use.",
             "activityType": "drag-and-drop-matching",
             "activityKey": "reading-ex3",
             "availability": "enabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "implemented-reviewed-slice",
-            "implementationStatus": "implemented-from-normalized-catalog",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 6,
             "optionCount": 42,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p2-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p2-o4",
             "classification": "activity",
-            "title": "Reading Exercise 4",
-            "titleSource": "confirmed-existing-page-audit",
+            "title": "Reading · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
             "instructions": "Circle the correct words.",
             "activityType": "multiple-choice",
             "activityKey": "reading-ex4",
             "availability": "enabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "implemented-reviewed-slice",
-            "implementationStatus": "implemented-from-normalized-catalog",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 16,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p2-o5",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p2-o5",
             "classification": "activity",
-            "title": "Unit 2 / Part 2 / Object 5",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Reading",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "With your partner, discuss the question. Use the ideas given and add your own. Then take turns to present your arguments.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 2,
+            "activityKey": "ultimate-b2-sb-u2-p2-o5",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 1,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part2/obj5/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part2/obj5/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part2/obj5/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png"
             ]
           }
         ],
@@ -355,18 +376,20 @@
         ],
         "actions": [
           {
-            "id": "video",
-            "label": "Video",
-            "classification": "video",
+            "id": "ultimate-b2-sb-u2-p2-o1-action",
+            "label": "Reading · Exercise 1",
+            "classification": "activity",
             "availability": "enabled",
-            "target": "video"
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p2-o1"
           },
           {
             "id": "text-audio",
             "label": "Text + Audio",
             "classification": "audio",
             "availability": "enabled",
-            "target": "text-audio"
+            "target": "text-audio",
+            "activityKey": "ultimate-b2-sb-u2-p2-o2"
           },
           {
             "id": "exercise-3",
@@ -383,6 +406,14 @@
             "availability": "enabled",
             "target": "exercise-4",
             "activityKey": "reading-ex4"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o5-action",
+            "label": "Reading",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p2-o5"
           }
         ],
         "contentObjects": [
@@ -1106,133 +1137,147 @@
             "id": "ultimate-b2-sb-u2-p3-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read and complete the text with the words in the box.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
-            "optionCount": 40,
+            "activityKey": "ultimate-b2-sb-u2-p3-o1",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 10,
+            "optionCount": 100,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the expressions with the words in the box. Then use the expressions to complete the sentences.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 5,
+            "activityKey": "ultimate-b2-sb-u2-p3-o2",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 10,
             "optionCount": 30,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the words in the box.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p3-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 64,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the correct prepositions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p3-o4",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 9,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o5",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o5",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 5",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 5",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the chart. Then complete the sentences with words from the chart.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p3-o5",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 11,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj5/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj5/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o6",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o6",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 6",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 6",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the words in the box.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p3-o6",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 7,
             "optionCount": 91,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj6/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj6/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p3-o7",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p3-o7",
             "classification": "activity",
-            "title": "Unit 2 / Part 3 / Object 7",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Vocabulary in Use · Exercise 7",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the text with the correct form of the words given.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
+            "activityKey": "ultimate-b2-sb-u2-p3-o7",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part3/obj7/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part3/obj7/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png"
             ]
           }
         ],
@@ -1262,7 +1307,64 @@
           "Contents/Resources/assets/books/book1/unit/2/part3/obj7/image_2.png",
           "Contents/Resources/assets/books/book1/unit/2/part3/obj7/showText.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-action",
+            "label": "Vocabulary in Use · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-action",
+            "label": "Vocabulary in Use · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-action",
+            "label": "Vocabulary in Use · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o3"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-action",
+            "label": "Vocabulary in Use · Exercise 4",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o4"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-action",
+            "label": "Vocabulary in Use · Exercise 5",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o5"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-action",
+            "label": "Vocabulary in Use · Exercise 6",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o6"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-action",
+            "label": "Vocabulary in Use · Exercise 7",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p3-o7"
+          }
+        ],
         "contentObjects": [
           {
             "id": "vocabulary-22-23-heading",
@@ -2762,7 +2864,7 @@
             "availability": "editorial-only"
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb",
@@ -2813,115 +2915,127 @@
             "id": "ultimate-b2-sb-u2-p4-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Watch the video and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p4-o1",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 2,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part4/obj1/obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p4-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the text with the past simple or the past continuous of the verbs in brackets.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 6,
+            "activityKey": "ultimate-b2-sb-u2-p4-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 10,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p4-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read and circle the correct answers.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 6,
-            "optionCount": 12,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p4-o6",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o6",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 6",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 6",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the past perfect simple or the past perfect continuous of the verbs in brackets.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p4-o6",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 5,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj6/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj6/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p4-o7",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o7",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 7",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 7",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the dialogue by circling the correct answers.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 8,
-            "optionCount": 16,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj7/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj7/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p4-o8",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p4-o8",
             "classification": "activity",
-            "title": "Unit 2 / Part 4 / Object 8",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Grammar in Use · Exercise 8",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 3,
+            "activityKey": "ultimate-b2-sb-u2-p4-o8",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 6,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part4/obj8/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part4/obj8/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png"
             ]
           }
         ],
@@ -2970,7 +3084,40 @@
           "Contents/Resources/assets/books/book1/unit/2/part4/obj8/image_2.png",
           "Contents/Resources/assets/books/book1/unit/2/part4/obj8/showText.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p4-o1-action",
+            "label": "Grammar in Use · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p4-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-action",
+            "label": "Grammar in Use · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p4-o3"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-action",
+            "label": "Grammar in Use · Exercise 6",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p4-o6"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-action",
+            "label": "Grammar in Use · Exercise 8",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p4-o8"
+          }
+        ],
         "contentObjects": [
           {
             "id": "grammar-24-25-heading",
@@ -3497,7 +3644,7 @@
             "availability": "editorial-only"
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part4/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml",
@@ -3545,78 +3692,86 @@
             "id": "ultimate-b2-sb-u2-p5-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p5-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 5 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Listening · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Look at the pictures. How much do you know about Iceland? Read and circle T (true) or F (false).",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
-            "optionCount": 8,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_5.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p5-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p5-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 5 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Listening · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the text about fjords and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p5-o2",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 4,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_5.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p5-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p5-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 5 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Listening · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Listen and read the text about fjords. Were your predictions correct?",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p5-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 4,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params1.xml"
+              "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params1.xml",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_5.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p5-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p5-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 5 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Listening · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Look at the gaps in questions 1–10 and try to predict the missing words. Then listen and complete the sentences with a word or short phrase.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 6,
+            "activityKey": "ultimate-b2-sb-u2-p5-o4",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 10,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part5/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part5/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_5.png"
             ]
           }
         ],
@@ -3720,7 +3875,32 @@
           "Contents/Resources/assets/books/book1/unit/2/part5/obj4/showText.png",
           "Contents/Resources/assets/books/book1/unit/2/part5/obj4/tapescript.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p5-o2-action",
+            "label": "Listening · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p5-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o3-action",
+            "label": "Listening · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p5-o3"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-action",
+            "label": "Listening · Exercise 4",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p5-o4"
+          }
+        ],
         "contentObjects": [
           {
             "id": "listening-26-heading",
@@ -4082,7 +4262,7 @@
             "availability": "editorial-only"
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb",
@@ -4128,59 +4308,65 @@
             "id": "ultimate-b2-sb-u2-p6-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p6-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 6 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Speaking · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Look at the two photos. Find similarities and differences between them.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p6-o1",
+            "availability": "enabled",
+            "scoring": "unscored",
+            "implementationMode": "unscored-practice",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 2,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part6/obj1/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_6.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p6-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p6-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 6 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Speaking · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Listen to a student comparing the photos. Then complete the missing words.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p6-o2",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 6,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part6/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part6/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_6.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p6-o5",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p6-o5",
             "classification": "activity",
-            "title": "Unit 2 / Part 6 / Object 5",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Speaking · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Work with your partner to compare the photos. Use the words and phrases in the Language checklist to help you.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 0,
+            "activityKey": "ultimate-b2-sb-u2-p6-o5",
+            "availability": "enabled",
+            "scoring": "unscored",
+            "implementationMode": "unscored-practice",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 3,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part6/obj5/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part6/obj5/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part6/obj5/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_6.png"
             ]
           }
         ],
@@ -4216,7 +4402,32 @@
           "Contents/Resources/assets/books/book1/unit/2/part6/obj5/image_2.png",
           "Contents/Resources/assets/books/book1/unit/2/part6/obj5/reference.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p6-o1-action",
+            "label": "Speaking · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p6-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-action",
+            "label": "Speaking · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p6-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o5-action",
+            "label": "Speaking · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p6-o5"
+          }
+        ],
         "contentObjects": [
           {
             "id": "speaking-27-heading",
@@ -4368,7 +4579,7 @@
             "availability": "editorial-only"
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part6/obj1/ebook_obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb",
@@ -4420,178 +4631,196 @@
             "id": "ultimate-b2-sb-u2-p7-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the writing task and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p7-o2",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 3,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj2/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the model story and complete it with the time and sequence words and phrases.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
-            "optionCount": 32,
+            "activityKey": "ultimate-b2-sb-u2-p7-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 8,
+            "optionCount": 64,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the model story again and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p7-o4",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 4,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj4/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o5",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o5",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 5",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the model story again and circle the correct words.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 6,
-            "optionCount": 12,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj5/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj5/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o6",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o6",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 6",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 5",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the model story again and underline the verbs that describe how people or things move. Then write them here.",
             "activityType": "multiple-choice",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p7-o6",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 1,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj6/circle_atlas.xml",
               "Contents/Resources/assets/books/book1/unit/2/part7/obj6/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj6/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj6/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o7",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o7",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 7",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 6",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Replace the words in bold with the correct form of a descriptive verb from the Language checklist.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p7-o7",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 5,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj7/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj7/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o8",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o8",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 8",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 7",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the writing task and answer the questions.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 2,
+            "activityKey": "ultimate-b2-sb-u2-p7-o8",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 4,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj8/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj8/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj8/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o9",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o9",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 9",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 8",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read these opening sentences of stories and choose the sentence which follows on from them logically. Why are the other options wrong?",
             "activityType": "multiple-choice",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p7-o9",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 3,
-            "optionCount": 6,
+            "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj9/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj9/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj9/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p7-o10",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p7-o10",
             "classification": "activity",
-            "title": "Unit 2 / Part 7 / Object 10",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Writing · Exercise 9",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the paragraph plan and write the story.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 0,
+            "activityKey": "ultimate-b2-sb-u2-p7-o10",
+            "availability": "enabled",
+            "scoring": "pending-teacher-review",
+            "implementationMode": "teacher-reviewed",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 1,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part7/obj10/ebook_obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png"
             ]
           }
         ],
@@ -4622,7 +4851,72 @@
           "Contents/Resources/assets/books/book1/unit/2/part7/obj9/image_1.png",
           "Contents/Resources/assets/books/book1/unit/2/part7/obj9/image_2.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o2-action",
+            "label": "Writing · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-action",
+            "label": "Writing · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o3"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o4-action",
+            "label": "Writing · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o4"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o6-action",
+            "label": "Writing · Exercise 5",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o6"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-action",
+            "label": "Writing · Exercise 6",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o7"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o8-action",
+            "label": "Writing · Exercise 7",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o8"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o9-action",
+            "label": "Writing · Exercise 8",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o9"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o10-action",
+            "label": "Writing · Exercise 9",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p7-o10"
+          }
+        ],
         "contentObjects": [
           {
             "id": "writing-28-29-heading",
@@ -5222,7 +5516,7 @@
             ]
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part7/obj10/ebook_obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb",
@@ -5279,78 +5573,86 @@
             "id": "ultimate-b2-sb-u2-p8-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p8-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 8 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Review 2 · Vocabulary",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Choose the correct answers.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
-            "optionCount": 16,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part8/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part8/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_8.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p8-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p8-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 8 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Review 2 · Grammar",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Choose the correct answers.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
-            "optionCount": 16,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part8/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part8/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_8.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p8-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p8-o3",
             "classification": "unsupported",
-            "title": "Unit 2 / Part 8 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Review 2 · Game 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Legacy team game.",
             "activityType": "unsupported-publisher-interaction",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 25,
-            "optionCount": 100,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part8/obj3/obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part8/obj3/questions_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part8/obj3/questions_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_8.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p8-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p8-o4",
             "classification": "unsupported",
-            "title": "Unit 2 / Part 8 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Review 2 · Game 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Legacy team game.",
             "activityType": "unsupported-publisher-interaction",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 25,
-            "optionCount": 100,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part8/obj4/obj_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part8/obj4/questions_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part8/obj4/questions_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_8.png"
             ]
           }
         ],
@@ -7035,19 +7337,21 @@
             "id": "ultimate-b2-sb-u2-p9-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p9-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 9 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Practice 2 · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read the text and insert the missing sentences. There is one extra sentence which you do not need to use.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p9-o1",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 6,
             "optionCount": 42,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_9.png"
             ]
           }
         ],
@@ -7057,7 +7361,16 @@
           "Contents/Resources/assets/books/book1/unit/2/part9/obj1/image_2.png",
           "Contents/Resources/assets/books/book1/unit/2/part9/obj1/showText.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-action",
+            "label": "Practice 2 · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p9-o1"
+          }
+        ],
         "contentObjects": [
           {
             "id": "practice-31-heading",
@@ -7327,7 +7640,7 @@
             ]
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_9.png",
@@ -7367,39 +7680,43 @@
             "id": "ultimate-b2-sb-u2-p10-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p10-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 10 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Practice 2 · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "For questions 1–8, read the text and think of the word which best fits each gap. Use only one word in each gap.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 4,
+            "activityKey": "ultimate-b2-sb-u2-p10-o1",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_10.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p10-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p10-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 10 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Practice 2 · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Listen to the interview and complete the sentences with a word or short phrase.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 5,
+            "activityKey": "ultimate-b2-sb-u2-p10-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 10,
             "optionCount": 0,
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_params.iwb",
-              "Contents/Resources/assets/books/book1/unit/2/part10/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part10/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_10.png"
             ]
           }
         ],
@@ -7480,7 +7797,24 @@
           "Contents/Resources/assets/books/book1/unit/2/part10/obj3/showText.png",
           "Contents/Resources/assets/books/book1/unit/2/part10/obj3/tapescript.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-action",
+            "label": "Practice 2 · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p10-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-action",
+            "label": "Practice 2 · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p10-o3"
+          }
+        ],
         "contentObjects": [
           {
             "id": "practice-32-heading",
@@ -7681,7 +8015,7 @@
             "availability": "editorial-only"
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_params.iwb",
@@ -7725,76 +8059,84 @@
             "id": "ultimate-b2-sb-u2-p11-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p11-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 11 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the correct form of these phrasal verbs.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p11-o1",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_11.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p11-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p11-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 11 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Match. Then complete the sentences with the correct words.",
             "activityType": "drag-and-drop-matching",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 8,
+            "activityKey": "ultimate-b2-sb-u2-p11-o2",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 16,
             "optionCount": 64,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_11.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p11-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p11-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 11 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the sentences with the correct adjective form of the words given.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p11-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part11/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part11/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_11.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p11-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p11-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 11 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read and circle the correct words.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 8,
-            "optionCount": 16,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part11/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part11/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_11.png"
             ]
           }
         ],
@@ -7808,7 +8150,32 @@
           "Contents/Resources/assets/books/book1/unit/2/part11/obj4/image_1.png",
           "Contents/Resources/assets/books/book1/unit/2/part11/obj4/image_2.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-action",
+            "label": "Progress check 1 · Exercise 1",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p11-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-action",
+            "label": "Progress check 1 · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p11-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-action",
+            "label": "Progress check 1 · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p11-o3"
+          }
+        ],
         "contentObjects": [
           {
             "id": "progress-check-33-heading",
@@ -8524,7 +8891,7 @@
             ]
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb",
@@ -8569,76 +8936,84 @@
             "id": "ultimate-b2-sb-u2-p12-o1",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p12-o1",
             "classification": "activity",
-            "title": "Unit 2 / Part 12 / Object 1",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 1",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Circle the correct answers.",
             "activityType": "multiple-choice",
             "activityKey": null,
             "availability": "disabled",
-            "scoring": "explicit-publisher-evidence",
+            "scoring": "unscored",
+            "implementationMode": "unsupported-disabled",
             "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
-            "questionCount": 8,
-            "optionCount": 16,
+            "implementationStatus": "disabled-editorial-only",
+            "questionCount": 0,
+            "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_12.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p12-o2",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p12-o2",
             "classification": "activity",
-            "title": "Unit 2 / Part 12 / Object 2",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 2",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Read and complete the text. Write one word in each gap.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p12-o2",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_12.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p12-o3",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p12-o3",
             "classification": "activity",
-            "title": "Unit 2 / Part 12 / Object 3",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 3",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete. Use the past perfect simple or the past perfect continuous.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p12-o3",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 8,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part12/obj3/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part12/obj3/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_12.png"
             ]
           },
           {
             "id": "ultimate-b2-sb-u2-p12-o4",
             "publisherSourceActivityId": "ultimate-b2-sb-u2-p12-o4",
             "classification": "activity",
-            "title": "Unit 2 / Part 12 / Object 4",
-            "titleSource": "application-generated-diagnostic",
-            "instructions": null,
+            "title": "Progress check 1 · Exercise 4",
+            "titleSource": "unit-02-implementation-matrix",
+            "instructions": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
             "activityType": "typed-short-answer",
-            "activityKey": null,
-            "availability": "disabled",
-            "scoring": "not-automatically-scored",
-            "editorialStatus": "manual-review-required",
-            "implementationStatus": "not-implemented",
+            "activityKey": "ultimate-b2-sb-u2-p12-o4",
+            "availability": "enabled",
+            "scoring": "authoritative-explicit-answer",
+            "implementationMode": "auto-scored",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
             "questionCount": 6,
             "optionCount": 0,
             "sourceProvenance": [
-              "Contents/Resources/assets/books/book1/unit/2/part12/obj4/obj_params.iwb"
+              "Contents/Resources/assets/books/book1/unit/2/part12/obj4/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_12.png"
             ]
           }
         ],
@@ -8650,7 +9025,32 @@
           "Contents/Resources/assets/books/book1/unit/2/part12/obj3/image_2.png",
           "Contents/Resources/assets/books/book1/unit/2/part12/obj4/image_2.png"
         ],
-        "actions": [],
+        "actions": [
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-action",
+            "label": "Progress check 1 · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p12-o2"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-action",
+            "label": "Progress check 1 · Exercise 3",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p12-o3"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-action",
+            "label": "Progress check 1 · Exercise 4",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u2-p12-o4"
+          }
+        ],
         "contentObjects": [
           {
             "id": "progress-check-34-heading",
@@ -9082,7 +9482,7 @@
             ]
           }
         ],
-        "editorialStatus": "page-ready-activities-review-required",
+        "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb",

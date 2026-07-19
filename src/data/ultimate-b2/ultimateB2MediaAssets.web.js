@@ -3,3 +3,8 @@ export const ultimateB2ReadingAudio = { logicalKey: "ultimate-b2.students-book.u
 export const ultimateB2ReadingTextImage = { logicalKey: "ultimate-b2.students-book.unit-2.reading.text-image", localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/student-text.jpg" : null };
 export const ultimateB2WorkbookListeningAudio = { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3" : null };
 export const ultimateB2GrammarRulesImage = { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/grammar-rules.jpg" : null };
+
+export const ultimateB2Unit2Media = {
+  [ultimateB2ReadingVideo.logicalKey]: ultimateB2ReadingVideo,
+  [ultimateB2ReadingAudio.logicalKey]: ultimateB2ReadingAudio,
+};

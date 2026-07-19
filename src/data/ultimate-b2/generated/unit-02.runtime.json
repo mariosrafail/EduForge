@@ -1,0 +1,4465 @@
+{
+  "schemaVersion": "1.0",
+  "book": "ultimate-b2",
+  "component": "students-book",
+  "unitNumber": 2,
+  "activities": [
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p1-o1",
+      "title": "Unit opener · Exercise 1",
+      "visibleInstructionText": "Read the quote and discuss these questions with a partner.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p1-o1-q1",
+            "number": 1,
+            "prompt": "Do you believe that time travel is possible? Why/Why not?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p1-o1-q2",
+            "number": 2,
+            "prompt": "Which time period in history would you choose to travel to? Why?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p1-o1-q3",
+            "number": 3,
+            "prompt": "What would you change if you travelled back or forward in time?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p2-o1",
+      "title": "Reading · Exercise 1",
+      "visibleInstructionText": "Watch the video and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "video",
+          "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro",
+          "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/2/part2/obj1.mp4",
+          "localDevelopmentPath": "/src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p2-o1-q1",
+            "number": 1,
+            "prompt": "What has the Bermuda Triangle always been associated with?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o1-q2",
+            "number": 2,
+            "prompt": "What is similar in all the stories of planes and ships disappearing?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p2-o2",
+      "title": "Reading · Exercise 2",
+      "visibleInstructionText": "Listen and read the text. Then discuss the questions with a partner.",
+      "implementationMode": "reading-content",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3",
+          "localDevelopmentPath": "/src/assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p2-o3",
+      "title": "Reading · Exercise 3",
+      "visibleInstructionText": "Read the text again and insert the missing sentences. There is one extra sentence which you do not need to use.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q1",
+            "number": 1,
+            "prompt": "Bruce was an experienced pilot, and he was used to making this trip. It was only a 90-minute journey, and until that day, it had always gone perfectly. The fact that it followed a route through the Bermuda Triangle had never worried Bruce before. Over the years, around 2,000 ships and 200 planes had gone missing in this area. ____ As he hit the cloud, everything around the plane turned black as night. Although he was feeling extremely anxious, Bruce found the strength to stay calm and focused on flying the plane.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q2",
+            "number": 2,
+            "prompt": "Then, all of a sudden, flashes of brilliant white light started appearing around the plane. ____ So, what could it be? Thoughts raced wildly in his mind as he kept the plane on course through the blinding light. The Beechcraft Bonanza had been travelling inside the cloud for about thirty minutes when Bruce started to feel like he was in a never-ending tunnel. At that point, he wondered if he and his two passengers would ever make it out of the cloud alive.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q3",
+            "number": 3,
+            "prompt": "As the tunnel cloud seemed to close around the small plane, its electronic equipment stopped functioning properly. ____ Bruce was no longer able to navigate, but he refused to give up hope. Suddenly, he saw daylight through the darkness. Luckily, the plane managed to escape the cloud and found open blue sky once again. Everyone breathed a sigh of relief.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q4",
+            "number": 4,
+            "prompt": "Fearing that they had been blown off course, the pilot immediately contacted the air traffic controllers at Miami airport to check his plane's position. However, the air traffic controllers couldn't locate the plane on their radar. Then, to Bruce's amazement, they announced that the plane was already inside the Miami air space. ____ This just added to the confusion. Surely that was impossible as this was a 90-minute journey!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q5",
+            "number": 5,
+            "prompt": "Suddenly, Bruce saw the runways and the terminal buildings at Miami Airport. He was indeed where the controllers had said he was! As the plane safely touched down on the runway, Bruce asked himself how they could have reached their destination so quickly. To make matters even more confusing, only half of the fuel needed had been used up. ____ It didn't make any sense!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o3-q6",
+            "number": 6,
+            "prompt": "According to some experts, nature sometimes creates a kind of electric fog in which ships and planes can get trapped. ____ After many years of research and talking to scientists, Bruce came to the conclusion that it must have been electric fog that he experienced that day. He is convinced that it acted like an accelerator to fast-track his Beechcraft Bonanza to its destination!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-A",
+                "text": "Moreover, the plane's clock showed that it had only been travelling for 45 minutes."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-B",
+                "text": "What's more, it's possible for boats and aircraft to completely disappear and slip into another dimension when they hit this fog!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-C",
+                "text": "However, Bruce knew that it wasn't lightning."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-D",
+                "text": "It had been the journey of a lifetime!"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-E",
+                "text": "For example, the compass started turning anti-clockwise and it appeared that a force outside the plane was now controlling it."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-F",
+                "text": "Unlike the captains and pilots of those ships and planes, Bruce lived to tell an extraordinary tale."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o3-option-G",
+                "text": "Had the plane become some kind of time machine that allowed them to travel through space and time?"
+              }
+            ],
+            "sourceType": "drag-and-drop-matching"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p2-o4",
+      "title": "Reading · Exercise 4",
+      "visibleInstructionText": "Circle the correct words.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q1",
+            "number": 1,
+            "prompt": "Pilots need permission to enter another country's ____ .",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q1-option-1",
+                "text": "air space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q1-option-2",
+                "text": "radar"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q2",
+            "number": 2,
+            "prompt": "Mobile phones should be switched off until you are inside the ____ building.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q2-option-1",
+                "text": "runway"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q2-option-2",
+                "text": "terminal"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q3",
+            "number": 3,
+            "prompt": "Can you ____ where we are on this map?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q3-option-1",
+                "text": "locate"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q3-option-2",
+                "text": "control"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q4",
+            "number": 4,
+            "prompt": "Many physicists believe it's possible to travel to other ____ .",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q4-option-1",
+                "text": "courses"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q4-option-2",
+                "text": "dimensions"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q5",
+            "number": 5,
+            "prompt": "Air traffic ____ guide planes from the control tower.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q5-option-1",
+                "text": "pilots"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q5-option-2",
+                "text": "controllers"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q6",
+            "number": 6,
+            "prompt": "To his ____ , he had kept the plane on course.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q6-option-1",
+                "text": "amazement"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q6-option-2",
+                "text": "horror"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q7",
+            "number": 7,
+            "prompt": "The plane ____ down smoothly despite the windy conditions.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q7-option-1",
+                "text": "took"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q7-option-2",
+                "text": "touched"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p2-o4-q8",
+            "number": 8,
+            "prompt": "GPS technology calculates the fastest ____ to your destination.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q8-option-1",
+                "text": "route"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p2-o4-q8-option-2",
+                "text": "road"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p2-o5",
+      "title": "Reading",
+      "visibleInstructionText": "With your partner, discuss the question. Use the ideas given and add your own. Then take turns to present your arguments.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p2-o5-q1",
+            "number": 1,
+            "prompt": "Time travel is impossible. Agree or disagree?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o1",
+      "title": "Vocabulary in Use · Exercise 1",
+      "visibleInstructionText": "Read and complete the text with the words in the box.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q1",
+            "number": 1,
+            "prompt": "(1) ____ off on trips hoping that we will reach our destination safely and on time.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q1-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q2",
+            "number": 2,
+            "prompt": "(2) ____ that took longer than expected.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q2-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q3",
+            "number": 3,
+            "prompt": "(3) ____ on a Manchester to London train had a very late night when their journey took five hours longer than usual. After changing trains once, they were unable to continue because the second train broke down. They had to stand in a",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q3-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q4",
+            "number": 4,
+            "prompt": "(4) ____ to board a coach. They could have flown to New York in less time than it took to get across England!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q4-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q5",
+            "number": 5,
+            "prompt": "(5) ____ when flying, but have you ever been late due to singing? A plane travelling from Los Angeles to New York had to make an emergency",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q5-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q6",
+            "number": 6,
+            "prompt": "(6) ____ because a passenger refused to stop singing. The crew decided it",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q6-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q7",
+            "number": 7,
+            "prompt": "(7) ____ to Kansas City where everyone had to wait for another flight. If you think taking the car is always fastest, you might need to reconsider.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q7-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q8",
+            "number": 8,
+            "prompt": "(8) ____ was caused by a combination of terrible weather and a record number of holidaymakers returning home. The blocked traffic stretched for over 170 kilometres. Worse yet, in China in",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q8-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q9",
+            "number": 9,
+            "prompt": "(9) ____ got stuck on the road for five solid days. We’re guessing",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q9-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o1-q10",
+            "number": 10,
+            "prompt": "(10) ____ weren’t very happy about it!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o1",
+                "text": "commuters"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o2",
+                "text": "delays"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o3",
+                "text": "diverted"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o5",
+                "text": "journeys"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o6",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o7",
+                "text": "motorists"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o8",
+                "text": "passengers"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o9",
+                "text": "queue"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o1-q10-o10",
+                "text": "set"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o2",
+      "title": "Vocabulary in Use · Exercise 2",
+      "visibleInstructionText": "Complete the expressions with the words in the box. Then use the expressions to complete the sentences.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q1",
+            "number": 1,
+            "prompt": "suffer",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o1",
+                "text": "a cruise / a trip / a break / your time"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o2",
+                "text": "for a bus / for a train / for a taxi"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o3",
+                "text": "on holiday / on a journey / by air / sightseeing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o4",
+                "text": "a hotel room / a package holiday / a ticket"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o5",
+                "text": "a reservation / a flight / accommodation"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q1-o6",
+                "text": "from jetlag / from travel sickness"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q2",
+            "number": 2,
+            "prompt": "take",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o1",
+                "text": "a cruise / a trip / a break / your time"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o2",
+                "text": "for a bus / for a train / for a taxi"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o3",
+                "text": "on holiday / on a journey / by air / sightseeing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o4",
+                "text": "a hotel room / a package holiday / a ticket"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o5",
+                "text": "a reservation / a flight / accommodation"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q2-o6",
+                "text": "from jetlag / from travel sickness"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q3",
+            "number": 3,
+            "prompt": "wait",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o1",
+                "text": "a cruise / a trip / a break / your time"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o2",
+                "text": "for a bus / for a train / for a taxi"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o3",
+                "text": "on holiday / on a journey / by air / sightseeing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o4",
+                "text": "a hotel room / a package holiday / a ticket"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o5",
+                "text": "a reservation / a flight / accommodation"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q3-o6",
+                "text": "from jetlag / from travel sickness"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q4",
+            "number": 4,
+            "prompt": "book",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o1",
+                "text": "a cruise / a trip / a break / your time"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o2",
+                "text": "for a bus / for a train / for a taxi"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o3",
+                "text": "on holiday / on a journey / by air / sightseeing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o4",
+                "text": "a hotel room / a package holiday / a ticket"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o5",
+                "text": "a reservation / a flight / accommodation"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q4-o6",
+                "text": "from jetlag / from travel sickness"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q5",
+            "number": 5,
+            "prompt": "cancel",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o1",
+                "text": "a cruise / a trip / a break / your time"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o2",
+                "text": "for a bus / for a train / for a taxi"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o3",
+                "text": "on holiday / on a journey / by air / sightseeing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o4",
+                "text": "a hotel room / a package holiday / a ticket"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o5",
+                "text": "a reservation / a flight / accommodation"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o2-q5-o6",
+                "text": "from jetlag / from travel sickness"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q6",
+            "number": 6,
+            "prompt": "8 We stood on the platform and ____ for the next train to Liverpool.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q7",
+            "number": 7,
+            "prompt": "9 Sadly, we had to ____ our flight when the airport closed due to heavy fog.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q8",
+            "number": 8,
+            "prompt": "10 I ____ travel sickness, so I take tablets when I go on a bus.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q9",
+            "number": 9,
+            "prompt": "11 Did you remember to ____ tickets for the concert?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o2-q10",
+            "number": 10,
+            "prompt": "12 Last July, we ____ a cruise around the Mediterranean on a luxury boat.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o3",
+      "title": "Vocabulary in Use · Exercise 3",
+      "visibleInstructionText": "Complete the sentences with the words in the box.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q1",
+            "number": 1,
+            "prompt": "1 I don’t like busy tourist resorts, so I travel to places off the ____ track.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q1-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q2",
+            "number": 2,
+            "prompt": "2 It’s late and we have to go. Let’s ____ the road.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q2-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q3",
+            "number": 3,
+            "prompt": "3 You’ve ____ the sun. You look very tanned.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q3-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q4",
+            "number": 4,
+            "prompt": "4 Annette has travelled far and ____, and she loves talking about the places she’s visited.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q4-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q5",
+            "number": 5,
+            "prompt": "5 My dad doesn’t like driving for long periods, so we always ____ the journey up to have a rest.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q5-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q6",
+            "number": 6,
+            "prompt": "6 I never take big suitcases with me. I like travelling ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q6-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q7",
+            "number": 7,
+            "prompt": "7 Our flight was early that morning, so we had to get up at the crack of ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q7-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o3-q8",
+            "number": 8,
+            "prompt": "8 We didn’t hear from Jeremy for a week, but he turned up safe and ____ in the end.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o1",
+                "text": "beaten"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o2",
+                "text": "break"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o3",
+                "text": "caught"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o4",
+                "text": "dawn"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o5",
+                "text": "hit"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o6",
+                "text": "light"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o7",
+                "text": "sound"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o3-q8-o8",
+                "text": "wide"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o4",
+      "title": "Vocabulary in Use · Exercise 4",
+      "visibleInstructionText": "Complete the sentences with the correct prepositions.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q1",
+            "number": 1,
+            "prompt": "2 I dropped my phone as I was getting ____ of the taxi.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q2",
+            "number": 2,
+            "prompt": "3 The plane took ____ at exactly 2.15 pm.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q3",
+            "number": 3,
+            "prompt": "4 Greg checked ____ the hotel and went up to his room to unpack.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q4",
+            "number": 4,
+            "prompt": "5 Did anyone come to the station to see you ____?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q5",
+            "number": 5,
+            "prompt": "6 I soon realised that I had got ____ the wrong bus. I was going somewhere I didn’t want to go!",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q6",
+            "number": 6,
+            "prompt": "7 Could you please drop me ____ at the street corner?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q7",
+            "number": 7,
+            "prompt": "8 It’s easy to get ____ on the London Underground. There are maps everywhere.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q8",
+            "number": 8,
+            "prompt": "9 Before I set ____ on a long journey, I always make sure I’ve got some good music to listen to.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o4-q9",
+            "number": 9,
+            "prompt": "10 My dad picked me ____ from school and we went straight to the airport.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o5",
+      "title": "Vocabulary in Use · Exercise 5",
+      "visibleInstructionText": "Complete the chart. Then complete the sentences with words from the chart.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q1",
+            "number": 1,
+            "prompt": "2 anxiety",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q2",
+            "number": 2,
+            "prompt": "3 attract",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q3",
+            "number": 3,
+            "prompt": "4 comfort",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q4",
+            "number": 4,
+            "prompt": "5 disaster",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q5",
+            "number": 5,
+            "prompt": "6 end",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q6",
+            "number": 6,
+            "prompt": "7 event",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q7",
+            "number": 7,
+            "prompt": "8 harm",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q8",
+            "number": 8,
+            "prompt": "9 impress",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q9",
+            "number": 9,
+            "prompt": "10 memory",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q10",
+            "number": 10,
+            "prompt": "11 nation",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o5-q11",
+            "number": 11,
+            "prompt": "12 season",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o6",
+      "title": "Vocabulary in Use · Exercise 6",
+      "visibleInstructionText": "Complete the sentences with the words in the box.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q1",
+            "number": 1,
+            "prompt": "2 Jobs in tourism tend to be ____ – not many resorts stay open all year round.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q1-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q2",
+            "number": 2,
+            "prompt": "3 I don’t know why, but I always get ____ before a long journey.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q2-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q3",
+            "number": 3,
+            "prompt": "4 My trip wasn’t ____. In fact, nothing remarkable happened!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q3-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q4",
+            "number": 4,
+            "prompt": "5 I managed to sleep on the plane, but it wasn’t very ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q4-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q5",
+            "number": 5,
+            "prompt": "6 We had the most ____ holiday! I’ll never forget it as long as I live.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q5-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q6",
+            "number": 6,
+            "prompt": "7 Camping is not allowed in ____ parks.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q6-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o6-q7",
+            "number": 7,
+            "prompt": "8 They told us we might see snakes, but we shouldn’t worry as they are ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o1",
+                "text": "adventurous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o2",
+                "text": "anxious"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o3",
+                "text": "attractive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o4",
+                "text": "comfortable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o5",
+                "text": "disastrous"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o6",
+                "text": "endless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o7",
+                "text": "eventful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o8",
+                "text": "harmful"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o9",
+                "text": "harmless"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o10",
+                "text": "impressive"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o11",
+                "text": "memorable"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o12",
+                "text": "national"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p3-o6-q7-o13",
+                "text": "seasonal"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p3-o7",
+      "title": "Vocabulary in Use · Exercise 7",
+      "visibleInstructionText": "Complete the text with the correct form of the words given.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q1",
+            "number": 1,
+            "prompt": "(1) ____ what I got. On the first day, we travelled to the salt flats – EXACT thousands of square kilometres of dried-up salt that looked like a science-fiction universe. This is what the makers of Star Wars: The Last Jedi thought when they",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q2",
+            "number": 2,
+            "prompt": "(2) ____ for a number of outdoor scenes. In the wet LOCATE season, the water lying on the surface acts as a giant mirror that you can walk on,",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q3",
+            "number": 3,
+            "prompt": "(3) ____ photographic opportunities. I found the END",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q4",
+            "number": 4,
+            "prompt": "(4) ____ and I enjoyed being creative with INSPIRE my own photos.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q5",
+            "number": 5,
+            "prompt": "(5) ____, ACCOMMODATE including a hotel built entirely from salt, even the beds! Most hotels have",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q6",
+            "number": 6,
+            "prompt": "(6) ____ views across the flats and the friendly staff can help you IMPRESS arrange day trips in four-wheeled vehicles. However, for me, the most",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q7",
+            "number": 7,
+            "prompt": "(7) ____ activity was when we slept in tents on the flats themselves. MEMORY",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p3-o7-q8",
+            "number": 8,
+            "prompt": "(8) ____ ADVENTURE journey.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o1",
+      "title": "Grammar in Use · Exercise 1",
+      "visibleInstructionText": "Watch the video and answer the questions.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "video",
+          "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro",
+          "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4",
+          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p4-o1-q1",
+            "number": 1,
+            "prompt": "1 When did the first hot-air balloon flight happen?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o1-q2",
+            "number": 2,
+            "prompt": "2 How many Boeing 747s had been built before production stopped?",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o3",
+      "title": "Grammar in Use · Exercise 3",
+      "visibleInstructionText": "Complete the text with the past simple or the past continuous of the verbs in brackets.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q1",
+            "number": 1,
+            "prompt": "(2) ____ (go) for a ride in a hot-air balloon and I couldn’t have been more excited.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q2",
+            "number": 2,
+            "prompt": "(3) ____ (blow).",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q3",
+            "number": 3,
+            "prompt": "(4) ____ (not rain). These were ideal conditions, the",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q4",
+            "number": 4,
+            "prompt": "(5) ____ (explain).",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q5",
+            "number": 5,
+            "prompt": "(6) ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q6",
+            "number": 6,
+            "prompt": "(7) ____ (block) all negative thoughts out of my mind.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q7",
+            "number": 7,
+            "prompt": "(8) ____ (float).",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q8",
+            "number": 8,
+            "prompt": "(9) ____ (not disappoint) me, and time flew by as I enjoyed the",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q9",
+            "number": 9,
+            "prompt": "(10) ____ (make) preparations for landing.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o3-q10",
+            "number": 10,
+            "prompt": "(11) ____ (not last) long enough, so I will have to go again!",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o4",
+      "title": "Grammar in Use · Exercise 4",
+      "visibleInstructionText": "Read and circle the correct answers.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o6",
+      "title": "Grammar in Use · Exercise 6",
+      "visibleInstructionText": "Complete the sentences with the past perfect simple or the past perfect continuous of the verbs in brackets.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-q1",
+            "number": 1,
+            "prompt": "2 When the teacher told us to stop, I ____ (not finish) doing the test.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-q2",
+            "number": 2,
+            "prompt": "3 You seemed to recognise Mary. ____ (you / meet) her before?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-q3",
+            "number": 3,
+            "prompt": "4 What ____ (you / do) when I phoned you? You sounded out of breath.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-q4",
+            "number": 4,
+            "prompt": "5 We ____ (drive) for an hour when I remembered I had forgotten to close the windows at home.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o6-q5",
+            "number": 5,
+            "prompt": "6 By the end of his first week on holiday, Alex ____ (take) over 5,000 photos.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o7",
+      "title": "Grammar in Use · Exercise 7",
+      "visibleInstructionText": "Complete the dialogue by circling the correct answers.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p4-o8",
+      "title": "Grammar in Use · Exercise 8",
+      "visibleInstructionText": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q1",
+            "number": 1,
+            "prompt": "1 I checked everything in my suitcase twice before I closed it. HAD I didn’t close my suitcase until ____ twice.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q2",
+            "number": 2,
+            "prompt": "2 It was during my walk in the park that the idea came to me. WHILE The idea came to me ____ walk in the park.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q3",
+            "number": 3,
+            "prompt": "3 When I was a child, we didn’t go on package holidays. TO We ____ on package holidays when I was a child.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q4",
+            "number": 4,
+            "prompt": "4 It was our first time in New York, so everything was new to us. BEEN We ____ to New York before, so everything was new to us.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q5",
+            "number": 5,
+            "prompt": "5 She interviewed the explorer and then wrote her article. HAD She wrote her article ____ the explorer.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p4-o8-q6",
+            "number": 6,
+            "prompt": "6 In the summer, we usually got up early in the morning to go fishing. WOULD In the summer, ____ early in the morning to go fishing.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p5-o1",
+      "title": "Listening · Exercise 1",
+      "visibleInstructionText": "Look at the pictures. How much do you know about Iceland? Read and circle T (true) or F (false).",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p5-o2",
+      "title": "Listening · Exercise 2",
+      "visibleInstructionText": "Read the text about fjords and answer the questions.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p5-o2-q1",
+            "number": 1,
+            "prompt": "(1) ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o2-q2",
+            "number": 2,
+            "prompt": "(2) ____ with steep",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o2-q3",
+            "number": 3,
+            "prompt": "(3) ____, not fresh water. Iceland’s",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o2-q4",
+            "number": 4,
+            "prompt": "(4) ____ km long. Question 1: Which word can you think of that contrasts with inland? ____ Question 2: What plural noun could go here? ____ Question 3: What other kind of ‘water’ is there? ____ Question 4: What kind of information are you looking for? ____",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p5-o3",
+      "title": "Listening · Exercise 3",
+      "visibleInstructionText": "Listen and read the text about fjords. Were your predictions correct?",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-2.listening.fjords",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
+          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p5-o3-q1",
+            "number": 1,
+            "prompt": "(1) ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o3-q2",
+            "number": 2,
+            "prompt": "(2) ____ with steep",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o3-q3",
+            "number": 3,
+            "prompt": "(3) ____, not fresh water. Iceland’s",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o3-q4",
+            "number": 4,
+            "prompt": "(4) ____ km long.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p5-o4",
+      "title": "Listening · Exercise 4",
+      "visibleInstructionText": "Look at the gaps in questions 1–10 and try to predict the missing words. Then listen and complete the sentences with a word or short phrase.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
+          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q1",
+            "number": 1,
+            "prompt": "(1) ____ club. Before the trip, Chloe learnt some facts about Iceland from watching a(n)",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q2",
+            "number": 2,
+            "prompt": "(2) ____ that was set there.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q3",
+            "number": 3,
+            "prompt": "(3) ____, but the journey turned out fine.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q4",
+            "number": 4,
+            "prompt": "(4) ____ prevented them from seeing the northern lights.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q5",
+            "number": 5,
+            "prompt": "(5) ____. Chloe will always remember Diamond Beach because of the colour contrast between",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q6",
+            "number": 6,
+            "prompt": "(6) ____ and the black sand.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q7",
+            "number": 7,
+            "prompt": "(7) ____ when they went to the ice cave.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q8",
+            "number": 8,
+            "prompt": "(8) ____ back to their hotel.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q9",
+            "number": 9,
+            "prompt": "(9) ____ the colourful lights appeared in the sky.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p5-o4-q10",
+            "number": 10,
+            "prompt": "(10) ____, which Chloe felt was not long enough.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p6-o1",
+      "title": "Speaking · Exercise 1",
+      "visibleInstructionText": "Look at the two photos. Find similarities and differences between them.",
+      "implementationMode": "unscored-practice",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p6-o1-q1",
+            "number": 1,
+            "prompt": "Similarities",
+            "options": [],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o1-q2",
+            "number": 2,
+            "prompt": "Differences",
+            "options": [],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p6-o2",
+      "title": "Speaking · Exercise 2",
+      "visibleInstructionText": "Listen to a student comparing the photos. Then complete the missing words.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
+          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q1",
+            "number": 1,
+            "prompt": "(1) ____ photos show groups of people. One similarity is that both groups appear to be on holiday. They seem to be having a nice time in both photos too.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q2",
+            "number": 2,
+            "prompt": "(2) ____ is that they have chosen to do an outdoor activity.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q3",
+            "number": 3,
+            "prompt": "(3) ____ is that in the first photo, the people are",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q4",
+            "number": 4,
+            "prompt": "(4) ____ is that the two photos illustrate different kinds of holiday – a camping holiday",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q5",
+            "number": 5,
+            "prompt": "(5) ____ that the people in the first photo might be friends, whereas",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o2-q6",
+            "number": 6,
+            "prompt": "(6) ____ be relatives.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p6-o5",
+      "title": "Speaking · Exercise 3",
+      "visibleInstructionText": "Work with your partner to compare the photos. Use the words and phrases in the Language checklist to help you.",
+      "implementationMode": "unscored-practice",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p6-o5-q1",
+            "number": 1,
+            "prompt": "Compare the two photos.",
+            "options": [],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o5-q2",
+            "number": 2,
+            "prompt": "Why have the people chosen to spend their holidays in these places?",
+            "options": [],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p6-o5-q3",
+            "number": 3,
+            "prompt": "Which of these two places would you most enjoy visiting?",
+            "options": [],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o2",
+      "title": "Writing · Exercise 1",
+      "visibleInstructionText": "Read the writing task and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o2-q1",
+            "number": 1,
+            "prompt": "What kind of text do you have to write, and how will it start?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o2-q2",
+            "number": 2,
+            "prompt": "What two things must you include?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o2-q3",
+            "number": 3,
+            "prompt": "Where was Rick going with his rucksack?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o3",
+      "title": "Writing · Exercise 2",
+      "visibleInstructionText": "Read the model story and complete it with the time and sequence words and phrases.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q1",
+            "number": 1,
+            "prompt": "(1) ____ as he had",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q1-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q2",
+            "number": 2,
+            "prompt": "(2) ____ made it! Rick reached for his phone. He wasn’t surprised to see he had received a message.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q2-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q3",
+            "number": 3,
+            "prompt": "(3) ____ he was putting his phone away he wondered if he had given himself enough time. He had been looking forward to going cycling with",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q3-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q4",
+            "number": 4,
+            "prompt": "(4) ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q4-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q5",
+            "number": 5,
+            "prompt": "(5) ____ the train entered the tunnel that crossed under the narrow sea between England and France. He had studied the",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q5-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q6",
+            "number": 6,
+            "prompt": "(6) ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q6-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q7",
+            "number": 7,
+            "prompt": "(7) ____ they pulled into the station, Rick jumped off the train and ran all the way to the address his cousin had texted him. Pierre was waiting there with the other members of their cycling group. They were all getting ready to set off.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q7-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o3-q8",
+            "number": 8,
+            "prompt": "(8) ____, Rick had barely made it!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o1",
+                "text": "as"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o2",
+                "text": "as soon"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o3",
+                "text": "the moment"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o4",
+                "text": "just"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o5",
+                "text": "not long after that"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o6",
+                "text": "now"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o7",
+                "text": "once again"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p7-o3-q8-o8",
+                "text": "until"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o4",
+      "title": "Writing · Exercise 3",
+      "visibleInstructionText": "Read the model story again and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o4-q1",
+            "number": 1,
+            "prompt": "1 Why did Rick race along the platform?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o4-q2",
+            "number": 2,
+            "prompt": "2 Where was Rick going?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o4-q3",
+            "number": 3,
+            "prompt": "3 Who was the message from?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o4-q4",
+            "number": 4,
+            "prompt": "4 Why did Rick need the address?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o5",
+      "title": "Writing · Exercise 4",
+      "visibleInstructionText": "Read the model story again and circle the correct words.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o6",
+      "title": "Writing · Exercise 5",
+      "visibleInstructionText": "Read the model story again and underline the verbs that describe how people or things move. Then write them here.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o6-q1",
+            "number": 1,
+            "prompt": "Then write them here.",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o7",
+      "title": "Writing · Exercise 6",
+      "visibleInstructionText": "Replace the words in bold with the correct form of a descriptive verb from the Language checklist.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-q1",
+            "number": 1,
+            "prompt": "2 Luckily no one was hurt when the car moved quickly round the corner. ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-q2",
+            "number": 2,
+            "prompt": "3 She didn’t shout, she just looked at me angrily. ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-q3",
+            "number": 3,
+            "prompt": "4 He’d always thought about becoming a pilot. ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-q4",
+            "number": 4,
+            "prompt": "5 She took my passport and started to look at it very carefully. ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o7-q5",
+            "number": 5,
+            "prompt": "6 Louise thought about what to do next. ____",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o8",
+      "title": "Writing · Exercise 7",
+      "visibleInstructionText": "Read the writing task and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o8-q1",
+            "number": 1,
+            "prompt": "What kind of text do you have to write, and how will it start?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o8-q2",
+            "number": 2,
+            "prompt": "What two things must you include?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o8-q3",
+            "number": 3,
+            "prompt": "Where do you think Olivia is?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o8-q4",
+            "number": 4,
+            "prompt": "What do you think she is going to do next?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o9",
+      "title": "Writing · Exercise 8",
+      "visibleInstructionText": "Read these opening sentences of stories and choose the sentence which follows on from them logically. Why are the other options wrong?",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o9-q1",
+            "number": 1,
+            "prompt": "Opening 1: choose the sentence which follows logically and explain why the other options are wrong.",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o9-q2",
+            "number": 2,
+            "prompt": "Opening 2: choose the sentence which follows logically and explain why the other options are wrong.",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p7-o9-q3",
+            "number": 3,
+            "prompt": "Opening 3: choose the sentence which follows logically and explain why the other options are wrong.",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p7-o10",
+      "title": "Writing · Exercise 9",
+      "visibleInstructionText": "Complete the paragraph plan and write the story.",
+      "implementationMode": "teacher-reviewed",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p7-o10-q1",
+            "number": 1,
+            "prompt": "Write your story. (140–190 words)",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p8-o1",
+      "title": "Review 2 · Vocabulary",
+      "visibleInstructionText": "Choose the correct answers.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p8-o2",
+      "title": "Review 2 · Grammar",
+      "visibleInstructionText": "Choose the correct answers.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p8-o3",
+      "title": "Review 2 · Game 1",
+      "visibleInstructionText": "Legacy team game.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p8-o4",
+      "title": "Review 2 · Game 2",
+      "visibleInstructionText": "Legacy team game.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p9-o1",
+      "title": "Practice 2 · Exercise 1",
+      "visibleInstructionText": "Read the text and insert the missing sentences. There is one extra sentence which you do not need to use.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q1",
+            "number": 1,
+            "prompt": "Gap 1 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q1-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q2",
+            "number": 2,
+            "prompt": "Gap 2 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q2-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q3",
+            "number": 3,
+            "prompt": "Gap 3 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q3-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q4",
+            "number": 4,
+            "prompt": "Gap 4 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q4-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q5",
+            "number": 5,
+            "prompt": "Gap 5 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q5-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p9-o1-q6",
+            "number": 6,
+            "prompt": "Gap 6 in the reading text",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o1",
+                "text": "Some even believe there are alien civilisations down there."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o2",
+                "text": "Despite there being no reports of bad weather in the area, all five planes vanished and the crews were lost."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o3",
+                "text": "Although we now have sophisticated diving equipment, that did not use to be the case."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o4",
+                "text": "Others have suggested that methane gas rising from the ocean floor stops GPS equipment from working properly."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o5",
+                "text": "Furthermore, they say, thousands of planes and ships make it through the area without incident."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o6",
+                "text": "In addition, he said he saw a light moving up and down above the sea."
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p9-o1-q6-o7",
+                "text": "On the contrary, the last known message simply stated that all was well and the weather was good."
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p10-o1",
+      "title": "Practice 2 · Exercise 2",
+      "visibleInstructionText": "For questions 1–8, read the text and think of the word which best fits each gap. Use only one word in each gap.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q1",
+            "number": 1,
+            "prompt": "(1) ____ then, he has travelled to over 70 countries, always on a motorbike.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q2",
+            "number": 2,
+            "prompt": "(2) ____ be a medical student. He",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q3",
+            "number": 3,
+            "prompt": "(3) ____ going to be a doctor until, in 2012, he made a big decision. He sold everything he owned and",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q4",
+            "number": 4,
+            "prompt": "(4) ____ Alaska to Argentina and back in 500 days. During that journey, and on his many trips since, Alex filmed himself at every step along the way. It is certainly an adventurous way to make a living. In the beginning, he had very little",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q5",
+            "number": 5,
+            "prompt": "(5) ____ were times when he felt far from home, hungry and",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q6",
+            "number": 6,
+            "prompt": "(6) ____ posting videos for a while,",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q7",
+            "number": 7,
+            "prompt": "(7) ____ a living from his videos. He became quite famous and people would often turn",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o1-q8",
+            "number": 8,
+            "prompt": "(8) ____ to meet him. Through the video blog of his travels, Alex aims to raise awareness of people in need around the world.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p10-o3",
+      "title": "Practice 2 · Exercise 3",
+      "visibleInstructionText": "Listen to the interview and complete the sentences with a word or short phrase.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
+          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
+          "sourceExistsAtGeneration": true
+        }
+      ],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q1",
+            "number": 1,
+            "prompt": "(1) ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q2",
+            "number": 2,
+            "prompt": "(2) ____ does not affect him, but other people might be uncomfortable.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q3",
+            "number": 3,
+            "prompt": "(3) ____ over a year before he was due to travel because he wanted to be well-organised.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q4",
+            "number": 4,
+            "prompt": "(4) ____ inhabitants on the main island. If you want to connect to the Internet, you have to use the Wi-Fi at the",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q5",
+            "number": 5,
+            "prompt": "(5) ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q6",
+            "number": 6,
+            "prompt": "(6) ____ with him when he went on trips.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q7",
+            "number": 7,
+            "prompt": "(7) ____ including the rockhopper penguin and two species of albatross.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q8",
+            "number": 8,
+            "prompt": "(8) ____ in weather do not take them by surprise.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q9",
+            "number": 9,
+            "prompt": "(9) ____ the islands were hit by a cyclone which caused a lot of damage.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p10-o3-q10",
+            "number": 10,
+            "prompt": "(10) ____ before taking photos of local people.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p11-o1",
+      "title": "Progress check 1 · Exercise 1",
+      "visibleInstructionText": "Complete the sentences with the correct form of these phrasal verbs.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q1",
+            "number": 1,
+            "prompt": "1 It only takes two hours to get there, so we don’t have to ____ too early.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q2",
+            "number": 2,
+            "prompt": "2 Don’t forget ____ a new bus schedule for grandma.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q3",
+            "number": 3,
+            "prompt": "3 Despite being a successful film producer, he still ____ his old school friends for advice.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q4",
+            "number": 4,
+            "prompt": "4 We can’t ____ the hotel until two o’clock, so let’s find somewhere nice to have lunch.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q5",
+            "number": 5,
+            "prompt": "5 Helen always gets anxious when the plane ____ , but she’s fine as soon as it’s airborne.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q6",
+            "number": 6,
+            "prompt": "6 I think I dropped my phone while I ____ the car. I’ll go back and check.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q7",
+            "number": 7,
+            "prompt": "7 I felt so happy when the plane ____ – I was home at last!",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o1-q8",
+            "number": 8,
+            "prompt": "8 They’re going to play my new song on Radio 1 tomorrow, so don’t forget ____!",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p11-o2",
+      "title": "Progress check 1 · Exercise 2",
+      "visibleInstructionText": "Match. Then complete the sentences with the correct words.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q1",
+            "number": 1,
+            "prompt": "air",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q1-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q2",
+            "number": 2,
+            "prompt": "costume",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q2-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q3",
+            "number": 3,
+            "prompt": "emergency",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q3-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q4",
+            "number": 4,
+            "prompt": "film",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q4-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q5",
+            "number": 5,
+            "prompt": "media",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q5-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q6",
+            "number": 6,
+            "prompt": "package",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q6-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q7",
+            "number": 7,
+            "prompt": "traffic",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q7-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q8",
+            "number": 8,
+            "prompt": "travel",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o1",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o2",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o3",
+                "text": "holiday"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o4",
+                "text": "jam"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o5",
+                "text": "landing"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o6",
+                "text": "sickness"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o7",
+                "text": "space"
+              },
+              {
+                "id": "ultimate-b2-sb-u2-p11-o2-q8-o8",
+                "text": "streaming"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q9",
+            "number": 9,
+            "prompt": "1 If I’d known there was going to be a(n) ____, I’d have chosen a different route.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q10",
+            "number": 10,
+            "prompt": "2 Fortunately, the director gets on well with the ____, so filming is a pleasant experience for all.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q11",
+            "number": 11,
+            "prompt": "3 Our flight was forced to make a(n) ____ due to an engine failure.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q12",
+            "number": 12,
+            "prompt": "4 Ken suffers from terrible ____, so don’t forget to give him some tablets before you get on the coach.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q13",
+            "number": 13,
+            "prompt": "5 I’d rather go on a(n) ____ because everything is organised for you. as it’s to airborne.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q14",
+            "number": 14,
+            "prompt": "6 The pilot entered foreign ____ without permission, but he realised it and turned around immediately.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q15",
+            "number": 15,
+            "prompt": "7 The biggest advantage of ____ is that you can watch programmes whenever it’s convenient for you.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o2-q16",
+            "number": 16,
+            "prompt": "8 You should study fashion if you want to become a(n) ____.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p11-o3",
+      "title": "Progress check 1 · Exercise 3",
+      "visibleInstructionText": "Complete the sentences with the correct adjective form of the words given.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q1",
+            "number": 1,
+            "prompt": "1 The singer felt ____ before going on stage, but he gave a fabulous concert. anxiety",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q2",
+            "number": 2,
+            "prompt": "2 I don’t like watching horror films; they’re too ____ for me! frighten",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q3",
+            "number": 3,
+            "prompt": "3 Our family had a truly ____ holiday in Italy a few years ago. It was unforgettable! memory",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q4",
+            "number": 4,
+            "prompt": "4 Her decision to change careers and become an actress turned out to be ____. disaster",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q5",
+            "number": 5,
+            "prompt": "5 The traveller found the directions ____, so he asked someone to help him. confuse",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q6",
+            "number": 6,
+            "prompt": "6 The hotel had a(n) ____ garden which was a lovely place to relax after a long day of sightseeing. attract",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q7",
+            "number": 7,
+            "prompt": "7 The producer was ____ that his latest film wasn’t a box-office smash. disappoint",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p11-o3-q8",
+            "number": 8,
+            "prompt": "8 Don’t be too hard on the children; they’re just having some ____ fun! harm",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p11-o4",
+      "title": "Progress check 1 · Exercise 4",
+      "visibleInstructionText": "Read and circle the correct words.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p12-o1",
+      "title": "Progress check 1 · Exercise 1",
+      "visibleInstructionText": "Circle the correct answers.",
+      "implementationMode": "unsupported-disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p12-o2",
+      "title": "Progress check 1 · Exercise 2",
+      "visibleInstructionText": "Read and complete the text. Write one word in each gap.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q1",
+            "number": 1,
+            "prompt": "(1) ____ looking forward to a",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q2",
+            "number": 2,
+            "prompt": "(2) ____ to go away regularly,",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q3",
+            "number": 3,
+            "prompt": "(3) ____ not take us long to pack for our trip. After an early breakfast, we put our tent and our rucksacks into the boot of the car and set off. Dad dropped us off at the entrance to the railway station and went off to park the car. We",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q4",
+            "number": 4,
+            "prompt": "(4) ____ a little time before our train departed, so my mum and I went into",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q5",
+            "number": 5,
+            "prompt": "(5) ____ we were waiting in the queue, my brother went to see which platform our train",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q6",
+            "number": 6,
+            "prompt": "(6) ____ leaving from. A few minutes",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q7",
+            "number": 7,
+            "prompt": "(7) ____, my brother came running into the shop. ‘Dad forgot to bring the tickets!’ he shouted, slightly out of breath.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o2-q8",
+            "number": 8,
+            "prompt": "(8) ____ going anywhere, as it turned out!",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p12-o3",
+      "title": "Progress check 1 · Exercise 3",
+      "visibleInstructionText": "Complete. Use the past perfect simple or the past perfect continuous.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q1",
+            "number": 1,
+            "prompt": "1 The young man ____ (not act) for very long when he was offered a leading role.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q2",
+            "number": 2,
+            "prompt": "2 How many episodes of season two ____ (you / watch) by 10 pm last night?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q3",
+            "number": 3,
+            "prompt": "3 Some of the actors ____ (not finish) learning their lines before filming began.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q4",
+            "number": 4,
+            "prompt": "4 We ____ (always / know) that Oliver would become a famous director.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q5",
+            "number": 5,
+            "prompt": "5 He ____ (travel) for months and he just wanted to go home.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q6",
+            "number": 6,
+            "prompt": "6 ____ (the passengers / wait) for a long time before the train arrived?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q7",
+            "number": 7,
+            "prompt": "7 She got lost because she ____ (forget) to take the map with her.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o3-q8",
+            "number": 8,
+            "prompt": "8 How long ____ (you / want) to live in Ireland before you moved there?",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u2-p12-o4",
+      "title": "Progress check 1 · Exercise 4",
+      "visibleInstructionText": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
+      "implementationMode": "auto-scored",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q1",
+            "number": 1,
+            "prompt": "1 Sarah talks about the famous actor she knows all the time! ALWAYS Sarah is ____ the famous actor she knows!",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q2",
+            "number": 2,
+            "prompt": "2 I went jogging for an hour, so I was hot and tired. BEEN I was hot and tired because I ____ for an hour.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q3",
+            "number": 3,
+            "prompt": "3 We disliked watching thrillers when we were younger. USE We ____ watching thrillers when we were younger.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q4",
+            "number": 4,
+            "prompt": "4 Sorry, I completely forgot the time, so I missed the bus. REALISE Sorry, I ____ the time was, so I missed the bus.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q5",
+            "number": 5,
+            "prompt": "5 The journalist interviewed the pilot and then posted his article. AFTER The journalist posted his article ____ the pilot.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u2-p12-o4-q6",
+            "number": 6,
+            "prompt": "6 We used to cook on an open fire when we went camping. WOULD When we went camping, we ____ an open fire.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    }
+  ]
+}

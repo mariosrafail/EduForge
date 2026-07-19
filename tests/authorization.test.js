@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { requireAuth, requireRole, requireSameSchool } from "../netlify/functions/_auth-utils.js";
-import { canAccessStudentScopedRow, canAccessTeacherScopedRow } from "../netlify/functions/book-content.js";
+import { canAccessStudentScopedRow, canAccessTeacherScopedRow, studentSafeActivityPayload } from "../netlify/functions/book-content.js";
 
 const activeAdmin = { id: "admin-1", school_id: "school-a", role: "admin", status: "active" };
 const activeTeacher = { id: "teacher-1", school_id: "school-a", role: "teacher", status: "active" };
@@ -65,6 +65,23 @@ test("same-school guard allows matching school resources", () => {
   const result = requireSameSchool("school-a", activeAdmin);
 
   assert.equal(result, null);
+});
+
+test("student-facing activity payloads omit all authoritative answer fields", () => {
+  const safe = studentSafeActivityPayload({
+    id: "activity-1",
+    contentJson: { implementationMode: "auto-scored", publisherSourceActivityId: "ultimate-b2-sb-u2-p3-o1" },
+    questions: [{
+      answer: "secret",
+      feedbackJson: { acceptedAnswers: ["secret"], source: "publisher" },
+      options: [{ text: "A", correct: true, is_correct: true }],
+    }],
+  });
+  assert.equal(JSON.stringify(safe).includes("secret"), false);
+  assert.deepEqual(safe.questions[0].feedbackJson, { source: "publisher" });
+  assert.deepEqual(safe.questions[0].options, [{ text: "A" }]);
+  const legacy = { id: "legacy", questions: [{ answer: "retained-for-legacy-demo" }] };
+  assert.equal(studentSafeActivityPayload(legacy), legacy);
 });
 
 test("teacher cannot access another teacher's class or assignment row", () => {

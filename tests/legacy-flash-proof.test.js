@@ -71,15 +71,11 @@ test("publisher binaries are ignored and never tracked", () => {
   assert.equal(trackedPublisherFiles, "");
 });
 
-test("normal build keeps the proof view in a lazy chunk and out of navigation data", () => {
+test("normal application source excludes the proof component and route", () => {
   const app = fs.readFileSync(path.resolve("src/App.jsx"), "utf8");
-  const proofView = fs.readFileSync(path.resolve("src/features/legacyFlash/LegacyFlashProofView.jsx"), "utf8");
   const routes = fs.readFileSync(path.resolve("src/utils/hashRoutes.js"), "utf8");
-  assert.match(app, /lazy\(\(\) => import\("\.\/features\/legacyFlash\/LegacyFlashProofView\.jsx"\)\)/);
-  assert.match(routes, /isLegacyFlashProofEnabled\(runtimeEnv\)/);
-  assert.match(proofView, /script\.onerror = \(\) => reject\(/);
-  assert.match(proofView, /setFatalError\(message\)/);
-  assert.match(proofView, /role="alert"/);
+  assert.doesNotMatch(app, /LegacyFlashProofView|legacy-flash-proof/);
+  assert.doesNotMatch(routes, /LEGACY_FLASH_PROOF_ROUTE|legacy-flash-proof|ultimate-b2-legacy-player/);
   assert.doesNotMatch(fs.readFileSync(path.resolve("src/components/lms/Shared.jsx"), "utf8"), /ultimate-b2-legacy-player/);
 });
 

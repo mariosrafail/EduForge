@@ -17,7 +17,8 @@ const structure = await readJson("students-book-structure.json");
 const activityCatalogs = await Promise.all(Array.from({ length: 10 }, (_, index) => (
   readJson(`activities/unit-${String(index + 1).padStart(2, "0")}.activities.json`)
 )));
-const catalog = buildStudentsBookContentCatalog({ structure, activityCatalogs });
+const implementationMatrices = [await readJson("editorial/unit-02.implementation-matrix.json")];
+const catalog = buildStudentsBookContentCatalog({ structure, activityCatalogs, implementationMatrices });
 
 await writeDeterministicJson(path.join(outputRoot, "students-book-content.index.json"), catalog);
 for (const unit of catalog.units) {

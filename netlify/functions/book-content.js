@@ -46,6 +46,57 @@ function numericOrNull(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+const studentHiddenAnswerFields = new Set([
+  "acceptedAnswers",
+  "accepted_answers",
+  "answer",
+  "answerRecords",
+  "correct",
+  "correctAnswer",
+  "correctOptionId",
+  "correct_answer",
+  "correct_option_id",
+  "decodedPublisherValue",
+  "explicitAnswerEvidence",
+  "is_correct",
+  "publisherAnswerValue",
+]);
+
+export function stripStudentAnswerKeys(value) {
+  if (Array.isArray(value)) return value.map(stripStudentAnswerKeys);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !studentHiddenAnswerFields.has(key))
+    .map(([key, child]) => [key, stripStudentAnswerKeys(child)]));
+}
+
+function isRecoveredUnit2Activity(activity = {}) {
+  const content = activity.contentJson || activity.content_json || {};
+  return ["auto-scored", "teacher-reviewed"].includes(content.implementationMode)
+    && String(content.publisherSourceActivityId || activity.slug || "").startsWith("ultimate-b2-sb-u2-");
+}
+
+export function studentSafeActivityPayload(activity) {
+  return isRecoveredUnit2Activity(activity) ? stripStudentAnswerKeys(activity) : activity;
+}
+
+function studentSafePackageTree(tree) {
+  if (!tree) return tree;
+  return {
+    ...tree,
+    components: (tree.components || []).map((component) => ({
+      ...component,
+      units: (component.units || []).map((unit) => ({
+        ...unit,
+        lessons: (unit.lessons || []).map((lesson) => ({
+          ...lesson,
+          exercises: (lesson.exercises || []).map(studentSafeActivityPayload),
+        })),
+      })),
+    })),
+  };
+}
+
 function normalizeSubmittedAnswer(value) {
   return String(value ?? "")
     .trim()
@@ -608,7 +659,7 @@ async function listAssignmentsForStudent(sql, studentId, currentUser) {
   const hydratedActivities = new Map();
   for (const activityId of activityIds) {
     const activity = await fetchActivity(sql, { activityId });
-    if (activity) hydratedActivities.set(activityId, activity);
+    if (activity) hydratedActivities.set(activityId, isStudent(currentUser) ? studentSafeActivityPayload(activity) : activity);
   }
 
   return rows.map((row) => ({
@@ -686,15 +737,18 @@ async function submitActivity(sql, body, currentUser = null) {
   if (!activity) return json(404, { error: "Activity not found" });
 
   const answers = body.answers || body.result?.answers || {};
+  const implementationMode = activity.contentJson?.implementationMode || activity.content_json?.implementationMode || "auto-scored";
+  const requiresTeacherReview = implementationMode === "teacher-reviewed";
   const rows = activity.questions.map((question) => {
     const answer = answers[question.id] ?? answers[question.questionNumber] ?? "";
     const correctText = question.answer || "";
-    const isCorrect = isSubmittedAnswerCorrect(question, answer);
+    const isCorrect = requiresTeacherReview ? null : isSubmittedAnswerCorrect(question, answer);
     return { question, answer, correctText, isCorrect };
   });
-  const correctCount = rows.filter((row) => row.isCorrect).length;
-  const totalCount = rows.length;
-  const scorePercent = totalCount ? Math.round((correctCount / totalCount) * 100) : null;
+  const correctCount = requiresTeacherReview ? null : rows.filter((row) => row.isCorrect).length;
+  const totalCount = requiresTeacherReview ? null : rows.length;
+  const scorePercent = !requiresTeacherReview && totalCount ? Math.round((correctCount / totalCount) * 100) : null;
+  const submissionStatus = requiresTeacherReview ? "awaiting_review" : "submitted";
 
   const submissions = await sql`
     insert into activity_submissions (
@@ -720,7 +774,7 @@ async function submitActivity(sql, body, currentUser = null) {
       ${scorePercent},
       ${correctCount},
       ${totalCount},
-      'submitted',
+      ${submissionStatus},
       now()
     )
     returning *
@@ -730,7 +784,7 @@ async function submitActivity(sql, body, currentUser = null) {
   for (const row of rows) {
     await sql`
       insert into student_answers (submission_id, question_id, answer_text, is_correct, feedback_text)
-      values (${submission.id}, ${row.question.id}, ${String(row.answer)}, ${row.isCorrect}, ${row.isCorrect ? "Correct" : `Correct answer: ${row.correctText}`})
+      values (${submission.id}, ${row.question.id}, ${String(row.answer)}, ${row.isCorrect}, ${requiresTeacherReview ? "Awaiting teacher review" : row.isCorrect ? "Correct" : "Incorrect"})
       on conflict (submission_id, question_id) do update
       set answer_text = excluded.answer_text,
           is_correct = excluded.is_correct,
@@ -991,6 +1045,7 @@ async function reviewSubmission(sql, body, currentUser = null) {
   const rows = await sql`
     update activity_submissions
     set teacher_feedback = ${teacherFeedback},
+        status = case when status = 'awaiting_review' then 'reviewed' else status end,
         reviewed_at = now(),
         reviewed_by = ${currentUser.id}
     where id = ${submissionId}
@@ -1529,13 +1584,14 @@ export async function handler(event) {
         const accessError = await verifyPackageAccess(sql, currentUser, { activityId: query.activityId, activitySlug: query.activitySlug || query.slug });
         if (accessError) return accessError;
         const activity = await fetchActivity(sql, query);
-        return activity ? json(200, { activity }) : json(404, { error: "Activity not found" });
+        return activity ? json(200, { activity: isStudent(currentUser) ? studentSafeActivityPayload(activity) : activity }) : json(404, { error: "Activity not found" });
       }
       if (query.action === "component") {
         const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.packageSlug });
         if (accessError) return accessError;
         const tree = await fetchPackageTree(sql, query);
-        const component = tree?.components.find((item) => item.id === query.componentId || item.slug === query.slug);
+        const visibleTree = isStudent(currentUser) ? studentSafePackageTree(tree) : tree;
+        const component = visibleTree?.components.find((item) => item.id === query.componentId || item.slug === query.slug);
         return component ? json(200, { component }) : json(404, { error: "Component not found" });
       }
       if (query.action === "access") {
@@ -1613,7 +1669,7 @@ export async function handler(event) {
       const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.slug || query.packageSlug || "ultimate-b2" });
       if (accessError) return accessError;
       const tree = await fetchPackageTree(sql, query);
-      return tree ? json(200, { bookPackage: tree }) : json(404, { error: "Book package not found. Run database/006_book_content_platform.sql." });
+      return tree ? json(200, { bookPackage: isStudent(currentUser) ? studentSafePackageTree(tree) : tree }) : json(404, { error: "Book package not found. Run database/006_book_content_platform.sql." });
     }
 
     if (event.httpMethod === "POST") {

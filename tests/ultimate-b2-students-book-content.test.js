@@ -23,7 +23,8 @@ async function sourceInputs() {
   const activityCatalogs = await Promise.all(Array.from({ length: 10 }, (_, index) => (
     readJson(`activities/unit-${String(index + 1).padStart(2, "0")}.activities.json`)
   )));
-  return { structure, activityCatalogs };
+  const implementationMatrices = [await readJson("editorial/unit-02.implementation-matrix.json")];
+  return { structure, activityCatalogs, implementationMatrices };
 }
 
 test("generated Students Book catalog is deterministic and byte-stable from sanitized inputs", async () => {
@@ -60,7 +61,7 @@ test("stable identities, source ordering, and single/double spreads are preserve
   assert.equal(pages.at(-1).pageNumbers.at(-1), 154);
 });
 
-test("Unit 2 retains pages 19-34 and the reviewed Exercise 3/4 activity slice", async () => {
+test("Unit 2 retains pages 19-34 and expands the evidence-backed activity slice without regressing Exercises 3/4", async () => {
   const catalog = await readJson("content/students-book-content.index.json");
   const unit = findStudentsBookUnitInCatalog(catalog, 2);
   const printedPages = unit.pages.flatMap((page) => page.pageNumbers);
@@ -68,8 +69,14 @@ test("Unit 2 retains pages 19-34 and the reviewed Exercise 3/4 activity slice", 
   const spread = findStudentsBookPageInCatalog(catalog, 20);
   assert.equal(spread.id, "reading-20-21");
   assert.equal(findStudentsBookPageInCatalog(catalog, 21).id, spread.id);
-  assert.deepEqual(spread.activities.filter((activity) => activity.availability === "enabled").map((activity) => activity.activityKey), ["reading-ex3", "reading-ex4"]);
-  assert.deepEqual(spread.actions.filter((action) => action.classification === "activity").map((action) => action.target), ["exercise-3", "exercise-4"]);
+  assert.deepEqual(spread.activities.filter((activity) => activity.availability === "enabled").map((activity) => activity.activityKey), [
+    "ultimate-b2-sb-u2-p2-o1",
+    "ultimate-b2-sb-u2-p2-o2",
+    "reading-ex3",
+    "reading-ex4",
+    "ultimate-b2-sb-u2-p2-o5",
+  ]);
+  assert.deepEqual(spread.actions.filter((action) => action.classification === "activity").map((action) => action.target), ["normalized-activity", "exercise-3", "exercise-4", "normalized-activity"]);
 });
 
 test("student visibility excludes incomplete activities while teachers retain diagnostics", async () => {
@@ -77,10 +84,10 @@ test("student visibility excludes incomplete activities while teachers retain di
   const pages = flattenStudentsBookPages(catalog);
   const studentActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "student"));
   const teacherActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "teacher"));
-  assert.equal(studentActivities.length, 2);
+  assert.equal(studentActivities.length, 40);
   assert.equal(teacherActivities.length, 433);
-  assert.equal(teacherActivities.filter((activity) => activity.availability === "disabled").length, 431);
-  assert.ok(studentActivities.every((activity) => activity.editorialStatus === "implemented-reviewed-slice"));
+  assert.equal(teacherActivities.filter((activity) => activity.availability === "disabled").length, 393);
+  assert.ok(studentActivities.every((activity) => activity.editorialStatus === "reviewed-evidence-backed"));
 });
 
 test("page, activity, reading, media, and illustration relationships remain explicit", async () => {

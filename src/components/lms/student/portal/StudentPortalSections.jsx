@@ -463,7 +463,7 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
           setSubmitError("");
           setSubmitSuccess("");
           try {
-            await submitStudentAssignment({
+            const submission = await submitStudentAssignment({
               assignmentId: exercise.assignmentId,
               activityId: exercise.activityId,
               score: result.score,
@@ -471,8 +471,10 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
             });
             setSubmitSuccess("Assignment submission saved.");
             onAssignmentSubmitted?.();
+            return submission;
           } catch (error) {
             setSubmitError(error.message || "Assignment submission could not be saved.");
+            throw error;
           }
         }}
         navigateTo={navigateTo}

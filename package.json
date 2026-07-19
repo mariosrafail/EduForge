@@ -38,6 +38,7 @@
     "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed",
     "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs",
     "ultimate-b2:extract:activities": "node scripts/ultimate-b2/extract-activities.mjs",
+    "ultimate-b2:build:unit-02": "node scripts/ultimate-b2/build-unit-02-implementation.mjs",
     "ultimate-b2:build:content": "node scripts/ultimate-b2/build-students-book-content.mjs",
     "ultimate-b2:audit:legacy-flash": "node scripts/ultimate-b2/legacy-flash-audit.mjs",
     "ultimate-b2:test:legacy-flash": "node scripts/ultimate-b2/run-legacy-flash-proof.mjs"
