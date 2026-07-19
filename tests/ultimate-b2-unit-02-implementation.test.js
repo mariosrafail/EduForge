@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { parseMediaRange } from "../netlify/functions/ultimate-b2-media.js";
+import { isProtectedUnit2SourcePath } from "../scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
 
 const matrixPath = "books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json";
 const runtimePath = "src/data/ultimate-b2/generated/unit-02.runtime.json";
@@ -103,4 +105,16 @@ test("migration seeds only evidence-backed assignable activities and server supp
   assert.match(server, /requiresTeacherReview/);
   assert.match(server, /awaiting_review/);
   assert.match(server, /Awaiting teacher review/);
+});
+
+test("web Unit 2 media uses the protected local gateway and blocks direct source paths", async () => {
+  const webAssets = await readFile("src/data/ultimate-b2/ultimateB2MediaAssets.web.js", "utf8");
+  assert.equal((webAssets.match(/protectedUnit2Media\("ultimate-b2\.students-book\.unit-2\./g) || []).length, 7);
+  assert.match(webAssets, /\.netlify\/functions\/ultimate-b2-media/);
+  assert.equal(isProtectedUnit2SourcePath("/src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4"), true);
+  assert.equal(isProtectedUnit2SourcePath("/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3"), true);
+  assert.equal(isProtectedUnit2SourcePath("/src/assets/books/ultimate-b2/student-text.jpg"), false);
+  assert.deepEqual(parseMediaRange("bytes=10-19", 100), { start: 10, end: 19 });
+  assert.deepEqual(parseMediaRange("bytes=-10", 100), { start: 90, end: 99 });
+  assert.equal(parseMediaRange("bytes=100-110", 100), null);
 });

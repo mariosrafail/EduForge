@@ -266,7 +266,12 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     const submissionId = submitted.body.submission.id;
     const results = await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId } });
     assert.equal(results.status, 200);
-    assert.equal(results.body.rows.find((row) => row.studentId === studentId)?.submissionId, submissionId);
+    const submittedRow = results.body.rows.find((row) => row.studentId === studentId);
+    assert.equal(submittedRow?.submissionId, submissionId);
+    assert.equal(submittedRow?.submissionStatus, "submitted");
+    assert.deepEqual(submittedRow?.answers, { [question.id]: "affirmative" });
+    assert.equal(submittedRow?.answerDetails?.[0]?.prompt, "Answer yes");
+    assert.equal(submittedRow?.answerDetails?.[0]?.answer, "affirmative");
     assert.equal((await call(bookContentHandler, { cookie: otherTeacherCookie, query: { action: "assignment-results", assignmentId } })).status, 403);
     const reviewed = await call(bookContentHandler, { method: "POST", cookie: teacherCookie, query: { action: "review-submission" }, body: { submissionId, teacherFeedback: "Good" } });
     assert.equal(reviewed.status, 200);

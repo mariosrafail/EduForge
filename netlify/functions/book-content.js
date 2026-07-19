@@ -884,7 +884,19 @@ async function getAssignmentResults(sql, assignmentId) {
     )
     select ts.id as student_id, ts.full_name, ts.email, ts.class_name,
            s.id as submission_id, s.score_percent, s.correct_count, s.total_count, s.status as submission_status,
-           s.submitted_at, s.teacher_feedback, s.reviewed_at, s.reviewed_by
+           s.submitted_at, s.answers, s.teacher_feedback, s.reviewed_at, s.reviewed_by,
+           coalesce((
+             select jsonb_agg(jsonb_build_object(
+               'questionId', q.id,
+               'prompt', q.prompt,
+               'answer', sa.answer_text,
+               'isCorrect', sa.is_correct,
+               'feedback', sa.feedback_text
+             ) order by q.sort_order, q.question_number)
+             from student_answers sa
+             join questions q on q.id = sa.question_id
+             where sa.submission_id = s.id
+           ), '[]'::jsonb) as answer_details
     from target_students ts
     left join latest_submissions s on s.student_id = ts.id
     order by ts.full_name asc
@@ -896,12 +908,21 @@ async function getAssignmentResults(sql, assignmentId) {
     email: row.email || "",
     className: row.class_name || assignment.class_name || "Individual",
     assignment: assignment.assignment_title || assignment.activity_title,
-    status: row.submission_id ? "Submitted" : "Missing",
+    status: row.submission_id
+      ? row.submission_status === "awaiting_review"
+        ? "Awaiting teacher review"
+        : row.submission_status === "reviewed"
+          ? "Reviewed"
+          : "Submitted"
+      : "Missing",
+    submissionStatus: row.submission_status || null,
     score: numericOrNull(row.score_percent),
     scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
     submittedAt: row.submitted_at || null,
+    answers: row.answers || {},
+    answerDetails: jsonArray(row.answer_details),
     teacherFeedback: row.teacher_feedback || "",
     reviewedAt: row.reviewed_at || null,
     reviewedBy: row.reviewed_by || null,

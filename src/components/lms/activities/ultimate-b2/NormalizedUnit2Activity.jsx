@@ -14,7 +14,7 @@ function MediaPlayer({ dependency }) {
   const offlineAsset = ultimateB2Unit2Media[dependency.logicalKey] || null;
   const androidLocalUrl = import.meta.env.VITE_APP_MODE === "android-offline" ? offlineAsset?.localUrl : null;
   const asset = useBookAsset(androidLocalUrl ? null : dependency.logicalKey, {
-    devFallbackUrl: androidLocalUrl || (import.meta.env.DEV ? dependency.localDevelopmentPath : null),
+    devFallbackUrl: androidLocalUrl || (import.meta.env.DEV ? offlineAsset?.devFallbackUrl || dependency.localDevelopmentPath : null),
   });
   if (asset.loading) return <div className="inline-status">Loading {dependency.type}…</div>;
   if (!asset.url) {

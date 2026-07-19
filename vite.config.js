@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { legacyFlashProofPlugin } from "./scripts/ultimate-b2/legacy-flash-vite-plugin.mjs";
+import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -18,7 +19,7 @@ export default defineConfig(({ mode }) => {
     : "src/data/ultimate-b2/ultimateB2CoverAssets.web.js");
 
   return {
-    plugins: [react(), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
+    plugins: [react(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
     resolve: {
       alias: [
         {

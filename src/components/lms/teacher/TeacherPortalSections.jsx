@@ -498,46 +498,62 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
                 <article key={row.studentId || row.email}>
                   <strong>{row.studentName}<span>{row.score === null || row.score === undefined ? "No score" : `${row.score}%`}</span></strong>
                   <p>{row.email || "No email"} / {row.submittedAt ? `Submitted ${new Date(row.submittedAt).toLocaleString()}` : "Missing submission"}</p>
-                  <Tag tone={row.status === "Submitted" ? "green" : "gold"}>{row.status}</Tag>
+                  <Tag tone={["Submitted", "Reviewed"].includes(row.status) ? "green" : "gold"}>{row.status}</Tag>
                   {row.submissionId ? (
-                    <label>
-                      Teacher feedback
-                      <textarea
-                        rows={2}
-                        value={feedbackDrafts[row.submissionId] || ""}
-                        onChange={(event) => setFeedbackDrafts((current) => ({ ...current, [row.submissionId]: event.target.value }))}
-                        placeholder="Short feedback note"
-                      />
-                      <button
-                        className="secondary-action compact-action"
-                        type="button"
-                        disabled={savingFeedbackId === row.submissionId}
-                        onClick={async () => {
-                          if (!currentUser?.id) {
-                            setReviewMessage("Sign in as a teacher before saving feedback.");
-                            return;
-                          }
-                          setSavingFeedbackId(row.submissionId);
-                          setReviewMessage("");
-                          try {
-                            await reviewSubmission({
-                              submissionId: row.submissionId,
-                              teacherId: currentUser.id,
-                              teacherFeedback: feedbackDrafts[row.submissionId] || "",
-                            });
-                            setReviewMessage("Feedback saved.");
-                            onReviewSaved?.();
-                          } catch (error) {
-                            setReviewMessage(error.message || "Feedback could not be saved.");
-                          } finally {
-                            setSavingFeedbackId("");
-                          }
-                        }}
-                        data-sound-click="submit"
-                      >
-                        {savingFeedbackId === row.submissionId ? "Saving..." : "Save feedback"}
-                      </button>
-                    </label>
+                    <>
+                      <div className="teacher-submission-answers">
+                        <strong>Submitted response</strong>
+                        {(row.answerDetails || []).length ? (row.answerDetails || []).map((answer, index) => (
+                          <div key={answer.questionId || index}>
+                            <span>{answer.prompt || `Response ${index + 1}`}</span>
+                            <p>{answer.answer || "No response"}</p>
+                          </div>
+                        )) : Object.values(row.answers || {}).length ? Object.values(row.answers || {}).map((answer, index) => (
+                          <div key={index}>
+                            <span>{`Response ${index + 1}`}</span>
+                            <p>{String(answer || "No response")}</p>
+                          </div>
+                        )) : <p>No response text was stored.</p>}
+                      </div>
+                      <label>
+                        Teacher feedback
+                        <textarea
+                          rows={2}
+                          value={feedbackDrafts[row.submissionId] || ""}
+                          onChange={(event) => setFeedbackDrafts((current) => ({ ...current, [row.submissionId]: event.target.value }))}
+                          placeholder="Short feedback note"
+                        />
+                        <button
+                          className="secondary-action compact-action"
+                          type="button"
+                          disabled={savingFeedbackId === row.submissionId}
+                          onClick={async () => {
+                            if (!currentUser?.id) {
+                              setReviewMessage("Sign in as a teacher before saving feedback.");
+                              return;
+                            }
+                            setSavingFeedbackId(row.submissionId);
+                            setReviewMessage("");
+                            try {
+                              await reviewSubmission({
+                                submissionId: row.submissionId,
+                                teacherId: currentUser.id,
+                                teacherFeedback: feedbackDrafts[row.submissionId] || "",
+                              });
+                              setReviewMessage("Feedback saved.");
+                              onReviewSaved?.();
+                            } catch (error) {
+                              setReviewMessage(error.message || "Feedback could not be saved.");
+                            } finally {
+                              setSavingFeedbackId("");
+                            }
+                          }}
+                          data-sound-click="submit"
+                        >
+                          {savingFeedbackId === row.submissionId ? "Saving..." : "Save feedback"}
+                        </button>
+                      </label>
+                    </>
                   ) : (
                     <p>Missing students are waiting for submission.</p>
                   )}
