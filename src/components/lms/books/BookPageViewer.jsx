@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, BookOpenCheck, Copy, MousePointer2, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, Copy, Maximize2, Minimize2, MousePointer2, Save, Scan, Trash2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 import { ReadingTextAudioScreen, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPageHotspots, EditableHotspotLayer } from "./BookPageImagePanel.jsx";
@@ -49,7 +49,7 @@ export function normalizeBookPageSections(component = {}) {
   return (component.pageUnits || []).flatMap((unit) => (
     (unit.pages || []).map((page, pageIndex) => {
       const imageAssets = (page.images?.length ? page.images : [page.imageSrc || page.imagePath || page.image]).map(normalizePageImageAsset).filter(Boolean);
-      const images = imageAssets.map((asset) => asset.localUrl).filter(Boolean);
+      const images = imageAssets.map((asset) => asset.localUrl || asset.devFallbackUrl).filter(Boolean);
       const pageNumber = page.pageNumber || page.number || pageIndex + 1;
       return {
         id: page.id || `${unit.id}-page-${pageNumber}`,
@@ -64,6 +64,11 @@ export function normalizeBookPageSections(component = {}) {
         images,
         imageAssets,
         actions: page.actions || [],
+        activities: page.activities || [],
+        media: page.media || [],
+        pageNumbers: page.pageNumbers || [pageNumber],
+        spreadNumber: page.spreadNumber || page.label || String(pageNumber),
+        editorialStatus: page.editorialStatus || null,
         continuesToVideo: page.continuesToVideo,
       };
     })
@@ -216,6 +221,11 @@ export function BookPagesView({
   const [pageAssetLoading, setPageAssetLoading] = useState(false);
   const [pageAssetError, setPageAssetError] = useState("");
   const [pageAssetAttempt, setPageAssetAttempt] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [fitToScreen, setFitToScreen] = useState(true);
+  const [pageJump, setPageJump] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const viewerRef = useRef(null);
   const pageUnits = component.pageUnits || [];
   const selectedSectionIndex = sections.findIndex((section) => (
     (selectedPageId && section.pageId === selectedPageId) ||
@@ -226,7 +236,7 @@ export function BookPagesView({
   const [activeUnitId, setActiveUnitId] = useState(selectedPageUnitId || selectedSection?.unitId || pageUnits[0]?.id || "");
   const activeUnit = pageUnits.find((unit) => unit.id === activeUnitId) || pageUnits[0] || null;
   const activeUnitSections = activeUnit ? sections.filter((section) => section.unitId === activeUnit.id) : sections;
-  const visibleUnitSections = activeUnitSections.slice(0, 10);
+  const visibleUnitSections = activeUnitSections;
   const activeUnitLabel = activeUnit?.displayLabel || activeUnit?.label || activeUnit?.title || activeUnit?.unit || "Pages";
   const activeUnitHeading = activeUnit?.number && activeUnit?.title
     ? `Unit ${activeUnit.number}, ${activeUnit.title}`
@@ -302,6 +312,16 @@ export function BookPagesView({
     setBuilderType(null);
     setActiveBookActivityId(null);
   }, [selectedPageId, selectedPageNumber]);
+
+  useEffect(() => {
+    setPageJump(selectedSection?.pageNumber || "");
+  }, [selectedSection?.id, selectedSection?.pageNumber]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(document.fullscreenElement === viewerRef.current);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     // TODO: Re-enable after DATABASE_URL + backend hotspot/activity system is finalized.
@@ -404,6 +424,20 @@ export function BookPagesView({
     }
 
     selectNextSection();
+  };
+
+  const jumpToPrintedPage = (event) => {
+    event.preventDefault();
+    const target = Number(pageJump);
+    if (!Number.isInteger(target)) return;
+    const nextIndex = sections.findIndex((section) => section.pageNumbers.includes(target));
+    if (nextIndex >= 0) goToSection(nextIndex);
+  };
+
+  const toggleFullscreen = async () => {
+    if (!viewerRef.current || !document.fullscreenEnabled) return;
+    if (document.fullscreenElement === viewerRef.current) await document.exitFullscreen();
+    else await viewerRef.current.requestFullscreen();
   };
 
   const startHotspotEditing = (pageKey) => {
@@ -521,8 +555,8 @@ export function BookPagesView({
     const spreadClass = selectedSection.imageAssets.length > 1 ? "two-page-spread" : "single-page-spread";
     const unitSections = sections.filter((section) => section.unitId === selectedSection.unitId);
     const selectedUnitSectionIndex = unitSections.findIndex((section) => section.id === selectedSection.id);
-    const isFirstSection = selectedUnitSectionIndex === 0;
-    const isLastSection = selectedUnitSectionIndex === unitSections.length - 1;
+    const isFirstSection = selectedSectionIndex === 0;
+    const isLastSection = selectedSectionIndex === sections.length - 1;
     const pageHotspotKey = selectedPageIdentity.storageKey;
     const hotspotEditingActive = enableBookHotspotEditor && editingHotspots;
     // TODO: Re-enable custom DB hotspots after the backend hotspot/activity system is finalized.
@@ -536,19 +570,25 @@ export function BookPagesView({
       const nextGlobalIndex = sections.findIndex((section) => section.id === nextSection.id);
       goToSection(nextGlobalIndex, options);
     };
-    const pageTurnVariants = {
+    const visibleActivities = mode === "teacher"
+      ? selectedSection.activities
+      : selectedSection.activities.filter((activity) => activity.availability === "enabled");
+    const availableMediaActions = selectedSection.actions.filter((action) => action.classification === "audio" || action.classification === "video");
+    const openCatalogActivity = (activity) => {
+      const action = selectedSection.actions.find((candidate) => candidate.activityKey === activity.activityKey || candidate.id === activity.id);
+      if (action) setActiveAction(action);
+    };
+    const pageNavigationVariants = {
       enter: (direction) => ({
         opacity: 0,
         x: direction > 0 ? 72 : -72,
         scale: 0.965,
-        rotateY: direction > 0 ? -10 : 10,
       }),
-      center: { opacity: 1, x: 0, scale: 1, rotateY: 0 },
+      center: { opacity: 1, x: 0, scale: 1 },
       exit: (direction) => ({
         opacity: 0,
         x: direction > 0 ? -72 : 72,
         scale: 0.965,
-        rotateY: direction > 0 ? 10 : -10,
       }),
     };
 
@@ -556,7 +596,8 @@ export function BookPagesView({
       <AnimatePresence mode="wait">
         <motion.div
           key="page-open"
-          className="students-book-gateway book-page-spread-view book-page-selection-gateway"
+          ref={viewerRef}
+          className={`students-book-gateway book-page-spread-view book-page-selection-gateway ${isFullscreen ? "is-fullscreen" : ""}`}
           onWheelCapture={handleBookViewportWheel}
           initial={{ opacity: 0, y: 22, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -575,6 +616,30 @@ export function BookPagesView({
               <small className="book-page-section-counter">{selectedUnitSectionIndex + 1} / {unitSections.length}</small>
             </div>
             <div className="page-hotspot-editor-toolbar" aria-label="Book page actions">
+              <label className="book-page-unit-select-label">
+                <span>Unit</span>
+                <select
+                  aria-label="Select Students Book unit"
+                  value={selectedSection.unitId}
+                  onChange={(event) => {
+                    const nextIndex = sections.findIndex((section) => section.unitId === event.target.value);
+                    if (nextIndex >= 0) goToSection(nextIndex);
+                  }}
+                >
+                  {pageUnits.map((unit) => <option key={unit.id} value={unit.id}>{unit.title || unit.displayLabel}</option>)}
+                </select>
+              </label>
+              <form className="book-page-jump" onSubmit={jumpToPrintedPage}>
+                <label htmlFor="book-page-jump-input">Page</label>
+                <input id="book-page-jump-input" type="number" min="5" max="154" value={pageJump} onChange={(event) => setPageJump(event.target.value)} />
+                <button className="secondary-action compact-action" type="submit">Go</button>
+              </form>
+              <div className="book-page-zoom-controls" aria-label="Page zoom controls">
+                <button className="secondary-action compact-action" type="button" onClick={() => { setFitToScreen(false); setZoom((value) => Math.max(0.6, value - 0.2)); }} disabled={zoom <= 0.6} aria-label="Zoom out"><ZoomOut size={16} /></button>
+                <button className={`secondary-action compact-action ${fitToScreen ? "selected" : ""}`} type="button" onClick={() => { setFitToScreen(true); setZoom(1); }} aria-label="Fit page to screen"><Scan size={16} /> Fit</button>
+                <button className="secondary-action compact-action" type="button" onClick={() => { setFitToScreen(false); setZoom((value) => Math.min(2.4, value + 0.2)); }} disabled={zoom >= 2.4} aria-label="Zoom in"><ZoomIn size={16} /></button>
+                {typeof document !== "undefined" && document.fullscreenEnabled && <button className="secondary-action compact-action" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>}
+              </div>
               {enableBookHotspotEditor && hotspotMessage && <span className="editable-hotspot-click-message">{hotspotMessage}</span>}
               {enableBookHotspotEditor && hotspotsLoading && <span className="editable-hotspot-click-message">Loading areas...</span>}
               {enableBookHotspotEditor && hotspotLoadError && <span className="editable-hotspot-click-message warning">{hotspotLoadError}</span>}
@@ -615,17 +680,17 @@ export function BookPagesView({
             </div>
           </div>
           <div className={`book-page-viewer-shell ${hotspotEditingActive ? "with-hotspot-settings" : ""}`}>
-            <motion.button className="book-page-turn-button previous" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex - 1, { preserveScroll: true })} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
+            <motion.button className="book-page-turn-button previous" type="button" onClick={() => goToSection(selectedSectionIndex - 1, { preserveScroll: true })} disabled={isFirstSection} aria-label="Previous book section" data-sound-click="tab" whileHover={isFirstSection ? undefined : { x: -3 }} whileTap={isFirstSection ? undefined : { scale: 0.96 }}>
               <ArrowLeft size={18} />
               <span>Previous</span>
             </motion.button>
             <AnimatePresence mode="wait" custom={navigationDirection}>
               <motion.div
                 key={selectedSection.id}
-                className={`book-page-spread-stage ${spreadClass}`}
+                className={`book-page-spread-stage ${spreadClass} ${fitToScreen ? "fit-to-screen" : "manual-zoom"}`}
                 layoutId={`book-page-${selectedSection.id}`}
                 custom={navigationDirection}
-                variants={pageTurnVariants}
+                variants={pageNavigationVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
@@ -638,9 +703,10 @@ export function BookPagesView({
                       className="book-page-spread-image"
                       src={image}
                       alt={`${component.title} ${selectedSection.title} ${selectedSection.pages}${selectedImages.length > 1 ? ` page ${index + 1}` : ""}`}
-                      initial={{ opacity: 0, y: 14, rotateY: navigationDirection > 0 ? -4 : 4 }}
-                      animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
+                      style={{ scale: fitToScreen ? 1 : zoom }}
                     />
                   )) : pageAssetLoading ? (
                     <div className="book-page-missing" role="status">Loading protected page...</div>
@@ -674,11 +740,35 @@ export function BookPagesView({
                 onOpenBuilder={setBuilderType}
               />
             )}
-            <motion.button className="book-page-turn-button next" type="button" onClick={() => goToUnitSection(selectedUnitSectionIndex + 1, { preserveScroll: true })} disabled={isLastSection} aria-label="Next book section" data-sound-click="tab" whileHover={isLastSection ? undefined : { x: 3 }} whileTap={isLastSection ? undefined : { scale: 0.96 }}>
+            <motion.button className="book-page-turn-button next" type="button" onClick={() => goToSection(selectedSectionIndex + 1, { preserveScroll: true })} disabled={isLastSection} aria-label="Next book section" data-sound-click="tab" whileHover={isLastSection ? undefined : { x: 3 }} whileTap={isLastSection ? undefined : { scale: 0.96 }}>
               <span>Next</span>
               <ArrowLeft size={18} />
             </motion.button>
           </div>
+          {(visibleActivities.length > 0 || availableMediaActions.length > 0) && (
+            <aside className="book-page-resources" aria-label="Activities and media for this page">
+              <div>
+                <span className="eyebrow">Page resources</span>
+                <h3>Activities and media</h3>
+              </div>
+              <div className="book-page-resource-list">
+                {availableMediaActions.map((action) => (
+                  <button key={action.id} type="button" className="book-page-resource available" onClick={() => setActiveAction(action)}>
+                    <strong>{action.label}</strong><small>{action.classification}</small>
+                  </button>
+                ))}
+                {visibleActivities.map((activity) => {
+                  const enabled = activity.availability === "enabled" && Boolean(activity.activityKey);
+                  return (
+                    <button key={activity.id} type="button" className={`book-page-resource ${enabled ? "available" : "disabled"}`} disabled={!enabled} onClick={() => openCatalogActivity(activity)}>
+                      <strong>{activity.title || `Activity ${activity.id.split("-o").at(-1)}`}</strong>
+                      <small>{enabled ? "Ready" : `${activity.activityType} · ${activity.editorialStatus}`}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+          )}
           <div className="book-page-mini-nav" aria-label={`${component.title} page sections`}>
             {unitSections.map((section, index) => (
               <button
@@ -690,7 +780,8 @@ export function BookPagesView({
                 aria-current={section.id === selectedSection.id ? "page" : undefined}
                 data-sound-click="tab"
               >
-                <span>{index + 1}</span>
+                {section.images[0] && <img src={section.images[0]} alt="" loading="lazy" />}
+                <span>{section.spreadNumber}</span>
                 <small>{section.title}</small>
               </button>
             ))}

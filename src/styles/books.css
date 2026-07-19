@@ -1453,6 +1453,51 @@
   color: #667085;
 }
 
+.page-hotspot-editor-toolbar,
+.book-page-zoom-controls,
+.book-page-jump,
+.book-page-unit-select-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.book-page-jump label,
+.book-page-unit-select-label span {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.book-page-jump input,
+.book-page-unit-select-label select {
+  min-height: 34px;
+  color: #344054;
+  background: #fff;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.book-page-jump input {
+  width: 66px;
+  padding: 6px 8px;
+}
+
+.book-page-unit-select-label select {
+  max-width: 132px;
+  padding: 6px 26px 6px 8px;
+}
+
+.book-page-zoom-controls .secondary-action.selected {
+  color: #0b4ea2;
+  border-color: var(--brand-primary);
+  background: #eff8ff;
+}
+
 .book-page-section-counter {
   display: inline-flex;
   margin-top: 5px;
@@ -1567,6 +1612,27 @@
   max-height: none;
   overflow: hidden;
   padding: clamp(8px, 1.1vw, 16px);
+}
+
+.book-page-spread-stage.manual-zoom {
+  overflow: auto;
+}
+
+.book-page-spread-stage.manual-zoom .book-page-image-layer {
+  padding: clamp(16px, 4vw, 56px);
+}
+
+.book-page-spread-stage.manual-zoom .book-page-spread-image {
+  transform-origin: center top;
+}
+
+.book-page-spread-view.is-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  padding: 10px;
+  overflow: auto;
+  background: #eef3f8;
 }
 
 .book-page-spread-stage.two-page-spread {
@@ -2083,6 +2149,15 @@
   cursor: pointer;
 }
 
+.book-page-mini-nav img {
+  width: 46px;
+  height: 30px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
 .book-page-spread-view.book-page-selection-gateway .book-page-mini-nav button {
   min-width: 38px;
   max-width: 92px;
@@ -2126,6 +2201,62 @@
   max-width: 76px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.book-page-resources {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.22fr) minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #d5dfeb;
+  border-radius: 12px;
+}
+
+.book-page-resources h3 {
+  margin: 3px 0 0;
+  color: #101828;
+  font-size: 15px;
+}
+
+.book-page-resource-list {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.book-page-resource {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 150px;
+  max-width: 260px;
+  gap: 3px;
+  padding: 8px 10px;
+  text-align: left;
+  color: #344054;
+  background: #fff;
+  border: 1px solid #d5dfeb;
+  border-radius: 9px;
+}
+
+.book-page-resource.available {
+  cursor: pointer;
+  border-color: color-mix(in srgb, var(--brand-primary) 45%, #d5dfeb);
+}
+
+.book-page-resource.disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.book-page-resource small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #667085;
+  font-size: 10px;
 }
 
 .image-zoom-modal-actions {

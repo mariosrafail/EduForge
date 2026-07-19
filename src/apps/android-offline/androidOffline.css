@@ -460,6 +460,28 @@ html[data-app-mode="android-offline"] body {
   display: none;
 }
 
+.android-existing-viewer-shell .book-page-mini-nav img {
+  display: none;
+}
+
+.android-existing-viewer-shell .page-hotspot-editor-toolbar {
+  justify-content: flex-start;
+}
+
+.android-existing-viewer-shell .book-page-jump,
+.android-existing-viewer-shell .book-page-zoom-controls {
+  display: none;
+}
+
+.android-existing-viewer-shell .book-page-unit-select-label {
+  min-width: min(100%, 190px);
+}
+
+.android-existing-viewer-shell .book-page-resources {
+  grid-template-columns: 1fr;
+  padding: 6px;
+}
+
 .android-activity-overlay {
   position: fixed;
   inset: 0;

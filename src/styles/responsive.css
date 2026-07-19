@@ -66,6 +66,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .book-page-spread-toolbar { grid-template-columns: 1fr; }
+  .page-hotspot-editor-toolbar { justify-content: flex-start; }
+  .book-page-resources { grid-template-columns: 1fr; }
   .book-page-spread-view.book-page-selection-gateway {
     min-height: 0;
   }
@@ -181,6 +183,12 @@
     width: 24px;
     height: 24px;
   }
+  .book-page-jump,
+  .book-page-unit-select-label,
+  .book-page-zoom-controls { width: 100%; }
+  .book-page-jump input,
+  .book-page-unit-select-label select { flex: 1; max-width: none; }
+  .book-page-mini-nav img { display: none; }
 }
 
 @media (max-width: 980px) {
