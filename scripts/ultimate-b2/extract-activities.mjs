@@ -8,7 +8,11 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDirectory, "../..");
 const args = process.argv.slice(2);
 const sourceIndex = args.indexOf("--source-root");
-const sourceRoot = path.resolve(sourceIndex >= 0 ? args[sourceIndex + 1] : path.join(repoRoot, "Ultimate English B2.app"));
+const sourceRoot = path.resolve(
+  sourceIndex >= 0
+    ? args[sourceIndex + 1]
+    : process.env.ULTIMATE_B2_SOURCE_ROOT || path.join(repoRoot, "Ultimate English B2.app"),
+);
 const outputRoot = path.join(repoRoot, "books/ultimate-b2/generated/activities");
 const frontendOutput = path.join(repoRoot, "src/data/ultimate-b2/generated/students-book-unit-02.ready.json");
 
