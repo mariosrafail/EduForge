@@ -1,0 +1,3538 @@
+{
+  "schemaVersion": 1,
+  "experiment": {
+    "featureFlag": "VITE_ENABLE_LEGACY_FLASH_PLAYER=true",
+    "route": "/#/dev/ultimate-b2-legacy-player",
+    "ruffle": {
+      "package": "@ruffle-rs/ruffle",
+      "version": "0.4.0"
+    },
+    "scope": "Startup plus Unit 2 only; publisher source remains external and read-only."
+  },
+  "sourceFingerprint": {
+    "airDescriptor": {
+      "applicationId": "com.calledutainment.hamilton.ultimateEnglishB2GR",
+      "applicationVersion": "2.3.0",
+      "bytes": 12813,
+      "namespace": "http://ns.adobe.com/air/application/23.0",
+      "sha256": "5fa135d2e2878366cae14164125eca5e0fdf921d78662f26a3d462571d164e58"
+    },
+    "mainSwf": {
+      "bytes": 18003009,
+      "path": "Contents/Resources/UltimateB2.swf",
+      "sha256": "c2c0c78bb6aa09934698a2784ab0133a032cdccacb69852a46ecf74e59df3850"
+    },
+    "swfs": [
+      {
+        "bytes": 6847,
+        "path": "Contents/Resources/assets/videoPlayer/skins/SkinUnderPlayStopSeekCaptionVol_FLV.swf",
+        "sha256": "e7815f943a1b512728ee4de21ecc004907033cd6c1ea77393eba4fe268614c5f"
+      },
+      {
+        "bytes": 31458,
+        "path": "Contents/Resources/assets/videoPlayer/skins/SkinUnderPlayStopSeekCaptionVol.swf",
+        "sha256": "13283cd064bfa87e6f3d85e2c0854c49c2666b4a304999833210a488af7fc71a"
+      },
+      {
+        "bytes": 7050,
+        "path": "Contents/Resources/assets/videoPlayer/skins/SkinUnderPlayStopSeekCaptionVolChapters_FLV.swf",
+        "sha256": "bca8ddb4e179908e77e84d75476dbbe49beb3cd60c70c0963ca65ee930f5e869"
+      },
+      {
+        "bytes": 42733,
+        "path": "Contents/Resources/assets/videoPlayer/skins/SkinUnderPlayStopSeekCaptionVolChapters.swf",
+        "sha256": "d03d780ed42b5c41ad3832900146317fc0799ef757c44110a70e92b5db2f10c8"
+      },
+      {
+        "bytes": 18003009,
+        "path": "Contents/Resources/UltimateB2.swf",
+        "sha256": "c2c0c78bb6aa09934698a2784ab0133a032cdccacb69852a46ecf74e59df3850"
+      }
+    ]
+  },
+  "allowlistedDependencies": {
+    "startup": {
+      "bytes": 50784673,
+      "extensions": {
+        ".iwb": 6,
+        ".mp3": 1919,
+        ".png": 30,
+        ".swf": 4,
+        ".xml": 14,
+        ".zip": 10
+      },
+      "files": 1983
+    },
+    "unit2": {
+      "bytes": 113856166,
+      "extensions": {
+        ".iwb": 219,
+        ".jpg": 2,
+        ".mp3": 50,
+        ".png": 394,
+        ".xml": 17
+      },
+      "files": [
+        {
+          "bytes": 603391,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part1/obj1/image_1.png",
+          "sha256": "8f826e72100574110fc6c13237f1191ed02eaaf403f6c6a1f182de1e75a6f189"
+        },
+        {
+          "bytes": 385772,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part1/obj1/image_2.png",
+          "sha256": "0f0c3cc9b7b3f4018d8d335c5b65725ac80cc066d00c3ccecb3d1c58eb000919"
+        },
+        {
+          "bytes": 1820,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part1/obj1/obj_params.iwb",
+          "sha256": "d435b0f81f72960f9bd1a25ec34e34b9558f1cd29a77f76b69d747b7a805ec61"
+        },
+        {
+          "bytes": 880,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part1/part_params.iwb",
+          "sha256": "5baab154d57c73972390d96ac70adb223eaebc1848e4f6f5d81e907fa8eb1d10"
+        },
+        {
+          "bytes": 5667,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj1/image_2.png",
+          "sha256": "8ce5da910e963995ebee4d7e34a216c9b46286ba624ade05c60f118633bf095a"
+        },
+        {
+          "bytes": 10112,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj1/obj_params.iwb",
+          "sha256": "9476b067b72c3d301c74ace312538a88cebe8cf8aa0fbe9c9ebd50c84db14e02"
+        },
+        {
+          "bytes": 60095,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj2/image_1.png",
+          "sha256": "cd59d29781fcccce922ee22396c0bb6d09e4f03bd33097969676340b6c64557a"
+        },
+        {
+          "bytes": 4807,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj2/image_2.png",
+          "sha256": "010ef6c5e42c6eb18016b2e9fc1ed0354440bdf080e28567f38784cbdddd10bc"
+        },
+        {
+          "bytes": 5180,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj2/obj_params.iwb",
+          "sha256": "9686fe4c5dcb3f36550f552a02d00d032e758a5f2baf861ba8ab26f805433cc2"
+        },
+        {
+          "bytes": 8408,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj3/ebook_obj_params.iwb",
+          "sha256": "7db88bead68f46da5c0e54aea04385713eceb3cda145c135bc7836ec50c32170"
+        },
+        {
+          "bytes": 8347,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj3/image_2.png",
+          "sha256": "6554aab57ddae72e6be840beb7cc810417e60962c0748b44f0dd03e0e1b39dca"
+        },
+        {
+          "bytes": 8408,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj3/obj_params.iwb",
+          "sha256": "7db88bead68f46da5c0e54aea04385713eceb3cda145c135bc7836ec50c32170"
+        },
+        {
+          "bytes": 9608,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj4/ebook_obj_params.iwb",
+          "sha256": "a9d2050062b5594198121ba1538f469c4b9d175841750a67e403ed7bca671b63"
+        },
+        {
+          "bytes": 6655,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj4/image_2.png",
+          "sha256": "7004f530c4363003fa2663357ccf6c0fc45dd469f3fb4dc4c3a43b06f24f1104"
+        },
+        {
+          "bytes": 9608,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj4/obj_params.iwb",
+          "sha256": "a9d2050062b5594198121ba1538f469c4b9d175841750a67e403ed7bca671b63"
+        },
+        {
+          "bytes": 82213,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj5/image_1.png",
+          "sha256": "3cd279e1e817df92aa888f61390de1a070210df18ad10f6532ed541c80e7f31b"
+        },
+        {
+          "bytes": 4646,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj5/image_2.png",
+          "sha256": "ee1907bcbdc12b6381fdc21ae99a5ae74d8e901b543b5ef3fb822138debe7db8"
+        },
+        {
+          "bytes": 5244,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj5/obj_params.iwb",
+          "sha256": "0123ef66696dcae247f1d7f8aed8c15fec2d233bd9a54c7cb91c1fad51c363e1"
+        },
+        {
+          "bytes": 10380,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj6/ebook_obj_params.iwb",
+          "sha256": "d7d78e17a449d7380bb7dbc46c00292f4dbfacf0ff038cc8114a971503d8879f"
+        },
+        {
+          "bytes": 8060,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj6/image_2.png",
+          "sha256": "35627774a5ee9a04c839e7c09427d5b14ceddaf22d4376813e93fbea17d12144"
+        },
+        {
+          "bytes": 10380,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/obj6/obj_params.iwb",
+          "sha256": "d7d78e17a449d7380bb7dbc46c00292f4dbfacf0ff038cc8114a971503d8879f"
+        },
+        {
+          "bytes": 2236,
+          "path": "Contents/Resources/assets/books/book1/companion/2/part2/part_params.iwb",
+          "sha256": "30c28fa14cfefc08d632e5402dd6b7828b0b796df1dbbdd40050cede0172f130"
+        },
+        {
+          "bytes": 294944,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/HD/parts_BG.png",
+          "sha256": "11ed93e238baf4d922be0f226b53084e93489c7d117703ea36e40100413059b7"
+        },
+        {
+          "bytes": 365195,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/HD/parts_part_1.png",
+          "sha256": "2b0b75857e3b77d055e36926ec4db548e6ff60581a6c48c6739a0751412c2330"
+        },
+        {
+          "bytes": 206099,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/HD/parts_part_2.png",
+          "sha256": "99626e9789d13e5d4c3928d75d8501e518404f47dea861fd2278e65d707747f5"
+        },
+        {
+          "bytes": 187076,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/SD/parts_BG.png",
+          "sha256": "448d7a489cda407ec8d6875d44e076eea5f55b78de3835a1f9f104ea2fe02143"
+        },
+        {
+          "bytes": 245854,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/SD/parts_part_1.png",
+          "sha256": "8a9c8e908c71ab9639c23b7187460af63e7223e83f3dbfd5c6d475652186169e"
+        },
+        {
+          "bytes": 126167,
+          "path": "Contents/Resources/assets/books/book1/companion/2/parts/SD/parts_part_2.png",
+          "sha256": "1e03ae4cc0a1a0555d522eb57472589cc6a45b6da75d1d0c87cab5b1c852aaa9"
+        },
+        {
+          "bytes": 1232,
+          "path": "Contents/Resources/assets/books/book1/companion/2/unit_params.iwb",
+          "sha256": "ea91856a74731b04f5118f2692995bc0f132a96e04f0d0427d80d51077ab64cf"
+        },
+        {
+          "bytes": 4251,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part1/obj1/image_1.png",
+          "sha256": "12ad5cf3a9f64866944e839aa62b1fe87c5f644c1938b5876c07fd3b656dab5d"
+        },
+        {
+          "bytes": 275948,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part1/obj1/image_2.png",
+          "sha256": "4fbeeefaa5db7ef3c0518f76020b02098020c70c0871244d03046ac000ce2cba"
+        },
+        {
+          "bytes": 181219,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part1/obj1/image_3.png",
+          "sha256": "42920ec02a7883936913bc53ea8324a12be61db0742a0a7f7996d8f2650fbb1f"
+        },
+        {
+          "bytes": 4728,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part1/obj1/obj_params.iwb",
+          "sha256": "745416a4678cc37c84fc2168ccd360841005df5c0feab37b28868d30bc9d76b4"
+        },
+        {
+          "bytes": 720,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part1/part_params.iwb",
+          "sha256": "fcffd582088311575b3c52caf4a59331d77db2b35d88922fc700bb47429c2252"
+        },
+        {
+          "bytes": 789142,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj1/image_1.png",
+          "sha256": "28f394a04ca8924cce16e4a4aeb886dcb0a893c0720a34d2ad97f1d979fea75e"
+        },
+        {
+          "bytes": 1868,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj1/obj_params.iwb",
+          "sha256": "b33d651ab5809488c2f3b750061f898f1aa9e31c85c99017cc5bca0f100d196e"
+        },
+        {
+          "bytes": 4000,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj2/image_1.png",
+          "sha256": "a0cccba910596258fc94cca1b2daf46ac85a8f1a3f6071423c2aa22e363b4a4f"
+        },
+        {
+          "bytes": 298441,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj2/image_2.png",
+          "sha256": "07f21e2e3a393b62dbfaaf13783c47e16c5a21291562585a6cb09d119b474c8d"
+        },
+        {
+          "bytes": 5580,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj2/obj_params.iwb",
+          "sha256": "01bffda83220df53224aa6cce5dadedd7fa372859440352fdb47b179ff6845e9"
+        },
+        {
+          "bytes": 6144,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj3/image_1.png",
+          "sha256": "e2bfc5a7c0613ae916f26fb918ea9cf01d650b422d0b747c9b5ca386c071ec4a"
+        },
+        {
+          "bytes": 11532,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj3/obj_params.iwb",
+          "sha256": "7460c2a5b63630c2bfaa3f87b9d925bccf82faeea40f59b32493b9dc41dd125c"
+        },
+        {
+          "bytes": 8462,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj4/image_1.png",
+          "sha256": "e45abacd96fcd3fa4a605fefd0caecbdae83d1869472f6ec1892b13b2a4b48c3"
+        },
+        {
+          "bytes": 112373,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj4/image_2.png",
+          "sha256": "3c91288afea95c8b58c552df3345f774ace4f300a463750d6ab13ebdba350e52"
+        },
+        {
+          "bytes": 9952,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/obj4/obj_params.iwb",
+          "sha256": "dd8f6b382bf84af358df2234ff0ecbc5c3a5ebb50e0120f8ae252ed5799a4b32"
+        },
+        {
+          "bytes": 1608,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part2/part_params.iwb",
+          "sha256": "65b60f3499fb83f70ebfc1272219fa76017a93d96d119c6e143389c92fd4ded6"
+        },
+        {
+          "bytes": 397835,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj1/image_1.png",
+          "sha256": "5d8e1e0cbac6941b8a490ccf57255da382f02286a9635ba7bb806f099a9f846d"
+        },
+        {
+          "bytes": 1876,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj1/obj_params.iwb",
+          "sha256": "99277c360ad67a53aadd56be26fad2dab2b2491d1c5e5957643d7b57bd2c0d3d"
+        },
+        {
+          "bytes": 7185,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj2/image_1.png",
+          "sha256": "84f9648f0496b82da6503bc0cf66d89ddd5db03eb1c047fe7ebb11158bab05a6"
+        },
+        {
+          "bytes": 13324,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj2/obj_params.iwb",
+          "sha256": "162b42fa7c4c8e06bd5399142b5a237095996c1af2136a51f54fa33b6db9d886"
+        },
+        {
+          "bytes": 4018,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj3/image_1.png",
+          "sha256": "38b7cf1d72eb6380cef41f044f35abcaf86989193f12f1a3f796a3320d123bb7"
+        },
+        {
+          "bytes": 122004,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj3/image_2.png",
+          "sha256": "a62a02e7e5624795dc51591f087ee7d6ae5baf3a01137a5554834090e2ae783d"
+        },
+        {
+          "bytes": 6412,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj3/obj_params.iwb",
+          "sha256": "4eb5da2c754bfc7340aebd3370af71947fdb292450adc3cc7bd5c109f986ac31"
+        },
+        {
+          "bytes": 7651,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj4/image_1.png",
+          "sha256": "9433dbdde8a5f95f7c9a6a123e3d04fb73119b81786085fe4c9d17f40d88d522"
+        },
+        {
+          "bytes": 77858,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj4/image_2.png",
+          "sha256": "8b9ad5b0505449695db034cf9a39cf2e011893b2a0894bf54108f9d42f8d267c"
+        },
+        {
+          "bytes": 10640,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/obj4/obj_params.iwb",
+          "sha256": "1e144ef9526f8cd61e0432bb14d2a37f4d917bc697a3d5c057ace88f98a96c07"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part3/part_params.iwb",
+          "sha256": "fd719813111d93894660150c4edccf55450597550432ed69fa657304194d6aef"
+        },
+        {
+          "bytes": 5100,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj1/image_1.png",
+          "sha256": "d290e4e890838a64191d72978e97d2d6aea0fc9e7893346a2d02930073d660a7"
+        },
+        {
+          "bytes": 326069,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj1/image_2.png",
+          "sha256": "79fb77f9a52e060adea78aba349c8ce97780b2b2a3f95b5c2e254d1dfa719024"
+        },
+        {
+          "bytes": 6284,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj1/obj_params.iwb",
+          "sha256": "d888bc5ccb14b1089cad9ceb85055a2b20fda6dddd5317e1c6a3a5f3c0ea851e"
+        },
+        {
+          "bytes": 7586,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj2/image_1.png",
+          "sha256": "9078d9b811f06474075b284ef4f009182d42ad8496aa2307cac50ca9428d7ce4"
+        },
+        {
+          "bytes": 10984,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj2/obj_params.iwb",
+          "sha256": "0319efb5d2fbec586ab0dd7cfe07622bcfec3e2ee09f2ebd548dbff07b463b2f"
+        },
+        {
+          "bytes": 3974,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj3/image_1.png",
+          "sha256": "97197be657c84403312a8108b4c69824e145ae7db11aa9c44b6c7951a5633ae0"
+        },
+        {
+          "bytes": 133366,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj3/image_2.png",
+          "sha256": "fb442bb39bbb0c2458d37832c5dd785036cf529c7affe5737c249db1d6262478"
+        },
+        {
+          "bytes": 8636,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/obj3/obj_params.iwb",
+          "sha256": "7a22521793bd7d060e19fe243a785416d3ae09f9df1edfdf4d60b0b2618242dd"
+        },
+        {
+          "bytes": 1316,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part4/part_params.iwb",
+          "sha256": "446b4d60b3984064a84263c79236a03cd3793d0a2089752f50e59ed37aa6a093"
+        },
+        {
+          "bytes": 4194,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj1/image_1.png",
+          "sha256": "5a15b55ca3052bf928f782f88fb039219eac3a696dfefec48ef7a97c89c3802a"
+        },
+        {
+          "bytes": 36509,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj1/image_2.png",
+          "sha256": "81c48fc6f3f4a6c6a82bdb802aac4f33bf76caee0685c79af9c1ef3fa4d488ed"
+        },
+        {
+          "bytes": 6928,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj1/obj_params.iwb",
+          "sha256": "d16bc995b5f24d3f672fe6edda177200dc444ed5f89cfe0a565db8ed78357e41"
+        },
+        {
+          "bytes": 524883,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj1/showText.png",
+          "sha256": "17bb76d0ee74e0f9c548669c55907cf401fde48e2f66b82e760b718ad48c87a1"
+        },
+        {
+          "bytes": 6799,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj2/image_1.png",
+          "sha256": "dd9fd782526d94a653ceaa423ad9bc5f50c80318608b36f7f507f90f01f09a7e"
+        },
+        {
+          "bytes": 38503,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj2/image_2.png",
+          "sha256": "db0ce6bdeb64a8c0c2f3a386b4b5039ac6f370e62328b52754595eddbbf96a5a"
+        },
+        {
+          "bytes": 11908,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/obj2/obj_params.iwb",
+          "sha256": "a0af4b3845f79804618df63ba51fbfdd02b14eb00fee196ce68787f05a0b9fee"
+        },
+        {
+          "bytes": 1016,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part5/part_params.iwb",
+          "sha256": "7c0fe0152a87f456dca204e73378a64bcda38226c6ec2538f2591fa89a596078"
+        },
+        {
+          "bytes": 4859,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/image_1.png",
+          "sha256": "10e17f1c06aab21ddaef092bf2acabb4523b4835aa3db0a3e3d4db7481cda565"
+        },
+        {
+          "bytes": 93528,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/image_2.png",
+          "sha256": "e2fa32c717404a8fc1d8f3062bbe65cf66af31a3a595ffeb2a0f7a9581eb8e94"
+        },
+        {
+          "bytes": 79093,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/image_3.png",
+          "sha256": "a1b4818d0d21f03604d31e5b8f9051bbd7c19789c627939d0169c1e6b243d8d4"
+        },
+        {
+          "bytes": 79196,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/image_4.png",
+          "sha256": "5a17e111ed83cd5eb6b69456340b39bcfc46fa4548ef03c14ecf2127be06ab11"
+        },
+        {
+          "bytes": 25535,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/image_5.png",
+          "sha256": "a141c57ba3ca6ac47059a3927d162c0081626e4c6adbdbeb16d5541088d9d258"
+        },
+        {
+          "bytes": 16456,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj1/obj_params.iwb",
+          "sha256": "633805222217c09330f08fea2c7852237ddc5c6a1b99b75bb942cd1c2627334a"
+        },
+        {
+          "bytes": 4859,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/image_1.png",
+          "sha256": "10e17f1c06aab21ddaef092bf2acabb4523b4835aa3db0a3e3d4db7481cda565"
+        },
+        {
+          "bytes": 83998,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/image_2.png",
+          "sha256": "952c433a78d7f6f73852a01b70aa4b3663f41a66991519e26a3e97ae14b575fe"
+        },
+        {
+          "bytes": 72357,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/image_3.png",
+          "sha256": "28d7bdd75a38b79a229eef3b3d65a321be4526b1edeb50e47a531ebbab2e94d3"
+        },
+        {
+          "bytes": 69577,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/image_4.png",
+          "sha256": "c7ccc3e0b2ab87551b7d77e7d8c4cbbdd338d1bd0828b7691383bdf1c7ac4526"
+        },
+        {
+          "bytes": 23746,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/image_5.png",
+          "sha256": "213ba6e9484cba7802ceb05897ee7962678a7d949ba661bd56faffe1d76dd4df"
+        },
+        {
+          "bytes": 16452,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/obj2/obj_params.iwb",
+          "sha256": "59a577b43d6e3255bb93c77ef861f8e886f93050915b394cf971fa83f9b1071a"
+        },
+        {
+          "bytes": 1012,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/part6/part_params.iwb",
+          "sha256": "cb152270700f4292fcc858ae409180a8b3eb9a9acca05cc9c3422ef31b42951b"
+        },
+        {
+          "bytes": 616307,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_BG.png",
+          "sha256": "9fa99e2651628aa8e53f3cf9f0fb36bbd4ab228f92b46ab2566c0ac41d7475a9"
+        },
+        {
+          "bytes": 674269,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_1.png",
+          "sha256": "94d57f45b3a9361599a66b2903f08ad0f9bfc0f312334f3d2ce9e139b579de76"
+        },
+        {
+          "bytes": 480855,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_2.png",
+          "sha256": "1ea2923949c7f25f3f08b970bcc95b046ab087396a09f5ff9f5ccbed08e84239"
+        },
+        {
+          "bytes": 480386,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_3.png",
+          "sha256": "8d39dffe557bfc84055052ac0c2cd72e65a0efb56a862a22da13a56ca7a41251"
+        },
+        {
+          "bytes": 363217,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_4.png",
+          "sha256": "95f7b980970e32f9bf76c1e62cd8cd1dca33dd133c84d52768238484e932be19"
+        },
+        {
+          "bytes": 492944,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_5.png",
+          "sha256": "b995c8d82fbc11af6316a5910fe0ceef132362748b9522ec05787e51171f50e3"
+        },
+        {
+          "bytes": 443643,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/HD/parts_part_6.png",
+          "sha256": "11fa9a14a90ad04db335f5e557e22ef70f556d599868f70641524e2fea5bf331"
+        },
+        {
+          "bytes": 374823,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_BG.png",
+          "sha256": "b2893f1ddb4f95400de4384f19655c18dfd53544c5f494c1ba7ac42a69394098"
+        },
+        {
+          "bytes": 382542,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_1.png",
+          "sha256": "77786f8ece169f647d53dad4a67abee26e4e3bd6e34751e0253d1eea744c45a2"
+        },
+        {
+          "bytes": 290381,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_2.png",
+          "sha256": "b4eb7a4f8bc1bc3ad831696825cd86d4f0c46478f9afd83ee917e647ef67d76a"
+        },
+        {
+          "bytes": 289692,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_3.png",
+          "sha256": "303de647112704aca10d8f1734ef78fe4e29831bec3aa2c83b8e6ed7e827565d"
+        },
+        {
+          "bytes": 211675,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_4.png",
+          "sha256": "953f4714e09d392617b1eb400e950acc671630c12fd3a3ee42b0513e1ec3bb12"
+        },
+        {
+          "bytes": 290297,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_5.png",
+          "sha256": "d0905038732646a372b47cd91b7871346f32831d3acd7f9958cfafc30f8abfdc"
+        },
+        {
+          "bytes": 321846,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/parts/SD/parts_part_6.png",
+          "sha256": "6be8689ebed22fa0e3458b9eecfb07272f88fea743a7395aad52ac06f78ac000"
+        },
+        {
+          "bytes": 3976,
+          "path": "Contents/Resources/assets/books/book1/grammar/2/unit_params.iwb",
+          "sha256": "00bfb7df36999ebc6c36dbeb3e1290f2446094e6c10cb6f781564b451da55e2d"
+        },
+        {
+          "bytes": 3546,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj1/image_1.png",
+          "sha256": "08c6fc8df9a8bf74ccd34c678aa2cbc50732167e81b3a0beb84581a1455e7136"
+        },
+        {
+          "bytes": 16068,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj1/image_2.png",
+          "sha256": "3b6d59911aa8c24650b94bb9a26e18bcfc03249fffac846b5b1ea2f4efddb95f"
+        },
+        {
+          "bytes": 10328,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj1/obj_params.iwb",
+          "sha256": "aad3e163d038d652e0fda012bcdce265f8b3a85fe40185a3aa65f00e60103578"
+        },
+        {
+          "bytes": 983739,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj1/showText.png",
+          "sha256": "c479b6ec586a3ede4311597b83e7fada3eb4f70534af532fb3168007cf704a9b"
+        },
+        {
+          "bytes": 65224,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj2/image_1.png",
+          "sha256": "7866c2ff4ecc32b1982eba46c511bccd870a2ab38dcd3653ae4ace12883adf47"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj2/obj_params.iwb",
+          "sha256": "8296d8076443ca6bf1bbdc1f16d166ec26d9645d2828ef6ab48ed4e312b96a44"
+        },
+        {
+          "bytes": 929025,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/obj2/showText.png",
+          "sha256": "0d449f6b1d9736db37afbfd445543b2437892ee92e3c08c55393356b58c59bcb"
+        },
+        {
+          "bytes": 1168,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part1/part_params.iwb",
+          "sha256": "a39afc51ea21d131fc7a17ca4d503ae839cdb5c7ba389eac5f855f9564cd0c91"
+        },
+        {
+          "bytes": 39094,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj1/image_1.png",
+          "sha256": "abe43c2b5a596c016a24cc8d5baa4b0ae212970f33769cfc8fe316e3558e3c5c"
+        },
+        {
+          "bytes": 17504,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj1/image_2.png",
+          "sha256": "93d60100461d12bb494580591ef4c5f4300522173c61e5ef8e0257f3b859701c"
+        },
+        {
+          "bytes": 12860,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj1/obj_params.iwb",
+          "sha256": "268aa40edb61ab52c97c3427eb0954751ee24bde5f4f1605c837983604f68497"
+        },
+        {
+          "bytes": 42541,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj1/showText.png",
+          "sha256": "48ae1f75044122f7a82cee2d3a33aa0b10c63c9341af61d793618407dcb73993"
+        },
+        {
+          "bytes": 23786,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj2/image_1.png",
+          "sha256": "72adb5c43fad1dabc17c772955f8dda45b82c282bd476180068763e0f4a5f0c3"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj2/obj_params.iwb",
+          "sha256": "de0d317c6ed60cbbc1a087298b53aed2819d38c38ca38dc471349d893b1fb3b6"
+        },
+        {
+          "bytes": 232107,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj2/showText.png",
+          "sha256": "9db8f761d74cde834c2bd699e35faf413df0871eb8ba74456ee06ad74a360cf2"
+        },
+        {
+          "bytes": 7656606,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/audio.mp3",
+          "sha256": "3916ae434bf5b3c5989ed9082c330794b85177a0ce452413cbe97bc6737b1a4f"
+        },
+        {
+          "bytes": 77321,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_1.mp3",
+          "sha256": "c2b180b8acbbb21a205e4be639a839c2c3ca77d978f879974a9b2adb75746df1"
+        },
+        {
+          "bytes": 90278,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_10.mp3",
+          "sha256": "a45ad962e8c14028be4a185172ebe452cefbba1667239a1c7b73ec24f3e33dd6"
+        },
+        {
+          "bytes": 87352,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_2.mp3",
+          "sha256": "b862463ea47b124284d5a4a6c6a025ebdfeb03ef7d6b1a783ea7d73037273361"
+        },
+        {
+          "bytes": 59767,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_3.mp3",
+          "sha256": "1848c33553a851e18faa73a53756a879f143a0cfab0128dcb924237ca5ae2919"
+        },
+        {
+          "bytes": 57677,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_4.mp3",
+          "sha256": "c9297c8257032a7499f9a74e7261629e278c47064732c5f28f8151bfac534a6d"
+        },
+        {
+          "bytes": 78575,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_5.mp3",
+          "sha256": "ebadb2a4068f44199f152b390a2ab8ff4a1a83baaa4a9b35c5b796deb1c86e04"
+        },
+        {
+          "bytes": 47646,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_6.mp3",
+          "sha256": "eb69a017f78f83b08c2c316052986a2e4d0eeb5f3f6305c1553ec0e745d8c144"
+        },
+        {
+          "bytes": 115355,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_7.mp3",
+          "sha256": "12e50e0cc307d293879912ea2a6e480f01b2463c2f495039fc64e34ebe917678"
+        },
+        {
+          "bytes": 54751,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_8.mp3",
+          "sha256": "05629d1e31e672ba07ca4068c41999277c95789f29956147732221f00872694c"
+        },
+        {
+          "bytes": 71052,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_9.mp3",
+          "sha256": "3805a1674dd9dbf2d5996eb3201be6f5cc3133c85440a64bdb93d11444585d06"
+        },
+        {
+          "bytes": 6476,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/highlight_params.iwb",
+          "sha256": "dd814adf6303eaf45ffc9a3c44a06c2c87b5521a28f69756bcf1b378a15fe367"
+        },
+        {
+          "bytes": 33048,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/image_1.png",
+          "sha256": "8fc97ec37dbd3c00d999fb0a180e64719b48b649b214bdd449cc9ee81b4545d5"
+        },
+        {
+          "bytes": 19583,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/image_2.png",
+          "sha256": "ec0856dec26a0d8bfbe397224832003f51d4b96f2d268bcf7fe56f91720fc0e3"
+        },
+        {
+          "bytes": 15380,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/obj_params.iwb",
+          "sha256": "6f874098802c0f8b294073cc12421122115cd8b853820beafe32ab3d798c0b2e"
+        },
+        {
+          "bytes": 221714,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/showText.png",
+          "sha256": "59d5ed32532464dc7990cfa10bfb26a656a82ebed6dae1bdf5c2243c8ff119b4"
+        },
+        {
+          "bytes": 201434,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj3/tapescript.png",
+          "sha256": "d14a6d618b7279570f15a88c476196ae40a2f4a1c987fd941412c6bc5c5791ff"
+        },
+        {
+          "bytes": 17506,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj4/image_1.png",
+          "sha256": "b997d4c6a004e98e29664e7d01e4d1468ec346241130b7a9f6b5083d38e52c3f"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj4/obj_params.iwb",
+          "sha256": "57bcb1f5f8f62ad95b5e101bdaf8e4168c26e1c501527d4575d6a1fa3ca1351b"
+        },
+        {
+          "bytes": 223778,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/obj4/showText.png",
+          "sha256": "696b1b38aab4e45d43d2abcc9a8b1acb520b5b6aa179322ee9e0aa40c250e4f2"
+        },
+        {
+          "bytes": 1604,
+          "path": "Contents/Resources/assets/books/book1/practice/2/part2/part_params.iwb",
+          "sha256": "b134e3c9fa0714d8fb6c8f33a32b791a7463083895cc08f3c4e6ac8fb3c3f774"
+        },
+        {
+          "bytes": 621449,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/HD/parts_BG.png",
+          "sha256": "9e237585bbd19d95bd0039d095d862e70ede5274fe19ddd8ea17772b961eb1d5"
+        },
+        {
+          "bytes": 353621,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/HD/parts_part_1.png",
+          "sha256": "6eb91632ea40706d52b8ea0c85555c82facaf3d295c1db914c03a8a94e20a3fa"
+        },
+        {
+          "bytes": 375597,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/HD/parts_part_2.png",
+          "sha256": "78c868e31c966d348da34fe6055760d4ccd14a331f7f5add9cb8e3c923e6821f"
+        },
+        {
+          "bytes": 389023,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/SD/parts_BG.png",
+          "sha256": "825c142e6eda88793c8860649364727d7cbc602cd5f62e1234767c6131909fd3"
+        },
+        {
+          "bytes": 221440,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/SD/parts_part_1.png",
+          "sha256": "fce4c3cb251d9c7fe414237af1439b0ba62232862a2bd9fa13d9a7418c1ea0a8"
+        },
+        {
+          "bytes": 220486,
+          "path": "Contents/Resources/assets/books/book1/practice/2/parts/SD/parts_part_2.png",
+          "sha256": "92dfa00fbbbd3162610e224d839e0252f0815a4674b12ff5111b5dab6d72fe5d"
+        },
+        {
+          "bytes": 576,
+          "path": "Contents/Resources/assets/books/book1/practice/2/unit_params.iwb",
+          "sha256": "66f352a633c4352f400c12698ff9959bd1327372a74cc841916d38512b09ad24"
+        },
+        {
+          "bytes": 3546,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj1/image_1.png",
+          "sha256": "08c6fc8df9a8bf74ccd34c678aa2cbc50732167e81b3a0beb84581a1455e7136"
+        },
+        {
+          "bytes": 16339,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj1/image_2.png",
+          "sha256": "3bf0acf2db1cf7369fa0fdfaa94acbc77d36f2ed75689d97b7af2047dc291b51"
+        },
+        {
+          "bytes": 9664,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj1/obj_params.iwb",
+          "sha256": "5f46258ada03b0eef3e62b28377c2365927021080e2c4a4b2fbdff415ad78259"
+        },
+        {
+          "bytes": 944344,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj1/showText.png",
+          "sha256": "f085f2ed90f767d080150273a096d99adc628cac9d231f6009433de5b72f5cba"
+        },
+        {
+          "bytes": 26952,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj2/image_2.png",
+          "sha256": "c87a822925ec8ac1136addee341b7679663cffb5655ee2a27ef2fde6406ebf54"
+        },
+        {
+          "bytes": 12084,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/obj2/obj_params.iwb",
+          "sha256": "7dcaef21716ec95cfcd7c6f896306ef9f49f98247f86d5b3c6bf0286a5a3f81f"
+        },
+        {
+          "bytes": 1164,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/part1/part_params.iwb",
+          "sha256": "c48354e21fb4825f5710ea9786223a90fe57a2bdf45d548532627d1bb9cfffe3"
+        },
+        {
+          "bytes": 58031,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/parts/HD/parts_BG.png",
+          "sha256": "a95ad2f104c66d9bef57e4c75c7144f75d6c673db3450abd5fedd3f8f71806d2"
+        },
+        {
+          "bytes": 831633,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/parts/HD/parts_part_1.png",
+          "sha256": "82ecc012dbfc0db4f73bfedc00913c3c12e46ac016b02f31bc548016128b9994"
+        },
+        {
+          "bytes": 55426,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/parts/SD/parts_BG.png",
+          "sha256": "0fe5978c33ca0557099361ac06f129b9ab7ad392541ec693e4e149dfcdc69d12"
+        },
+        {
+          "bytes": 487496,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/parts/SD/parts_part_1.png",
+          "sha256": "a33c535145c0aa900610a10ca604da64dacb58c883835ceeb105f3c531ff6635"
+        },
+        {
+          "bytes": 420,
+          "path": "Contents/Resources/assets/books/book1/practiceWork/2/unit_params.iwb",
+          "sha256": "82749fb69b45a65d8431aa1ef79c0a4295d191a6466d33b03b6828afe815f073"
+        },
+        {
+          "bytes": 7797,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj1/circle_atlas.png",
+          "sha256": "37eabf297e10249e48627509cde64b7a6736e8dab66de6fb309b79dfa407c13b"
+        },
+        {
+          "bytes": 993,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj1/circle_atlas.xml",
+          "sha256": "590a2d21ebf6664b7b66f4f43092906a1d32aae94212e5a5c354febe1d3b636d"
+        },
+        {
+          "bytes": 6662,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj1/image_1.png",
+          "sha256": "62f1da68c1822f737893eb5ecf1a27009bb4cda0ee7da61b105fadf54d5c7e8f"
+        },
+        {
+          "bytes": 20976,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj1/image_2.png",
+          "sha256": "019bc68fe3e0e5dc0a2e727f1077a7b473a59247ac29d5c2df930c92bb4741e8"
+        },
+        {
+          "bytes": 14032,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj1/obj_params.iwb",
+          "sha256": "a53074874010162922322d060d8bd0db5ce198267e44dfd5aab5067bca78f33c"
+        },
+        {
+          "bytes": 5716,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj2/image_1.png",
+          "sha256": "cf629d75fb428a25fa63afa4873eda6293a3a4f9d154d9c01e90548268fab9fb"
+        },
+        {
+          "bytes": 265187,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj2/image_2.png",
+          "sha256": "c3a496ad7ab325ea24d491dd66893f4fc6319490a59aac12bdecb0d01526ceb7"
+        },
+        {
+          "bytes": 5440,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj2/obj_params.iwb",
+          "sha256": "2227aceab1598e36ce94e8147603569e2e707f18e2aaf0d02daf01f99822f195"
+        },
+        {
+          "bytes": 6498,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj3/image_1.png",
+          "sha256": "bf53f01ae4705f27b3e9d7e330067997867d01edaf11d59dc81e55427b06aa82"
+        },
+        {
+          "bytes": 14192,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj3/obj_params.iwb",
+          "sha256": "99a2dcd69fe6b23138ffdd9e6c32c21a75c6ed939edb281390c7acb864abee65"
+        },
+        {
+          "bytes": 4975,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj4/image_1.png",
+          "sha256": "7ae953faee7d08f611eb670b68c17af9a97a2310a94bcba3c746fcbd61aba5c7"
+        },
+        {
+          "bytes": 7936,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/obj4/obj_params.iwb",
+          "sha256": "f7783cc7868b5d320f64e15b09dd0c51e64e2390013c9f1087190e6d633fec3f"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part1/part_params.iwb",
+          "sha256": "efe0e9844746222dba7c299ca5dc357126b61413c8ab1a9befce9d1b52076d1a"
+        },
+        {
+          "bytes": 8228,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj1/image_1.png",
+          "sha256": "058261c9cbfa9b67ebb36c1c9f5c4db049aa34ff0fdd1f5f1653acf6479e0b41"
+        },
+        {
+          "bytes": 11356,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj1/obj_params.iwb",
+          "sha256": "35bccc56760fbf1b6a692f8f53fd6c1aa61cfa716a59f74d5cc57fe53bcfd27d"
+        },
+        {
+          "bytes": 12373,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj2/image_1.png",
+          "sha256": "3d995ed80ee197366e1b8cbcaf2606178be786e7e2d0e05e06c96249311cbf83"
+        },
+        {
+          "bytes": 10268,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj2/obj_params.iwb",
+          "sha256": "96342ae3c0a321a437f6f38292183d034c016e5badcaf818e73fa6639bb67f23"
+        },
+        {
+          "bytes": 5781,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj3/image_1.png",
+          "sha256": "70b897acff1b2962f3f3487f7a7be9fd09e006d9acd9b99ed606cc2a6d3d3928"
+        },
+        {
+          "bytes": 1471,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj3/image_2.png",
+          "sha256": "88326f2d552b3c609d00cae03f7164bca126a8fe70a92aed4ce82d24375ea28c"
+        },
+        {
+          "bytes": 7296,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj3/obj_params.iwb",
+          "sha256": "d05976cce301173fbb70cdd08fc3efdcee8aaaf0a76d2a7ee2fc845a0dbe6a27"
+        },
+        {
+          "bytes": 4389,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj4/image_1.png",
+          "sha256": "883447a3cc57c9925b37570f84f58a3bd377713dad80c309d5241ae3d3ea813c"
+        },
+        {
+          "bytes": 144697,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj4/image_2.png",
+          "sha256": "70963a55b4ffb54abfe43b85d10af0fb64952b8bd9c923d47a31326e2bdfba59"
+        },
+        {
+          "bytes": 5160,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/obj4/obj_params.iwb",
+          "sha256": "c42237c468e18bfb38782ac482f4fd72175da9b0b9d11c71d71663cc5719d77a"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/progress/2/part2/part_params.iwb",
+          "sha256": "2e8ea642e299480df1151058e1321dabffb040af68beef4814c0847eb4c040b1"
+        },
+        {
+          "bytes": 294944,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/HD/parts_BG.png",
+          "sha256": "11ed93e238baf4d922be0f226b53084e93489c7d117703ea36e40100413059b7"
+        },
+        {
+          "bytes": 323886,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/HD/parts_part_1.png",
+          "sha256": "b8a2b58b69ab5b7b545f1f5f2d77f13c385cac18f9c8e38367995e528996cde2"
+        },
+        {
+          "bytes": 369188,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/HD/parts_part_2.png",
+          "sha256": "1ff313e2938373df95696349429fa221398cc39bb0040e7f25a1e963fa4cd6dc"
+        },
+        {
+          "bytes": 186905,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/SD/parts_BG.png",
+          "sha256": "e123540beb8cdab13ddeac02a9e8c4fe57185c080d23cc7370a4e3f5d3e18bfb"
+        },
+        {
+          "bytes": 222411,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/SD/parts_part_1.png",
+          "sha256": "7fa8f3e462bc74954d33f942c20cf2f50b0a50177f923e557a6eec958d554971"
+        },
+        {
+          "bytes": 250114,
+          "path": "Contents/Resources/assets/books/book1/progress/2/parts/SD/parts_part_2.png",
+          "sha256": "bf153d906180cbc117ea459da26c891822c76875cc4971da4380a935d93529ed"
+        },
+        {
+          "bytes": 576,
+          "path": "Contents/Resources/assets/books/book1/progress/2/unit_params.iwb",
+          "sha256": "66f352a633c4352f400c12698ff9959bd1327372a74cc841916d38512b09ad24"
+        },
+        {
+          "bytes": 4859,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj1/image_1.png",
+          "sha256": "10e17f1c06aab21ddaef092bf2acabb4523b4835aa3db0a3e3d4db7481cda565"
+        },
+        {
+          "bytes": 65530,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj1/image_2.png",
+          "sha256": "abc8a36e9dc6748d0785069ab6623f8894bf4b54fde806e70679756bc7f04037"
+        },
+        {
+          "bytes": 70441,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj1/image_3.png",
+          "sha256": "ad4191b1d81fda9f4d0edbacd8d87ca41967b364a51073d44f56fda37affe6e0"
+        },
+        {
+          "bytes": 69447,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj1/image_4.png",
+          "sha256": "05b316e4c242f979294a1e8f5ea995fba4c54a7a2e2bc1ac961df28378ea3b3a"
+        },
+        {
+          "bytes": 14800,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj1/obj_params.iwb",
+          "sha256": "3f525626c2f5dfd87d31296212508135c56fe44088293708f178441249951a95"
+        },
+        {
+          "bytes": 4859,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj2/image_1.png",
+          "sha256": "10e17f1c06aab21ddaef092bf2acabb4523b4835aa3db0a3e3d4db7481cda565"
+        },
+        {
+          "bytes": 68219,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj2/image_2.png",
+          "sha256": "b98d67ca95ad864a3fe2a7b1962189539c351eb846b68a6a0feae19bcfe41a89"
+        },
+        {
+          "bytes": 71775,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj2/image_3.png",
+          "sha256": "1a63409cb8f588f8ecee37c1e87ba3eedde588df749ce493798afb3c32305418"
+        },
+        {
+          "bytes": 68709,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj2/image_4.png",
+          "sha256": "3471dc1267ad49890cf6da8e868b0752e7e7d576c055a6518041d36d66a4f001"
+        },
+        {
+          "bytes": 14804,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/obj2/obj_params.iwb",
+          "sha256": "6fea5702cf150fc30d69f7dc524a9e9b133cd310e7c336464453c6d4c5091e7a"
+        },
+        {
+          "bytes": 1184,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/part1/part_params.iwb",
+          "sha256": "2c3d2fb1af97bc18c9da72d1dde04b67e87a1a2360da56a03854e9cdcde22313"
+        },
+        {
+          "bytes": 294944,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/parts/HD/parts_BG.png",
+          "sha256": "11ed93e238baf4d922be0f226b53084e93489c7d117703ea36e40100413059b7"
+        },
+        {
+          "bytes": 398982,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/parts/HD/parts_part_1.png",
+          "sha256": "79ef93b66a6ca62e45a6dc1b2475423d60af5aa7ccf0a6d4a4c55733d40fd8cc"
+        },
+        {
+          "bytes": 186905,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/parts/SD/parts_BG.png",
+          "sha256": "b1f89a778d23874d0da7d22324651a7ce7bbc316eeeecd16e908792e97b04850"
+        },
+        {
+          "bytes": 296037,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/parts/SD/parts_part_1.png",
+          "sha256": "7cdff62bcd1201ad6327c2bc305faa8b0acc276e6483c48b0b7369b78d4fcefb"
+        },
+        {
+          "bytes": 420,
+          "path": "Contents/Resources/assets/books/book1/progressWork/2/unit_params.iwb",
+          "sha256": "82749fb69b45a65d8431aa1ef79c0a4295d191a6466d33b03b6828afe815f073"
+        },
+        {
+          "bytes": 66309,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj1/image_1.png",
+          "sha256": "f80fc0f64008bb763267befa4cf12f8def409c829d9faabc9fc36fa6df959b24"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj1/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 93346,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj1/image_3.png",
+          "sha256": "c61650fe58123789f8587b382862de30a593efae711c2fea9f04fde2524d73ad"
+        },
+        {
+          "bytes": 9116,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj1/obj_params.iwb",
+          "sha256": "a56c182fc7f22f3c8cfb4300cf7579000cc3df425d78fc2076cef68416fd40eb"
+        },
+        {
+          "bytes": 59777,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj2/image_1.png",
+          "sha256": "7823ae150dda6ac0f9ef54b87d7a2d2dab69ea2aeed5c2c28682ee4505c15ebb"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj2/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 82804,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj2/image_3.png",
+          "sha256": "79cae6b21d70ca02a22b729d53d3cfc5a201e8a220568f1112d13f76a5b2581c"
+        },
+        {
+          "bytes": 9112,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj2/obj_params.iwb",
+          "sha256": "073364aebd2d8c71cd698252339373398c1dc3bbb2d3555ebd7983724d808f30"
+        },
+        {
+          "bytes": 9504,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj3/obj_params.iwb",
+          "sha256": "38a47433e5f7bb6dc3e19de713c0b266029892c23388f277acdc95e0fdd860eb"
+        },
+        {
+          "bytes": 11180,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj3/questions_params.iwb",
+          "sha256": "ebb618fa2e491586bfb33319d25e5872391a1f7cf2b6bc1ca96b2b2df6daa5a0"
+        },
+        {
+          "bytes": 6308,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj4/obj_params.iwb",
+          "sha256": "5ef3738b7877ed23d3f7643c1b58c0023996a135350db0cb5aa9c76572627d18"
+        },
+        {
+          "bytes": 11584,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/obj4/questions_params.iwb",
+          "sha256": "8f1873d14507b9c852d75e633299301882a66459e096580366b6ad47bda3a481"
+        },
+        {
+          "bytes": 3576,
+          "path": "Contents/Resources/assets/books/book1/review/2/part1/part_params.iwb",
+          "sha256": "a9fb0d5abe91157b056fdd99014329ccab2d677d50d56278508c602138aa1a5e"
+        },
+        {
+          "bytes": 294944,
+          "path": "Contents/Resources/assets/books/book1/review/2/parts/HD/parts_BG.png",
+          "sha256": "11ed93e238baf4d922be0f226b53084e93489c7d117703ea36e40100413059b7"
+        },
+        {
+          "bytes": 114644,
+          "path": "Contents/Resources/assets/books/book1/review/2/parts/HD/parts_part_1.png",
+          "sha256": "10a7c095fcde805fb9a2800c33d8206a97d61617a85089a608f5dc1f3262807a"
+        },
+        {
+          "bytes": 187293,
+          "path": "Contents/Resources/assets/books/book1/review/2/parts/SD/parts_BG.png",
+          "sha256": "26d2fb256f582b512528b5afb39c31dfca9f1073115f716e4baeafc17b0045c4"
+        },
+        {
+          "bytes": 74029,
+          "path": "Contents/Resources/assets/books/book1/review/2/parts/SD/parts_part_1.png",
+          "sha256": "dbd0779a18d3951692819378a4c1ba52b7d6cf7b291666fdc7f55e36a13ba7a4"
+        },
+        {
+          "bytes": 420,
+          "path": "Contents/Resources/assets/books/book1/review/2/unit_params.iwb",
+          "sha256": "82749fb69b45a65d8431aa1ef79c0a4295d191a6466d33b03b6828afe815f073"
+        },
+        {
+          "bytes": 68,
+          "path": "Contents/Resources/assets/books/book1/section/2/section_params.iwb",
+          "sha256": "cad167aafbaee74cc2771865adc634343f799268e17204016ec04b0a935faaec"
+        },
+        {
+          "bytes": 61827,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_1.png",
+          "sha256": "12c79d65e74e21989af854bd4728ad906fa2164b3d0a7525c01a9583b382913d"
+        },
+        {
+          "bytes": 19686,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_2.png",
+          "sha256": "e731e1416b3cdc272b27d99c1480f1ea7a20d0326d85052f094c1ff1c318add9"
+        },
+        {
+          "bytes": 67186,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_3.png",
+          "sha256": "32ca09b07cd4e438a4a1387432c742bfc689bfb36ce40738a1ac040095739f2c"
+        },
+        {
+          "bytes": 60027,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_4.png",
+          "sha256": "6bfa13a939e8396002a8cae24f79e1f99c8fa0908ca1bb064a25437b842ac271"
+        },
+        {
+          "bytes": 58424,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_5.png",
+          "sha256": "1a7d281083ba3d3616ce2344dff7151eca9ae2ea73143478731a10ce07088ae5"
+        },
+        {
+          "bytes": 63926,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/image_6.png",
+          "sha256": "9b1b94a6307113fc97d69afd18233d156d445d9f02d1383f7b1b98e2bed73d89"
+        },
+        {
+          "bytes": 16852,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj1/obj_params.iwb",
+          "sha256": "3289534f91d78fcddb7564f6a6fc7d928824d0e6d76cc2fbb189e0142ca9d55a"
+        },
+        {
+          "bytes": 65998,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_1.png",
+          "sha256": "f34d654294894f81121c0e87f962d8c0aa2814890308318155acc1b8b11a89fe"
+        },
+        {
+          "bytes": 19686,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_2.png",
+          "sha256": "e731e1416b3cdc272b27d99c1480f1ea7a20d0326d85052f094c1ff1c318add9"
+        },
+        {
+          "bytes": 65743,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_3.png",
+          "sha256": "878318e26d07a72bc5e0d47e5bb8ff60cbbb671c837bae9bed68ada75be6c278"
+        },
+        {
+          "bytes": 70378,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_4.png",
+          "sha256": "becbbe1a550a32ab50deed958ef25d8ff2966135e256d5b2d36f379ca6e56bc0"
+        },
+        {
+          "bytes": 61607,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_5.png",
+          "sha256": "4f63868cd201875f6fe808ffac5bf8e9828a5dcfeba3c00716881503cae5d6e6"
+        },
+        {
+          "bytes": 75826,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/image_6.png",
+          "sha256": "8d7dac1674355131953f4898072c81f9d2d370077efc4677d130f25a727e0385"
+        },
+        {
+          "bytes": 16852,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/obj2/obj_params.iwb",
+          "sha256": "2909cfd0f0e59600665b4c4db2e0aa7670e8f4cc96a30e0bb5e85af0447a277c"
+        },
+        {
+          "bytes": 1036,
+          "path": "Contents/Resources/assets/books/book1/test/2/part1/part_params.iwb",
+          "sha256": "38bdbebbff6d417a749a22dd6ba60e3857f7e490778e53f517d524f0391135c2"
+        },
+        {
+          "bytes": 294944,
+          "path": "Contents/Resources/assets/books/book1/test/2/parts/HD/parts_BG.png",
+          "sha256": "11ed93e238baf4d922be0f226b53084e93489c7d117703ea36e40100413059b7"
+        },
+        {
+          "bytes": 236060,
+          "path": "Contents/Resources/assets/books/book1/test/2/parts/HD/parts_part_1.png",
+          "sha256": "bf291e05f61eaa9565394a94323860ce64b0770ef61840d317d5a49c0d90253c"
+        },
+        {
+          "bytes": 186879,
+          "path": "Contents/Resources/assets/books/book1/test/2/parts/SD/parts_BG.png",
+          "sha256": "c3afc52ac87262078e9eab6db9aa0ac88d9df51911031fac93f78524563db403"
+        },
+        {
+          "bytes": 145710,
+          "path": "Contents/Resources/assets/books/book1/test/2/parts/SD/parts_part_1.png",
+          "sha256": "c31bc8a244a5922fa14e2c97f601c8545e6bc3ce59cc56b40813903685636b4e"
+        },
+        {
+          "bytes": 420,
+          "path": "Contents/Resources/assets/books/book1/test/2/unit_params.iwb",
+          "sha256": "82201b55286278bcd6db094114f66b5575e3ec2a0921a5b318b1d23f64945896"
+        },
+        {
+          "bytes": 10096,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj1/ebook_obj_params.iwb",
+          "sha256": "284732c3b0cae5ed1344f238b026ccfb91b101d7da84906644a26370599e1c81"
+        },
+        {
+          "bytes": 81777,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj1/image_1.png",
+          "sha256": "130af1b127fdf4505bb5bc20d5b02fa7f55faf2b8c056a75975fdaef9463f2b8"
+        },
+        {
+          "bytes": 9217,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj1/image_2.png",
+          "sha256": "f3db06917565bf5028750cd21dd7aa9146a63ae9dd41a6757352ab184ae94fe9"
+        },
+        {
+          "bytes": 10108,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj1/obj_params.iwb",
+          "sha256": "c54a01b8b4bef00ba07ae7822c85d9af33fe3daea15d91e2c6825bf002e0a57a"
+        },
+        {
+          "bytes": 24832,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj2/image_1.png",
+          "sha256": "c64c577473e579a6158879ca8689a958d17ab8cbab2315cc363064250f1581e9"
+        },
+        {
+          "bytes": 27472,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj2/image_2.png",
+          "sha256": "05a7d6573d44195bcd60496a1f69ffd116d639c23c3bab7274f7727099804265"
+        },
+        {
+          "bytes": 1688,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/obj2/obj_params.iwb",
+          "sha256": "25aef5558d8bc453aad2b9c3ec3643d5c4c5e698b21d60688989b71eaa21396d"
+        },
+        {
+          "bytes": 1016,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part1/part_params.iwb",
+          "sha256": "5f7f93d0c03f6e0aff7ea11bde1980ba9a715306e9df9b943e70ff3df7eb1670"
+        },
+        {
+          "bytes": 39094,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj1/image_1.png",
+          "sha256": "abe43c2b5a596c016a24cc8d5baa4b0ae212970f33769cfc8fe316e3558e3c5c"
+        },
+        {
+          "bytes": 17504,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj1/image_2.png",
+          "sha256": "93d60100461d12bb494580591ef4c5f4300522173c61e5ef8e0257f3b859701c"
+        },
+        {
+          "bytes": 12860,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj1/obj_params.iwb",
+          "sha256": "268aa40edb61ab52c97c3427eb0954751ee24bde5f4f1605c837983604f68497"
+        },
+        {
+          "bytes": 42541,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj1/showText.png",
+          "sha256": "48ae1f75044122f7a82cee2d3a33aa0b10c63c9341af61d793618407dcb73993"
+        },
+        {
+          "bytes": 23786,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj2/image_1.png",
+          "sha256": "72adb5c43fad1dabc17c772955f8dda45b82c282bd476180068763e0f4a5f0c3"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj2/obj_params.iwb",
+          "sha256": "de0d317c6ed60cbbc1a087298b53aed2819d38c38ca38dc471349d893b1fb3b6"
+        },
+        {
+          "bytes": 232107,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj2/showText.png",
+          "sha256": "9db8f761d74cde834c2bd699e35faf413df0871eb8ba74456ee06ad74a360cf2"
+        },
+        {
+          "bytes": 7656606,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
+          "sha256": "3916ae434bf5b3c5989ed9082c330794b85177a0ce452413cbe97bc6737b1a4f"
+        },
+        {
+          "bytes": 77321,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_1.mp3",
+          "sha256": "c2b180b8acbbb21a205e4be639a839c2c3ca77d978f879974a9b2adb75746df1"
+        },
+        {
+          "bytes": 90278,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_10.mp3",
+          "sha256": "a45ad962e8c14028be4a185172ebe452cefbba1667239a1c7b73ec24f3e33dd6"
+        },
+        {
+          "bytes": 87352,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_2.mp3",
+          "sha256": "b862463ea47b124284d5a4a6c6a025ebdfeb03ef7d6b1a783ea7d73037273361"
+        },
+        {
+          "bytes": 59767,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_3.mp3",
+          "sha256": "1848c33553a851e18faa73a53756a879f143a0cfab0128dcb924237ca5ae2919"
+        },
+        {
+          "bytes": 57677,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_4.mp3",
+          "sha256": "c9297c8257032a7499f9a74e7261629e278c47064732c5f28f8151bfac534a6d"
+        },
+        {
+          "bytes": 78575,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_5.mp3",
+          "sha256": "ebadb2a4068f44199f152b390a2ab8ff4a1a83baaa4a9b35c5b796deb1c86e04"
+        },
+        {
+          "bytes": 47646,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_6.mp3",
+          "sha256": "eb69a017f78f83b08c2c316052986a2e4d0eeb5f3f6305c1553ec0e745d8c144"
+        },
+        {
+          "bytes": 115355,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_7.mp3",
+          "sha256": "12e50e0cc307d293879912ea2a6e480f01b2463c2f495039fc64e34ebe917678"
+        },
+        {
+          "bytes": 54751,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_8.mp3",
+          "sha256": "05629d1e31e672ba07ca4068c41999277c95789f29956147732221f00872694c"
+        },
+        {
+          "bytes": 71052,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_9.mp3",
+          "sha256": "3805a1674dd9dbf2d5996eb3201be6f5cc3133c85440a64bdb93d11444585d06"
+        },
+        {
+          "bytes": 6476,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/highlight_params.iwb",
+          "sha256": "dd814adf6303eaf45ffc9a3c44a06c2c87b5521a28f69756bcf1b378a15fe367"
+        },
+        {
+          "bytes": 33048,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/image_1.png",
+          "sha256": "8fc97ec37dbd3c00d999fb0a180e64719b48b649b214bdd449cc9ee81b4545d5"
+        },
+        {
+          "bytes": 19583,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/image_2.png",
+          "sha256": "ec0856dec26a0d8bfbe397224832003f51d4b96f2d268bcf7fe56f91720fc0e3"
+        },
+        {
+          "bytes": 15380,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/obj_params.iwb",
+          "sha256": "6f874098802c0f8b294073cc12421122115cd8b853820beafe32ab3d798c0b2e"
+        },
+        {
+          "bytes": 221714,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/showText.png",
+          "sha256": "59d5ed32532464dc7990cfa10bfb26a656a82ebed6dae1bdf5c2243c8ff119b4"
+        },
+        {
+          "bytes": 201434,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/tapescript.png",
+          "sha256": "d14a6d618b7279570f15a88c476196ae40a2f4a1c987fd941412c6bc5c5791ff"
+        },
+        {
+          "bytes": 17506,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj4/image_1.png",
+          "sha256": "b997d4c6a004e98e29664e7d01e4d1468ec346241130b7a9f6b5083d38e52c3f"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj4/obj_params.iwb",
+          "sha256": "57bcb1f5f8f62ad95b5e101bdaf8e4168c26e1c501527d4575d6a1fa3ca1351b"
+        },
+        {
+          "bytes": 223778,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/obj4/showText.png",
+          "sha256": "696b1b38aab4e45d43d2abcc9a8b1acb520b5b6aa179322ee9e0aa40c250e4f2"
+        },
+        {
+          "bytes": 1608,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part10/part_params.iwb",
+          "sha256": "edf8f77f17c1f05ad58547322ca0354e8f05126347d5bd88e6e12418ce4159b3"
+        },
+        {
+          "bytes": 20456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj1/image_1.png",
+          "sha256": "82d4b43d662efc8220ab055c613c6d11bd3107542a4e282c727150de1c9e6d2f"
+        },
+        {
+          "bytes": 10635,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj1/image_2.png",
+          "sha256": "5328838c7fc4b9e1872e20a29fe0de33750c9a792e93cf569c943b03048729b8"
+        },
+        {
+          "bytes": 10720,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj1/obj_params.iwb",
+          "sha256": "29b3a4cfc47a8654749f0536c1d3e554d50b60ac2c7a65473b62a9c1e9d96a83"
+        },
+        {
+          "bytes": 3721,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj2/image_1.png",
+          "sha256": "9431d527cef9c9cd401a0ebc385171f5903f9bee933fb48ceb6f7c6c67cb6fea"
+        },
+        {
+          "bytes": 10307,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj2/image_2.png",
+          "sha256": "9bf99ebb21e279fe781ce180c87426ce50d4daf448ed3303c8acbd13e33ac079"
+        },
+        {
+          "bytes": 19288,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj2/obj_params.iwb",
+          "sha256": "07a9325debdb3f487c2d202151dac85cd17263183a7e246fa7f671ffa58766b5"
+        },
+        {
+          "bytes": 12958,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj3/image_2.png",
+          "sha256": "866bae89f9527122995f83047bee8cce33068a400d12276c2d87793c04ebd8a5"
+        },
+        {
+          "bytes": 10716,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj3/obj_params.iwb",
+          "sha256": "ac7332ec7fda4fec17409579ab8164daeb7da6ff0caf99ad5e1996fa8431c943"
+        },
+        {
+          "bytes": 199453,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj4/image_1.png",
+          "sha256": "e0da8aff01eda0fbfb5f44da574096b746c621db4a0837bdf75df1ba574c1fd2"
+        },
+        {
+          "bytes": 7195,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj4/image_2.png",
+          "sha256": "fb53ffde7b8f762ed32adcffed0bb65f6a4355ba5bb46f7e144a2d13f4b57bac"
+        },
+        {
+          "bytes": 5436,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/obj4/obj_params.iwb",
+          "sha256": "0edb8d43ee760f7f5b6baf1ace065a0a1224894bdc05a75ff70df96a9cd53d4b"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part11/part_params.iwb",
+          "sha256": "300450431de28cb4ca2856f6c75496213aee0d225023ce6ba52fdb615f46074c"
+        },
+        {
+          "bytes": 122900,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj1/image_1.png",
+          "sha256": "a7dfb4a87c148c458a9aae49694ea01c52cedfeda1d8b86c46e7fab886b78969"
+        },
+        {
+          "bytes": 6115,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj1/image_2.png",
+          "sha256": "de10f2538865d8cbe7e3ec9c6d145edcd765dde0472d4451f6544c295586d06c"
+        },
+        {
+          "bytes": 5456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj1/obj_params.iwb",
+          "sha256": "96518843119f4ecd993e65f27f674f1702d00d3de671bebc945209fd45488b13"
+        },
+        {
+          "bytes": 11564,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj2/image_2.png",
+          "sha256": "b8d9e0237b9e40c55237fbe24565fe92e3c21e53093bf62370dfa3551d010bf3"
+        },
+        {
+          "bytes": 10956,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj2/obj_params.iwb",
+          "sha256": "63b7ab64ee9066088614f528e304df1ed937fb41f6b869ac5575279b9df77aec"
+        },
+        {
+          "bytes": 12559,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj3/image_2.png",
+          "sha256": "8c03759ab981c8d2628b94974083d2700792725071f13ae9211ef80d7f54f2f6"
+        },
+        {
+          "bytes": 11556,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj3/obj_params.iwb",
+          "sha256": "30dca5e42eff7d34ede0d0aefe4e922b14616782fff196b5dc9dc49577258d25"
+        },
+        {
+          "bytes": 20082,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj4/image_2.png",
+          "sha256": "cead82f3fbeaf771f09559d0f6a160ba8b21fd81e60c53876b07de82fc999489"
+        },
+        {
+          "bytes": 10060,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/obj4/obj_params.iwb",
+          "sha256": "0945c8a0f30a8dad5e1358b2265c598d34fd1edfff4d2048723335d9389470a6"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part12/part_params.iwb",
+          "sha256": "71c2fb6f0c4149b8da051bf23fd4bbb11e4c9df1655659061f94ebe480b9a049"
+        },
+        {
+          "bytes": 7192,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/ebook_obj_params.iwb",
+          "sha256": "48a1c982efca29c71e3a446abe1521b4f74a3102d0a01ec923fe7e46eef2663b"
+        },
+        {
+          "bytes": 13589,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/image_2.png",
+          "sha256": "764fbb6c6058e83a44807561abbe359aa5d4da315d182030c3d2ef0075c6131f"
+        },
+        {
+          "bytes": 7684,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/obj_params.iwb",
+          "sha256": "11b6795c23d8c2f9ec38b1b6ab9e5e48c8bd188d0af29f270e4e7faf87e6a99e"
+        },
+        {
+          "bytes": 735767,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/page_1.jpg",
+          "sha256": "c7149ad3c855f15d16dc846b1ce13d4f90527699c8fb8f7cdacfae06215ba06d"
+        },
+        {
+          "bytes": 614,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj1/video.xml",
+          "sha256": "22d327d452dc518763776bd7d6bf3d469854777b22aaa3e558cb79ffa7b06b10"
+        },
+        {
+          "bytes": 5799264,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3",
+          "sha256": "f02586614e15828a5c0885a96aeec70cfe9c49fe560238dbfd0124f14d7dfe4f"
+        },
+        {
+          "bytes": 26796,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/ebook_obj_params.iwb",
+          "sha256": "de6c14f0e1aa50cb74a276b27775705f391c4032a01c9e385da010fd01a0bf1a"
+        },
+        {
+          "bytes": 31346,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_1.mp3",
+          "sha256": "3abc65e7fce3d09f83f7fa4c5bd600b74ee4ce0d42c9c06a9f60dab461e84ef3"
+        },
+        {
+          "bytes": 44302,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_2.mp3",
+          "sha256": "38b29c61dd6255cfde05846b782ffa42b632a9d18436cee2d94a06121f5c961e"
+        },
+        {
+          "bytes": 195603,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_3.mp3",
+          "sha256": "d535ea361d03fd61b51cd9dd0857cb23273db2eb2b4df458a1e9879cf15f89f5"
+        },
+        {
+          "bytes": 2616,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/highlight_params.iwb",
+          "sha256": "7b38824694a29d09a65d79ce0eca810f6f691a44a4be77f099d799de1b86c416"
+        },
+        {
+          "bytes": 711568,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/image_1.png",
+          "sha256": "34f177388b68be71ed7806b3f054383bb3f4b2f4f76e9b11cfe69ff9f21e89b8"
+        },
+        {
+          "bytes": 8436,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/image_2.png",
+          "sha256": "f237c17fb04ce9240e05466adb4f6c1084a4e2811caaea87751ee68c489db250"
+        },
+        {
+          "bytes": 26744,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/obj_params.iwb",
+          "sha256": "460e620dbd1af0ff8301fc64c791e311ec4bf183a68f615230a8625d13ed2fea"
+        },
+        {
+          "bytes": 803775,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/showText.png",
+          "sha256": "4676af6282c6ae94cf7515f3fb03c94ae7a3398efffe9b877ee91ef5e1a5ff12"
+        },
+        {
+          "bytes": 2623,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj3/image_1.png",
+          "sha256": "8df26faa3a6cd545f960fe1d1d7267a46d7e629160e6d030717738bce2a8a0b9"
+        },
+        {
+          "bytes": 18684,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj3/image_2.png",
+          "sha256": "55bfead7cd92dbb26c36beefe44eb757ac336d257dab85e0b61f38cc5d61bbf3"
+        },
+        {
+          "bytes": 10612,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj3/obj_params.iwb",
+          "sha256": "96847d78a1be3f371081358103545e5b6ed36481285e62b624cca18ea0a05eae"
+        },
+        {
+          "bytes": 159020,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj3/showText.png",
+          "sha256": "c635fd9053c216735b1eb9548e20b30396e51e999d8ae62465cdb49e5e51af8d"
+        },
+        {
+          "bytes": 803775,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj3/showText1.png",
+          "sha256": "449e2f3763040767b779100bc071398651ed588873338997011e4c426f1c9e7b"
+        },
+        {
+          "bytes": 121781,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj4/image_1.png",
+          "sha256": "e62366b0818210a3d516d3ad8f67c27c705d9d6fce6ecf4fec566b47d097ffb4"
+        },
+        {
+          "bytes": 6207,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj4/image_2.png",
+          "sha256": "8a9ebb6b5a0e7b645d75ede60c1b3b9c7f20a33963449cc15606cf7cdeb71179"
+        },
+        {
+          "bytes": 5428,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj4/obj_params.iwb",
+          "sha256": "c1c4983cedc7e6a091492df0954c16768eb66246bc1ff07d49360ba9cc1fe8f0"
+        },
+        {
+          "bytes": 11092,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj5/ebook_obj_params.iwb",
+          "sha256": "8f189be86547073fe4c6aa2d93d8c89f304ef4a861ce8190fee5e5854a473db8"
+        },
+        {
+          "bytes": 97702,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj5/image_1.png",
+          "sha256": "93b1419ba1653c7b3b662fe08fe474ef35878cc9c51d07aa12c913a2f005e019"
+        },
+        {
+          "bytes": 51659,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj5/image_2.png",
+          "sha256": "27a7b0cefcaf5a6d55ef4ca0e61e01fc8e31a992d22d28fe999cb3906ec63f22"
+        },
+        {
+          "bytes": 11144,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj5/obj_params.iwb",
+          "sha256": "84952b0a5b451cd764c9eec42ddd3bab2ad84e028e602fd163fbca37e992f7bc"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj6/obj_params.iwb",
+          "sha256": "1b0ee26d6dab1d84d613bb63d86b15179cd23b6dce85fba219ea3bafb9a714c6"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj6/video.xml",
+          "sha256": "858c294ab76d40c89d3610cf00739b47bca043a88aaf7a7532d9c22c16666185"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj7/obj_params.iwb",
+          "sha256": "3b362d2307f9bb69144c176b62750967a1ab817d1b7ff383005560442cf3226d"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/obj7/video.xml",
+          "sha256": "b29d54f240688a1a8069b5c1eb85211b4d8c27ce6ab6d35ceb0c12f3f9d6a19e"
+        },
+        {
+          "bytes": 4352,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/part_params.iwb",
+          "sha256": "c201b7e58047f0dfcc36c794d5d428ac1e8e3ba4c2e42fc932318a897608e7e7"
+        },
+        {
+          "bytes": 615,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part2/video.xml",
+          "sha256": "707dbd8139f0b1c3d7de6cdaa03bd74f9425bd642c2c13a09bee9ebcad2a2474"
+        },
+        {
+          "bytes": 9187,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj1/image_2.png",
+          "sha256": "3a4aca13fec89512e8f0c3927b38194fa6c14e4c3a1486a4e66b805b3ca81cef"
+        },
+        {
+          "bytes": 15312,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj1/obj_params.iwb",
+          "sha256": "5b927c937c6888a00bd3cdbb22e898c655e2f11f837dc95f4a62b868726fa684"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj10/obj_params.iwb",
+          "sha256": "3b362d2307f9bb69144c176b62750967a1ab817d1b7ff383005560442cf3226d"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj10/video.xml",
+          "sha256": "b29d54f240688a1a8069b5c1eb85211b4d8c27ce6ab6d35ceb0c12f3f9d6a19e"
+        },
+        {
+          "bytes": 2623,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj2/image_1.png",
+          "sha256": "8df26faa3a6cd545f960fe1d1d7267a46d7e629160e6d030717738bce2a8a0b9"
+        },
+        {
+          "bytes": 14390,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj2/image_2.png",
+          "sha256": "076515ad34d0534a5dac05274f44612d20cf2ae9c81a3fab4c6f937b7731a5b7"
+        },
+        {
+          "bytes": 13976,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj2/obj_params.iwb",
+          "sha256": "05ffbab7fef080dc8b88546fd8d026097bc6ea4385bd1f75d26ab7ea310424df"
+        },
+        {
+          "bytes": 9642,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj3/image_2.png",
+          "sha256": "29e3856c22f46d830a9be8bd3fbffe54e8055e6876444a383d8d29a56ccc68aa"
+        },
+        {
+          "bytes": 9140,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj3/obj_params.iwb",
+          "sha256": "cd2c490e00b0469235cdc3ca66942c27659415cdcacc2202103a17a80a041181"
+        },
+        {
+          "bytes": 12272,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj4/image_2.png",
+          "sha256": "04848901f2003eb8da9d9c6ba9e4ebc13e14a496b543a843d2c74037c394b43a"
+        },
+        {
+          "bytes": 11932,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj4/obj_params.iwb",
+          "sha256": "8a5917882f9e7da9b755d9ccbe7b46b2ba9e175b479ae868f9af28b837fda5e4"
+        },
+        {
+          "bytes": 25044,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj5/image_2.png",
+          "sha256": "b7dfe8adc0a0b93e24db7792a111b290a40b872e61712f8264c2e604aa3d72fe"
+        },
+        {
+          "bytes": 14884,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj5/obj_params.iwb",
+          "sha256": "8b4e685738d8ec0ae7f69bd77c50ab9d5a01a3b74d8bd2e597ad100db23f71ff"
+        },
+        {
+          "bytes": 10342,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj6/image_2.png",
+          "sha256": "132478aef716c715eacc380254b087d7211c0abe0e0f5b9cc4d26fe3f9fd5de0"
+        },
+        {
+          "bytes": 9292,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj6/obj_params.iwb",
+          "sha256": "2cea31fca2ea86da7bfcfb31b98db0d95451b805ba1db62d59978b5ed3817aab"
+        },
+        {
+          "bytes": 24649,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj7/image_1.png",
+          "sha256": "9705dd29ed096bcaed38cfc6a1ff822b98fc5a20e2b195330a1895bad8f2c980"
+        },
+        {
+          "bytes": 10756,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj7/image_2.png",
+          "sha256": "e507d98dc694e2b7aaca3aacc0d9239fcd4ad39fc1da1f8742131325b7ecd56c"
+        },
+        {
+          "bytes": 15276,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj7/obj_params.iwb",
+          "sha256": "737eecd5afc2fcd53bf04ead0d8d6bf6893663679c7855cee9a7ff1a7ac2ed95"
+        },
+        {
+          "bytes": 50278,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj7/showText.png",
+          "sha256": "4d80234a27b29ea52934c27c0975dfd71e479b61046b9ad47863433f24208b45"
+        },
+        {
+          "bytes": 35001,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj8/image_1.png",
+          "sha256": "8fd0aac72f2a024208a7252863da13e71caec9f3abc842b9d8f3d0001156dabe"
+        },
+        {
+          "bytes": 1604,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj8/obj_params.iwb",
+          "sha256": "1e769372e96239b5925e6cf95d11b3edb0f10ad5cb978dc1993a14b89c1a9b0e"
+        },
+        {
+          "bytes": 236849,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj8/showText.png",
+          "sha256": "0f2c92bfe023f56bc27d1da9bd9448ec6477fa0fb3ab62e54e69aa38bbf6e356"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj9/obj_params.iwb",
+          "sha256": "1b0ee26d6dab1d84d613bb63d86b15179cd23b6dce85fba219ea3bafb9a714c6"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/obj9/video.xml",
+          "sha256": "858c294ab76d40c89d3610cf00739b47bca043a88aaf7a7532d9c22c16666185"
+        },
+        {
+          "bytes": 4960,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part3/part_params.iwb",
+          "sha256": "fd5b43441f10f4bdc0b6b5823a957b29c5840aa84ee7f85485bfdd036c22ded6"
+        },
+        {
+          "bytes": 125748,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/image_1.png",
+          "sha256": "77a8e3190b2cff054f65a122f480a4e42c0ac77bea6cc026e3c4db835c1f3054"
+        },
+        {
+          "bytes": 13589,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/image_2.png",
+          "sha256": "764fbb6c6058e83a44807561abbe359aa5d4da315d182030c3d2ef0075c6131f"
+        },
+        {
+          "bytes": 5420,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/obj_params.iwb",
+          "sha256": "7dc0e9bed2caa13a520d42743303edce232b63e1ef3b3dd92627bd86fc5c858e"
+        },
+        {
+          "bytes": 969546,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/page_1.jpg",
+          "sha256": "32cc71d482fd8ee60793c8791b0953d459d53b494e654afd06c8c8284f106cb5"
+        },
+        {
+          "bytes": 614,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj1/video.xml",
+          "sha256": "aa2950adca0d241c271953df1f4edb9db4bc278ce35ac779198277e0758462b3"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj10/obj_params.iwb",
+          "sha256": "1b0ee26d6dab1d84d613bb63d86b15179cd23b6dce85fba219ea3bafb9a714c6"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj10/video.xml",
+          "sha256": "858c294ab76d40c89d3610cf00739b47bca043a88aaf7a7532d9c22c16666185"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj11/obj_params.iwb",
+          "sha256": "3b362d2307f9bb69144c176b62750967a1ab817d1b7ff383005560442cf3226d"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj11/video.xml",
+          "sha256": "b29d54f240688a1a8069b5c1eb85211b4d8c27ce6ab6d35ceb0c12f3f9d6a19e"
+        },
+        {
+          "bytes": 109281,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj2/image_1.png",
+          "sha256": "2f3e48db4d56ecdbaefa30e20661a60f11d31a0c0a8544598a38d2c54a8d51b5"
+        },
+        {
+          "bytes": 11641,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj2/image_2.png",
+          "sha256": "9db31d6ae53945fd892c9dfa9fba9539470ee4fba9bd1bd9c8ccfd3f8c66e7ce"
+        },
+        {
+          "bytes": 1732,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj2/obj_params.iwb",
+          "sha256": "ae5a1e54003c3d0d8d26bdd972b3514e20c54c9fba2d31ee7daabac11606260b"
+        },
+        {
+          "bytes": 721954,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj3/grammar.png",
+          "sha256": "e88f99a7cfd536122d57f9e50c9094b4658f6310b57cb49122ab1e7e96a18a00"
+        },
+        {
+          "bytes": 5081,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj3/image_1.png",
+          "sha256": "b47f6b2984e918c64cc06216f8cd1f9790ff6b061ff4f58897c8e55679418af5"
+        },
+        {
+          "bytes": 10810,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj3/image_2.png",
+          "sha256": "2b52de8f5346ee45bba07c64c39d512f88ba27a1afeb18783cdac36d1706291f"
+        },
+        {
+          "bytes": 276884,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj3/image_3.png",
+          "sha256": "7a72b57855fb46e68c93ed01cb25fe08473906663111e52f7cc55670eda632cd"
+        },
+        {
+          "bytes": 13388,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj3/obj_params.iwb",
+          "sha256": "25763145c99f41a5653e52ff9694411365b8412e999547b18b246a960f853853"
+        },
+        {
+          "bytes": 721954,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj4/grammar.png",
+          "sha256": "e88f99a7cfd536122d57f9e50c9094b4658f6310b57cb49122ab1e7e96a18a00"
+        },
+        {
+          "bytes": 79476,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj4/image_1.png",
+          "sha256": "7148102c5a9b80a4e7dd03a69073d390db6c4432b3016f1f539911b8949cf64b"
+        },
+        {
+          "bytes": 6196,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj4/image_2.png",
+          "sha256": "ac1a2e71d17720dbdcadb658f49793c81dfe8626e4ec184529dcbf7bed8e3a44"
+        },
+        {
+          "bytes": 4644,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj4/obj_params.iwb",
+          "sha256": "b1b841053576a637793a01dcb13f1f0357ea11d2d27b5d04ea82385e7f517fb5"
+        },
+        {
+          "bytes": 73656,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj5/image_1.png",
+          "sha256": "0c9bf49081efaad797609f61ae406b2d2aaeb3864b541ece0d18ab638eaac25d"
+        },
+        {
+          "bytes": 11230,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj5/image_2.png",
+          "sha256": "21a0b401026569d0fe60d86049b6081884c00200255f76c4a0c5075728fd2f16"
+        },
+        {
+          "bytes": 1740,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj5/obj_params.iwb",
+          "sha256": "b2ff8db381e1297a4dd2ba2464f34b77225f39c7aec5cb0d83008498fd7c06cc"
+        },
+        {
+          "bytes": 420832,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj6/grammar.png",
+          "sha256": "86ed3b03eeb2435201cbeacaf25789a7b8681bb02b62e00ce48c5ccd498585e6"
+        },
+        {
+          "bytes": 12512,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj6/image_2.png",
+          "sha256": "78a66f6980ed8b668f849cc47aef546300a520fed7041b9e015b4bf636203984"
+        },
+        {
+          "bytes": 8060,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj6/obj_params.iwb",
+          "sha256": "aa27e2126cbca5d82aaf3afd48cf5502230e5f357f4ed0cda500dc01881687ac"
+        },
+        {
+          "bytes": 420832,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj7/grammar.png",
+          "sha256": "86ed3b03eeb2435201cbeacaf25789a7b8681bb02b62e00ce48c5ccd498585e6"
+        },
+        {
+          "bytes": 255497,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj7/image_1.png",
+          "sha256": "430387bb47a3fb15223768d25e47fa9db54146c5ffe8eeda99e0cdaae5b9f750"
+        },
+        {
+          "bytes": 7221,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj7/image_2.png",
+          "sha256": "49c7485948c29ad5a5d65b4bc231cdf18bd5b8827f606674c281d69b1b601de7"
+        },
+        {
+          "bytes": 5480,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj7/obj_params.iwb",
+          "sha256": "191c59d01ec220bb800247a32b460ff2feda0c54cc2f8df4e9eee09ed5316502"
+        },
+        {
+          "bytes": 20293,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj8/image_2.png",
+          "sha256": "62c706e30e831fda738aca4870bb642471492d8023cc0e8ff82a199b1f39a5f1"
+        },
+        {
+          "bytes": 12228,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj8/obj_params.iwb",
+          "sha256": "e299bc45b213918a751edcd4e971642efa40915efaa92991cb9267d3531b2931"
+        },
+        {
+          "bytes": 61816,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj8/showText.png",
+          "sha256": "8d71bedfb3f0fbcb8e3b72ab52193c6edbf4bbc71aaca2ce19d9d124af0d3b68"
+        },
+        {
+          "bytes": 41841,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj9/image_1.png",
+          "sha256": "602d19bffc180b5fa126dd73e29d926e520b4bc035a4ae8b2578e4c59a874ef5"
+        },
+        {
+          "bytes": 1600,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj9/obj_params.iwb",
+          "sha256": "9a1436b93078c4eec3d1d718525a74b9eab0fb51ddc0bf26283ebb7326627174"
+        },
+        {
+          "bytes": 160768,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/obj9/showText.png",
+          "sha256": "74321084fc5c62b40d8231331a701f51d108b71b44a84192b8f7806dd63ce13b"
+        },
+        {
+          "bytes": 5264,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/part_params.iwb",
+          "sha256": "403d6e43207594db26fa7d450439b99db308582aa0a28ecc5a93f6a1d4efc27c"
+        },
+        {
+          "bytes": 614,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part4/video.xml",
+          "sha256": "aa2950adca0d241c271953df1f4edb9db4bc278ce35ac779198277e0758462b3"
+        },
+        {
+          "bytes": 557488,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj1/image_1.png",
+          "sha256": "b7e8be418945101b9f1fe60242c050ec859f1316b4feee41540718c9a602ddb8"
+        },
+        {
+          "bytes": 14375,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj1/image_2.png",
+          "sha256": "f5819637366f53419116deb54634bfda9e422fcc2bec8725e3423e5d982de7c4"
+        },
+        {
+          "bytes": 3784,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj1/obj_params.iwb",
+          "sha256": "d7d092855ca5909f54c2f7cf2610284fb13492e156c50f4e5c1ddf94532be699"
+        },
+        {
+          "bytes": 5664,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj2/image_1.png",
+          "sha256": "93c7c1339deb9a9797b8fd8e0448526590bfa35d263adf84cb266882f319ef5a"
+        },
+        {
+          "bytes": 10506,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj2/image_2.png",
+          "sha256": "cdb04c07a3ad6060c026b889d2ff693524ea07e6805eb65bc93ad9fe85096c8f"
+        },
+        {
+          "bytes": 10096,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj2/obj_params.iwb",
+          "sha256": "9216702ccc6dbde8fb032ff2630426d37997d7d8d486cf4263cf8eb6e4571db0"
+        },
+        {
+          "bytes": 1493010,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
+          "sha256": "cb20550a950a1a178af1b55e12b0c7439f07d89da470593eb1cdc1b5a7b18d64"
+        },
+        {
+          "bytes": 195151,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/image_1.png",
+          "sha256": "80591ae923a75cfe05623d5419dbecab6c1fcbdc8ee35131df464647d25311ef"
+        },
+        {
+          "bytes": 9919,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/image_2.png",
+          "sha256": "fa20038b57fd8efbd3aab7d58e43fa4a4a03221bd2135c81bc98e4409b9d0aeb"
+        },
+        {
+          "bytes": 6544,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params.iwb",
+          "sha256": "8736d0695943307740a14438924ee31f857c84ce7a1135af000714b9934739da"
+        },
+        {
+          "bytes": 1276,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/obj_params1.xml",
+          "sha256": "b68b43f33ca2f28cdf53f1e829e5168b6c68a04787b79cdd48ba0aa143644a69"
+        },
+        {
+          "bytes": 82776,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/showText.png",
+          "sha256": "add05807460d81c9db8cd00d6f4fb4d4916fe8d759146c0b45faef24240d327c"
+        },
+        {
+          "bytes": 47914,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/tapescript.png",
+          "sha256": "693867fa8da64122ea669ee7d80b34e890cd5b4a225b722e84de6fe947599baa"
+        },
+        {
+          "bytes": 6392086,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
+          "sha256": "e5b2b025f10c6ec43011b205e617e6dfff78e84e603f82e8d2ef125d4ba34ecd"
+        },
+        {
+          "bytes": 62274,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_1.mp3",
+          "sha256": "9b1d7286203994d682cccd6b8bc4376b0106bea6afb296db3e7ff87d95924811"
+        },
+        {
+          "bytes": 34689,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_10.mp3",
+          "sha256": "eebfcb3f3b4601ef179bc91d6024fa61eabce8e565a1b74311e04b23cb08829c"
+        },
+        {
+          "bytes": 160495,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_2.mp3",
+          "sha256": "604c78af5066570a6980eb388345b96bf4bdec338f3a6ad59caaba41f04df40b"
+        },
+        {
+          "bytes": 53915,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_3.mp3",
+          "sha256": "66fa25b808ba417c779833195a44de7380f3bf8e9442febef3838de6601fd48a"
+        },
+        {
+          "bytes": 66872,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_4.mp3",
+          "sha256": "fe673820f88185385aae59e96e5db76d1a38f26172356c2dc00e8615b89641a8"
+        },
+        {
+          "bytes": 60603,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_5.mp3",
+          "sha256": "7108b189328502cd471be6f7f630e75c0e592a5a0d17dda5ab3d6580f3ba02b1"
+        },
+        {
+          "bytes": 120371,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_6.mp3",
+          "sha256": "abededacfd97a61caddca4eacd6d45c888258edd50d71e9606962a75da0a8ac7"
+        },
+        {
+          "bytes": 127894,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_7.mp3",
+          "sha256": "0d7163056b87337a06b0e9eae807d5fad7a25ee4c8404d3ffec6099384b27edf"
+        },
+        {
+          "bytes": 82754,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_8.mp3",
+          "sha256": "bdf54e271872b6325de0784ec35bd575336c7dc6495670cf990350dbc4661665"
+        },
+        {
+          "bytes": 133746,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_9.mp3",
+          "sha256": "a0659d80c4941abac025120b1a42e40a406a8574b3d8ca6e6841674101104bf2"
+        },
+        {
+          "bytes": 7116,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/highlight_params.iwb",
+          "sha256": "9c74d0e05dd2b64595d4f5a1c9da20368e4918d6567545af3c5e18f94f4cdf38"
+        },
+        {
+          "bytes": 237534,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/image_1.png",
+          "sha256": "92b86335bbf413e8e72061e63c5a9be0c98fe3a5e046fba3fe9947fb85e4f768"
+        },
+        {
+          "bytes": 16421,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/image_2.png",
+          "sha256": "1fe0e4337ae0a07a50f2b4ad2b236f0c993b571809b642eebdd648a8c28dde53"
+        },
+        {
+          "bytes": 13776,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/obj_params.iwb",
+          "sha256": "5d7fba58c64aa9c76ede482416619425bb5863a3b2b4d48549df4fd4e003d001"
+        },
+        {
+          "bytes": 232248,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/showText.png",
+          "sha256": "ac40abbf4b92bdabd847226093197cf1caf9d671fa06632e2912e13240b5db0c"
+        },
+        {
+          "bytes": 172465,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/tapescript.png",
+          "sha256": "1de7e6ed8c49e1b2d99c7f5735426ff2ac912764b1edac1875d294ea1d293c3f"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj5/obj_params.iwb",
+          "sha256": "1b0ee26d6dab1d84d613bb63d86b15179cd23b6dce85fba219ea3bafb9a714c6"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj5/video.xml",
+          "sha256": "858c294ab76d40c89d3610cf00739b47bca043a88aaf7a7532d9c22c16666185"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj6/obj_params.iwb",
+          "sha256": "3b362d2307f9bb69144c176b62750967a1ab817d1b7ff383005560442cf3226d"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/obj6/video.xml",
+          "sha256": "b29d54f240688a1a8069b5c1eb85211b4d8c27ce6ab6d35ceb0c12f3f9d6a19e"
+        },
+        {
+          "bytes": 4204,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part5/part_params.iwb",
+          "sha256": "a9164d428d37cbc6f26f356facb2b4cc1e16e38bc062ccc6314c96624ac5069a"
+        },
+        {
+          "bytes": 13072,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj1/ebook_obj_params.iwb",
+          "sha256": "f5e63faf4e7893af23d60d24253cf85ad09844b36eaf9f3e30bb63a982f6eb6d"
+        },
+        {
+          "bytes": 328513,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj1/image_1.png",
+          "sha256": "85600cbd121ee11c33916876f8ec6c0a8e385963413ac989bc728f7a1bb43f89"
+        },
+        {
+          "bytes": 11397,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj1/image_2.png",
+          "sha256": "a0aab7c5bc07dd2152184c5bc3aade783d39b0a6b8d7d418d9682d33652c3e81"
+        },
+        {
+          "bytes": 13140,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj1/obj_params.iwb",
+          "sha256": "ff385c7283a0ae5200455970f6c178a84f5a7e99a52fb903225bd42f35897a00"
+        },
+        {
+          "bytes": 110150,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj1/showText.png",
+          "sha256": "88c98171d9e3abe1253fd3288ef2abed56e9db45401a47716e9ec7fe639a0ac8"
+        },
+        {
+          "bytes": 1767824,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
+          "sha256": "523f0c48001b2d3b0e696e76f022e57dc703316885dcc72d6b96c4059c8122bd"
+        },
+        {
+          "bytes": 17695,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/image_1.png",
+          "sha256": "d21df9aa1135e3269c510c62e4714de1efdafdf844318c0998b6c338eeb0425a"
+        },
+        {
+          "bytes": 9506,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/image_2.png",
+          "sha256": "1fc2a04dc12c89f071ed0aedcf3042b604b2966cdd23f521a429c08d12ce847b"
+        },
+        {
+          "bytes": 9452,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/obj_params.iwb",
+          "sha256": "399099867f50c5c4ed6a8949003e0b5ba543301250ee991e64878cc4ffee3db6"
+        },
+        {
+          "bytes": 357032,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/showText.png",
+          "sha256": "eed630ae15d6172f4a03a931c6b87d3d87d182a33a8a2c46f7e057fb9e58febc"
+        },
+        {
+          "bytes": 57356,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/tapescript.png",
+          "sha256": "3ee84e16d5a09341755570daad99445d8f74224483ff9207d9c59cc668dc8c52"
+        },
+        {
+          "bytes": 358629,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj3/image_1.png",
+          "sha256": "7c1b4a7b67ae5f44f21ecf58f022e076c52b09ec36dc269b866e4b0df8d853ac"
+        },
+        {
+          "bytes": 18963,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj3/image_2.png",
+          "sha256": "230f57dba03915bd724452ff32a8d096059364c9e664b10458eb2ce16e91e7cc"
+        },
+        {
+          "bytes": 1716,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj3/obj_params.iwb",
+          "sha256": "0b8eb2401d61dc90285b9d18493bcae288334eafafc069831e49268a14368fcb"
+        },
+        {
+          "bytes": 198235,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj3/showText.png",
+          "sha256": "77a8a8fdd0e9ae5051645e6d3ea82f463d31e987a1d940ce8b5c5a1b849f68b4"
+        },
+        {
+          "bytes": 191894,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj4/image_1.png",
+          "sha256": "e8a36e3fae38b0fc87f7128371a38c4c68c87222184ffc8f2ea713a1bac0f320"
+        },
+        {
+          "bytes": 1616,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj4/obj_params.iwb",
+          "sha256": "60328cb8a36f11f5c3f6409a81a09722a856688b7e0b58c9ac073eae84d752ac"
+        },
+        {
+          "bytes": 5400,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj5/ebook_obj_params.iwb",
+          "sha256": "2ca21bde7c1433262bf6053a2f5a970c69e62c71d3d70ffbb9a374680c20fff1"
+        },
+        {
+          "bytes": 38354,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj5/image_1.png",
+          "sha256": "522245f958d342acd87c18bfdd7204b03cf450a90806fdd6bd36239bd0d5e2b1"
+        },
+        {
+          "bytes": 69920,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj5/image_2.png",
+          "sha256": "0af5ac9582fde08d4fe7daf878336b203cd5169d4c17b5eada092f76bd9d4b29"
+        },
+        {
+          "bytes": 2488,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj5/obj_params.iwb",
+          "sha256": "c8f21e2c24db2c50a30c53bf263e8ae7370e6cdc92cdb0ff75e1bae959406bf0"
+        },
+        {
+          "bytes": 103085,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj5/reference.png",
+          "sha256": "db86098db627efa9152a3c65c9dfa37b378712d0d69e9d23938dbb7cab1bbc74"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj6/obj_params.iwb",
+          "sha256": "1b0ee26d6dab1d84d613bb63d86b15179cd23b6dce85fba219ea3bafb9a714c6"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj6/video.xml",
+          "sha256": "858c294ab76d40c89d3610cf00739b47bca043a88aaf7a7532d9c22c16666185"
+        },
+        {
+          "bytes": 1456,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj7/obj_params.iwb",
+          "sha256": "3b362d2307f9bb69144c176b62750967a1ab817d1b7ff383005560442cf3226d"
+        },
+        {
+          "bytes": 611,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/obj7/video.xml",
+          "sha256": "b29d54f240688a1a8069b5c1eb85211b4d8c27ce6ab6d35ceb0c12f3f9d6a19e"
+        },
+        {
+          "bytes": 4356,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part6/part_params.iwb",
+          "sha256": "b455d449a3e44b2262c81ea8527bea4909257ff26d1582a34d7878b92aa42e9e"
+        },
+        {
+          "bytes": 84626,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj1/image_1.png",
+          "sha256": "6a1a0a19f6c602d089189383faa66fa58f77a33bea55478daf80908162019870"
+        },
+        {
+          "bytes": 1572,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj1/obj_params.iwb",
+          "sha256": "73a0a5c4e19d457b1e12e948752caa21b2502ce984ff02af56dd1a67b8bdda00"
+        },
+        {
+          "bytes": 21364,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/ebook_obj_params.iwb",
+          "sha256": "a06c4b641180f0b53a024644c19552eb86675d83d29462436f7190865de85a41"
+        },
+        {
+          "bytes": 31559,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/image_1.png",
+          "sha256": "f9774c6bacd5c44e3dbf3d24d60d17e1e1f61a4619adaf0159f95c22be3ddc71"
+        },
+        {
+          "bytes": 11374,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/image_2.png",
+          "sha256": "62347571f8a60bbfd4b6d5e360c90d4a3cbdbabb0365d35d0fa3188b6d4ab5f1"
+        },
+        {
+          "bytes": 2440,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/obj_params.iwb",
+          "sha256": "8a4b74d3fe675720353f178834db948e92fcbfb1d31d4c09b3ec361ccf281155"
+        },
+        {
+          "bytes": 350375,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/reference.png",
+          "sha256": "50da6867a1d8b16bd6eb96644f27bb5e5d77bc20cb23b11d28843ecb7fb4db2a"
+        },
+        {
+          "bytes": 499359,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj10/showText.png",
+          "sha256": "db188bf5a029b86738fd12faab93f8ea3cfb187e3f6be501fd2ded4043c8cd74"
+        },
+        {
+          "bytes": 179061,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj11/image_1.png",
+          "sha256": "c31de3bd6094c4ae5d4f6bb52864d2686c97e4be36b9542fd1314551b36007f6"
+        },
+        {
+          "bytes": 1568,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj11/obj_params.iwb",
+          "sha256": "3c8a4f06021622e22077693f968d0cb1c07f3ff1c2f6b1e143e0b23060d65d00"
+        },
+        {
+          "bytes": 114157,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj12/image_1.png",
+          "sha256": "9801929bfb90c6356774d46c4b9b8e2a61f5877d86db6136e73f81eb22f2667a"
+        },
+        {
+          "bytes": 1572,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj12/obj_params.iwb",
+          "sha256": "35963b2926729f20706eefa5e3be28e3974966984d34965c65da52b3b80be459"
+        },
+        {
+          "bytes": 7544,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj2/ebook_obj_params.iwb",
+          "sha256": "c35c9145205ba33843ac394af3b6dd77ffac8e274642466e17c3451694d25179"
+        },
+        {
+          "bytes": 86359,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj2/image_1.png",
+          "sha256": "46680c7120faf94717df7efbb9a148b6cf442c614650ab2a6e4597bf2d289fdf"
+        },
+        {
+          "bytes": 9508,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj2/image_2.png",
+          "sha256": "1ac0a391473d3967d832248c423aa5107d5299af45a83384d0e024981e9b32b5"
+        },
+        {
+          "bytes": 7896,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj2/obj_params.iwb",
+          "sha256": "4d6d08b3ed8a8af8dd92df230b3cc1c134be4379f810e18b45603c8c98f8ca3c"
+        },
+        {
+          "bytes": 13203,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj3/image_2.png",
+          "sha256": "69e62471325ff33e9659606423316027201db5967222e253eb8cb711a8657391"
+        },
+        {
+          "bytes": 12536,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj3/obj_params.iwb",
+          "sha256": "cfca6c16f4cd5335fb0999cb0e22a52abc4f8bae5cbd6f56175b27a5d4bbae91"
+        },
+        {
+          "bytes": 7508,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj4/ebook_obj_params.iwb",
+          "sha256": "9a4689cd86d8dde889cbb255e068b0aaa0474ff25d5f01d26e4b47e6e10af52d"
+        },
+        {
+          "bytes": 9824,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj4/image_2.png",
+          "sha256": "9a4912495ea0f6acdd0b659de28176faa21167c8a6e4ef0f02da657a86f78390"
+        },
+        {
+          "bytes": 7756,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj4/obj_params.iwb",
+          "sha256": "1cc84df9c60ca707fafffb01b63b91b20476e1682e8fbf2961c9860f453bbdd7"
+        },
+        {
+          "bytes": 372582,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj4/showText.png",
+          "sha256": "66b166c6b160826710ecaf2ac1165bcfc700dc53c865ac8b25a88a2cee514f7b"
+        },
+        {
+          "bytes": 113030,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj5/image_1.png",
+          "sha256": "94d8fa401fa07f228ec35ecdc46cd5cf2e343e221e169069f7839dea9fee2fc8"
+        },
+        {
+          "bytes": 10767,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj5/image_2.png",
+          "sha256": "a3c533b052f25d57520245052d0854ebcf685b15e19125ea4f00fc81c404b7da"
+        },
+        {
+          "bytes": 4588,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj5/obj_params.iwb",
+          "sha256": "3924044d2c073ac467b7c6b7715e981361bb8a84413472109f2a34be96c7cc67"
+        },
+        {
+          "bytes": 274647,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj5/showText.png",
+          "sha256": "a2527af2c08486b6f8bd527784f1e8f6df4c78da7ecfbbd00fbeaac76f3245f5"
+        },
+        {
+          "bytes": 3771,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/circle_atlas.png",
+          "sha256": "b650d6d7b3db65cdaf371c52dedc7919bde66ace0987fca9e2f8196002205d75"
+        },
+        {
+          "bytes": 1065,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/circle_atlas.xml",
+          "sha256": "eb65aadb0fc1d25b79ff618c66c92841f1155280f5d8b2b3ea643b647df5ea17"
+        },
+        {
+          "bytes": 5244,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/ebook_obj_params.iwb",
+          "sha256": "79d582928a3a81407ecce4b1df4dff68f74b928821c7fa43e896a9716c7ff0b3"
+        },
+        {
+          "bytes": 119141,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/image_1.png",
+          "sha256": "cd0de6c1638a05220b9d5fc45b1e8423b7296cf24ccf5d523f0d6955e9b9d553"
+        },
+        {
+          "bytes": 18446,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/image_2.png",
+          "sha256": "5c73165c34b3f6bba68723a1cf521dc165ba34419b2baee7d66375aa1a1f39aa"
+        },
+        {
+          "bytes": 133,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/image_3.png",
+          "sha256": "c20f9dd23c4d302a4695d979d134d36521b1b566844c5a5648c91eef1264e50c"
+        },
+        {
+          "bytes": 126831,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/image_4.png",
+          "sha256": "483f2a89c3bbb1af4399de5119e3d3f8b22f8af15355a7203d259b2416ebd1a3"
+        },
+        {
+          "bytes": 5316,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj6/obj_params.iwb",
+          "sha256": "4f6dcf54abf88f226174e60f7de33b8b4e52d11a6aa1333b3ea693468e786318"
+        },
+        {
+          "bytes": 16062,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj7/image_2.png",
+          "sha256": "76e77eb4ba91c6bad240538fe331e4174ced469f82cbc2f58b0841922ecf3fa9"
+        },
+        {
+          "bytes": 7668,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj7/obj_params.iwb",
+          "sha256": "8690cbac1b45fee7000885c01952994334859c52dbdaefaaaf8c5de56a6f3a29"
+        },
+        {
+          "bytes": 261554,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj7/showText.png",
+          "sha256": "ee38c5636ea4044fa8ec39619630bc8638a9ea25db4f0a5abade36fe57070d8f"
+        },
+        {
+          "bytes": 8520,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj8/ebook_obj_params.iwb",
+          "sha256": "00488384e1cdca4960028eda681374d3476c27be9847f13bdd058c94f89ab788"
+        },
+        {
+          "bytes": 81585,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj8/image_1.png",
+          "sha256": "ef7e1454025b381544de6fd9e56cd9d7d6270ebbb1efd66397f3bd569d2823ca"
+        },
+        {
+          "bytes": 9543,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj8/image_2.png",
+          "sha256": "b215ae968d49047ceeb7cd99a650ae633544743b266b53204a1143090c2d0b3e"
+        },
+        {
+          "bytes": 7884,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj8/obj_params.iwb",
+          "sha256": "da360ace25aeae24b08e2d5ccd5e9d4ae782b4272791bdda17b5a1c1af009ad4"
+        },
+        {
+          "bytes": 8024,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj9/ebook_obj_params.iwb",
+          "sha256": "2dafc48024a01c820072b4493903d0221f0c4115e82edc5671439e483f3fa8be"
+        },
+        {
+          "bytes": 98816,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj9/image_1.png",
+          "sha256": "e141944319e27b4fb6a499455c5f87902300b831479bc8631107ba0fa47b0406"
+        },
+        {
+          "bytes": 16175,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj9/image_2.png",
+          "sha256": "bb9ca6bbe806c98b691591ad3004c6c684c17ac34c775a0c94f1621daba0f9d9"
+        },
+        {
+          "bytes": 7996,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/obj9/obj_params.iwb",
+          "sha256": "b1d2b482724ad830544b888537a7b937ea6605ae6441bdf6d0f157a894978a1b"
+        },
+        {
+          "bytes": 4176,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part7/part_params.iwb",
+          "sha256": "4d7dfa275d36d9315716d95dbbc06890621a2a9f4ab7706fe858a3e41a96ed45"
+        },
+        {
+          "bytes": 66309,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj1/image_1.png",
+          "sha256": "f80fc0f64008bb763267befa4cf12f8def409c829d9faabc9fc36fa6df959b24"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj1/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 93346,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj1/image_3.png",
+          "sha256": "c61650fe58123789f8587b382862de30a593efae711c2fea9f04fde2524d73ad"
+        },
+        {
+          "bytes": 9116,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj1/obj_params.iwb",
+          "sha256": "a56c182fc7f22f3c8cfb4300cf7579000cc3df425d78fc2076cef68416fd40eb"
+        },
+        {
+          "bytes": 59777,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj2/image_1.png",
+          "sha256": "7823ae150dda6ac0f9ef54b87d7a2d2dab69ea2aeed5c2c28682ee4505c15ebb"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj2/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 82804,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj2/image_3.png",
+          "sha256": "79cae6b21d70ca02a22b729d53d3cfc5a201e8a220568f1112d13f76a5b2581c"
+        },
+        {
+          "bytes": 9112,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj2/obj_params.iwb",
+          "sha256": "073364aebd2d8c71cd698252339373398c1dc3bbb2d3555ebd7983724d808f30"
+        },
+        {
+          "bytes": 9504,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj3/obj_params.iwb",
+          "sha256": "38a47433e5f7bb6dc3e19de713c0b266029892c23388f277acdc95e0fdd860eb"
+        },
+        {
+          "bytes": 11180,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj3/questions_params.iwb",
+          "sha256": "ebb618fa2e491586bfb33319d25e5872391a1f7cf2b6bc1ca96b2b2df6daa5a0"
+        },
+        {
+          "bytes": 6308,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj4/obj_params.iwb",
+          "sha256": "5ef3738b7877ed23d3f7643c1b58c0023996a135350db0cb5aa9c76572627d18"
+        },
+        {
+          "bytes": 11584,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/obj4/questions_params.iwb",
+          "sha256": "8f1873d14507b9c852d75e633299301882a66459e096580366b6ad47bda3a481"
+        },
+        {
+          "bytes": 3280,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part8/part_params.iwb",
+          "sha256": "e0b786445f67927c3144f5bd585bda3d5260c37d7d1ed79365ec71af549ca572"
+        },
+        {
+          "bytes": 3546,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj1/image_1.png",
+          "sha256": "08c6fc8df9a8bf74ccd34c678aa2cbc50732167e81b3a0beb84581a1455e7136"
+        },
+        {
+          "bytes": 16068,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj1/image_2.png",
+          "sha256": "3b6d59911aa8c24650b94bb9a26e18bcfc03249fffac846b5b1ea2f4efddb95f"
+        },
+        {
+          "bytes": 10328,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj1/obj_params.iwb",
+          "sha256": "aad3e163d038d652e0fda012bcdce265f8b3a85fe40185a3aa65f00e60103578"
+        },
+        {
+          "bytes": 983739,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj1/showText.png",
+          "sha256": "c479b6ec586a3ede4311597b83e7fada3eb4f70534af532fb3168007cf704a9b"
+        },
+        {
+          "bytes": 65224,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj2/image_1.png",
+          "sha256": "7866c2ff4ecc32b1982eba46c511bccd870a2ab38dcd3653ae4ace12883adf47"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj2/obj_params.iwb",
+          "sha256": "8296d8076443ca6bf1bbdc1f16d166ec26d9645d2828ef6ab48ed4e312b96a44"
+        },
+        {
+          "bytes": 929025,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/obj2/showText.png",
+          "sha256": "0d449f6b1d9736db37afbfd445543b2437892ee92e3c08c55393356b58c59bcb"
+        },
+        {
+          "bytes": 1168,
+          "path": "Contents/Resources/assets/books/book1/unit/2/part9/part_params.iwb",
+          "sha256": "d189285a1daa3a12bb1a730e77372b66a8e03e25130de06a95dc9d12921d4c48"
+        },
+        {
+          "bytes": 621449,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_BG.png",
+          "sha256": "9e237585bbd19d95bd0039d095d862e70ede5274fe19ddd8ea17772b961eb1d5"
+        },
+        {
+          "bytes": 636544,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_BG2.png",
+          "sha256": "7f1a3f8392a161cd0f347f846666df221834732ed0475240eb1c08ef3767098f"
+        },
+        {
+          "bytes": 462093,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_1.png",
+          "sha256": "e7dfd032a63c550509bc9d85f205cbe74212143bb604047aaf7b98a56ac986bd"
+        },
+        {
+          "bytes": 375597,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_10.png",
+          "sha256": "78c868e31c966d348da34fe6055760d4ccd14a331f7f5add9cb8e3c923e6821f"
+        },
+        {
+          "bytes": 398432,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_11.png",
+          "sha256": "44842c9941c52b6464b12078cbcfd0cb08b67a3f198490f73f7d990b82c854af"
+        },
+        {
+          "bytes": 338978,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_12.png",
+          "sha256": "a9d9b0501e086c68b498a185f2b59c0ef3241c14728e59765cd60e3178e9bcb6"
+        },
+        {
+          "bytes": 1171037,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_2.png",
+          "sha256": "f5384531ecc0020760450695c7a14d017bb732d89f294c33875eebb36f134d41"
+        },
+        {
+          "bytes": 718407,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_3.png",
+          "sha256": "54e37085fcb8a24da5089784b4624d0801f53e127c1eb4c47663c5edcc1395cf"
+        },
+        {
+          "bytes": 890138,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_4.png",
+          "sha256": "b5b0a77edcec89bc2840672171469b9fd23d4f25bd5582b14d48db702e115803"
+        },
+        {
+          "bytes": 441113,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_5.png",
+          "sha256": "f02b243b3d59f3d8b987f914283f87aca36fede7b887ede90b657cece1798786"
+        },
+        {
+          "bytes": 488306,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_6.png",
+          "sha256": "6621e211fb9910a909eb0d5880c3a4a1bb835a15c7f8190086250064d9d5c91a"
+        },
+        {
+          "bytes": 633913,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_7.png",
+          "sha256": "448d80e19f18bdb0aaa39006c4c885f53d08ff84be83f05473d9dd45eb94b1dd"
+        },
+        {
+          "bytes": 114644,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_8.png",
+          "sha256": "10a7c095fcde805fb9a2800c33d8206a97d61617a85089a608f5dc1f3262807a"
+        },
+        {
+          "bytes": 353621,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/HD/parts_part_9.png",
+          "sha256": "6eb91632ea40706d52b8ea0c85555c82facaf3d295c1db914c03a8a94e20a3fa"
+        },
+        {
+          "bytes": 389023,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_BG.png",
+          "sha256": "825c142e6eda88793c8860649364727d7cbc602cd5f62e1234767c6131909fd3"
+        },
+        {
+          "bytes": 396645,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_BG2.png",
+          "sha256": "92adf2038d6f6529c5de242fa59879bc32e468ec20bd4cc2427b16ca2e8148b2"
+        },
+        {
+          "bytes": 266928,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_1.png",
+          "sha256": "5e8552ce45d7ad02c22516ba1f449cc9370a19c42d578109050b345a6ce8468a"
+        },
+        {
+          "bytes": 220486,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_10.png",
+          "sha256": "92dfa00fbbbd3162610e224d839e0252f0815a4674b12ff5111b5dab6d72fe5d"
+        },
+        {
+          "bytes": 276590,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_11.png",
+          "sha256": "c1acab092fb4f795675cffb6faba89315d89b5720cda99ff92492718db12e28c"
+        },
+        {
+          "bytes": 229588,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_12.png",
+          "sha256": "6be3ee3371a4206b2135bb9f00a5c55c4cb7a89acc6b722b776fbd9900ab9ffc"
+        },
+        {
+          "bytes": 682562,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_2.png",
+          "sha256": "8c54986b6507b3c6694d73e2f83cc43569204174933a2c07cad62591d1032d1b"
+        },
+        {
+          "bytes": 427920,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_3.png",
+          "sha256": "127669334c0c425cf44b40c234acf09b7dc84ba1e7c1c8fddc2e9b88ff3e2e86"
+        },
+        {
+          "bytes": 531990,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_4.png",
+          "sha256": "8ac61e3e511c6ea5d94bf8785ae2d96b76f99a95873047fb75b578c279dcf693"
+        },
+        {
+          "bytes": 267304,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_5.png",
+          "sha256": "ade45f94e6a2cccf875dfe27839cf06d21134cbf113a90677940216580896a12"
+        },
+        {
+          "bytes": 294054,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_6.png",
+          "sha256": "1101f32bce83925afb05238033e965893b109581088bbebf2ff66234ff7e9239"
+        },
+        {
+          "bytes": 403870,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_7.png",
+          "sha256": "11cf4d4f09e42c82f2dbb2eb5c88074a5c6ab29b8f89659f5b00d1e023fc88ef"
+        },
+        {
+          "bytes": 74029,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_8.png",
+          "sha256": "dbd0779a18d3951692819378a4c1ba52b7d6cf7b291666fdc7f55e36a13ba7a4"
+        },
+        {
+          "bytes": 221440,
+          "path": "Contents/Resources/assets/books/book1/unit/2/parts/SD/parts_part_9.png",
+          "sha256": "fce4c3cb251d9c7fe414237af1439b0ba62232862a2bd9fa13d9a7418c1ea0a8"
+        },
+        {
+          "bytes": 5492,
+          "path": "Contents/Resources/assets/books/book1/unit/2/unit_params.iwb",
+          "sha256": "10267c0c081cf1d7b4eaacae79a17f0375f7692233d4235f514cfb5c6913c106"
+        },
+        {
+          "bytes": 6128,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj1/ebook_obj_params.iwb",
+          "sha256": "16016cd03fdacc12ef7b9b4f2d0b54f4802ce2a9aad79bf3565003f57329fa32"
+        },
+        {
+          "bytes": 7808,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj1/image_2.png",
+          "sha256": "fb9f19468038159261ce4f848cb610e7050b165fb2c6cd0edc9880451f950bb0"
+        },
+        {
+          "bytes": 6316,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj1/obj_params.iwb",
+          "sha256": "7deae87e982c796443c5535c890fe0aca7a4f91e2fc0a7d7f5bd0efbd6f1b32e"
+        },
+        {
+          "bytes": 1595165,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj1/showText.png",
+          "sha256": "207aa143ad8549f5010f8db351f86e26bf5712dd653af321e13db5f6ead21920"
+        },
+        {
+          "bytes": 2623,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj2/image_1.png",
+          "sha256": "8df26faa3a6cd545f960fe1d1d7267a46d7e629160e6d030717738bce2a8a0b9"
+        },
+        {
+          "bytes": 30548,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj2/image_2.png",
+          "sha256": "eae6e50849d64523463b0a4703d896b191b01f33f3f05f242d09d0ed7fe767f2"
+        },
+        {
+          "bytes": 10272,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj2/obj_params.iwb",
+          "sha256": "eaf197c9a2c0dbdbfab0dd1a1c85c691e7999d115e26586df1b72111d943b284"
+        },
+        {
+          "bytes": 1595165,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj2/showText.png",
+          "sha256": "207aa143ad8549f5010f8db351f86e26bf5712dd653af321e13db5f6ead21920"
+        },
+        {
+          "bytes": 10854,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj3/image_2.png",
+          "sha256": "8ae475cccf2c099716f22535d4ec2389bf1112147b93bda59691198bbb4d5cbb"
+        },
+        {
+          "bytes": 9428,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/obj3/obj_params.iwb",
+          "sha256": "52ceb44174c3b482dfed70e34fc6a507911577f58d83fc59fb92987dd01807a8"
+        },
+        {
+          "bytes": 1464,
+          "path": "Contents/Resources/assets/books/book1/work/2/part1/part_params.iwb",
+          "sha256": "72eabc13809e7287a102ce4cc110cd2fc51045bbbc76e3d7938cb148d64a6ebc"
+        },
+        {
+          "bytes": 1433,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj1/image_1.png",
+          "sha256": "622da40aad5e36157803f1ef770b10ded74504c516cdbf5ce43e0ed68a4c2c54"
+        },
+        {
+          "bytes": 8100,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj1/image_2.png",
+          "sha256": "f4e48a69c6f3e344da19b1bec1bcedb5290ca22d85fdd18d07242a77f7641c8a"
+        },
+        {
+          "bytes": 9768,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj1/obj_params.iwb",
+          "sha256": "009e9ce137e2e9dea4673f257ffe6fbd6c1437aa0f858ce7b01047fac055157e"
+        },
+        {
+          "bytes": 163122,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj2/image_1.png",
+          "sha256": "ae37faf49859d18f9787892efdd5a16a0a21ecd1140a0a4b02ccf3dbc322f311"
+        },
+        {
+          "bytes": 6281,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj2/image_2.png",
+          "sha256": "a097f22e31eda0d566717867c41d386faeaa0f614da99259f8a4142bca0b64dc"
+        },
+        {
+          "bytes": 6440,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj2/obj_params.iwb",
+          "sha256": "291dc79587dfeadedd1df98b2ad4b0e8122c30c1ba4cdd5c925ecc7557e253c0"
+        },
+        {
+          "bytes": 26810,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj3/image_1.png",
+          "sha256": "2e47b8179225e13594ee44df86dd6c11e3ab4e75586bfa44e524eb02aac4b48a"
+        },
+        {
+          "bytes": 17201,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj3/image_2.png",
+          "sha256": "eff158bca47c93c732ba6777a3e2c2658a0dfe13aaf2e8638225e3faad3af766"
+        },
+        {
+          "bytes": 7852,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj3/obj_params.iwb",
+          "sha256": "50df1327141621c93585b062fd7071fb5e1d6a901b5d1541740cbd256808d1ec"
+        },
+        {
+          "bytes": 128983,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj4/image_1.png",
+          "sha256": "d208b349a78f88e79977dd01684e95b626b71d25d2513e538692988ace20e207"
+        },
+        {
+          "bytes": 8137,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj4/image_2.png",
+          "sha256": "c5d52f65f9c4e17f37e3a4e7c90f24a464e77e98cf054b12b9ebd56b357e3277"
+        },
+        {
+          "bytes": 5456,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj4/obj_params.iwb",
+          "sha256": "0ba7a3a18b5c6e5bb6f6117d3c5c61394fed991939b1ce33dc3d85b8aa1c26ae"
+        },
+        {
+          "bytes": 25936,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj5/image_1.png",
+          "sha256": "65ae94904e9e1af8abb8a7c08f9a82b2c4a986d3a39a00e5a45435f996003e99"
+        },
+        {
+          "bytes": 11361,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj5/image_2.png",
+          "sha256": "7a309081443ab92ec26df05d698a747cd104863fdcdfb60d8ff28357c9eba71d"
+        },
+        {
+          "bytes": 12160,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj5/obj_params.iwb",
+          "sha256": "909b50abf17d11b2c839c9d43ced9fa49a6b56412c24e46d92d1756c5f8e74e4"
+        },
+        {
+          "bytes": 18590,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj6/image_1.png",
+          "sha256": "b4854210c2b9a28831daf9c31719008e370693ad4e62db158beffb63d926289b"
+        },
+        {
+          "bytes": 10927,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj6/image_2.png",
+          "sha256": "d5355664f7379d58efd64fbb1fa616091ef5d5fba370c06c4fb827896e93f90a"
+        },
+        {
+          "bytes": 15284,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj6/obj_params.iwb",
+          "sha256": "3a9216737f1d4f2fd1d748a5ad17aa62a4cbc39841021662e80af187c5c48ac4"
+        },
+        {
+          "bytes": 83118,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj6/showText.png",
+          "sha256": "41fa7e9b425b0e7fad13c2ae3da8b4829c44eaebe73b83a6f8717c8b1fa65eb6"
+        },
+        {
+          "bytes": 60526,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj7/image_1.png",
+          "sha256": "b01acc10b39e597c93642764dc06adeb4cfffb053c3379ba84976125c87dc20a"
+        },
+        {
+          "bytes": 1608,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj7/obj_params.iwb",
+          "sha256": "7390f4ea1cfd8a8fce22fd467e764b88d19c5b25b691ade1c1fed454347a76fa"
+        },
+        {
+          "bytes": 295550,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/obj7/showText.png",
+          "sha256": "8efe97fbea0c29c82f38bcdf1e8991f5be3c6d73355c6d51d27ae68d59ff869a"
+        },
+        {
+          "bytes": 2516,
+          "path": "Contents/Resources/assets/books/book1/work/2/part2/part_params.iwb",
+          "sha256": "6de0dcce040af9190c2c27e4f4d1ab3231d4a76b341553a40849bcf442845cac"
+        },
+        {
+          "bytes": 10431,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj1/image_2.png",
+          "sha256": "cf2ef9cba14b37ccb60cfe591a49a619f877fdc3994048dd17da287d017e799c"
+        },
+        {
+          "bytes": 11240,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj1/obj_params.iwb",
+          "sha256": "ddbb5726b63bab6bbfc601009441b7812f79f024b8229b7ae26784e13d9bfb2c"
+        },
+        {
+          "bytes": 144667,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj2/image_1.png",
+          "sha256": "31911369b59b28889f93ef3326e40190019c723d3e61bd40f4b57d3a7c31f568"
+        },
+        {
+          "bytes": 6360,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj2/image_2.png",
+          "sha256": "10566f58836c7a9e013ea5127c7c0ce725cbbd7aaf005dbd01128ec41b1aead7"
+        },
+        {
+          "bytes": 5348,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj2/obj_params.iwb",
+          "sha256": "63a33d3c46f04585ee83860d65eae6ca57de246280c1686cf00e404b042ba344"
+        },
+        {
+          "bytes": 12559,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj3/image_2.png",
+          "sha256": "ac35a6fd4511922f9fc9a5ae275142ecf40bf210f974d134848b88b303f6eb02"
+        },
+        {
+          "bytes": 10972,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj3/obj_params.iwb",
+          "sha256": "54164d19a2997233b7bcf7c77eccf2a6289eb33489738829a0bddad02b59a663"
+        },
+        {
+          "bytes": 19394,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj4/image_2.png",
+          "sha256": "8cee1653c402ebd558edcca43303395d67b7ef662e569a792c246d83035dd43e"
+        },
+        {
+          "bytes": 13764,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj4/obj_params.iwb",
+          "sha256": "37271409e67dbef6c8b0eceb6cae326abae34b475d7cf8060f3c3104ce6c6a38"
+        },
+        {
+          "bytes": 492359,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj5/image_1.png",
+          "sha256": "298530877e1eae5f811615dc5c8529744c6f2c473958fe93d9b2d4bd70f4e6d3"
+        },
+        {
+          "bytes": 7360,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj5/image_2.png",
+          "sha256": "5e83706de8beaa356a17b170fca93e4db1cc59e496e2407488f99b9393f7b9cf"
+        },
+        {
+          "bytes": 6260,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj5/obj_params.iwb",
+          "sha256": "8914ad134b3c7a32769134004bd4f41b0af054f4b7d352a8048fec1ba3fc1ff3"
+        },
+        {
+          "bytes": 20231,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj6/image_2.png",
+          "sha256": "fd1a2f5e95d3eef3667e5f4b4f3ce99dc1258acb39d522642626d8bde60c2a2a"
+        },
+        {
+          "bytes": 12148,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj6/obj_params.iwb",
+          "sha256": "8570c1e546247d553f91b3b858c7cbd9fda8fa961dba36c195ee7ebf3f43f725"
+        },
+        {
+          "bytes": 57366,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj6/showText.png",
+          "sha256": "3877d8b38275085361d62e57e6aa6ed1310345d5d61110c0a00951cf48cb10b0"
+        },
+        {
+          "bytes": 37146,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj7/image_1.png",
+          "sha256": "906ef028fa26cf93cec70703c98b40c5f38825db703de6f32ad63e8e0fd3b8f3"
+        },
+        {
+          "bytes": 1604,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj7/obj_params.iwb",
+          "sha256": "1da6305dd88f0e028eb01b84c3f8ed41d3c2fa5ded116890e37f9e629362f14e"
+        },
+        {
+          "bytes": 163764,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/obj7/showText.png",
+          "sha256": "00e160d1b4b1a2d9c749b92cc2067035807c658e5dd9c0b80f9ddb67a14afbd2"
+        },
+        {
+          "bytes": 2512,
+          "path": "Contents/Resources/assets/books/book1/work/2/part3/part_params.iwb",
+          "sha256": "8a847df8de49b061aa590ad065ca433342aaf238728a262e348462056aa0924a"
+        },
+        {
+          "bytes": 5844336,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/audio.mp3",
+          "sha256": "a9d4cf34debcda8ab301b18805873386ab5c0746a8ef0437d986e35e8a478526"
+        },
+        {
+          "bytes": 5850,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_1.mp3",
+          "sha256": "006dde1f81ce8f9766796eabef9cae865e9cab3ff0336b84edb577191e05ac58"
+        },
+        {
+          "bytes": 15881,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_10.mp3",
+          "sha256": "067f0dfa6a4efbaea8e7a4a7cedbb4fb1eb87dc222849667b0dacd2937fa9938"
+        },
+        {
+          "bytes": 7522,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_2.mp3",
+          "sha256": "fe55a15cb587a56578ae8e82c9aa5ed47caaaa4743e2350ea633a4b8104bbf5b"
+        },
+        {
+          "bytes": 13791,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_3.mp3",
+          "sha256": "157ffc4665edb4d1d66fd687cfa7545218cc4a215026ad2eb9a742de6df622c9"
+        },
+        {
+          "bytes": 17971,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_4.mp3",
+          "sha256": "5fca9754160337d09eb898f954a92a33c12e47b8100ff80dd9619790c71c6dee"
+        },
+        {
+          "bytes": 16717,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_5.mp3",
+          "sha256": "e33220f914bf562e59cfa44c54e85edaf98bcf3a1619c87f137e6396d5a1e151"
+        },
+        {
+          "bytes": 15463,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_6.mp3",
+          "sha256": "c7ac4f8c6d2d91fdbc27c3bf5f5aaca4ba2977d51c164a68bfc01abee773ee85"
+        },
+        {
+          "bytes": 7940,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_7.mp3",
+          "sha256": "75f1e7b80e5bbbc21da6f549b33894e3f5072fccff79f364e4d37cde647617da"
+        },
+        {
+          "bytes": 12537,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_8.mp3",
+          "sha256": "16c8d06c7a3db3515fd3c972b2220b16b329e401b33be742a165fc408ac50794"
+        },
+        {
+          "bytes": 9612,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_9.mp3",
+          "sha256": "2fc13201ebd741606509922f90a6b45cae85bea00576c705c32b0b3796b6b477"
+        },
+        {
+          "bytes": 4656,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/highlight_params.iwb",
+          "sha256": "d80a5b14bde29d6c05a29d45fb6b551b6a6adb548a59b4705ddf7026e6f52cef"
+        },
+        {
+          "bytes": 23329,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/image_1 - Copy.png",
+          "sha256": "7cd0d584d1cc6cce6acdf4b55bc806073378075498bd0ba566933c42b5ae2994"
+        },
+        {
+          "bytes": 62135,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/image_1.png",
+          "sha256": "89629b312ae1ec7157a07699056629f6e846f4c9263d905383e2183e4e9dc742"
+        },
+        {
+          "bytes": 12098,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/image_2.png",
+          "sha256": "7847ba86b9512e5e107b0c9c0b6f2e71cf8deea745ea14d3082b64c477fdc362"
+        },
+        {
+          "bytes": 11708,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/obj_params.iwb",
+          "sha256": "860fe9937c61a2c5e570ad72ab2f1f5dccb1d59b3290fd61e953010146c92b59"
+        },
+        {
+          "bytes": 194048,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/showText.png",
+          "sha256": "d040a7f16e3478b08e928b088dbf13961c366eb834d8996ceab965eba0c48c0d"
+        },
+        {
+          "bytes": 167940,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj1/tapescript.png",
+          "sha256": "a67055aacf6b94e3dd86bd4230052d18bd2f5534a1d150577d0b8665b2a89036"
+        },
+        {
+          "bytes": 23329,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj2/image_1.png",
+          "sha256": "7cd0d584d1cc6cce6acdf4b55bc806073378075498bd0ba566933c42b5ae2994"
+        },
+        {
+          "bytes": 1576,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj2/obj_params.iwb",
+          "sha256": "cbdfca25443e6f057caded14965e777a91bfe53a8699dd462207dd4bb452e941"
+        },
+        {
+          "bytes": 220245,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/obj2/showText.png",
+          "sha256": "590bb3d21a0d0409cf5e5ea166c0d8f0c04790272493287e38774a8891b37c86"
+        },
+        {
+          "bytes": 1016,
+          "path": "Contents/Resources/assets/books/book1/work/2/part4/part_params.iwb",
+          "sha256": "1f693e336b72fe8499678c7270fc2ae115ad42695737cd594e3f3a65bcd4e4ad"
+        },
+        {
+          "bytes": 6696,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj1/ebook_obj_params.iwb",
+          "sha256": "552794f84a9ba4812ff7fa8ff9bed5f43aa27910ce95f80404e3c6a4098f1e1f"
+        },
+        {
+          "bytes": 100205,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj1/image_1.png",
+          "sha256": "a59da8244d7b6a69c8be1338e17147a42504ba5b773c90d2fca0cb997d6b3bed"
+        },
+        {
+          "bytes": 9508,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj1/image_2.png",
+          "sha256": "1ac0a391473d3967d832248c423aa5107d5299af45a83384d0e024981e9b32b5"
+        },
+        {
+          "bytes": 6216,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj1/obj_params.iwb",
+          "sha256": "672761501fc0815b94c124dacd880cb48ae0544f8893b90e3cbee302be480b8e"
+        },
+        {
+          "bytes": 135265,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj2/image_1.png",
+          "sha256": "938d827431510d737c2849a126157968316c3cf766ff1cd5cb8456eceed848cd"
+        },
+        {
+          "bytes": 11067,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj2/image_2.png",
+          "sha256": "a9da72bbce89038e0bf4897a1488a49d3c52446145dcda638a56418d214628be"
+        },
+        {
+          "bytes": 5340,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj2/obj_params.iwb",
+          "sha256": "bdcff34c2bddba51c7964fb5767ad42783b83cb5a855eeb314b33f76e0004c2f"
+        },
+        {
+          "bytes": 62135,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj3/image_1.png",
+          "sha256": "00adfe9b48e46f055bd790c6bcdd101ea99cfdacdac2a464622332cab24f2b9e"
+        },
+        {
+          "bytes": 10256,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj3/image_2.png",
+          "sha256": "6bb8a6b1370aff61fe28407ba5e481f1de0f07cc82ce992aa34a3ea1b4cd7d98"
+        },
+        {
+          "bytes": 5712,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj3/obj_params.iwb",
+          "sha256": "076dc8f8025c3793a2646d5088c11360c7b7d37c489206c4f7f34c836e90f778"
+        },
+        {
+          "bytes": 126139,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj4/image_1.png",
+          "sha256": "728fc1348bc31f38d8259aef44bafc12a8ba7847f29b07161e808e76f42298d7"
+        },
+        {
+          "bytes": 15003,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj4/image_2.png",
+          "sha256": "ca7f36222bf0488f750e95fcd3cf5bd76a5d99f86194f3bf812a7d75518857ce"
+        },
+        {
+          "bytes": 1668,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj4/obj_params.iwb",
+          "sha256": "08a6aef57d6be2c59fb149fc49a94f961951bffd067cae7dc2ec76ef57d05a02"
+        },
+        {
+          "bytes": 412477,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/obj4/showText.png",
+          "sha256": "b3ad978dbb71d3374bcb6598d058bd1376c72f07b0aeda7cf136062c53140972"
+        },
+        {
+          "bytes": 1612,
+          "path": "Contents/Resources/assets/books/book1/work/2/part5/part_params.iwb",
+          "sha256": "52dec16bebf43365c02327fc7bcc123463d76a67ec8aed1e097206c7d98bbdd3"
+        },
+        {
+          "bytes": 3546,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj1/image_1.png",
+          "sha256": "08c6fc8df9a8bf74ccd34c678aa2cbc50732167e81b3a0beb84581a1455e7136"
+        },
+        {
+          "bytes": 16339,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj1/image_2.png",
+          "sha256": "3bf0acf2db1cf7369fa0fdfaa94acbc77d36f2ed75689d97b7af2047dc291b51"
+        },
+        {
+          "bytes": 9664,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj1/obj_params.iwb",
+          "sha256": "5f46258ada03b0eef3e62b28377c2365927021080e2c4a4b2fbdff415ad78259"
+        },
+        {
+          "bytes": 944344,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj1/showText.png",
+          "sha256": "f085f2ed90f767d080150273a096d99adc628cac9d231f6009433de5b72f5cba"
+        },
+        {
+          "bytes": 26952,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj2/image_2.png",
+          "sha256": "c87a822925ec8ac1136addee341b7679663cffb5655ee2a27ef2fde6406ebf54"
+        },
+        {
+          "bytes": 12084,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/obj2/obj_params.iwb",
+          "sha256": "7dcaef21716ec95cfcd7c6f896306ef9f49f98247f86d5b3c6bf0286a5a3f81f"
+        },
+        {
+          "bytes": 1164,
+          "path": "Contents/Resources/assets/books/book1/work/2/part6/part_params.iwb",
+          "sha256": "1e765003b237bba431bcc4ed449c93725e9a2c1dca4eec653a753a5eb29fd428"
+        },
+        {
+          "bytes": 63079,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/image_1.png",
+          "sha256": "7f264c5fb0f3f9bb43435edd10d240e65217f5ba0f11a4ec45f00d914f103474"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 87798,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/image_3.png",
+          "sha256": "fe45f92989de1518f48a3160da7ccc7e92485eb1c8c3a3cf41905186cd981791"
+        },
+        {
+          "bytes": 84895,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/image_4.png",
+          "sha256": "a2813627da6ab788fd73930c416f08f65ddb61e455dbf8dafab43a6fe6a23c10"
+        },
+        {
+          "bytes": 38019,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/image_5.png",
+          "sha256": "14352247c260b5452398de33a2b8db7de7afe32f47f2f41dceda2850f6f02ab4"
+        },
+        {
+          "bytes": 15084,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj1/obj_params.iwb",
+          "sha256": "555c5a2665aada26bb44fa1e87b3c02155347b4ca0e8328f3b06522de58ecfa5"
+        },
+        {
+          "bytes": 62386,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/image_1.png",
+          "sha256": "c3e558afed7364330c113747b3a927775415e32ccebdf325f68935aca0e7164b"
+        },
+        {
+          "bytes": 19020,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/image_2.png",
+          "sha256": "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555"
+        },
+        {
+          "bytes": 87662,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/image_3.png",
+          "sha256": "8f2634a40278b795bed1a60c4e9b7fc8e7838d954dd7494818a4de92421a70d1"
+        },
+        {
+          "bytes": 91393,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/image_4.png",
+          "sha256": "1e099082e62cd6fc9244903c1148751231cc7fc4af8b6df14c950661625255a9"
+        },
+        {
+          "bytes": 34398,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/image_5.png",
+          "sha256": "9a74d22284c4753deb084222689600f506cc2f08be200641812a46a4a4ca0339"
+        },
+        {
+          "bytes": 15080,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/obj2/obj_params.iwb",
+          "sha256": "0018015fa6bf5aaae803c729fa8c052487caf663f423021c8df08df1bf9fdfd8"
+        },
+        {
+          "bytes": 1184,
+          "path": "Contents/Resources/assets/books/book1/work/2/part7/part_params.iwb",
+          "sha256": "779db1cb929b8f5823e8fd43f08e61043b2c59be0a43c88283dab311d76a8b3d"
+        },
+        {
+          "bytes": 58031,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_BG.png",
+          "sha256": "a95ad2f104c66d9bef57e4c75c7144f75d6c673db3450abd5fedd3f8f71806d2"
+        },
+        {
+          "bytes": 1196300,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_1.png",
+          "sha256": "378d5e7eef5f7b1f5869f7e4f5051df8646c1983787be42283a5a22b0c8ad284"
+        },
+        {
+          "bytes": 720040,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_2.png",
+          "sha256": "f3832200c9d626eea9d32da923e5aaebcd18c13711c3159da4a61b2a87943ff2"
+        },
+        {
+          "bytes": 601443,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_3.png",
+          "sha256": "19334b81e4dc958a0a9953dd92039cbade988ebd47eacb93697d365023d12703"
+        },
+        {
+          "bytes": 378278,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_4.png",
+          "sha256": "e550eff10451e7210f71ca095427733a97c7e598c68d90f91976a771981c71a7"
+        },
+        {
+          "bytes": 327071,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_5.png",
+          "sha256": "3336ec8a9229bf2208aa849d77a7522dfaf688feb1e881bf7a8f4b6ed675efe3"
+        },
+        {
+          "bytes": 831633,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_6.png",
+          "sha256": "82ecc012dbfc0db4f73bfedc00913c3c12e46ac016b02f31bc548016128b9994"
+        },
+        {
+          "bytes": 411420,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/HD/parts_part_7.png",
+          "sha256": "48649624cd9bbe64fb1e46d09d7e02a46162ab2a6547c7cf5a81ced4eab13a77"
+        },
+        {
+          "bytes": 55426,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_BG.png",
+          "sha256": "b41469582b3c687d7498f54493a872a09d756d46bb7715d97af6b728af3a4caa"
+        },
+        {
+          "bytes": 699787,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_1.png",
+          "sha256": "d779cb551c172bf5954ba8abedf275ca63cafcce069942c6ed376ebd52ab12d5"
+        },
+        {
+          "bytes": 411112,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_2.png",
+          "sha256": "0fe66b069e79049e94a3d133cb8018e0522dcd999c48eb4990738e7ed13c2b03"
+        },
+        {
+          "bytes": 384170,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_3.png",
+          "sha256": "55b5bbf2e420f59ccbdc466481e09bee25b29f705b17edcec7d12bd1ec353d6a"
+        },
+        {
+          "bytes": 207626,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_4.png",
+          "sha256": "4668df1ef396dcc4445bc74055f05d1bae7602504c894edaf6e176a5272ea001"
+        },
+        {
+          "bytes": 203362,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_5.png",
+          "sha256": "d6331031264c6dc0bab9155a09e30dc9854e52ceb658453b5472b31329c0268d"
+        },
+        {
+          "bytes": 487496,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_6.png",
+          "sha256": "a33c535145c0aa900610a10ca604da64dacb58c883835ceeb105f3c531ff6635"
+        },
+        {
+          "bytes": 305932,
+          "path": "Contents/Resources/assets/books/book1/work/2/parts/SD/parts_part_7.png",
+          "sha256": "5dbd5c5979490b76e8ce218a1ac7c5ed97b90225589dcbb73f04c896260196b0"
+        },
+        {
+          "bytes": 3716,
+          "path": "Contents/Resources/assets/books/book1/work/2/unit_params.iwb",
+          "sha256": "dca2318442132fc94153bd2ee29f939269c2d1d60e0a4ba9174d3e5b8d55a23a"
+        }
+      ],
+      "fileCount": 682
+    }
+  },
+  "airAndNativeAudit": {
+    "descriptorRequirements": {
+      "depthAndStencil": true,
+      "fullScreen": true,
+      "renderMode": "direct",
+      "requestedPermissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CAMERA",
+        "android.permission.DISABLE_KEYGUARD",
+        "android.permission.INTERNET",
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WAKE_LOCK",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "excludedNativeArtifacts": [
+      "Contents/Resources/Ultimate English B2.exe",
+      "Contents/Resources/assets/keyboard/keyboard.bat",
+      "Contents/Resources/assets/keyboard/nircmd_x64.exe",
+      "Contents/Resources/assets/keyboard/nircmd_x86.exe",
+      "Contents/Resources/Adobe AIR/**"
+    ],
+    "riskClassification": [
+      {
+        "area": "AIR application lifecycle",
+        "classification": "fundamental-risk",
+        "evidence": "AIR 23 application descriptor and packaged AIR runtime"
+      },
+      {
+        "area": "native executable keyboard control",
+        "classification": "unsupported-and-blocked",
+        "evidence": "bat/nircmd artifacts are excluded by extension and path policy"
+      },
+      {
+        "area": "direct rendering/depth-stencil/fullscreen",
+        "classification": "compatibility-risk",
+        "evidence": "AIR descriptor settings require browser/WASM substitution"
+      },
+      {
+        "area": "external media and nested SWFs",
+        "classification": "test-required",
+        "evidence": "runtime URL resolution and codec support must be observed"
+      }
+    ]
+  }
+}

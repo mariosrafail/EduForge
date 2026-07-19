@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "classification": "NOT VIABLE",
+  "experiment": {
+    "browsers": [
+      "Google Chrome 151.0.7922.34",
+      "Microsoft Edge 150.0.4078.65"
+    ],
+    "featureFlag": "VITE_ENABLE_LEGACY_FLASH_PLAYER=true",
+    "host": "localhost:8888",
+    "route": "/#/dev/ultimate-b2-legacy-player",
+    "ruffleVersion": "0.4.0"
+  },
+  "securityChecks": {
+    "authenticatedSession": "passed",
+    "publisherBinariesExecuted": false,
+    "publisherFilesCommitted": false,
+    "sourceAccess": "five-minute signed token after Ultimate B2 entitlement; allowlisted paths only",
+    "swfConnectedToLmsScoringOrProgress": false
+  },
+  "startup": {
+    "entitlementManifest": "passed",
+    "mainSwfHttpStatus": 200,
+    "ruffleWasmInitialized": true,
+    "swfMetadataLoaded": true,
+    "firstUsableFrame": false,
+    "menuNavigation": "not testable",
+    "visualResult": "black player surface"
+  },
+  "performance": {
+    "mainSwfBytes": 18003009,
+    "ruffleJavascriptBytes": 461418,
+    "ruffleWasmBytes": 14146455,
+    "chrome": {
+      "entitlementManifestMs": 127,
+      "ruffleRuntimeRegisteredMs": 184,
+      "ruffleLoadResolvedMs": 3195,
+      "swfMetadataLoadedMs": 4824
+    },
+    "edge": {
+      "entitlementManifestMs": 117,
+      "ruffleRuntimeRegisteredMs": 149,
+      "ruffleLoadResolvedMs": 3216,
+      "swfMetadataLoadedMs": 4807
+    },
+    "memory": "not exposed reliably by the headless browser run",
+    "runtimeConsoleErrors": 2
+  },
+  "fundamentalBlocker": {
+    "error": "ReferenceError: Error #1069: Property totalGPUMemory not found on flash.display3D.Context3D and there is no default value.",
+    "effect": "Application.onRootCreated fails during Starling context3DCreate, preventing the application root and initial menu from rendering.",
+    "airStubsObserved": [
+      "flash.desktop.NativeApplication.applicationDescriptor",
+      "flash.desktop.NativeApplication.systemIdleMode",
+      "flash.filesystem.File.applicationDirectory",
+      "flash.filesystem.File.documentsDirectory",
+      "flash.filesystem.File.exists",
+      "flash.filesystem.File.nativePath",
+      "flash.filesystem.File.resolvePath"
+    ]
+  },
+  "airCompatibilityAudit": [
+    {
+      "area": "filesystem and application/documents paths",
+      "classification": "blocking",
+      "evidence": "File constructor, applicationDirectory, documentsDirectory, nativePath, exists, and resolvePath were runtime stubs"
+    },
+    {
+      "area": "application storage paths",
+      "classification": "requires adapter",
+      "evidence": "AIR File path resolution is stubbed; no adapter was added after the startup blocker"
+    },
+    {
+      "area": "native process execution",
+      "classification": "nonessential",
+      "evidence": "Packaged keyboard bat/nircmd executables were blocked from serving and never executed"
+    },
+    {
+      "area": "AIR application lifecycle",
+      "classification": "blocking",
+      "evidence": "NativeApplication descriptor and systemIdleMode calls were runtime stubs"
+    },
+    {
+      "area": "native windows",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "desktop clipboard",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "local database APIs",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "application updater",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "AIR-specific URL schemes",
+      "classification": "unknown",
+      "evidence": "External URL access was denied by Ruffle configuration"
+    },
+    {
+      "area": "StageWebView",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "encrypted local storage",
+      "classification": "unknown",
+      "evidence": "No call was reached before the startup stop condition"
+    },
+    {
+      "area": "native extensions",
+      "classification": "unknown",
+      "evidence": "No ANE execution was attempted; all native package artifacts remained excluded"
+    },
+    {
+      "area": "Context3D.totalGPUMemory",
+      "classification": "blocking",
+      "evidence": "Error #1069 aborts Application.onRootCreated during Starling context creation"
+    }
+  ],
+  "runtimeDependencies": [
+    {
+      "type": "runtime-only resource",
+      "resource": "self-hosted Ruffle JavaScript and WebAssembly",
+      "status": "loaded"
+    },
+    {
+      "type": "SWF",
+      "resource": "Contents/Resources/UltimateB2.swf",
+      "status": "parsed; application root failed"
+    },
+    {
+      "type": "missing",
+      "resource": "Contents/Resources/params.xml",
+      "status": "404; absent at that publisher-source path"
+    },
+    {
+      "type": "XML/IWB/image/audio/video/font/AIR-only resource",
+      "resource": "Unit 2 runtime requests",
+      "status": "unresolved because the startup stop rule prevented Unit 2 navigation"
+    }
+  ],
+  "unit2": {
+    "attempted": false,
+    "reason": "The time-box stop rule forbids Unit 2 testing when the initial application root/menu cannot start."
+  },
+  "decision": "Do not expose this legacy player to students and do not replace the React reader/activity pipeline."
+}
