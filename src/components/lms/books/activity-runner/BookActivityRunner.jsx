@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { getBookActivity } from "../../../../services/bookActivitiesApi.js";
-import { answerMatches } from "./activityRunnerScoring.js";
+import { getBookActivity, scoreBookActivity } from "../../../../services/bookActivitiesApi.js";
 
 function ActivityShell({ activity, children, onClose }) {
   return (
@@ -21,14 +20,40 @@ function ActivityShell({ activity, children, onClose }) {
   );
 }
 
+function SubmissionState({ result, error, onReset }) {
+  if (error) return <p className="book-builder-error">{error}</p>;
+  if (!result) return null;
+  return (
+    <div>
+      <p className="book-runner-result">{Number.isFinite(result.scorePercent) ? `Score: ${result.correctCount}/${result.totalCount} · ${result.scorePercent}%` : result.status === "awaiting_review" ? "Submitted for teacher review." : "Completed"}</p>
+      <button className="secondary-action compact-action" type="button" onClick={onReset}>Try again</button>
+    </div>
+  );
+}
+
+function useServerSubmission(activity) {
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async (responses) => {
+    setSubmitting(true);
+    setError("");
+    try {
+      setResult(await scoreBookActivity(activity.id, responses));
+    } catch (submissionError) {
+      setError(submissionError.message || "Submission could not be scored.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  const reset = () => { setResult(null); setError(""); };
+  return { result, error, submitting, submit, reset };
+}
+
 function MultipleChoiceRunner({ activity }) {
   const questions = activity.content?.questions || [];
   const [answers, setAnswers] = useState({});
-  const [result, setResult] = useState(null);
-  const submit = () => {
-    const correct = questions.filter((question) => answers[question.id] === activity.correctAnswers?.[question.id]).length;
-    setResult({ correct, total: questions.length });
-  };
+  const submission = useServerSubmission(activity);
   return (
     <div className="book-runner-form">
       {questions.map((question, index) => (
@@ -39,22 +64,21 @@ function MultipleChoiceRunner({ activity }) {
           ))}
         </section>
       ))}
-      <button className="primary-action compact-action" type="button" onClick={submit}>Submit</button>
-      {result && <p className="book-runner-result">Score: {result.correct}/{result.total}</p>}
+      {!submission.result && <button className="primary-action compact-action" type="button" disabled={submission.submitting} onClick={() => submission.submit(answers)}>{submission.submitting ? "Submitting…" : "Submit"}</button>}
+      <SubmissionState result={submission.result} error={submission.error} onReset={() => { setAnswers({}); submission.reset(); }} />
     </div>
   );
 }
 
 function OpenAnswerRunner({ activity }) {
-  const accepted = activity.correctAnswers?.acceptedAnswers || activity.content?.acceptedAnswers || [];
   const [answer, setAnswer] = useState("");
-  const [result, setResult] = useState("");
+  const submission = useServerSubmission(activity);
   return (
     <div className="book-runner-form">
       <p>{activity.content?.prompt}</p>
       <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} />
-      <button className="primary-action compact-action" type="button" onClick={() => setResult(accepted.length ? (answerMatches(answer, accepted) ? "Correct" : "Check your answer and try again.") : "Submitted for teacher review.")}>Submit</button>
-      {result && <p className="book-runner-result">{result}</p>}
+      {!submission.result && <button className="primary-action compact-action" type="button" disabled={submission.submitting} onClick={() => submission.submit({ answer })}>{submission.submitting ? "Submitting…" : "Submit"}</button>}
+      <SubmissionState result={submission.result} error={submission.error} onReset={() => { setAnswer(""); submission.reset(); }} />
     </div>
   );
 }
@@ -62,18 +86,14 @@ function OpenAnswerRunner({ activity }) {
 function TypedGapFillRunner({ activity }) {
   const items = activity.content?.items || [];
   const [answers, setAnswers] = useState({});
-  const [result, setResult] = useState(null);
-  const submit = () => {
-    const correct = items.filter((item) => answerMatches(answers[item.id], item.acceptedAnswers?.length ? item.acceptedAnswers : [item.answer])).length;
-    setResult({ correct, total: items.length });
-  };
+  const submission = useServerSubmission(activity);
   return (
     <div className="book-runner-form">
       {items.map((item, index) => (
         <label key={item.id}>{index + 1}. {item.prompt}<input value={answers[item.id] || ""} onChange={(event) => setAnswers((current) => ({ ...current, [item.id]: event.target.value }))} /></label>
       ))}
-      <button className="primary-action compact-action" type="button" onClick={submit}>Submit</button>
-      {result && <p className="book-runner-result">Score: {result.correct}/{result.total}</p>}
+      {!submission.result && <button className="primary-action compact-action" type="button" disabled={submission.submitting} onClick={() => submission.submit(answers)}>{submission.submitting ? "Submitting…" : "Submit"}</button>}
+      <SubmissionState result={submission.result} error={submission.error} onReset={() => { setAnswers({}); submission.reset(); }} />
     </div>
   );
 }

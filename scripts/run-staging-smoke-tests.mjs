@@ -249,9 +249,11 @@ try {
     assert.deepEqual(row, { school_id: schoolA.id, teacher_id: schoolA.users.teacher1.id, class_id: schoolA.classes[0].id });
     const visible = await callHandler(bookContent, { cookie: sessions["a-student1"], query: { action: "assignments" } });
     assert.equal(visible.status, 200);
-    const visibleQuestion = visible.body.assignments.find((assignment) => assignment.assignmentId === id).activity.questions[0];
+    const visibleActivity = visible.body.assignments.find((assignment) => assignment.assignmentId === id).activity;
+    const visibleQuestion = visibleActivity.questions[0];
     assert.equal(visibleQuestion.id, schoolA.questionId);
-    assert.equal(visibleQuestion.answer, "yes");
+    assert.equal("answer" in visibleQuestion, false);
+    assert.doesNotMatch(JSON.stringify(visibleActivity), /acceptedAnswers|correct_answers|Contents[\\/]Resources|sourceRelativePath|sourceProvenance/);
     const assignmentCount = await count("select count(*) from activity_assignments where teacher_id = $1 and class_id = $2", [schoolA.users.teacher2.id, schoolA.classes[0].id]);
     assert.equal((await callHandler(bookContent, { method: "POST", cookie: sessions["a-teacher2"], query: { action: "create-assignment" }, body: {
       activityId: schoolA.activityId, classId: schoolA.classes[0].id, title: "Same-school unauthorized",

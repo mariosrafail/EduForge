@@ -54,12 +54,19 @@ const studentHiddenAnswerFields = new Set([
   "correct",
   "correctAnswer",
   "correctOptionId",
+  "correctAnswers",
+  "correct_answers",
   "correct_answer",
   "correct_option_id",
   "decodedPublisherValue",
   "explicitAnswerEvidence",
   "is_correct",
   "publisherAnswerValue",
+  "sourcePath",
+  "sourceProvenance",
+  "sourceRelativePath",
+  "localDevelopmentPath",
+  "decodedSourceSelector",
 ]);
 
 export function stripStudentAnswerKeys(value) {
@@ -70,14 +77,8 @@ export function stripStudentAnswerKeys(value) {
     .map(([key, child]) => [key, stripStudentAnswerKeys(child)]));
 }
 
-function isRecoveredStudentsBookActivity(activity = {}) {
-  const content = activity.contentJson || activity.content_json || {};
-  return ["auto-scored", "teacher-reviewed", "unscored-practice"].includes(content.implementationMode)
-    && /^ultimate-b2-sb-u(?:1|2)-/.test(String(content.publisherSourceActivityId || activity.slug || ""));
-}
-
 export function studentSafeActivityPayload(activity) {
-  return isRecoveredStudentsBookActivity(activity) ? stripStudentAnswerKeys(activity) : activity;
+  return stripStudentAnswerKeys(activity);
 }
 
 function studentSafePackageTree(tree) {
@@ -1313,6 +1314,36 @@ function bookActivityRowToUi(row) {
   };
 }
 
+export function browserSafeBookActivityPayload(activity) {
+  return stripStudentAnswerKeys(activity);
+}
+
+export function scoreBookActivityRecord(row = {}, responses = {}) {
+  const type = row.type;
+  const content = row.content || {};
+  const answerKey = row.correct_answers || {};
+  if (type === "multiple_choice") {
+    const questions = jsonArray(content.questions);
+    const correctCount = questions.filter((question) => normalizeSubmittedAnswer(responses[question.id]) === normalizeSubmittedAnswer(answerKey[question.id])).length;
+    return { status: "submitted", correctCount, totalCount: questions.length, scorePercent: questions.length ? Math.round((correctCount / questions.length) * 100) : null };
+  }
+  if (type === "typed_gap_fill") {
+    const items = jsonArray(content.items);
+    const correctCount = items.filter((item) => {
+      const accepted = jsonArray(answerKey[item.id]).length ? jsonArray(answerKey[item.id]) : jsonArray(item.acceptedAnswers);
+      return accepted.some((value) => normalizeSubmittedAnswer(value) === normalizeSubmittedAnswer(responses[item.id]));
+    }).length;
+    return { status: "submitted", correctCount, totalCount: items.length, scorePercent: items.length ? Math.round((correctCount / items.length) * 100) : null };
+  }
+  if (type === "open_answer") {
+    const accepted = jsonArray(answerKey.acceptedAnswers).length ? jsonArray(answerKey.acceptedAnswers) : jsonArray(content.acceptedAnswers);
+    if (!accepted.length) return { status: "awaiting_review", correctCount: null, totalCount: null, scorePercent: null };
+    const correctCount = accepted.some((value) => normalizeSubmittedAnswer(value) === normalizeSubmittedAnswer(responses.answer)) ? 1 : 0;
+    return { status: "submitted", correctCount, totalCount: 1, scorePercent: correctCount * 100 };
+  }
+  return { status: "completed", correctCount: null, totalCount: null, scorePercent: null };
+}
+
 function normalizeBookActivityPayload(body = {}, existing = {}) {
   const packageSlug = requireText(body.packageSlug ?? body.package_slug ?? existing.package_slug, "packageSlug");
   const componentSlug = requireText(body.componentSlug ?? body.component_slug ?? existing.component_slug, "componentSlug");
@@ -1355,7 +1386,7 @@ async function listBookActivities(sql, query, currentUser) {
     order by coalesce(page_number, 999999) asc, created_at asc, title asc
   `;
 
-  return json(200, { activities: rows.map(bookActivityRowToUi) });
+  return json(200, { activities: rows.map((row) => browserSafeBookActivityPayload(bookActivityRowToUi(row))) });
 }
 
 async function getBookActivity(sql, query, currentUser) {
@@ -1365,7 +1396,18 @@ async function getBookActivity(sql, query, currentUser) {
   const activity = rows[0];
   if (!activity) return json(404, { error: "Book activity not found" });
   const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: activity.package_slug });
-  return accessError || json(200, { activity: bookActivityRowToUi(activity) });
+  return accessError || json(200, { activity: browserSafeBookActivityPayload(bookActivityRowToUi(activity)) });
+}
+
+async function scoreBookActivity(sql, body, currentUser) {
+  if (!isStudent(currentUser)) return forbidden("Only student accounts can submit activity responses");
+  if (!body.activityId) return badRequest("activityId is required");
+  if (!isValidUuid(body.activityId)) return invalidUuidResponse("activityId");
+  const rows = await sql`select * from book_activities where id = ${body.activityId} and school_id = ${currentUser.school_id} limit 1`;
+  const activity = rows[0];
+  if (!activity) return json(404, { error: "Book activity not found" });
+  const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: activity.package_slug });
+  return accessError || json(200, { result: scoreBookActivityRecord(activity, optionalJson(body.responses)) });
 }
 
 async function createBookActivity(sql, body, currentUser) {
@@ -1412,7 +1454,7 @@ async function createBookActivity(sql, body, currentUser) {
     returning *
   `;
 
-  return json(200, { activity: bookActivityRowToUi(rows[0]) });
+  return json(200, { activity: browserSafeBookActivityPayload(bookActivityRowToUi(rows[0])) });
 }
 
 async function updateBookActivity(sql, body, currentUser) {
@@ -1459,7 +1501,7 @@ async function updateBookActivity(sql, body, currentUser) {
     returning *
   `;
 
-  return json(200, { activity: bookActivityRowToUi(rows[0]) });
+  return json(200, { activity: browserSafeBookActivityPayload(bookActivityRowToUi(rows[0])) });
 }
 
 async function deleteBookActivity(sql, body, currentUser) {
@@ -1713,6 +1755,7 @@ export async function handler(event) {
         if (roleError) return roleError;
         return submitActivity(sql, body, currentUser);
       }
+      if (query.action === "score-book-activity") return scoreBookActivity(sql, body, currentUser);
       if (query.action === "review-submission") {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;

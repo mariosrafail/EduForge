@@ -46,10 +46,7 @@
       "mediaDependencies": [
         {
           "type": "video",
-          "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro",
-          "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/2/part2/obj1.mp4",
-          "localDevelopmentPath": "/src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro"
         }
       ],
       "runtime": {
@@ -80,10 +77,7 @@
       "mediaDependencies": [
         {
           "type": "audio",
-          "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio",
-          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3",
-          "localDevelopmentPath": "/src/assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio"
         }
       ],
       "runtime": {
@@ -2181,10 +2175,7 @@
       "mediaDependencies": [
         {
           "type": "video",
-          "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro",
-          "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4",
-          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro"
         }
       ],
       "runtime": {
@@ -2471,10 +2462,7 @@
       "mediaDependencies": [
         {
           "type": "audio",
-          "logicalKey": "ultimate-b2.students-book.unit-2.listening.fjords",
-          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
-          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.listening.fjords"
         }
       ],
       "runtime": {
@@ -2519,10 +2507,7 @@
       "mediaDependencies": [
         {
           "type": "audio",
-          "logicalKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip",
-          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
-          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip"
         }
       ],
       "runtime": {
@@ -2635,10 +2620,7 @@
       "mediaDependencies": [
         {
           "type": "audio",
-          "logicalKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison",
-          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
-          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison"
         }
       ],
       "runtime": {
@@ -3644,10 +3626,7 @@
       "mediaDependencies": [
         {
           "type": "audio",
-          "logicalKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha",
-          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
-          "localDevelopmentPath": "/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3",
-          "sourceExistsAtGeneration": true
+          "logicalKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha"
         }
       ],
       "runtime": {

@@ -20,25 +20,15 @@ function dbQuestionsToChoiceQuestions(questions = []) {
     question: question.question || question.prompt,
     prompt: question.prompt || question.question,
     options: (question.options || []).map((option) => option.text || option.value || option.option_text),
-    answer: question.answer || (question.options || []).find((option) => option.correct || option.is_correct)?.text || "",
-    feedback: question.feedbackJson?.feedback || question.feedback_json?.feedback || question.feedback || "",
   }));
 }
 
 function dbQuestionsToGapFillItems(questions = []) {
   return questions.map((question, index) => {
     const contentJson = question.contentJson || question.content_json || {};
-    const feedbackJson = question.feedbackJson || question.feedback_json || {};
-    const correctOption = (question.options || []).find((option) => option.correct || option.is_correct);
-    const answer = question.answer || contentJson.answer || correctOption?.text || correctOption?.value || correctOption?.option_text || "";
-    const acceptedAnswers = contentJson.acceptedAnswers || contentJson.accepted_answers || feedbackJson.acceptedAnswers || feedbackJson.accepted_answers;
-
     return {
       id: question.id || `db-gap-${index + 1}`,
       prompt: question.prompt || question.question || contentJson.prompt || contentJson.question,
-      answer,
-      acceptedAnswers: Array.isArray(acceptedAnswers) ? acceptedAnswers : [answer].filter(Boolean),
-      feedback: feedbackJson.feedback || question.feedback || "",
     };
   });
 }
@@ -48,6 +38,9 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   const listeningAudio = useBookAsset(ultimateB2WorkbookListeningAudio.logicalKey, { devFallbackUrl: ultimateB2WorkbookListeningAudio.devFallbackUrl || ultimateB2WorkbookListeningAudio.localUrl });
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
+  const [serverResult, setServerResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [watched, setWatched] = useState(false);
   const activityType = activity.activityType || activity.activity_type;
   const contentJson = activity.contentJson || activity.content_json || {};
@@ -55,15 +48,24 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
   const gapFillQuestions = dbQuestionsToGapFillItems(activity.questions || []);
   const demoActivityKey = activity.demoActivityKey || contentJson.demoActivityKey || activity.slug;
 
-  const submit = () => {
-    const rows = scoreAnswers(questions, answers);
-    setSubmittedRows(rows);
-    onSubmit?.(buildScoredAssignmentResult({
-      activityKey: activity.demoActivityKey || contentJson.demoActivityKey || activity.slug || activity.id,
-      activityId: activity.id,
-      answers,
-      rows,
-    }));
+  const submit = async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const activityKey = activity.demoActivityKey || contentJson.demoActivityKey || activity.slug || activity.id;
+      if (import.meta.env.VITE_APP_MODE === "android-offline") {
+        const rows = scoreAnswers(questions, answers);
+        setSubmittedRows(rows);
+        await onSubmit?.(buildScoredAssignmentResult({ activityKey, activityId: activity.id, answers, rows }));
+      } else {
+        const result = await onSubmit?.({ activityKey, activityId: activity.id, answers: { ...answers }, score: null });
+        setServerResult(result || { status: "submitted" });
+      }
+    } catch (error) {
+      setSubmitError(error.message || "Submission could not be saved.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (activityType === "media_video") {
@@ -128,12 +130,14 @@ export function DatabaseActivity({ activity, mode, onSubmit, onNextActivity }) {
         questions={questions}
         answers={answers}
         setAnswers={setAnswers}
-        disabled={Boolean(submittedRows) || mode === "teacher-preview"}
+        disabled={Boolean(submittedRows || serverResult) || mode === "teacher-preview"}
         submittedRows={submittedRows}
       />
       {(contentJson.grammar_rules || contentJson.grammarRules) && <GrammarRulesHelp />}
-      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit answers</button>}
+      {mode === "student" && !submittedRows && !serverResult && <button className="primary-action" type="button" onClick={submit} disabled={submitting} data-sound-click="submit">{submitting ? "Submitting…" : "Submit answers"}</button>}
       {submittedRows && <FeedbackRows rows={submittedRows} />}
+      {serverResult && <div className="inline-status success">{Number.isFinite(serverResult.scorePercent) ? `${serverResult.correctCount}/${serverResult.totalCount} correct · ${serverResult.scorePercent}%` : "Submitted"}</div>}
+      {submitError && <div className="inline-status error">{submitError}</div>}
     </Card>
   );
 }

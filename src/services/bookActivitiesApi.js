@@ -92,6 +92,14 @@ export async function getBookActivity(activityId) {
   return bookActivityFromApi(payload.activity);
 }
 
+export async function scoreBookActivity(activityId, responses) {
+  const payload = await request("/.netlify/functions/book-content?action=score-book-activity", {
+    method: "POST",
+    body: JSON.stringify({ activityId, responses }),
+  });
+  return payload.result;
+}
+
 export async function createBookActivity(payload) {
   const response = await request("/.netlify/functions/book-content?action=create-book-activity", {
     method: "POST",

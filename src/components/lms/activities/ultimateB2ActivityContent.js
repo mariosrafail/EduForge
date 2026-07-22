@@ -1,1 +1,1 @@
-export * from "./ultimate-b2/content/index.js";
+export * from "virtual:ultimate-b2-legacy-content";

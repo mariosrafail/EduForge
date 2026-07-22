@@ -17,8 +17,14 @@ export default defineConfig(({ mode }) => {
   const ultimateB2CoverAssets = path.resolve(process.cwd(), isAndroidOffline
     ? "src/data/ultimate-b2/ultimateB2CoverAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2CoverAssets.web.js");
+  const ultimateB2LegacyContent = path.resolve(process.cwd(), isAndroidOffline
+    ? "src/components/lms/activities/ultimate-b2/content/index.js"
+    : "src/components/lms/activities/ultimate-b2/content/webContent.js");
 
   return {
+    build: {
+      sourcemap: false,
+    },
     plugins: [react(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
     resolve: {
       alias: [
@@ -33,6 +39,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-cover-assets",
           replacement: ultimateB2CoverAssets,
+        },
+        {
+          find: "virtual:ultimate-b2-legacy-content",
+          replacement: ultimateB2LegacyContent,
         },
         {
           find: "virtual:app-entry",

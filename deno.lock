@@ -11,17 +11,30 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@aws-sdk/client-s3@^3.848.0",
+        "npm:@aws-sdk/s3-request-presigner@^3.848.0",
+        "npm:@capacitor/android@^8.4.0",
+        "npm:@capacitor/cli@^8.4.2",
+        "npm:@capacitor/core@^8.4.0",
+        "npm:@capacitor/status-bar@^8.0.2",
         "npm:@neondatabase/serverless@^1.1.0",
+        "npm:@playwright/test@^1.61.1",
+        "npm:@ruffle-rs/ruffle@0.4.0",
         "npm:@vitejs/plugin-react@latest",
         "npm:autoprefixer@^10.5.0",
         "npm:bcryptjs@^3.0.3",
+        "npm:cross-env@^10.1.0",
+        "npm:fast-xml-parser@5.10.1",
         "npm:framer-motion@latest",
         "npm:lucide-react@latest",
+        "npm:nodemailer@^9.0.3",
+        "npm:pg@^8.22.0",
         "npm:postcss@^8.5.15",
         "npm:react-dom@latest",
         "npm:react@latest",
+        "npm:sharp@~0.35.3",
         "npm:tailwindcss@^3.4.19",
-        "npm:vite@latest"
+        "npm:vite@^8.1.4"
       ]
     }
   }

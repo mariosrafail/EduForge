@@ -15,7 +15,6 @@ const activities = (unit2Runtime.activities || []).map((activity) => ({
     ...question,
     options: (question.options || []).map((option) => ({ ...option, value: option.text })),
   })),
-  answerRecords: [],
 }));
 
 export function getNormalizedStudentsBookActivity(idOrAlias) {

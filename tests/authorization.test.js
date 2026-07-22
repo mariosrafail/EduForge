@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { requireAuth, requireRole, requireSameSchool } from "../netlify/functions/_auth-utils.js";
-import { canAccessStudentScopedRow, canAccessTeacherScopedRow, studentSafeActivityPayload } from "../netlify/functions/book-content.js";
+import { browserSafeBookActivityPayload, canAccessStudentScopedRow, canAccessTeacherScopedRow, scoreBookActivityRecord, studentSafeActivityPayload } from "../netlify/functions/book-content.js";
 
 const activeAdmin = { id: "admin-1", school_id: "school-a", role: "admin", status: "active" };
 const activeTeacher = { id: "teacher-1", school_id: "school-a", role: "teacher", status: "active" };
@@ -80,8 +80,38 @@ test("student-facing activity payloads omit all authoritative answer fields", ()
   assert.equal(JSON.stringify(safe).includes("secret"), false);
   assert.deepEqual(safe.questions[0].feedbackJson, { source: "publisher" });
   assert.deepEqual(safe.questions[0].options, [{ text: "A" }]);
-  const legacy = { id: "legacy", questions: [{ answer: "retained-for-legacy-demo" }] };
-  assert.equal(studentSafeActivityPayload(legacy), legacy);
+  const legacy = { id: "legacy", sourceRelativePath: "Contents/Resources/private.iwb", questions: [{ answer: "legacy-secret" }] };
+  assert.deepEqual(studentSafeActivityPayload(legacy), { id: "legacy", questions: [{}] });
+});
+
+test("normal book activity payloads omit answers and publisher paths", () => {
+  const safe = browserSafeBookActivityPayload({
+    id: "activity-1",
+    content: { items: [{ id: "gap-1", prompt: "Complete ___", answer: "secret", acceptedAnswers: ["secret"] }] },
+    correct_answers: { "gap-1": ["secret"] },
+    sourceProvenance: ["Contents/Resources/private.iwb"],
+  });
+  assert.deepEqual(safe, { id: "activity-1", content: { items: [{ id: "gap-1", prompt: "Complete ___" }] } });
+  assert.doesNotMatch(JSON.stringify(safe), /secret|Contents[\\/]Resources|correct_answers|acceptedAnswers/);
+});
+
+test("custom book activities are scored authoritatively on the server", () => {
+  assert.deepEqual(scoreBookActivityRecord({
+    type: "multiple_choice",
+    content: { questions: [{ id: "q1" }, { id: "q2" }] },
+    correct_answers: { q1: "A", q2: "B" },
+  }, { q1: "A", q2: "C" }), {
+    status: "submitted",
+    correctCount: 1,
+    totalCount: 2,
+    scorePercent: 50,
+  });
+  assert.deepEqual(scoreBookActivityRecord({ type: "open_answer", content: {}, correct_answers: {} }, { answer: "draft" }), {
+    status: "awaiting_review",
+    correctCount: null,
+    totalCount: null,
+    scorePercent: null,
+  });
 });
 
 test("teacher cannot access another teacher's class or assignment row", () => {

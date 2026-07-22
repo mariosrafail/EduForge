@@ -670,7 +670,9 @@ export async function writeUnit02ImplementationOutputs(matrix, { root = outputRo
       visibleInstructionText: activity.visibleInstructionText,
       implementationMode: activity.implementationMode,
       implementationStatus: activity.implementationStatus,
-      mediaDependencies: activity.mediaDependencies.filter((dependency) => dependency.logicalKey),
+      mediaDependencies: activity.mediaDependencies
+        .filter((dependency) => dependency.logicalKey)
+        .map(({ type, logicalKey }) => ({ type, logicalKey })),
       runtime: {
         questions: activity.runtime.questions.map((question) => ({
           id: question.id,

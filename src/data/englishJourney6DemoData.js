@@ -216,7 +216,7 @@ export const englishJourney6Package = {
   publisher: "Imported AIR package",
   demoSchool: "Hamilton House ELT Demo",
   activationCodeExample: "EJ6-DEMO-2026",
-  description: "English Journey 6 digital book package imported from the Adobe AIR source bundle.",
+  description: "English Journey 6 digital book package imported from the legacy digital source bundle.",
   classes: ["English Journey 6 A", "English Journey 6 B"],
   components: [
     {

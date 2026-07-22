@@ -95,24 +95,39 @@ export function ListeningGapFillExercise({ mode, onSubmit, activity, questions =
   const [played, setPlayed] = useState(false);
   const [answers, setAnswers] = useState({});
   const [submittedRows, setSubmittedRows] = useState(null);
+  const [serverResult, setServerResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const instruction = activity?.instructions || "Listen to a man giving a guided tour of the River Thames in London and complete the sentences with a word or short phrase.";
 
-  const submit = () => {
-    const rows = questions.map((item) => {
-      const studentAnswer = answers[item.id] || "";
-      return {
-        ...item,
-        studentAnswer,
-        correct: isTypedAnswerCorrect(studentAnswer, item),
-      };
-    });
-    setSubmittedRows(rows);
-    onSubmit?.(buildScoredAssignmentResult({
-      activityKey: activity?.demoActivityKey || activity?.contentJson?.demoActivityKey || activity?.content_json?.demoActivityKey || "listening-page-20",
-      activityId: activity?.id,
-      answers,
-      rows,
-    }));
+  const submit = async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const activityKey = activity?.demoActivityKey || activity?.contentJson?.demoActivityKey || activity?.content_json?.demoActivityKey || "listening-page-20";
+      if (import.meta.env.VITE_APP_MODE === "android-offline") {
+        const rows = questions.map((item) => {
+          const studentAnswer = answers[item.id] || "";
+          return { ...item, studentAnswer, correct: isTypedAnswerCorrect(studentAnswer, item) };
+        });
+        setSubmittedRows(rows);
+        await onSubmit?.(buildScoredAssignmentResult({ activityKey, activityId: activity?.id, answers, rows }));
+      } else {
+        const result = await onSubmit?.({ activityKey, activityId: activity?.id, answers: { ...answers }, score: null });
+        setServerResult(result || { status: "submitted" });
+      }
+    } catch (error) {
+      setSubmitError(error.message || "Submission could not be saved.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const reset = () => {
+    setAnswers({});
+    setSubmittedRows(null);
+    setServerResult(null);
+    setSubmitError("");
   };
 
   return (
@@ -130,7 +145,7 @@ export function ListeningGapFillExercise({ mode, onSubmit, activity, questions =
       <div className="ultimate-gap-fill-list">
         {questions.map((item, index) => {
           const submitted = submittedRows?.find((row) => row.id === item.id);
-          const answerLength = answers[item.id]?.length || item.answer?.length || 8;
+          const answerLength = answers[item.id]?.length || 8;
           const inputChars = Math.min(Math.max(answerLength + 2, 9), 30);
           return (
             <label key={item.id} className={`ultimate-gap-fill-row ${submitted ? (submitted.correct ? "correct" : "wrong") : ""}`}>
@@ -150,7 +165,7 @@ export function ListeningGapFillExercise({ mode, onSubmit, activity, questions =
                 {" "}
                 {item.after || item.prompt?.split("___")[1]}
               </span>
-              {submitted && (
+              {submitted && import.meta.env.VITE_APP_MODE === "android-offline" && (
                 <small>
                   Student answer: {submitted.studentAnswer || "No answer"} / Correct answer: {submitted.answer}
                 </small>
@@ -159,8 +174,11 @@ export function ListeningGapFillExercise({ mode, onSubmit, activity, questions =
           );
         })}
       </div>
-      {mode === "student" && !submittedRows && <button className="primary-action" type="button" onClick={submit} data-sound-click="submit">Submit listening</button>}
+      {mode === "student" && !submittedRows && !serverResult && <button className="primary-action" type="button" onClick={submit} disabled={submitting} data-sound-click="submit">{submitting ? "Submitting…" : "Submit listening"}</button>}
       {submittedRows && <FeedbackRows rows={submittedRows} />}
+      {serverResult && <div className="inline-status success">{Number.isFinite(serverResult.scorePercent) ? `${serverResult.correctCount}/${serverResult.totalCount} correct · ${serverResult.scorePercent}%` : "Submitted"}</div>}
+      {submitError && <div className="inline-status error">{submitError}</div>}
+      {(submittedRows || serverResult) && mode === "student" && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
     </Card>
   );
 }

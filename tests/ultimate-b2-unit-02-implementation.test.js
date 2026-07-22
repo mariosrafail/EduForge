@@ -80,6 +80,7 @@ test("teacher-reviewed prompts exclude publisher model responses", async () => {
 test("student runtime catalog contains no answer keys or decoder material", async () => {
   const raw = await readFile(runtimePath, "utf8");
   assert.doesNotMatch(raw, /acceptedAnswers|publisherAnswerValue|explicitAnswerEvidence|decodedPublisherValue|decodeIwbXml/);
+  assert.doesNotMatch(raw, /sourceRelativePath|sourceProvenance|localDevelopmentPath|Contents[\\/]Resources|Ultimate English B2\.app|\.iwb|\.swf/);
   const runtime = JSON.parse(raw);
   assert.equal(runtime.activities.length, 50);
   assert.ok(runtime.activities.every((activity) => activity.runtime.questions.every((question) => !("acceptedAnswers" in question))));

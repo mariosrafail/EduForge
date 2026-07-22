@@ -12,6 +12,10 @@ export async function getBookActivity() {
   throw offlineError();
 }
 
+export async function scoreBookActivity() {
+  throw offlineError();
+}
+
 export async function createBookActivity() {
   throw offlineError();
 }
