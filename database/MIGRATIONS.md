@@ -22,6 +22,7 @@ Apply production migrations in this exact order:
 18. `018_book_assets.sql`
 19. `019_ultimate_b2_unit2_normalized_activities.sql`
 20. `020_ultimate_b2_unit2_recovered_activities.sql`
+21. `021_ultimate_b2_unit1_recovered_activities.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

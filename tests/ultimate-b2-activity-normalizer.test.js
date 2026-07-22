@@ -14,14 +14,18 @@ import { writeNormalizedActivityOutputs } from "../scripts/ultimate-b2/extract-a
 import {
   buildNormalizedSubmissionAnswers,
   createNormalizedActivityAttempt,
-  getNormalizedStudentsBookActivity,
   resetNormalizedActivityAttempt,
   scoreNormalizedStudentsBookActivity,
-} from "../src/data/ultimate-b2/normalizedStudentsBookActivities.js";
+} from "../scripts/ultimate-b2/normalized-activity-scoring.mjs";
 import { buildScoredAssignmentResult } from "../src/utils/assignmentSubmission.js";
 
 const fixtureRoot = path.resolve("tests/fixtures/ultimate-b2-source");
 const generatedUnit2Path = "books/ultimate-b2/generated/activities/unit-02.activities.json";
+const generatedUnit2 = JSON.parse(await readFile(generatedUnit2Path, "utf8"));
+
+function getNormalizedStudentsBookActivity(idOrAlias) {
+  return generatedUnit2.activities.find((activity) => activity.id === idOrAlias || activity.aliases?.includes(idOrAlias)) || null;
+}
 
 function sourceActivity(overrides = {}) {
   return {

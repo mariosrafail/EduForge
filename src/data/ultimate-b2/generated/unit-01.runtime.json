@@ -1,0 +1,4674 @@
+{
+  "schemaVersion": "1.0",
+  "book": "ultimate-b2",
+  "component": "students-book",
+  "unitNumber": 1,
+  "activities": [
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p1-o1",
+      "unitNumber": 1,
+      "partNumber": 1,
+      "printedPage": 5,
+      "title": "Unit opener · Exercise 1",
+      "visibleInstructionText": "Read the quote and discuss these questions with a partner.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "3e24e7e908b41637127095445438cf4acf7ff206bc5589b1115b1e42099e531f",
+        "887988b23db4d47361a76bb0c0808ce471b4e99af60e92d155941b8009ed8489"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p1-o1-q1",
+            "number": 1,
+            "prompt": "In what ways are films an art form?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p1-o1-q2",
+            "number": 2,
+            "prompt": "Why is theatre life?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p1-o1-q3",
+            "number": 3,
+            "prompt": "Do you agree that TV is furniture?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p2-o1",
+      "unitNumber": 1,
+      "partNumber": 2,
+      "printedPage": 6,
+      "title": "Reading · Exercise 1",
+      "visibleInstructionText": "Watch the video and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "video",
+          "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro"
+        }
+      ],
+      "imageIdentities": [
+        "c11207c98fb5c605c8f7a2c62901e0f994ef1ce994215ab543a6f7cfb2541778",
+        "a06633594a85f300ece431e7545694f989defcfacb3df1581fdad8a09da3a76b"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p2-o1-q1",
+            "number": 1,
+            "prompt": "How is video on-demand changing the way we watch TV?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o1-q2",
+            "number": 2,
+            "prompt": "When is binge-watching bad for our health?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p2-o2",
+      "unitNumber": 1,
+      "partNumber": 2,
+      "printedPage": 6,
+      "title": "Reading · Exercise 2",
+      "visibleInstructionText": "Listen and read the text. Then answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.reading.text-audio"
+        }
+      ],
+      "imageIdentities": [
+        "259bff39553dc11bfcb9e90689d0a3395b38b9c68d50ca3addd7f6904e27d7c4",
+        "dc0e7c289166d00ad096b2ecdcb4e0b2f4813a758b5b87f0669151c2f2eb26fc",
+        "423d59b897963a772b9492321e5a10458b2c593db9295e04b17914ddbf0dc08c"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p2-o2-q1",
+            "number": 1,
+            "prompt": "What is the main idea of the text?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o2-q2",
+            "number": 2,
+            "prompt": "What is the Netflix effect according to the text?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o2-q3",
+            "number": 3,
+            "prompt": "What benefits do TV series and films both have?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p2-o3",
+      "unitNumber": 1,
+      "partNumber": 2,
+      "printedPage": 6,
+      "title": "Reading · Exercise 3",
+      "visibleInstructionText": "Read the text again. For questions 1–6, choose the answer (A, B, C or D) which you think fits best according to the text.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "6bc69a5c7bc62aaccc6c3f3b16072fefe3cb543cc7e661a9c1ce5b634a22dc07",
+        "065bb11feca35c5055122d5ab0e74c9a85db7271bb31aebaa78116321752bc8e",
+        "3abd8126c1b75011b4b1f86f87934ad165d331959c4f358489e736064ca036be",
+        "c7721cbb080f39c0178c215e66c47abdc61a4167441c242e3fa8f7746914ab4a"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q1",
+            "number": 1,
+            "prompt": "What is the writer’s purpose in the first paragraph?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q1-o1",
+                "text": "to explain how media streaming works"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q1-o2",
+                "text": "to introduce a comparison between two types of entertainment"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q1-o3",
+                "text": "to describe the many ways people relax"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q1-o4",
+                "text": "to give details about popular kinds of films"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q2",
+            "number": 2,
+            "prompt": "The writer mentions seasons in line 9 to",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q2-o1",
+                "text": "say that series only last a few months."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q2-o2",
+                "text": "refer to when series are shown."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q2-o3",
+                "text": "explain how series are structured."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q2-o4",
+                "text": "complain about how series are organised."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q3",
+            "number": 3,
+            "prompt": "According to the text, when viewers binge-watch, they",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q3-o1",
+                "text": "start seeing the series’ characters as real people."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q3-o2",
+                "text": "forget about their everyday life."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q3-o3",
+                "text": "watch two episodes back to back."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q3-o4",
+                "text": "watch all the episodes that have been released."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q4",
+            "number": 4,
+            "prompt": "Why does the writer express concern about binge-watching?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q4-o1",
+                "text": "It might prevent people from socialising with friends."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q4-o2",
+                "text": "It’s not a normal thing to do."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q4-o3",
+                "text": "Viewers may become too attached to the characters."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q4-o4",
+                "text": "Viewers have fewer reasons to do other things."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q5",
+            "number": 5,
+            "prompt": "What significant difference between films and series does the author mention?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q5-o1",
+                "text": "Films are more entertaining than series."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q5-o2",
+                "text": "Series rely on images to tell stories more than films do."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q5-o3",
+                "text": "Films don’t develop as many sub-plots as series do."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q5-o4",
+                "text": "Dialogues in films are shorter than in series."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o3-q6",
+            "number": 6,
+            "prompt": "What does the writer refer to in line 53?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q6-o1",
+                "text": "all films"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q6-o2",
+                "text": "certain popular series"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q6-o3",
+                "text": "people who watch films"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p2-o3-q6-o4",
+                "text": "film franchises"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p2-o4",
+      "unitNumber": 1,
+      "partNumber": 2,
+      "printedPage": 6,
+      "title": "Reading · Exercise 4",
+      "visibleInstructionText": "Complete the sentences with the correct form of the highlighted words (1–9) in the text.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "b44b28059951ce821ceb0588fef367138910b7ac48e01fdc388de32b4a7164ea",
+        "b988b55e3356aa41d88093606f6f495008dcc2987ff5cb5f63fdcc30d1a87732"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q1",
+            "number": 1,
+            "prompt": "2 I am planning to spend the whole weekend ____ The Hunger Games!",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q2",
+            "number": 2,
+            "prompt": "3 They are cancelling the next ____ of the series as it’s not popular anymore.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q3",
+            "number": 3,
+            "prompt": "4 Marvel Cinematic Universe is the most successful film ____ of all time.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q4",
+            "number": 4,
+            "prompt": "5 The first and last ____ in a season are usually the most important in the whole series.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q5",
+            "number": 5,
+            "prompt": "6 Horror is a film ____ that is inappropriate for very young viewers.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q6",
+            "number": 6,
+            "prompt": "7 Most series have a main story based on the main characters and ____ based on less important characters.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q7",
+            "number": 7,
+            "prompt": "8 ____ to a news broadcast is a way to find out what is happening in the world.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p2-o4-q8",
+            "number": 8,
+            "prompt": "9 ____ gives us access to online video content at any time no matter where we are.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p2-o5",
+      "unitNumber": 1,
+      "partNumber": 2,
+      "printedPage": 6,
+      "title": "Reading · Debate club",
+      "visibleInstructionText": "With your partner, discuss the question below. Use the ideas given and add your own. Then take turns to present your arguments.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "54eb94bf8b117920e3da784ddf77126abc873bc5967da8d12334c7b0557be373",
+        "034bc5948ec05143e8298bb58a5697e8317da92bbd21ca5cc84d3b2140e8d8d8",
+        "3beb3146e169bd5fb0541318212406ff24434734ad679fdc4a7bc3e6b1b9aba2",
+        "e4155f309f4262da5607617bc5d6ed37972eab132d4bac81b502b364bd38ffc2",
+        "d711ceb3fd6d15cb144993ba8bd5cd8faf3c53b365f58a5524025d49c6b458b7",
+        "15c359a68627689c7d64b210c0774a96e403dff1eb99246df87f30d76cd97e3c"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p2-o5-q1",
+            "number": 1,
+            "prompt": "Watching a film at home is better than going to the cinema. Agree or disagree?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o1",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 1",
+      "visibleInstructionText": "Read and complete the text with these words.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "962d01678bdc2c2e2809cd822ba3cc7794ab93c14132487eeaacd7a7ef448c30",
+        "92b1d8ea370fc2488f20869129d537f0be1243da0e482c7a98698f2146131ec8",
+        "da74af364e0bd92c244527ac8efa10979e2572dac23189bf9f71c61e7c895ed7"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q1",
+            "number": 1,
+            "prompt": "Have you ever wondered what steps are involved before a film can be ____?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q1-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q2",
+            "number": 2,
+            "prompt": "Here is a rough guide to what happens when a ____ decides to make a film.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q2-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q3",
+            "number": 3,
+            "prompt": "The development stage includes planning and budgeting, as well as finding the ____ of actors.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q3-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q4",
+            "number": 4,
+            "prompt": "Writing and re-writing of the ____ takes place during this stage.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q4-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q5",
+            "number": 5,
+            "prompt": "Preparation also involves choosing the location for outdoor ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q5-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q6",
+            "number": 6,
+            "prompt": "____ designers work on the clothes.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q6-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q7",
+            "number": 7,
+            "prompt": "By the time ____ begin, the number of people involved has increased dramatically.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q7-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q8",
+            "number": 8,
+            "prompt": "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q8-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q9",
+            "number": 9,
+            "prompt": "camera operators and make-up ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q9-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o1-q10",
+            "number": 10,
+            "prompt": "Then, when filming is complete, they add the ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o1",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o3",
+                "text": "crew"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o4",
+                "text": "performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o5",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o6",
+                "text": "rehearsals"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o7",
+                "text": "released"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o8",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o9",
+                "text": "script"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o1-q10-o10",
+                "text": "soundtrack"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o2",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 2",
+      "visibleInstructionText": "Complete the sentences with these nouns.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "87a897bf544e1e08ddb1ae8df1029db4473e3f7e67c044493d0de62603c02bbc",
+        "9248378812fece149fd753837b2a45f329b28e126f4387e080661a4ed67bb3c3"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q1",
+            "number": 1,
+            "prompt": "1 The film is a box-office ____!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q1-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q2",
+            "number": 2,
+            "prompt": "2 The acting is average but it’s worth watching for the special ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q2-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q3",
+            "number": 3,
+            "prompt": "3 How long did it take them to shoot the opening ____?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q3-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q4",
+            "number": 4,
+            "prompt": "4 The complicated ____ makes the story quite hard to follow at times.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q4-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q5",
+            "number": 5,
+            "prompt": "5 I don’t think this film has received any negative ____, has it?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q5-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q6",
+            "number": 6,
+            "prompt": "6 Romantic ____ are usually a popular genre with young cinemagoers.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q6-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q7",
+            "number": 7,
+            "prompt": "7 Do you know the name of the actor who plays the leading ____?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q7-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o2-q8",
+            "number": 8,
+            "prompt": "8 Action and comedy are two examples of film ____.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o1",
+                "text": "comedies"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o3",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o4",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o5",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o6",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o7",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o2-q8-o8",
+                "text": "smash"
+              }
+            ],
+            "sourceType": "dnd"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o3",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 3",
+      "visibleInstructionText": "Circle the correct meaning of the expressions in bold.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "5a34d81e6408fdfcba2080aca3c496c5ec8f4716f3baa782618318bb80cb8c37",
+        "8f149763c29a4213203fa6a2b72aeb3458797da81f6231e2574026f6983c0cac"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q1",
+            "number": 1,
+            "prompt": "Ann Hathaway has been in the limelight since the release of her latest film.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q1-o1",
+                "text": "the centre of attention"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q1-o2",
+                "text": "less popular"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q2",
+            "number": 2,
+            "prompt": "In Pokémon Detective Pikachu, actor Ryan Reynolds steals the show with his great voice acting.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q2-o1",
+                "text": "gives a great performance"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q2-o2",
+                "text": "gives an average performance"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q3",
+            "number": 3,
+            "prompt": "Jennifer’s new play opens tonight. I told her to break a leg.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q3-o1",
+                "text": "warned her she might fall"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q3-o2",
+                "text": "wished her good luck"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q4",
+            "number": 4,
+            "prompt": "Let me just set the scene – imagine a cold, snow-covered landscape.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q4-o1",
+                "text": "describe the background"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q4-o2",
+                "text": "explain the plot"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q5",
+            "number": 5,
+            "prompt": "Sometimes, when I come home, I can hear my mum in the kitchen singing her heart out to the radio.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q5-o1",
+                "text": "singing softly"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q5-o2",
+                "text": "singing with emotion"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q6",
+            "number": 6,
+            "prompt": "The play didn’t live up to our expectations and we left half-way through.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q6-o1",
+                "text": "disappointed us"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q6-o2",
+                "text": "seemed endless"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q7",
+            "number": 7,
+            "prompt": "We’re ready to start performing. Let’s get this show on the road!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q7-o1",
+                "text": "let’s go to a show"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q7-o2",
+                "text": "let’s get started"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o3-q8",
+            "number": 8,
+            "prompt": "I hope our new teacher is nice – Mr Carter is a hard act to follow.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q8-o1",
+                "text": "is difficult to replace"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o3-q8-o2",
+                "text": "is hard on students"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o4",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 4",
+      "visibleInstructionText": "Complete the phrasal verbs in bold. Write one word in each gap.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "1b90588c29bdab3d5cae9c70f5cab6fbaa180d4703c45d94b9b428d82b5810c5"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q1",
+            "number": 1,
+            "prompt": "2 Thousands of people turned ____ to see the new James Bond film.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q2",
+            "number": 2,
+            "prompt": "3 If we don’t stop watching now, it will turn ____ an all-night binge!",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q3",
+            "number": 3,
+            "prompt": "4 We wanted to ask the actor for his autograph, but security turned us ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q4",
+            "number": 4,
+            "prompt": "5 I would like to audition for the school play, but I’m scared they will turn me ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q5",
+            "number": 5,
+            "prompt": "6 You’re going the wrong way. You have to turn ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q6",
+            "number": 6,
+            "prompt": "7 At the end of the film, the killer turns ____ to be the person you least suspected.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o4-q7",
+            "number": 7,
+            "prompt": "8 Who do you turn ____ for help when you’ve got a problem?",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o5",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 5",
+      "visibleInstructionText": "Complete the table.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "f1265f72bf7fc200419d7522179848426004fa6476ed0f488115d1380058d7d9",
+        "6d7b0a74ec7133b1b7647ec45a972bf0fc3442b047ad3626f93a7a9d5ba133f9"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q1",
+            "number": 1,
+            "prompt": "confuse → Noun: ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q2",
+            "number": 2,
+            "prompt": "disappoint → Noun: ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q3",
+            "number": 3,
+            "prompt": "____ → Noun: entertainment",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q4",
+            "number": 4,
+            "prompt": "frighten → Adjective: ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q5",
+            "number": 5,
+            "prompt": "frustrate → Noun: ____",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q6",
+            "number": 6,
+            "prompt": "____ → Noun: inspiration",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o5-q7",
+            "number": 7,
+            "prompt": "stimulate → Noun: ____",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o6",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 6",
+      "visibleInstructionText": "Complete the sentences with words from Exercise 5.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "9d5f2934c4c01aba25b664647a919ede12f783e3ee3c6bd4680010dd53391662",
+        "0742be296c0bc4054b6463ecf5e789cbd9ee3eb17963c3c455975a1e91b04827"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q1",
+            "number": 1,
+            "prompt": "2 If you’re looking for good, clean family ____, then this is the film for you.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q2",
+            "number": 2,
+            "prompt": "3 There are a lot of ____ scenes in the series that might be too scary for young children.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q3",
+            "number": 3,
+            "prompt": "4 I couldn’t follow the plot and found it rather ____.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q4",
+            "number": 4,
+            "prompt": "5 If you love science-fiction, you will not be ____ by this film.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q5",
+            "number": 5,
+            "prompt": "6 Animated films ____ more celebrities to try voice acting.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q6",
+            "number": 6,
+            "prompt": "7 The documentary will ____ discussion among students.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o6-q7",
+            "number": 7,
+            "prompt": "8 Being turned down for a role is a very ____ experience.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p3-o7",
+      "unitNumber": 1,
+      "partNumber": 3,
+      "printedPage": 8,
+      "title": "Vocabulary in Use · Exercise 7",
+      "visibleInstructionText": "Read and choose the correct answers.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "aeebe95af95abf492b3e12043c498d2e1f2400697c30f52ba50abf8599b2d576",
+        "1d15b2e3f744c01021fa60ef5e228db6b75676a263d26f641432b9fc8d12ad21",
+        "596fc69a39981f66ab1b01ec2819b8e5df8a7420e7ebaf18054c036675d9253a",
+        "aaf70d0c224fc1f9bb90cb9400dcecc1a24db45ec335674248d2c1de9e9c0441"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q1",
+            "number": 1,
+            "prompt": "With the rise in popularity of TV ____, film would be less popular today.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q1-o1",
+                "text": "episodes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q1-o2",
+                "text": "seasons"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q1-o3",
+                "text": "scenes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q1-o4",
+                "text": "series"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q2",
+            "number": 2,
+            "prompt": "Specific film ____ appeal to different age groups.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q2-o1",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q2-o2",
+                "text": "effects"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q2-o3",
+                "text": "crews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q2-o4",
+                "text": "auditions"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q3",
+            "number": 3,
+            "prompt": "Film producers avoid extremely ____ scenes when they make films.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q3-o1",
+                "text": "amusing"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q3-o2",
+                "text": "entertaining"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q3-o3",
+                "text": "frightening"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q3-o4",
+                "text": "inspiring"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q4",
+            "number": 4,
+            "prompt": "A box-office ____ can attract viewers of all ages.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q4-o1",
+                "text": "crash"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q4-o2",
+                "text": "smash"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q4-o3",
+                "text": "cash"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q4-o4",
+                "text": "flash"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q5",
+            "number": 5,
+            "prompt": "A famous actor in the leading ____ can make a big difference too.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q5-o1",
+                "text": "role"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q5-o2",
+                "text": "costume"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q5-o3",
+                "text": "show"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q5-o4",
+                "text": "action"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q6",
+            "number": 6,
+            "prompt": "They may look at the ____ to see if they recognise any actors.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q6-o1",
+                "text": "plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q6-o2",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q6-o3",
+                "text": "soundtrack"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q6-o4",
+                "text": "performance"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q7",
+            "number": 7,
+            "prompt": "They may watch a film because they have read positive ____ in the press.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q7-o1",
+                "text": "scripts"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q7-o2",
+                "text": "soundtracks"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q7-o3",
+                "text": "dialogues"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q7-o4",
+                "text": "reviews"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p3-o7-q8",
+            "number": 8,
+            "prompt": "Strong themes and stories that ____ the mind are also more likely to appeal to this age group.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q8-o1",
+                "text": "confuse"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q8-o2",
+                "text": "frustrate"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q8-o3",
+                "text": "stimulate"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p3-o7-q8-o4",
+                "text": "release"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o1",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 1",
+      "visibleInstructionText": "Watch the video and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "video",
+          "logicalKey": "ultimate-b2.students-book.unit-1.grammar.video-intro"
+        }
+      ],
+      "imageIdentities": [
+        "d260d9c30f045258b2e8c94a1f7c2b83f1d75d618528ad3294afbd262d1f9995",
+        "f1ee2288270d8fb48e3f9299bc3f4e747845fd293afc84bb28dc19c0b7f3ca36",
+        "8bc5c43892a4cfec629be7018398a5d5fe670a1316a808fcc2e23232bfcdf7d9"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o1-q1",
+            "number": 1,
+            "prompt": "In a film, what does a stuntman do?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o1-q2",
+            "number": 2,
+            "prompt": "In what way is a stunt similar to a dance routine?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o1-q3",
+            "number": 3,
+            "prompt": "What are the signs that a stunt double is doing a good job?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o3",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 3",
+      "visibleInstructionText": "Read and circle the correct answers.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "e23883517ebe33c28339854d4e464a09f5fe0c63e6c28267cbd549967bdbc22d",
+        "cfa0fb5604c092b39770a3676379e85fa567d1f02ccdbf3084f7c42a55ed1706",
+        "620814fc0bad199a9f4ef00e30a4da57c1c5819960e1533127a15d814870e05c"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q1",
+            "number": 1,
+            "prompt": "Television and videos ____ so popular today.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q1-o1",
+                "text": "are"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q1-o2",
+                "text": "are being"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q2",
+            "number": 2,
+            "prompt": "Some people ____ the radio is dead.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q2-o1",
+                "text": "think"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q2-o2",
+                "text": "are thinking"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q3",
+            "number": 3,
+            "prompt": "Being able to access radio stations online ____ the radio has gained a whole new audience.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q3-o1",
+                "text": "means"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q3-o2",
+                "text": "is meaning"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q4",
+            "number": 4,
+            "prompt": "These days, you ____ any special equipment.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q4-o1",
+                "text": "don’t need"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q4-o2",
+                "text": "aren’t needing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q5",
+            "number": 5,
+            "prompt": "You ____ on your computer, phone or other smart device.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q5-o1",
+                "text": "just turn"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q5-o2",
+                "text": "are just turning"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q6",
+            "number": 6,
+            "prompt": "____ to learn English or another foreign language?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q6-o1",
+                "text": "Do you try"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q6-o2",
+                "text": "Are you trying"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q7",
+            "number": 7,
+            "prompt": "You can easily tune in to ____ back home.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q7-o1",
+                "text": "what’s happening"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q7-o2",
+                "text": "what happens"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q8",
+            "number": 8,
+            "prompt": "People who normally ____ to a lot of music.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q8-o1",
+                "text": "listen"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q8-o2",
+                "text": "are listening"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q9",
+            "number": 9,
+            "prompt": "If you ____ into classical music.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q9-o1",
+                "text": "just get"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q9-o2",
+                "text": "are just getting"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o3-q10",
+            "number": 10,
+            "prompt": "Individual radio stations ____ what other stations are available.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q10-o1",
+                "text": "don’t usually advertise"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o3-q10-o2",
+                "text": "aren’t usually advertising"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o4",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 4",
+      "visibleInstructionText": "Complete. Use the present simple or the present continuous.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "e23883517ebe33c28339854d4e464a09f5fe0c63e6c28267cbd549967bdbc22d",
+        "54a3bee6832e0f8c3d9e58ce82cfed1ae9fe9e522710dcca62d40b9903d7e47a"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q1",
+            "number": 1,
+            "prompt": "2 I ____ (think) of going to see that show at the theatre on Friday.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q2",
+            "number": 2,
+            "prompt": "3 You ____ (just / be) silly now! Please stop that.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q3",
+            "number": 3,
+            "prompt": "4 Dinner ____ (smell) good. What is it?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q4",
+            "number": 4,
+            "prompt": "5 ____ (Anna / appear) in the school play this year?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q5",
+            "number": 5,
+            "prompt": "6 I ____ (think) he’s a very good actor.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q6",
+            "number": 6,
+            "prompt": "7 You ____ (not look) very interested in this series.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o4-q7",
+            "number": 7,
+            "prompt": "8 ____ (you / feel) all right? You look as white as a ghost.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o6",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 6",
+      "visibleInstructionText": "Complete. Use the present perfect simple or the present perfect continuous.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "eda67ebe7e0180f4495787da0052ffcc0bdf5d8c21ae4eafb25e274be885bdb1",
+        "d3a44d3f7db48df670a297b7ea00f762f7164123bac2a4623c0ae60099bfcf9d"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q1",
+            "number": 1,
+            "prompt": "2 I ____ (not / always / like) classical music.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q2",
+            "number": 2,
+            "prompt": "3 Your clothes are so dirty! What ____ (you / do)?",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q3",
+            "number": 3,
+            "prompt": "4 Vicky ____ (never / be) to a live concert.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q4",
+            "number": 4,
+            "prompt": "5 We ____ (know) Marcia for years.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q5",
+            "number": 5,
+            "prompt": "6 Oh no! I think I ____ (leave) my phone on the bus.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q6",
+            "number": 6,
+            "prompt": "7 She ____ (listen) to internet radio through the night. That’s why she looks exhausted.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o6-q7",
+            "number": 7,
+            "prompt": "8 Is this the first time John ____ (visit) a Hollywood studio?",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o7",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 7",
+      "visibleInstructionText": "Read and circle the correct answers.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "eda67ebe7e0180f4495787da0052ffcc0bdf5d8c21ae4eafb25e274be885bdb1",
+        "cee21a87c0aff07b9ce9d166d093a62d4b1acb7e7654977da7218cb638abea49",
+        "90626266dae6b0539146155ed9c8c1f4f846c1ca5792060f0584f7c04f59681c"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q1",
+            "number": 1,
+            "prompt": "I’ve never ____ a serious accident.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q1-o1",
+                "text": "had"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q1-o2",
+                "text": "been having"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q2",
+            "number": 2,
+            "prompt": "I’ve already ____ for hours.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q2-o1",
+                "text": "travelled"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q2-o2",
+                "text": "been travelling"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q3",
+            "number": 3,
+            "prompt": "I couldn’t tell you how long I’ve ____ in the make-up chair before each job.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q3-o1",
+                "text": "spent"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q3-o2",
+                "text": "been spending"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q4",
+            "number": 4,
+            "prompt": "Recently I’ve been ____ sword fighting.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q4-o1",
+                "text": "learnt"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q4-o2",
+                "text": "learning"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q5",
+            "number": 5,
+            "prompt": "I suppose the reason I’ve ____ injury is that we do so much preparation.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q5-o1",
+                "text": "avoided"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q5-o2",
+                "text": "been avoiding"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q6",
+            "number": 6,
+            "prompt": "That’s partly because we’ve ____ it so many times before.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q6-o1",
+                "text": "rehearsed"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q6-o2",
+                "text": "been rehearsing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q7",
+            "number": 7,
+            "prompt": "What have I been ____ all day?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q7-o1",
+                "text": "done"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q7-o2",
+                "text": "doing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o7-q8",
+            "number": 8,
+            "prompt": "I’ve never ____ of doing anything else.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q8-o1",
+                "text": "thought"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p4-o7-q8-o2",
+                "text": "been thinking"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p4-o8",
+      "unitNumber": 1,
+      "partNumber": 4,
+      "printedPage": 10,
+      "title": "Grammar in Use · Exercise 8",
+      "visibleInstructionText": "Read and complete the text. Write one word in each gap.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "c651e06c56eb82c3ca2e7d9d9a85bcf466210a36fc4fa45c607b13c512498182",
+        "ae37e9d378116ddbc8d8dc681d5fb59196b550a753f0267183a00cc21dd2e71c",
+        "e55fac7bf511c1ad2280775787f120d57ea16fd5665f05f34fa48b215bbaaccf"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q1",
+            "number": 1,
+            "prompt": "(1) ____ an app that lets users make short videos",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q2",
+            "number": 2,
+            "prompt": "(2) ____ a short time.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q3",
+            "number": 3,
+            "prompt": "(3) ____ already become incredibly successful. So much so, in fact,",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q4",
+            "number": 4,
+            "prompt": "(4) ____ downloaded the app now measures in the billions.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q5",
+            "number": 5,
+            "prompt": "(5) ____ teenagers. Statistics suggest,",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q6",
+            "number": 6,
+            "prompt": "(6) ____ continuing to use it into their twenties. In other",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q7",
+            "number": 7,
+            "prompt": "(7) ____ grown out of it as we might expect. Users say that they enjoy seeing how creative others can be with their videos and they also enjoy making their own. Social media have been about keeping in touch with others or belonging to a community",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p4-o8-q8",
+            "number": 8,
+            "prompt": "(8) ____ the beginning. Many people think that TikTok is part of a general shift towards entertainment. Some are even saying that the way we use social media has changed for good.",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p5-o2",
+      "unitNumber": 1,
+      "partNumber": 5,
+      "printedPage": 12,
+      "title": "Listening · Exercise 2",
+      "visibleInstructionText": "Read and answer the questions.",
+      "implementationMode": "unscored-practice",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "627356858e5c123f047ca41fbc0c1c2e65adda795ccc3c13e24c4f4d49df0376",
+        "1e6eac32926ce1229f10152a7c92e25128593de2ab098375aaac35fe1c85917e",
+        "42c324f9c0f0bbf907a8cab3aa470ce25eaf5aaa0d0a6b7457387c89460c82a4"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p5-o2-q1",
+            "number": 1,
+            "prompt": "You hear two people discussing television today. What do they agree about?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o2-q1-o1",
+                "text": "TV is more entertaining than it was in the past."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o2-q1-o2",
+                "text": "Today’s viewers access TV in different ways."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o2-q1-o3",
+                "text": "The quality of programmes has become poorer."
+              }
+            ],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p5-o3",
+      "unitNumber": 1,
+      "partNumber": 5,
+      "printedPage": 12,
+      "title": "Listening · Exercise 3",
+      "visibleInstructionText": "Listen and read the text for question 1. What is the correct answer? Which option(s) did you eliminate? Why?",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.listening.television-dialogue"
+        }
+      ],
+      "imageIdentities": [
+        "62a9632bda01a7ef9437622ec2441df1b1f4d02265c330d3366618ee9ee30acd",
+        "adf072edf9676041008d0ff5cba911417887b98db5ec9d66ed81d371628a6a7e",
+        "9f3d5a7d04a169f1584236aa33883c605c414408c5903ecf3480178350a4f45a",
+        "0bff7b6249bd5282c384580ea9258ceacf862b9c4d83604a8db7872c944fb3de"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p5-o3-q1",
+            "number": 1,
+            "prompt": "You hear two people discussing television today. What do they agree about?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o3-q1-o1",
+                "text": "TV is more entertaining than it was in the past."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o3-q1-o2",
+                "text": "Today’s viewers access TV in different ways."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o3-q1-o3",
+                "text": "The quality of programmes has become poorer."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p5-o4",
+      "unitNumber": 1,
+      "partNumber": 5,
+      "printedPage": 12,
+      "title": "Listening · Exercise 4",
+      "visibleInstructionText": "You will hear people talking in six different situations. Underline the key words in the questions and options. Then listen and choose the best answer (A, B or C) for questions 1–6.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.listening.six-situations"
+        }
+      ],
+      "imageIdentities": [
+        "97c8ba7e4d551a33e6acf022efe66c4b1c5099521005a468d45b01f949fb5d49",
+        "c56d23398389abfdc559c88f0534ce70fc53ef1ab9bd02823229a11661198228",
+        "a7aac7ef1d108d1eb1e3654c44b68a4ffb54721b91f8cbd1b852bfef49f4bb67",
+        "bd8837d1a2c245455b6c501468becfa09a6e06a1bf2a13a43442a41c56ce232e",
+        "103d303d517fa8ebc70b2199f037ce3953cc59b55b5905c3641ad6b5f245e78b"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q1",
+            "number": 1,
+            "prompt": "You hear a girl talking about making videos. What is she doing?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q1-o1",
+                "text": "warning beginners about what they should not film"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q1-o2",
+                "text": "advising people what kind of camera to buy"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q1-o3",
+                "text": "talking about filming mistakes she has made"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q2",
+            "number": 2,
+            "prompt": "You hear two people talking about a performance they are attending. What does the woman believe?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q2-o1",
+                "text": "The dance company lacks talent."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q2-o2",
+                "text": "The dancers are not taking any risks."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q2-o3",
+                "text": "The choreography is weak."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q3",
+            "number": 3,
+            "prompt": "You hear a man talking about attending live concerts. How does he feel about it?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q3-o1",
+                "text": "It is the best way to appreciate rock music."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q3-o2",
+                "text": "It highlights what is missing from most recordings."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q3-o3",
+                "text": "It provides the ideal atmosphere to enjoy classical music."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q4",
+            "number": 4,
+            "prompt": "You hear a presenter advertising a radio programme. She says listeners",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q4-o1",
+                "text": "will have two opportunities to hear the first episode."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q4-o2",
+                "text": "can hear the results of a competition during the programme."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q4-o3",
+                "text": "are invited to send in their own reviews of the programme."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q5",
+            "number": 5,
+            "prompt": "You hear two people talking about comedy. What do they both enjoy?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q5-o1",
+                "text": "physical humour"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q5-o2",
+                "text": "live comedians"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q5-o3",
+                "text": "humorous writing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p5-o4-q6",
+            "number": 6,
+            "prompt": "You hear two friends talking about a live concert. How does the boy feel?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q6-o1",
+                "text": "stressed about performing in front of his family"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q6-o2",
+                "text": "worried because he hasn’t practised enough"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p5-o4-q6-o3",
+                "text": "concerned his saxophone needs repairing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p5-o5",
+      "unitNumber": 1,
+      "partNumber": 5,
+      "printedPage": 12,
+      "title": "Listening · Exercise 5",
+      "visibleInstructionText": "Listen again. Then discuss with your partner why the other options in questions 1, 2 and 3 are wrong.",
+      "implementationMode": "unscored-practice",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.listening.discussion-review"
+        }
+      ],
+      "imageIdentities": [
+        "95d8764a8113b6ef1649225c58edf0c6f8d701d8ea8d7668cca3ee2437bde01f",
+        "d2e71ce25616f3ef4a4d2f2c22bd56b8d84b2a4df4c14664889abf1821883298",
+        "b702ea5c7094efa98bd36dd5de95506728043b160c1ab5e131d11d8696d75008"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p5-o5-q1",
+            "number": 1,
+            "prompt": "Discuss why the other options in questions 1, 2 and 3 are wrong.",
+            "options": [],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p6-o2",
+      "unitNumber": 1,
+      "partNumber": 6,
+      "printedPage": 13,
+      "title": "Speaking · Exercise 2",
+      "visibleInstructionText": "Listen to two students talking about themselves and tick the right box.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.speaking.student-comparison"
+        }
+      ],
+      "imageIdentities": [
+        "83dc92bc89f19db806bdd1a841d60d47b8bc42622d0f8217b598889762b70218",
+        "49f3e4675b3d66c8ae15e1eb41cefd04da17595824a2f2c8b5e6835d3d6ce00c",
+        "dd4230d07e49def02d1d4bc0aeef27cbf8b5c25902f923bc19f5dfaf51a3fc5d",
+        "6e9351ecb80abf51f7276730cc2e5bb783c70993bc8e87b367e04b74a63f8cb9"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q1",
+            "number": 1,
+            "prompt": "Which student uses a good range of vocabulary?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q1-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q1-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q2",
+            "number": 2,
+            "prompt": "Which student checks they have understood the question?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q2-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q2-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q3",
+            "number": 3,
+            "prompt": "Which student gives very short answers?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q3-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q3-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q4",
+            "number": 4,
+            "prompt": "Which student gives full answers with reasons and examples?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q4-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q4-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q5",
+            "number": 5,
+            "prompt": "Which student misunderstands a question?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q5-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q5-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p6-o2-q6",
+            "number": 6,
+            "prompt": "Which student performs better?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q6-o1",
+                "text": "Michael"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p6-o2-q6-o2",
+                "text": "Jenny"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p6-o6",
+      "unitNumber": 1,
+      "partNumber": 6,
+      "printedPage": 13,
+      "title": "Speaking · Problem solvers",
+      "visibleInstructionText": "Work in pairs. Imagine you are the director of a TV channel and you need to add a new programme for young people. Choose one of the options below and explain your decision.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "580788efbcc3baf165b5a0bf786d74f8db175e64cab701b21fda87c447c9aa01",
+        "e164709d6a86b7b986eca25524aee75c245949865ee967e13f6cb8a183bb89bc",
+        "dc2824e20a1a3554ab308a6e93e08a75dce61e16edf8919498ea2dcdf0d42a5d",
+        "ba8484928b162773145f2558f2eda2c3603669fb373e4c912830283b3045e861",
+        "48022c3330f9d5371c4b06a00a6f9ea9cd69841031e5cafeecfe151fffbfdd5a"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p6-o6-q1",
+            "number": 1,
+            "prompt": "Choose a programme for young people and explain your decision: science-fiction series, comedy series, adventure series, documentaries, sports programme, music programme, films, or crime series.",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o2",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 1",
+      "visibleInstructionText": "Read the writing task and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "9abb4fe198ada1474cc3bc790a200dc73de958906904c446c6c43725cf166c50",
+        "92e89d0e4b822894f0ad4d3fe3f92abacb72e04f16cc30ff9438a0bfa986e626"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o2-q1",
+            "number": 1,
+            "prompt": "What kind of text do you have to write?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o2-q2",
+            "number": 2,
+            "prompt": "Who are you writing to?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o2-q3",
+            "number": 3,
+            "prompt": "What is the situation?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o2-q4",
+            "number": 4,
+            "prompt": "How many questions do you have to answer?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o3",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 2",
+      "visibleInstructionText": "Read the task in Exercise 1 again. Then tick the things the writer must do in the email.",
+      "implementationMode": "unscored-practice",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "0bf02606dddf7b64323adf8524ad87bf197cdfda3aae81a5e70c1d102f164369",
+        "eb20606493d6b8ae7abd1b8a48435d80312c0997a3c21374a5395483e849071b",
+        "13c35369fe7b316d7b86c5f45ebb708f8778be3194b38df47a3e3592e459bfe2",
+        "66e5d347dd386fc475e762dc085ce250a46ba53058e466db1edd7671ee963dd5"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q1",
+            "number": 1,
+            "prompt": "introduce themselves",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q1-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q1-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q2",
+            "number": 2,
+            "prompt": "mention the reader’s email",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q2-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q2-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q3",
+            "number": 3,
+            "prompt": "describe their viewing preferences",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q3-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q3-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q4",
+            "number": 4,
+            "prompt": "provide their reason for writing",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q4-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q4-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q5",
+            "number": 5,
+            "prompt": "give information",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q5-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q5-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q6",
+            "number": 6,
+            "prompt": "apologise for something",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q6-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q6-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q7",
+            "number": 7,
+            "prompt": "end the email in a friendly and helpful way",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q7-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q7-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q8",
+            "number": 8,
+            "prompt": "ask for information",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q8-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q8-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o3-q9",
+            "number": 9,
+            "prompt": "make a recommendation",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q9-o1",
+                "text": "Tick"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o3-q9-o2",
+                "text": "Leave blank"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o4",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 3",
+      "visibleInstructionText": "Read the model email and answer the questions.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "c82d2085a7c07284d881561acea60678cdbcc24e4d55d4ecff538c65d7ee955b",
+        "9b8d2e794dc382e7563cf50166a470c5ce2631bcb7ecda2f80673e38a8268456",
+        "0ed1a4df1388af2f976edfd32311862361f53ed3911b9ddc7cc9cd5ee8924415"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o4-q1",
+            "number": 1,
+            "prompt": "Does the writer answer all the questions in the task?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o4-q2",
+            "number": 2,
+            "prompt": "In which paragraph does the writer answer two questions?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o4-q3",
+            "number": 3,
+            "prompt": "What are the functions of paragraphs 1–4? Write the correct numbers.",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o5",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 4",
+      "visibleInstructionText": "Decide if these phrases are used to begin or end emails. Write B (begin) or E (end). Then tick the informal phrases.",
+      "implementationMode": "unscored-practice",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "6fde4d8a19e2dc962b0021fa475a47c44487677bdaf50d0811bd3aa3aaf5db6f",
+        "ae1e6e56016571df4e0f729ef69be74be72f267451002af969109af06c8fb3ab",
+        "e9c86979776aea3a6376947932de6b587dc32a658556f5274df25e4b57ec7228"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q1",
+            "number": 1,
+            "prompt": "Bye for now!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q1-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q1-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q1-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q2",
+            "number": 2,
+            "prompt": "Dear Mr Darcy,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q2-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q2-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q2-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q3",
+            "number": 3,
+            "prompt": "Yours faithfully,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q3-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q3-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q3-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q4",
+            "number": 4,
+            "prompt": "I look forward to hearing from you.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q4-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q4-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q4-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q5",
+            "number": 5,
+            "prompt": "Give my love to everyone.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q5-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q5-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q5-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q6",
+            "number": 6,
+            "prompt": "Hi Leo,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q6-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q6-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q6-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q7",
+            "number": 7,
+            "prompt": "I am writing with regard to ...",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q7-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q7-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q7-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q8",
+            "number": 8,
+            "prompt": "Dear Sir/Madam,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q8-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q8-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q8-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q9",
+            "number": 9,
+            "prompt": "Well, that’s all for now.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q9-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q9-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q9-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q10",
+            "number": 10,
+            "prompt": "Lots of love,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q10-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q10-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q10-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q11",
+            "number": 11,
+            "prompt": "Thanks very much for your email.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q11-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q11-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q11-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q12",
+            "number": 12,
+            "prompt": "It was great to hear from you!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q12-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q12-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q12-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q13",
+            "number": 13,
+            "prompt": "Write back soon!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q13-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q13-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q13-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o5-q14",
+            "number": 14,
+            "prompt": "Yours sincerely,",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q14-o1",
+                "text": "B (begin)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q14-o2",
+                "text": "E (end)"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p7-o5-q14-o3",
+                "text": "Informal phrase"
+              }
+            ],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o6",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 5",
+      "visibleInstructionText": "Read the email in Exercise 3 and circle examples of these kinds of informal language.",
+      "implementationMode": "unscored-practice",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "0873aee155dbe37233f39684b5a65a21768483f6f7568d97e46fb7fd38de051a",
+        "203b8b611742c3635e87200a98affaa3b1a040700ca659e15de59889dca883e7",
+        "5df196e2642796c329cb9c7a5399b367726be8fb0a07300547c785901069e52b",
+        "3f9870bf193635bc522fbb8207d361b89a84c6835b8b174dffb0cba40199af64"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o6-q1",
+            "number": 1,
+            "prompt": "contractions",
+            "options": [],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o6-q2",
+            "number": 2,
+            "prompt": "everyday expressions",
+            "options": [],
+            "sourceType": "practice-prompt"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o6-q3",
+            "number": 3,
+            "prompt": "phrasal verbs",
+            "options": [],
+            "sourceType": "practice-prompt"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o8",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 6",
+      "visibleInstructionText": "Read the writing task. Then make notes about what you have to do.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "7c743434d4fd05ffb5d87a17d75198d8df8e9fe35169013b140f75d5d311f4a5",
+        "0fa9513ef2a60036a569ef71ce99c4585a14d962653aeb195df5f5562b530735"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o8-q1",
+            "number": 1,
+            "prompt": "What kind of text do you have to write?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o8-q2",
+            "number": 2,
+            "prompt": "Who are you writing to?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o8-q3",
+            "number": 3,
+            "prompt": "What is the situation?",
+            "options": [],
+            "sourceType": "open-response"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o8-q4",
+            "number": 4,
+            "prompt": "How many questions do you have to answer?",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o9",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 7",
+      "visibleInstructionText": "Read the Language checklist and complete the sentences.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "c063406dc16a4417da67b6d590dc039ac2365f5bd9f6e22929b524ef352cd4ee",
+        "75b394f51df6dab498e1b830d1dc8cdc00633191fd66993bd4fb101182d614e0"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q1",
+            "number": 1,
+            "prompt": "1 I’ll ____ my best to answer your questions.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q2",
+            "number": 2,
+            "prompt": "2 Lots of visitors take ____ a show when they go to London.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q3",
+            "number": 3,
+            "prompt": "3 ____ me know if you need more information.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q4",
+            "number": 4,
+            "prompt": "4 They should ____ out the cafés in the square one night.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q5",
+            "number": 5,
+            "prompt": "5 I’m happy to ____ a go at answering your questions.",
+            "options": [],
+            "sourceType": "write"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p7-o9-q6",
+            "number": 6,
+            "prompt": "6 This band’s concerts always ____ out, so we’d better get our tickets fast!",
+            "options": [],
+            "sourceType": "write"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p7-o10",
+      "unitNumber": 1,
+      "partNumber": 7,
+      "printedPage": 14,
+      "title": "Writing · Exercise 8",
+      "visibleInstructionText": "Complete the paragraph plan and write your email.",
+      "implementationMode": "teacher-reviewed",
+      "scoringMode": "pending-teacher-review",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "ef34b98fc31b0fa19562220bb5a49f9d0363bdcdbf3aae7a9f3fc011bb20e1e6",
+        "f7853e2555955091827b3d1d839f95af3d8d4e55e45d8950c5cd4641925f36e1",
+        "89c6c6a670e2fc27c295ad68994a2487cd61d510f928dc1da78e37d5f9691292",
+        "26f2ebfa696e0feeeab5614a2eab75d5eead09e11769e52f84330fe480f0e9e0"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p7-o10-q1",
+            "number": 1,
+            "prompt": "Write your email. (140–190 words)",
+            "options": [],
+            "sourceType": "open-response"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p8-o1",
+      "unitNumber": 1,
+      "partNumber": 8,
+      "printedPage": 16,
+      "title": "Review 1 · Vocabulary",
+      "visibleInstructionText": "Choose the correct answers.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "8ff617d657e354fa2c258f78d05b7a58dcaafb7fea40f5a5d95c29ca4d2bc00a",
+        "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555",
+        "c30170a3e3266fe56430d43e7e589f7a0be67ec9040dbb7c395b5fb7333da7c3"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q1",
+            "number": 1,
+            "prompt": "The famous musician has worked on hundreds of ____ during his career.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q1-o1",
+                "text": "scripts"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q1-o2",
+                "text": "soundtracks"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q1-o3",
+                "text": "plots"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q1-o4",
+                "text": "special effects"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q2",
+            "number": 2,
+            "prompt": "The concert hall was full and they had to ____ dozens of people last night.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q2-o1",
+                "text": "turn around"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q2-o2",
+                "text": "turn down"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q2-o3",
+                "text": "turn to"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q2-o4",
+                "text": "turn away"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q3",
+            "number": 3,
+            "prompt": "As soon as I saw the opening ____, I knew that I was going to love the film.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q3-o1",
+                "text": "scene"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q3-o2",
+                "text": "episode"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q3-o3",
+                "text": "rehearsal"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q3-o4",
+                "text": "season"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q4",
+            "number": 4,
+            "prompt": "The young actress hasn’t been offered any leading ____ yet, but she has appeared in a number of plays.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q4-o1",
+                "text": "reviews"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q4-o2",
+                "text": "genres"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q4-o3",
+                "text": "roles"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q4-o4",
+                "text": "performances"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q5",
+            "number": 5,
+            "prompt": "They weren’t really looking forward to the show, but it ____ to be very entertaining.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q5-o1",
+                "text": "turned down"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q5-o2",
+                "text": "turned into"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q5-o3",
+                "text": "turned out"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q5-o4",
+                "text": "turned up"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q6",
+            "number": 6,
+            "prompt": "They had to stop filming because the ____ had run out of money.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q6-o1",
+                "text": "designer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q6-o2",
+                "text": "producer"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q6-o3",
+                "text": "cast"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q6-o4",
+                "text": "crew"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q7",
+            "number": 7,
+            "prompt": "To our great ____, we couldn’t get tickets for the show.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q7-o1",
+                "text": "stimulation"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q7-o2",
+                "text": "confusion"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q7-o3",
+                "text": "disappointment"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q7-o4",
+                "text": "amusement"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q8",
+            "number": 8,
+            "prompt": "The director was delighted with the actor’s ____ performance.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q8-o1",
+                "text": "inspired"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q8-o2",
+                "text": "frustrated"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q8-o3",
+                "text": "entertained"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q8-o4",
+                "text": "frightened"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q9",
+            "number": 9,
+            "prompt": "British bands ____ the show at this year’s music awards.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q9-o1",
+                "text": "broke"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q9-o2",
+                "text": "stole"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q9-o3",
+                "text": "followed"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q9-o4",
+                "text": "set"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o1-q10",
+            "number": 10,
+            "prompt": "There are far fewer ____ than there used to be due to streaming services like Netflix.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q10-o1",
+                "text": "box-offices"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q10-o2",
+                "text": "binge-watching"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q10-o3",
+                "text": "sub-plots"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o1-q10-o4",
+                "text": "cinemagoers"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p8-o2",
+      "unitNumber": 1,
+      "partNumber": 8,
+      "printedPage": 16,
+      "title": "Review 1 · Grammar",
+      "visibleInstructionText": "Choose the correct answers.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "575c8631fdb153ff1a2fbdb4a2bd118eb7e3ac354039226cab0d8258f883cf38",
+        "4f0005e1a9ba75c096b9b835102e5df0c2f94b7866e7d233e9668a2e4bc72555",
+        "6d3234c5d7554086fa69a47530360d54fd9420bd446e450a46fed69757e67ae0"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q1",
+            "number": 1,
+            "prompt": "Be quiet, please! The director ____ the actors instructions for the next scene.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q1-o1",
+                "text": "gives"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q1-o2",
+                "text": "is giving"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q1-o3",
+                "text": "has given"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q1-o4",
+                "text": "has been giving"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q2",
+            "number": 2,
+            "prompt": "We ____ to the theatre in London’s West End a few times this year.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q2-o1",
+                "text": "have been"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q2-o2",
+                "text": "have gone"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q2-o3",
+                "text": "are going"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q2-o4",
+                "text": "are being"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q3",
+            "number": 3,
+            "prompt": "The leading actor ____ about something! I wish he would stop!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q3-o1",
+                "text": "has always been complaining"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q3-o2",
+                "text": "always complaining"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q3-o3",
+                "text": "is always complaining"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q3-o4",
+                "text": "has always complained"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q4",
+            "number": 4,
+            "prompt": "What ____ of Brad Pitt’s new film?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q4-o1",
+                "text": "do you think"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q4-o2",
+                "text": "you are thinking"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q4-o3",
+                "text": "have you thought"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q4-o4",
+                "text": "are you thinking"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q5",
+            "number": 5,
+            "prompt": "This is the first time ____ this programme. It’s good, isn’t it?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q5-o1",
+                "text": "I watch"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q5-o2",
+                "text": "I’m watching"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q5-o3",
+                "text": "I’ve been watching"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q5-o4",
+                "text": "I’ve watched"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q6",
+            "number": 6,
+            "prompt": "Do you know what time ____?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q6-o1",
+                "text": "does the market open"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q6-o2",
+                "text": "the market opens"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q6-o3",
+                "text": "the market is open"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q6-o4",
+                "text": "is the market opening"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q7",
+            "number": 7,
+            "prompt": "My dad ____ as a film director. He used to be a set designer.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q7-o1",
+                "text": "isn’t always working"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q7-o2",
+                "text": "doesn’t always work"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q7-o3",
+                "text": "hasn’t always worked"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q7-o4",
+                "text": "hasn’t always been working"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q8",
+            "number": 8,
+            "prompt": "I ____ at the local theatre at the moment, and I love it!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q8-o1",
+                "text": "am working"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q8-o2",
+                "text": "work"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q8-o3",
+                "text": "have worked"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q8-o4",
+                "text": "have been working"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q9",
+            "number": 9,
+            "prompt": "We’re exhausted because we ____ for hours.",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q9-o1",
+                "text": "are rehearsing"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q9-o2",
+                "text": "have rehearsed"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q9-o3",
+                "text": "rehearse"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q9-o4",
+                "text": "have been rehearsing"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p8-o2-q10",
+            "number": 10,
+            "prompt": "My friend ____ acting lessons for a while now, and she has an audition next week!",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q10-o1",
+                "text": "takes"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q10-o2",
+                "text": "is taking"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q10-o3",
+                "text": "has been taking"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p8-o2-q10-o4",
+                "text": "has been taken"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p8-o3",
+      "unitNumber": 1,
+      "partNumber": 8,
+      "printedPage": 16,
+      "title": "Review 1 · Game 1",
+      "visibleInstructionText": "Legacy team game.",
+      "implementationMode": "unsupported-disabled",
+      "scoringMode": "unscored",
+      "availability": "disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "imageIdentities": [],
+      "readiness": {
+        "interaction": false,
+        "media": true
+      },
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p8-o4",
+      "unitNumber": 1,
+      "partNumber": 8,
+      "printedPage": 16,
+      "title": "Review 1 · Game 2",
+      "visibleInstructionText": "Legacy team game.",
+      "implementationMode": "unsupported-disabled",
+      "scoringMode": "unscored",
+      "availability": "disabled",
+      "implementationStatus": "disabled-editorial-only",
+      "mediaDependencies": [],
+      "imageIdentities": [],
+      "readiness": {
+        "interaction": false,
+        "media": true
+      },
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p9-o1",
+      "unitNumber": 1,
+      "partNumber": 9,
+      "printedPage": 17,
+      "title": "B2 Practice 1 · Exercise 1",
+      "visibleInstructionText": "You are going to read an article about watching TV series. For questions 1–6, choose the answer (A, B, C or D) which you think fits best according to the text.",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [],
+      "imageIdentities": [
+        "c81de4e781e0b799a7ac856500a69d4921145c46638fcb32b16f422c7a61e164",
+        "266ccbe6bc35cb2a90df66f792d5dffe95d4aedec3030b6e5191e6ce4aa9b494",
+        "4b7ee1acefa6deb3caa57e5e1cfb94138ab29323996e89fcf26cc01bd6a8a006",
+        "93db18a4e849e6aab5b080170ff8ef37b535b1e35ef9462e7e57ba47c58b73e1",
+        "27642de4fd66d62f1f6031bd4472bf97f18fdd39014b2aa5ddc9c65c02c1d539"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q1",
+            "number": 1,
+            "prompt": "At the end of the first paragraph, the writer is emphasising",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q1-o1",
+                "text": "how long some people might binge-watch for."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q1-o2",
+                "text": "that viewers’ habits have not changed."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q1-o3",
+                "text": "how unhealthy some people’s viewing habits are."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q1-o4",
+                "text": "that some series can become boring."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q2",
+            "number": 2,
+            "prompt": "What was the purpose of the study mentioned in the second paragraph?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q2-o1",
+                "text": "to identify the most popular horror shows"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q2-o2",
+                "text": "to find out which age group watched thrillers and horror shows"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q2-o3",
+                "text": "to determine the habits of binge-watchers"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q2-o4",
+                "text": "to understand why people stayed up all night"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q3",
+            "number": 3,
+            "prompt": "What particularly impressed the writer about The Umbrella Academy?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q3-o1",
+                "text": "its main characters"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q3-o2",
+                "text": "the plot"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q3-o3",
+                "text": "its popularity"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q3-o4",
+                "text": "the music"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q4",
+            "number": 4,
+            "prompt": "Why does the writer mention covering your eyes in IT?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q4-o1",
+                "text": "because viewers might be scared by what they see"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q4-o2",
+                "text": "because viewers will not understand what is happening"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q4-o3",
+                "text": "because parts of the series are slow-moving and tiring"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q4-o4",
+                "text": "because information about the next episode is revealed"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q5",
+            "number": 5,
+            "prompt": "According to the text, which series’ themes have been modernised?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q5-o1",
+                "text": "The Umbrella Academy"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q5-o2",
+                "text": "Stranger Things"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q5-o3",
+                "text": "Anne with an E"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q5-o4",
+                "text": "The Letter for the King"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p9-o1-q6",
+            "number": 6,
+            "prompt": "What is the writer’s main point in the last paragraph?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q6-o1",
+                "text": "As a society, we watch too much TV."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q6-o2",
+                "text": "We need to encourage people to read more."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q6-o3",
+                "text": "Binge-watching and devouring a book are similar behaviours."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p9-o1-q6-o4",
+                "text": "Once viewers start binge-watching, they cannot stop."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    },
+    {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p10-o1",
+      "unitNumber": 1,
+      "partNumber": 10,
+      "printedPage": 18,
+      "title": "B2 Practice 1 · Exercise 2",
+      "visibleInstructionText": "You will hear people talking in eight different situations. For questions 1–8, choose the best answer (A, B or C).",
+      "implementationMode": "auto-scored",
+      "scoringMode": "authoritative-explicit-answer",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "mediaDependencies": [
+        {
+          "type": "audio",
+          "logicalKey": "ultimate-b2.students-book.unit-1.practice.eight-situations"
+        }
+      ],
+      "imageIdentities": [
+        "97115cce9676bc80cab0d9de0069c4be421f27e30996eb18edd66896954ac258",
+        "f8387956d448cd73246e4caff158d7f73fa62825e16207a65b69a0b186dceeeb",
+        "298d55b56226c6580a40ca18cd3feae605d0e7e156f97bccc7dac27246f9456a",
+        "3cd5ec639ae237cf6919a25112ae559ff306fa0262b51fe5c532f5801c538751",
+        "702141ab00e0be9f62c528fa38481c8c21d13f69c4366d6c00bf71bc233d2fb7"
+      ],
+      "readiness": {
+        "interaction": true,
+        "media": true
+      },
+      "runtime": {
+        "questions": [
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q1",
+            "number": 1,
+            "prompt": "You hear an announcement in a theatre. What is the announcer’s main purpose?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q1-o1",
+                "text": "to prepare the audience for the start of the play"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q1-o2",
+                "text": "to describe the play"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q1-o3",
+                "text": "to explain where the audience should sit"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q2",
+            "number": 2,
+            "prompt": "You hear a teacher talking to his class. What does he want the students to do?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q2-o1",
+                "text": "read the next chapter of their book"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q2-o2",
+                "text": "write about each character’s personality"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q2-o3",
+                "text": "re-read the essays they have written"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q3",
+            "number": 3,
+            "prompt": "You hear a review on the radio describing a musical. What has changed since he saw it?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q3-o1",
+                "text": "They have replaced a cast member."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q3-o2",
+                "text": "Child actors play all the parts."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q3-o3",
+                "text": "The children’s singing has improved."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q4",
+            "number": 4,
+            "prompt": "You hear part of a news programme. What has happened north of Oldfield?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q4-o1",
+                "text": "The weather has changed suddenly."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q4-o2",
+                "text": "Lorry drivers have been causing long delays."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q4-o3",
+                "text": "Road traffic has been blocked."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q5",
+            "number": 5,
+            "prompt": "You hear a boy leaving a message for his friend. Why is he calling?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q5-o1",
+                "text": "to congratulate him"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q5-o2",
+                "text": "to offer tips on studying"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q5-o3",
+                "text": "to invite him somewhere"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q6",
+            "number": 6,
+            "prompt": "You hear a woman talking to her son about food. What is she doing?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q6-o1",
+                "text": "complaining about the boy’s eating habits"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q6-o2",
+                "text": "giving him a choice of what to eat now"
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q6-o3",
+                "text": "asking the boy to help in preparing the meals"
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q7",
+            "number": 7,
+            "prompt": "You hear a girl talking about her school project. What does she say about the app she uses?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q7-o1",
+                "text": "It is for keeping a record of the birds they have seen."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q7-o2",
+                "text": "It helps you make videos of the birds you see."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q7-o3",
+                "text": "It is useful for writing descriptions of birds."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p10-o1-q8",
+            "number": 8,
+            "prompt": "You hear two people discussing a film. What do they agree about?",
+            "options": [
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q8-o1",
+                "text": "The main character’s acting is poor."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q8-o2",
+                "text": "The special effects are impressive."
+              },
+              {
+                "id": "ultimate-b2-sb-u1-p10-o1-q8-o3",
+                "text": "The script is badly written."
+              }
+            ],
+            "sourceType": "multiple-choice"
+          }
+        ]
+      }
+    }
+  ]
+}

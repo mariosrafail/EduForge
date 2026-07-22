@@ -1,33 +1,35 @@
-import unit2ReadyCatalog from "./generated/students-book-unit-02.ready.json" with { type: "json" };
+import studentsBookRuntime from "./generated/students-book.runtime.json" with { type: "json" };
+import unit2Runtime from "./generated/unit-02.runtime.json" with { type: "json" };
 
-const activities = unit2ReadyCatalog.activities || [];
+const aliasesById = new Map();
+(studentsBookRuntime.units || []).flatMap((unit) => unit.pages || []).flatMap((page) => page.activities || []).forEach((activity) => {
+  if (activity.id && activity.activityKey && activity.activityKey !== activity.id) {
+    aliasesById.set(activity.id, [...(aliasesById.get(activity.id) || []), activity.activityKey]);
+  }
+});
+const activities = (unit2Runtime.activities || []).map((activity) => ({
+  ...activity,
+  id: activity.stableNormalizedId,
+  aliases: aliasesById.get(activity.stableNormalizedId) || [],
+  questions: (activity.runtime?.questions || []).map((question) => ({
+    ...question,
+    options: (question.options || []).map((option) => ({ ...option, value: option.text })),
+  })),
+  answerRecords: [],
+}));
 
 export function getNormalizedStudentsBookActivity(idOrAlias) {
   return activities.find((activity) => activity.id === idOrAlias || activity.aliases?.includes(idOrAlias)) || null;
 }
 
 export function normalizedCorrectOptionIds(activity, question) {
-  const records = (question.answerRecordIds || []).map((id) => activity.answerRecords.find((record) => record.id === id)).filter(Boolean);
-  return [...new Set(records.flatMap((record) => record.optionIds || []))];
+  void activity;
+  void question;
+  return [];
 }
 
-export function scoreNormalizedStudentsBookActivity(activity, answers = {}) {
-  return (activity?.questions || []).map((question) => {
-    const submitted = answers[question.id];
-    const submittedIds = Array.isArray(submitted) ? submitted : [submitted].filter(Boolean);
-    const correctIds = normalizedCorrectOptionIds(activity, question);
-    const orderingSignificant = (question.answerRecordIds || []).some((id) => activity.answerRecords.find((record) => record.id === id)?.orderingSignificant);
-    const correct = orderingSignificant
-      ? JSON.stringify(submittedIds) === JSON.stringify(correctIds)
-      : submittedIds.length === correctIds.length && submittedIds.every((id) => correctIds.includes(id));
-    return {
-      id: question.id,
-      question: question.prompt,
-      studentAnswer: submittedIds,
-      answer: correctIds,
-      correct,
-    };
-  });
+export function scoreNormalizedStudentsBookActivity() {
+  throw new Error("Normalized Students Book activities are scored authoritatively by the server.");
 }
 
 export function buildNormalizedSubmissionAnswers(activity, answers = {}) {

@@ -2,18 +2,11 @@
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { VideoIntroScreen } from "./VideoIntroScreen.jsx";
-import { ReadingExercise3 } from "./ReadingExercise3.jsx";
-import { ReadingExercise4 } from "./ReadingExercise4.jsx";
 import { ListeningPage20 } from "./ListeningPage20.jsx";
 import { GrammarOpening } from "./GrammarOpening.jsx";
 import { QuizActivity } from "./QuizActivity.jsx";
 import { DatabaseActivity } from "./DatabaseActivity.jsx";
-import { findUnit2Implementation, NormalizedUnit2Activity } from "./NormalizedUnit2Activity.jsx";
-
-function ReadingExercise({ activityKey, mode, onSubmit }) {
-  if (activityKey === "reading-ex4") return <ReadingExercise4 mode={mode} onSubmit={onSubmit} />;
-  return <ReadingExercise3 mode={mode} onSubmit={onSubmit} />;
-}
+import { findStudentsBookImplementation, NormalizedStudentsBookActivity } from "./NormalizedStudentsBookActivity.jsx";
 
 function ImportedActivityPlaceholder({ activity }) {
   return (
@@ -25,32 +18,13 @@ function ImportedActivityPlaceholder({ activity }) {
         {activity?.type && <span>{activity.type}</span>}
         {activity?.skill && <span>{activity.skill}</span>}
       </div>
-      {activity?.sourcePaths?.length ? (
-        <div className="imported-activity-source">
-          <strong>Imported source</strong>
-          <ul>
-            {activity.sourcePaths.map((sourcePath) => <li key={sourcePath}>{sourcePath}</li>)}
-          </ul>
-        </div>
-      ) : null}
-      {activity?.assetIds?.length ? (
-        <div className="imported-activity-source">
-          <strong>Related local assets</strong>
-          <ul>
-            {activity.assetIds.map((assetId) => <li key={assetId}>{assetId}</li>)}
-          </ul>
-        </div>
-      ) : null}
       <p className="inline-status">Activity data imported, interaction pending.</p>
     </Card>
   );
 }
 
 function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity }) {
-  // These publisher-confirmed activities intentionally take precedence over
-  // the obsolete demo question rows from database/006.
-  if (activityKey === "reading-ex3" || activityKey === "reading-ex4") return <ReadingExercise activityKey={activityKey} mode={mode} onSubmit={onSubmit} />;
-  if (findUnit2Implementation(activityKey)) return <NormalizedUnit2Activity activityId={activityKey} mode={mode} onSubmit={onSubmit} />;
+  if (findStudentsBookImplementation(activityKey)) return <NormalizedStudentsBookActivity activityId={activityKey} mode={mode} onSubmit={onSubmit} />;
   if (activity?.questions?.length) {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
   }
@@ -66,7 +40,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
 }
 
 function getBookIdForActivity(activityKey, resolved) {
-  if (findUnit2Implementation(activityKey)) return "students-book";
+  if (findStudentsBookImplementation(activityKey)) return "students-book";
   if (["video-intro", "reading-ex3", "reading-ex4"].includes(activityKey)) return "students-book";
   if (activityKey === "listening-page-20") return "workbook";
   if (["grammar-opening", "grammar-ex4"].includes(activityKey)) return "grammar-book";
@@ -85,11 +59,12 @@ function getBookHashForActivity(activityKey, mode = "student", resolved = null) 
 
 export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false }) {
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
-  const normalized = findUnit2Implementation(activityKey || exerciseId);
+  const normalized = findStudentsBookImplementation(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
   const key = exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
-  const title = activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
+  const studentDenied = mode !== "teacher-preview" && normalized?.availability === "disabled";
+  const title = studentDenied ? "Activity unavailable" : activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
   const routeRole = getActivityRouteRole(mode);
   const packageRoute = `${routeRole}-books`;
   const bookRoute = getBookHashForActivity(key, mode, resolved);
@@ -122,7 +97,7 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
       <SectionTitle
         eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Demo activity"}
         title={title}
-        action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || "Unit 2"}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
+        action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
       />
       {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
       <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />
@@ -133,3 +108,4 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
 export { ReadingTextAudioScreen } from "./ReadingTextAudioScreen.jsx";
 export { Unit2VideoOnlyScreen } from "./Unit2VideoOnlyScreen.jsx";
 export { StudentsBookPageGateway } from "./StudentsBookPageGateway.jsx";
+export { StudentsBookMediaPlayer } from "./NormalizedStudentsBookActivity.jsx";

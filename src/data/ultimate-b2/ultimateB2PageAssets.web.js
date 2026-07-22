@@ -1,4 +1,4 @@
-import studentsBookContent from "../../../books/ultimate-b2/generated/content/students-book-content.index.json";
+import studentsBookContent from "./generated/students-book.runtime.json";
 
 const unit2LegacyNames = {
   "19.png": 1,

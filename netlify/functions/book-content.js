@@ -70,14 +70,14 @@ export function stripStudentAnswerKeys(value) {
     .map(([key, child]) => [key, stripStudentAnswerKeys(child)]));
 }
 
-function isRecoveredUnit2Activity(activity = {}) {
+function isRecoveredStudentsBookActivity(activity = {}) {
   const content = activity.contentJson || activity.content_json || {};
-  return ["auto-scored", "teacher-reviewed"].includes(content.implementationMode)
-    && String(content.publisherSourceActivityId || activity.slug || "").startsWith("ultimate-b2-sb-u2-");
+  return ["auto-scored", "teacher-reviewed", "unscored-practice"].includes(content.implementationMode)
+    && /^ultimate-b2-sb-u(?:1|2)-/.test(String(content.publisherSourceActivityId || activity.slug || ""));
 }
 
 export function studentSafeActivityPayload(activity) {
-  return isRecoveredUnit2Activity(activity) ? stripStudentAnswerKeys(activity) : activity;
+  return isRecoveredStudentsBookActivity(activity) ? stripStudentAnswerKeys(activity) : activity;
 }
 
 function studentSafePackageTree(tree) {
@@ -739,16 +739,17 @@ async function submitActivity(sql, body, currentUser = null) {
   const answers = body.answers || body.result?.answers || {};
   const implementationMode = activity.contentJson?.implementationMode || activity.content_json?.implementationMode || "auto-scored";
   const requiresTeacherReview = implementationMode === "teacher-reviewed";
+  const unscoredPractice = implementationMode === "unscored-practice";
   const rows = activity.questions.map((question) => {
     const answer = answers[question.id] ?? answers[question.questionNumber] ?? "";
     const correctText = question.answer || "";
-    const isCorrect = requiresTeacherReview ? null : isSubmittedAnswerCorrect(question, answer);
+    const isCorrect = requiresTeacherReview || unscoredPractice ? null : isSubmittedAnswerCorrect(question, answer);
     return { question, answer, correctText, isCorrect };
   });
-  const correctCount = requiresTeacherReview ? null : rows.filter((row) => row.isCorrect).length;
-  const totalCount = requiresTeacherReview ? null : rows.length;
-  const scorePercent = !requiresTeacherReview && totalCount ? Math.round((correctCount / totalCount) * 100) : null;
-  const submissionStatus = requiresTeacherReview ? "awaiting_review" : "submitted";
+  const correctCount = requiresTeacherReview || unscoredPractice ? null : rows.filter((row) => row.isCorrect).length;
+  const totalCount = requiresTeacherReview || unscoredPractice ? null : rows.length;
+  const scorePercent = !requiresTeacherReview && !unscoredPractice && totalCount ? Math.round((correctCount / totalCount) * 100) : null;
+  const submissionStatus = requiresTeacherReview ? "awaiting_review" : unscoredPractice ? "completed" : "submitted";
 
   const submissions = await sql`
     insert into activity_submissions (
@@ -784,7 +785,7 @@ async function submitActivity(sql, body, currentUser = null) {
   for (const row of rows) {
     await sql`
       insert into student_answers (submission_id, question_id, answer_text, is_correct, feedback_text)
-      values (${submission.id}, ${row.question.id}, ${String(row.answer)}, ${row.isCorrect}, ${requiresTeacherReview ? "Awaiting teacher review" : row.isCorrect ? "Correct" : "Incorrect"})
+      values (${submission.id}, ${row.question.id}, ${String(row.answer)}, ${row.isCorrect}, ${requiresTeacherReview ? "Awaiting teacher review" : unscoredPractice ? "Saved" : row.isCorrect ? "Correct" : "Incorrect"})
       on conflict (submission_id, question_id) do update
       set answer_text = excluded.answer_text,
           is_correct = excluded.is_correct,
@@ -1088,6 +1089,7 @@ async function reviewSubmission(sql, body, currentUser = null) {
       teacherFeedback: submission.teacher_feedback || "",
       reviewedAt: submission.reviewed_at,
       reviewedBy: submission.reviewed_by,
+      status: "reviewed",
     },
   });
 }

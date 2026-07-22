@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookOpenCheck, Copy, Maximize2, Minimize2, MousePointer2, Save, Scan, Trash2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Tag } from "../Shared.jsx";
-import { ReadingTextAudioScreen, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
+import { ReadingTextAudioScreen, StudentsBookMediaPlayer, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPageHotspots, EditableHotspotLayer } from "./BookPageImagePanel.jsx";
 import { BookPageGrid } from "./BookPageGrid.jsx";
 import { copyHashLink } from "./bookBrowserUtils.js";
@@ -171,6 +171,17 @@ export function BookPageActionExperience({ action, mode = "student", onBack, onA
       <div className="student-book-pages-shell">
         <div className="book-hotspot-screen">
           <ReadingTextAudioScreen onBack={onBack} onStartExercise3={() => onAction?.({ target: "exercise-3", activityKey: "reading-ex3", label: "Exercise 3" })} />
+        </div>
+      </div>
+    );
+  }
+
+  if (target === "protected-media" && action?.logicalKey) {
+    return (
+      <div className="student-book-pages-shell">
+        <div className="book-hotspot-screen">
+          <BackToPagesButton onBack={onBack} label="Back to page spread" />
+          <StudentsBookMediaPlayer logicalKey={action.logicalKey} type={action.mediaType || action.classification} />
         </div>
       </div>
     );

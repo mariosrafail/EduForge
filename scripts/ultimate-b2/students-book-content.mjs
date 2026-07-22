@@ -58,6 +58,12 @@ const unit2Sections = [
   "Progress check 1",
 ];
 
+const independentlyPlayableMedia = new Map([
+  ["Contents/Resources/assets/videos/book1/extra/1/U1V1.mp4", { logicalKey: "ultimate-b2.students-book.unit-1.reading.extra-video-1", label: "Unit 1 extra video 1", type: "video" }],
+  ["Contents/Resources/assets/videos/book1/extra/1/U1V2.mp4", { logicalKey: "ultimate-b2.students-book.unit-1.reading.extra-video-2", label: "Unit 1 extra video 2", type: "video" }],
+  ["Contents/Resources/assets/videos/book1/extra/1/U1V3.mp4", { logicalKey: "ultimate-b2.students-book.unit-1.reading.extra-video-3", label: "Unit 1 extra video 3", type: "video" }],
+]);
+
 const allowedClassifications = new Set([
   "page-image",
   "heading",
@@ -133,7 +139,7 @@ function activityPresentation(activity, implementation = null) {
     publisherSourceActivityId: activity.publisherSourceActivityId,
     classification: activityClassification(activity),
     title: implementation?.title || activity.title || null,
-    titleSource: implementation ? "unit-02-implementation-matrix" : activity.titleSource || "unavailable",
+    titleSource: implementation ? `unit-${String(implementation.unitNumber).padStart(2, "0")}-implementation-matrix` : activity.titleSource || "unavailable",
     instructions: implementation?.visibleInstructionText || activity.instructions || null,
     activityType: activity.activityType,
     activityKey,
@@ -187,15 +193,24 @@ function contentObjectsForActivity(activity) {
   return objects;
 }
 
-function availableUnit2Actions(unitNumber, partNumber, activities) {
-  if (unitNumber !== 2) return [];
-  return activities.filter((activity) => activity.availability === "enabled").map((activity) => {
+function availableImplementationActions(unitNumber, partNumber, activities, media) {
+  const activityActions = activities.filter((activity) => activity.availability === "enabled").map((activity) => {
     if (activity.id === "ultimate-b2-sb-u2-p2-o1") return { id: `${activity.id}-action`, label: activity.title, classification: "activity", availability: "enabled", target: "normalized-activity", activityKey: activity.activityKey };
     if (activity.id === "ultimate-b2-sb-u2-p2-o2") return { id: "text-audio", label: "Text + Audio", classification: "audio", availability: "enabled", target: "text-audio", activityKey: activity.activityKey };
     if (activity.id === "ultimate-b2-sb-u2-p2-o3") return { id: "exercise-3", label: "Exercise 3", classification: "activity", availability: "enabled", target: "exercise-3", activityKey: "reading-ex3" };
     if (activity.id === "ultimate-b2-sb-u2-p2-o4") return { id: "exercise-4", label: "Exercise 4", classification: "activity", availability: "enabled", target: "exercise-4", activityKey: "reading-ex4" };
     return { id: `${activity.id}-action`, label: activity.title, classification: "activity", availability: "enabled", target: "normalized-activity", activityKey: activity.activityKey };
   });
+  const mediaActions = media.filter((item) => item.availability === "enabled").map((item) => ({
+    id: `${item.id}-action`,
+    label: item.label,
+    classification: item.classification,
+    availability: "enabled",
+    target: "protected-media",
+    logicalKey: item.logicalKey,
+    mediaType: item.mediaType,
+  }));
+  return [...activityActions, ...mediaActions];
 }
 
 function buildPage(unit, sourcePage, unitActivities, implementationById) {
@@ -205,17 +220,21 @@ function buildPage(unit, sourcePage, unitActivities, implementationById) {
   const activitySummaries = activities.map((activity) => activityPresentation(activity, implementationById.get(activity.id)));
   const sourceActivities = unit.activities.filter((activity) => activity.partNumber === sourcePage.partNumber);
   const mediaPaths = uniqueSorted(sourceActivities.flatMap((activity) => activity.media || []).map(sourcePathWithoutFragment));
-  const media = mediaPaths.map((sourceRelativePath, index) => ({
-    id: `ultimate-b2-sb-u${unit.number}-p${sourcePage.partNumber}-media-${index + 1}`,
-    classification: mediaClassification(sourceRelativePath),
-    sourceRelativePath,
-    availability: "editorial-only",
-  }));
+  const media = mediaPaths.map((sourceRelativePath, index) => {
+    const playable = independentlyPlayableMedia.get(sourceRelativePath);
+    return {
+      id: `ultimate-b2-sb-u${unit.number}-p${sourcePage.partNumber}-media-${index + 1}`,
+      classification: mediaClassification(sourceRelativePath),
+      sourceRelativePath,
+      availability: playable ? "enabled" : "editorial-only",
+      ...(playable ? { logicalKey: playable.logicalKey, label: playable.label, mediaType: playable.type } : {}),
+    };
+  });
   const hdSourceRelativePath = safeSourcePath(sourcePage.pageImage);
   const sdSourceRelativePath = hdSourceRelativePath.replace("/parts/HD/", "/parts/SD/");
   const section = sectionTitle(unit.number, sourcePage.partNumber);
   const id = pageId(unit.number, sourcePage.partNumber);
-  const actions = availableUnit2Actions(unit.number, sourcePage.partNumber, activitySummaries);
+  const actions = availableImplementationActions(unit.number, sourcePage.partNumber, activitySummaries, media);
   const contentObjects = [
     { id: `${id}-heading`, classification: "heading", text: section, sourceProvenance: [`Contents/Resources/assets/books/book1/unit/${unit.number}/unit_params.iwb`] },
     { id: `${id}-navigation`, classification: "navigation", pageNumber: sourcePage.pageNumber, spreadNumber: sourcePage.spreadNumber, sourceProvenance: [`Contents/Resources/assets/books/book1/unit/${unit.number}/unit_params.iwb`] },

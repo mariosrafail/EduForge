@@ -23,9 +23,13 @@ import {
   writeDeterministicJson,
 } from "../scripts/ultimate-b2/students-book-scanner.mjs";
 import { readingExercise3, readingExercise3Options, readingExercise4 } from "../src/components/lms/activities/ultimate-b2/content/readingContent.js";
-import { getNormalizedStudentsBookActivity } from "../src/data/ultimate-b2/normalizedStudentsBookActivities.js";
 
 const fixtureRoot = path.resolve("tests/fixtures/ultimate-b2-source");
+const normalizedUnit2 = JSON.parse(await readFile("books/ultimate-b2/generated/activities/unit-02.activities.json", "utf8"));
+
+function getNormalizedStudentsBookActivity(idOrAlias) {
+  return normalizedUnit2.activities.find((activity) => activity.id === idOrAlias || activity.aliases?.includes(idOrAlias)) || null;
+}
 
 function sanitizedIwb(xml) {
   return applyRepeatingXor(Buffer.from(xml), IWB_XOR_KEY).toString("base64");

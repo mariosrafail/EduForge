@@ -109,7 +109,7 @@ test("migration seeds only evidence-backed assignable activities and server supp
 
 test("web Unit 2 media uses the protected local gateway and blocks direct source paths", async () => {
   const webAssets = await readFile("src/data/ultimate-b2/ultimateB2MediaAssets.web.js", "utf8");
-  assert.equal((webAssets.match(/protectedUnit2Media\("ultimate-b2\.students-book\.unit-2\./g) || []).length, 7);
+  assert.equal((webAssets.match(/protectedStudentsBookMedia\("ultimate-b2\.students-book\.unit-2\./g) || []).length, 7);
   assert.match(webAssets, /\.netlify\/functions\/ultimate-b2-media/);
   assert.equal(isProtectedUnit2SourcePath("/src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4"), true);
   assert.equal(isProtectedUnit2SourcePath("/Ultimate%20English%20B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3"), true);

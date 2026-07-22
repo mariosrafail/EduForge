@@ -14,7 +14,6 @@ const sourceRoot = path.resolve(
     : process.env.ULTIMATE_B2_SOURCE_ROOT || path.join(repoRoot, "Ultimate English B2.app"),
 );
 const outputRoot = path.join(repoRoot, "books/ultimate-b2/generated/activities");
-const frontendOutput = path.join(repoRoot, "src/data/ultimate-b2/generated/students-book-unit-02.ready.json");
 
 function unitFileName(unitNumber) {
   return `unit-${String(unitNumber).padStart(2, "0")}.activities.json`;
@@ -133,7 +132,7 @@ function editorialMarkdown(audit) {
   return lines.join("\n");
 }
 
-export async function writeNormalizedActivityOutputs(result, { catalogRoot = outputRoot, readyOutput = frontendOutput } = {}) {
+export async function writeNormalizedActivityOutputs(result, { catalogRoot = outputRoot, readyOutput = null } = {}) {
   const units = [];
   for (let unitNumber = 1; unitNumber <= 10; unitNumber += 1) {
     const activities = result.activities.filter((activity) => activity.unitNumber === unitNumber);
@@ -159,7 +158,7 @@ export async function writeNormalizedActivityOutputs(result, { catalogRoot = out
   await mkdir(catalogRoot, { recursive: true });
   await writeFile(path.join(catalogRoot, "unit-02.editorial-audit.md"), editorialMarkdown(audit), "utf8");
   const ready = result.activities.filter((activity) => activity.unitNumber === 2 && activity.qualityCategories.includes("ready-for-implementation"));
-  await writeDeterministicJson(readyOutput, { schemaVersion: "1.0", activities: ready });
+  if (readyOutput) await writeDeterministicJson(readyOutput, { schemaVersion: "1.0", activities: ready });
   return { units, audit, flipbook, ready };
 }
 

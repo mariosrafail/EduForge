@@ -1,4 +1,4 @@
-import studentsBookContent from "../../../books/ultimate-b2/generated/content/students-book-content.index.json";
+import studentsBookContent from "./generated/students-book.runtime.json";
 import { getUltimateB2UnitPartAsset } from "virtual:ultimate-b2-page-assets";
 import { buildStudentsBookPageUnits } from "./studentsBookReaderModel.js";
 

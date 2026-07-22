@@ -23,7 +23,7 @@ async function sourceInputs() {
   const activityCatalogs = await Promise.all(Array.from({ length: 10 }, (_, index) => (
     readJson(`activities/unit-${String(index + 1).padStart(2, "0")}.activities.json`)
   )));
-  const implementationMatrices = [await readJson("editorial/unit-02.implementation-matrix.json")];
+  const implementationMatrices = await Promise.all([1, 2].map((unitNumber) => readJson(`editorial/unit-${String(unitNumber).padStart(2, "0")}.implementation-matrix.json`)));
   return { structure, activityCatalogs, implementationMatrices };
 }
 
@@ -84,9 +84,9 @@ test("student visibility excludes incomplete activities while teachers retain di
   const pages = flattenStudentsBookPages(catalog);
   const studentActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "student"));
   const teacherActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "teacher"));
-  assert.equal(studentActivities.length, 40);
+  assert.equal(studentActivities.length, 77);
   assert.equal(teacherActivities.length, 433);
-  assert.equal(teacherActivities.filter((activity) => activity.availability === "disabled").length, 393);
+  assert.equal(teacherActivities.filter((activity) => activity.availability === "disabled").length, 356);
   assert.ok(studentActivities.every((activity) => activity.editorialStatus === "reviewed-evidence-backed"));
 });
 
