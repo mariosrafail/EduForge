@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadProductionMigrationFiles, loadProductionMigrationManifest, parseProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
+import { loadProductionMigrationFiles, loadProductionMigrationManifest, migrationChecksumMatches, parseProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
 import { classifyQaCleanupState } from "../scripts/_staging-cleanup-safety.mjs";
 
 function withEnvironment(values, callback) {
@@ -88,6 +88,18 @@ test("production migration manifest excludes demo passwords, includes phase 2, a
     }),
     /listed in manifest does not exist: 014_missing.sql/,
   );
+});
+
+test("migration checksums are deterministic across LF and CRLF checkouts while rejecting changed SQL", async () => {
+  const lfSql = "begin;\nselect 1;\ncommit;\n";
+  const crlfSql = lfSql.replaceAll("\n", "\r\n");
+  const [lfMigration] = await loadProductionMigrationFiles(["013_authorization_phase2.sql"], async () => lfSql);
+  const [crlfMigration] = await loadProductionMigrationFiles(["013_authorization_phase2.sql"], async () => crlfSql);
+
+  assert.equal(lfMigration.checksum, crlfMigration.checksum);
+  assert.equal(migrationChecksumMatches(lfMigration, crlfMigration.compatibleChecksums.at(-1)), true);
+  assert.equal(migrationChecksumMatches(crlfMigration, lfMigration.checksum), true);
+  assert.equal(migrationChecksumMatches(lfMigration, "0".repeat(64)), false);
 });
 
 test("QA cleanup accepts only an exact registry and is idempotent only after roots are gone", () => {

@@ -1,4 +1,4 @@
-import { createSafePool, loadProductionMigrationManifest, withAdvisoryLock } from "./_staging-db.mjs";
+import { createSafePool, loadProductionMigrationManifest, migrationChecksumMatches, withAdvisoryLock } from "./_staging-db.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
 const client = await pool.connect();
@@ -26,7 +26,7 @@ try {
 
     for (const migration of migrations) {
       if (applied.has(migration.filename)) {
-        if (applied.get(migration.filename) !== migration.checksum) {
+        if (!migrationChecksumMatches(migration, applied.get(migration.filename))) {
           throw new Error(`Checksum mismatch for previously applied migration ${migration.filename}`);
         }
         console.log(`Verified ${migration.filename}`);

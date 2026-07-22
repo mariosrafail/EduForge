@@ -73,6 +73,25 @@ export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function normalizeMigrationNewlines(value) {
+  return value.replace(/\r\n?/g, "\n");
+}
+
+export function migrationChecksums(sql) {
+  const normalized = normalizeMigrationNewlines(sql);
+  const checksum = sha256(normalized);
+  const compatibleChecksums = [...new Set([
+    checksum,
+    sha256(sql),
+    sha256(normalized.replaceAll("\n", "\r\n")),
+  ])];
+  return { checksum, compatibleChecksums };
+}
+
+export function migrationChecksumMatches(migration, appliedChecksum) {
+  return (migration.compatibleChecksums || [migration.checksum]).includes(appliedChecksum);
+}
+
 export function parseProductionMigrationManifest(markdown) {
   const files = [...markdown.matchAll(/^\d+\. `([^`]+\.sql)`$/gm)].map((match) => match[1]);
   if (!files.length) throw new Error("database/MIGRATIONS.md contains no ordered production migrations");
@@ -93,7 +112,7 @@ export async function loadProductionMigrationFiles(files, readMigration = (filen
       if (error.code === "ENOENT") throw new Error(`Production migration listed in manifest does not exist: ${filename}`);
       throw error;
     }
-    migrations.push({ filename, sql, checksum: sha256(sql) });
+    migrations.push({ filename, sql, ...migrationChecksums(sql) });
   }
   return migrations;
 }

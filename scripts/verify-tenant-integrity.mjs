@@ -1,4 +1,4 @@
-import { createSafePool, loadProductionMigrationManifest } from "./_staging-db.mjs";
+import { createSafePool, loadProductionMigrationManifest, migrationChecksumMatches } from "./_staging-db.mjs";
 import { relationshipChecks } from "./_tenant-integrity-checks.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
@@ -52,7 +52,7 @@ try {
   const applied = new Map(history.rows.map((row) => [row.filename, row.checksum_sha256]));
   for (const migration of migrations) {
     if (!applied.has(migration.filename)) fail(`migration not recorded: ${migration.filename}`);
-    else if (applied.get(migration.filename) !== migration.checksum) fail(`migration checksum mismatch: ${migration.filename}`);
+    else if (!migrationChecksumMatches(migration, applied.get(migration.filename))) fail(`migration checksum mismatch: ${migration.filename}`);
   }
 
   const tenantRows = await pool.query("select table_name, null_school_rows from tenant_integrity_issues order by table_name");
