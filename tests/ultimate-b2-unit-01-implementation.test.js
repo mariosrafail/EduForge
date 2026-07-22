@@ -187,7 +187,8 @@ test("media source resolution rejects traversal and symlink escapes", async (t) 
     await assert.rejects(() => resolveUltimateB2MediaFile("safe/escaped.mp3", root), /escaped its source root/);
   } catch (error) {
     if (!["EPERM", "EACCES", "UNKNOWN"].includes(error.code)) throw error;
-    t.diagnostic("Symlink creation is unavailable on this Windows host; traversal containment was still verified.");
+    await symlink(outside, path.join(root, "safe", "escaped-directory"), "junction");
+    await assert.rejects(() => resolveUltimateB2MediaFile("safe/escaped-directory/outside.mp3", root), /escaped its source root/);
   }
 });
 
