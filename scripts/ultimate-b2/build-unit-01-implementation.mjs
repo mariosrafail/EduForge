@@ -104,9 +104,21 @@ const autoPromptOverridesById = {
     "Have you ever wondered what steps are involved before a film can be ____?", "Here is a rough guide to what happens when a ____ decides to make a film.",
     "The development stage includes planning and budgeting, as well as finding the ____ of actors.", "Writing and re-writing of the ____ takes place during this stage.",
     "Preparation also involves choosing the location for outdoor ____.", "____ designers work on the clothes.", "By the time ____ begin, the number of people involved has increased dramatically.",
-    "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians.", "camera operators and make-up ____.", "Then, when filming is complete, they add the ____.",
+    "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians, camera operators and make-up artists.",
+    "The director also has to coach the actors to give their best ____.",
+    "Then, when filming is complete, there are many weeks of editing, after which they add special effects, mix the sound and add the music to the ____.",
   ],
   "p3-o5": ["confuse → Noun: ____", "disappoint → Noun: ____", "____ → Noun: entertainment", "frighten → Adjective: ____", "frustrate → Noun: ____", "____ → Noun: inspiration", "stimulate → Noun: ____"],
+  "p4-o8": [
+    "For anyone who doesn’t know, TikTok ____ an app that lets users make short videos and then share them online.",
+    "TikTok has only been in existence ____ a short time.",
+    "Nevertheless, it ____ already become incredibly successful.",
+    "The number of times people ____ downloaded the app now measures in the billions.",
+    "Up to now, the majority of TikTok users have ____ teenagers.",
+    "Statistics suggest, however, that these teenagers ____ continuing to use it into their twenties.",
+    "In other words, they have ____ grown out of it as we might expect.",
+    "Social media have been about keeping in touch with others or belonging to a community ____ the beginning.",
+  ],
 };
 
 const mc = (prompt, options) => ({ prompt, options });

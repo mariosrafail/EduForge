@@ -60,6 +60,42 @@ test("every Unit 1 auto-scored record has complete explicit evidence", async () 
   assert.ok(auto.every((activity) => activity.normalizedAnswerRecords.length === activity.runtime.questions.length));
 });
 
+test("Vocabulary in Use Exercise 1 keeps the printed crew and performance blanks aligned", async () => {
+  const matrix = await readJson(matrixPath);
+  const activity = matrix.activities.find((item) => item.stableNormalizedId === "ultimate-b2-sb-u1-p3-o1");
+  const crew = activity.runtime.questions[7];
+  const performance = activity.runtime.questions[8];
+  const soundtrack = activity.runtime.questions[9];
+
+  assert.equal(crew.prompt, "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians, camera operators and make-up artists.");
+  assert.deepEqual(crew.acceptedAnswers, ["crew"]);
+  assert.equal(crew.publisherAnswerValue, "3");
+  assert.equal(performance.prompt, "The director also has to coach the actors to give their best ____.");
+  assert.deepEqual(performance.acceptedAnswers, ["performance"]);
+  assert.equal(performance.publisherAnswerValue, "4");
+  assert.equal(soundtrack.prompt, "Then, when filming is complete, there are many weeks of editing, after which they add special effects, mix the sound and add the music to the ____.");
+  assert.deepEqual(soundtrack.acceptedAnswers, ["soundtrack"]);
+  assert.doesNotMatch(JSON.stringify(activity.runtime.questions), /camera operators and make-up ____/);
+});
+
+test("TikTok gap-fill prompts retain enough printed context for their publisher answers", async () => {
+  const matrix = await readJson(matrixPath);
+  const activity = matrix.activities.find((item) => item.stableNormalizedId === "ultimate-b2-sb-u1-p4-o8");
+  assert.deepEqual(
+    activity.runtime.questions.map(({ prompt, acceptedAnswers }) => [prompt, acceptedAnswers]),
+    [
+      ["For anyone who doesn’t know, TikTok ____ an app that lets users make short videos and then share them online.", ["is"]],
+      ["TikTok has only been in existence ____ a short time.", ["for"]],
+      ["Nevertheless, it ____ already become incredibly successful.", ["has"]],
+      ["The number of times people ____ downloaded the app now measures in the billions.", ["have"]],
+      ["Up to now, the majority of TikTok users have ____ teenagers.", ["been"]],
+      ["Statistics suggest, however, that these teenagers ____ continuing to use it into their twenties.", ["are"]],
+      ["In other words, they have ____ grown out of it as we might expect.", ["not"]],
+      ["Social media have been about keeping in touch with others or belonging to a community ____ the beginning.", ["since/from", "since", "from"]],
+    ],
+  );
+});
+
 test("Unit 1 browser catalogs contain no answers, source paths, or decoder material", async () => {
   const raw = `${await readFile(runtimePath, "utf8")}\n${await readFile(readerPath, "utf8")}`;
   assert.doesNotMatch(raw, /acceptedAnswers|publisherAnswerValue|decodedPublisherValue|normalizedAnswerRecords|explicitAnswerEvidence/);

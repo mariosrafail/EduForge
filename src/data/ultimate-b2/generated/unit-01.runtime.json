@@ -796,7 +796,7 @@
           {
             "id": "ultimate-b2-sb-u1-p3-o1-q8",
             "number": 8,
-            "prompt": "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians.",
+            "prompt": "During the actual shooting of the film, the director co-ordinates the actors and the rest of the film ____, such as lighting technicians, camera operators and make-up artists.",
             "options": [
               {
                 "id": "ultimate-b2-sb-u1-p3-o1-q8-o1",
@@ -844,7 +844,7 @@
           {
             "id": "ultimate-b2-sb-u1-p3-o1-q9",
             "number": 9,
-            "prompt": "camera operators and make-up ____.",
+            "prompt": "The director also has to coach the actors to give their best ____.",
             "options": [
               {
                 "id": "ultimate-b2-sb-u1-p3-o1-q9-o1",
@@ -892,7 +892,7 @@
           {
             "id": "ultimate-b2-sb-u1-p3-o1-q10",
             "number": 10,
-            "prompt": "Then, when filming is complete, they add the ____.",
+            "prompt": "Then, when filming is complete, there are many weeks of editing, after which they add special effects, mix the sound and add the music to the ____.",
             "options": [
               {
                 "id": "ultimate-b2-sb-u1-p3-o1-q10-o1",
@@ -2444,56 +2444,56 @@
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q1",
             "number": 1,
-            "prompt": "(1) ____ an app that lets users make short videos",
+            "prompt": "For anyone who doesn’t know, TikTok ____ an app that lets users make short videos and then share them online.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q2",
             "number": 2,
-            "prompt": "(2) ____ a short time.",
+            "prompt": "TikTok has only been in existence ____ a short time.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q3",
             "number": 3,
-            "prompt": "(3) ____ already become incredibly successful. So much so, in fact,",
+            "prompt": "Nevertheless, it ____ already become incredibly successful.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q4",
             "number": 4,
-            "prompt": "(4) ____ downloaded the app now measures in the billions.",
+            "prompt": "The number of times people ____ downloaded the app now measures in the billions.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q5",
             "number": 5,
-            "prompt": "(5) ____ teenagers. Statistics suggest,",
+            "prompt": "Up to now, the majority of TikTok users have ____ teenagers.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q6",
             "number": 6,
-            "prompt": "(6) ____ continuing to use it into their twenties. In other",
+            "prompt": "Statistics suggest, however, that these teenagers ____ continuing to use it into their twenties.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q7",
             "number": 7,
-            "prompt": "(7) ____ grown out of it as we might expect. Users say that they enjoy seeing how creative others can be with their videos and they also enjoy making their own. Social media have been about keeping in touch with others or belonging to a community",
+            "prompt": "In other words, they have ____ grown out of it as we might expect.",
             "options": [],
             "sourceType": "write"
           },
           {
             "id": "ultimate-b2-sb-u1-p4-o8-q8",
             "number": 8,
-            "prompt": "(8) ____ the beginning. Many people think that TikTok is part of a general shift towards entertainment. Some are even saying that the way we use social media has changed for good.",
+            "prompt": "Social media have been about keeping in touch with others or belonging to a community ____ the beginning.",
             "options": [],
             "sourceType": "write"
           }
