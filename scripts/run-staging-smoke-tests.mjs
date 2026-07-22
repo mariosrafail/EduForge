@@ -109,11 +109,15 @@ try {
     assert.deepEqual((await pool.query("select full_name, status from app_users where id = $1", [schoolB.users.teacher1.id])).rows[0], before);
     assert.equal((await callHandler(user, { method: "DELETE", cookie, query: { id: schoolA.users.admin.id } })).status, 409);
     assert.equal(await count("select count(*) from app_users where id = $1 and status = 'active'", [schoolA.users.admin.id]), 1);
+    const expectedActiveBookPackages = await count(
+      "select count(distinct ba.book_package_id) from book_access ba join app_users u on u.id = ba.user_id where u.school_id = $1",
+      [schoolA.id],
+    );
     const metrics = await callHandler(bookContent, { cookie, query: { action: "school-metrics" } });
     assert.equal(metrics.status, 200);
     assert.deepEqual(metrics.body.metrics, {
       activeUsers: 5, teacherCount: 2, studentCount: 3, activeClasses: 2,
-      activeBookPackages: 1, activeAssignments: 2, submittedWorkCount: 2,
+      activeBookPackages: expectedActiveBookPackages, activeAssignments: 2, submittedWorkCount: 2,
     });
     assert.equal((await callHandler(bookContent, { cookie: sessions["a-teacher1"], query: { action: "school-metrics" } })).status, 403);
   });

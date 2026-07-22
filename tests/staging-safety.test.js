@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { loadProductionMigrationFiles, loadProductionMigrationManifest, migrationChecksumMatches, parseProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
 import { classifyQaCleanupState } from "../scripts/_staging-cleanup-safety.mjs";
 
@@ -100,6 +101,13 @@ test("migration checksums are deterministic across LF and CRLF checkouts while r
   assert.equal(migrationChecksumMatches(lfMigration, crlfMigration.compatibleChecksums.at(-1)), true);
   assert.equal(migrationChecksumMatches(crlfMigration, lfMigration.checksum), true);
   assert.equal(migrationChecksumMatches(lfMigration, "0".repeat(64)), false);
+});
+
+test("staging smoke derives active book-package metrics from retained staging entitlements", async () => {
+  const smoke = await readFile("scripts/run-staging-smoke-tests.mjs", "utf8");
+  assert.match(smoke, /const expectedActiveBookPackages = await count/);
+  assert.match(smoke, /activeBookPackages: expectedActiveBookPackages/);
+  assert.doesNotMatch(smoke, /activeBookPackages:\s*1/);
 });
 
 test("QA cleanup accepts only an exact registry and is idempotent only after roots are gone", () => {
