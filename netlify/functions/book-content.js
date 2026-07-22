@@ -424,7 +424,7 @@ function assignmentRowToUi(row = {}) {
   const total = Number(row.total_students || row.total || 0);
   const submitted = Number(row.submitted_count || row.submitted || 0);
   const averageScoreValue = numericOrNull(row.average_score);
-  const averageScore = averageScoreValue === null ? 0 : Math.round(averageScoreValue);
+  const averageScore = averageScoreValue === null ? null : Math.round(averageScoreValue);
 
   return {
     id: row.id,
@@ -934,7 +934,7 @@ async function getAssignmentResults(sql, assignmentId) {
   const scoredRows = resultRows.filter((row) => row.scorePercent !== null);
   const averageScore = scoredRows.length
     ? Math.round(scoredRows.reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / scoredRows.length)
-    : 0;
+    : null;
 
   return json(200, {
     assignment: assignmentRowToUi({

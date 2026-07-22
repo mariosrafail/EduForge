@@ -460,8 +460,9 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
   if (!student && !assignment) return null;
 
   const title = liveResults?.assignment?.title || assignment?.title || student?.name;
+  const averageScore = liveResults?.summary?.averageScore ?? assignment?.averageScore ?? null;
   const summary = assignment
-    ? `${liveResults?.assignment?.className || assignment.className} / ${liveResults?.summary?.submittedCount ?? assignment.submitted}/${liveResults?.summary?.totalStudents ?? assignment.total} submitted / ${liveResults?.summary?.averageScore ?? assignment.averageScore}% average`
+    ? `${liveResults?.assignment?.className || assignment.className} / ${liveResults?.summary?.submittedCount ?? assignment.submitted}/${liveResults?.summary?.totalStudents ?? assignment.total} submitted / ${averageScore === null ? "Unscored" : `${averageScore}% average`}`
     : student?.className || "Student";
   const tag = assignment ? (liveResults ? "Live results" : "Results unavailable") : student?.className || "Student";
 
@@ -490,7 +491,7 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
               <article className="panel"><strong>{liveResults.summary?.totalStudents ?? 0}</strong><span>Total students</span></article>
               <article className="panel"><strong>{liveResults.summary?.submittedCount ?? 0}</strong><span>Submitted</span></article>
               <article className="panel"><strong>{liveResults.summary?.missingCount ?? 0}</strong><span>Missing</span></article>
-              <article className="panel"><strong>{liveResults.summary?.averageScore ?? 0}%</strong><span>Average score</span></article>
+              <article className="panel"><strong>{liveResults.summary?.averageScore == null ? "Unscored" : `${liveResults.summary.averageScore}%`}</strong><span>Average score</span></article>
             </section>
             {reviewMessage && <div className="inline-status success">{reviewMessage}</div>}
             <div className="review-list results-modal-list">
@@ -856,7 +857,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
                 {dueDateLabel(assignment.dueDate || assignment.dueAt)}
               </Tag>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
-              <span>{assignment.averageScore}% average</span>
+              <span>{assignment.averageScore == null ? "Unscored" : `${assignment.averageScore}% average`}</span>
               <button
                 className="secondary-action compact-action"
                 type="button"
