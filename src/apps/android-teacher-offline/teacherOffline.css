@@ -1,0 +1,502 @@
+html[data-app-mode="android-teacher-offline"],
+html[data-app-mode="android-teacher-offline"] body,
+html[data-app-mode="android-teacher-offline"] #root {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  background: #111827;
+}
+
+html[data-app-mode="android-teacher-offline"] body {
+  position: fixed;
+  inset: 0;
+  overscroll-behavior: none;
+}
+
+html[data-app-mode="android-teacher-offline"] button,
+html[data-app-mode="android-teacher-offline"] input,
+html[data-app-mode="android-teacher-offline"] select,
+html[data-app-mode="android-teacher-offline"] textarea {
+  font: inherit;
+}
+
+.teacher-offline-library,
+.teacher-offline-book,
+.teacher-offline-media,
+.teacher-offline-presentation,
+.teacher-offline-status {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  color: #172033;
+  background: #f3eee5;
+}
+
+.teacher-offline-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #a7441b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.teacher-offline-library {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.teacher-offline-library > header,
+.teacher-offline-book-header,
+.teacher-offline-media > header,
+.teacher-offline-presentation > header {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px;
+  color: #fff;
+  background: #18364d;
+  box-shadow: 0 8px 24px rgba(13, 26, 38, 0.24);
+  z-index: 5;
+}
+
+.teacher-offline-library h1,
+.teacher-offline-book-header h1,
+.teacher-offline-media h1 {
+  margin: 2px 0 0;
+  font-size: clamp(1.18rem, 2.4vw, 1.8rem);
+}
+
+.teacher-offline-library header .teacher-offline-eyebrow,
+.teacher-offline-book-header .teacher-offline-eyebrow,
+.teacher-offline-media header .teacher-offline-eyebrow {
+  color: #ffcf9b;
+}
+
+.teacher-offline-library-grid {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+}
+
+.teacher-offline-book-card {
+  width: min(850px, 96vw);
+  display: grid;
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  padding: 24px;
+  border: 1px solid rgba(24, 54, 77, 0.18);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 65px rgba(24, 54, 77, 0.16);
+}
+
+.teacher-offline-book-card > img {
+  width: 100%;
+  max-height: 52vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.teacher-offline-book-card h2 {
+  margin: 8px 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+}
+
+.teacher-offline-book-card p,
+.teacher-offline-book-card li {
+  color: #526274;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.teacher-primary-button,
+.teacher-offline-book-header button,
+.teacher-offline-view-tabs button,
+.teacher-offline-page-reader header button,
+.teacher-offline-page-actions button,
+.teacher-offline-pages aside button,
+.teacher-offline-media header button,
+.teacher-offline-presentation header button,
+.teacher-offline-presentation > nav button {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(24, 54, 77, 0.2);
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: #fff;
+  color: #172033;
+  font-weight: 900;
+}
+
+.teacher-primary-button {
+  border-color: #b64b1f;
+  background: #b64b1f;
+  color: #fff;
+}
+
+.teacher-offline-book {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.teacher-offline-book-header > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.teacher-offline-book-header nav {
+  display: flex;
+  gap: 8px;
+}
+
+.teacher-offline-book-header button,
+.teacher-offline-media header button,
+.teacher-offline-presentation header button {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.teacher-offline-book-header button.selected {
+  background: #f0a45c;
+  color: #172033;
+}
+
+.teacher-offline-view-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(24, 54, 77, 0.16);
+  background: #fff;
+}
+
+.teacher-offline-view-tabs button.selected,
+.teacher-offline-pages aside button.selected {
+  border-color: #18364d;
+  background: #18364d;
+  color: #fff;
+}
+
+.teacher-offline-pages {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.teacher-offline-pages aside {
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+  border-right: 1px solid rgba(24, 54, 77, 0.14);
+  background: #fff9f1;
+}
+
+.teacher-offline-pages aside > div {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.teacher-offline-pages aside button {
+  width: 100%;
+  min-height: 48px;
+  padding: 6px;
+}
+
+.teacher-offline-page-reader {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.teacher-offline-page-reader > header {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 150px;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.teacher-offline-page-reader > header div {
+  text-align: center;
+}
+
+.teacher-offline-page-reader > header span,
+.teacher-offline-page-reader > header strong {
+  display: block;
+}
+
+.teacher-offline-page-reader button:disabled,
+.teacher-offline-presentation button:disabled {
+  opacity: 0.38;
+}
+
+.teacher-offline-page-stage {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  overflow: hidden;
+  background: #dfd8cd;
+}
+
+.teacher-offline-page-image {
+  position: relative;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.teacher-offline-page-image > img {
+  display: block;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(20, 31, 44, 0.2);
+}
+
+.teacher-offline-page-hotspot {
+  position: absolute;
+  min-height: 44px;
+  border: 3px solid rgba(255, 172, 70, 0.9);
+  border-radius: 10px;
+  background: rgba(255, 170, 65, 0.16);
+  color: transparent;
+}
+
+.teacher-offline-page-hotspot span {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  max-width: calc(100% - 8px);
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #18364d;
+  color: #fff;
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-offline-page-actions {
+  display: flex;
+  gap: 7px;
+  min-height: 66px;
+  padding: 7px 10px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(24, 54, 77, 0.14);
+  background: #fff;
+}
+
+.teacher-offline-page-actions button {
+  flex: 0 0 auto;
+  max-width: 260px;
+}
+
+.teacher-offline-contents {
+  min-height: 0;
+  padding: 14px;
+  overflow: auto;
+}
+
+.teacher-offline-contents > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.teacher-offline-contents h2 {
+  margin: 4px 0 0;
+}
+
+.teacher-offline-lessons {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-offline-lessons details {
+  border: 1px solid rgba(24, 54, 77, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.teacher-offline-lessons summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fff8ef;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.teacher-offline-lessons details > div {
+  display: grid;
+}
+
+.teacher-offline-lessons article {
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(24, 54, 77, 0.1);
+}
+
+.teacher-offline-lessons article p {
+  margin: 3px 0;
+  color: #526274;
+}
+
+.teacher-offline-lessons article small {
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.teacher-offline-media {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.teacher-offline-media > section {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.teacher-offline-standalone-media {
+  width: min(100%, 1100px);
+  max-height: calc(100dvh - 120px);
+}
+
+.teacher-offline-presentation {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #e9e2d8;
+}
+
+.teacher-offline-presentation > header > div {
+  min-width: 0;
+  text-align: center;
+}
+
+.teacher-offline-presentation > header span,
+.teacher-offline-presentation > header strong,
+.teacher-offline-presentation > header small {
+  display: block;
+}
+
+.teacher-offline-presentation-stage {
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+}
+
+.teacher-offline-presentation-stage .ultimate-activity-runner {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.teacher-offline-presentation-stage .teacher-presentation-answer-controls button,
+.teacher-offline-presentation-stage .presentation-question-actions button,
+.teacher-offline-presentation-stage select,
+.teacher-offline-presentation-stage input,
+.teacher-offline-presentation-stage textarea {
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+.teacher-offline-presentation > nav {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 190px;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 12px;
+  border-top: 1px solid rgba(24, 54, 77, 0.16);
+  background: #fff;
+  text-align: center;
+  font-weight: 900;
+}
+
+.teacher-offline-status {
+  display: grid;
+  place-content: center;
+  padding: 30px;
+  text-align: center;
+}
+
+.teacher-offline-status.damaged h1,
+.teacher-offline-asset-error {
+  color: #9d2d20;
+}
+
+.teacher-offline-asset-error,
+.teacher-offline-empty {
+  max-width: 560px;
+  padding: 24px;
+  border: 1px solid rgba(157, 45, 32, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 800;
+  text-align: center;
+}
+
+@media (max-width: 850px) {
+  .teacher-offline-pages {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+
+  .teacher-offline-page-reader > header {
+    grid-template-columns: 120px minmax(0, 1fr) 120px;
+  }
+
+  .teacher-offline-presentation > nav {
+    grid-template-columns: 150px minmax(0, 1fr) 150px;
+  }
+}
+
+@media (orientation: portrait) {
+  .teacher-offline-book-card {
+    grid-template-columns: 140px minmax(0, 1fr);
+  }
+
+  .teacher-offline-book-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .teacher-offline-library *,
+  .teacher-offline-book *,
+  .teacher-offline-media *,
+  .teacher-offline-presentation * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

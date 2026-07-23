@@ -16,6 +16,15 @@ export async function scoreBookActivity() {
   throw offlineError();
 }
 
+export async function getTeacherActivitySolutions() {
+  throw offlineError();
+}
+
+export async function requestBookAssetAccess(logicalKey) {
+  if (!logicalKey) return { url: null, expiresAt: null, asset: null };
+  throw offlineError();
+}
+
 export async function createBookActivity() {
   throw offlineError();
 }

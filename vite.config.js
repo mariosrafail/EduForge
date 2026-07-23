@@ -6,20 +6,39 @@ import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vit
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const isAndroidOffline = env.VITE_APP_MODE === "android-offline" || process.env.VITE_APP_MODE === "android-offline";
+  const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
+  const isAndroidTeacherOffline = appMode === "android-teacher-offline";
+  const isAndroidOffline = appMode === "android-offline" || isAndroidTeacherOffline;
   const androidOfflineServiceStub = path.resolve(process.cwd(), "src/apps/android-offline/androidOfflineServiceStubs.js");
+  const offlineSolutionProvider = path.resolve(
+    process.cwd(),
+    isAndroidTeacherOffline
+      ? "src/apps/android-teacher-offline/generatedPackProvider.js"
+      : "src/apps/android-teacher-offline/noOfflineSolutions.js",
+  );
+  const bookAssetsService = path.resolve(process.cwd(), isAndroidOffline
+    ? "src/apps/android-offline/androidOfflineServiceStubs.js"
+    : "src/services/bookAssetsApi.js");
+  const bookContentService = path.resolve(process.cwd(), isAndroidOffline
+    ? "src/apps/android-offline/androidOfflineServiceStubs.js"
+    : "src/services/bookContentApi.js");
   const ultimateB2PageAssets = path.resolve(process.cwd(), isAndroidOffline
-    ? "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
+    ? isAndroidTeacherOffline
+      ? "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"
+      : "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2PageAssets.web.js");
   const ultimateB2MediaAssets = path.resolve(process.cwd(), isAndroidOffline
-    ? "src/data/ultimate-b2/ultimateB2MediaAssets.offline.js"
+    ? isAndroidTeacherOffline
+      ? "src/data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js"
+      : "src/data/ultimate-b2/ultimateB2MediaAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2MediaAssets.web.js");
   const ultimateB2CoverAssets = path.resolve(process.cwd(), isAndroidOffline
     ? "src/data/ultimate-b2/ultimateB2CoverAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2CoverAssets.web.js");
-  const ultimateB2LegacyContent = path.resolve(process.cwd(), isAndroidOffline
-    ? "src/components/lms/activities/ultimate-b2/content/index.js"
-    : "src/components/lms/activities/ultimate-b2/content/webContent.js");
+  const ultimateB2LegacyContent = path.resolve(
+    process.cwd(),
+    "src/components/lms/activities/ultimate-b2/content/webContent.js",
+  );
 
   return {
     build: {
@@ -46,11 +65,31 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: "virtual:app-entry",
-          replacement: isAndroidOffline ? "/src/apps/android-offline/offlineEntry.jsx" : "/src/webEntry.jsx",
+          replacement: isAndroidTeacherOffline
+            ? "/src/apps/android-teacher-offline/teacherOfflineEntry.jsx"
+            : isAndroidOffline
+              ? "/src/apps/android-offline/offlineEntry.jsx"
+              : "/src/webEntry.jsx",
         },
         {
           find: "virtual:app-styles",
-          replacement: isAndroidOffline ? "/src/apps/android-offline/offlineRoot.css" : "/src/styles/index.css",
+          replacement: isAndroidTeacherOffline
+            ? "/src/apps/android-teacher-offline/teacherOfflineRoot.css"
+            : isAndroidOffline
+              ? "/src/apps/android-offline/offlineRoot.css"
+              : "/src/styles/index.css",
+        },
+        {
+          find: "virtual:teacher-offline-solutions",
+          replacement: offlineSolutionProvider,
+        },
+        {
+          find: "virtual:book-assets-service",
+          replacement: bookAssetsService,
+        },
+        {
+          find: "virtual:book-content-service",
+          replacement: bookContentService,
         },
         ...(isAndroidOffline
           ? [
@@ -67,7 +106,19 @@ export default defineConfig(({ mode }) => {
                 replacement: androidOfflineServiceStub,
               },
               {
+                find: "../../../../services/bookContentApi.js",
+                replacement: androidOfflineServiceStub,
+              },
+              {
                 find: "../../../services/bookPageHotspotsApi.js",
+                replacement: androidOfflineServiceStub,
+              },
+              {
+                find: "../../../services/bookAssetsApi.js",
+                replacement: androidOfflineServiceStub,
+              },
+              {
+                find: "../services/bookAssetsApi.js",
                 replacement: androidOfflineServiceStub,
               },
             ]

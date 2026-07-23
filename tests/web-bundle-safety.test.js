@@ -20,14 +20,15 @@ test("standard web safety scanner accepts learner-only assets and rejects answer
   assert.ok(result.findings.some((finding) => finding.label === "publisher resource path"));
 });
 
-test("web build alias selects a learner-only legacy catalog while Android retains the offline catalog", async () => {
+test("web and student Android builds select the learner-only legacy catalog", async () => {
   const [config, webCatalog, offlineCatalog] = await Promise.all([
     readFile("vite.config.js", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/content/webContent.js", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/content/listeningContent.js", "utf8"),
   ]);
   assert.match(config, /virtual:ultimate-b2-legacy-content/);
-  assert.match(config, /isAndroidOffline[\s\S]*content\/index\.js[\s\S]*content\/webContent\.js/);
+  assert.match(config, /ultimateB2LegacyContent[\s\S]*content\/webContent\.js/);
+  assert.doesNotMatch(config, /ultimateB2LegacyContent[\s\S]*content\/index\.js/);
   assert.doesNotMatch(webCatalog, /acceptedAnswers|\banswer\s*:/);
   assert.match(offlineCatalog, /acceptedAnswers/);
 });

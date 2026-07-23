@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 !.env.android-offline
+!.env.android-teacher-offline
 *.env
 *.env.local
 *.dump
@@ -22,6 +23,7 @@ Ultimate English B2.app/
 android/app/src/main/assets/public/
 android/app/build/
 android/.idea/
+android-content-packs/ultimate-b2-students-book/teacher-solutions.json
 
 # Local Netlify folder
 .netlify

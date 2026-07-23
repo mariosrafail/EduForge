@@ -6,6 +6,7 @@ EduForge has a dedicated Android offline app mode inside the existing React/Vite
 
 - Normal LMS: default mode, used by `npm run dev` and `npm run build`.
 - Android offline: enabled with `VITE_APP_MODE=android-offline`, used by `npm run build:android-offline`.
+- Android teacher presentation offline: enabled with `VITE_APP_MODE=android-teacher-offline`, used by `npm run build:android-teacher-offline`.
 
 The app split lives under:
 
@@ -15,6 +16,8 @@ src/apps/android-offline/
 ```
 
 Android offline mode renders `AndroidOfflineApp` only. It starts at a fullscreen interactive book list and opens local book components/pages from there.
+
+The dedicated teacher classroom build is documented in [android-teacher-offline.md](./android-teacher-offline.md). It has a separate entry, teacher-only content pack, offline solution provider, and `teacher-presentation-offline` capabilities. It does not change this existing viewer into teacher mode.
 
 The Android activity is locked to landscape in `android/app/src/main/AndroidManifest.xml` for classroom tablet use.
 

@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "resolver": "bundled-capacitor-assets",
+  "assets": [
+    {
+      "logicalKey": "ultimate-b2.students-book.cover",
+      "bundleKey": "ultimate-b2.students-book.cover",
+      "type": "cover",
+      "required": true,
+      "sizeBytes": 1262547,
+      "sha256": "8e3f84948ecc7a4016c00f99505dc3ef5fbdd072ac3b447423bd4dabbf4132de"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-1.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-1.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 516493,
+      "sha256": "65da8bff3d155219966ea46a5a27bf25d1df775e311a6e81168e47bc969632ab"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-2.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-2.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 1042365,
+      "sha256": "3ee66fb746eca87043a247a35dd83ea23f6d14167594d540d5ef60d4603618dd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-3.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-3.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 652327,
+      "sha256": "058078315d781bd7698987542d4c2e42a2e4bd4c580719d422e61fc1dcde2ee9"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-4.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-4.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 868862,
+      "sha256": "b1503825f6ccd3fb13ffebc49b009288210cec1d1c318570ab0c342323adc488"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-5.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-5.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 299146,
+      "sha256": "145642f5cd08f3708adde60999b9d6b4db4229c960b99f7e4742aa8224e9d4a9"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-6.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-6.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 312539,
+      "sha256": "0208143af67b5a16b7cb718377ce6b65dfc9a061638400c40325d21512f44750"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-7.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-7.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 583550,
+      "sha256": "319987d12afbb72c8292d5fcc6c37b3412eb2f304eedfefee3f9f2d7c3cc9597"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-8.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-8.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 123019,
+      "sha256": "d630a1f25b4d94a5c6a1eb729774275808966c828de9c877a1ee6b803dcb3465"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-9.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-9.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 285512,
+      "sha256": "e73d3ea5698334383f619017dc508de811232a4c226dbfd0d8d2348d0cbe26a2"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.part-10.page-image",
+      "bundleKey": "ultimate-b2.students-book.unit-1.part-10.page-image",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 273956,
+      "sha256": "294719dd11d804f68a378cb7d1d613ad1e5565ed72de7571f7d0a4ae498a8c1b"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-19",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-19",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 462093,
+      "sha256": "e7dfd032a63c550509bc9d85f205cbe74212143bb604047aaf7b98a56ac986bd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-20-21",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-20-21",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 1171037,
+      "sha256": "f5384531ecc0020760450695c7a14d017bb732d89f294c33875eebb36f134d41"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-22-23",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-22-23",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 718407,
+      "sha256": "54e37085fcb8a24da5089784b4624d0801f53e127c1eb4c47663c5edcc1395cf"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-24-25",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-24-25",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 890138,
+      "sha256": "b5b0a77edcec89bc2840672171469b9fd23d4f25bd5582b14d48db702e115803"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-26",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-26",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 441113,
+      "sha256": "f02b243b3d59f3d8b987f914283f87aca36fede7b887ede90b657cece1798786"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-27",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-27",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 488306,
+      "sha256": "6621e211fb9910a909eb0d5880c3a4a1bb835a15c7f8190086250064d9d5c91a"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-28-29",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-28-29",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 633913,
+      "sha256": "448d80e19f18bdb0aaa39006c4c885f53d08ff84be83f05473d9dd45eb94b1dd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-30",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-30",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 114644,
+      "sha256": "10a7c095fcde805fb9a2800c33d8206a97d61617a85089a608f5dc1f3262807a"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-31",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-31",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 353621,
+      "sha256": "6eb91632ea40706d52b8ea0c85555c82facaf3d295c1db914c03a8a94e20a3fa"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-32",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-32",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 375597,
+      "sha256": "78c868e31c966d348da34fe6055760d4ccd14a331f7f5add9cb8e3c923e6821f"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-33",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-33",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 398432,
+      "sha256": "44842c9941c52b6464b12078cbcfd0cb08b67a3f198490f73f7d990b82c854af"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.page-34",
+      "bundleKey": "ultimate-b2.students-book.unit-2.page-34",
+      "type": "page",
+      "required": true,
+      "sizeBytes": 338978,
+      "sha256": "a9d9b0501e086c68b498a185f2b59c0ef3241c14728e59765cd60e3178e9bcb6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro",
+      "bundleKey": "ultimate-b2.students-book.unit-1.reading.video-intro",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 61715797,
+      "sha256": "7817dc0361571c6c5e6f3837b9368835ea7de3fe7df24f4e0d58fd3d37932574"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.text-audio",
+      "bundleKey": "ultimate-b2.students-book.unit-1.reading.text-audio",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 6727622,
+      "sha256": "3426d3b935092cc05bb85ea5c38d516f17d7dd23904ec67c78ca1e651e2b46b3"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-1",
+      "bundleKey": "ultimate-b2.students-book.unit-1.reading.extra-video-1",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 45447124,
+      "sha256": "3dfe38f55c7f4ce9fba3833834ade01d45ba71ad48b6039ae2785184988ee761"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-2",
+      "bundleKey": "ultimate-b2.students-book.unit-1.reading.extra-video-2",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 50048310,
+      "sha256": "7cf9c8975618d96fd60a8e0455f0ac41917bb32a476666932e4dfb1ca08902d6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-3",
+      "bundleKey": "ultimate-b2.students-book.unit-1.reading.extra-video-3",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 34363236,
+      "sha256": "e00cbeda15123321b466c76da1409fa946d0493eb5b3dcee1994463d5ca31e15"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.grammar.video-intro",
+      "bundleKey": "ultimate-b2.students-book.unit-1.grammar.video-intro",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 56277150,
+      "sha256": "8825ffce6010afd7ccb498df8c494aa19c19a2ffcbbb04d8aa0ac8af72a0b1cd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.listening.television-dialogue",
+      "bundleKey": "ultimate-b2.students-book.unit-1.listening.television-dialogue",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 1760938,
+      "sha256": "1eb655aae31c5583ec03dd222bef0813f945a160433c3e8f4ced577f99dd28b6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.listening.six-situations",
+      "bundleKey": "ultimate-b2.students-book.unit-1.listening.six-situations",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 8917996,
+      "sha256": "f9597223d13f22ce85fe22c31caae2790d7f0ce806ed959c9db5d9352a3843ff"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.listening.discussion-review",
+      "bundleKey": "ultimate-b2.students-book.unit-1.listening.discussion-review",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 4358838,
+      "sha256": "9f46c469ff07c977242a19f18c3b79eceaa7e440c08c458aeab734c82cbf29c8"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.speaking.student-comparison",
+      "bundleKey": "ultimate-b2.students-book.unit-1.speaking.student-comparison",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 3472422,
+      "sha256": "a504b6a4845f230059d08a995104e1b95ed9643f009b4f250877fa1b7be5c034"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.practice.eight-situations",
+      "bundleKey": "ultimate-b2.students-book.unit-1.practice.eight-situations",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 9571540,
+      "sha256": "7e749890e7940dc15a8c875c7292d35236e1845558f7d7b131beb7bfd1797d36"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro",
+      "bundleKey": "ultimate-b2.students-book.unit-2.reading.video-intro",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 57490529,
+      "sha256": "7841d5fa890083a06e75220357426948c60f5a8dc1044fb9d4e373daa7f172a6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio",
+      "bundleKey": "ultimate-b2.students-book.unit-2.reading.text-audio",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 5799264,
+      "sha256": "f02586614e15828a5c0885a96aeec70cfe9c49fe560238dbfd0124f14d7dfe4f"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro",
+      "bundleKey": "ultimate-b2.students-book.unit-2.grammar.video-intro",
+      "type": "video",
+      "required": true,
+      "sizeBytes": 72648243,
+      "sha256": "6133b9407aa34bf0b6fa7febda3bf267f5139ed8708a428b3041ed5c000915cf"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.listening.fjords",
+      "bundleKey": "ultimate-b2.students-book.unit-2.listening.fjords",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 1493010,
+      "sha256": "cb20550a950a1a178af1b55e12b0c7439f07d89da470593eb1cdc1b5a7b18d64"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip",
+      "bundleKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 6392086,
+      "sha256": "e5b2b025f10c6ec43011b205e617e6dfff78e84e603f82e8d2ef125d4ba34ecd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison",
+      "bundleKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 1767824,
+      "sha256": "523f0c48001b2d3b0e696e76f022e57dc703316885dcc72d6b96c4059c8122bd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha",
+      "bundleKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha",
+      "type": "audio",
+      "required": true,
+      "sizeBytes": 7656606,
+      "sha256": "3916ae434bf5b3c5989ed9082c330794b85177a0ce452413cbe97bc6737b1a4f"
+    }
+  ]
+}

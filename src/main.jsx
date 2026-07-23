@@ -4,13 +4,18 @@ import { renderApp } from "virtual:app-entry";
 import "virtual:app-styles";
 
 const root = createRoot(document.getElementById("root"));
-const appMode = import.meta.env.VITE_APP_MODE === "android-offline" ? "android-offline" : "lms";
+const configuredMode = import.meta.env.VITE_APP_MODE;
+const appMode = configuredMode === "android-teacher-offline"
+  ? "android-teacher-offline"
+  : configuredMode === "android-offline"
+    ? "android-offline"
+    : "lms";
 
 document.documentElement.dataset.appMode = appMode;
 
 root.render(
   <div className="app-loading-screen" role="status" aria-live="polite">
-    {appMode === "android-offline" ? "Loading books..." : "Loading..."}
+    {appMode === "android-teacher-offline" ? "Loading classroom content..." : appMode === "android-offline" ? "Loading books..." : "Loading..."}
   </div>,
 );
 
@@ -20,7 +25,11 @@ try {
   console.error("Application failed to start", error);
   root.render(
     <div className="app-loading-screen" role="alert">
-      {appMode === "android-offline" ? "Interactive Books could not start." : "Application could not start."}
+      {appMode === "android-teacher-offline"
+        ? "Interactive Classroom could not start."
+        : appMode === "android-offline"
+          ? "Interactive Books could not start."
+          : "Application could not start."}
     </div>,
   );
 }

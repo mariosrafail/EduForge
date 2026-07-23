@@ -1,0 +1,1412 @@
+{
+  "schemaVersion": 1,
+  "packageId": "ultimate-b2-students-book",
+  "componentId": "students-book",
+  "title": "Ultimate B2 Students Book",
+  "units": [
+    {
+      "id": "sb-unit-1",
+      "runtimeId": "ultimate-b2-students-book-unit-01",
+      "title": "Unit 1",
+      "unitNumber": 1,
+      "printedPageRange": "5-18",
+      "navigationOrder": 1,
+      "lessons": [
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-1-activities",
+          "title": "Unit opener",
+          "sectionTitle": "Unit opener",
+          "pageLabel": "Page 5",
+          "pageNumber": 5,
+          "pageSpread": "5",
+          "navigationOrder": 1,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p1-o1",
+              "title": "Unit opener · Exercise 1",
+              "description": "Read the quote and discuss these questions with a partner.",
+              "unitNumber": 1,
+              "sectionTitle": "Unit opener",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 5,
+              "pageSpread": "5",
+              "pageLabel": "Page 5",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-2-activities",
+          "title": "Reading",
+          "sectionTitle": "Reading",
+          "pageLabel": "Pages 6-7",
+          "pageNumber": 6,
+          "pageSpread": "6-7",
+          "navigationOrder": 2,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p2-o1",
+              "title": "Reading · Exercise 1",
+              "description": "Watch the video and answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 6,
+              "pageSpread": "6-7",
+              "pageLabel": "Pages 6-7",
+              "mediaDependencies": [
+                {
+                  "type": "video",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p2-o2",
+              "title": "Reading · Exercise 2",
+              "description": "Listen and read the text. Then answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 6,
+              "pageSpread": "6-7",
+              "pageLabel": "Pages 6-7",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.reading.text-audio"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p2-o3",
+              "title": "Reading · Exercise 3",
+              "description": "Read the text again. For questions 1–6, choose the answer (A, B, C or D) which you think fits best according to the text.",
+              "unitNumber": 1,
+              "sectionTitle": "Reading",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 6,
+              "pageSpread": "6-7",
+              "pageLabel": "Pages 6-7",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p2-o4",
+              "title": "Reading · Exercise 4",
+              "description": "Complete the sentences with the correct form of the highlighted words (1–9) in the text.",
+              "unitNumber": 1,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 6,
+              "pageSpread": "6-7",
+              "pageLabel": "Pages 6-7",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p2-o5",
+              "title": "Reading · Debate club",
+              "description": "With your partner, discuss the question below. Use the ideas given and add your own. Then take turns to present your arguments.",
+              "unitNumber": 1,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 6,
+              "pageSpread": "6-7",
+              "pageLabel": "Pages 6-7",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-3-activities",
+          "title": "Vocabulary in Use",
+          "sectionTitle": "Vocabulary in Use",
+          "pageLabel": "Pages 8-9",
+          "pageNumber": 8,
+          "pageSpread": "8-9",
+          "navigationOrder": 3,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o1",
+              "title": "Vocabulary in Use · Exercise 1",
+              "description": "Read and complete the text with these words.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o2",
+              "title": "Vocabulary in Use · Exercise 2",
+              "description": "Complete the sentences with these nouns.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o3",
+              "title": "Vocabulary in Use · Exercise 3",
+              "description": "Circle the correct meaning of the expressions in bold.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o4",
+              "title": "Vocabulary in Use · Exercise 4",
+              "description": "Complete the phrasal verbs in bold. Write one word in each gap.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o5",
+              "title": "Vocabulary in Use · Exercise 5",
+              "description": "Complete the table.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o6",
+              "title": "Vocabulary in Use · Exercise 6",
+              "description": "Complete the sentences with words from Exercise 5.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p3-o7",
+              "title": "Vocabulary in Use · Exercise 7",
+              "description": "Read and choose the correct answers.",
+              "unitNumber": 1,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 8,
+              "pageSpread": "8-9",
+              "pageLabel": "Pages 8-9",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-4-activities",
+          "title": "Grammar in Use",
+          "sectionTitle": "Grammar in Use",
+          "pageLabel": "Pages 10-11",
+          "pageNumber": 10,
+          "pageSpread": "10-11",
+          "navigationOrder": 4,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o1",
+              "title": "Grammar in Use · Exercise 1",
+              "description": "Watch the video and answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": [
+                {
+                  "type": "video",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.grammar.video-intro"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o3",
+              "title": "Grammar in Use · Exercise 3",
+              "description": "Read and circle the correct answers.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o4",
+              "title": "Grammar in Use · Exercise 4",
+              "description": "Complete. Use the present simple or the present continuous.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o6",
+              "title": "Grammar in Use · Exercise 6",
+              "description": "Complete. Use the present perfect simple or the present perfect continuous.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o7",
+              "title": "Grammar in Use · Exercise 7",
+              "description": "Read and circle the correct answers.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p4-o8",
+              "title": "Grammar in Use · Exercise 8",
+              "description": "Read and complete the text. Write one word in each gap.",
+              "unitNumber": 1,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 10,
+              "pageSpread": "10-11",
+              "pageLabel": "Pages 10-11",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-5-activities",
+          "title": "Listening",
+          "sectionTitle": "Listening",
+          "pageLabel": "Page 12",
+          "pageNumber": 12,
+          "pageSpread": "12",
+          "navigationOrder": 5,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p5-o2",
+              "title": "Listening · Exercise 2",
+              "description": "Read and answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Listening",
+              "activityType": "multiple-choice",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 12,
+              "pageSpread": "12",
+              "pageLabel": "Page 12",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p5-o3",
+              "title": "Listening · Exercise 3",
+              "description": "Listen and read the text for question 1. What is the correct answer? Which option(s) did you eliminate? Why?",
+              "unitNumber": 1,
+              "sectionTitle": "Listening",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 12,
+              "pageSpread": "12",
+              "pageLabel": "Page 12",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.listening.television-dialogue"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p5-o4",
+              "title": "Listening · Exercise 4",
+              "description": "You will hear people talking in six different situations. Underline the key words in the questions and options. Then listen and choose the best answer (A, B or C) for questions 1–6.",
+              "unitNumber": 1,
+              "sectionTitle": "Listening",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 12,
+              "pageSpread": "12",
+              "pageLabel": "Page 12",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.listening.six-situations"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p5-o5",
+              "title": "Listening · Exercise 5",
+              "description": "Listen again. Then discuss with your partner why the other options in questions 1, 2 and 3 are wrong.",
+              "unitNumber": 1,
+              "sectionTitle": "Listening",
+              "activityType": "typed-short-answer",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 12,
+              "pageSpread": "12",
+              "pageLabel": "Page 12",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.listening.discussion-review"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-6-activities",
+          "title": "Speaking",
+          "sectionTitle": "Speaking",
+          "pageLabel": "Page 13",
+          "pageNumber": 13,
+          "pageSpread": "13",
+          "navigationOrder": 6,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p6-o2",
+              "title": "Speaking · Exercise 2",
+              "description": "Listen to two students talking about themselves and tick the right box.",
+              "unitNumber": 1,
+              "sectionTitle": "Speaking",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 13,
+              "pageSpread": "13",
+              "pageLabel": "Page 13",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.speaking.student-comparison"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p6-o6",
+              "title": "Speaking · Problem solvers",
+              "description": "Work in pairs. Imagine you are the director of a TV channel and you need to add a new programme for young people. Choose one of the options below and explain your decision.",
+              "unitNumber": 1,
+              "sectionTitle": "Speaking",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 13,
+              "pageSpread": "13",
+              "pageLabel": "Page 13",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-7-activities",
+          "title": "Writing",
+          "sectionTitle": "Writing",
+          "pageLabel": "Pages 14-15",
+          "pageNumber": 14,
+          "pageSpread": "14-15",
+          "navigationOrder": 7,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o2",
+              "title": "Writing · Exercise 1",
+              "description": "Read the writing task and answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o3",
+              "title": "Writing · Exercise 2",
+              "description": "Read the task in Exercise 1 again. Then tick the things the writer must do in the email.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "multiple-choice",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o4",
+              "title": "Writing · Exercise 3",
+              "description": "Read the model email and answer the questions.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o5",
+              "title": "Writing · Exercise 4",
+              "description": "Decide if these phrases are used to begin or end emails. Write B (begin) or E (end). Then tick the informal phrases.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o6",
+              "title": "Writing · Exercise 5",
+              "description": "Read the email in Exercise 3 and circle examples of these kinds of informal language.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "multiple-choice",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o8",
+              "title": "Writing · Exercise 6",
+              "description": "Read the writing task. Then make notes about what you have to do.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o9",
+              "title": "Writing · Exercise 7",
+              "description": "Read the Language checklist and complete the sentences.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p7-o10",
+              "title": "Writing · Exercise 8",
+              "description": "Complete the paragraph plan and write your email.",
+              "unitNumber": 1,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 14,
+              "pageSpread": "14-15",
+              "pageLabel": "Pages 14-15",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-8-activities",
+          "title": "Review",
+          "sectionTitle": "Review",
+          "pageLabel": "Page 16",
+          "pageNumber": 16,
+          "pageSpread": "16",
+          "navigationOrder": 8,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p8-o1",
+              "title": "Review 1 · Vocabulary",
+              "description": "Choose the correct answers.",
+              "unitNumber": 1,
+              "sectionTitle": "Review",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 16,
+              "pageSpread": "16",
+              "pageLabel": "Page 16",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p8-o2",
+              "title": "Review 1 · Grammar",
+              "description": "Choose the correct answers.",
+              "unitNumber": 1,
+              "sectionTitle": "Review",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 16,
+              "pageSpread": "16",
+              "pageLabel": "Page 16",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-9-activities",
+          "title": "Practice",
+          "sectionTitle": "Practice",
+          "pageLabel": "Page 17",
+          "pageNumber": 17,
+          "pageSpread": "17",
+          "navigationOrder": 9,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p9-o1",
+              "title": "B2 Practice 1 · Exercise 1",
+              "description": "You are going to read an article about watching TV series. For questions 1–6, choose the answer (A, B, C or D) which you think fits best according to the text.",
+              "unitNumber": 1,
+              "sectionTitle": "Practice",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 17,
+              "pageSpread": "17",
+              "pageLabel": "Page 17",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-01-ub2-sb-unit-1-part-10-activities",
+          "title": "Practice",
+          "sectionTitle": "Practice",
+          "pageLabel": "Page 18",
+          "pageNumber": 18,
+          "pageSpread": "18",
+          "navigationOrder": 10,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u1-p10-o1",
+              "title": "B2 Practice 1 · Exercise 2",
+              "description": "You will hear people talking in eight different situations. For questions 1–8, choose the best answer (A, B or C).",
+              "unitNumber": 1,
+              "sectionTitle": "Practice",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 18,
+              "pageSpread": "18",
+              "pageLabel": "Page 18",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-1.practice.eight-situations"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sb-unit-2",
+      "runtimeId": "ultimate-b2-students-book-unit-02",
+      "title": "Unit 2",
+      "unitNumber": 2,
+      "printedPageRange": "19-34",
+      "navigationOrder": 2,
+      "lessons": [
+        {
+          "id": "ultimate-b2-students-book-unit-02-reading-19-activities",
+          "title": "Reading",
+          "sectionTitle": "Reading",
+          "pageLabel": "Page 19",
+          "pageNumber": 19,
+          "pageSpread": "19",
+          "navigationOrder": 1,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p1-o1",
+              "title": "Unit opener · Exercise 1",
+              "description": "Read the quote and discuss these questions with a partner.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 19,
+              "pageSpread": "19",
+              "pageLabel": "Page 19",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-reading-20-21-activities",
+          "title": "Reading",
+          "sectionTitle": "Reading",
+          "pageLabel": "Pages 20-21",
+          "pageNumber": 20,
+          "pageSpread": "20-21",
+          "navigationOrder": 2,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p2-o1",
+              "title": "Reading · Exercise 1",
+              "description": "Watch the video and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 20,
+              "pageSpread": "20-21",
+              "pageLabel": "Pages 20-21",
+              "mediaDependencies": [
+                {
+                  "type": "video",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p2-o2",
+              "title": "Reading · Exercise 2",
+              "description": "Listen and read the text. Then discuss the questions with a partner.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "reading-content",
+              "implementationModeLabel": "Reading content",
+              "pageNumber": 20,
+              "pageSpread": "20-21",
+              "pageLabel": "Pages 20-21",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.reading.text-audio"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p2-o3",
+              "title": "Reading · Exercise 3",
+              "description": "Read the text again and insert the missing sentences. There is one extra sentence which you do not need to use.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 20,
+              "pageSpread": "20-21",
+              "pageLabel": "Pages 20-21",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p2-o4",
+              "title": "Reading · Exercise 4",
+              "description": "Circle the correct words.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "multiple-choice",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 20,
+              "pageSpread": "20-21",
+              "pageLabel": "Pages 20-21",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p2-o5",
+              "title": "Reading",
+              "description": "With your partner, discuss the question. Use the ideas given and add your own. Then take turns to present your arguments.",
+              "unitNumber": 2,
+              "sectionTitle": "Reading",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 20,
+              "pageSpread": "20-21",
+              "pageLabel": "Pages 20-21",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-vocabulary-22-23-activities",
+          "title": "Vocabulary in Use",
+          "sectionTitle": "Vocabulary in Use",
+          "pageLabel": "Pages 22-23",
+          "pageNumber": 22,
+          "pageSpread": "22-23",
+          "navigationOrder": 3,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o1",
+              "title": "Vocabulary in Use · Exercise 1",
+              "description": "Read and complete the text with the words in the box.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o2",
+              "title": "Vocabulary in Use · Exercise 2",
+              "description": "Complete the expressions with the words in the box. Then use the expressions to complete the sentences.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o3",
+              "title": "Vocabulary in Use · Exercise 3",
+              "description": "Complete the sentences with the words in the box.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o4",
+              "title": "Vocabulary in Use · Exercise 4",
+              "description": "Complete the sentences with the correct prepositions.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o5",
+              "title": "Vocabulary in Use · Exercise 5",
+              "description": "Complete the chart. Then complete the sentences with words from the chart.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o6",
+              "title": "Vocabulary in Use · Exercise 6",
+              "description": "Complete the sentences with the words in the box.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p3-o7",
+              "title": "Vocabulary in Use · Exercise 7",
+              "description": "Complete the text with the correct form of the words given.",
+              "unitNumber": 2,
+              "sectionTitle": "Vocabulary in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 22,
+              "pageSpread": "22-23",
+              "pageLabel": "Pages 22-23",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-grammar-24-25-activities",
+          "title": "Grammar in Use",
+          "sectionTitle": "Grammar in Use",
+          "pageLabel": "Pages 24-25",
+          "pageNumber": 24,
+          "pageSpread": "24-25",
+          "navigationOrder": 4,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p4-o1",
+              "title": "Grammar in Use · Exercise 1",
+              "description": "Watch the video and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 24,
+              "pageSpread": "24-25",
+              "pageLabel": "Pages 24-25",
+              "mediaDependencies": [
+                {
+                  "type": "video",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p4-o3",
+              "title": "Grammar in Use · Exercise 3",
+              "description": "Complete the text with the past simple or the past continuous of the verbs in brackets.",
+              "unitNumber": 2,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 24,
+              "pageSpread": "24-25",
+              "pageLabel": "Pages 24-25",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p4-o6",
+              "title": "Grammar in Use · Exercise 6",
+              "description": "Complete the sentences with the past perfect simple or the past perfect continuous of the verbs in brackets.",
+              "unitNumber": 2,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 24,
+              "pageSpread": "24-25",
+              "pageLabel": "Pages 24-25",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p4-o8",
+              "title": "Grammar in Use · Exercise 8",
+              "description": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
+              "unitNumber": 2,
+              "sectionTitle": "Grammar in Use",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 24,
+              "pageSpread": "24-25",
+              "pageLabel": "Pages 24-25",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-listening-26-activities",
+          "title": "Listening",
+          "sectionTitle": "Listening",
+          "pageLabel": "Page 26",
+          "pageNumber": 26,
+          "pageSpread": "26",
+          "navigationOrder": 5,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p5-o2",
+              "title": "Listening · Exercise 2",
+              "description": "Read the text about fjords and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Listening",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 26,
+              "pageSpread": "26",
+              "pageLabel": "Page 26",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p5-o3",
+              "title": "Listening · Exercise 3",
+              "description": "Listen and read the text about fjords. Were your predictions correct?",
+              "unitNumber": 2,
+              "sectionTitle": "Listening",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 26,
+              "pageSpread": "26",
+              "pageLabel": "Page 26",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.listening.fjords"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p5-o4",
+              "title": "Listening · Exercise 4",
+              "description": "Look at the gaps in questions 1–10 and try to predict the missing words. Then listen and complete the sentences with a word or short phrase.",
+              "unitNumber": 2,
+              "sectionTitle": "Listening",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 26,
+              "pageSpread": "26",
+              "pageLabel": "Page 26",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.listening.iceland-trip"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-speaking-27-activities",
+          "title": "Speaking",
+          "sectionTitle": "Speaking",
+          "pageLabel": "Page 27",
+          "pageNumber": 27,
+          "pageSpread": "27",
+          "navigationOrder": 6,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p6-o1",
+              "title": "Speaking · Exercise 1",
+              "description": "Look at the two photos. Find similarities and differences between them.",
+              "unitNumber": 2,
+              "sectionTitle": "Speaking",
+              "activityType": "typed-short-answer",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 27,
+              "pageSpread": "27",
+              "pageLabel": "Page 27",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p6-o2",
+              "title": "Speaking · Exercise 2",
+              "description": "Listen to a student comparing the photos. Then complete the missing words.",
+              "unitNumber": 2,
+              "sectionTitle": "Speaking",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 27,
+              "pageSpread": "27",
+              "pageLabel": "Page 27",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.speaking.photo-comparison"
+                }
+              ]
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p6-o5",
+              "title": "Speaking · Exercise 3",
+              "description": "Work with your partner to compare the photos. Use the words and phrases in the Language checklist to help you.",
+              "unitNumber": 2,
+              "sectionTitle": "Speaking",
+              "activityType": "typed-short-answer",
+              "implementationMode": "unscored-practice",
+              "implementationModeLabel": "Practice",
+              "pageNumber": 27,
+              "pageSpread": "27",
+              "pageLabel": "Page 27",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-writing-28-29-activities",
+          "title": "Writing",
+          "sectionTitle": "Writing",
+          "pageLabel": "Pages 28-29",
+          "pageNumber": 28,
+          "pageSpread": "28-29",
+          "navigationOrder": 7,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o2",
+              "title": "Writing · Exercise 1",
+              "description": "Read the writing task and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o3",
+              "title": "Writing · Exercise 2",
+              "description": "Read the model story and complete it with the time and sequence words and phrases.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o4",
+              "title": "Writing · Exercise 3",
+              "description": "Read the model story again and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o6",
+              "title": "Writing · Exercise 5",
+              "description": "Read the model story again and underline the verbs that describe how people or things move. Then write them here.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "multiple-choice",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o7",
+              "title": "Writing · Exercise 6",
+              "description": "Replace the words in bold with the correct form of a descriptive verb from the Language checklist.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o8",
+              "title": "Writing · Exercise 7",
+              "description": "Read the writing task and answer the questions.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o9",
+              "title": "Writing · Exercise 8",
+              "description": "Read these opening sentences of stories and choose the sentence which follows on from them logically. Why are the other options wrong?",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "multiple-choice",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p7-o10",
+              "title": "Writing · Exercise 9",
+              "description": "Complete the paragraph plan and write the story.",
+              "unitNumber": 2,
+              "sectionTitle": "Writing",
+              "activityType": "typed-short-answer",
+              "implementationMode": "teacher-reviewed",
+              "implementationModeLabel": "Teacher review",
+              "pageNumber": 28,
+              "pageSpread": "28-29",
+              "pageLabel": "Pages 28-29",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-practice-31-activities",
+          "title": "Practice 2",
+          "sectionTitle": "Practice 2",
+          "pageLabel": "Page 31",
+          "pageNumber": 31,
+          "pageSpread": "31",
+          "navigationOrder": 9,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p9-o1",
+              "title": "Practice 2 · Exercise 1",
+              "description": "Read the text and insert the missing sentences. There is one extra sentence which you do not need to use.",
+              "unitNumber": 2,
+              "sectionTitle": "Practice 2",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 31,
+              "pageSpread": "31",
+              "pageLabel": "Page 31",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-practice-32-activities",
+          "title": "Practice 2",
+          "sectionTitle": "Practice 2",
+          "pageLabel": "Page 32",
+          "pageNumber": 32,
+          "pageSpread": "32",
+          "navigationOrder": 10,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p10-o1",
+              "title": "Practice 2 · Exercise 2",
+              "description": "For questions 1–8, read the text and think of the word which best fits each gap. Use only one word in each gap.",
+              "unitNumber": 2,
+              "sectionTitle": "Practice 2",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 32,
+              "pageSpread": "32",
+              "pageLabel": "Page 32",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p10-o3",
+              "title": "Practice 2 · Exercise 3",
+              "description": "Listen to the interview and complete the sentences with a word or short phrase.",
+              "unitNumber": 2,
+              "sectionTitle": "Practice 2",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 32,
+              "pageSpread": "32",
+              "pageLabel": "Page 32",
+              "mediaDependencies": [
+                {
+                  "type": "audio",
+                  "logicalKey": "ultimate-b2.students-book.unit-2.practice.tristan-da-cunha"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-progress-check-33-activities",
+          "title": "Progress check 1",
+          "sectionTitle": "Progress check 1",
+          "pageLabel": "Page 33",
+          "pageNumber": 33,
+          "pageSpread": "33",
+          "navigationOrder": 11,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p11-o1",
+              "title": "Progress check 1 · Exercise 1",
+              "description": "Complete the sentences with the correct form of these phrasal verbs.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 33,
+              "pageSpread": "33",
+              "pageLabel": "Page 33",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p11-o2",
+              "title": "Progress check 1 · Exercise 2",
+              "description": "Match. Then complete the sentences with the correct words.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "drag-and-drop-matching",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 33,
+              "pageSpread": "33",
+              "pageLabel": "Page 33",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p11-o3",
+              "title": "Progress check 1 · Exercise 3",
+              "description": "Complete the sentences with the correct adjective form of the words given.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 33,
+              "pageSpread": "33",
+              "pageLabel": "Page 33",
+              "mediaDependencies": []
+            }
+          ]
+        },
+        {
+          "id": "ultimate-b2-students-book-unit-02-progress-check-34-activities",
+          "title": "Progress check 1",
+          "sectionTitle": "Progress check 1",
+          "pageLabel": "Page 34",
+          "pageNumber": 34,
+          "pageSpread": "34",
+          "navigationOrder": 12,
+          "exercises": [
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p12-o2",
+              "title": "Progress check 1 · Exercise 2",
+              "description": "Read and complete the text. Write one word in each gap.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 34,
+              "pageSpread": "34",
+              "pageLabel": "Page 34",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p12-o3",
+              "title": "Progress check 1 · Exercise 3",
+              "description": "Complete. Use the past perfect simple or the past perfect continuous.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 34,
+              "pageSpread": "34",
+              "pageLabel": "Page 34",
+              "mediaDependencies": []
+            },
+            {
+              "stableActivityId": "ultimate-b2-sb-u2-p12-o4",
+              "title": "Progress check 1 · Exercise 4",
+              "description": "Complete the second sentence so that it means the same as the first, using the word given. Do not change the word. Use between two and five words.",
+              "unitNumber": 2,
+              "sectionTitle": "Progress check 1",
+              "activityType": "typed-short-answer",
+              "implementationMode": "auto-scored",
+              "implementationModeLabel": "Auto-scored",
+              "pageNumber": 34,
+              "pageSpread": "34",
+              "pageLabel": "Page 34",
+              "mediaDependencies": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

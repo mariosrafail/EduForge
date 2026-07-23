@@ -1,0 +1,104 @@
+import { useEffect, useMemo, useState } from "react";
+
+import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
+import { teacherContentPackProvider } from "./generatedPackProvider.js";
+import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
+import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
+import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
+import TeacherOfflineMedia from "./TeacherOfflineMedia.jsx";
+import TeacherOfflinePresentation from "./TeacherOfflinePresentation.jsx";
+
+const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
+
+function libraryState() {
+  return { teacherOffline: true, view: "library" };
+}
+
+export default function TeacherOfflineApp() {
+  const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
+  const [navigation, setNavigation] = useState(libraryState);
+
+  useEffect(() => {
+    let active = true;
+    teacherContentPackProvider.load()
+      .then((pack) => {
+        if (active) setPackState({ status: "ready", pack, error: "" });
+      })
+      .catch((error) => {
+        if (active) setPackState({ status: "error", pack: null, error: error.message });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.history.replaceState(libraryState(), "", "#library");
+    const onPopState = (event) => setNavigation(event.state?.teacherOffline ? event.state : libraryState());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const pageUnits = useMemo(() => ultimateB2StudentsBookPageUnits.filter((unit) => [1, 2].includes(Number(unit.number))), []);
+  const navigate = (state, { replace = false } = {}) => {
+    const next = { teacherOffline: true, ...state };
+    setNavigation(next);
+    const method = replace ? "replaceState" : "pushState";
+    window.history[method](next, "", `#${next.view}`);
+  };
+  const openBook = () => {
+    const location = readTeacherOfflineLocation() || defaultLocation;
+    navigate({ view: "book", location });
+  };
+  const updateBookLocation = (location, options) => {
+    writeTeacherOfflineLocation(location);
+    navigate({ view: "book", location }, options);
+  };
+
+  if (packState.status === "loading") {
+    return <main className="teacher-offline-status" role="status"><h1>Checking classroom content…</h1></main>;
+  }
+  if (packState.status === "error") {
+    return (
+      <main className="teacher-offline-status damaged" role="alert">
+        <h1>Content pack unavailable or damaged</h1>
+        <p>{packState.error || "Reinstall the verified classroom content pack."}</p>
+      </main>
+    );
+  }
+
+  const pack = packState.pack;
+  if (navigation.view === "activity") {
+    return (
+      <TeacherOfflinePresentation
+        key={navigation.activityId}
+        activityId={navigation.activityId}
+        activities={pack.activities.activities}
+        onBack={() => window.history.back()}
+        onNavigate={(activityId) => navigate({ ...navigation, activityId }, { replace: true })}
+      />
+    );
+  }
+  if (navigation.view === "media") {
+    return (
+      <TeacherOfflineMedia
+        media={navigation.media}
+        onBack={() => window.history.back()}
+      />
+    );
+  }
+  if (navigation.view === "book") {
+    return (
+      <TeacherOfflineBook
+        pack={pack}
+        pageUnits={pageUnits}
+        location={navigation.location || defaultLocation}
+        onLocationChange={updateBookLocation}
+        onOpenActivity={(activityId) => navigate({ view: "activity", activityId, location: navigation.location || defaultLocation })}
+        onOpenMedia={(media) => navigate({ view: "media", media, location: navigation.location || defaultLocation })}
+        onBackToLibrary={() => navigate(libraryState(), { replace: true })}
+      />
+    );
+  }
+  return <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
+}

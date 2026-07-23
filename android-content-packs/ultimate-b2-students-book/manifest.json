@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "packageId": "ultimate-b2-students-book",
+  "componentId": "students-book",
+  "bookTitle": "Ultimate B2 Students Book",
+  "contentVersion": "2026.07.1",
+  "minimumSupportedAppVersion": "0.1.0",
+  "minimumSupportedContentSchemaVersion": 1,
+  "includedUnits": [
+    1,
+    2
+  ],
+  "enabledActivityCount": 77,
+  "disabledActivityCount": 12,
+  "activityCountsByUnit": {
+    "1": 37,
+    "2": 40
+  },
+  "pageCount": 22,
+  "assetCountsByType": {
+    "cover": 1,
+    "page": 22,
+    "image": 0,
+    "audio": 11,
+    "video": 7,
+    "font": 0
+  },
+  "assetCount": 41,
+  "totalContentSizeBytes": 448994237,
+  "totalAssetBytes": 448515130,
+  "totalMetadataBytes": 479107,
+  "files": {
+    "catalog.json": {
+      "sizeBytes": 59124,
+      "sha256": "73e23aceb0eee253feae80ed785ad25cb495f9bd8e0590557199d97862532bb3",
+      "semanticSha256": "b4a62d35e6e7db82197ca318bb5d86bf1d19d29e7ffb5c4ca9145915922fb354"
+    },
+    "activities.json": {
+      "sizeBytes": 298721,
+      "sha256": "97c493b3e6a83efc0ada7a82f10fcaba5a81dac95694529cbb6be7416eacd120",
+      "semanticSha256": "e950472057c6c627d1bdf97a949531c338602eb5de9192bc79a115d069e32d05"
+    },
+    "teacher-solutions.json": {
+      "sizeBytes": 108248,
+      "sha256": "a03473f01d320449893e9b3803774ef96d408edd4265687e1d414f1281927c0e",
+      "semanticSha256": "f018f66e67facdb131f26209d77cb40689a3556dbd9704befd48add21d9f11d2"
+    },
+    "assets-manifest.json": {
+      "sizeBytes": 13014,
+      "sha256": "ab5603410051d2952dc37893c05bce14af582f40e5ec8379d917c1d1e4c529d5",
+      "semanticSha256": "98ffff9dd968f26c549d317969de49565a5de9fdefc3c09cf6a5e615bad68d96"
+    }
+  },
+  "assetSetSha256": "367cf7c14343ccc7afa0b208b26f59c30c564f69f63fff4741b206a0c09496c3",
+  "deterministicBuild": {
+    "reproducible": true,
+    "generator": "scripts/android-teacher/build-pack.mjs",
+    "sourceRevision": "repository-source"
+  }
+}

@@ -12,7 +12,7 @@ import { PageHotspotSettingsPanel } from "./hotspots/PageHotspotSettingsPanel.js
 import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bookPageHotspotsApi.js";
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
-import { requestBookAssetAccess } from "../../../services/bookAssetsApi.js";
+import { requestBookAssetAccess } from "virtual:book-assets-service";
 
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;

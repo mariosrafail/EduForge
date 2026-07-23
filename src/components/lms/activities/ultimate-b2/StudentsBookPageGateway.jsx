@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { getUltimateB2Unit2Asset } from "virtual:ultimate-b2-page-assets";
 import { Tag } from "../../Shared.jsx";
-import { requestBookAssetAccess } from "../../../../services/bookAssetsApi.js";
+import { requestBookAssetAccess } from "virtual:book-assets-service";
 
 const unit2PageSections = [
   { id: "reading-19", title: "Reading", pages: "pg 19", images: [getUltimateB2Unit2Asset("19.png")] },

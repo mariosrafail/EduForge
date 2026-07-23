@@ -5,7 +5,8 @@ import {
   studentsBookImplementationModeLabels,
 } from "../../../../data/ultimate-b2/studentsBookCatalog.js";
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
-import { getTeacherActivitySolutions } from "../../../../services/bookContentApi.js";
+import { getTeacherActivitySolutions } from "virtual:book-content-service";
+import { getOfflineTeacherSolution } from "virtual:teacher-offline-solutions";
 import { Card, Tag } from "../../Shared.jsx";
 import { getActivityModeCapabilities } from "../activityModes.js";
 import {
@@ -23,11 +24,20 @@ export function findUnit2Implementation(id) {
 }
 
 export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-normalized-media" }) {
+  const mediaRef = useRef(null);
   const offlineAsset = ultimateB2StudentsBookMedia[logicalKey] || null;
-  const androidLocalUrl = import.meta.env.VITE_APP_MODE === "android-offline" ? offlineAsset?.localUrl : null;
+  const isOfflineApp = ["android-offline", "android-teacher-offline"].includes(import.meta.env.VITE_APP_MODE);
+  const androidLocalUrl = isOfflineApp ? offlineAsset?.localUrl : null;
   const asset = useBookAsset(androidLocalUrl ? null : logicalKey, {
     devFallbackUrl: androidLocalUrl || (import.meta.env.DEV ? offlineAsset?.devFallbackUrl : null),
   });
+  useEffect(() => () => {
+    const mediaElement = mediaRef.current;
+    if (!mediaElement) return;
+    mediaElement.pause();
+    mediaElement.removeAttribute("src");
+    mediaElement.load();
+  }, [logicalKey]);
   if (asset.loading) return <div className="inline-status">Loading {type}…</div>;
   if (!asset.url) {
     return (
@@ -38,8 +48,8 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
     );
   }
   return type === "video"
-    ? <video className={className} controls preload="metadata" src={asset.url} />
-    : <audio className={className} controls preload="metadata" src={asset.url} />;
+    ? <video ref={mediaRef} className={className} controls preload="metadata" src={asset.url} />
+    : <audio ref={mediaRef} className={className} controls preload="metadata" src={asset.url} />;
 }
 
 function responsePayload(activity, answers) {
@@ -157,8 +167,17 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   };
 
   const loadSolutions = async () => {
-    if (!capabilities.canRequestSolutions) return null;
+    if (!capabilities.canRequestSolutions && !capabilities.canUseOfflineSolutions) return null;
     if (solutions) return solutions;
+    if (capabilities.canUseOfflineSolutions) {
+      const payload = getOfflineTeacherSolution(activity.stableNormalizedId);
+      if (!payload) {
+        setSolutionError("No verified answer is available for this activity.");
+        return null;
+      }
+      setSolutions(payload);
+      return payload;
+    }
     solutionRequest.current?.abort();
     const controller = new AbortController();
     const requestedActivityId = activity.stableNormalizedId;

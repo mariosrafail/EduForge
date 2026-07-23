@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { requestBookAssetAccess } from "../services/bookAssetsApi.js";
+import { requestBookAssetAccess } from "virtual:book-assets-service";
 import { BookAssetUrlLifecycle } from "../services/bookAssetLifecycle.js";
 
 export function useBookAsset(logicalKey, { devFallbackUrl = null, deferUrlUpdates = false } = {}) {
