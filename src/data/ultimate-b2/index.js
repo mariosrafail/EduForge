@@ -5,9 +5,15 @@ export const ultimateB2ComponentTitles = ultimateB2Package.components.map((compo
 
 export function findUltimateB2Exercise(identifier) {
   for (const component of ultimateB2Package.components) {
-    for (const unit of component.units) {
+    for (const unit of component.teacherUnits || component.units) {
       for (const lesson of unit.lessons) {
-        const exercise = lesson.exercises.find((item) => item.id === identifier || item.demoActivityKey === identifier);
+        const exercise = lesson.exercises.find((item) => (
+          item.id === identifier
+          || item.stableActivityId === identifier
+          || item.activityKey === identifier
+          || item.demoActivityKey === identifier
+          || item.aliases?.includes(identifier)
+        ));
         if (exercise) {
           return { component, unit, lesson, exercise };
         }

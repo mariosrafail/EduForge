@@ -1,26 +1,40 @@
 import { Copy, Eye, FileText, Lock, Play } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 import { DisabledAssignControl, TeacherAssignControl } from "./TeacherAssignControl.jsx";
-import { buildActivityHash, copyHashLink, exerciseActionLabel, isExerciseActive, statusTone } from "./bookBrowserUtils.js";
+import { buildActivityHash, copyHashLink, exerciseActionLabel, getExerciseActivityKey, isExerciseActive, statusTone } from "./bookBrowserUtils.js";
 
-export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities = {} }) {
+function ExerciseMetadata({ exercise }) {
+  return (
+    <div className="book-exercise-meta">
+      {exercise.sectionTitle && <span>{exercise.sectionTitle}</span>}
+      {exercise.type && <span>{exercise.type}</span>}
+      {exercise.pageLabel && <span>{exercise.pageLabel}</span>}
+      {exercise.implementationModeLabel && <span>{exercise.implementationModeLabel}</span>}
+      {!exercise.pageLabel && exercise.estimatedTime && <span>{exercise.estimatedTime}</span>}
+      {exercise.mediaDependencies?.length > 0 && <span>{exercise.mediaDependencies.length} media item{exercise.mediaDependencies.length === 1 ? "" : "s"}</span>}
+    </div>
+  );
+}
+
+export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, classes, currentUser, completedActivities = {} }) {
   const isTeacher = mode === "teacher";
-  const completed = !isTeacher && completedActivities[exercise.demoActivityKey];
+  const activityKey = getExerciseActivityKey(exercise);
+  const completed = !isTeacher && completedActivities[activityKey];
   const displayExercise = completed
-    ? { ...exercise, status: "Submitted", studentProgressLabel: `Submitted / ${completed.score}%` }
+    ? {
+        ...exercise,
+        status: "Submitted",
+        studentProgressLabel: Number.isFinite(completed.score) ? `Submitted / ${completed.score}%` : "Submitted",
+      }
     : exercise;
   const canStart = exercise.availableToStudent && typeof onStartExercise === "function";
 
   return (
-    <article className="book-exercise-row active-demo-row">
+    <article className={`book-exercise-row ${exercise.stableActivityId ? "recovered-activity-row" : "active-demo-row"}`}>
       <div className="book-exercise-main">
         <strong>{exercise.title}</strong>
         <p>{exercise.description}</p>
-        <div className="book-exercise-meta">
-          <span>{displayExercise.skill}</span>
-          <span>{displayExercise.type}</span>
-          <span>{displayExercise.estimatedTime}</span>
-        </div>
+        <ExerciseMetadata exercise={displayExercise} />
       </div>
       <div className="book-exercise-status">
         <Tag tone={statusTone(displayExercise.status)}>{displayExercise.status}</Tag>
@@ -33,7 +47,7 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
             type="button"
             aria-label={`Copy preview link for ${exercise.title}`}
             title="Copy preview link"
-            onClick={() => copyHashLink(buildActivityHash(exercise.demoActivityKey, "teacher-preview"))}
+            onClick={() => copyHashLink(buildActivityHash(activityKey, "teacher-preview"))}
             data-sound-click="tab"
           >
             <Copy size={15} />
@@ -41,7 +55,9 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
           <button className="secondary-action compact-action" type="button" onClick={() => onPreviewExercise?.(exercise)} data-sound-click="tab">
             <Eye size={16} /> Preview
           </button>
-          {exercise.assignable ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} /> : <Tag tone="slate">Not assignable</Tag>}
+          {exercise.assignable
+            ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} classes={classes} currentUser={currentUser} />
+            : <Tag tone="slate">Not assignable</Tag>}
         </div>
       ) : (
         <button
@@ -58,8 +74,9 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
   );
 }
 
-export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions }) {
+export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions, classes, currentUser }) {
   const active = isExerciseActive(exercise);
+  const activityKey = getExerciseActivityKey(exercise);
   const Icon = active ? FileText : Lock;
 
   return (
@@ -68,15 +85,11 @@ export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions }
       <div className="teacher-book-exercise-main">
         <strong>{exercise.title}</strong>
         <p>{exercise.description}</p>
-        <div className="book-exercise-meta">
-          <span>{exercise.skill}</span>
-          <span>{exercise.type}</span>
-          <span>{exercise.estimatedTime}</span>
-        </div>
+        <ExerciseMetadata exercise={exercise} />
       </div>
       <div className="teacher-book-exercise-status">
-        <Tag tone={active ? statusTone(exercise.status) : "slate"}>{active ? exercise.status : "Locked in demo"}</Tag>
-        <small>{active ? exercise.progressLabel : "Publisher placeholder"}</small>
+        <Tag tone={active ? statusTone(exercise.status) : "slate"}>{active ? exercise.status : exercise.status || "Unavailable"}</Tag>
+        <small>{active ? exercise.progressLabel : exercise.disabledReason || "Unavailable"}</small>
       </div>
       <div className="teacher-book-row-actions">
         <button
@@ -85,7 +98,7 @@ export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions }
           disabled={!active}
           aria-label={`Copy preview link for ${exercise.title}`}
           title="Copy preview link"
-          onClick={() => copyHashLink(buildActivityHash(exercise.demoActivityKey, "teacher-preview"))}
+          onClick={() => copyHashLink(buildActivityHash(activityKey, "teacher-preview"))}
           data-sound-click="tab"
         >
           <Copy size={15} />
@@ -99,7 +112,9 @@ export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions }
         >
           <Eye size={15} /> Preview
         </button>
-        {active && exercise.assignable ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} /> : <DisabledAssignControl />}
+        {active && exercise.assignable
+          ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} classes={classes} currentUser={currentUser} />
+          : <DisabledAssignControl label={exercise.disabledReason || "Not assignable"} />}
       </div>
     </article>
   );

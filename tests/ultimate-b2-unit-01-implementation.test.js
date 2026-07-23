@@ -107,12 +107,13 @@ test("Unit 1 browser catalogs contain no answers, source paths, or decoder mater
 
 test("generic Students Book renderer selects both Unit 1 and Unit 2 catalogs", async () => {
   const generic = await readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8");
+  const catalog = await readFile("src/data/ultimate-b2/studentsBookCatalog.js", "utf8");
   const compatibility = await readFile("src/components/lms/activities/ultimate-b2/NormalizedUnit2Activity.jsx", "utf8");
   const runner = await readFile("src/components/lms/activities/ultimate-b2/UltimateB2ActivityRunner.jsx", "utf8");
-  assert.match(generic, /unit-01\.runtime\.json/);
-  assert.match(generic, /unit-02\.runtime\.json/);
+  assert.match(catalog, /unit-01\.runtime\.json/);
+  assert.match(catalog, /unit-02\.runtime\.json/);
   assert.match(generic, /findStudentsBookImplementation/);
-  assert.match(generic, /activityAliases\.get\(id\)/);
+  assert.match(catalog, /aliasesToStableId\.get\(identifier\)/);
   assert.match(compatibility, /NormalizedStudentsBookActivity as NormalizedUnit2Activity/);
   assert.match(runner, /findStudentsBookImplementation/);
   assert.doesNotMatch(runner, /ReadingExercise3|ReadingExercise4/);

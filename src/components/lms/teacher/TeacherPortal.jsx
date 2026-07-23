@@ -138,6 +138,8 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             initialPreviewActivityKey={initialPreviewActivityKey}
             navigateTo={navigateTo}
             classOptions={classOptions}
+            classes={teacherClasses}
+            currentUser={currentUser}
           />
         )}
         {activeSection === "classes" && (

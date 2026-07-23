@@ -31,7 +31,11 @@ export function BookPackageComponentGrid({ bookPackage, mode, onSelectBook }) {
                 <span>
                   <strong>{component.title}</strong>
                   <small>{component.subtitle}</small>
-                  <em>{unitCount} units / {activeCount} demo item{activeCount === 1 ? "" : "s"} active</em>
+                  <em>
+                    {component.catalogKind === "recovered-students-book"
+                      ? `${unitCount} implemented units / ${activeCount} activities available`
+                      : `${unitCount} units / ${activeCount} demo item${activeCount === 1 ? "" : "s"} active`}
+                  </em>
                 </span>
               </button>
               <button

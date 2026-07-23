@@ -1,24 +1,12 @@
 import { useState } from "react";
 
-import unit1Runtime from "../../../../data/ultimate-b2/generated/unit-01.runtime.json" with { type: "json" };
-import unit2Runtime from "../../../../data/ultimate-b2/generated/unit-02.runtime.json" with { type: "json" };
-import studentsBookRuntime from "../../../../data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
+import {
+  findStudentsBookImplementation,
+  studentsBookImplementationModeLabels,
+} from "../../../../data/ultimate-b2/studentsBookCatalog.js";
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { Card, Tag } from "../../Shared.jsx";
 import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
-
-const activities = [...(unit1Runtime.activities || []), ...(unit2Runtime.activities || [])];
-const activityAliases = new Map(
-  (studentsBookRuntime.units || []).flatMap((unit) => unit.pages || [])
-    .flatMap((page) => page.activities || [])
-    .filter((activity) => activity.activityKey && activity.id && activity.activityKey !== activity.id)
-    .map((activity) => [activity.activityKey, activity.id]),
-);
-
-export function findStudentsBookImplementation(id) {
-  const stableId = activityAliases.get(id) || id;
-  return activities.find((activity) => activity.stableNormalizedId === stableId) || null;
-}
 
 export function findUnit2Implementation(id) {
   const activity = findStudentsBookImplementation(id);
@@ -113,7 +101,9 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
           <h2>{activity.title}</h2>
           {activity.visibleInstructionText && <p>{activity.visibleInstructionText}</p>}
         </div>
-        <Tag tone={activity.implementationMode === "auto-scored" ? "green" : activity.implementationMode === "teacher-reviewed" ? "gold" : "blue"}>{activity.implementationMode}</Tag>
+        <Tag tone={activity.implementationMode === "auto-scored" ? "green" : activity.implementationMode === "teacher-reviewed" ? "gold" : "blue"}>
+          {studentsBookImplementationModeLabels[activity.implementationMode] || activity.implementationMode}
+        </Tag>
       </div>
 
       {media.map((dependency) => <StudentsBookMediaPlayer key={dependency.logicalKey} logicalKey={dependency.logicalKey} type={dependency.type} />)}
@@ -156,3 +146,5 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     </Card>
   );
 }
+
+export { findStudentsBookImplementation };

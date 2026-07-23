@@ -16,8 +16,12 @@ export function exerciseActionLabel(exercise) {
   return "Start";
 }
 
+export function getExerciseActivityKey(exercise = {}) {
+  return exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.slug || exercise.id || "";
+}
+
 export function isExerciseActive(exercise) {
-  return Boolean(exercise.demoActivityKey && !exercise.locked && (exercise.availableToStudent || exercise.assignable));
+  return Boolean(getExerciseActivityKey(exercise) && !exercise.locked && (exercise.availableToStudent || exercise.assignable));
 }
 
 export function getActiveExercises(component) {

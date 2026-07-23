@@ -1,5 +1,9 @@
 import { ultimateB2StudentsBookPageUnits } from "./ultimateB2PageUnits.js";
 import { lockedUnit } from "./lockedContent.js";
+import {
+  ultimateB2StudentsBookCatalog,
+  ultimateB2StudentsBookTeacherCatalog,
+} from "./studentsBookCatalog.js";
 
 const ultimateB2WorkbookPageUnits = [
   {
@@ -61,115 +65,13 @@ export const ultimateB2Package = {
       type: "Students Book",
       coverTone: "orange",
       pageUnits: ultimateB2StudentsBookPageUnits,
-      units: [
-        lockedUnit({
-          id: "sb-unit-1",
-          title: "Unit 1 People and Places",
-          unit: "Unit 1",
-          component: "Students Book",
-          lessons: [
-            { title: "Vocabulary", slug: "vocabulary", skill: "Vocabulary", type: "Word building" },
-            { title: "Reading", slug: "reading", skill: "Reading", type: "Comprehension" },
-            { title: "Grammar", slug: "grammar", skill: "Grammar", type: "Practice" },
-          ],
-        }),
-        {
-          id: "sb-unit-2",
-          title: "Unit 2 Reading",
-          unit: "Unit 2",
-          lessons: [
-            {
-              id: "sb-u2-reading",
-              title: "Unit 2 Reading",
-              exercises: [
-                {
-                  id: "sb-u2-reading-video-intro",
-                  title: "Video intro",
-                  component: "Students Book",
-                  unit: "Unit 2",
-                  lesson: "Reading",
-                  skill: "Reading",
-                  type: "Video",
-                  estimatedTime: "4 min",
-                  assignable: true,
-                  availableToStudent: true,
-                  status: "Available",
-                  progressLabel: "Assigned to 1 class",
-                  studentProgressLabel: "Available",
-                  demoActivityKey: "video-intro",
-                  description: "Introduce the Unit 2 reading topic before the exercises.",
-                },
-                {
-                  id: "sb-u2-reading-ex3",
-                  title: "Exercise 3",
-                  component: "Students Book",
-                  unit: "Unit 2",
-                  lesson: "Reading",
-                  skill: "Reading",
-                  type: "Multiple choice",
-                  estimatedTime: "8 min",
-                  assignable: true,
-                  availableToStudent: true,
-                  status: "Assigned",
-                  progressLabel: "14/18 submitted",
-                  studentProgressLabel: "Assigned",
-                  demoActivityKey: "reading-ex3",
-                  description: "Check comprehension of the Unit 2 reading text.",
-                },
-                {
-                  id: "sb-u2-reading-ex4",
-                  title: "Exercise 4",
-                  component: "Students Book",
-                  unit: "Unit 2",
-                  lesson: "Reading",
-                  skill: "Reading",
-                  type: "Matching",
-                  estimatedTime: "10 min",
-                  assignable: true,
-                  availableToStudent: true,
-                  status: "Completed",
-                  progressLabel: "Avg. score 76%",
-                  studentProgressLabel: "Teacher feedback ready",
-                  demoActivityKey: "reading-ex4",
-                  description: "Match reading questions with evidence-based strategies.",
-                },
-              ],
-            },
-          ],
-        },
-        lockedUnit({
-          id: "sb-unit-3",
-          title: "Unit 3 Making Choices",
-          unit: "Unit 3",
-          component: "Students Book",
-          lessons: [
-            { title: "Reading", slug: "reading", skill: "Reading", type: "Multiple choice" },
-            { title: "Listening", slug: "listening", skill: "Listening", type: "Listening task" },
-            { title: "Speaking", slug: "speaking", skill: "Speaking", type: "Pair work" },
-          ],
-        }),
-        lockedUnit({
-          id: "sb-unit-4",
-          title: "Unit 4 The Natural World",
-          unit: "Unit 4",
-          component: "Students Book",
-          lessons: [
-            { title: "Vocabulary", slug: "vocabulary", skill: "Vocabulary", type: "Topic vocabulary" },
-            { title: "Reading", slug: "reading", skill: "Reading", type: "Gapped text" },
-            { title: "Writing", slug: "writing", skill: "Writing", type: "Essay planning" },
-          ],
-        }),
-        lockedUnit({
-          id: "sb-unit-5",
-          title: "Unit 5 Review",
-          unit: "Unit 5",
-          component: "Students Book",
-          lessons: [
-            { title: "Progress review", slug: "review", skill: "Review", type: "Mixed practice" },
-            { title: "Exam skills", slug: "exam-skills", skill: "Exam skills", type: "Strategy check" },
-          ],
-        }),
-      ],
+      catalogKind: "recovered-students-book",
+      units: ultimateB2StudentsBookCatalog.units,
+      teacherUnits: ultimateB2StudentsBookTeacherCatalog.units,
+      catalogStats: {
+        ...ultimateB2StudentsBookCatalog.stats,
+        disabledActivityCount: ultimateB2StudentsBookTeacherCatalog.stats.disabledActivityCount,
+      },
     },
     {
       id: "workbook",

@@ -41,7 +41,6 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity })
 
 function getBookIdForActivity(activityKey, resolved) {
   if (findStudentsBookImplementation(activityKey)) return "students-book";
-  if (["video-intro", "reading-ex3", "reading-ex4"].includes(activityKey)) return "students-book";
   if (activityKey === "listening-page-20") return "workbook";
   if (["grammar-opening", "grammar-ex4"].includes(activityKey)) return "grammar-book";
   if (activityKey === "quiz-1" || activityKey === "quiz-2") return "test-book";
@@ -62,7 +61,8 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
   const normalized = findStudentsBookImplementation(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
-  const key = exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
+  const normalizedKey = normalized?.stableNormalizedId || null;
+  const key = normalizedKey || exercise?.stableActivityId || exercise?.activityKey || exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
   const studentDenied = mode !== "teacher-preview" && normalized?.availability === "disabled";
   const title = studentDenied ? "Activity unavailable" : activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
   const routeRole = getActivityRouteRole(mode);
@@ -95,7 +95,7 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
         </nav>
       )}
       <SectionTitle
-        eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Demo activity"}
+        eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Students Book activity"}
         title={title}
         action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
       />

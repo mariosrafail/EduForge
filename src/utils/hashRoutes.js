@@ -156,7 +156,7 @@ export function getComponentRouteSlug(component = {}) {
 }
 
 export function getExerciseRouteSlug(exercise = {}) {
-  return exercise.demoActivityKey || exercise.id || slugifyRoute(exercise.title);
+  return exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.id || slugifyRoute(exercise.title);
 }
 
 export function findBookPackageBySlug(courseSlug = "") {
@@ -202,9 +202,14 @@ export function findExerciseByRouteSlug(component = {}, exerciseSlug = "") {
   return getComponentExercises(component).find((exercise) => {
     const candidates = [
       exercise.id,
+      exercise.stableActivityId,
+      exercise.activityKey,
       exercise.demoActivityKey,
+      ...(exercise.aliases || []),
       exercise.title,
       `exercise-${exercise.id}`,
+      `exercise-${exercise.stableActivityId}`,
+      `exercise-${exercise.activityKey}`,
       `exercise-${exercise.demoActivityKey}`,
     ].map(slugifyRoute);
     return candidates.includes(normalized);
@@ -374,7 +379,7 @@ function parseCourseRoute(hashView) {
       selectedPackageSlug: packageSlug,
       selectedBookId,
       selectedBookSubview: "exercises",
-      activityKey: exercise.demoActivityKey || exercise.id,
+      activityKey: exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.id,
       mode: "student",
     });
   }
@@ -477,12 +482,12 @@ export function getBookFromHash(hash) {
 export function getActivityFromHash(hash) {
   const hashView = cleanHash(hash);
   const studentMatch = hashView.match(/^activity-(.+)$/);
-  if (studentMatch && activityKeys.includes(studentMatch[1])) {
+  if (studentMatch && (activityKeys.includes(studentMatch[1]) || /^ultimate-b2-sb-u[12]-p\d+-o\d+$/.test(studentMatch[1]))) {
     return { activityKey: studentMatch[1], mode: "student", role: "student" };
   }
 
   const teacherMatch = hashView.match(/^teacher-preview-(.+)$/);
-  if (teacherMatch && activityKeys.includes(teacherMatch[1])) {
+  if (teacherMatch && (activityKeys.includes(teacherMatch[1]) || /^ultimate-b2-sb-u[12]-p\d+-o\d+$/.test(teacherMatch[1]))) {
     return { activityKey: teacherMatch[1], mode: "teacher-preview", role: "teacher" };
   }
 

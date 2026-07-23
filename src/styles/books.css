@@ -404,6 +404,7 @@
 }
 
 .book-unit-list > section,
+.book-unit-list > details,
 .book-locked-unit {
   display: grid;
   gap: 10px;
@@ -411,6 +412,29 @@
   background: #f8fafc;
   border: 1px solid #e6edf6;
   border-radius: 8px;
+}
+
+.recovered-book-unit > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.recovered-book-unit > summary::-webkit-details-marker {
+  display: none;
+}
+
+.recovered-book-unit > summary::after {
+  content: "▾";
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+.recovered-book-unit:not([open]) > summary::after {
+  content: "▸";
+}
+
+.book-unit-list .recovered-book-unit > .book-lesson-block {
+  margin-top: 10px;
 }
 
 .book-active-unit {
@@ -608,6 +632,17 @@
   border-radius: 8px 8px 0 0;
 }
 
+.teacher-book-unit > summary::after {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.recovered-unit-counts {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-left: auto;
+}
+
 .teacher-book-unit-header span,
 .teacher-book-unit-header strong {
   display: block;
@@ -627,6 +662,17 @@
 
 .teacher-book-unit-rows {
   display: grid;
+}
+
+.teacher-book-lesson-group {
+  display: grid;
+}
+
+.teacher-book-lesson-group > .book-lesson-heading {
+  padding: 10px 16px;
+  color: #344054;
+  background: #f8fafc;
+  border-top: 1px solid #e6edf6;
 }
 
 .teacher-book-exercise-row {

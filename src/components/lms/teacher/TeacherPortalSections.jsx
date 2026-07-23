@@ -107,7 +107,7 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
   );
 }
 
-export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [] }) {
+export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [], classes = [], currentUser = null }) {
   const [previewExercise, setPreviewExercise] = useState(null);
   const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
   const selectedPackageKey = normalizeBookPackageKey({ slug: selectedPackageSlug, packageTitle: selectedPackageSlug });
@@ -198,6 +198,8 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
         mode="teacher"
         bookPackage={bookPackage}
         classOptions={classOptions}
+        classes={classes}
+        currentUser={currentUser}
         selectedComponentId={selectedBookId}
         selectedSubview={selectedBookSubview}
         selectedPageUnitId={selectedPageUnitId}
@@ -708,8 +710,11 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
           for (const lesson of unit.lessons || []) {
             for (const exercise of lesson.exercises || []) {
               if (exercise.assignable === false || exercise.isAssignable === false) continue;
+              const assignmentActivityId = exercise.assignmentActivityId || exercise.dbActivity?.id;
+              if (!assignmentActivityId) continue;
               options.push({
-                id: exercise.id,
+                id: assignmentActivityId,
+                stableActivityId: exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.slug,
                 title: exercise.title,
                 label: `${component.title} / ${unit.title} / ${exercise.title}`,
                 component: component.title,
@@ -831,7 +836,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
       <SectionTitle
         eyebrow="Assignments"
         title="Assigned digital book exercises."
-        text="Track submit status by class and assign selected Unit 2 exercises from the Ultimate B2 package."
+        text="Track submit status by class and assign implemented Ultimate B2 exercises."
       />
 
       <Card>

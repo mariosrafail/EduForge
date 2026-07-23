@@ -1,4 +1,5 @@
 import { getDemoBookPackage, mergeBookPackageWithDemoFallback, normalizeBookPackageKey } from "../data/bookPackages.js";
+import { applyStudentsBookCatalog } from "../data/ultimate-b2/studentsBookCatalog.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -108,7 +109,7 @@ export function normalizeBookPackageTree(bookPackage) {
   const fallbackPackage = getDemoBookPackage(packageIdentity || bookPackage?.slug || bookPackage?.id);
   if (!bookPackage?.components?.length) return fallbackPackage;
 
-  return mergeBookPackageWithDemoFallback({
+  const normalizedPackage = {
     ...fallbackPackage,
     id: bookPackage.id,
     slug: packageIdentity || bookPackage.slug,
@@ -118,30 +119,36 @@ export function normalizeBookPackageTree(bookPackage) {
     publisher: bookPackage.publisher,
     description: bookPackage.description,
     source: "database",
-    components: bookPackage.components.map((component) => ({
-      id: component.id,
-      slug: component.slug,
-      title: component.title,
-      subtitle: `${componentTypeLabels[component.componentType || component.component_type] || "Book component"} / structured activities`,
-      type: componentTypeLabels[component.componentType || component.component_type] || component.componentType || component.component_type,
-      componentType: component.componentType || component.component_type,
-      coverTone: coverTones[component.componentType || component.component_type] || "orange",
-      coverAssetPath: component.coverAssetPath || component.cover_asset_path,
-      units: (component.units || []).map((unit) => ({
-        id: unit.id,
-        slug: unit.slug,
-        title: unit.title === "Unit 2" && component.componentType === "students_book" ? "Unit 2 Reading" : unit.title,
-        unit: unit.title,
-        lessons: (unit.lessons || []).map((lesson) => ({
-          id: lesson.id,
-          slug: lesson.slug,
-          title: lesson.title,
-          lessonType: lesson.lessonType || lesson.lesson_type,
-          exercises: (lesson.exercises || []).map((activity) => normalizeDbActivity(activity, component, unit, lesson)),
+    components: bookPackage.components.map((component) => {
+      const normalizedComponent = {
+        id: component.id,
+        slug: component.slug,
+        title: component.title,
+        subtitle: `${componentTypeLabels[component.componentType || component.component_type] || "Book component"} / structured activities`,
+        type: componentTypeLabels[component.componentType || component.component_type] || component.componentType || component.component_type,
+        componentType: component.componentType || component.component_type,
+        coverTone: coverTones[component.componentType || component.component_type] || "orange",
+        coverAssetPath: component.coverAssetPath || component.cover_asset_path,
+        units: (component.units || []).map((unit) => ({
+          id: unit.id,
+          slug: unit.slug,
+          title: unit.title === "Unit 2" && component.componentType === "students_book" ? "Unit 2 Reading" : unit.title,
+          unit: unit.title,
+          lessons: (unit.lessons || []).map((lesson) => ({
+            id: lesson.id,
+            slug: lesson.slug,
+            title: lesson.title,
+            lessonType: lesson.lessonType || lesson.lesson_type,
+            exercises: (lesson.exercises || []).map((activity) => normalizeDbActivity(activity, component, unit, lesson)),
+          })),
         })),
-      })),
-    })),
-  });
+      };
+      return (component.componentType || component.component_type) === "students_book"
+        ? applyStudentsBookCatalog(normalizedComponent, normalizedComponent.units)
+        : normalizedComponent;
+    }),
+  };
+  return mergeBookPackageWithDemoFallback(normalizedPackage);
 }
 
 export async function listBookPackages() {

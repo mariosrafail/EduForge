@@ -60,8 +60,10 @@ function CustomBookActivitySection({ activities, loading, error, mode, onOpenAct
   );
 }
 
-export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview }) {
+export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview }) {
   const activeCount = getActiveExercises(component).length;
+  const recoveredStudentsBook = component.catalogKind === "recovered-students-book";
+  const visibleUnitCount = component.units.filter((unit) => unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive))).length;
   const [viewMode, setViewMode] = useState((selectedSubview === "pages" || selectedSubview === "flipbook" || selectedPageId || selectedPageNumber) ? "pages" : "contents");
   const [customActivities, setCustomActivities] = useState([]);
   const [customActivitiesLoading, setCustomActivitiesLoading] = useState(false);
@@ -133,9 +135,11 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
             <h2>{component.title}</h2>
             <p>{component.subtitle}</p>
             <div className="book-detail-stats">
-              <span>{component.units.length} units visible</span>
-              <span>{activeCount} demo item{activeCount === 1 ? "" : "s"} active</span>
-              <span>Publisher content placeholders locked</span>
+              <span>{recoveredStudentsBook ? visibleUnitCount : component.units.length} units visible</span>
+              <span>{recoveredStudentsBook ? `${activeCount} activities available` : `${activeCount} demo item${activeCount === 1 ? "" : "s"} active`}</span>
+              {recoveredStudentsBook
+                ? mode === "teacher" && component.catalogStats?.disabledActivityCount > 0 && <span>{component.catalogStats.disabledActivityCount} unsupported editorial records disabled</span>
+                : <span>Publisher content placeholders locked</span>}
             </div>
             <div className="book-detail-mode-toggle" aria-label="Book view mode">
               {modeOptions.map((option) => (
@@ -170,7 +174,13 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
         />
       ) : mode === "teacher" ? (
         <>
-          <TeacherBookUnitList component={component} onPreviewExercise={onPreviewExercise} classOptions={classOptions} />
+          <TeacherBookUnitList
+            component={component}
+            onPreviewExercise={onPreviewExercise}
+            classOptions={classOptions}
+            classes={classes}
+            currentUser={currentUser}
+          />
           {enableBookActivityBuilder && (
             <>
               <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
@@ -188,21 +198,25 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
               return <LockedUnitRow key={unit.id} unit={unit} />;
             }
 
+            const UnitContainer = recoveredStudentsBook ? "details" : "section";
+            const HeadingContainer = recoveredStudentsBook ? "summary" : "div";
+            const unitActivityCount = unit.lessons.flatMap((lesson) => lesson.exercises).filter(isExerciseActive).length;
+
             return (
-              <section key={unit.id} className="book-active-unit">
-                <div className="book-unit-heading">
+              <UnitContainer key={unit.id} className={`book-active-unit ${recoveredStudentsBook ? "recovered-book-unit" : ""}`} open={recoveredStudentsBook ? true : undefined}>
+                <HeadingContainer className="book-unit-heading">
                   <div>
                     <h3>{unit.title}</h3>
-                    <small>{unit.unit}</small>
+                    <small>{unit.printedPageRange ? `Pages ${unit.printedPageRange}` : unit.unit}</small>
                   </div>
-                  <Tag tone="green">Demo active</Tag>
-                </div>
+                  <Tag tone="green">{recoveredStudentsBook ? `${unitActivityCount} activities` : "Demo active"}</Tag>
+                </HeadingContainer>
 
                 {unit.lessons.map((lesson) => (
                   <div key={lesson.id} className="book-lesson-block">
                     <div className="book-lesson-heading">
                       <strong>{lesson.title}</strong>
-                      <small>{unit.unit}</small>
+                      <small>{lesson.pageLabel || unit.unit}</small>
                     </div>
                     <div className="book-exercise-list">
                       {lesson.exercises.map((exercise) => (
@@ -214,6 +228,8 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
                             onStartExercise={onStartExercise}
                             onPreviewExercise={onPreviewExercise}
                             classOptions={classOptions}
+                            classes={classes}
+                            currentUser={currentUser}
                             completedActivities={completedActivities}
                           />
                         ) : (
@@ -223,7 +239,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
                     </div>
                   </div>
                 ))}
-              </section>
+              </UnitContainer>
             );
           })}
           </div>

@@ -512,9 +512,19 @@ async function createAssignment(sql, body, currentUser = null) {
     }
   }
 
-  const activityRows = await sql`select id, title from activities where id = ${activityId} limit 1`;
+  const activityRows = await sql`
+    select id, title, is_assignable, content_json
+    from activities
+    where id = ${activityId}
+    limit 1
+  `;
   const activity = activityRows[0];
   if (!activity) return json(404, { error: "Activity not found" });
+  if (
+    activity.is_assignable === false
+    || activity.content_json?.implementationMode === "unsupported-disabled"
+    || activity.content_json?.implementationStatus === "disabled-editorial-only"
+  ) return forbidden("This activity is not assignable");
   const packageError = await verifyPackageAccess(sql, currentUser, { activityId });
   if (packageError) return packageError;
 
@@ -740,7 +750,7 @@ async function submitActivity(sql, body, currentUser = null) {
   const answers = body.answers || body.result?.answers || {};
   const implementationMode = activity.contentJson?.implementationMode || activity.content_json?.implementationMode || "auto-scored";
   const requiresTeacherReview = implementationMode === "teacher-reviewed";
-  const unscoredPractice = implementationMode === "unscored-practice";
+  const unscoredPractice = ["unscored-practice", "reading-content"].includes(implementationMode);
   const rows = activity.questions.map((question) => {
     const answer = answers[question.id] ?? answers[question.questionNumber] ?? "";
     const correctText = question.answer || "";
@@ -1649,13 +1659,13 @@ export async function handler(event) {
         const accessError = await verifyPackageAccess(sql, currentUser, { activityId: query.activityId, activitySlug: query.activitySlug || query.slug });
         if (accessError) return accessError;
         const activity = await fetchActivity(sql, query);
-        return activity ? json(200, { activity: isStudent(currentUser) ? studentSafeActivityPayload(activity) : activity }) : json(404, { error: "Activity not found" });
+        return activity ? json(200, { activity: studentSafeActivityPayload(activity) }) : json(404, { error: "Activity not found" });
       }
       if (query.action === "component") {
         const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.packageSlug });
         if (accessError) return accessError;
         const tree = await fetchPackageTree(sql, query);
-        const visibleTree = isStudent(currentUser) ? studentSafePackageTree(tree) : tree;
+        const visibleTree = studentSafePackageTree(tree);
         const component = visibleTree?.components.find((item) => item.id === query.componentId || item.slug === query.slug);
         return component ? json(200, { component }) : json(404, { error: "Component not found" });
       }
@@ -1734,7 +1744,7 @@ export async function handler(event) {
       const accessError = await verifyPackageAccess(sql, currentUser, { packageId: query.packageId, packageSlug: query.slug || query.packageSlug || "ultimate-b2" });
       if (accessError) return accessError;
       const tree = await fetchPackageTree(sql, query);
-      return tree ? json(200, { bookPackage: isStudent(currentUser) ? studentSafePackageTree(tree) : tree }) : json(404, { error: "Book package not found. Run database/006_book_content_platform.sql." });
+      return tree ? json(200, { bookPackage: studentSafePackageTree(tree) }) : json(404, { error: "Book package not found. Run database/006_book_content_platform.sql." });
     }
 
     if (event.httpMethod === "POST") {

@@ -11,6 +11,8 @@ export function BookPackageBrowser({
   onPreviewExercise,
   completedActivities = {},
   classOptions = ultimateB2Package.classes,
+  classes = [],
+  currentUser = null,
   bookPackage = ultimateB2Package,
   selectedComponentId: controlledSelectedComponentId,
   selectedSubview = null,
@@ -63,6 +65,8 @@ export function BookPackageBrowser({
           onStartExercise={onStartExercise}
           onPreviewExercise={onPreviewExercise}
           classOptions={classOptions}
+          classes={classes}
+          currentUser={currentUser}
           completedActivities={completedActivities}
           selectedSubview={selectedSubview}
           selectedPageUnitId={selectedPageUnitId}
