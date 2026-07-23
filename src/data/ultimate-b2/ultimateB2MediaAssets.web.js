@@ -8,7 +8,13 @@ const protectedStudentsBookMedia = (logicalKey) => ({
 
 export const ultimateB2ReadingVideo = protectedStudentsBookMedia("ultimate-b2.students-book.unit-2.reading.video-intro");
 export const ultimateB2ReadingAudio = protectedStudentsBookMedia("ultimate-b2.students-book.unit-2.reading.text-audio");
-export const ultimateB2ReadingTextImage = { logicalKey: "ultimate-b2.students-book.unit-2.reading.text-image", localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/student-text.jpg" : null };
+export const ultimateB2ReadingTextImage = {
+  logicalKey: "ultimate-b2.students-book.unit-2.reading.text-image",
+  localUrl: null,
+  devFallbackUrl: import.meta.env.DEV
+    ? `/.netlify/functions/ultimate-b2-source-asset?logicalKey=${encodeURIComponent("ultimate-b2.students-book.unit-2.reading.text-image")}`
+    : null,
+};
 export const ultimateB2WorkbookListeningAudio = { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/media/unit_2_listening_page_20.mp3" : null };
 export const ultimateB2GrammarRulesImage = { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/grammar-rules.jpg" : null };
 

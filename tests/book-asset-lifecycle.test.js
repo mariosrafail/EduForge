@@ -89,3 +89,28 @@ test("expired or malformed expiry values do not create refresh loops", () => {
   assert.equal(getBookAssetRefreshDelay("invalid", { now }), null);
   assert.equal(getBookAssetRefreshDelay(new Date(now - 1).toISOString(), { now }), null);
 });
+
+test("a failed initial request stops until an explicit manual retry", async () => {
+  let requests = 0;
+  const timers = [];
+  const errors = [];
+  const lifecycle = new BookAssetUrlLifecycle({
+    request: async () => {
+      requests += 1;
+      throw new Error("missing optional asset");
+    },
+    setTimer: (callback, delay) => {
+      timers.push({ callback, delay });
+      return timers.length - 1;
+    },
+    onError: (error) => errors.push(error),
+  });
+  await lifecycle.start();
+  await flush();
+  assert.equal(requests, 1);
+  assert.equal(errors.length, 1);
+  assert.equal(timers.length, 0);
+  await lifecycle.refresh("manual");
+  assert.equal(requests, 2);
+  lifecycle.stop();
+});

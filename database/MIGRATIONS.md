@@ -24,6 +24,7 @@ Apply production migrations in this exact order:
 20. `020_ultimate_b2_unit2_recovered_activities.sql`
 21. `021_ultimate_b2_unit1_recovered_activities.sql`
 22. `022_ultimate_b2_students_book_assignment_modes.sql`
+23. `023_demo_teacher_ultimate_b2_access.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

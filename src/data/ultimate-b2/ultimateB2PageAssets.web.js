@@ -1,5 +1,11 @@
 import studentsBookContent from "./generated/students-book.runtime.json";
 
+const protectedDevelopmentAsset = (logicalKey) => (
+  import.meta.env.DEV
+    ? `/.netlify/functions/ultimate-b2-source-asset?logicalKey=${encodeURIComponent(logicalKey)}`
+    : null
+);
+
 const unit2LegacyNames = {
   "19.png": 1,
   "20-21.png": 2,
@@ -24,7 +30,7 @@ export function getUltimateB2UnitPartAsset(unitNumber, partNumber) {
   if (!page) return null;
   return {
     assetLogicalKey: page.pageImage.identity,
-    devFallbackUrl: import.meta.env.DEV ? `/${page.pageImage.localHdAssetPath}` : null,
+    devFallbackUrl: protectedDevelopmentAsset(page.pageImage.identity),
   };
 }
 

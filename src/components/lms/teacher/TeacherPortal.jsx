@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { dedupeBookPackages, inferPackageSlugFromBookId, replaceDemoBookPackage } from "../../../data/bookPackages.js";
+import { useEffect, useReducer, useState } from "react";
+import { dedupeBookPackages, inferPackageSlugFromBookId } from "../../../data/bookPackages.js";
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
-import { getBookPackageTreeWithFallback } from "../../../services/bookContentApi.js";
+import { listAuthorizedBookPackageTrees } from "../../../services/bookContentApi.js";
 import { buildTeacherSectionHash } from "../../../utils/hashRoutes.js";
 import { PortalShell } from "../shared/PortalShell.jsx";
 import { teacherNavItems } from "./teacherPortalConfig.js";
 import { TeacherAssignments, TeacherBooks, TeacherClasses, TeacherCustomAssignment, TeacherDashboard, TeacherStudents } from "./TeacherPortalSections.jsx";
+import { initialTeacherBooksState, teacherBooksReducer } from "./teacherBooksState.js";
 
 export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
   const { navigateTo } = editorProps;
@@ -16,8 +17,8 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   const [selectedPageUnitId, setSelectedPageUnitId] = useState(initialSelectedPageUnitId);
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
   const [selectedPageNumber, setSelectedPageNumber] = useState(editorProps.initialSelectedPageNumber || null);
-  const [bookPackages, setBookPackages] = useState([]);
-  const [bookSourceMessage, setBookSourceMessage] = useState("");
+  const [teacherBooksState, dispatchTeacherBooks] = useReducer(teacherBooksReducer, initialTeacherBooksState);
+  const bookPackages = teacherBooksState.packages;
   const {
     classes: teacherClasses,
     classOptions,
@@ -42,14 +43,13 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   useEffect(() => {
     let mounted = true;
-    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
+    dispatchTeacherBooks({ type: "loading" });
+    listAuthorizedBookPackageTrees().then((packageTrees) => {
       if (!mounted) return;
-      setBookPackages((current) => dedupeBookPackages(replaceDemoBookPackage(current, packageTree)));
-      setBookSourceMessage("Loaded from book content database.");
+      dispatchTeacherBooks({ type: "loaded", packages: dedupeBookPackages(packageTrees) });
     }).catch((error) => {
       if (!mounted) return;
-      setBookPackages([]);
-      setBookSourceMessage(error.message || "Book packages could not be loaded.");
+      dispatchTeacherBooks({ type: "failed", error: error.message });
     });
     return () => {
       mounted = false;
@@ -127,7 +127,10 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             selectedPackageSlug={selectedPackageSlug}
             selectedBookSubview={selectedBookSubview}
             onSelectPackage={selectPackage}
-            bookSourceMessage={bookSourceMessage}
+            bookSourceMessage={teacherBooksState.error || (teacherBooksState.loaded ? "Loaded from book content database." : "")}
+            loadingBooks={teacherBooksState.loading}
+            bookLoadError={teacherBooksState.error}
+            booksLoaded={teacherBooksState.loaded}
             selectedBookId={selectedBookId}
             selectedPageUnitId={selectedPageUnitId}
             selectedPageId={selectedPageId}

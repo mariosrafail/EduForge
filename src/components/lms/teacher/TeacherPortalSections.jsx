@@ -14,6 +14,7 @@ import {
 } from "../../../services/assignmentsApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
 import { buildActivityHash, buildBookHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
+import { teacherBooksPresentation } from "./teacherBooksState.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
 import { Card, Progress, SectionTitle, Tag } from "../Shared.jsx";
@@ -107,9 +108,10 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
   );
 }
 
-export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [], classes = [], currentUser = null }) {
+export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage, loadingBooks = false, bookLoadError = "", booksLoaded = false, selectedBookId = null, selectedPageUnitId = null, selectedPageId = null, selectedPageNumber = null, onSelectBook, onSelectBookPage, onSelectBookSubview, initialPreviewActivityKey = null, navigateTo, classOptions = [], classes = [], currentUser = null }) {
   const [previewExercise, setPreviewExercise] = useState(null);
   const visibleBookPackages = useMemo(() => dedupeBookPackages(bookPackages), [bookPackages]);
+  const presentation = teacherBooksPresentation({ packages: visibleBookPackages, loading: loadingBooks, error: bookLoadError, loaded: booksLoaded });
   const selectedPackageKey = normalizeBookPackageKey({ slug: selectedPackageSlug, packageTitle: selectedPackageSlug });
   const bookPackage = visibleBookPackages.find((item) => normalizeBookPackageKey(item) === selectedPackageKey || item.slug === selectedPackageSlug || item.id === selectedPackageSlug) || visibleBookPackages[0] || null;
 
@@ -161,12 +163,29 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
 
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
 
-  if (!bookPackage) {
+  if (presentation === "loading") {
     return (
       <section className="teacher-section-stack">
-        <SectionTitle eyebrow="Books" title="No book packages loaded." text="Book packages could not be loaded for this account." />
+        <SectionTitle eyebrow="Books" title="Loading assigned book packages." text="Checking this teacher's package and class entitlements." />
+        <Card><p>Loading book access...</p></Card>
+      </section>
+    );
+  }
+
+  if (presentation === "error") {
+    return (
+      <section className="teacher-section-stack">
+        <SectionTitle eyebrow="Books" title="Book packages could not be loaded." text="The book content service returned an error." />
         {bookSourceMessage && <div className="inline-status warning">{bookSourceMessage}</div>}
-        <Card><p>Activated teacher book packages are unavailable.</p></Card>
+        <Card><p>Book access could not be checked. Try again after the service is available.</p></Card>
+      </section>
+    );
+  }
+
+  if (presentation === "empty" || !bookPackage) {
+    return (
+      <section className="teacher-section-stack">
+        <SectionTitle eyebrow="Books" title="No book packages are assigned to this teacher or their classes." text="Ask a school administrator to assign a package or link one to an active class." />
       </section>
     );
   }

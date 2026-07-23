@@ -1,7 +1,15 @@
-export const ultimateB2StudentsBookCover = { logicalKey: "ultimate-b2.students-book.cover", localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg" : null };
+const protectedCover = (logicalKey) => ({
+  logicalKey,
+  localUrl: null,
+  devFallbackUrl: import.meta.env.DEV
+    ? `/.netlify/functions/ultimate-b2-source-asset?logicalKey=${encodeURIComponent(logicalKey)}`
+    : null,
+});
+
+export const ultimateB2StudentsBookCover = protectedCover("ultimate-b2.students-book.cover");
 export const ultimateB2CoverAssets = {
   "students-book": ultimateB2StudentsBookCover,
-  workbook: { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg" : null },
-  "grammar-book": { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg" : null },
-  "test-book": { logicalKey: null, localUrl: null, devFallbackUrl: import.meta.env.DEV ? "/src/assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg" : null },
+  workbook: protectedCover("ultimate-b2.workbook.cover"),
+  "grammar-book": protectedCover("ultimate-b2.grammar-book.cover"),
+  "test-book": protectedCover("ultimate-b2.test-book.cover"),
 };

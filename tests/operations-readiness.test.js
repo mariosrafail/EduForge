@@ -56,7 +56,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     EDUFORGE_STAGING_QA_PASSWORD: "Unique-QA-Password-2026",
   };
   const result = await checkStagingDeployment(environment);
-  assert.equal(result.latest_migration, "022_ultimate_b2_students_book_assignment_modes.sql");
+  assert.equal(result.latest_migration, "023_demo_teacher_ultimate_b2_access.sql");
   await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
   await assert.rejects(checkStagingDeployment({ ...environment, EDUFORGE_STAGING_QA_PASSWORD: "StagingOnly!2026" }), /retired shared staging password/);
 });

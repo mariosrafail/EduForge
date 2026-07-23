@@ -156,6 +156,11 @@ export async function listBookPackages() {
   return payload.bookPackages || [];
 }
 
+export async function listAuthorizedBookPackageTrees() {
+  const packages = await listBookPackages();
+  return Promise.all(packages.map((bookPackage) => getBookPackageTree(bookPackage.id || bookPackage.slug)));
+}
+
 export async function getBookPackage(slugOrId = "ultimate-b2") {
   return getBookPackageTree(slugOrId);
 }

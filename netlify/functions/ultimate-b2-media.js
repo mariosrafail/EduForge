@@ -11,27 +11,8 @@ import {
   safeServerError,
 } from "./_auth-utils.js";
 import { isLocalRequestHost } from "../../shared/legacyFlashProof.js";
-
-const media = new Map([
-  ["ultimate-b2.students-book.unit-1.reading.video-intro", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/unit/1/part2/obj1.mp4" }],
-  ["ultimate-b2.students-book.unit-1.reading.text-audio", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part2/obj2/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-1.reading.extra-video-1", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/extra/1/U1V1.mp4" }],
-  ["ultimate-b2.students-book.unit-1.reading.extra-video-2", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/extra/1/U1V2.mp4" }],
-  ["ultimate-b2.students-book.unit-1.reading.extra-video-3", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/extra/1/U1V3.mp4" }],
-  ["ultimate-b2.students-book.unit-1.grammar.video-intro", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/unit/1/part4/obj1.mp4" }],
-  ["ultimate-b2.students-book.unit-1.listening.television-dialogue", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part5/obj3/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-1.listening.six-situations", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part5/obj4/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-1.listening.discussion-review", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part5/obj5/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-1.speaking.student-comparison", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part6/obj2/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-1.practice.eight-situations", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/1/part10/obj1/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-2.reading.video-intro", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/unit/2/part2/obj1.mp4" }],
-  ["ultimate-b2.students-book.unit-2.reading.text-audio", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/2/part2/obj2/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-2.grammar.video-intro", { type: "video/mp4", path: "Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4" }],
-  ["ultimate-b2.students-book.unit-2.listening.fjords", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-2.listening.iceland-trip", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-2.speaking.photo-comparison", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3" }],
-  ["ultimate-b2.students-book.unit-2.practice.tristan-da-cunha", { type: "audio/mpeg", path: "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3" }],
-]);
+import { canAccessBookPackage } from "./_book-package-access.js";
+import { getUltimateB2MediaAsset } from "./_ultimate-b2-local-assets.js";
 
 const privateHeaders = {
   "Accept-Ranges": "bytes",
@@ -56,31 +37,7 @@ export function parseMediaRange(value, size) {
 }
 
 export async function hasUltimateB2MediaAccess(sql, currentUser) {
-  if (currentUser.role === "admin") {
-    const rows = await sql`select 1 from book_packages where slug = 'ultimate-b2' and status = 'active' limit 1`;
-    return Boolean(rows[0]);
-  }
-  const rows = await sql`
-    select 1
-    from book_packages bp
-    where bp.slug = 'ultimate-b2' and bp.status = 'active'
-      and (
-        exists (
-          select 1 from book_access ba
-          where ba.book_package_id = bp.id and ba.user_id = ${currentUser.id}
-        )
-        or (
-          ${currentUser.role === "teacher"}
-          and exists (
-            select 1 from classes c
-            where c.book_package_id = bp.id and c.teacher_id = ${currentUser.id}
-              and c.school_id = ${currentUser.school_id} and coalesce(c.status, 'active') = 'active'
-          )
-        )
-      )
-    limit 1
-  `;
-  return Boolean(rows[0]);
+  return canAccessBookPackage(sql, currentUser, { packageSlug: "ultimate-b2" });
 }
 
 export async function resolveUltimateB2MediaFile(relativePath, configuredRoot = process.env.ULTIMATE_B2_SOURCE_ROOT || path.resolve(process.cwd(), "Ultimate English B2.app")) {
@@ -95,7 +52,7 @@ export async function handler(event) {
   const method = event.httpMethod || "GET";
   if (method === "OPTIONS") return { statusCode: 204, headers: privateHeaders, body: "" };
   if (!["GET", "HEAD"].includes(method) || !isLocalRequestHost(event.headers?.host || event.headers?.Host || "")) return notFound();
-  const item = media.get(String(event.queryStringParameters?.logicalKey || ""));
+  const item = getUltimateB2MediaAsset(event.queryStringParameters?.logicalKey);
   if (!item) return notFound();
 
   try {

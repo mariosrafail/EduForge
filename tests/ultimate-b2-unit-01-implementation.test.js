@@ -150,17 +150,20 @@ test("disabled Unit 1 games are omitted from migration and denied by the student
 });
 
 test("Unit 1 media mappings are protected, offline-mapped, and range-capable", async () => {
-  const [matrix, reader, endpoint, offline] = await Promise.all([
-    readJson(matrixPath), readJson(readerPath), readFile("netlify/functions/ultimate-b2-media.js", "utf8"), readFile("src/data/ultimate-b2/ultimateB2MediaAssets.offline.js", "utf8"),
+  const [matrix, reader, endpoint, registry, offline] = await Promise.all([
+    readJson(matrixPath), readJson(readerPath), readFile("netlify/functions/ultimate-b2-media.js", "utf8"),
+    readFile("netlify/functions/_ultimate-b2-local-assets.js", "utf8"),
+    readFile("src/data/ultimate-b2/ultimateB2MediaAssets.offline.js", "utf8"),
   ]);
   const activityKeys = matrix.activities.flatMap((activity) => activity.mediaDependencies).map((dependency) => dependency.logicalKey);
   assert.equal(activityKeys.length, 8);
   const extraKeys = reader.units.find((unit) => unit.number === 1).pages.flatMap((page) => page.media).filter((media) => media.availability === "enabled").map((media) => media.logicalKey);
   assert.equal(extraKeys.length, 3);
   for (const key of [...activityKeys, ...extraKeys]) {
-    assert.match(endpoint, new RegExp(key.replaceAll(".", "\\.")));
+    assert.match(registry, new RegExp(key.replaceAll(".", "\\.")));
     assert.match(offline, new RegExp(key.replaceAll(".", "\\.")));
   }
+  assert.match(endpoint, /getUltimateB2MediaAsset/);
   assert.deepEqual(parseMediaRange("bytes=10-19", 100), { start: 10, end: 19 });
   assert.deepEqual(parseMediaRange("bytes=-10", 100), { start: 90, end: 99 });
   assert.equal(parseMediaRange("bytes=100-110", 100), null);
@@ -168,10 +171,10 @@ test("Unit 1 media mappings are protected, offline-mapped, and range-capable", a
 
 test("media entitlement query is role-aware and school-scoped", async () => {
   const calls = [];
-  const sql = async (strings) => { calls.push(strings.join("?")); return [{ one: 1 }]; };
+  const sql = async (strings) => { calls.push(strings.join("?")); return [{ id: "package-1" }]; };
   assert.equal(await hasUltimateB2MediaAccess(sql, { id: "student", role: "student", school_id: "school-a" }), true);
-  assert.match(calls[0], /book_access/);
-  assert.match(calls[0], /c\.school_id/);
+  assert.match(calls[1], /book_access/);
+  assert.match(calls[1], /role_scope = 'student'/);
 });
 
 test("media source resolution rejects traversal and symlink escapes", async (t) => {

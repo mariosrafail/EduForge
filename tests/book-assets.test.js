@@ -82,9 +82,10 @@ test("protected asset delivery is entitlement-gated and uses non-disclosing deni
   const sql = async (strings) => {
     const query = strings.join("?");
     if (query.includes("from book_assets")) { assetQuery = query; return [published]; }
-    return entitled ? [{ "?column?": 1 }] : [];
+    if (query.includes("select id from book_packages")) return [{ id: published.book_package_id }];
+    return entitled ? [{ id: published.book_package_id }] : [];
   };
-  const user = { id: "user-1", school_id: "school-1" };
+  const user = { id: "user-1", school_id: "school-1", role: "student" };
   let response = await getBookAssetAccess(sql, user, { logicalKey: "book.page-1" }, { storage });
   assert.equal(response.statusCode, 404);
   assert.equal(JSON.parse(response.body).error, "Book asset not found");

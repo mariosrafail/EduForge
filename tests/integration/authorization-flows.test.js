@@ -162,6 +162,66 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   );
   await pool.query("insert into class_students (class_id, student_id, status) values ($1, $2, 'active')", [classA.id, studentId]);
 
+  await t.test("book package trees honor teacher, student, admin, and cross-school entitlement boundaries", async () => {
+    const classEntitledTeacher = await call(bookContentHandler, {
+      cookie: teacherCookie,
+      query: { action: "tree", slug: bookPackage.slug },
+    });
+    assert.equal(classEntitledTeacher.status, 200);
+
+    const unentitledTeacher = await call(bookContentHandler, {
+      cookie: otherTeacherCookie,
+      query: { action: "tree", slug: bookPackage.slug },
+    });
+    assert.equal(unentitledTeacher.status, 403);
+
+    const classMembershipDoesNotChangeStudentPolicy = await call(bookContentHandler, {
+      cookie: studentCookie,
+      query: { action: "tree", slug: bookPackage.slug },
+    });
+    assert.equal(classMembershipDoesNotChangeStudentPolicy.status, 403);
+
+    const ownSchoolAdmin = await call(bookContentHandler, {
+      cookie: adminCookie,
+      query: { action: "tree", slug: bookPackage.slug },
+    });
+    assert.equal(ownSchoolAdmin.status, 200);
+
+    const explicitTeacherId = await insertUser(pool, {
+      schoolId: schoolA,
+      name: "Explicit Teacher",
+      email: "explicit-teacher@integration.test",
+      role: "teacher",
+    });
+    const explicitTeacherCookie = await createSession(pool, explicitTeacherId);
+    await pool.query(
+      "insert into book_access (user_id, book_package_id, role_scope) values ($1, $2, 'teacher')",
+      [explicitTeacherId, bookPackage.id],
+    );
+    assert.equal((await call(bookContentHandler, {
+      cookie: explicitTeacherCookie,
+      query: { action: "tree", slug: bookPackage.slug },
+    })).status, 200);
+
+    const foreignPackage = (await pool.query(
+      "insert into book_packages (publisher_id, title, slug, level, status) values ($1, 'Foreign School Book', $2, 'B2', 'active') returning id, slug",
+      [publisher.id, `foreign-book-${schema}`],
+    )).rows[0];
+    await pool.query("update classes set book_package_id = $1 where id = $2", [foreignPackage.id, classB.id]);
+    assert.equal((await call(bookContentHandler, {
+      cookie: otherTeacherCookie,
+      query: { action: "tree", slug: foreignPackage.slug },
+    })).status, 200);
+    assert.equal((await call(bookContentHandler, {
+      cookie: teacherCookie,
+      query: { action: "tree", slug: foreignPackage.slug },
+    })).status, 403);
+    assert.equal((await call(bookContentHandler, {
+      cookie: adminCookie,
+      query: { action: "tree", slug: foreignPackage.slug },
+    })).status, 403);
+  });
+
   await t.test("signup and joining require active invite codes and are atomic", async () => {
     assert.equal((await call(bookContentHandler, { query: { action: "class-by-slug", slug: `class-a-${schema}` } })).status, 404);
     assert.equal((await call(bookContentHandler, { query: { action: "class-by-invite", inviteCode: "INACT123" } })).status, 404);

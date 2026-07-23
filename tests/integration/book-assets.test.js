@@ -53,9 +53,15 @@ test("book asset relationships, version constraints, and entitlement delivery ar
   const schools = (await pool.query("insert into schools(name) values('Asset School A'),('Asset School B') returning id,name")).rows;
   const schoolA = schools.find((row) => row.name.endsWith("A")).id;
   const schoolB = schools.find((row) => row.name.endsWith("B")).id;
-  const users = (await pool.query("insert into app_users(school_id,full_name,email,role,status) values($1,'Student A',$3,'student','active'),($2,'Student B',$4,'student','active') returning id,school_id", [schoolA, schoolB, `a-${schema}@test.invalid`, `b-${schema}@test.invalid`])).rows;
+  const users = (await pool.query("insert into app_users(school_id,full_name,email,role,status) values($1,'Student A',$3,'student','active'),($2,'Student B',$4,'student','active'),($1,'Teacher A',$5,'teacher','active'),($2,'Teacher B',$6,'teacher','active') returning id,school_id,role", [schoolA, schoolB, `a-${schema}@test.invalid`, `b-${schema}@test.invalid`, `teacher-a-${schema}@test.invalid`, `teacher-b-${schema}@test.invalid`])).rows;
   const userA = users.find((row) => row.school_id === schoolA); const userB = users.find((row) => row.school_id === schoolB);
+  const teacherA = users.find((row) => row.school_id === schoolA && row.role === "teacher");
+  const teacherB = users.find((row) => row.school_id === schoolB && row.role === "teacher");
   await pool.query("insert into book_access(user_id,book_package_id,role_scope) values($1,$2,'student')", [userA.id, packageRow.id]);
+  await pool.query(
+    "insert into classes(school_id,teacher_id,name,level,slug,book_package_id,invite_code,status) values($1,$2,'Asset Class','B2',$3,$4,$5,'active')",
+    [schoolA, teacherA.id, `asset-class-${schema}`, packageRow.id, `ASSET${schema.slice(-3).toUpperCase()}`],
+  );
   const storage = { config: { signedUrlTtlSeconds: 60 }, signedGetUrl: async () => "https://signed.invalid/page", publicUrl: () => "https://public.invalid/page" };
   const sql = postgresTemplate(pool);
 
@@ -63,6 +69,13 @@ test("book asset relationships, version constraints, and entitlement delivery ar
     const granted = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA, role: "student" }, { assetId: asset.id }, { storage });
     assert.equal(granted.statusCode, 200);
     const crossSchool = await getBookAssetAccess(sql, { id: userB.id, school_id: schoolB, role: "student" }, { assetId: asset.id }, { storage });
+    assert.equal(crossSchool.statusCode, 404);
+  });
+
+  await t.test("teacher class entitlement permits the protected asset without granting another school", async () => {
+    const granted = await getBookAssetAccess(sql, { id: teacherA.id, school_id: schoolA, role: "teacher" }, { assetId: asset.id }, { storage });
+    assert.equal(granted.statusCode, 200);
+    const crossSchool = await getBookAssetAccess(sql, { id: teacherB.id, school_id: schoolB, role: "teacher" }, { assetId: asset.id }, { storage });
     assert.equal(crossSchool.statusCode, 404);
   });
 

@@ -21,6 +21,7 @@ import {
   readQuery,
 } from "./_book-content-utils.js";
 import { getBookAssetAccess } from "./_book-asset-access.js";
+import { accessiblePackageIds } from "./_book-package-access.js";
 
 function badRequest(message) {
   return json(400, { error: message });
@@ -121,38 +122,6 @@ export function isSubmittedAnswerCorrect(question = {}, submittedAnswer = "") {
   ].filter((value) => value !== null && value !== undefined && String(value).trim());
   const normalizedSubmitted = normalizeSubmittedAnswer(submittedAnswer);
   return accepted.some((value) => normalizeSubmittedAnswer(value) === normalizedSubmitted);
-}
-
-async function accessiblePackageIds(sql, currentUser) {
-  if (isAdmin(currentUser)) {
-    const rows = await sql`select id from book_packages where status = 'active'`;
-    return rows.map((row) => String(row.id));
-  }
-  if (isTeacher(currentUser)) {
-    const rows = await sql`
-      select distinct package_id as id
-      from (
-        select ba.book_package_id as package_id
-        from book_access ba
-        where ba.user_id = ${currentUser.id}
-        union
-        select c.book_package_id as package_id
-        from classes c
-        where c.teacher_id = ${currentUser.id}
-          and c.school_id = ${currentUser.school_id}
-          and c.book_package_id is not null
-          and coalesce(c.status, 'active') = 'active'
-      ) access
-    `;
-    return rows.map((row) => String(row.id));
-  }
-  const rows = await sql`
-    select distinct ba.book_package_id as id
-    from book_access ba
-    join app_users u on u.id=ba.user_id
-    where ba.user_id=${currentUser.id} and u.school_id=${currentUser.school_id} and ba.role_scope='student'
-  `;
-  return rows.map((row) => String(row.id));
 }
 
 async function packageIdForQuery(sql, query = {}) {
@@ -1649,7 +1618,11 @@ export async function handler(event) {
     const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
-      if (query.action === "asset-access") return getBookAssetAccess(sql, currentUser, query);
+      if (query.action === "asset-access") {
+        return getBookAssetAccess(sql, currentUser, query, {
+          localRequestHost: event.headers?.host || event.headers?.Host || "",
+        });
+      }
       if (query.action === "list") {
         const allowedIds = await accessiblePackageIds(sql, currentUser);
         const packages = await fetchBookPackages(sql);

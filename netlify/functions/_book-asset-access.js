@@ -2,6 +2,9 @@ import { classifyAssetAccess } from "../../lib/book-assets/access.js";
 import { readBookAssetStorageConfig, signedUrlTtlForAsset } from "../../lib/book-assets/config.js";
 import { createBookAssetStorage } from "../../lib/book-assets/storage.js";
 import { json } from "./_book-content-utils.js";
+import { canAccessBookPackage } from "./_book-package-access.js";
+import { getUltimateB2LocalAsset, localUltimateB2AssetUrl } from "./_ultimate-b2-local-assets.js";
+import { isLocalRequestHost } from "../../shared/legacyFlashProof.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const logicalKeyPattern = /^[a-z0-9][a-z0-9._/-]{0,255}$/;
@@ -10,7 +13,7 @@ function hiddenAssetResponse() {
   return json(404, { error: "Book asset not found" }, { "Cache-Control": "private, no-store" });
 }
 
-export async function getBookAssetAccess(sql, currentUser, query, { storage: suppliedStorage } = {}) {
+export async function getBookAssetAccess(sql, currentUser, query, { storage: suppliedStorage, localRequestHost = "" } = {}) {
   const assetId = String(query.assetId || "");
   const logicalKey = String(query.logicalKey || "");
   if ((!assetId || !uuidPattern.test(assetId)) && (!logicalKey || !logicalKeyPattern.test(logicalKey) || logicalKey.includes(".."))) return hiddenAssetResponse();
@@ -42,21 +45,30 @@ export async function getBookAssetAccess(sql, currentUser, query, { storage: sup
         limit 1
       `;
   const asset = rows[0];
+  if (!asset && isLocalRequestHost(localRequestHost)) {
+    const localAsset = getUltimateB2LocalAsset(logicalKey);
+    if (!localAsset) return hiddenAssetResponse();
+    const entitled = await canAccessBookPackage(sql, currentUser, { packageSlug: "ultimate-b2" });
+    if (!entitled) return hiddenAssetResponse();
+    return json(200, {
+      asset: {
+        logicalKey: localAsset.logicalKey,
+        role: localAsset.role,
+        mimeType: localAsset.type,
+        accessLevel: "entitled",
+        packageSlug: "ultimate-b2",
+        developmentSource: true,
+      },
+      url: localUltimateB2AssetUrl(localAsset),
+      expiresAt: null,
+    }, { "Cache-Control": "private, no-store" });
+  }
   if (!asset || asset.package_status !== "active") return hiddenAssetResponse();
   const classification = classifyAssetAccess(asset);
   if (classification === "denied" || asset.storage_profile === "archive") return hiddenAssetResponse();
   if (classification === "protected") {
-    const access = await sql`
-      select 1
-      from book_access ba
-      join app_users u on u.id=ba.user_id
-      where ba.user_id=${currentUser.id}
-        and ba.book_package_id=${asset.book_package_id}
-        and u.school_id=${currentUser.school_id}
-        and u.status='active'
-      limit 1
-    `;
-    if (!access.length) return hiddenAssetResponse();
+    const entitled = await canAccessBookPackage(sql, currentUser, { packageId: asset.book_package_id });
+    if (!entitled) return hiddenAssetResponse();
   }
   let storage;
   try {
