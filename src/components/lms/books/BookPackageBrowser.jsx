@@ -9,6 +9,7 @@ export function BookPackageBrowser({
   mode = "student",
   onStartExercise,
   onPreviewExercise,
+  onPresentExercise,
   completedActivities = {},
   classOptions = ultimateB2Package.classes,
   classes = [],
@@ -64,6 +65,7 @@ export function BookPackageBrowser({
           mode={mode}
           onStartExercise={onStartExercise}
           onPreviewExercise={onPreviewExercise}
+          onPresentExercise={onPresentExercise}
           classOptions={classOptions}
           classes={classes}
           currentUser={currentUser}

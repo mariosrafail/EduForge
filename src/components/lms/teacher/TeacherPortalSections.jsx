@@ -13,7 +13,7 @@ import {
   reviewSubmission,
 } from "../../../services/assignmentsApi.js";
 import { createTeacherClass } from "../../../services/classApi.js";
-import { buildActivityHash, buildBookHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
+import { buildActivityHash, buildBookHash, buildTeacherPresentationHash, buildTeacherSectionHash, slugifyRoute } from "../../../utils/hashRoutes.js";
 import { teacherBooksPresentation } from "./teacherBooksState.js";
 import { UltimateB2ActivityRunner } from "../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../books/BookPackageBrowser.jsx";
@@ -133,6 +133,11 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
     setPreviewExercise(exercise);
   };
 
+  const presentActivity = (exercise) => {
+    const activityKey = exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.id;
+    if (navigateTo && activityKey) navigateTo(buildTeacherPresentationHash(activityKey, bookPackage?.slug || "ultimate-b2", "students-book"));
+  };
+
   const closePreview = () => {
     const match = findUltimateB2Exercise(previewExercise?.demoActivityKey || previewExercise?.id);
     if (navigateTo && match?.component?.id) {
@@ -229,6 +234,7 @@ export function TeacherBooks({ bookPackages = demoBookPackages, selectedPackageS
         onSelectSubview={onSelectBookSubview}
         onBackToBooks={() => onSelectBook?.(null)}
         onPreviewExercise={previewActivity}
+        onPresentExercise={presentActivity}
       />
     </section>
   );

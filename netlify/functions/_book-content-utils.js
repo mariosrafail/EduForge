@@ -12,6 +12,7 @@ export function readQuery(event) {
     activityId: params.activityId || "",
     assignmentId: params.assignmentId || params.assignment_id || "",
     activitySlug: params.activitySlug || "",
+    stableActivityId: params.stableActivityId || params.stable_activity_id || "",
     userId: params.userId || "",
     teacherId: params.teacherId || "",
     studentId: params.studentId || "",

@@ -11,6 +11,7 @@ import { AppIntro } from "./components/lms/shared/AppIntro.jsx";
 import { StudentCourseView } from "./components/lms/student/StudentCourseView.jsx";
 import { StudentPortal } from "./components/lms/student/StudentPortal.jsx";
 import { TeacherPortal } from "./components/lms/teacher/TeacherPortal.jsx";
+import { TeacherPresentationView } from "./components/lms/activities/ultimate-b2/TeacherPresentationView.jsx";
 import houseLogoMark from "./assets/branding/hamilton-house-logo-houseonly.png";
 import { brandPresets } from "./data/lmsDemoData.js";
 import { dashboardForRole, useAuth } from "./hooks/useAuth.js";
@@ -46,6 +47,7 @@ const adminSectionByView = {
 };
 
 function transitionGroupForView(view, activityKey = null) {
+  if (view === "teacher-presentation") return "teacher-presentation";
   if (activityKey) return "student";
   if (view === "courses") return "student";
   if (view === "invalid-route") return "invalid-route";
@@ -132,6 +134,7 @@ export default function App() {
     [brand],
   );
   const transitionKey = transitionGroupForView(view, activityKey);
+  const isTeacherPresentation = view === "teacher-presentation";
   const studentSection = studentSectionByView[view] || (activityKey && routeMode === "student" ? "activity" : null);
   const teacherAccessAllowed = canAccessRole(auth.currentUser, "teacher");
   const adminAccessAllowed = canAccessRole(auth.currentUser, "admin");
@@ -158,7 +161,7 @@ export default function App() {
   return (
     <div className="eduforge-app" style={cssVars}>
       <AppIntro />
-      {isRoleView && (
+      {isRoleView && !isTeacherPresentation && (
         <>
           <Header
             activeRole={headerActiveRole}
@@ -237,6 +240,12 @@ export default function App() {
               saveActivity={courseData.saveActivity}
               reloadCourse={courseData.reloadCourse}
           />
+        )}
+        {view === "teacher-presentation" && !teacherAccessAllowed && (
+          <AccessGate requiredRole="teacher" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />
+        )}
+        {view === "teacher-presentation" && teacherAccessAllowed && (
+          <TeacherPresentationView activityKey={activityKey} navigateTo={navigateTo} />
         )}
         {studentSection && !studentAccessAllowed && (
           <AccessGate requiredRole="student" currentUser={auth.currentUser} authLoading={auth.authLoading} navigateTo={navigateTo} />

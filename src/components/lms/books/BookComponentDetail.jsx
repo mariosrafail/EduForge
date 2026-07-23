@@ -60,7 +60,7 @@ function CustomBookActivitySection({ activities, loading, error, mode, onOpenAct
   );
 }
 
-export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview }) {
+export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview }) {
   const activeCount = getActiveExercises(component).length;
   const recoveredStudentsBook = component.catalogKind === "recovered-students-book";
   const visibleUnitCount = component.units.filter((unit) => unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive))).length;
@@ -177,6 +177,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
           <TeacherBookUnitList
             component={component}
             onPreviewExercise={onPreviewExercise}
+            onPresentExercise={recoveredStudentsBook ? onPresentExercise : undefined}
             classOptions={classOptions}
             classes={classes}
             currentUser={currentUser}
@@ -227,6 +228,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
                             mode={mode}
                             onStartExercise={onStartExercise}
                             onPreviewExercise={onPreviewExercise}
+                            onPresentExercise={recoveredStudentsBook ? onPresentExercise : undefined}
                             classOptions={classOptions}
                             classes={classes}
                             currentUser={currentUser}

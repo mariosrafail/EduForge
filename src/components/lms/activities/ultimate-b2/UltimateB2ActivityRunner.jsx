@@ -7,6 +7,7 @@ import { GrammarOpening } from "./GrammarOpening.jsx";
 import { QuizActivity } from "./QuizActivity.jsx";
 import { DatabaseActivity } from "./DatabaseActivity.jsx";
 import { findStudentsBookImplementation, NormalizedStudentsBookActivity } from "./NormalizedStudentsBookActivity.jsx";
+import { getActivityModeCapabilities } from "../activityModes.js";
 
 function ImportedActivityPlaceholder({ activity }) {
   return (
@@ -48,7 +49,8 @@ function getBookIdForActivity(activityKey, resolved) {
 }
 
 function getActivityRouteRole(mode) {
-  return mode === "teacher-preview" ? "teacher" : "student";
+  const capabilities = getActivityModeCapabilities(mode);
+  return capabilities.isReadOnly || capabilities.isPresentation ? "teacher" : "student";
 }
 
 function getBookHashForActivity(activityKey, mode = "student", resolved = null) {
@@ -57,13 +59,14 @@ function getBookHashForActivity(activityKey, mode = "student", resolved = null) 
 }
 
 export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false }) {
+  const capabilities = getActivityModeCapabilities(mode);
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
   const normalized = findStudentsBookImplementation(activityKey || exerciseId);
   const exercise = resolved?.exercise;
   const contentJson = activity?.contentJson || activity?.content_json || {};
   const normalizedKey = normalized?.stableNormalizedId || null;
   const key = normalizedKey || exercise?.stableActivityId || exercise?.activityKey || exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
-  const studentDenied = mode !== "teacher-preview" && normalized?.availability === "disabled";
+  const studentDenied = !capabilities.isReadOnly && normalized?.availability === "disabled";
   const title = studentDenied ? "Activity unavailable" : activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
   const routeRole = getActivityRouteRole(mode);
   const packageRoute = `${routeRole}-books`;
@@ -95,11 +98,11 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
         </nav>
       )}
       <SectionTitle
-        eyebrow={mode === "teacher-preview" ? "Teacher preview" : "Students Book activity"}
+        eyebrow={capabilities.isPresentation ? "Teacher presentation" : capabilities.isReadOnly ? "Teacher preview" : "Students Book activity"}
         title={title}
-        action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{mode === "teacher-preview" ? "Preview" : "Student mode"}</Tag></div>}
+        action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{capabilities.isPresentation ? "Presentation" : capabilities.isReadOnly ? "Preview" : "Student mode"}</Tag></div>}
       />
-      {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
+      {capabilities.isReadOnly && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
       <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />
     </div>
   );

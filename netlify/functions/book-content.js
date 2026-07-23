@@ -22,9 +22,32 @@ import {
 } from "./_book-content-utils.js";
 import { getBookAssetAccess } from "./_book-asset-access.js";
 import { accessiblePackageIds } from "./_book-package-access.js";
+import {
+  buildUltimateB2TeacherSolutionPayload,
+  isUltimateB2PresentationActivityEnabled,
+} from "./_ultimate-b2-teacher-solutions.js";
 
 function badRequest(message) {
   return json(400, { error: message });
+}
+
+const teacherSolutionHeaders = {
+  "Cache-Control": "no-store, private",
+  "Pragma": "no-cache",
+  "Expires": "0",
+  "Vary": "Cookie",
+  "X-Content-Type-Options": "nosniff",
+};
+
+function withTeacherSolutionHeaders(response) {
+  return {
+    ...response,
+    headers: { ...(response?.headers || {}), ...teacherSolutionHeaders },
+  };
+}
+
+function teacherSolutionResponse(statusCode, body) {
+  return json(statusCode, body, teacherSolutionHeaders);
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1293,6 +1316,42 @@ function bookActivityRowToUi(row) {
   };
 }
 
+export async function getTeacherActivitySolutions(sql, currentUser, query = {}) {
+  const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+  if (roleError) return withTeacherSolutionHeaders(roleError);
+
+  const stableActivityId = String(query.stableActivityId || query.activitySlug || "").trim();
+  if (!/^ultimate-b2-sb-u[12]-p\d+-o\d+$/.test(stableActivityId)) {
+    return teacherSolutionResponse(404, { error: "Activity not found" });
+  }
+
+  const solution = buildUltimateB2TeacherSolutionPayload(stableActivityId);
+  if (!solution || !isUltimateB2PresentationActivityEnabled(stableActivityId)) {
+    return teacherSolutionResponse(404, { error: "Activity not found" });
+  }
+
+  const rows = await sql`
+    select bp.id as package_id, bp.slug as package_slug, bp.status as package_status,
+           bc.component_type
+    from book_packages bp
+    join book_components bc on bc.book_package_id = bp.id
+    where bp.slug = 'ultimate-b2'
+      and bc.component_type = 'students_book'
+    limit 1
+  `;
+  const packageComponent = rows[0];
+  if (!packageComponent || packageComponent.package_status !== "active") {
+    return teacherSolutionResponse(404, { error: "Activity not found" });
+  }
+
+  const allowedPackageIds = await accessiblePackageIds(sql, currentUser);
+  if (!allowedPackageIds.includes(String(packageComponent.package_id))) {
+    return withTeacherSolutionHeaders(forbidden());
+  }
+
+  return teacherSolutionResponse(200, { solution });
+}
+
 export function browserSafeBookActivityPayload(activity) {
   return stripStudentAnswerKeys(activity);
 }
@@ -1595,10 +1654,10 @@ async function createBookMediaAsset(sql, body, currentUser) {
 
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
+  const query = readQuery(event);
 
   try {
     const sql = getSql();
-    const query = readQuery(event);
 
     if (event.httpMethod === "GET" && query.action === "class-by-slug") {
       return json(404, { error: "Class not found" });
@@ -1614,10 +1673,17 @@ export async function handler(event) {
     }
 
     const auth = await requireAuth(event, sql);
-    if (auth.error) return auth.error;
+    if (auth.error) {
+      return query.action === "teacher-activity-solutions"
+        ? withTeacherSolutionHeaders(auth.error)
+        : auth.error;
+    }
     const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
+      if (query.action === "teacher-activity-solutions") {
+        return getTeacherActivitySolutions(sql, currentUser, query);
+      }
       if (query.action === "asset-access") {
         return getBookAssetAccess(sql, currentUser, query, {
           localRequestHost: event.headers?.host || event.headers?.Host || "",
@@ -1721,6 +1787,9 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === "POST") {
+      if (query.action === "teacher-activity-solutions") {
+        return teacherSolutionResponse(405, { error: "Method not allowed" });
+      }
       const body = parseBody(event);
       if (query.action === "activate") return json(410, { error: "Use the signed-in book licensing redemption endpoint" });
       if (query.action === "assign") {
@@ -1803,13 +1872,24 @@ export async function handler(event) {
 
     return json(405, { error: "Method not allowed" });
   } catch (error) {
-    if (isDatabaseNotConfiguredError(error)) return databaseNotConfiguredResponse();
+    if (isDatabaseNotConfiguredError(error)) {
+      const response = databaseNotConfiguredResponse();
+      return query.action === "teacher-activity-solutions"
+        ? withTeacherSolutionHeaders(response)
+        : response;
+    }
     if (error?.code === "42703") {
-      return json(500, {
+      const response = json(500, {
         error: "Assignment database migration is missing",
         migration: "database/010_assignment_live_flow.sql",
       });
+      return query.action === "teacher-activity-solutions"
+        ? withTeacherSolutionHeaders(response)
+        : response;
     }
-    return safeServerError(error, "Book content API failed");
+    const response = safeServerError(error, "Book content API failed");
+    return query.action === "teacher-activity-solutions"
+      ? withTeacherSolutionHeaders(response)
+      : response;
   }
 }

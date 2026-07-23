@@ -253,3 +253,26 @@ export function applyStudentsBookCatalog(component, databaseUnits = component?.u
 
 export const ultimateB2StudentsBookCatalog = buildStudentsBookCatalog();
 export const ultimateB2StudentsBookTeacherCatalog = buildStudentsBookCatalog({ includeDisabled: true });
+
+export function enabledStudentsBookActivitySequence(catalog = ultimateB2StudentsBookCatalog) {
+  return (catalog?.units || []).flatMap((unit) => (
+    (unit.lessons || []).flatMap((lesson) => (
+      (lesson.exercises || [])
+        .filter(isStudentsBookActivityEnabled)
+        .map((exercise) => ({
+          ...exercise,
+          unitTitle: unit.title,
+          unitNumber: unit.unitNumber,
+          sectionTitle: lesson.sectionTitle || lesson.title,
+          pageLabel: exercise.pageLabel || lesson.pageLabel,
+        }))
+    ))
+  ));
+}
+
+export function adjacentEnabledStudentsBookActivity(activityId, direction, catalog = ultimateB2StudentsBookCatalog) {
+  const sequence = enabledStudentsBookActivitySequence(catalog);
+  const index = sequence.findIndex((exercise) => exercise.stableActivityId === resolveStudentsBookStableId(activityId));
+  if (index < 0) return null;
+  return sequence[index + Math.sign(direction)] || null;
+}

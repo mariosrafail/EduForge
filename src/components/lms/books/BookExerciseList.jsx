@@ -2,7 +2,7 @@ import { Tag } from "../Shared.jsx";
 import { TeacherExerciseRow } from "./BookExerciseRow.jsx";
 import { isExerciseActive } from "./bookBrowserUtils.js";
 
-export function TeacherBookUnitList({ component, onPreviewExercise, classOptions, classes, currentUser }) {
+export function TeacherBookUnitList({ component, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser }) {
   const units = component.teacherUnits?.length ? component.teacherUnits : component.units;
 
   return (
@@ -35,6 +35,7 @@ export function TeacherBookUnitList({ component, onPreviewExercise, classOptions
                     key={exercise.id}
                     exercise={exercise}
                     onPreviewExercise={onPreviewExercise}
+                    onPresentExercise={onPresentExercise}
                     classOptions={classOptions}
                     classes={classes}
                     currentUser={currentUser}

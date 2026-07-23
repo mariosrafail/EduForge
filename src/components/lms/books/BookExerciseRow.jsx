@@ -1,4 +1,4 @@
-import { Copy, Eye, FileText, Lock, Play } from "lucide-react";
+import { Copy, Eye, FileText, Lock, MonitorPlay, Play } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 import { DisabledAssignControl, TeacherAssignControl } from "./TeacherAssignControl.jsx";
 import { buildActivityHash, copyHashLink, exerciseActionLabel, getExerciseActivityKey, isExerciseActive, statusTone } from "./bookBrowserUtils.js";
@@ -16,7 +16,7 @@ function ExerciseMetadata({ exercise }) {
   );
 }
 
-export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, classOptions, classes, currentUser, completedActivities = {} }) {
+export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities = {} }) {
   const isTeacher = mode === "teacher";
   const activityKey = getExerciseActivityKey(exercise);
   const completed = !isTeacher && completedActivities[activityKey];
@@ -55,6 +55,11 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
           <button className="secondary-action compact-action" type="button" onClick={() => onPreviewExercise?.(exercise)} data-sound-click="tab">
             <Eye size={16} /> Preview
           </button>
+          {onPresentExercise && (
+            <button className="primary-action compact-action" type="button" onClick={() => onPresentExercise(exercise)} data-sound-click="submit">
+              <MonitorPlay size={16} /> Present
+            </button>
+          )}
           {exercise.assignable
             ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} classes={classes} currentUser={currentUser} />
             : <Tag tone="slate">Not assignable</Tag>}
@@ -74,7 +79,7 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
   );
 }
 
-export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions, classes, currentUser }) {
+export function TeacherExerciseRow({ exercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser }) {
   const active = isExerciseActive(exercise);
   const activityKey = getExerciseActivityKey(exercise);
   const Icon = active ? FileText : Lock;
@@ -112,6 +117,17 @@ export function TeacherExerciseRow({ exercise, onPreviewExercise, classOptions, 
         >
           <Eye size={15} /> Preview
         </button>
+        {onPresentExercise && (
+          <button
+            className="primary-action compact-action teacher-present-action"
+            type="button"
+            disabled={!active}
+            onClick={() => onPresentExercise(exercise)}
+            data-sound-click="submit"
+          >
+            <MonitorPlay size={15} /> Present
+          </button>
+        )}
         {active && exercise.assignable
           ? <TeacherAssignControl exercise={exercise} classOptions={classOptions} classes={classes} currentUser={currentUser} />
           : <DisabledAssignControl label={exercise.disabledReason || "Not assignable"} />}

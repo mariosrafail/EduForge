@@ -188,6 +188,18 @@ export async function getActivity(activityIdOrSlug) {
   return payload.activity;
 }
 
+export async function getTeacherActivitySolutions(stableActivityId, { signal } = {}) {
+  const payload = await request(
+    `/.netlify/functions/book-content?action=teacher-activity-solutions&stableActivityId=${encodeURIComponent(stableActivityId)}`,
+    {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal,
+    },
+  );
+  return payload.solution;
+}
+
 export async function listUserBookAccess(userId) {
   const payload = await request(`/.netlify/functions/book-content?action=access&userId=${encodeURIComponent(userId)}`);
   return payload.bookAccess || [];

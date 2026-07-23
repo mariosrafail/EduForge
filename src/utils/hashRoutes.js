@@ -297,7 +297,13 @@ export function buildBookPageHash(role, bookId, pageUnitId, pageId) {
 }
 
 export function buildActivityHash(activityKey, mode = "student") {
-  return mode === "teacher-preview" ? `teacher-preview-${activityKey}` : `activity-${activityKey}`;
+  if (mode === "teacher-preview") return `teacher-preview-${activityKey}`;
+  if (mode === "teacher-presentation") return buildTeacherPresentationHash(activityKey);
+  return `activity-${activityKey}`;
+}
+
+export function buildTeacherPresentationHash(activityKey, packageSlug = "ultimate-b2", componentSlug = "students-book") {
+  return `/teacher/books/${slugifyRoute(packageSlug)}/components/${slugifyRoute(componentSlug)}/activities/${slugifyRoute(activityKey)}/presentation`;
 }
 
 export function buildClassInviteHash(classItem = {}) {
@@ -447,6 +453,26 @@ function parseTeacherRoute(hashView) {
     if (parts[2] && !bookPackage) return null;
     if (parts[3] && parts[3] !== "components") return null;
     if (parts[4] && !component) return null;
+
+    if (component && parts[5] === "activities" && parts[6] && parts[7] === "presentation" && parts.length === 8) {
+      const exercise = findExerciseByRouteSlug(component, parts[6]);
+      const enabled = exercise
+        && exercise.availability !== "disabled"
+        && exercise.implementationMode !== "unsupported-disabled"
+        && exercise.implementationStatus !== "disabled-editorial-only";
+      if (!enabled) return null;
+      return baseRoute(hashView, {
+        view: "teacher-presentation",
+        role: "teacher",
+        section: "books",
+        selectedPackageSlug: packageSlug,
+        selectedBookId: getComponentRouteSlug(component),
+        selectedBookSubview: "exercises",
+        activityKey: exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.id,
+        mode: "teacher-presentation",
+      });
+    }
+
     const subview = parts[5] || (component ? "exercises" : null);
     if (subview && !["exercises", "pages", "flipbook"].includes(subview)) return null;
     const pageMatch = component && parts[6] ? findPageByRouteToken(component, parts[6]) : null;
