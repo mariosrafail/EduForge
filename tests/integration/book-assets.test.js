@@ -91,7 +91,7 @@ test("book asset relationships, version constraints, and entitlement delivery ar
   });
 
   await t.test("logical keys resolve only the explicitly published edition and support rollback", async () => {
-    const first = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA }, { logicalKey: assetValues[6] }, { storage });
+    const first = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA, role: "student" }, { logicalKey: assetValues[6] }, { storage });
     assert.equal(JSON.parse(first.body).asset.id, asset.id);
 
     await pool.query("update book_assets set publication_status='archived' where id=$1", [asset.id]);
@@ -107,7 +107,7 @@ test("book asset relationships, version constraints, and entitlement delivery ar
     nextValues[14] = "integration-next";
     nextValues[15] = "2.0.0";
     const nextAsset = (await pool.query("insert into book_assets(book_package_id,edition_id,import_id,book_component_id,unit_id,page_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id", nextValues)).rows[0];
-    const current = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA }, { logicalKey: assetValues[6] }, { storage });
+    const current = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA, role: "student" }, { logicalKey: assetValues[6] }, { storage });
     assert.equal(JSON.parse(current.body).asset.id, nextAsset.id);
     assert.equal(JSON.parse(current.body).asset.version, "2.0.0");
 
@@ -117,7 +117,7 @@ test("book asset relationships, version constraints, and entitlement delivery ar
     await pool.query("update book_editions set status='published' where id=$1", [edition.id]);
     await pool.query("update book_asset_imports set status='published' where id=$1", [importRun.id]);
     await pool.query("update book_assets set publication_status='published' where id=$1", [asset.id]);
-    const rolledBack = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA }, { logicalKey: assetValues[6] }, { storage });
+    const rolledBack = await getBookAssetAccess(sql, { id: userA.id, school_id: schoolA, role: "student" }, { logicalKey: assetValues[6] }, { storage });
     assert.equal(JSON.parse(rolledBack.body).asset.id, asset.id);
     assert.equal(JSON.parse(rolledBack.body).asset.version, "1.0.0");
   });

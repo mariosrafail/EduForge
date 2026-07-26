@@ -1,15 +1,35 @@
 import React from "react";
-import { Capacitor } from "@capacitor/core";
-import { StatusBar, Style } from "@capacitor/status-bar";
+import { Component } from "react";
 
 import TeacherOfflineApp from "./TeacherOfflineApp.jsx";
 import { installTeacherOfflineNetworkGuard } from "./teacherOfflineNetworkGuard.js";
+import { installTeacherOfflineDiagnostics } from "./teacherOfflineDiagnostics.js";
 
-function hideAndroidSystemBars() {
-  if (!Capacitor.isNativePlatform()) return;
-  StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-  StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-  StatusBar.hide().catch(() => {});
+class TeacherOfflineErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error) {
+    if (import.meta.env.DEV) console.error("Teacher classroom rendering failed", error);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <main className="teacher-offline-status damaged" role="alert">
+          <h1>Classroom application could not open</h1>
+          <p>Close and reopen the application. Reinstall it if the problem continues.</p>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function pauseActiveMedia() {
@@ -18,16 +38,13 @@ function pauseActiveMedia() {
 
 export function renderApp(root) {
   installTeacherOfflineNetworkGuard();
-  hideAndroidSystemBars();
+  installTeacherOfflineDiagnostics();
   document.title = "Hamilton House Interactive Classroom";
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) pauseActiveMedia();
-    else hideAndroidSystemBars();
   });
   window.addEventListener("pagehide", pauseActiveMedia);
-  window.addEventListener("focus", hideAndroidSystemBars);
-  window.addEventListener("pageshow", hideAndroidSystemBars);
 
-  root.render(<TeacherOfflineApp />);
+  root.render(<TeacherOfflineErrorBoundary><TeacherOfflineApp /></TeacherOfflineErrorBoundary>);
 }

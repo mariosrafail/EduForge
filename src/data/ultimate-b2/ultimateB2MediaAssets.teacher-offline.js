@@ -1,21 +1,21 @@
 import unit2ReadingVideo from "../../assets/books/ultimate-b2/media/unit_2_reading_video.mp4";
 import unit2ReadingAudio from "../../assets/books/ultimate-b2/media/unit_2_reading_on_a_fast_track.mp3";
-import unit2GrammarVideo from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/unit/2/part4/obj1.mp4";
-import unit2FjordsAudio from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj3/audio.mp3";
-import unit2IcelandTripAudio from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/2/part5/obj4/audio.mp3";
-import unit2PhotoComparisonAudio from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/2/part6/obj2/audio.mp3";
-import unit2TristanDaCunhaAudio from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3";
-import unit1ReadingVideo from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/unit/1/part2/obj1.mp4";
-import unit1ReadingAudio from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part2/obj2/audio.mp3";
-import unit1ExtraVideo1 from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/extra/1/U1V1.mp4";
-import unit1ExtraVideo2 from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/extra/1/U1V2.mp4";
-import unit1ExtraVideo3 from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/extra/1/U1V3.mp4";
-import unit1GrammarVideo from "../../../Ultimate English B2.app/Contents/Resources/assets/videos/book1/unit/1/part4/obj1.mp4";
-import unit1TelevisionDialogue from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part5/obj3/audio.mp3";
-import unit1SixSituations from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part5/obj4/audio.mp3";
-import unit1DiscussionReview from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part5/obj5/audio.mp3";
-import unit1StudentComparison from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part6/obj2/audio.mp3";
-import unit1EightSituations from "../../../Ultimate English B2.app/Contents/Resources/assets/books/book1/unit/1/part10/obj1/audio.mp3";
+import unit2GrammarVideo from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-grammar-intro.mp4";
+import unit2FjordsAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-fjords.mp3";
+import unit2IcelandTripAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-iceland-trip.mp3";
+import unit2PhotoComparisonAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-photo-comparison.mp3";
+import unit2TristanDaCunhaAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-tristan-da-cunha.mp3";
+import unit1ReadingVideo from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-intro.mp4";
+import unit1ReadingAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-text.mp3";
+import unit1ExtraVideo1 from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-1.mp4";
+import unit1ExtraVideo2 from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-2.mp4";
+import unit1ExtraVideo3 from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-3.mp4";
+import unit1GrammarVideo from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-grammar-intro.mp4";
+import unit1TelevisionDialogue from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-television-dialogue.mp3";
+import unit1SixSituations from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-six-situations.mp3";
+import unit1DiscussionReview from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-discussion-review.mp3";
+import unit1StudentComparison from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-student-comparison.mp3";
+import unit1EightSituations from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-eight-situations.mp3";
 
 function localAsset(localUrl) {
   return { logicalKey: null, localUrl, devFallbackUrl: localUrl };

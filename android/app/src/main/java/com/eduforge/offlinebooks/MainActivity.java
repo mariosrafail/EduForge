@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         enableImmersiveFullscreen();
+        getWindow().getDecorView().post(this::enableImmersiveFullscreen);
     }
 
     @Override
@@ -28,10 +29,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onPause() {
+        pauseWebMedia();
+        super.onPause();
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             enableImmersiveFullscreen();
+        } else {
+            pauseWebMedia();
         }
     }
 
@@ -41,11 +50,12 @@ public class MainActivity extends BridgeActivity {
 
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.getAttributes().layoutInDisplayCutoutMode =
+            WindowManager.LayoutParams attributes = window.getAttributes();
+            attributes.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            window.setAttributes(attributes);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -71,4 +81,15 @@ public class MainActivity extends BridgeActivity {
             compatController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         }
     }
+
+    private void pauseWebMedia() {
+        if (getBridge() == null || getBridge().getWebView() == null) {
+            return;
+        }
+        getBridge().getWebView().evaluateJavascript(
+            "document.querySelectorAll('audio,video').forEach(function(media){media.pause();});",
+            null
+        );
+    }
+
 }

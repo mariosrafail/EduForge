@@ -25,18 +25,27 @@ export function findUnit2Implementation(id) {
 
 export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-normalized-media" }) {
   const mediaRef = useRef(null);
+  const [mediaError, setMediaError] = useState("");
   const offlineAsset = ultimateB2StudentsBookMedia[logicalKey] || null;
   const isOfflineApp = ["android-offline", "android-teacher-offline"].includes(import.meta.env.VITE_APP_MODE);
   const androidLocalUrl = isOfflineApp ? offlineAsset?.localUrl : null;
   const asset = useBookAsset(androidLocalUrl ? null : logicalKey, {
     devFallbackUrl: androidLocalUrl || (import.meta.env.DEV ? offlineAsset?.devFallbackUrl : null),
   });
-  useEffect(() => () => {
-    const mediaElement = mediaRef.current;
-    if (!mediaElement) return;
-    mediaElement.pause();
-    mediaElement.removeAttribute("src");
-    mediaElement.load();
+  useEffect(() => {
+    setMediaError("");
+    const pauseWhenHidden = () => {
+      if (document.hidden) mediaRef.current?.pause();
+    };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => {
+      document.removeEventListener("visibilitychange", pauseWhenHidden);
+      const mediaElement = mediaRef.current;
+      if (!mediaElement) return;
+      mediaElement.pause();
+      mediaElement.removeAttribute("src");
+      mediaElement.load();
+    };
   }, [logicalKey]);
   if (asset.loading) return <div className="inline-status">Loading {type}…</div>;
   if (!asset.url) {
@@ -47,9 +56,42 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
       </div>
     );
   }
-  return type === "video"
-    ? <video ref={mediaRef} className={className} controls preload="metadata" src={asset.url} />
-    : <audio ref={mediaRef} className={className} controls preload="metadata" src={asset.url} />;
+  const retryMedia = () => {
+    setMediaError("");
+    mediaRef.current?.load();
+  };
+  return (
+    <>
+      {type === "video"
+        ? (
+          <video
+            ref={mediaRef}
+            className={className}
+            controls
+            playsInline
+            preload="metadata"
+            src={asset.url}
+            onError={() => setMediaError("This local video format could not be played on this device.")}
+          />
+        )
+        : (
+          <audio
+            ref={mediaRef}
+            className={className}
+            controls
+            preload="metadata"
+            src={asset.url}
+            onError={() => setMediaError("This local audio format could not be played on this device.")}
+          />
+        )}
+      {mediaError && (
+        <div className="inline-status error" role="alert">
+          {mediaError}
+          <button className="secondary-action compact-action" type="button" onClick={retryMedia}>Try again</button>
+        </div>
+      )}
+    </>
+  );
 }
 
 function responsePayload(activity, answers) {

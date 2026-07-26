@@ -112,23 +112,65 @@ test("previous and next traverse exactly the 77 enabled activities", () => {
 });
 
 test("teacher app uses bounded page/media state and no student persistence path", async () => {
-  const [app, pages, presentation, renderer, provider, storage] = await Promise.all([
+  const [app, pages, presentation, renderer, provider, storage, entry, networkGuard] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePresentation.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/generatedPackProvider.js", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineStorage.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineNetworkGuard.js", "utf8"),
   ]);
   assert.match(presentation, /TEACHER_PRESENTATION_OFFLINE/);
   assert.match(presentation, /NormalizedStudentsBookActivity/);
   assert.match(pages, /<img[\s\S]*key=\{page\.id\}/);
   assert.equal((pages.match(/<img\b/g) || []).length, 1);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
+  assert.match(renderer, /mediaRef\.current\?\.pause/);
+  assert.match(renderer, /visibilitychange/);
+  assert.match(renderer, /preload="metadata"/);
+  assert.match(renderer, /onError=\{\(\) => setMediaError/);
   assert.match(app, /teacherContentPackProvider\.load/);
+  assert.match(app, /App\.addListener\("backButton"/);
+  assert.match(app, /current\.view === "book"[\s\S]*replaceState\(next, "", "#library"\)/);
+  assert.match(app, /current\.view === "library"[\s\S]*App\.exitApp/);
+  assert.match(app, /replace: true/);
   assert.doesNotMatch(app, /onSubmit|markAndroidOfflinePageComplete|saveAndroidOfflineAnswer/);
   assert.doesNotMatch(storage, /answer|solution|submission|grade/i);
   assert.match(provider, /teacher-solutions\.json/);
+  assert.match(entry, /visibilitychange/);
+  assert.match(entry, /pagehide/);
+  assert.match(networkGuard, /\["WebSocket", "EventSource"\]/);
+});
+
+test("teacher Android shell is landscape, immersive, offline-only, and safely labeled", async () => {
+  const [manifest, activity, gradle, buildScript, apkVerifier] = await Promise.all([
+    readFile("android/app/src/main/AndroidManifest.xml", "utf8"),
+    readFile("android/app/src/main/java/com/eduforge/offlinebooks/MainActivity.java", "utf8"),
+    readFile("android/app/build.gradle", "utf8"),
+    readFile("scripts/android-teacher/build-apk.mjs", "utf8"),
+    readFile("scripts/android-teacher/verify-apk.mjs", "utf8"),
+  ]);
+  assert.match(manifest, /android:screenOrientation="landscape"/);
+  assert.doesNotMatch(manifest, /android\.permission\.INTERNET/);
+  assert.match(activity, /BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE/);
+  assert.match(activity, /onPause\(\)[\s\S]*pauseWebMedia/);
+  assert.doesNotMatch(activity, /FLAG_LAYOUT_NO_LIMITS/);
+  assert.match(gradle, /teacherPresentation[\s\S]*Hamilton House Interactive Classroom/);
+  assert.match(buildScript, /build:android-teacher-offline[\s\S]*cap[\s\S]*run-gradle\.mjs[\s\S]*verify:android-teacher-apk/);
+  assert.match(apkVerifier, /applicationId[\s\S]*applicationLabel[\s\S]*minSdk[\s\S]*targetSdk/);
+});
+
+test("teacher media mappings are checkout-local and never use raw publisher application paths", async () => {
+  const [sources, runtimeAssets] = await Promise.all([
+    readFile("scripts/android-teacher/pack-asset-sources.mjs", "utf8"),
+    readFile("src/data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js", "utf8"),
+  ]);
+  assert.doesNotMatch(sources, /Ultimate English B2\.app|Contents[\\/]Resources/);
+  assert.doesNotMatch(runtimeAssets, /Ultimate English B2\.app|Contents[\\/]Resources/);
+  assert.match(sources, /teacher-offline-media/);
+  assert.match(runtimeAssets, /teacher-offline-media/);
 });
 
 test("web and student build aliases cannot import the offline solution file", async () => {

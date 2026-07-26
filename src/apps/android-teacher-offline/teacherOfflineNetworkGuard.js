@@ -52,4 +52,16 @@ export function installTeacherOfflineNetworkGuard() {
       isAllowedTeacherOfflineUrl(url) ? originalSendBeacon(url, data) : false
     );
   }
+
+  for (const constructorName of ["WebSocket", "EventSource"]) {
+    const OriginalConstructor = globalThis[constructorName];
+    if (!OriginalConstructor) continue;
+    const GuardedConstructor = function guardedConnection(url, ...rest) {
+      if (!isAllowedTeacherOfflineUrl(url)) throw blockedError(url);
+      return new OriginalConstructor(url, ...rest);
+    };
+    GuardedConstructor.prototype = OriginalConstructor.prototype;
+    Object.setPrototypeOf(GuardedConstructor, OriginalConstructor);
+    globalThis[constructorName] = GuardedConstructor;
+  }
 }

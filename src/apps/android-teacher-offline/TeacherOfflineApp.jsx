@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
 import { teacherContentPackProvider } from "./generatedPackProvider.js";
@@ -7,6 +9,7 @@ import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
 import TeacherOfflineMedia from "./TeacherOfflineMedia.jsx";
 import TeacherOfflinePresentation from "./TeacherOfflinePresentation.jsx";
+import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -17,6 +20,8 @@ function libraryState() {
 export default function TeacherOfflineApp() {
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
   const [navigation, setNavigation] = useState(libraryState);
+  const navigationRef = useRef(navigation);
+  navigationRef.current = navigation;
 
   useEffect(() => {
     let active = true;
@@ -25,12 +30,17 @@ export default function TeacherOfflineApp() {
         if (active) setPackState({ status: "ready", pack, error: "" });
       })
       .catch((error) => {
-        if (active) setPackState({ status: "error", pack: null, error: error.message });
+        if (import.meta.env.DEV) console.error("Teacher content validation failed", error);
+        if (active) setPackState({ status: "error", pack: null, error: "Reinstall the verified classroom application." });
       });
     return () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    recordTeacherOfflineNavigation(navigation.view);
+  }, [navigation.view]);
 
   useEffect(() => {
     window.history.replaceState(libraryState(), "", "#library");
@@ -52,8 +62,40 @@ export default function TeacherOfflineApp() {
   };
   const updateBookLocation = (location, options) => {
     writeTeacherOfflineLocation(location);
-    navigate({ view: "book", location }, options);
+    navigate({ view: "book", location }, { ...options, replace: true });
   };
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let disposed = false;
+    let backHandle;
+    const register = async () => {
+      backHandle = await App.addListener("backButton", async () => {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen().catch(() => {});
+          return;
+        }
+        const current = navigationRef.current;
+        if (current.view === "library") {
+          await App.exitApp();
+          return;
+        }
+        if (current.view === "book") {
+          const next = libraryState();
+          window.history.replaceState(next, "", "#library");
+          setNavigation(next);
+          return;
+        }
+        window.history.back();
+      });
+      if (disposed) await backHandle.remove();
+    };
+    register();
+    return () => {
+      disposed = true;
+      backHandle?.remove();
+    };
+  }, []);
 
   if (packState.status === "loading") {
     return <main className="teacher-offline-status" role="status"><h1>Checking classroom content…</h1></main>;
@@ -62,7 +104,7 @@ export default function TeacherOfflineApp() {
     return (
       <main className="teacher-offline-status damaged" role="alert">
         <h1>Content pack unavailable or damaged</h1>
-        <p>{packState.error || "Reinstall the verified classroom content pack."}</p>
+        <p>{packState.error || "Reinstall the verified classroom application."}</p>
       </main>
     );
   }

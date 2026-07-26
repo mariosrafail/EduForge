@@ -9,7 +9,7 @@ on:
 jobs:
   unit-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,8 +19,38 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run verify:web-bundle-safety
       - run: npm run build:android-offline
+      - run: npm run verify:android-student-bundle-safety
+      - run: npm run verify:android-teacher-pack
+      - run: npm run build:android-teacher-offline
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:android-teacher-offline:smoke
+      - run: npm run verify:android-teacher-media
       - run: npm audit --audit-level=high
+
+  android-debug-builds:
+    needs: unit-and-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - run: npm ci
+      - run: chmod +x android/gradlew
+      - name: Assemble existing Android offline debug APK
+        run: npm run android:build
+      - name: Assemble and verify teacher classroom debug APK
+        run: npm run android:teacher:build
 
   integration-database:
     needs: unit-and-build
