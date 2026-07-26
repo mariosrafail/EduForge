@@ -17,6 +17,9 @@ import {
   verifiedSolutionQuestionIds,
 } from "../presentationAnswers.js";
 import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
+import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
+import { isUltimateB2Unit1Part2LegacyPilot } from "../../../../data/ultimate-b2/unit1Part2LegacyPilotAssets.js";
+import { UltimateB2LegacyPilotActivity } from "./UltimateB2LegacyPilotActivity.jsx";
 
 export function findUnit2Implementation(id) {
   const activity = findStudentsBookImplementation(id);
@@ -25,6 +28,7 @@ export function findUnit2Implementation(id) {
 
 export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-normalized-media" }) {
   const mediaRef = useRef(null);
+  const announcePlayback = useExclusiveMediaPlayback(mediaRef);
   const [mediaError, setMediaError] = useState("");
   const offlineAsset = ultimateB2StudentsBookMedia[logicalKey] || null;
   const isOfflineApp = ["android-offline", "android-teacher-offline"].includes(import.meta.env.VITE_APP_MODE);
@@ -71,6 +75,7 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
             playsInline
             preload="metadata"
             src={asset.url}
+            onPlay={announcePlayback}
             onError={() => setMediaError("This local video format could not be played on this device.")}
           />
         )
@@ -81,6 +86,7 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
             controls
             preload="metadata"
             src={asset.url}
+            onPlay={announcePlayback}
             onError={() => setMediaError("This local audio format could not be played on this device.")}
           />
         )}
@@ -272,6 +278,68 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     : solutions?.solutionAvailability === "missing"
       ? "No verified answer is available for this activity."
       : "";
+  const mediaPlayers = media.map((dependency) => (
+    <StudentsBookMediaPlayer
+      key={dependency.logicalKey}
+      logicalKey={dependency.logicalKey}
+      type={dependency.type}
+      className="unit2-normalized-media legacy-pilot-primary-media"
+    />
+  ));
+  const activityActions = (
+    <>
+      {capabilities.canSubmitStudentWork && ["auto-scored", "teacher-reviewed"].includes(activity.implementationMode) && !submitted && (
+        <button className="primary-action" type="button" onClick={submit} disabled={submitting || questions.some((question) => !String(answers[question.id] || "").trim())}>{submitting ? "Submitting…" : "Submit"}</button>
+      )}
+      {capabilities.canSubmitStudentWork && ["unscored-practice", "reading-content"].includes(activity.implementationMode) && !completed && (
+        <button className="primary-action" type="button" onClick={markComplete} disabled={submitting}>{submitting ? "Saving…" : "Mark complete"}</button>
+      )}
+      {submitted && activity.implementationMode === "teacher-reviewed" && <div className="inline-status success">Submitted · Awaiting teacher review <small>Application feedback</small></div>}
+      {submitted && activity.implementationMode === "auto-scored" && (
+        <div className="inline-status success">{Number.isFinite(serverResult?.scorePercent) ? `${serverResult.correctCount}/${serverResult.totalCount} correct · ${serverResult.scorePercent}%` : "Submitted"} <small>Application feedback</small></div>
+      )}
+      {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
+      {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
+      {submitError && <div className="inline-status error">{submitError}</div>}
+      {capabilities.isPresentation && (
+        <div className="teacher-presentation-answer-controls" aria-label="Presentation answer controls">
+          <button className="primary-action" type="button" onClick={checkAnswers} disabled={solutionsLoading || Boolean(solutions && solutions.solutionAvailability !== "explicit")}>
+            {solutionsLoading ? "Loading solutions…" : "Check"}
+          </button>
+          <button className="secondary-action" type="button" onClick={reset}>Reset</button>
+          <button className="secondary-action" type="button" onClick={revealAll} disabled={solutionsLoading || solutions?.solutionAvailability !== undefined && solutions.solutionAvailability !== "explicit"}>
+            Show all answers
+          </button>
+          <button className="secondary-action" type="button" onClick={() => setRevealedQuestionIds(hidePresentationAnswers())} disabled={!revealedQuestionIds.length}>
+            Hide answers
+          </button>
+        </div>
+      )}
+      {solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
+      {solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
+      {solutionError && <div className="inline-status error">{solutionError}</div>}
+      {(submitted || completed) && capabilities.canSubmitStudentWork && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
+    </>
+  );
+
+  if (isUltimateB2Unit1Part2LegacyPilot(activity)) {
+    return (
+      <UltimateB2LegacyPilotActivity
+        activity={activity}
+        capabilities={capabilities}
+        answers={answers}
+        frozen={frozen}
+        updateAnswer={updateAnswer}
+        checkResults={checkResults}
+        revealedQuestionIds={revealedQuestionIds}
+        solutions={solutions}
+        solutionsLoading={solutionsLoading}
+        revealQuestion={revealQuestion}
+        mediaPlayers={mediaPlayers}
+        actions={activityActions}
+      />
+    );
+  }
 
   return (
     <Card className={`unit2-normalized-activity ${capabilities.isPresentation ? "teacher-presentation-activity" : ""}`}>
@@ -286,7 +354,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         </Tag>
       </div>
 
-      {media.map((dependency) => <StudentsBookMediaPlayer key={dependency.logicalKey} logicalKey={dependency.logicalKey} type={dependency.type} />)}
+      {mediaPlayers}
 
       {questions.length > 0 && (
         <div className="unit2-normalized-question-list">
@@ -328,37 +396,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         </div>
       )}
 
-      {capabilities.canSubmitStudentWork && ["auto-scored", "teacher-reviewed"].includes(activity.implementationMode) && !submitted && (
-        <button className="primary-action" type="button" onClick={submit} disabled={submitting || questions.some((question) => !String(answers[question.id] || "").trim())}>{submitting ? "Submitting…" : "Submit"}</button>
-      )}
-      {capabilities.canSubmitStudentWork && ["unscored-practice", "reading-content"].includes(activity.implementationMode) && !completed && (
-        <button className="primary-action" type="button" onClick={markComplete} disabled={submitting}>{submitting ? "Saving…" : "Mark complete"}</button>
-      )}
-      {submitted && activity.implementationMode === "teacher-reviewed" && <div className="inline-status success">Submitted · Awaiting teacher review <small>Application feedback</small></div>}
-      {submitted && activity.implementationMode === "auto-scored" && (
-        <div className="inline-status success">{Number.isFinite(serverResult?.scorePercent) ? `${serverResult.correctCount}/${serverResult.totalCount} correct · ${serverResult.scorePercent}%` : "Submitted"} <small>Application feedback</small></div>
-      )}
-      {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
-      {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
-      {submitError && <div className="inline-status error">{submitError}</div>}
-      {capabilities.isPresentation && (
-        <div className="teacher-presentation-answer-controls" aria-label="Presentation answer controls">
-          <button className="primary-action" type="button" onClick={checkAnswers} disabled={solutionsLoading || Boolean(solutions && solutions.solutionAvailability !== "explicit")}>
-            {solutionsLoading ? "Loading solutions…" : "Check"}
-          </button>
-          <button className="secondary-action" type="button" onClick={reset}>Reset</button>
-          <button className="secondary-action" type="button" onClick={revealAll} disabled={solutionsLoading || solutions?.solutionAvailability !== undefined && solutions.solutionAvailability !== "explicit"}>
-            Show all answers
-          </button>
-          <button className="secondary-action" type="button" onClick={() => setRevealedQuestionIds(hidePresentationAnswers())} disabled={!revealedQuestionIds.length}>
-            Hide answers
-          </button>
-        </div>
-      )}
-      {solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
-      {solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
-      {solutionError && <div className="inline-status error">{solutionError}</div>}
-      {(submitted || completed) && capabilities.canSubmitStudentWork && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
+      {activityActions}
     </Card>
   );
 }

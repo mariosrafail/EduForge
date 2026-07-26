@@ -35,6 +35,12 @@ export default defineConfig(({ mode }) => {
   const ultimateB2CoverAssets = path.resolve(process.cwd(), isAndroidOffline
     ? "src/data/ultimate-b2/ultimateB2CoverAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2CoverAssets.web.js");
+  const ultimateB2Unit1Part2LegacyPilotAudio = path.resolve(
+    process.cwd(),
+    isAndroidOffline
+      ? "src/data/ultimate-b2/unit1Part2LegacyPilotAudio.offline.js"
+      : "src/data/ultimate-b2/unit1Part2LegacyPilotAudio.web.js",
+  );
   const ultimateB2LegacyContent = path.resolve(
     process.cwd(),
     "src/components/lms/activities/ultimate-b2/content/webContent.js",
@@ -58,6 +64,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-cover-assets",
           replacement: ultimateB2CoverAssets,
+        },
+        {
+          find: "virtual:ultimate-b2-unit1-part2-legacy-pilot-audio",
+          replacement: ultimateB2Unit1Part2LegacyPilotAudio,
         },
         {
           find: "virtual:ultimate-b2-legacy-content",

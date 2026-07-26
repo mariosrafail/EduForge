@@ -90,7 +90,7 @@ const scenario = String.raw`
     if (!articles[index]) throw new Error("Activity article not found: " + index);
     articles[index].querySelector("button").click();
     await waitFor(() => document.querySelector(".teacher-offline-presentation"), "activity presentation");
-    if (document.querySelectorAll(".unit2-normalized-activity").length !== 1) {
+    if (document.querySelectorAll(".unit2-normalized-activity, .ultimate-b2-legacy-pilot").length !== 1) {
       throw new Error("Expected exactly one active activity renderer");
     }
     await click("Back to book");
@@ -100,7 +100,7 @@ const scenario = String.raw`
       await waitFor(() => document.querySelector(".teacher-offline-lessons article"), "activity contents after return");
     }
   };
-  const openMediaActivity = async (unit, title, type) => {
+  const openMediaActivity = async (unit, title, type, selector = type, variant = "primary") => {
     await click("Unit " + unit);
     await click("Contents / Exercises");
     await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length > 0, "activity contents");
@@ -108,15 +108,18 @@ const scenario = String.raw`
       .find((candidate) => candidate.querySelector("strong")?.textContent.trim() === title);
     if (!article) throw new Error("Media activity not found: " + unit + " " + title);
     article.querySelector("button").click();
-    await waitFor(() => document.querySelector(type), type + " element");
-    const media = document.querySelector(type);
+    await waitFor(() => document.querySelector(selector), type + " element");
+    const media = document.querySelector(selector);
     await waitFor(() => media.readyState >= 1, type + " metadata", 30000);
     const source = new URL(media.currentSrc || media.src);
     if (source.origin !== location.origin || !source.pathname.startsWith("/assets/")) {
       throw new Error("Media did not resolve to a packaged local asset");
     }
     const before = media.currentTime;
-    await media.play();
+    await Promise.race([
+      media.play(),
+      sleep(15000).then(() => { throw new Error(type + " playback start timed out: " + variant); }),
+    ]);
     await sleep(1200);
     const playedTo = media.currentTime;
     media.pause();
@@ -136,6 +139,7 @@ const scenario = String.raw`
     return {
       unit,
       type,
+      variant,
       durationSeconds: Number(media.duration.toFixed(2)),
       playedSeconds: Number((playedTo - before).toFixed(2)),
       seekedToSeconds: Number(seekedTo.toFixed(2)),
@@ -191,7 +195,8 @@ const scenario = String.raw`
 
   const media = [];
   media.push(await openMediaActivity(1, "Reading · Exercise 1", "video"));
-  media.push(await openMediaActivity(1, "Reading · Exercise 2", "audio"));
+  media.push(await openMediaActivity(1, "Reading · Exercise 2", "audio", ".legacy-pilot-main-audio audio"));
+  media.push(await openMediaActivity(1, "Reading · Exercise 2", "audio", ".legacy-pilot-highlight-player audio", "publisher-highlight"));
   media.push(await openMediaActivity(2, "Reading · Exercise 1", "video"));
   media.push(await openMediaActivity(2, "Reading · Exercise 2", "audio"));
 

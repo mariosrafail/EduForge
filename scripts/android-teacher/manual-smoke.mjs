@@ -72,7 +72,11 @@ try {
   const activityOpenMs = Math.round(performance.now() - activityOpenStartedAt);
   const multipleChoiceSolution = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o3"];
   const firstMultipleChoice = Object.values(multipleChoiceSolution.questions)[0];
-  await page.locator(".unit2-normalized-question select").first().selectOption({ label: firstMultipleChoice.acceptedAnswers[0] });
+  const firstMultipleChoiceRadios = page.locator(".legacy-pilot-choice-question").first().getByRole("radio");
+  const firstMultipleChoiceValues = await firstMultipleChoiceRadios.evaluateAll((radios) => radios.map((radio) => radio.value));
+  const correctMultipleChoiceIndex = firstMultipleChoiceValues.indexOf(firstMultipleChoice.acceptedAnswers[0]);
+  assert.ok(correctMultipleChoiceIndex >= 0, "Publisher multiple-choice answer must remain available in the pilot controls");
+  await firstMultipleChoiceRadios.nth(correctMultipleChoiceIndex).check();
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByText("Correct", { exact: true }).first().waitFor();
   await page.getByRole("button", { name: "Show answer", exact: true }).first().click();
@@ -80,7 +84,7 @@ try {
   await page.getByRole("button", { name: "Show all answers" }).click();
   await page.getByRole("button", { name: "Hide answers" }).click();
   await page.getByRole("button", { name: "Reset" }).click();
-  assert.equal(await page.locator(".unit2-normalized-question select").first().inputValue(), "");
+  assert.equal(await firstMultipleChoiceRadios.nth(correctMultipleChoiceIndex).isChecked(), false);
   await backToBook(page);
 
   await openExercises(page, 2);

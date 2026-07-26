@@ -7,6 +7,22 @@ const sourceAssets = new Map([
   ["ultimate-b2.grammar-book.cover", { type: "image/jpeg", role: "cover", path: "src/assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg" }],
   ["ultimate-b2.test-book.cover", { type: "image/jpeg", role: "cover", path: "src/assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg" }],
   ["ultimate-b2.students-book.unit-2.reading.text-image", { type: "image/jpeg", role: "illustration", path: "src/assets/books/ultimate-b2/student-text.jpg" }],
+  ...[1, 2, 3].map((number) => [
+    `ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-${number}`,
+    {
+      type: "audio/mpeg",
+      role: "audio_segment",
+      path: `src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj2/audio/highlight_${number}.mp3`,
+    },
+  ]),
+  ...[1, 2, 3, 4, 5, 6].map((number) => [
+    `ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-${number}`,
+    {
+      type: "audio/mpeg",
+      role: "audio_segment",
+      path: `src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj3/audio/highlight_${number}.mp3`,
+    },
+  ]),
 ]);
 
 const mediaAssets = new Map([

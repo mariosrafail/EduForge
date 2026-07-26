@@ -27,6 +27,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:android-teacher-offline:smoke
       - run: npm run test:android-teacher-offline:viewports
+      - run: npm run test:ultimate-b2:legacy-pilot:assets
+      - run: npm run test:ultimate-b2:legacy-pilot:visual
+      - run: npm run test:ultimate-b2:legacy-pilot:modes
       - run: npm run verify:android-teacher-media
       - run: npm audit --audit-level=high
 
