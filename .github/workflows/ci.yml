@@ -26,6 +26,7 @@ jobs:
       - run: npm run build:android-teacher-offline
       - run: npx playwright install --with-deps chromium
       - run: npm run test:android-teacher-offline:smoke
+      - run: npm run test:android-teacher-offline:viewports
       - run: npm run verify:android-teacher-media
       - run: npm audit --audit-level=high
 

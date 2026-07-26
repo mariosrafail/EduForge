@@ -9,7 +9,9 @@ import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
 import TeacherOfflineMedia from "./TeacherOfflineMedia.jsx";
 import TeacherOfflinePresentation from "./TeacherOfflinePresentation.jsx";
+import TeacherViewportDiagnostics from "./TeacherViewportDiagnostics.jsx";
 import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
+import { useTeacherViewportProfile } from "./viewportProfiles.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -18,6 +20,7 @@ function libraryState() {
 }
 
 export default function TeacherOfflineApp() {
+  const viewport = useTeacherViewportProfile();
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
@@ -110,27 +113,27 @@ export default function TeacherOfflineApp() {
   }
 
   const pack = packState.pack;
+  let content;
   if (navigation.view === "activity") {
-    return (
+    content = (
       <TeacherOfflinePresentation
         key={navigation.activityId}
         activityId={navigation.activityId}
         activities={pack.activities.activities}
         onBack={() => window.history.back()}
         onNavigate={(activityId) => navigate({ ...navigation, activityId }, { replace: true })}
+        viewportProfile={viewport.profile}
       />
     );
-  }
-  if (navigation.view === "media") {
-    return (
+  } else if (navigation.view === "media") {
+    content = (
       <TeacherOfflineMedia
         media={navigation.media}
         onBack={() => window.history.back()}
       />
     );
-  }
-  if (navigation.view === "book") {
-    return (
+  } else if (navigation.view === "book") {
+    content = (
       <TeacherOfflineBook
         pack={pack}
         pageUnits={pageUnits}
@@ -139,8 +142,11 @@ export default function TeacherOfflineApp() {
         onOpenActivity={(activityId) => navigate({ view: "activity", activityId, location: navigation.location || defaultLocation })}
         onOpenMedia={(media) => navigate({ view: "media", media, location: navigation.location || defaultLocation })}
         onBackToLibrary={() => navigate(libraryState(), { replace: true })}
+        viewportProfile={viewport.profile}
       />
     );
+  } else {
+    content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
   }
-  return <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
+  return <>{content}{import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}</>;
 }

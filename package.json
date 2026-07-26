@@ -34,6 +34,7 @@
     "verify:android-teacher-media": "node scripts/android-teacher/verify-media.mjs",
     "verify:android-teacher-apk": "node scripts/android-teacher/verify-apk.mjs",
     "test:android-teacher-offline:smoke": "node scripts/android-teacher/manual-smoke.mjs",
+    "test:android-teacher-offline:viewports": "node scripts/android-teacher/viewport-matrix.mjs",
     "test:android-teacher-device": "node scripts/android-teacher/device-smoke.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 8000",
     "android:init": "npx cap add android",

@@ -19,6 +19,10 @@ import {
 } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 import { checkPresentationAnswers } from "../src/components/lms/activities/presentationAnswers.js";
 import { buildUltimateB2TeacherSolutionPayload } from "../netlify/functions/_ultimate-b2-teacher-solutions.js";
+import {
+  classifyTeacherViewport,
+  TEACHER_VIEWPORT_PROFILES,
+} from "../src/apps/android-teacher-offline/viewportProfiles.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -36,6 +40,15 @@ const teacherSolutions = {
   ])),
 };
 const pack = { manifest, catalog, activities, teacherSolutions, assetsManifest };
+
+test("teacher viewport profiles use available width and height rather than device identity", () => {
+  assert.equal(classifyTeacherViewport({ width: 800, height: 360 }), TEACHER_VIEWPORT_PROFILES.COMPACT);
+  assert.equal(classifyTeacherViewport({ width: 1024, height: 600 }), TEACHER_VIEWPORT_PROFILES.MEDIUM);
+  assert.equal(classifyTeacherViewport({ width: 1180, height: 820 }), TEACHER_VIEWPORT_PROFILES.EXPANDED);
+  assert.equal(classifyTeacherViewport({ width: 1280, height: 720 }), TEACHER_VIEWPORT_PROFILES.LARGE);
+  assert.equal(classifyTeacherViewport({ width: 1920, height: 1080 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
+  assert.equal(classifyTeacherViewport({ width: 3840, height: 2160 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
+});
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
   assert.equal(ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE, "teacher-presentation-offline");

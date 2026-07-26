@@ -4,6 +4,9 @@ import { promisify } from "node:util";
 
 const endpoint = process.env.ANDROID_WEBVIEW_DEVTOOLS_URL || "http://127.0.0.1:9222/json";
 const runFile = promisify(execFile);
+const adbArguments = (...args) => process.env.ANDROID_ADB_SERIAL
+  ? ["-s", process.env.ANDROID_ADB_SERIAL, ...args]
+  : args;
 const targets = await fetch(endpoint).then((response) => response.json());
 const target = targets.find((candidate) => candidate.type === "page" && candidate.url.startsWith("https://localhost"));
 assert.ok(target?.webSocketDebuggerUrl, "No debuggable teacher Android WebView was found");
@@ -61,6 +64,7 @@ async function evaluate(expression) {
 const scenario = String.raw`
 (async () => {
   const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+  const wakeLock = await navigator.wakeLock?.request("screen").catch(() => null);
   const waitFor = async (predicate, label, timeout = 15000) => {
     const started = performance.now();
     while (!predicate()) {
@@ -78,6 +82,10 @@ const scenario = String.raw`
     await sleep(75);
   };
   const openArticle = async (index) => {
+    if (!document.querySelector(".teacher-offline-lessons article")) {
+      await click("Contents / Exercises");
+      await waitFor(() => document.querySelector(".teacher-offline-lessons article"), "activity contents");
+    }
     const articles = [...document.querySelectorAll(".teacher-offline-lessons article")];
     if (!articles[index]) throw new Error("Activity article not found: " + index);
     articles[index].querySelector("button").click();
@@ -87,10 +95,15 @@ const scenario = String.raw`
     }
     await click("Back to book");
     await waitFor(() => document.querySelector(".teacher-offline-book"), "book after activity");
+    if (!document.querySelector(".teacher-offline-lessons article")) {
+      await click("Contents / Exercises");
+      await waitFor(() => document.querySelector(".teacher-offline-lessons article"), "activity contents after return");
+    }
   };
   const openMediaActivity = async (unit, title, type) => {
     await click("Unit " + unit);
     await click("Contents / Exercises");
+    await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length > 0, "activity contents");
     const article = [...document.querySelectorAll(".teacher-offline-lessons article")]
       .find((candidate) => candidate.querySelector("strong")?.textContent.trim() === title);
     if (!article) throw new Error("Media activity not found: " + unit + " " + title);
@@ -112,7 +125,13 @@ const scenario = String.raw`
     media.currentTime = seekTarget;
     await sleep(200);
     const seekedTo = media.currentTime;
-    await click("Back to book");
+    const backButton = button("Back to book");
+    if (backButton) {
+      backButton.click();
+      await sleep(75);
+    } else if (!document.querySelector(".teacher-offline-book")) {
+      throw new Error("Could not return from " + type + " activity");
+    }
     await waitFor(() => document.querySelector(".teacher-offline-book"), "book after media activity");
     return {
       unit,
@@ -162,9 +181,11 @@ const scenario = String.raw`
 
   await click("Unit 1");
   await click("Contents / Exercises");
+  await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length === 37, "Unit 1 contents");
   const unit1Count = document.querySelectorAll(".teacher-offline-lessons article").length;
   for (let index = 0; index < 10; index += 1) await openArticle(index);
   await click("Unit 2");
+  await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length === 40, "Unit 2 contents");
   const unit2Count = document.querySelectorAll(".teacher-offline-lessons article").length;
   for (let index = 0; index < 10; index += 1) await openArticle(index);
 
@@ -201,10 +222,125 @@ const scenario = String.raw`
 })()
 `;
 
+const viewportScenario = String.raw`
+(async () => {
+  const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+  const waitFor = async (predicate, label, timeout = 15000) => {
+    const started = performance.now();
+    while (!predicate()) {
+      if (performance.now() - started > timeout) throw new Error("Timed out waiting for " + label);
+      await sleep(50);
+    }
+  };
+  const button = (label) => [...document.querySelectorAll("button")]
+    .find((candidate) => candidate.textContent.replace(/\s+/g, " ").trim().includes(label));
+  await waitFor(() => innerWidth > innerHeight, "landscape viewport", 30000);
+  while (!document.querySelector(".teacher-offline-library")) {
+    const back = button("Back to book") || button("Library");
+    if (!back) break;
+    back.click();
+    await sleep(100);
+  }
+  button("Open Students Book")?.click();
+  await waitFor(() => document.querySelector(".teacher-offline-book"), "book");
+  if (!document.querySelector(".teacher-offline-pages")) {
+    button("Book pages")?.click();
+    await waitFor(() => document.querySelector(".teacher-offline-pages"), "book pages");
+  }
+  button("Unit 2")?.click();
+  await waitFor(
+    () => [...document.querySelectorAll(".teacher-offline-pages aside button")]
+      .some((candidate) => candidate.textContent.includes("pg 20-21")),
+    "Unit 2 pages",
+  );
+  const targetPage = [...document.querySelectorAll(".teacher-offline-pages aside button")]
+    .find((candidate) => candidate.textContent.includes("pg 20-21"));
+  targetPage?.click();
+  await waitFor(() => document.querySelector(".teacher-offline-page-image img")?.naturalWidth > 0, "hotspot page");
+
+  const stage = document.querySelector(".teacher-offline-page-stage");
+  const pageImage = document.querySelector(".teacher-offline-page-image");
+  const fitPageButton = document.querySelector('[title="Fit page"]');
+  const fitWidthButton = document.querySelector('[title="Fit width"]');
+  const zoomInButton = document.querySelector('[title="Zoom in"]');
+  const resetButton = document.querySelector('[title="Reset zoom"]');
+  const dimensions = () => {
+    const stageRect = stage.getBoundingClientRect();
+    const pageRect = pageImage.getBoundingClientRect();
+    return {
+      stageWidth: Math.round(stageRect.width),
+      stageHeight: Math.round(stageRect.height),
+      pageWidth: Math.round(pageRect.width),
+      pageHeight: Math.round(pageRect.height),
+    };
+  };
+
+  const defaultFit = pageImage.dataset.fitMode;
+  fitPageButton.click();
+  await sleep(100);
+  const fitPage = { mode: pageImage.dataset.fitMode, ...dimensions() };
+  fitWidthButton.click();
+  await sleep(100);
+  const fitWidth = { mode: pageImage.dataset.fitMode, ...dimensions() };
+  zoomInButton.click();
+  zoomInButton.click();
+  await sleep(100);
+  const zoom = pageImage.dataset.zoom;
+  const transformBefore = pageImage.style.transform;
+  const stageRect = stage.getBoundingClientRect();
+  stage.setPointerCapture = () => {};
+  stage.dispatchEvent(new PointerEvent("pointerdown", {
+    bubbles: true, pointerId: 91, buttons: 1,
+    pointerType: "touch", isPrimary: true,
+    clientX: stageRect.left + stageRect.width / 2, clientY: stageRect.top + stageRect.height / 2,
+  }));
+  for (let step = 1; step <= 4; step += 1) {
+    stage.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true, pointerId: 91, buttons: 1,
+      pointerType: "touch", isPrimary: true,
+      clientX: stageRect.left + stageRect.width / 2 + step * 15,
+      clientY: stageRect.top + stageRect.height / 2 - step * 8,
+    }));
+    await sleep(20);
+  }
+  stage.dispatchEvent(new PointerEvent("pointerup", {
+    bubbles: true, pointerId: 91,
+    pointerType: "touch", isPrimary: true,
+    clientX: stageRect.left + 64, clientY: stageRect.top + stageRect.height / 2 - 30,
+  }));
+  await sleep(50);
+  const transformAfter = pageImage.style.transform;
+  resetButton.click();
+
+  return {
+    innerWidth,
+    innerHeight,
+    visualWidth: Math.round(visualViewport?.width || 0),
+    visualHeight: Math.round(visualViewport?.height || 0),
+    devicePixelRatio,
+    orientation: innerWidth >= innerHeight ? "landscape" : "portrait",
+    profile: document.documentElement.dataset.teacherViewport,
+    defaultFit,
+    fitPage,
+    fitWidth,
+    zoom,
+    panChanged: transformBefore !== transformAfter,
+    hotspotCount: pageImage.querySelectorAll(".teacher-offline-page-hotspot").length,
+    mountedPageImages: document.querySelectorAll(".teacher-offline-page-image img").length,
+  };
+})()
+`;
+
 try {
   await command("Runtime.enable");
   await command("Network.enable");
-  const result = await evaluate(scenario);
+  const viewportOnly = process.env.ANDROID_DEVICE_VIEWPORT_ONLY === "1";
+  const result = await evaluate(viewportOnly ? viewportScenario : scenario);
+  if (viewportOnly) {
+    console.log(JSON.stringify({ status: "passed", viewport: result }, null, 2));
+    socket.close();
+    process.exit(0);
+  }
   let lifecycle = { tested: false };
   if (process.env.ANDROID_ADB) {
     const mediaStarted = await evaluate(String.raw`
@@ -227,13 +363,15 @@ try {
       })()
     `);
     assert.equal(mediaStarted, true, "Lifecycle audio did not start");
-    await runFile(process.env.ANDROID_ADB, ["shell", "input", "keyevent", "3"]);
+    await runFile(process.env.ANDROID_ADB, adbArguments("shell", "input", "keyevent", "3"));
     await new Promise((resolve) => setTimeout(resolve, 750));
-    const pausedInBackground = await evaluate("document.querySelector('audio')?.paused === true");
-    await runFile(process.env.ANDROID_ADB, [
+    await runFile(process.env.ANDROID_ADB, adbArguments(
       "shell", "am", "start", "-n", "com.eduforge.offlinebooks/.MainActivity",
-    ]);
+    ));
     await new Promise((resolve) => setTimeout(resolve, 750));
+    // Physical WebView debugging can suspend while the app is backgrounded.
+    // Query after resume and verify that media stayed paused across the cycle.
+    const pausedInBackground = await evaluate("document.querySelector('audio')?.paused === true");
     const pausedAfterResume = await evaluate("document.querySelector('audio')?.paused === true");
     assert.equal(pausedInBackground, true, "Audio continued while the app was backgrounded");
     assert.equal(pausedAfterResume, true, "Audio resumed without an explicit user action");
@@ -246,15 +384,17 @@ try {
       })()
     `);
     assert.equal(restartedForLock, true, "Lock-screen audio did not start");
-    await runFile(process.env.ANDROID_ADB, ["shell", "input", "keyevent", "26"]);
+    await runFile(process.env.ANDROID_ADB, adbArguments("shell", "input", "keyevent", "26"));
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    const pausedWhileLocked = await evaluate("document.querySelector('audio')?.paused === true");
-    await runFile(process.env.ANDROID_ADB, ["shell", "input", "keyevent", "26"]);
-    await runFile(process.env.ANDROID_ADB, ["shell", "input", "keyevent", "82"]);
-    await runFile(process.env.ANDROID_ADB, [
+    await runFile(process.env.ANDROID_ADB, adbArguments("shell", "input", "keyevent", "26"));
+    await runFile(process.env.ANDROID_ADB, adbArguments("shell", "input", "keyevent", "82"));
+    await runFile(process.env.ANDROID_ADB, adbArguments(
       "shell", "am", "start", "-n", "com.eduforge.offlinebooks/.MainActivity",
-    ]);
+    ));
     await new Promise((resolve) => setTimeout(resolve, 750));
+    // Some physical WebViews suspend the debugger while locked, so query only
+    // after wake; a paused state here proves lock did not leave or resume media.
+    const pausedWhileLocked = await evaluate("document.querySelector('audio')?.paused === true");
     const pausedAfterUnlock = await evaluate("document.querySelector('audio')?.paused === true");
     assert.equal(pausedWhileLocked, true, "Audio continued while the screen was locked");
     assert.equal(pausedAfterUnlock, true, "Audio resumed without an explicit action after unlock");

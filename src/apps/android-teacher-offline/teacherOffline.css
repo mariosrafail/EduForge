@@ -158,7 +158,7 @@ html[data-app-mode="android-teacher-offline"] button {
 
 .teacher-offline-book {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .teacher-offline-book-header > div {
@@ -168,6 +168,12 @@ html[data-app-mode="android-teacher-offline"] button {
 
 .teacher-offline-book-header nav {
   display: flex;
+  gap: 8px;
+}
+
+.teacher-offline-book-controls {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -236,7 +242,7 @@ html[data-app-mode="android-teacher-offline"] button {
 
 .teacher-offline-page-reader > header {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 150px;
+  grid-template-columns: auto minmax(120px, 1fr) auto auto;
   gap: 10px;
   align-items: center;
   padding: 7px 12px;
@@ -268,14 +274,14 @@ html[data-app-mode="android-teacher-offline"] button {
 
 .teacher-offline-page-image {
   position: relative;
-  max-width: 100%;
-  height: 100%;
-  min-height: 0;
+  flex: none;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .teacher-offline-page-image > img {
   display: block;
-  max-width: 100%;
+  width: 100%;
   height: 100%;
   object-fit: contain;
   background: #fff;
@@ -315,6 +321,10 @@ html[data-app-mode="android-teacher-offline"] button {
   overflow-x: auto;
   border-top: 1px solid rgba(24, 54, 77, 0.14);
   background: #fff;
+}
+
+.teacher-offline-page-actions.open {
+  display: flex;
 }
 
 .teacher-offline-page-actions button {
@@ -501,6 +511,539 @@ html[data-app-mode="android-teacher-offline"] button {
 
   .teacher-offline-book-header {
     flex-wrap: wrap;
+  }
+}
+
+/* Central adaptive viewport profiles mirror Android's width and height size classes. */
+html[data-app-mode="android-teacher-offline"] {
+  --teacher-shell-gap: clamp(6px, 0.7vw, 12px);
+  --teacher-shell-padding-x: clamp(10px, 1.2vw, 22px);
+  --teacher-control-height: 48px;
+  --teacher-toolbar-height: 58px;
+  --teacher-classroom-font: clamp(15px, 0.85vw, 19px);
+  --teacher-content-max: 1720px;
+  --teacher-page-rail: 116px;
+}
+
+.teacher-offline-library,
+.teacher-offline-book,
+.teacher-offline-media,
+.teacher-offline-presentation {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.teacher-offline-book-header {
+  min-height: var(--teacher-toolbar-height);
+  gap: var(--teacher-shell-gap);
+  padding:
+    max(5px, env(safe-area-inset-top))
+    var(--teacher-shell-padding-x)
+    5px;
+}
+
+.teacher-offline-book-title {
+  min-width: 150px;
+}
+
+.teacher-offline-book-title h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-offline-book-controls,
+.teacher-offline-unit-tabs,
+.teacher-offline-view-tabs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.teacher-offline-view-tabs {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.teacher-offline-view-tabs button,
+.teacher-offline-book-header button {
+  min-height: var(--teacher-control-height);
+  max-height: 52px;
+  padding: 7px 11px;
+  white-space: nowrap;
+}
+
+.teacher-offline-view-tabs button {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.teacher-offline-view-tabs button.selected {
+  border-color: #f0a45c;
+  background: #f0a45c;
+  color: #172033;
+}
+
+.teacher-offline-pages {
+  position: relative;
+  grid-template-columns: var(--teacher-page-rail) minmax(0, 1fr);
+}
+
+.teacher-offline-pages aside {
+  z-index: 8;
+}
+
+.teacher-offline-page-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.teacher-offline-page-list-heading button {
+  display: none;
+}
+
+.teacher-offline-page-reader {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.teacher-offline-page-reader > header {
+  min-height: 54px;
+  grid-template-columns: auto minmax(100px, 1fr) auto auto;
+  gap: 7px;
+  padding: 4px 8px;
+}
+
+.teacher-page-toolbar-group,
+.teacher-page-fit-controls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.teacher-page-next-group {
+  justify-content: flex-end;
+}
+
+.teacher-page-list-trigger {
+  display: none !important;
+}
+
+.teacher-page-actions-trigger {
+  display: none !important;
+}
+
+.teacher-page-fit-controls button,
+.teacher-page-toolbar-group button {
+  min-width: 46px;
+  min-height: 46px;
+  max-height: 48px;
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.teacher-page-fit-controls button.selected {
+  border-color: #18364d;
+  background: #18364d;
+  color: #fff;
+}
+
+.teacher-offline-page-title {
+  min-width: 0;
+  text-align: center;
+}
+
+.teacher-offline-page-title span,
+.teacher-offline-page-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-offline-page-stage {
+  position: relative;
+  padding: 8px;
+  touch-action: none;
+  contain: layout paint;
+}
+
+.teacher-offline-page-stage.can-pan {
+  cursor: grab;
+}
+
+.teacher-offline-page-stage.can-pan:active {
+  cursor: grabbing;
+}
+
+.teacher-offline-page-image,
+.teacher-offline-page-image > img {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.teacher-page-pan-indicator {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(24, 54, 77, 0.82);
+  color: #fff;
+  pointer-events: none;
+}
+
+.teacher-offline-page-actions {
+  min-height: 54px;
+  max-height: 116px;
+  padding: 5px 8px;
+}
+
+.teacher-offline-page-actions button {
+  min-height: 44px;
+}
+
+.teacher-offline-presentation > header {
+  min-height: var(--teacher-toolbar-height);
+  padding:
+    max(5px, env(safe-area-inset-top))
+    var(--teacher-shell-padding-x)
+    5px;
+}
+
+.teacher-offline-presentation-stage {
+  padding: clamp(6px, 1vw, 16px);
+  overscroll-behavior: contain;
+}
+
+.teacher-offline-presentation-stage .ultimate-activity-runner {
+  width: min(100%, var(--teacher-content-max));
+  max-width: none;
+}
+
+.teacher-offline-presentation-stage .teacher-presentation-activity {
+  font-size: var(--teacher-classroom-font);
+}
+
+.teacher-offline-presentation-stage .teacher-presentation-activity h2 {
+  font-size: clamp(1.35rem, 1.65vw, 2.15rem);
+}
+
+.teacher-offline-presentation-stage .teacher-presentation-activity p,
+.teacher-offline-presentation-stage .teacher-presentation-activity strong {
+  line-height: 1.42;
+}
+
+.teacher-offline-presentation-stage .unit2-normalized-question-list {
+  gap: clamp(8px, 0.8vw, 15px);
+}
+
+.teacher-offline-presentation-stage .unit2-normalized-question {
+  gap: clamp(8px, 0.8vw, 14px);
+}
+
+.teacher-offline-presentation-stage .teacher-presentation-answer-controls {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 7px;
+  border: 1px solid rgba(24, 54, 77, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -6px 18px rgba(24, 54, 77, 0.08);
+}
+
+.teacher-offline-presentation > nav {
+  min-height: 54px;
+  grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) minmax(130px, 190px);
+  padding: 4px 10px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+}
+
+.teacher-offline-presentation > nav button,
+.teacher-offline-presentation header button {
+  min-height: 46px;
+  max-height: 50px;
+}
+
+.teacher-viewport-diagnostics {
+  position: fixed;
+  right: max(8px, env(safe-area-inset-right));
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 100;
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(10, 20, 31, 0.9);
+  color: #fff;
+  font: 12px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  pointer-events: none;
+}
+
+.teacher-safe-area-probe {
+  position: absolute;
+  visibility: hidden;
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+html[data-teacher-viewport="medium-landscape"] {
+  --teacher-toolbar-height: 54px;
+  --teacher-page-rail: 94px;
+  --teacher-content-max: 1180px;
+}
+
+html[data-teacher-viewport="medium-landscape"] .teacher-offline-eyebrow,
+html[data-teacher-viewport="medium-landscape"] .teacher-offline-page-title span {
+  display: none;
+}
+
+html[data-teacher-viewport="medium-landscape"] .teacher-offline-book-title {
+  display: none;
+}
+
+html[data-teacher-viewport="medium-landscape"] .teacher-offline-book-title h1 {
+  font-size: 1.1rem;
+}
+
+html[data-teacher-viewport="medium-landscape"] .teacher-page-fit-controls button span,
+html[data-teacher-viewport="medium-landscape"] .teacher-page-actions-trigger span {
+  display: none;
+}
+
+html[data-teacher-viewport="large-classroom"] {
+  --teacher-content-max: 1680px;
+  --teacher-classroom-font: clamp(16px, 1.05vw, 20px);
+}
+
+html[data-teacher-viewport="extra-large-classroom"] {
+  --teacher-toolbar-height: 64px;
+  --teacher-content-max: 3200px;
+  --teacher-classroom-font: clamp(18px, 0.72vw, 28px);
+  --teacher-page-rail: 132px;
+}
+
+html[data-teacher-viewport="extra-large-classroom"] .teacher-offline-presentation-stage {
+  padding: clamp(12px, 1.2vw, 28px);
+}
+
+html[data-teacher-viewport="extra-large-classroom"] .teacher-offline-presentation-stage .teacher-presentation-activity {
+  max-width: 3200px;
+  margin-inline: auto;
+}
+
+html[data-teacher-viewport="extra-large-classroom"] .teacher-offline-presentation-stage .teacher-presentation-activity h2 {
+  font-size: clamp(2rem, 1.2vw, 3rem);
+}
+
+html[data-teacher-viewport="extra-large-classroom"] .teacher-offline-presentation-stage .unit2-normalized-question-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+html[data-teacher-viewport="compact-landscape"] {
+  --teacher-toolbar-height: 48px;
+  --teacher-control-height: 48px;
+  --teacher-shell-padding-x: 7px;
+  --teacher-content-max: none;
+  --teacher-classroom-font: 14px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-book-header {
+  min-height: 48px;
+  padding-top: max(2px, env(safe-area-inset-top));
+  padding-bottom: 2px;
+  box-shadow: 0 3px 10px rgba(13, 26, 38, 0.2);
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-book-title,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-eyebrow,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-title,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-icon-label span,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-view-tabs button span,
+html[data-teacher-viewport="compact-landscape"] .teacher-page-fit-controls button span,
+html[data-teacher-viewport="compact-landscape"] .teacher-page-actions-trigger span,
+html[data-teacher-viewport="compact-landscape"] .teacher-responsive-label {
+  display: none;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-book-controls {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-book-header button,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-view-tabs button {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 5px 8px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-unit-tabs button {
+  min-width: 58px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-pages {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-pages aside {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(250px, 45vw);
+  display: none;
+  padding: 7px;
+  box-shadow: 12px 0 35px rgba(13, 26, 38, 0.28);
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-pages aside.open {
+  display: block;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-list-heading button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-page-list-trigger {
+  display: inline-flex !important;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-page-actions-trigger {
+  display: inline-flex !important;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-reader > header {
+  min-height: 48px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px;
+  padding: 2px 5px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-reader > header .teacher-page-fit-controls {
+  justify-content: center;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-page-fit-controls button,
+html[data-teacher-viewport="compact-landscape"] .teacher-page-toolbar-group button {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 6px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-stage {
+  padding: 3px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-actions {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  left: 5px;
+  z-index: 7;
+  max-height: min(42vh, 140px);
+  border: 1px solid rgba(24, 54, 77, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 10px 32px rgba(13, 26, 38, 0.25);
+  display: none;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-actions.open {
+  display: flex;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header {
+  min-height: 48px;
+  padding: max(2px, env(safe-area-inset-top)) 7px 2px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header > div span,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header > div small,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header button {
+  font-size: 0;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header button svg {
+  width: 21px;
+  height: 21px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header > div strong {
+  max-width: 52vw;
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage {
+  padding: 4px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .unit2-normalized-activity {
+  padding: 9px;
+  border-radius: 10px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .card-heading {
+  margin-bottom: 7px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .card-heading .eyebrow,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .card-heading .tag {
+  display: none;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .teacher-presentation-answer-controls button,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .presentation-question-actions button,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage select,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage input,
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage textarea {
+  min-height: 48px;
+  font-size: 0.9rem;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation-stage .teacher-presentation-answer-controls {
+  gap: 5px;
+  padding: 5px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > nav {
+  min-height: 48px;
+  grid-template-columns: 120px minmax(0, 1fr) 120px;
+  gap: 5px;
+  padding: 2px 6px;
+  padding-bottom: max(2px, env(safe-area-inset-bottom));
+  font-size: 0.78rem;
+}
+
+html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > nav button {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 7px;
+}
+
+@media (max-width: 700px) and (orientation: landscape) {
+  .teacher-offline-unit-tabs button {
+    min-width: 48px;
+    font-size: 0.82rem;
   }
 }
 

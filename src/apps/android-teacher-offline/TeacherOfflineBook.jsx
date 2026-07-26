@@ -11,6 +11,7 @@ export default function TeacherOfflineBook({
   onOpenActivity,
   onOpenMedia,
   onBackToLibrary,
+  viewportProfile,
 }) {
   const unitNumber = [1, 2].includes(Number(location.unitNumber)) ? Number(location.unitNumber) : 1;
   const tab = location.tab === "exercises" ? "exercises" : "pages";
@@ -19,32 +20,36 @@ export default function TeacherOfflineBook({
   return (
     <main className="teacher-offline-book">
       <header className="teacher-offline-book-header">
-        <button type="button" onClick={onBackToLibrary}><ArrowLeft size={22} /> Library</button>
-        <div>
+        <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
+          <ArrowLeft size={22} /><span>Library</span>
+        </button>
+        <div className="teacher-offline-book-title">
           <span className="teacher-offline-eyebrow">Teacher presentation · Offline</span>
           <h1>Ultimate B2 Students Book</h1>
         </div>
-        <nav aria-label="Book unit">
-          {[1, 2].map((number) => (
-            <button
-              key={number}
-              type="button"
-              className={unitNumber === number ? "selected" : ""}
-              onClick={() => update({ unitNumber: number, pageId: "" })}
-            >
-              Unit {number}
+        <div className="teacher-offline-book-controls">
+          <nav className="teacher-offline-unit-tabs" aria-label="Book unit">
+            {[1, 2].map((number) => (
+              <button
+                key={number}
+                type="button"
+                className={unitNumber === number ? "selected" : ""}
+                onClick={() => update({ unitNumber: number, pageId: "" })}
+              >
+                Unit {number}
+              </button>
+            ))}
+          </nav>
+          <div className="teacher-offline-view-tabs" role="tablist" aria-label="Book view">
+            <button type="button" title="Book pages" role="tab" aria-selected={tab === "pages"} className={tab === "pages" ? "selected" : ""} onClick={() => update({ tab: "pages" })}>
+              <BookOpen size={20} /><span>Book pages</span>
             </button>
-          ))}
-        </nav>
+            <button type="button" title="Contents and exercises" role="tab" aria-selected={tab === "exercises"} className={tab === "exercises" ? "selected" : ""} onClick={() => update({ tab: "exercises" })}>
+              <ListChecks size={20} /><span>Contents / Exercises</span>
+            </button>
+          </div>
+        </div>
       </header>
-      <div className="teacher-offline-view-tabs" role="tablist" aria-label="Book view">
-        <button type="button" role="tab" aria-selected={tab === "pages"} className={tab === "pages" ? "selected" : ""} onClick={() => update({ tab: "pages" })}>
-          <BookOpen size={20} /> Book pages
-        </button>
-        <button type="button" role="tab" aria-selected={tab === "exercises"} className={tab === "exercises" ? "selected" : ""} onClick={() => update({ tab: "exercises" })}>
-          <ListChecks size={20} /> Contents / Exercises
-        </button>
-      </div>
       {tab === "pages" ? (
         <TeacherOfflinePages
           unit={pageUnits.find((candidate) => Number(candidate.number) === unitNumber)}
@@ -52,6 +57,7 @@ export default function TeacherOfflineBook({
           onSelectPage={(pageId, options) => update({ pageId }, options)}
           onOpenActivity={onOpenActivity}
           onOpenMedia={onOpenMedia}
+          viewportProfile={viewportProfile}
         />
       ) : (
         <TeacherOfflineActivityList
