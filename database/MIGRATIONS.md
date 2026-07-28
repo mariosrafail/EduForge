@@ -28,6 +28,7 @@ Apply production migrations in this exact order:
 24. `024_book_asset_object_key_constraint.sql`
 25. `025_lms_pilot_acceptance_hardening.sql`
 26. `026_ultimate_b2_unit2_runtime_parity.sql`
+27. `027_phase_one_ultimate_book_catalog.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

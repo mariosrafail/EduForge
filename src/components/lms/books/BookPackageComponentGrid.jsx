@@ -32,7 +32,9 @@ export function BookPackageComponentGrid({ bookPackage, mode, onSelectBook }) {
                   <strong>{component.title}</strong>
                   <small>{component.subtitle}</small>
                   <em>
-                    {component.catalogKind === "recovered-students-book"
+                    {!unitCount
+                      ? "Content will be added when the publisher files are available."
+                      : component.catalogKind === "recovered-students-book"
                       ? `${unitCount} implemented units / ${activeCount} activities available`
                       : `${unitCount} units / ${activeCount} demo item${activeCount === 1 ? "" : "s"} active`}
                   </em>

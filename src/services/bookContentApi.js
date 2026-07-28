@@ -107,10 +107,11 @@ function normalizeDbActivity(activity, component, unit, lesson) {
 export function normalizeBookPackageTree(bookPackage) {
   const packageIdentity = normalizeBookPackageKey(bookPackage);
   const fallbackPackage = getDemoBookPackage(packageIdentity || bookPackage?.slug || bookPackage?.id);
-  if (!bookPackage?.components?.length) return fallbackPackage;
+  if (!bookPackage) return null;
+  if (!bookPackage.components?.length) return fallbackPackage || bookPackage;
 
   const normalizedPackage = {
-    ...fallbackPackage,
+    ...(fallbackPackage || {}),
     id: bookPackage.id,
     slug: packageIdentity || bookPackage.slug,
     packageTitle: bookPackage.packageTitle || bookPackage.title,
@@ -143,7 +144,9 @@ export function normalizeBookPackageTree(bookPackage) {
           })),
         })),
       };
-      return (component.componentType || component.component_type) === "students_book"
+      return packageIdentity === "ultimate-b2"
+        && (component.componentType || component.component_type) === "students_book"
+        && component.slug === "ultimate-b2-students-book"
         ? applyStudentsBookCatalog(normalizedComponent, normalizedComponent.units)
         : normalizedComponent;
     }),

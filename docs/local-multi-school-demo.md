@@ -1,6 +1,6 @@
 # Local multi-school demo
 
-This environment is a development-only, fictional EduForge walkthrough for Ultimate B2. It runs the real Netlify Functions and PostgreSQL-backed role flows at `http://127.0.0.1:8888`; it never connects to staging or production.
+This environment is a development-only, fictional EduForge walkthrough for the Phase 1 Ultimate English catalog. It runs the real Netlify Functions and PostgreSQL-backed role flows at `http://127.0.0.1:8888`; it never connects to staging or production.
 
 ## Prerequisites and one-command lifecycle
 
@@ -32,7 +32,7 @@ Every account uses the development-only password `EduForge-Dev-Only-2026!`. All 
 |---|---|---|
 | Athens admin | `admin.athens@multi-school.dev.invalid` | 11 school users, three classes, licensing lifecycle |
 | Athens teacher 1 | `teacher1.athens@multi-school.dev.invalid` | four scenario assignments and review queue |
-| Strong student | `student1.athens@multi-school.dev.invalid` | 96% auto score and pending teacher review |
+| Strong student | `student1.athens@multi-school.dev.invalid` | B1, B1+, and B2 access; 96% auto score and pending teacher review |
 | Weak student | `student2.athens@multi-school.dev.invalid` | 42% auto score and reviewed work with feedback |
 | Missing student | `student3.athens@multi-school.dev.invalid` | assigned work with no submission |
 | Redeemed student | `student4.athens@multi-school.dev.invalid` | Ultimate B2 entitlement from a redeemed code |
@@ -42,6 +42,8 @@ Every account uses the development-only password `EduForge-Dev-Only-2026!`. All 
 The same pattern exists for `piraeus` and `thessaloniki`; each school has `admin.<school>`, `teacher1.<school>`, `teacher2.<school>`, and `student1` through `student8` at `multi-school.dev.invalid`.
 
 The seeded codes for each school are fictional examples named `DEV-<SCHOOL>-B2-<STATUS>-2026`, with one `unused`, `redeemed`, `expired`, and `revoked` record. Never reuse these credentials or codes outside local development.
+
+Every fictional administrator and both teachers in each school have explicit access to Ultimate English B1, Ultimate English B1+, and Ultimate B2. Athens `student1` has the same three-package catalog for the learner walkthrough. Other entitled students retain their existing B2-only state, and every `student8` remains intentionally unentitled. B1 and B1+ are selectable in licensing, but no B1 assignments or invented publisher content are seeded.
 
 ## 10–15 minute walkthrough
 
@@ -62,7 +64,7 @@ The browser can keep unsent form input locally while a page stays open, but the 
 
 ## Automated verification
 
-`npm run demo:multi-school:verify` checks stable counts, per-school ownership, high/low/missing work, pending/reviewed feedback, late/future/expired deadlines, licensing states, 77/12 pilot catalog counts, tenant-integrity views, entitlements, and seeded answer-key safety.
+`npm run demo:multi-school:verify` checks stable counts, per-school ownership, the exact Phase 1 catalog and entitlements, archived English Journey 6 state, high/low/missing work, pending/reviewed feedback, late/future/expired deadlines, licensing states, 77/12 B2 pilot catalog counts, tenant-integrity views, and seeded answer-key safety.
 
 With `demo:multi-school:start` running, `npm run test:e2e` automatically detects the local runtime marker and runs only `tests/e2e/local-multi-school.spec.js`. It exercises real authentication and functions for admin, teacher, student, review mutation/final state, missing entitlement, cross-school denial, student solution denial, disabled catalog visibility, console errors, and failed-request loops. The reviewed seed row is restored after each test.
 

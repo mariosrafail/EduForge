@@ -174,14 +174,16 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
         />
       ) : mode === "teacher" ? (
         <>
-          <TeacherBookUnitList
+          {!component.units.length ? (
+            <p className="custom-book-activities-message">Content will be added when the publisher files are available.</p>
+          ) : <TeacherBookUnitList
             component={component}
             onPreviewExercise={onPreviewExercise}
             onPresentExercise={recoveredStudentsBook ? onPresentExercise : undefined}
             classOptions={classOptions}
             classes={classes}
             currentUser={currentUser}
-          />
+          />}
           {enableBookActivityBuilder && (
             <>
               <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />
@@ -191,7 +193,9 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
         </>
       ) : (
         <>
-          <div className="book-unit-list">
+          {!component.units.length ? (
+            <p className="custom-book-activities-message">Content will be added when the publisher files are available.</p>
+          ) : <div className="book-unit-list">
           {component.units.map((unit) => {
             const hasActiveExercises = unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive));
 
@@ -244,7 +248,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
               </UnitContainer>
             );
           })}
-          </div>
+          </div>}
           {enableBookActivityBuilder && (
             <>
               <CustomBookActivitySection activities={customActivities} loading={customActivitiesLoading} error={customActivitiesError} mode={mode} onOpenActivity={setOpenCustomActivity} />

@@ -27,7 +27,7 @@ async function auditFailure(sql, currentUser, eventType, failureCode, metadata =
 async function overview(sql, currentUser) {
   await expireCodes(sql);
   const [packages, batches, metrics] = await Promise.all([
-    sql`select id,title,slug,level from book_packages where status='active' order by title`,
+    sql`select id,title,slug,level from book_packages where status='active' order by case slug when 'ultimate-b1' then 1 when 'ultimate-b1-plus' then 2 when 'ultimate-b2' then 3 else 100 end,title`,
     sql`
       select b.id,b.label,b.book_package_id,b.quantity,b.expires_at,b.created_at,b.initial_exported_at,
         bp.title as book_package_title,
@@ -38,7 +38,7 @@ async function overview(sql, currentUser) {
       from activation_code_batches b
       join book_packages bp on bp.id=b.book_package_id
       left join activation_codes c on c.batch_id=b.id
-      where b.school_id=${currentUser.school_id}
+      where b.school_id=${currentUser.school_id} and bp.status='active'
       group by b.id,bp.title order by b.created_at desc
     `,
     sql`
@@ -46,7 +46,10 @@ async function overview(sql, currentUser) {
         (select count(*)::int from app_users where school_id=${currentUser.school_id} and role='teacher') teacher_count,
         (select count(*)::int from app_users where school_id=${currentUser.school_id} and role='student') student_count,
         (select count(*)::int from classes where school_id=${currentUser.school_id} and status='active') class_count,
-        (select count(*)::int from book_access ba join app_users u on u.id=ba.user_id where u.school_id=${currentUser.school_id} and ba.role_scope='student') entitlement_count,
+        (select count(*)::int from book_access ba
+          join app_users u on u.id=ba.user_id
+          join book_packages bp on bp.id=ba.book_package_id and bp.status='active'
+          where u.school_id=${currentUser.school_id} and ba.role_scope='student') entitlement_count,
         (select count(*)::int from activity_assignments where school_id=${currentUser.school_id} and status='assigned') assignment_count,
         (select count(*)::int from activity_submissions where school_id=${currentUser.school_id}) submission_count
     `,
@@ -72,7 +75,7 @@ async function batchDetails(sql, currentUser, batchId) {
       (select count(*)::int from activation_codes c where c.batch_id=b.id and c.status='expired') expired_count,
       (select count(*)::int from activation_codes c where c.batch_id=b.id and c.status='revoked') revoked_count
     from activation_code_batches b join book_packages bp on bp.id=b.book_package_id
-    where b.id=${batchId} and b.school_id=${currentUser.school_id} limit 1
+    where b.id=${batchId} and b.school_id=${currentUser.school_id} and bp.status='active' limit 1
   `;
   if (!batchRows[0]) {
     await auditFailure(sql, currentUser, "batch_access_denied", "resource_not_found", { requested_batch_id: batchId });
@@ -147,7 +150,11 @@ async function revokeUnused(sql, currentUser, body) {
   const reason = String(body.reason || "Unused licenses revoked by school administrator").trim().slice(0, 500);
   if (!isValidUuid(batchId)) return json(400, { error: "A valid batch ID is required" });
   const rows = await sql`
-    with target as (select id,school_id from activation_code_batches where id=${batchId} and school_id=${currentUser.school_id}),
+    with target as (
+      select b.id,b.school_id
+      from activation_code_batches b join book_packages bp on bp.id=b.book_package_id
+      where b.id=${batchId} and b.school_id=${currentUser.school_id} and bp.status='active'
+    ),
     revoked as (update activation_codes set status='revoked',revoked_at=now(),revocation_reason=${reason},updated_at=now() where batch_id in(select id from target) and status='unused' returning id),
     audit as (insert into book_license_audit_events(school_id,actor_user_id,batch_id,event_type,metadata) select school_id,${currentUser.id},id,'batch_unused_revoked',jsonb_build_object('count',(select count(*) from revoked),'reason',${reason}::text) from target)
     select (select count(*)::int from target) target_count,(select count(*)::int from revoked) revoked_count
@@ -163,7 +170,12 @@ async function resetCode(sql, currentUser, body) {
   const codeId = String(body.codeId || "");
   if (!isValidUuid(codeId)) return json(400, { error: "A valid code ID is required" });
   const rows = await sql`
-    with target as (select id,school_id from activation_codes where id=${codeId} and school_id=${currentUser.school_id} and status='redeemed' for update),
+    with target as (
+      select c.id,c.school_id
+      from activation_codes c join book_packages bp on bp.id=c.book_package_id
+      where c.id=${codeId} and c.school_id=${currentUser.school_id} and c.status='redeemed' and bp.status='active'
+      for update of c
+    ),
     removed as (delete from book_access where activation_code_id in(select id from target) returning id),
     reset as (update activation_codes set status='unused',redeemed_at=null,redeemed_by=null,used_count=0,updated_at=now() where id in(select id from target) returning id,school_id),
     audit as (insert into book_license_audit_events(school_id,actor_user_id,code_id,event_type,metadata) select school_id,${currentUser.id},id,'code_reset',jsonb_build_object('entitlements_removed',(select count(*) from removed)) from reset)
@@ -200,7 +212,7 @@ async function redeem(sql, currentUser, event, body) {
     candidate as (
       select c.id,c.book_package_id,c.school_id,bp.title package_title
       from activation_codes c join book_packages bp on bp.id=c.book_package_id
-      where c.code_hash=${codeHash} and c.status='unused' and (c.expires_at is null or c.expires_at>now())
+      where c.code_hash=${codeHash} and c.status='unused' and bp.status='active' and (c.expires_at is null or c.expires_at>now())
         and (c.school_id is null or c.school_id=${currentUser.school_id}) and (select count(*) from expired)>=0
       for update of c
     ), owned as (select ba.id from book_access ba join candidate c on c.book_package_id=ba.book_package_id where ba.user_id=${currentUser.id} and ba.role_scope='student'),
@@ -219,7 +231,14 @@ async function redeem(sql, currentUser, event, body) {
   `;
   const result = rows[0];
   if (!result) {
-    const owned = await sql`select 1 from activation_codes c join book_access ba on ba.book_package_id=c.book_package_id where c.code_hash=${codeHash} and ba.user_id=${currentUser.id} and ba.role_scope='student' limit 1`;
+    const owned = await sql`
+      select 1
+      from activation_codes c
+      join book_packages bp on bp.id=c.book_package_id and bp.status='active'
+      join book_access ba on ba.book_package_id=c.book_package_id
+      where c.code_hash=${codeHash} and ba.user_id=${currentUser.id} and ba.role_scope='student'
+      limit 1
+    `;
     const failureCode = owned[0] ? "book_already_owned" : "code_unavailable";
     await sql`insert into book_code_redemption_attempts(school_id,user_id,request_fingerprint,code_hash,failure_code) values(${currentUser.school_id},${currentUser.id},${fingerprint},${codeHash},${failureCode})`;
     await auditFailure(sql, currentUser, "code_redemption_failed", failureCode);

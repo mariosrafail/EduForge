@@ -26,7 +26,13 @@ try {
         if (existing && !owned) throw new Error(`Deterministic school ID is not owned by this seed: ${school.id}`);
         if (existing && existing.name !== school.name) throw new Error(`Seed school identity mismatch: ${school.id}`);
       }
-      const packageRow = (await client.query("select id,title from book_packages where slug='ultimate-b2' and status='active' limit 1")).rows[0];
+      const packageRows = (await client.query(`
+        select id,title,slug from book_packages
+        where slug=any($1::text[]) and status='active'
+        order by case slug when 'ultimate-b1' then 1 when 'ultimate-b1-plus' then 2 when 'ultimate-b2' then 3 end
+      `, [["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]])).rows;
+      if (packageRows.length !== 3) throw new Error("All Phase 1 Ultimate English packages are required; run production migrations first");
+      const packageRow = packageRows.find((row) => row.slug === "ultimate-b2");
       if (!packageRow) throw new Error("Ultimate B2 package is required; run production migrations first");
       const activityRows = (await client.query(`
         select a.id, a.slug, a.content_json->>'implementationMode' implementation_mode
@@ -45,9 +51,22 @@ try {
         for (const user of school.users) {
           await client.query(`insert into app_users(id,school_id,full_name,email,role,level,status,password_hash,auth_provider) values($1,$2,$3,$4,$5,'B2','active',$6,'password') on conflict(id) do update set school_id=excluded.school_id,full_name=excluded.full_name,email=excluded.email,role=excluded.role,status='active',password_hash=excluded.password_hash`, [user.id, school.id, user.name, user.email, user.role, passwordHash]);
           if (user.role !== "student") {
-            await client.query(`insert into book_access(user_id,book_package_id,role_scope) values($1,$2,$3) on conflict(user_id,book_package_id,role_scope) do nothing`, [user.id, packageRow.id, user.role === "admin" ? "school_admin" : "teacher"]);
+            for (const catalogPackage of packageRows) {
+              await client.query(`insert into book_access(user_id,book_package_id,role_scope) values($1,$2,$3) on conflict(user_id,book_package_id,role_scope) do nothing`, [user.id, catalogPackage.id, user.role === "admin" ? "school_admin" : "teacher"]);
+            }
           } else if (user.profile !== "expired-code" && user.profile !== "redeemed") {
             await client.query(`insert into book_access(user_id,book_package_id,role_scope) values($1,$2,'student') on conflict(user_id,book_package_id,role_scope) do update set activation_code_id=null`, [user.id, packageRow.id]);
+          }
+          const isAthensStudentOne = school.key === "athens" && user.email === "student1.athens@multi-school.dev.invalid";
+          if (user.role === "student" && isAthensStudentOne) {
+            for (const catalogPackage of packageRows.filter((item) => item.slug !== "ultimate-b2")) {
+              await client.query(`insert into book_access(user_id,book_package_id,role_scope) values($1,$2,'student') on conflict(user_id,book_package_id,role_scope) do update set activation_code_id=null`, [user.id, catalogPackage.id]);
+            }
+          } else if (user.role === "student") {
+            await client.query(`
+              delete from book_access
+              where user_id=$1 and book_package_id=any($2::uuid[])
+            `, [user.id, packageRows.filter((item) => item.slug !== "ultimate-b2").map((item) => item.id)]);
           }
         }
         for (const classItem of school.classes) {

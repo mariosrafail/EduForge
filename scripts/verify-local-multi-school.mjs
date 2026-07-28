@@ -76,6 +76,45 @@ try {
   `, [MULTI_SCHOOL.map((school) => school.id)])).rows;
   expectEqual("students with access", accessStates.filter((row) => row.has_access).length, 21);
   expectEqual("students without access", accessStates.filter((row) => !row.has_access).length, 3);
+  const catalog = (await pool.query(`
+    select bp.slug,bp.title,bp.level,bp.status,bp.cover_asset_path,
+      count(bc.id)::int component_count,
+      count(u.id)::int unit_count
+    from book_packages bp
+    left join book_components bc on bc.book_package_id=bp.id
+    left join units u on u.book_component_id=bc.id
+    where bp.slug=any($1::text[])
+    group by bp.id
+    order by case bp.slug when 'ultimate-b1' then 1 when 'ultimate-b1-plus' then 2 when 'ultimate-b2' then 3 when 'english-journey-6' then 4 end
+  `, [["ultimate-b1", "ultimate-b1-plus", "ultimate-b2", "english-journey-6"]])).rows;
+  expectEqual("catalog records", catalog.length, 4);
+  expectEqual("B1 components", catalog.find((row) => row.slug === "ultimate-b1")?.component_count, 2);
+  expectEqual("B1+ components", catalog.find((row) => row.slug === "ultimate-b1-plus")?.component_count, 2);
+  expectEqual("B1 units", catalog.find((row) => row.slug === "ultimate-b1")?.unit_count, 0);
+  expectEqual("B1+ units", catalog.find((row) => row.slug === "ultimate-b1-plus")?.unit_count, 0);
+  expectTrue("English Journey 6 must be archived", catalog.find((row) => row.slug === "english-journey-6")?.status === "archived");
+
+  const staffAccess = (await pool.query(`
+    select u.email,count(distinct bp.slug)::int package_count
+    from app_users u
+    join book_access ba on ba.user_id=u.id
+    join book_packages bp on bp.id=ba.book_package_id and bp.status='active'
+    where u.school_id=any($1::uuid[]) and u.role in ('admin','teacher')
+    group by u.id
+  `, [MULTI_SCHOOL.map((school) => school.id)])).rows;
+  expectEqual("staff with all Phase 1 packages", staffAccess.filter((row) => row.package_count === 3).length, 9);
+  const athensStudentOnePackages = (await pool.query(`
+    select bp.slug from book_access ba join book_packages bp on bp.id=ba.book_package_id
+    join app_users u on u.id=ba.user_id
+    where u.email='student1.athens@multi-school.dev.invalid' and bp.status='active'
+    order by case bp.slug when 'ultimate-b1' then 1 when 'ultimate-b1-plus' then 2 when 'ultimate-b2' then 3 end
+  `)).rows.map((row) => row.slug);
+  expectTrue("Athens student1 must access all Phase 1 packages", JSON.stringify(athensStudentOnePackages) === JSON.stringify(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]));
+  const studentEightAccess = Number((await pool.query(`
+    select count(*)::int count from book_access ba join app_users u on u.id=ba.user_id
+    where u.email like 'student8.%@multi-school.dev.invalid'
+  `)).rows[0].count);
+  expectEqual("student8 no-access accounts", studentEightAccess, 0);
 
   const databaseModes = (await pool.query(`
     select

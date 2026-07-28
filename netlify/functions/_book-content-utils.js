@@ -106,14 +106,14 @@ export async function getPackageRows(sql, { slug = "ultimate-b2", packageId = ""
         select bp.*, p.name as publisher_name, p.slug as publisher_slug
         from book_packages bp
         join publishers p on p.id = bp.publisher_id
-        where bp.id = ${packageId}
+        where bp.id = ${packageId} and bp.status = 'active'
         limit 1
       `
     : await sql`
         select bp.*, p.name as publisher_name, p.slug as publisher_slug
         from book_packages bp
         join publishers p on p.id = bp.publisher_id
-        where bp.slug = ${slug}
+        where bp.slug = ${slug} and bp.status = 'active'
         limit 1
       `;
   return rows[0] || null;
@@ -125,7 +125,13 @@ export async function fetchBookPackages(sql) {
            p.name as publisher_name, p.slug as publisher_slug
     from book_packages bp
     join publishers p on p.id = bp.publisher_id
-    order by p.name asc, bp.level asc, bp.title asc
+    where bp.status = 'active'
+    order by case bp.slug
+      when 'ultimate-b1' then 1
+      when 'ultimate-b1-plus' then 2
+      when 'ultimate-b2' then 3
+      else 100
+    end, bp.title asc
   `;
 
   return rows.map((row) => ({

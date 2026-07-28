@@ -30,7 +30,9 @@ export const coverAssets = {
   "english-journey-6-video-bank": englishJourney6Cover,
 };
 
-export function resolveCoverAsset(component) {
+export function resolveCoverAsset(component, bookPackage = {}) {
+  const packageIdentity = `${bookPackage.slug || ""} ${bookPackage.packageTitle || bookPackage.title || ""}`.toLowerCase();
+  if (!packageIdentity.includes("ultimate-b2") && !packageIdentity.includes("english-journey-6")) return null;
   const lookupValues = [
     component.id,
     component.slug,

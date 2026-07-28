@@ -1,7 +1,42 @@
 import { englishJourney6Package } from "./englishJourney6DemoData.js";
 import { ultimateB2Package } from "./ultimateB2DemoData.js";
+import { sortPhaseOnePackages } from "../config/bookCatalogVisibility.js";
 
-export const demoBookPackages = [ultimateB2Package, englishJourney6Package];
+const emptyCatalogComponent = (packageSlug, packageTitle, suffix, title, componentType, sortOrder) => ({
+  id: `${packageSlug}-${suffix}`,
+  slug: `${packageSlug}-${suffix}`,
+  title: `${packageTitle} ${title}`,
+  type: title,
+  componentType,
+  component_type: componentType,
+  sortOrder,
+  coverAssetPath: null,
+  units: [],
+});
+
+function emptyUltimatePackage(slug, packageTitle, level) {
+  return {
+    id: slug,
+    slug,
+    packageTitle,
+    packageLabel: `${packageTitle} package`,
+    level,
+    publisher: "Hamilton House",
+    demoSchool: "Hamilton House ELT Demo",
+    description: "Content will be added when the publisher files are available.",
+    coverAssetPath: null,
+    status: "active",
+    components: [
+      emptyCatalogComponent(slug, packageTitle, "students-book", "Students Book", "students_book", 1),
+      emptyCatalogComponent(slug, packageTitle, "workbook", "Workbook", "workbook", 2),
+    ],
+  };
+}
+
+export const ultimateB1Package = emptyUltimatePackage("ultimate-b1", "Ultimate English B1", "B1");
+export const ultimateB1PlusPackage = emptyUltimatePackage("ultimate-b1-plus", "Ultimate English B1+", "B1+");
+export const demoBookPackages = sortPhaseOnePackages([ultimateB1Package, ultimateB1PlusPackage, ultimateB2Package]);
+const internalFallbackPackages = [...demoBookPackages, englishJourney6Package];
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -9,23 +44,26 @@ function normalizeMatchKey(value = "") {
   return String(value || "")
     .trim()
     .toLowerCase()
+    .replace(/\+/g, "-plus")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
 function canonicalPackageIdentity(value = "") {
   const normalized = normalizeMatchKey(value);
+  if (normalized.includes("ultimate-b1-plus") || normalized.includes("ultimate-english-b1-plus") || normalized.includes("ultimateb1plus")) return "ultimate-b1-plus";
+  if (normalized.includes("ultimate-b1") || normalized.includes("ultimate-english-b1") || normalized.includes("ultimateb1")) return "ultimate-b1";
   if (normalized.includes("ultimate-b2") || normalized.includes("ultimateb2")) return "ultimate-b2";
   if (normalized.includes("english-journey-6") || normalized.includes("englishjourney6") || normalized === "ej6") return "english-journey-6";
   return normalized;
 }
 
 export function normalizeBookPackageKey(bookPackage = {}) {
-  const titleIdentity = canonicalPackageIdentity(bookPackage.packageTitle || bookPackage.title);
-  if (titleIdentity === "ultimate-b2" || titleIdentity === "english-journey-6") return titleIdentity;
-
   const slugIdentity = canonicalPackageIdentity(bookPackage.slug);
   if (slugIdentity && !UUID_PATTERN.test(String(bookPackage.slug))) return slugIdentity;
+
+  const titleIdentity = canonicalPackageIdentity(bookPackage.packageTitle || bookPackage.title);
+  if (["ultimate-b1", "ultimate-b1-plus", "ultimate-b2", "english-journey-6"].includes(titleIdentity)) return titleIdentity;
 
   if (titleIdentity) return titleIdentity;
 
@@ -37,12 +75,12 @@ export const normalizePackageIdentity = normalizeBookPackageKey;
 
 export function getDemoBookPackage(slugOrId = "ultimate-b2") {
   const requestedIdentity = canonicalPackageIdentity(slugOrId);
-  return demoBookPackages.find((bookPackage) => (
+  return internalFallbackPackages.find((bookPackage) => (
     normalizeBookPackageKey(bookPackage) === requestedIdentity ||
     bookPackage.slug === slugOrId ||
     bookPackage.id === slugOrId ||
     bookPackage.packageTitle === slugOrId
-  )) || ultimateB2Package;
+  )) || null;
 }
 
 function componentMatchKeys(component = {}) {
@@ -88,6 +126,15 @@ function packageCompletenessScore(bookPackage = {}) {
 }
 
 function canonicalPackageFields(identity, replacement = {}) {
+  if (identity === "ultimate-b1" || identity === "ultimate-b1-plus") {
+    const fallback = identity === "ultimate-b1" ? ultimateB1Package : ultimateB1PlusPackage;
+    return {
+      id: replacement.id,
+      slug: identity,
+      packageTitle: fallback.packageTitle,
+      packageLabel: replacement.packageLabel || fallback.packageLabel,
+    };
+  }
   if (identity === "ultimate-b2") {
     return {
       id: replacement.id,
@@ -123,6 +170,7 @@ function mergeBookPackages(preferredPackage, fallbackPackage) {
 
 export function mergeBookPackageWithDemoFallback(replacement) {
   const demoPackage = getDemoBookPackage(normalizeBookPackageKey(replacement) || replacement.slug || replacement.id || replacement.packageTitle);
+  if (!demoPackage) return replacement;
   const replacementComponents = replacement.components?.length ? replacement.components : demoPackage.components;
   const identity = normalizeBookPackageKey(replacement) || normalizeBookPackageKey(demoPackage);
   return {
@@ -178,5 +226,8 @@ export function replaceDemoBookPackage(bookPackages, replacement) {
 export function inferPackageSlugFromBookId(bookId = "") {
   const normalized = String(bookId || "").toLowerCase();
   if (normalized.startsWith("english-journey-6") || normalized.startsWith("ej6-")) return "english-journey-6";
-  return "ultimate-b2";
+  if (normalized.startsWith("ultimate-b1-plus")) return "ultimate-b1-plus";
+  if (normalized.startsWith("ultimate-b1")) return "ultimate-b1";
+  if (normalized.startsWith("ultimate-b2") || ["students-book", "workbook", "grammar-book", "test-book"].includes(normalized)) return "ultimate-b2";
+  return "";
 }

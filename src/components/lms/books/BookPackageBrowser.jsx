@@ -26,7 +26,7 @@ export function BookPackageBrowser({
   onSelectSubview,
   onBackToBooks,
 }) {
-  const activePackage = bookPackage?.components?.length ? bookPackage : ultimateB2Package;
+  const activePackage = bookPackage || ultimateB2Package;
   const [uncontrolledSelectedComponentId, setUncontrolledSelectedComponentId] = useState(initialSelectedComponentId);
   const selectedComponentId = controlledSelectedComponentId !== undefined ? controlledSelectedComponentId : uncontrolledSelectedComponentId;
   const selectedComponent = useMemo(() => findBookComponentById(activePackage, selectedComponentId), [activePackage, selectedComponentId]);

@@ -198,16 +198,21 @@ export function isSubmittedAnswerCorrect(question = {}, submittedAnswer = "") {
 async function packageIdForQuery(sql, query = {}) {
   if (query.packageId) {
     if (!isValidUuid(query.packageId)) return null;
-    const rows = await sql`select id from book_packages where id = ${query.packageId} limit 1`;
+    const rows = await sql`select id from book_packages where id = ${query.packageId} and status = 'active' limit 1`;
     return rows[0]?.id || null;
   }
   if (query.packageSlug || query.slug) {
-    const rows = await sql`select id from book_packages where slug = ${query.packageSlug || query.slug} limit 1`;
+    const rows = await sql`select id from book_packages where slug = ${query.packageSlug || query.slug} and status = 'active' limit 1`;
     if (rows[0]) return rows[0].id;
   }
   if (query.componentId) {
     if (!isValidUuid(query.componentId)) return null;
-    const rows = await sql`select book_package_id as id from book_components where id = ${query.componentId} limit 1`;
+    const rows = await sql`
+      select bp.id
+      from book_components bc join book_packages bp on bp.id = bc.book_package_id
+      where bc.id = ${query.componentId} and bp.status = 'active'
+      limit 1
+    `;
     return rows[0]?.id || null;
   }
   if (query.componentSlug) {
@@ -215,6 +220,7 @@ async function packageIdForQuery(sql, query = {}) {
       select bp.id
       from book_components bc join book_packages bp on bp.id = bc.book_package_id
       where bc.slug = ${query.componentSlug}
+        and bp.status = 'active'
         and (${query.packageSlug || null}::text is null or bp.slug = ${query.packageSlug || null})
       limit 1
     `;
@@ -226,13 +232,13 @@ async function packageIdForQuery(sql, query = {}) {
           select bp.id
           from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
           join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
-          where a.id = ${query.activityId} limit 1
+          where a.id = ${query.activityId} and bp.status = 'active' limit 1
         `
       : await sql`
           select bp.id
           from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
           join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
-          where a.slug = ${query.activitySlug} limit 1
+          where a.slug = ${query.activitySlug} and bp.status = 'active' limit 1
         `;
     return rows[0]?.id || null;
   }
@@ -430,7 +436,7 @@ async function listUserBookAccess(sql, userId) {
     from book_access ba
     join book_packages bp on bp.id = ba.book_package_id
     join publishers p on p.id = bp.publisher_id
-    where ba.user_id = ${userId}
+    where ba.user_id = ${userId} and bp.status = 'active'
     order by ba.granted_at desc
   `;
   return rows.map((row) => ({
@@ -1226,7 +1232,11 @@ async function getSchoolMetrics(sql, currentUser) {
       (select count(*)::int from app_users where school_id = ${schoolId} and role = 'teacher') as teacher_count,
       (select count(*)::int from app_users where school_id = ${schoolId} and role = 'student') as student_count,
       (select count(*)::int from classes where school_id = ${schoolId} and coalesce(status, 'active') = 'active') as active_classes,
-      (select count(distinct book_package_id)::int from book_access ba join app_users u on u.id = ba.user_id where u.school_id = ${schoolId}) as active_book_packages,
+      (select count(distinct ba.book_package_id)::int
+       from book_access ba
+       join app_users u on u.id = ba.user_id
+       join book_packages bp on bp.id = ba.book_package_id
+       where u.school_id = ${schoolId} and bp.status = 'active') as active_book_packages,
       (
         select count(*)::int
         from activity_assignments aa

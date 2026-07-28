@@ -57,9 +57,27 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   expect((await users.json()).users).toHaveLength(11);
   const hiddenPiraeusUser = await page.request.get(`/.netlify/functions/user?id=${piraeus.users[0].id}`);
   expect(hiddenPiraeusUser.status()).toBe(404);
+  const adminCatalog = await api(page, "list");
+  expect(adminCatalog.body.bookPackages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
+  const licensing = await page.request.get("/.netlify/functions/book-licensing?action=overview");
+  expect((await licensing.json()).packages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
+  const archivedAdmin = await api(page, "", { query: { slug: "english-journey-6" } });
+  expect(archivedAdmin.response.status()).toBe(404);
 
   await context.clearCookies();
   await signIn(page, "teacher", athens.users[1].email);
+  const teacherCatalog = await api(page, "list");
+  expect(teacherCatalog.body.bookPackages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
+  for (const slug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    const emptyPackage = await api(page, "", { query: { slug } });
+    expect(emptyPackage.response.ok()).toBeTruthy();
+    expect(emptyPackage.body.bookPackage.components).toHaveLength(2);
+    expect(emptyPackage.body.bookPackage.components.map((item) => item.componentType)).toEqual(["students_book", "workbook"]);
+    expect(emptyPackage.body.bookPackage.components.every((item) => item.units.length === 0 && item.coverAssetPath === null)).toBeTruthy();
+  }
+  await page.goto("/#teacher/books/ultimate-b1/components/ultimate-b1-students-book/exercises", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Ultimate English B1 Students Book", exact: true })).toBeVisible();
+  await expect(page.getByText("Content will be added when the publisher files are available.", { exact: true }).first()).toBeVisible();
   const assignments = await api(page, "teacher-assignments");
   expect(assignments.response.ok()).toBeTruthy();
   expect(assignments.body.assignments).toHaveLength(4);
@@ -95,6 +113,8 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   await context.clearCookies();
   const strong = athens.users.find((user) => user.profile === "strong");
   await signIn(page, "student", strong.email);
+  const strongCatalog = await api(page, "list");
+  expect(strongCatalog.body.bookPackages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
   const grades = await api(page, "grades");
   const reviewedGrade = grades.body.grades.find((grade) => grade.id === pending.submissionId);
   expect(reviewedGrade.scorePercent).toBe(83);
@@ -115,8 +135,12 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   await context.clearCookies();
   const noAccess = athens.users.find((user) => user.profile === "expired-code");
   await signIn(page, "student", noAccess.email);
+  const emptyCatalog = await api(page, "list");
+  expect(emptyCatalog.body.bookPackages).toEqual([]);
   const deniedBook = await api(page, "", { query: { slug: "ultimate-b2" } });
   expect(deniedBook.response.status()).toBe(403);
+  const archivedStudent = await api(page, "", { query: { slug: "english-journey-6" } });
+  expect(archivedStudent.response.status()).toBe(404);
 
   const unexpectedConsole = consoleErrors.filter((message) => !/status of (401|403|404) \((Unauthorized|Forbidden|Not Found)\)/.test(message));
   expect(unexpectedConsole).toEqual([]);

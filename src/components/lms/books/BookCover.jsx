@@ -9,7 +9,7 @@ export function BookCover({ component, bookPackage, size = "compact" }) {
   const isUltimateB2 = packageIdentity.includes("ultimate-b2") || packageIdentity.includes("ultimate b2") || componentIdentity.includes("ultimate-b2");
   const ultimateCover = isUltimateB2 ? ultimateB2CoverAssets[canonicalBookId] || null : null;
   const remoteCover = useBookAsset(ultimateCover?.logicalKey || null, { devFallbackUrl: ultimateCover?.devFallbackUrl || ultimateCover?.localUrl || null });
-  const coverAsset = ultimateCover ? remoteCover.url : resolveCoverAsset(component);
+  const coverAsset = ultimateCover ? remoteCover.url : resolveCoverAsset(component, bookPackage);
   if (coverAsset) {
     return (
       <span className={`book-cover-placeholder book-cover-image ${size === "large" ? "large-cover" : ""}`}>
@@ -22,8 +22,7 @@ export function BookCover({ component, bookPackage, size = "compact" }) {
     <span className={`book-cover-placeholder cover-${component.coverTone || "orange"} ${size === "large" ? "large-cover" : ""}`}>
       <b>{bookPackage.level}</b>
       <strong>{component.title}</strong>
-      <small>{component.type}</small>
-      <em>{bookPackage.demoSchool}</em>
+      <small>Cover coming soon</small>
     </span>
   );
 }
