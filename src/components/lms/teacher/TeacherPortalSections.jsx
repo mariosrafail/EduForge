@@ -462,6 +462,7 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
 
 function ResultsModal({ student, assignment, liveResults = null, currentUser = null, label = "Student results", onClose, onReviewSaved }) {
   const [feedbackDrafts, setFeedbackDrafts] = useState({});
+  const [scoreDrafts, setScoreDrafts] = useState({});
   const [savingFeedbackId, setSavingFeedbackId] = useState("");
   const [reviewMessage, setReviewMessage] = useState("");
 
@@ -477,10 +478,13 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
 
   useEffect(() => {
     const drafts = {};
+    const scores = {};
     for (const row of liveResults?.rows || []) {
       if (row.submissionId) drafts[row.submissionId] = row.teacherFeedback || "";
+      if (row.submissionId) scores[row.submissionId] = row.scorePercent ?? "";
     }
     setFeedbackDrafts(drafts);
+    setScoreDrafts(scores);
     setReviewMessage("");
   }, [liveResults]);
 
@@ -544,6 +548,17 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
                         )) : <p>No response text was stored.</p>}
                       </div>
                       <label>
+                        Score (0-100)
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={scoreDrafts[row.submissionId] ?? ""}
+                          onChange={(event) => setScoreDrafts((current) => ({ ...current, [row.submissionId]: event.target.value }))}
+                          required={row.submissionStatus === "awaiting_review"}
+                        />
+                      </label>
+                      <label>
                         Teacher feedback
                         <textarea
                           rows={2}
@@ -567,6 +582,7 @@ function ResultsModal({ student, assignment, liveResults = null, currentUser = n
                                 submissionId: row.submissionId,
                                 teacherId: currentUser.id,
                                 teacherFeedback: feedbackDrafts[row.submissionId] || "",
+                                scorePercent: scoreDrafts[row.submissionId] === "" ? null : Number(scoreDrafts[row.submissionId]),
                               });
                               setReviewMessage("Feedback saved.");
                               onReviewSaved?.();

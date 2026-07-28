@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { requireAuth, requireRole, requireSameSchool } from "../netlify/functions/_auth-utils.js";
-import { browserSafeBookActivityPayload, canAccessStudentScopedRow, canAccessTeacherScopedRow, scoreBookActivityRecord, studentSafeActivityPayload } from "../netlify/functions/book-content.js";
+import {
+  browserSafeBookActivityPayload,
+  canAccessStudentScopedRow,
+  canAccessTeacherScopedRow,
+  scoreBookActivityRecord,
+  studentSafeActivityPayload,
+  validateSubmittedAnswers,
+} from "../netlify/functions/book-content.js";
 
 const activeAdmin = { id: "admin-1", school_id: "school-a", role: "admin", status: "active" };
 const activeTeacher = { id: "teacher-1", school_id: "school-a", role: "teacher", status: "active" };
@@ -112,6 +119,21 @@ test("custom book activities are scored authoritatively on the server", () => {
     totalCount: null,
     scorePercent: null,
   });
+});
+
+test("student answers reject malformed, missing, and unexpected question data", () => {
+  const activity = {
+    questions: [
+      { id: "question-a", questionNumber: 1 },
+      { id: "question-b", questionNumber: 2 },
+    ],
+  };
+  assert.deepEqual(validateSubmittedAnswers(activity, { 1: " Yes ", "question-b": "No" }), {
+    answers: { "question-a": "Yes", "question-b": "No" },
+  });
+  assert.match(validateSubmittedAnswers(activity, []).error, /object/);
+  assert.match(validateSubmittedAnswers(activity, { 1: "Yes" }).error, /question 2/);
+  assert.match(validateSubmittedAnswers(activity, { 1: "Yes", 2: "No", unexpected: "tamper" }).error, /Unexpected/);
 });
 
 test("teacher cannot access another teacher's class or assignment row", () => {

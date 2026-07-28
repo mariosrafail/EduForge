@@ -4,7 +4,7 @@ async function signInAsAdmin(page) {
   await page.goto("/#auth-admin");
   await page.getByLabel("Email", { exact: true }).fill(process.env.E2E_ADMIN_EMAIL);
   await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText("Account security", { exact: true }).first()).toBeVisible();
 }
 
@@ -21,13 +21,17 @@ test("account security is reachable and explicit sign out works", async ({ page 
   await page.getByText("Account security", { exact: true }).first().click();
   await expect(page.getByRole("heading", { name: /account security/i })).toBeVisible();
   await expect(page.getByLabel(/confirm new password/i)).toBeVisible();
-  await page.getByRole("button", { name: /sign out/i }).first().click();
-  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Log out and reset progress", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await expect(page.getByRole("heading", { name: "School Admin", exact: true })).toBeVisible();
 });
 
 test("forgot-password public messaging does not enumerate accounts", async ({ page }) => {
   const request = async (email) => {
+    await page.goto("/#home");
     await page.goto("/#auth-admin");
+    const backToSignIn = page.getByRole("button", { name: "Back to sign in", exact: true });
+    if (await backToSignIn.isVisible()) await backToSignIn.click();
     await page.getByRole("button", { name: /forgot password/i }).click();
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByRole("button", { name: /send reset instructions/i }).click();

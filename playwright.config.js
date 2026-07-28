@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 import { requireHostedE2EEnvironment } from "./scripts/_e2e-staging.mjs";
 
 const baseURL = requireHostedE2EEnvironment();
+const localPilot = process.env.E2E_LOCAL_CONFIRMATION === "isolated-local-pilot";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -15,9 +16,11 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "off",
   },
-  projects: [
-    { name: "chromium", use: { browserName: "chromium" } },
-    { name: "firefox", use: { browserName: "firefox" } },
-    { name: "webkit", use: { browserName: "webkit" } },
-  ],
+  projects: localPilot
+    ? [{ name: "chromium", use: { browserName: "chromium" } }]
+    : [
+        { name: "chromium", use: { browserName: "chromium" } },
+        { name: "firefox", use: { browserName: "firefox" } },
+        { name: "webkit", use: { browserName: "webkit" } },
+      ],
 });

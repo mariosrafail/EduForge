@@ -1,4 +1,14 @@
 export function requireHostedE2EEnvironment(environment = process.env) {
+  if (environment.E2E_LOCAL_CONFIRMATION === "isolated-local-pilot") {
+    const target = new URL(environment.E2E_LOCAL_URL || "http://127.0.0.1:8888");
+    if (target.protocol !== "http:" || !["localhost", "127.0.0.1", "::1"].includes(target.hostname)) {
+      throw new Error("E2E_LOCAL_URL must be an HTTP loopback URL");
+    }
+    for (const name of ["E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"]) {
+      if (!String(environment[name] || "").trim()) throw new Error(`Missing local E2E variable: ${name}`);
+    }
+    return target.origin;
+  }
   const required = ["E2E_STAGING_URL", "E2E_STAGING_CONFIRMATION", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"];
   const missing = required.filter((name) => !String(environment[name] || "").trim());
   if (missing.length) throw new Error(`Missing hosted E2E variables: ${missing.join(", ")}`);

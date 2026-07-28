@@ -310,6 +310,16 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     });
     assert.equal(createdAssignment.status, 200);
     const assignmentId = createdAssignment.body.assignment.id;
+    const repeatedAssignment = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
+      body: { activityId: activity.id, classId: classA.id, title: "Assigned work" },
+    });
+    assert.equal(repeatedAssignment.status, 200);
+    assert.equal(repeatedAssignment.body.assignment.id, assignmentId);
+    assert.equal(Number((await pool.query(
+      "select count(*) as count from activity_assignments where teacher_id = $1 and activity_id = $2 and class_id = $3",
+      [teacherId, activity.id, classA.id],
+    )).rows[0].count), 1);
     assert.equal((await pool.query("select school_id from activity_assignments where id = $1", [assignmentId])).rows[0].school_id, schoolA);
     const visibleAssignments = await call(bookContentHandler, { cookie: studentCookie, query: { action: "assignments" } });
     assert.equal(visibleAssignments.status, 200);
@@ -319,11 +329,16 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     assert.equal(escalated.status, 403);
     const submitted = await call(bookContentHandler, {
       method: "POST", cookie: studentCookie, query: { action: "submit" },
-      body: { activityId: activity.id, assignmentId, studentId: studentId, result: { answers: { [question.id]: "affirmative" } } },
+      body: { activityId: activity.id, assignmentId, studentId: studentId, score: 0, result: { answers: { [question.id]: "affirmative" } } },
     });
     assert.equal(submitted.status, 200);
     assert.equal(submitted.body.submission.scorePercent, 100);
     const submissionId = submitted.body.submission.id;
+    const duplicateSubmission = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId, result: { answers: { [question.id]: "affirmative" } } },
+    });
+    assert.equal(duplicateSubmission.status, 409);
     const results = await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId } });
     assert.equal(results.status, 200);
     const submittedRow = results.body.rows.find((row) => row.studentId === studentId);
@@ -336,6 +351,67 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     const reviewed = await call(bookContentHandler, { method: "POST", cookie: teacherCookie, query: { action: "review-submission" }, body: { submissionId, teacherFeedback: "Good" } });
     assert.equal(reviewed.status, 200);
     assert.equal((await pool.query("select teacher_feedback from activity_submissions where id = $1", [submissionId])).rows[0].teacher_feedback, "Good");
+
+    const reviewActivity = (await pool.query(
+      `insert into activities (school_id, lesson_id, title, type, slug, activity_type, content, content_json, ownership_type)
+       values ($1, $2, 'Reviewed response', 'writing', $3, 'teacher_reviewed_response', '{}', '{"implementationMode":"teacher-reviewed"}', 'official')
+       returning id`,
+      [schoolA, bookLesson.id, `review-${schema}`],
+    )).rows[0];
+    const reviewQuestion = (await pool.query(
+      "insert into questions (activity_id, question_number, prompt, question_type) values ($1, 1, 'Write a response', 'long_text') returning id",
+      [reviewActivity.id],
+    )).rows[0];
+    const reviewAssignmentResponse = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
+      body: { activityId: reviewActivity.id, classId: classA.id, title: "Writing task" },
+    });
+    assert.equal(reviewAssignmentResponse.status, 200);
+    const reviewSubmissionResponse = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: {
+        activityId: reviewActivity.id,
+        assignmentId: reviewAssignmentResponse.body.assignment.id,
+        answers: { [reviewQuestion.id]: "My evidence-backed response." },
+      },
+    });
+    assert.equal(reviewSubmissionResponse.status, 200);
+    assert.equal(reviewSubmissionResponse.body.submission.status, "awaiting_review");
+    assert.equal(reviewSubmissionResponse.body.submission.scorePercent, null);
+    const pendingSubmissionId = reviewSubmissionResponse.body.submission.id;
+    const scoreRequired = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "review-submission" },
+      body: { submissionId: pendingSubmissionId, teacherFeedback: "Please add evidence." },
+    });
+    assert.equal(scoreRequired.status, 400);
+    const completedReview = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "review-submission" },
+      body: { submissionId: pendingSubmissionId, scorePercent: 82, teacherFeedback: "Clear response." },
+    });
+    assert.equal(completedReview.status, 200);
+    assert.equal(completedReview.body.submission.status, "reviewed");
+    assert.equal(completedReview.body.submission.scorePercent, 82);
+    const studentGrades = await call(bookContentHandler, { cookie: studentCookie, query: { action: "grades" } });
+    const reviewedGrade = studentGrades.body.grades.find((grade) => grade.id === pendingSubmissionId);
+    assert.equal(reviewedGrade.status, "reviewed");
+    assert.equal(reviewedGrade.scorePercent, 82);
+    assert.equal(reviewedGrade.teacherFeedback, "Clear response.");
+
+    const expiredAssignmentResponse = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
+      body: { activityId: activity.id, classId: classA.id, title: "Expired work", dueAt: "2020-01-01T00:00:00.000Z" },
+    });
+    assert.equal(expiredAssignmentResponse.status, 200);
+    const expiredSubmission = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: {
+        activityId: activity.id,
+        assignmentId: expiredAssignmentResponse.body.assignment.id,
+        answers: { [question.id]: "affirmative" },
+      },
+    });
+    assert.equal(expiredSubmission.status, 403);
+    assert.match(expiredSubmission.body.error, /deadline/i);
     const hotspot = await call(bookContentHandler, {
       method: "POST", cookie: teacherCookie, query: { action: "save-page-hotspots" },
       body: { packageSlug: bookPackage.slug, componentSlug: `component-${schema}`, pageId: "1", hotspots: [{ label: "Open", left: 10, top: 10, width: 10, height: 10, actionType: "none" }] },

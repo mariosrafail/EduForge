@@ -26,6 +26,7 @@ import {
   buildUltimateB2TeacherSolutionPayload,
   isUltimateB2PresentationActivityEnabled,
 } from "./_ultimate-b2-teacher-solutions.js";
+import { createHash } from "node:crypto";
 
 function badRequest(message) {
   return json(400, { error: message });
@@ -103,6 +104,53 @@ export function stripStudentAnswerKeys(value) {
 
 export function studentSafeActivityPayload(activity) {
   return stripStudentAnswerKeys(activity);
+}
+
+function parseOptionalDeadline(value) {
+  if (value === null || value === undefined || value === "") return { value: null };
+  if (typeof value !== "string") return { error: "dueAt must be a valid ISO date-time" };
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return { error: "dueAt must be a valid ISO date-time" };
+  return { value: new Date(timestamp).toISOString() };
+}
+
+function assignmentIdempotencyKey(body, teacherId, activityId, targetType, targetId, dueAt, title, teacherNotes) {
+  const supplied = String(body.idempotencyKey || body.requestId || "").trim();
+  if (supplied && !/^[A-Za-z0-9._:-]{8,128}$/.test(supplied)) {
+    return { error: "idempotencyKey must be 8-128 safe characters" };
+  }
+  const requestIdentity = supplied || createHash("sha256")
+    .update(JSON.stringify({ teacherId, activityId, dueAt, title, teacherNotes }))
+    .digest("hex");
+  return { value: `${supplied ? "request" : "payload"}:${requestIdentity}:${targetType}:${targetId}` };
+}
+
+export function validateSubmittedAnswers(activity = {}, rawAnswers) {
+  if (!rawAnswers || typeof rawAnswers !== "object" || Array.isArray(rawAnswers)) {
+    return { error: "answers must be an object" };
+  }
+  const questions = Array.isArray(activity.questions) ? activity.questions : [];
+  const allowedKeys = new Map();
+  for (const question of questions) {
+    allowedKeys.set(String(question.id), question);
+    allowedKeys.set(String(question.questionNumber), question);
+  }
+  const canonicalAnswers = {};
+  for (const [key, value] of Object.entries(rawAnswers)) {
+    const question = allowedKeys.get(String(key));
+    if (!question) return { error: `Unexpected question id: ${key}` };
+    if (!["string", "number", "boolean"].includes(typeof value)) {
+      return { error: `Answer for question ${key} must be text or a scalar value` };
+    }
+    const answer = String(value).trim();
+    if (answer.length > 10_000) return { error: `Answer for question ${key} is too long` };
+    canonicalAnswers[String(question.id)] = answer;
+  }
+  if (questions.length) {
+    const missing = questions.find((question) => !canonicalAnswers[String(question.id)]);
+    if (missing) return { error: `Answer is required for question ${missing.questionNumber}` };
+  }
+  return { answers: canonicalAnswers };
 }
 
 function studentSafePackageTree(tree) {
@@ -460,7 +508,9 @@ async function createAssignment(sql, body, currentUser = null) {
   let teacherId = isTeacher(currentUser) ? currentUser.id : body.teacherId;
   const classIds = toArray(body.classIds || body.classId);
   const studentIds = toArray(body.studentIds || body.studentId);
-  const dueAt = body.dueAt || body.dueDate || null;
+  const deadline = parseOptionalDeadline(body.dueAt || body.dueDate || null);
+  if (deadline.error) return badRequest(deadline.error);
+  const dueAt = deadline.value;
   const status = body.status || "assigned";
   const teacherNotes = String(body.teacherNotes || "").trim();
   const worksheetLinks = normalizeLinks(body.worksheetLinks || body.worksheetLink || body.worksheetUrls);
@@ -491,6 +541,8 @@ async function createAssignment(sql, body, currentUser = null) {
   const invalidStudentId = studentIds.find((studentId) => !isValidUuid(studentId));
   if (invalidStudentId) return invalidUuidResponse("studentId");
   if (!["assigned", "closed"].includes(status)) return badRequest("status must be assigned or closed");
+  if (title && title.length > 240) return badRequest("title must be at most 240 characters");
+  if (teacherNotes.length > 4_000) return badRequest("teacherNotes must be at most 4000 characters");
 
   for (const classId of classIds) {
     const accessError = await verifyClassAccess(sql, currentUser, classId);
@@ -522,6 +574,8 @@ async function createAssignment(sql, body, currentUser = null) {
 
   const inserted = [];
   for (const classId of classIds) {
+    const idempotency = assignmentIdempotencyKey(body, teacherId, activityId, "class", classId, dueAt, title, teacherNotes);
+    if (idempotency.error) return badRequest(idempotency.error);
     const rows = await sql`
       insert into activity_assignments (
         school_id,
@@ -534,7 +588,8 @@ async function createAssignment(sql, body, currentUser = null) {
         title,
         teacher_notes,
         worksheet_links,
-        attached_files
+        attached_files,
+        idempotency_key
       )
       values (
         ${currentUser.school_id},
@@ -547,14 +602,20 @@ async function createAssignment(sql, body, currentUser = null) {
         ${title || activity.title},
         ${teacherNotes},
         ${JSON.stringify(worksheetLinks)}::jsonb,
-        ${JSON.stringify(attachedFiles)}::jsonb
+        ${JSON.stringify(attachedFiles)}::jsonb,
+        ${idempotency.value}
       )
+      on conflict (school_id, teacher_id, idempotency_key)
+        where idempotency_key is not null
+      do update set idempotency_key = excluded.idempotency_key
       returning *
     `;
     inserted.push(rows[0]);
   }
 
   for (const studentId of studentIds) {
+    const idempotency = assignmentIdempotencyKey(body, teacherId, activityId, "student", studentId, dueAt, title, teacherNotes);
+    if (idempotency.error) return badRequest(idempotency.error);
     const rows = await sql`
       insert into activity_assignments (
         school_id,
@@ -567,7 +628,8 @@ async function createAssignment(sql, body, currentUser = null) {
         title,
         teacher_notes,
         worksheet_links,
-        attached_files
+        attached_files,
+        idempotency_key
       )
       values (
         ${currentUser.school_id},
@@ -580,8 +642,12 @@ async function createAssignment(sql, body, currentUser = null) {
         ${title || activity.title},
         ${teacherNotes},
         ${JSON.stringify(worksheetLinks)}::jsonb,
-        ${JSON.stringify(attachedFiles)}::jsonb
+        ${JSON.stringify(attachedFiles)}::jsonb,
+        ${idempotency.value}
       )
+      on conflict (school_id, teacher_id, idempotency_key)
+        where idempotency_key is not null
+      do update set idempotency_key = excluded.idempotency_key
       returning *
     `;
     inserted.push(rows[0]);
@@ -677,7 +743,17 @@ async function listAssignmentsForStudent(sql, studentId, currentUser) {
     attachedFiles: jsonArray(row.attached_files),
     className: row.class_name || "Individual",
     teacherName: row.teacher_name || "",
-    completionStatus: row.submission_id ? "Submitted" : "Not started",
+    completionStatus: row.submission_id
+      ? row.submission_status === "awaiting_review"
+        ? "Pending teacher review"
+        : row.submission_status === "reviewed"
+          ? "Reviewed"
+          : row.submission_status === "completed"
+            ? "Completed"
+            : "Automatically graded"
+      : row.due_at && new Date(row.due_at).getTime() <= Date.now()
+        ? "Late"
+        : "Assigned",
     submittedAt: row.submitted_at || null,
     scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
@@ -712,7 +788,7 @@ async function submitActivity(sql, body, currentUser = null) {
 
   if (body.assignmentId) {
     const assignmentRows = await sql`
-      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id, aa.school_id
+      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id, aa.school_id, aa.due_at
       from activity_assignments aa
       where aa.id = ${body.assignmentId}
       limit 1
@@ -721,6 +797,9 @@ async function submitActivity(sql, body, currentUser = null) {
     if (!assignment) return json(404, { error: "Assignment not found" });
     if (!sameSchool(currentUser, assignment.school_id)) return forbidden();
     if (assignment.status === "closed") return forbidden("This assignment is closed");
+    if (assignment.due_at && new Date(assignment.due_at).getTime() <= Date.now()) {
+      return forbidden("The assignment deadline has passed");
+    }
     if (String(assignment.activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
     if (assignment.student_id && String(assignment.student_id) !== String(studentId)) return forbidden("This assignment is not assigned to this student");
     if (assignment.class_id) {
@@ -739,7 +818,9 @@ async function submitActivity(sql, body, currentUser = null) {
   const activity = await fetchActivity(sql, { activityId: body.activityId });
   if (!activity) return json(404, { error: "Activity not found" });
 
-  const answers = body.answers || body.result?.answers || {};
+  const answerValidation = validateSubmittedAnswers(activity, body.answers || body.result?.answers);
+  if (answerValidation.error) return badRequest(answerValidation.error);
+  const answers = answerValidation.answers;
   const implementationMode = activity.contentJson?.implementationMode || activity.content_json?.implementationMode || "auto-scored";
   const requiresTeacherReview = implementationMode === "teacher-reviewed";
   const unscoredPractice = ["unscored-practice", "reading-content"].includes(implementationMode);
@@ -766,7 +847,8 @@ async function submitActivity(sql, body, currentUser = null) {
       correct_count,
       total_count,
       status,
-      submitted_at
+      submitted_at,
+      submission_slot
     )
     values (
       ${body.assignmentId || null},
@@ -779,10 +861,15 @@ async function submitActivity(sql, body, currentUser = null) {
       ${correctCount},
       ${totalCount},
       ${submissionStatus},
-      now()
+      now(),
+      1
     )
+    on conflict (activity_assignment_id, student_id, submission_slot)
+      where activity_assignment_id is not null and submission_slot = 1
+    do nothing
     returning *
   `;
+  if (!submissions.length) return json(409, { error: "This assignment has already been submitted" });
   const submission = submissions[0];
 
   for (const row of rows) {
@@ -1063,13 +1150,33 @@ async function listTeacherStudents(sql, teacherId, currentUser = null) {
 async function reviewSubmission(sql, body, currentUser = null) {
   const submissionId = body.submissionId;
   const teacherFeedback = String(body.teacherFeedback || "").trim();
+  const scorePercent = numericOrNull(body.scorePercent ?? body.score);
   if (!submissionId) return badRequest("submissionId is required");
   if (!isValidUuid(submissionId)) return invalidUuidResponse("submissionId");
   if (!currentUser?.id) return unauthorized();
+  if (teacherFeedback.length > 4_000) return badRequest("teacherFeedback must be at most 4000 characters");
+  if (scorePercent !== null && (scorePercent < 0 || scorePercent > 100)) {
+    return badRequest("scorePercent must be between 0 and 100");
+  }
+
+  const existingRows = await sql`
+    select status, score_percent
+    from activity_submissions
+    where id = ${submissionId}
+      and school_id = ${currentUser.school_id}
+    limit 1
+  `;
+  const existing = existingRows[0];
+  if (!existing) return json(404, { error: "Submission not found" });
+  if (existing.status === "awaiting_review" && scorePercent === null) {
+    return badRequest("scorePercent is required to complete teacher review");
+  }
 
   const rows = await sql`
     update activity_submissions
     set teacher_feedback = ${teacherFeedback},
+        score = coalesce(${scorePercent}, score),
+        score_percent = coalesce(${scorePercent}, score_percent),
         status = case when status = 'awaiting_review' then 'reviewed' else status end,
         reviewed_at = now(),
         reviewed_by = ${currentUser.id}
@@ -1081,7 +1188,7 @@ async function reviewSubmission(sql, body, currentUser = null) {
           and aa.school_id = ${currentUser.school_id}
           and (${isAdmin(currentUser)} or aa.teacher_id = ${currentUser.id})
       )
-    returning id, teacher_feedback, reviewed_at, reviewed_by
+    returning id, teacher_feedback, score_percent, reviewed_at, reviewed_by, status
   `;
 
   if (!rows.length) return json(404, { error: "Submission not found" });
@@ -1090,9 +1197,10 @@ async function reviewSubmission(sql, body, currentUser = null) {
     submission: {
       id: submission.id,
       teacherFeedback: submission.teacher_feedback || "",
+      scorePercent: numericOrNull(submission.score_percent),
       reviewedAt: submission.reviewed_at,
       reviewedBy: submission.reviewed_by,
-      status: "reviewed",
+      status: submission.status,
     },
   });
 }

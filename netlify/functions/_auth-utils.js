@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import pg from "pg";
 
 export const allowedRoles = new Set(["admin", "teacher", "student"]);
 export const allowedStatuses = new Set(["active", "invited", "paused"]);
@@ -12,6 +13,18 @@ export const jsonHeaders = {
 };
 
 let testSqlOverride = null;
+let localPool = null;
+
+function localPostgresTemplate(connectionString) {
+  localPool ||= new pg.Pool({ connectionString });
+  return async (strings, ...values) => {
+    let text = strings[0];
+    for (let index = 0; index < values.length; index += 1) {
+      text += `$${index + 1}${strings[index + 1]}`;
+    }
+    return (await localPool.query(text, values)).rows;
+  };
+}
 
 export function setSqlForVerification(sql) {
   const testConfirmed = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
@@ -71,6 +84,13 @@ export function getSql() {
     const error = new Error("DATABASE_URL is not configured");
     error.code = "DATABASE_NOT_CONFIGURED";
     throw error;
+  }
+  const parsed = new URL(databaseUrl);
+  if (["localhost", "127.0.0.1", "::1"].includes(parsed.hostname)) {
+    if (process.env.LOCAL_DATABASE_CONFIRMATION !== "isolated-local-pilot") {
+      throw new Error("Loopback PostgreSQL requires LOCAL_DATABASE_CONFIRMATION=isolated-local-pilot");
+    }
+    return localPostgresTemplate(databaseUrl);
   }
   return neon(databaseUrl);
 }

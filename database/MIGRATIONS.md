@@ -25,9 +25,12 @@ Apply production migrations in this exact order:
 21. `021_ultimate_b2_unit1_recovered_activities.sql`
 22. `022_ultimate_b2_students_book_assignment_modes.sql`
 23. `023_demo_teacher_ultimate_b2_access.sql`
+24. `024_book_asset_object_key_constraint.sql`
+25. `025_lms_pilot_acceptance_hardening.sql`
+26. `026_ultimate_b2_unit2_runtime_parity.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 
-`012_demo_login_passwords.sql` is intentionally excluded from production order. It contains demo-only password hashes and may be applied only to local/demo databases.
+`012_demo_login_passwords.sql` is intentionally excluded from production order. Apply it only after all production migrations on a local/demo database. It contains demo-only password hashes plus the repeatable Ultimate B2 pilot class, membership, student entitlement, and representative auto-scored and teacher-reviewed assignments.
 
 After `013`, query `tenant_integrity_issues` and reconcile every non-zero row before treating tenant isolation as fully enforced. The migration applies `NOT NULL` only where existing rows are already safe; it never assigns unknown rows to the Hamilton House demo school.

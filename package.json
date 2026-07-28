@@ -12,6 +12,8 @@
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
     "test:integration:cleanup": "node scripts/cleanup-integration-schemas.mjs",
     "test:e2e": "playwright test",
+    "pilot:demo:seed": "node scripts/seed-local-pilot.mjs",
+    "audit:ultimate-b2:functional": "node scripts/ultimate-b2/generate-functional-audit.mjs",
     "test:e2e:staging": "playwright test",
     "staging:migrate": "node scripts/run-staging-migrations.mjs",
     "staging:integrity": "node scripts/verify-tenant-integrity.mjs",

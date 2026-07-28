@@ -121,7 +121,7 @@ test("generic Students Book renderer selects both Unit 1 and Unit 2 catalogs", a
   assert.equal(unit2.activities.length, 50);
 });
 
-test("Unit 1 teacher review and unscored persistence remain score-null", async () => {
+test("Unit 1 teacher review persists an explicit score while unscored work remains score-null", async () => {
   const [server, teacherPortal] = await Promise.all([
     readFile("netlify/functions/book-content.js", "utf8"),
     readFile("src/components/lms/teacher/TeacherPortalSections.jsx", "utf8"),
@@ -131,7 +131,8 @@ test("Unit 1 teacher review and unscored persistence remain score-null", async (
   assert.match(server, /const averageScore = averageScoreValue === null \? null/);
   assert.match(server, /const averageScore = scoredRows\.length[\s\S]*?: null;/);
   assert.match(server, /teacher_feedback/);
-  assert.match(server, /status: "reviewed"/);
+  assert.match(server, /score_percent = coalesce\(\$\{scorePercent\}, score_percent\)/);
+  assert.match(server, /status = case when status = 'awaiting_review' then 'reviewed'/);
   assert.match(server, /school_id = \$\{currentUser\.school_id\}/);
   assert.match(teacherPortal, /averageScore === null \? "Unscored"/);
   assert.match(teacherPortal, /summary\?\.averageScore == null \? "Unscored"/);
