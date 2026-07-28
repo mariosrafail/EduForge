@@ -41,6 +41,19 @@ const teacherSolutions = {
 };
 const pack = { manifest, catalog, activities, teacherSolutions, assetsManifest };
 
+test("CI builds the teacher pack before its internal verification", async () => {
+  const [workflow, packageJson] = await Promise.all([
+    readFile(".github/workflows/ci.yml", "utf8"),
+    readFile("package.json", "utf8"),
+  ]);
+  const scripts = JSON.parse(packageJson).scripts;
+  const teacherBuild = scripts["build:android-teacher-offline"];
+
+  assert.doesNotMatch(workflow, /npm run verify:android-teacher-pack/);
+  assert.match(workflow, /npm run build:android-offline[\s\S]*npm run verify:android-student-bundle-safety[\s\S]*npm run build:android-teacher-offline[\s\S]*npx playwright install/);
+  assert.ok(teacherBuild.indexOf("build-pack.mjs") < teacherBuild.indexOf("verify-pack.mjs"));
+});
+
 test("teacher viewport profiles use available width and height rather than device identity", () => {
   assert.equal(classifyTeacherViewport({ width: 800, height: 360 }), TEACHER_VIEWPORT_PROFILES.COMPACT);
   assert.equal(classifyTeacherViewport({ width: 1024, height: 600 }), TEACHER_VIEWPORT_PROFILES.MEDIUM);
