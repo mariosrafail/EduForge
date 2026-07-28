@@ -1,4 +1,8 @@
+import { readLocalMultiSchoolMarker } from "./_local-multi-school.mjs";
+
 export function requireHostedE2EEnvironment(environment = process.env) {
+  const multiSchoolMarker = readLocalMultiSchoolMarker();
+  if (multiSchoolMarker) return multiSchoolMarker.baseURL;
   if (environment.E2E_LOCAL_CONFIRMATION === "isolated-local-pilot") {
     const target = new URL(environment.E2E_LOCAL_URL || "http://127.0.0.1:8888");
     if (target.protocol !== "http:" || !["localhost", "127.0.0.1", "::1"].includes(target.hostname)) {

@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [dev]
-  command = "npm run dev"
+  command = "node scripts/start-vite-loopback.mjs"
   targetPort = 8000
   port = 8888
   publish = "dist"

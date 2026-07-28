@@ -1,11 +1,12 @@
-import { createSafePool, withAdvisoryLock } from "./_staging-db.mjs";
+import { withAdvisoryLock } from "./_staging-db.mjs";
+import { createMultiSchoolPool } from "./_multi-school-db.mjs";
 import { MULTI_SCHOOL, MULTI_SCHOOL_CONFIRMATION, MULTI_SCHOOL_SEED_KEY, multiSchoolRegistryEntries } from "./_multi-school-seed-data.mjs";
 
 if (process.env.NODE_ENV === "production") throw new Error("Multi-school demo cleanup is forbidden when NODE_ENV=production");
 if (process.env.ALLOW_DEMO_SEED !== "true") throw new Error("ALLOW_DEMO_SEED=true is required");
 if (process.env.MULTI_SCHOOL_SEED_CONFIRMATION !== MULTI_SCHOOL_CONFIRMATION) throw new Error(`MULTI_SCHOOL_SEED_CONFIRMATION must equal ${MULTI_SCHOOL_CONFIRMATION}`);
 
-const { pool, safeLabel } = createSafePool("staging");
+const { pool, safeLabel } = createMultiSchoolPool();
 const client = await pool.connect();
 try {
   console.log(`Cleaning fictional multi-school data from isolated target: ${safeLabel}`);

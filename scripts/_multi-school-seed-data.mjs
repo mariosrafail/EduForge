@@ -30,13 +30,15 @@ export const MULTI_SCHOOL = definitions.map(([key, name], schoolOffset) => {
       email: `student${index + 1}.${key}@${MULTI_SCHOOL_EMAIL_DOMAIN}`, profile,
     })),
   ];
+  const students = users.filter((user) => user.role === "student");
+  const classMembers = [students.slice(0, 4), students.slice(4, 6), students.slice(6, 8)];
   const classes = [0, 1, 2].map((index) => ({
     id: uuid(0x20, school, index + 1),
     name: `${name} B2-${index + 1}`,
     slug: `dev-${key}-b2-${index + 1}`,
     invite: `DEV${school}${index + 1}B2AA`,
     teacherId: users[index === 2 ? 2 : 1].id,
-    studentIds: users.filter((user) => user.role === "student").filter((_, studentIndex) => studentIndex % 3 === index).map((user) => user.id),
+    studentIds: classMembers[index].map((user) => user.id),
   }));
   return {
     key, name, id: uuid(0x01, school, 1), users, classes,
@@ -46,7 +48,7 @@ export const MULTI_SCHOOL = definitions.map(([key, name], schoolOffset) => {
       value: `DEV-${key.toUpperCase()}-B2-${status.toUpperCase()}-2026`,
       redeemedBy: status === "redeemed" ? users.find((user) => user.profile === "redeemed").id : null,
     })),
-    assignments: classes.map((classItem, index) => ({ id: uuid(0x50, school, index + 1), classId: classItem.id, teacherId: classItem.teacherId, dueDays: 3 + index })),
+    assignments: [0, 1, 2, 3].map((index) => ({ id: uuid(0x50, school, index + 1) })),
   };
 });
 

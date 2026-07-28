@@ -1,11 +1,14 @@
 import { defineConfig } from "@playwright/test";
 import { requireHostedE2EEnvironment } from "./scripts/_e2e-staging.mjs";
+import { readLocalMultiSchoolMarker } from "./scripts/_local-multi-school.mjs";
 
 const baseURL = requireHostedE2EEnvironment();
 const localPilot = process.env.E2E_LOCAL_CONFIRMATION === "isolated-local-pilot";
+const multiSchool = Boolean(readLocalMultiSchoolMarker());
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testMatch: multiSchool ? "local-multi-school.spec.js" : undefined,
   fullyParallel: false,
   retries: 0,
   workers: 1,
@@ -16,7 +19,7 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "off",
   },
-  projects: localPilot
+  projects: localPilot || multiSchool
     ? [{ name: "chromium", use: { browserName: "chromium" } }]
     : [
         { name: "chromium", use: { browserName: "chromium" } },

@@ -47,6 +47,11 @@ export default defineConfig(({ mode }) => {
   );
 
   return {
+    server: {
+      watch: {
+        ignored: ["**/playwright-report/**", "**/test-results/**", "**/staging-artifacts/**"],
+      },
+    },
     build: {
       sourcemap: false,
     },
