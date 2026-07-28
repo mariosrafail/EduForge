@@ -8,7 +8,7 @@ const multiSchool = Boolean(readLocalMultiSchoolMarker());
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: multiSchool ? "local-multi-school.spec.js" : undefined,
+  testMatch: multiSchool ? ["local-multi-school.spec.js", "platform-admin-local.spec.js"] : undefined,
   fullyParallel: false,
   retries: 0,
   workers: 1,

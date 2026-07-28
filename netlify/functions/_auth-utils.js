@@ -213,9 +213,11 @@ export async function currentUserFromEvent(sql, event) {
     select u.id, u.school_id, u.full_name, u.email, u.role, u.status, u.level
     from auth_sessions s
     join app_users u on u.id = s.user_id
+    join schools school on school.id = u.school_id
     where s.token_hash = ${tokenHash}
       and s.expires_at > now()
       and u.status = 'active'
+      and coalesce(school.status, 'active') = 'active'
     limit 1
   `;
 

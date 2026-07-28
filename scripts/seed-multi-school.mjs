@@ -2,7 +2,14 @@ import { createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { withAdvisoryLock } from "./_staging-db.mjs";
 import { createMultiSchoolPool } from "./_multi-school-db.mjs";
-import { MULTI_SCHOOL, MULTI_SCHOOL_CONFIRMATION, MULTI_SCHOOL_DEMO_PASSWORD, MULTI_SCHOOL_SEED_KEY } from "./_multi-school-seed-data.mjs";
+import {
+  MULTI_SCHOOL,
+  MULTI_SCHOOL_CONFIRMATION,
+  MULTI_SCHOOL_DEMO_PASSWORD,
+  MULTI_SCHOOL_PLATFORM_ADMIN,
+  MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
+  MULTI_SCHOOL_SEED_KEY,
+} from "./_multi-school-seed-data.mjs";
 
 if (process.env.NODE_ENV === "production") throw new Error("Multi-school demo seed is forbidden when NODE_ENV=production");
 if (process.env.ALLOW_DEMO_SEED !== "true") throw new Error("ALLOW_DEMO_SEED=true is required");
@@ -45,6 +52,47 @@ try {
       const reviewActivity = activityRows.find((row) => row.implementation_mode === "teacher-reviewed");
       if (!autoActivity || !reviewActivity) throw new Error("Assignable auto-scored and teacher-reviewed Ultimate B2 activities are required");
       const passwordHash = await bcrypt.hash(process.env.MULTI_SCHOOL_DEMO_PASSWORD || MULTI_SCHOOL_DEMO_PASSWORD, 12);
+      const platformAdminPasswordHash = await bcrypt.hash(
+        process.env.MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD || MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
+        12,
+      );
+      const existingPlatformAdmin = (await client.query(
+        "select email from platform_admins where id=$1",
+        [MULTI_SCHOOL_PLATFORM_ADMIN.id],
+      )).rows[0];
+      const platformAdminOwned = (await client.query(`
+        select exists(
+          select 1 from multi_school_seed_registry
+          where seed_key=$1 and entity_type='platform_admin' and entity_id=$2
+        ) owned
+      `, [MULTI_SCHOOL_SEED_KEY, MULTI_SCHOOL_PLATFORM_ADMIN.id])).rows[0].owned;
+      if (existingPlatformAdmin && !platformAdminOwned) throw new Error("Deterministic Platform Admin ID is not owned by this seed");
+      if (existingPlatformAdmin && existingPlatformAdmin.email !== MULTI_SCHOOL_PLATFORM_ADMIN.email) throw new Error("Platform Admin seed identity mismatch");
+      await client.query(`
+        insert into platform_admins(id,full_name,email,password_hash,status,password_changed_at)
+        values($1,$2,$3,$4,'active',now())
+        on conflict(id) do update
+        set full_name=excluded.full_name,email=excluded.email,password_hash=excluded.password_hash,
+          status='active',password_changed_at=now()
+      `, [
+        MULTI_SCHOOL_PLATFORM_ADMIN.id,
+        MULTI_SCHOOL_PLATFORM_ADMIN.fullName,
+        MULTI_SCHOOL_PLATFORM_ADMIN.email,
+        platformAdminPasswordHash,
+      ]);
+      await client.query("select revoke_platform_admin_sessions($1)", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
+      await client.query(
+        "delete from platform_admin_login_attempts where platform_admin_id=$1 or email_hash=$2",
+        [MULTI_SCHOOL_PLATFORM_ADMIN.id, createHash("sha256").update(MULTI_SCHOOL_PLATFORM_ADMIN.email).digest("hex")],
+      );
+      await client.query(`
+        insert into platform_admin_audit_log(platform_admin_id,action,target_type,target_id,metadata)
+        values($1,'demo_account_seeded','platform_admin',$2,'{"source":"isolated_local_multi_school"}'::jsonb)
+      `, [MULTI_SCHOOL_PLATFORM_ADMIN.id, MULTI_SCHOOL_PLATFORM_ADMIN.id]);
+      await client.query(`
+        insert into multi_school_seed_registry(seed_key,entity_type,entity_id)
+        values($1,'platform_admin',$2) on conflict do nothing
+      `, [MULTI_SCHOOL_SEED_KEY, MULTI_SCHOOL_PLATFORM_ADMIN.id]);
 
       for (const school of MULTI_SCHOOL) {
         await client.query(`insert into schools(id,name,logo,primary_color,secondary_color) values($1,$2,'DEV','#1d4ed8','#0f172a') on conflict(id) do update set name=excluded.name`, [school.id, school.name]);

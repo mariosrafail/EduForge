@@ -8,3 +8,21 @@
   targetPort = 8000
   port = 8888
   publish = "dist"
+
+[[redirects]]
+  from = "/platform-admin/api/auth"
+  to = "/.netlify/functions/platform-admin-auth"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/platform-admin/api/control"
+  to = "/.netlify/functions/platform-admin"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/platform-admin/*"
+  to = "/platform-admin/index.html"
+  status = 200
+  force = true

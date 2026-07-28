@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
   const isAndroidTeacherOffline = appMode === "android-teacher-offline";
   const isAndroidOffline = appMode === "android-offline" || isAndroidTeacherOffline;
+  const webInputs = {
+    lms: path.resolve(process.cwd(), "index.html"),
+    platformAdmin: path.resolve(process.cwd(), "platform-admin/index.html"),
+  };
   const androidOfflineServiceStub = path.resolve(process.cwd(), "src/apps/android-offline/androidOfflineServiceStubs.js");
   const offlineSolutionProvider = path.resolve(
     process.cwd(),
@@ -54,6 +58,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: false,
+      rollupOptions: {
+        input: isAndroidOffline ? path.resolve(process.cwd(), "index.html") : webInputs,
+      },
     },
     plugins: [react(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
     resolve: {

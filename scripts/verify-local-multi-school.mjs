@@ -1,6 +1,10 @@
 import pg from "pg";
 import { readFile } from "node:fs/promises";
-import { MULTI_SCHOOL, MULTI_SCHOOL_DEMO_PASSWORD } from "./_multi-school-seed-data.mjs";
+import {
+  MULTI_SCHOOL,
+  MULTI_SCHOOL_DEMO_PASSWORD,
+  MULTI_SCHOOL_PLATFORM_ADMIN,
+} from "./_multi-school-seed-data.mjs";
 import { localMultiSchoolDatabaseUrl } from "./_local-multi-school.mjs";
 
 const pool = new pg.Pool({ connectionString: localMultiSchoolDatabaseUrl() });
@@ -28,6 +32,12 @@ try {
   expectEqual("assignments", counts.assignments, 12);
   expectEqual("submissions", counts.submissions, 27);
   expectEqual("activation codes", counts.codes, 12);
+  const platformAdmins = (await pool.query(`
+    select id,email,status from platform_admins where id=$1
+  `, [MULTI_SCHOOL_PLATFORM_ADMIN.id])).rows;
+  expectEqual("fictional Platform Admins", platformAdmins.length, 1);
+  expectTrue("fictional Platform Admin identity", platformAdmins[0]?.email === MULTI_SCHOOL_PLATFORM_ADMIN.email);
+  expectTrue("fictional Platform Admin active", platformAdmins[0]?.status === "active");
 
   const perSchool = (await pool.query(`
     select s.name,

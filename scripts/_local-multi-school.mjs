@@ -148,6 +148,8 @@ export function localDemoEnvironment(extra = {}) {
     ALLOW_DEMO_SEED: "true",
     MULTI_SCHOOL_SEED_CONFIRMATION: "fictional-multi-school-development-data",
     MULTI_SCHOOL_DEMO_PASSWORD: "EduForge-Dev-Only-2026!",
+    MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD: "EduForge-Platform-Dev-Only-2026!",
+    PLATFORM_ADMIN_RATE_LIMIT_SALT: "local-multi-school-platform-admin-rate-limit-only",
     MULTI_SCHOOL_LOCAL_CONFIRMATION: LOCAL_MULTI_SCHOOL.confirmation,
     MULTI_SCHOOL_LOCAL_DATABASE_URL: localMultiSchoolDatabaseUrl(),
   };

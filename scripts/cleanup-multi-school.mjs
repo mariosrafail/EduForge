@@ -1,6 +1,12 @@
 import { withAdvisoryLock } from "./_staging-db.mjs";
 import { createMultiSchoolPool } from "./_multi-school-db.mjs";
-import { MULTI_SCHOOL, MULTI_SCHOOL_CONFIRMATION, MULTI_SCHOOL_SEED_KEY, multiSchoolRegistryEntries } from "./_multi-school-seed-data.mjs";
+import {
+  MULTI_SCHOOL,
+  MULTI_SCHOOL_CONFIRMATION,
+  MULTI_SCHOOL_PLATFORM_ADMIN,
+  MULTI_SCHOOL_SEED_KEY,
+  multiSchoolRegistryEntries,
+} from "./_multi-school-seed-data.mjs";
 
 if (process.env.NODE_ENV === "production") throw new Error("Multi-school demo cleanup is forbidden when NODE_ENV=production");
 if (process.env.ALLOW_DEMO_SEED !== "true") throw new Error("ALLOW_DEMO_SEED=true is required");
@@ -26,6 +32,8 @@ try {
       }
       await client.query("delete from activation_code_batches where school_id=any($1::uuid[])", [MULTI_SCHOOL.map((school) => school.id)]);
       await client.query("delete from schools where id=any($1::uuid[])", [MULTI_SCHOOL.map((school) => school.id)]);
+      await client.query("delete from platform_admin_audit_log where platform_admin_id=$1", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
+      await client.query("delete from platform_admins where id=$1", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
       await client.query("delete from multi_school_seed_registry where seed_key=$1", [MULTI_SCHOOL_SEED_KEY]);
       await client.query("commit");
     } catch (error) { await client.query("rollback"); throw error; }

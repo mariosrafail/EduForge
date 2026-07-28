@@ -32,9 +32,11 @@ export async function handler(event) {
     await ensureAuthSchema(sql);
     const { email, password } = validation.value;
     const users = await sql`
-      select id, school_id, full_name, email, role, status, password_hash
-      from app_users
-      where lower(email) = ${email}
+      select u.id, u.school_id, u.full_name, u.email, u.role, u.status, u.password_hash,
+        coalesce(s.status, 'active') as school_status
+      from app_users u
+      join schools s on s.id = u.school_id
+      where lower(u.email) = ${email}
       limit 1
     `;
 
@@ -50,7 +52,7 @@ export async function handler(event) {
       return json(401, { error: "Invalid email or password" });
     }
 
-    if (user.status !== "active") {
+    if (user.status !== "active" || user.school_status !== "active") {
       await sql`delete from auth_sessions where user_id = ${user.id}`;
       return json(403, { error: "This account is not active" });
     }

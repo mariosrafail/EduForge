@@ -1,5 +1,32 @@
 # Local multi-school demo
 
+The normal LMS is available at `http://127.0.0.1:8888/`.
+
+The separate operator control plane is available at `http://127.0.0.1:8888/platform-admin/`. It is intentionally absent from normal LMS navigation.
+
+Fictional local Platform Admin:
+
+- email: `platform.admin@multi-school.dev.invalid`
+- development-only password: `EduForge-Platform-Dev-Only-2026!`
+
+These credentials are created only by the explicitly confirmed local demo setup and must never be used for staging or production.
+
+## Five-minute Platform Admin walkthrough
+
+1. Run `npm run demo:multi-school:setup` and `npm run demo:multi-school:start`.
+2. Open `/platform-admin/` and sign in with the fictional Platform Admin.
+3. Review the real overview counts and open **Schools**.
+4. Open Athens Language Academy, then Piraeus English Centre, and compare their independently scoped users/classes.
+5. Create a fictional temporary school and invite a School Admin.
+6. Pause the temporary school and confirm ordinary login is denied.
+7. Reactivate it and confirm login policy is restored.
+8. Revoke the ordinary account's sessions.
+9. Open **Audit log** and confirm the corresponding safe events.
+
+The browser deliberately exposes no school or user deletion. Use only fictional records in this local environment.
+
+`npm run demo:multi-school:reset` drops only the dedicated `eduforge_multi_school_demo` database and its marker. This removes the fictional Platform Admin, its sessions and audit records together with the registered demo schools, while retaining the local PostgreSQL container.
+
 This environment is a development-only, fictional EduForge walkthrough for the Phase 1 Ultimate English catalog. It runs the real Netlify Functions and PostgreSQL-backed role flows at `http://127.0.0.1:8888`; it never connects to staging or production.
 
 ## Prerequisites and one-command lifecycle
