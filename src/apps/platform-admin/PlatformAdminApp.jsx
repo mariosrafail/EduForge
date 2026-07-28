@@ -1,5 +1,21 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { platformApi, platformAuth } from "./platformAdminApi.js";
+import {
+  BookOpenCheck,
+  Building2,
+  ClipboardList,
+  GraduationCap,
+  LockKeyhole,
+  School,
+  ShieldCheck,
+  UsersRound,
+} from "lucide-react";
+import {
+  platformApi,
+  platformAuth,
+  resetPlatformApiSession,
+  setPlatformSecurityErrorHandler,
+  setPlatformUnauthorizedHandler,
+} from "./platformAdminApi.js";
 
 const sections = [
   ["overview", "Overview"],
@@ -15,7 +31,7 @@ function initialSection() {
   return sections.some(([key]) => key === segment) ? segment : "overview";
 }
 
-function Login({ onAuthenticated }) {
+function Login({ message, onAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,8 +42,13 @@ function Login({ onAuthenticated }) {
     setError("");
     try {
       const payload = await platformAuth.login({ email, password });
+      if (!payload.platformAdmin?.id) throw new Error("The privileged session could not be established.");
+      const verified = await platformAuth.me({ notifyUnauthorized: true });
+      if (!verified.platformAdmin?.id || verified.platformAdmin.id !== payload.platformAdmin.id) {
+        throw new Error("The privileged session could not be established.");
+      }
       setPassword("");
-      onAuthenticated(payload.platformAdmin);
+      onAuthenticated(verified.platformAdmin);
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -37,12 +58,14 @@ function Login({ onAuthenticated }) {
   return (
     <main className="pa-login-shell">
       <section className="pa-login-card" aria-labelledby="pa-login-title">
-        <p className="pa-eyebrow">Restricted operator control plane</p>
+        <div className="pa-brand-mark" aria-hidden="true">E</div>
+        <p className="pa-restricted-label"><LockKeyhole size={15} /> Restricted operator area</p>
         <h1 id="pa-login-title">EduForge Platform Administration</h1>
-        <p>This area uses a dedicated privileged account and session.</p>
+        <p className="pa-login-copy">Sign in with a dedicated Platform Admin account. Ordinary EduForge accounts cannot access this area.</p>
         <form onSubmit={submit}>
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label>
           <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>
+          {message && <p className="pa-session-message" role="status">{message}</p>}
           {error && <p className="pa-error" role="alert">{error}</p>}
           <button type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
         </form>
@@ -57,12 +80,12 @@ function Status({ value }) {
 
 function Overview({ data }) {
   const labels = {
-    schools: "Schools", activeSchools: "Active schools", pausedSchools: "Paused schools",
-    schoolAdmins: "School Admins", teachers: "Teachers", students: "Students",
-    classes: "Classes", activePhaseOnePackages: "Active Phase 1 packages",
-    activeAssignments: "Active assignments", awaitingReview: "Awaiting review",
+    schools: ["Schools", Building2], activeSchools: ["Active schools", School], pausedSchools: ["Paused schools", LockKeyhole],
+    schoolAdmins: ["School Admins", ShieldCheck], teachers: ["Teachers", GraduationCap], students: ["Students", UsersRound],
+    classes: ["Classes", School], activePhaseOnePackages: ["Active Phase 1 packages", BookOpenCheck],
+    activeAssignments: ["Active assignments", ClipboardList], awaitingReview: ["Awaiting review", ClipboardList],
   };
-  return <div className="pa-metrics">{Object.entries(labels).map(([key, label]) => <article key={key}><strong>{data?.[key] ?? "—"}</strong><span>{label}</span></article>)}</div>;
+  return <div className="pa-metrics">{Object.entries(labels).map(([key, [label, Icon]]) => <article key={key}><div className="pa-metric-icon"><Icon size={20} /></div><strong>{data?.[key] ?? "—"}</strong><span>{label}</span></article>)}</div>;
 }
 
 function Schools({ schools, reload, selectSchool }) {
@@ -226,9 +249,41 @@ export default function PlatformAdminApp() {
   const [section, setSection] = useState(initialSection);
   const [data, setData] = useState({});
   const [error, setError] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
   const [selectedSchool, setSelectedSchool] = useState(null);
 
-  useEffect(() => { platformAuth.me().then((payload) => setAdmin(payload.platformAdmin)).catch(() => {}).finally(() => setChecking(false)); }, []);
+  const clearPrivilegedState = useCallback((message = "") => {
+    setAdmin(null);
+    setData({});
+    setSelectedSchool(null);
+    setError("");
+    setAuthMessage(message);
+    history.replaceState({}, "", "/platform-admin/");
+  }, []);
+
+  useEffect(() => setPlatformUnauthorizedHandler(() => {
+    clearPrivilegedState("Your privileged session expired. Sign in again.");
+  }), [clearPrivilegedState]);
+
+  useEffect(() => setPlatformSecurityErrorHandler((nextError) => {
+    setError(nextError.message || "This privileged operation was forbidden.");
+  }), []);
+
+  useEffect(() => {
+    let mounted = true;
+    platformAuth.me()
+      .then((payload) => {
+        if (mounted && payload.platformAdmin?.id) setAdmin(payload.platformAdmin);
+      })
+      .catch((nextError) => {
+        if (mounted && nextError.status !== 401 && !nextError.platformSessionCancelled) {
+          setError("Platform Administration is temporarily unavailable.");
+        }
+      })
+      .finally(() => { if (mounted) setChecking(false); });
+    return () => { mounted = false; };
+  }, []);
+
   const load = useCallback(async (target = section, filters = {}) => {
     setError("");
     try {
@@ -244,22 +299,41 @@ export default function PlatformAdminApp() {
         schoolsForFilters: schoolPayload?.schools || current.schoolsForFilters || [],
       }));
     } catch (nextError) {
-      if (nextError.status === 401) setAdmin(null);
-      else setError(nextError.message);
+      if (nextError.status === 401 || nextError.platformSessionCancelled) return;
+      setError(nextError.message);
     }
   }, [section]);
   useEffect(() => { if (admin) load(section); }, [admin, section, load]);
   const navigate = (next) => {
-    setSection(next); setSelectedSchool(null);
+    setSection(next); setSelectedSchool(null); setError("");
     history.pushState({}, "", `/platform-admin/${next}`);
+  };
+  const signOut = async () => {
+    try { await platformAuth.logout(); } catch (nextError) {
+      if (nextError.status !== 401) setError(nextError.message);
+    } finally {
+      resetPlatformApiSession();
+      clearPrivilegedState();
+    }
   };
   const users = data.users?.users || [];
 
   if (checking) return <main className="pa-loading">Checking privileged session…</main>;
-  if (!admin) return <Login onAuthenticated={setAdmin} />;
+  if (!admin) return <Login message={authMessage} onAuthenticated={(identity) => {
+    setAuthMessage("");
+    setError("");
+    setData({});
+    setSelectedSchool(null);
+    setSection("overview");
+    history.replaceState({}, "", "/platform-admin/overview");
+    setAdmin(identity);
+  }} />;
   return (
     <div className="pa-shell">
-      <header><div><p className="pa-eyebrow">Privileged area</p><h1>EduForge Platform Administration</h1></div><div className="pa-identity"><span>{admin.full_name}</span><button className="pa-secondary" onClick={async () => { await platformAuth.logout(); setAdmin(null); }}>Sign out</button></div></header>
+      <header>
+        <div className="pa-brand-lockup"><div className="pa-brand-mark" aria-hidden="true">E</div><div><strong>EduForge</strong><span>Platform Administration</span></div></div>
+        <div className="pa-identity"><span className="pa-privileged-badge"><ShieldCheck size={15} /> Restricted operator area</span><strong>{admin.full_name}</strong><button className="pa-secondary" onClick={signOut}>Sign out</button></div>
+      </header>
       <nav aria-label="Platform Administration">{sections.map(([key, label]) => <button key={key} aria-current={section === key ? "page" : undefined} onClick={() => navigate(key)}>{label}</button>)}</nav>
       <main><div className="pa-heading"><div><p>Cross-platform operations</p><h2>{sections.find(([key]) => key === section)?.[1]}</h2></div><button className="pa-secondary" onClick={() => load(section)}>Refresh</button></div>
         {error && <p className="pa-error" role="alert">{error}</p>}

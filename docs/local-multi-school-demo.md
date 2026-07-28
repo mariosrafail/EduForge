@@ -39,7 +39,7 @@ npm run demo:multi-school:setup
 npm run demo:multi-school:start
 ```
 
-Open `http://127.0.0.1:8888`. Stop the server with `Ctrl+C`. The other lifecycle commands are:
+Open `http://127.0.0.1:8888/platform-admin/` for Platform Administration, or `http://127.0.0.1:8888/` for the normal LMS. Stop the server with `Ctrl+C`. The other lifecycle commands are:
 
 ```powershell
 npm run demo:multi-school:verify
@@ -50,6 +50,8 @@ npm run demo:multi-school:reset
 `setup` creates/starts the dedicated `eduforge-multi-school-postgres` container on `127.0.0.1:55433`, creates only `eduforge_multi_school_demo`, applies production migrations without the generic demo-password migration, and loads the deterministic multi-school seed. It is safe to run repeatedly. `reset` drops only that exact database and keeps the container and any unrelated local databases.
 
 The commands reject production mode, non-loopback hosts, a missing internal confirmation, any database name other than `eduforge_multi_school_demo`, and generic/hosted/staging database variables. They do not read `.env` or require copying hosted credentials.
+
+Use `127.0.0.1` consistently. Cookies are host-scoped, so a login made at `127.0.0.1` is not available at `localhost`, and vice versa; opening the other hostname correctly shows a fresh login page. If port `8888` is already occupied, first try the existing `http://127.0.0.1:8888`. Terminate that listener only if it is stale, then start the demo again.
 
 ## Demo accounts
 
@@ -100,7 +102,7 @@ With `demo:multi-school:start` running, `npm run test:e2e` automatically detects
 ## Troubleshooting
 
 - Port `55433` busy: stop the unrelated process. The setup refuses to silently bind elsewhere.
-- Port `8888` busy: stop the existing local web process and rerun `demo:multi-school:start`.
+- Port `8888` busy: first try the existing `http://127.0.0.1:8888`; if that listener is stale, terminate it and rerun `demo:multi-school:start`.
 - Docker unavailable: start Docker Desktop, then rerun setup.
 - Stale or partial data: run `demo:multi-school:reset`, then setup again.
 - Browser test cannot connect: keep `demo:multi-school:start` running in a separate terminal.

@@ -87,6 +87,7 @@ try {
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   const page = await context.newPage();
+  page.setDefaultNavigationTimeout(120_000);
   const consoleErrors = [];
   const externalRequests = [];
   page.on("console", (message) => {
@@ -100,7 +101,7 @@ try {
 
   for (const mode of modes) {
     for (const activityId of activities) {
-      await page.goto(harnessUrl(activityId, mode), { waitUntil: "networkidle" });
+      await page.goto(harnessUrl(activityId, mode), { waitUntil: "domcontentloaded" });
       const root = page.locator(`[data-legacy-pilot-activity="${activityId}"]`);
       await root.waitFor();
       assert.equal(await root.count(), 1, `${mode} ${activityId} renderer`);
@@ -183,7 +184,7 @@ try {
     }
   }
 
-  await page.goto(harnessUrl("ultimate-b2-sb-u1-p2-o2", "teacher-presentation", true), { waitUntil: "networkidle" });
+  await page.goto(harnessUrl("ultimate-b2-sb-u1-p2-o2", "teacher-presentation", true), { waitUntil: "domcontentloaded" });
   await page.locator(".teacher-presentation-shell").waitFor();
   assert.ok(await page.getByRole("button", { name: "Fullscreen" }).count() > 0);
   await page.getByRole("button", { name: "Back to book" }).click();

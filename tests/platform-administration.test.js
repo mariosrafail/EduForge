@@ -11,10 +11,13 @@ const files = await Promise.all([
   readFile("netlify/functions/auth-signin.js", "utf8"),
   readFile("vite.config.js", "utf8"),
   readFile("netlify.toml", "utf8"),
+  readFile("src/apps/platform-admin/platformAdminApi.js", "utf8"),
+  readFile("src/apps/platform-admin/PlatformAdminApp.jsx", "utf8"),
+  readFile("src/apps/platform-admin/platformAdmin.css", "utf8"),
   readFile("src/apps/lms/LmsApp.jsx", "utf8"),
   readFile("src/components/lms/AuthPage.jsx", "utf8").catch(() => ""),
 ]);
-const [migration, platformAuth, platformApi, authHandler, ordinaryAuth, signin, vite, netlify, ...normalUi] = files;
+const [migration, platformAuth, platformApi, authHandler, ordinaryAuth, signin, vite, netlify, platformClient, platformApp, platformCss, ...normalUi] = files;
 
 test("Platform Admin identity, sessions, and audit are physically separate from ordinary users", () => {
   assert.match(migration, /create table if not exists platform_admins/);
@@ -43,6 +46,32 @@ test("every Platform Admin endpoint requires dedicated authorization and mutatio
   assert.match(authHandler, /requirePlatformAdminOrigin\(event\)/);
   assert.doesNotMatch(platformApi, /teacher[_-]solutions|acceptedAnswers|correctOptionIds/i);
   assert.doesNotMatch(platformApi, /delete from schools|delete from app_users/i);
+});
+
+test("missing privileged authentication is always 401 and never depends on the ordinary cookie", () => {
+  const guard = platformAuth.match(/export async function requirePlatformAdmin[\s\S]*?\n}/)?.[0] || "";
+  assert.match(guard, /if \(!admin\) return \{ error: unauthorized\(\) \}/);
+  assert.doesNotMatch(guard, /sessionCookieName|forbidden\(/);
+});
+
+test("the centralized client clears stale privileged state on 401 without consuming genuine 403 errors", () => {
+  assert.match(platformClient, /response\.status === 401 && notifyUnauthorized/);
+  assert.match(platformClient, /controller\.abort\(\)/);
+  assert.match(platformClient, /unauthorizedHandler\?\.\(\)/);
+  assert.match(platformClient, /response\.status === 403 && notifySecurityError/);
+  assert.match(platformApp, /setData\(\{\}\)/);
+  assert.match(platformApp, /setSelectedSchool\(null\)/);
+  assert.match(platformApp, /history\.replaceState\(\{\}, "", "\/platform-admin\/"\)/);
+  assert.match(platformApp, /Your privileged session expired\. Sign in again\./);
+  assert.doesNotMatch(platformApp, /localStorage|sessionStorage/);
+});
+
+test("Platform Administration uses the EduForge white and orange visual system", () => {
+  assert.match(platformCss, /--brand-primary: #f97316/);
+  assert.match(platformCss, /--panel: rgba\(255, 255, 255/);
+  assert.match(platformCss, /--app-card-radius: 8px/);
+  assert.match(platformCss, /--shadow: 0 16px 34px/);
+  assert.doesNotMatch(platformCss, /#07111f|#0d1d31|#0b1d31|#1d4ed8|#2563eb/);
 });
 
 test("paused schools deny ordinary login and invalidate ordinary sessions without changing users", () => {

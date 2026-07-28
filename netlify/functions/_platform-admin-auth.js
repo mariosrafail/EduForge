@@ -6,7 +6,6 @@ import {
   hashToken,
   json,
   normalizeEmail,
-  sessionCookieName,
   unauthorized,
 } from "./_auth-utils.js";
 
@@ -159,9 +158,7 @@ export async function currentPlatformAdminFromEvent(sql, event) {
 export async function requirePlatformAdmin(event, sql = null) {
   const database = sql || getSql();
   const admin = await currentPlatformAdminFromEvent(database, event);
-  if (!admin) {
-    return { error: getCookie(event, sessionCookieName) ? forbidden() : unauthorized() };
-  }
+  if (!admin) return { error: unauthorized() };
   return { sql: database, platformAdmin: admin };
 }
 

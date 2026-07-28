@@ -23,6 +23,14 @@ async function control(page, action, body) {
   return { response, body: await response.json() };
 }
 
+async function signInPlatform(page) {
+  await page.getByLabel("Email").fill(MULTI_SCHOOL_PLATFORM_ADMIN.email);
+  await page.getByLabel("Password").fill(MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByText("Restricted operator area")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+}
+
 test.afterEach(async () => {
   if (!marker) return;
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
@@ -41,24 +49,36 @@ test.afterEach(async () => {
   }
 });
 
-test("Platform Admin local control-plane walkthrough and session separation", async ({ page, browser }) => {
+test("Platform Admin local control-plane walkthrough and session separation", async ({ page, browser }, testInfo) => {
   test.setTimeout(120_000);
   test.skip(!marker, "Requires npm run demo:multi-school:setup");
 
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "EduForge Platform Administration" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("platform-admin-desktop-login.png"), fullPage: true });
   await page.getByLabel("Email").fill(MULTI_SCHOOL[0].users[0].email);
   await page.getByLabel("Password").fill(MULTI_SCHOOL_DEMO_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("alert")).toHaveText("Invalid email or password");
 
-  await page.getByLabel("Email").fill(MULTI_SCHOOL_PLATFORM_ADMIN.email);
-  await page.getByLabel("Password").fill(MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("Privileged area")).toBeVisible();
+  await signInPlatform(page);
+  const platformFailures = [];
+  page.on("response", (response) => {
+    if (response.url().includes("/platform-admin/api/") && response.status() >= 400) {
+      platformFailures.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  await page.screenshot({ path: testInfo.outputPath("platform-admin-desktop-overview.png"), fullPage: true });
 
   const ordinaryMeBeforeLogin = await page.request.get("/.netlify/functions/auth-me");
   expect(ordinaryMeBeforeLogin.status()).toBe(401);
+
+  for (const [label, filename] of [["Schools", "schools"], ["Users", "users"], ["Classes", "classes"], ["Book access", "book-access"], ["Audit log", "audit-log"]]) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`platform-admin-desktop-${filename}.png`), fullPage: true });
+  }
 
   await page.getByRole("button", { name: "Schools", exact: true }).click();
   for (const school of MULTI_SCHOOL) await expect(page.getByRole("button", { name: school.name })).toBeVisible();
@@ -118,9 +138,123 @@ test("Platform Admin local control-plane walkthrough and session separation", as
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  for (const [label, filename] of [["Overview", "overview"], ["Schools", "schools"], ["Users", "users"], ["Book access", "book-access"], ["Audit log", "audit-log"]]) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+    await page.screenshot({ path: testInfo.outputPath(`platform-admin-tablet-${filename}.png`), fullPage: true });
+  }
+  expect(platformFailures).toEqual([]);
+
   const normalContext = await browser.newContext({ baseURL: marker.baseURL });
   const normalPage = await normalContext.newPage();
   await normalPage.goto("/", { waitUntil: "domcontentloaded" });
   await expect(normalPage.locator('a[href*="/platform-admin"], button:has-text("Platform Administration")')).toHaveCount(0);
   await normalContext.close();
+});
+
+test("revoked privileged session clears all loaded data and recovers through login", async ({ page }) => {
+  test.setTimeout(60_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  await signInPlatform(page);
+  await page.getByRole("button", { name: "Schools", exact: true }).click();
+  await expect(page.getByRole("button", { name: MULTI_SCHOOL[0].name })).toBeVisible();
+
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    await pool.query("update platform_admin_sessions set revoked_at=now() where platform_admin_id=$1 and revoked_at is null", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
+  } finally {
+    await pool.end();
+  }
+
+  let controlRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/platform-admin/api/control")) controlRequests += 1;
+  });
+  await page.getByRole("button", { name: "Refresh" }).click();
+  await expect(page.getByText("Your privileged session expired. Sign in again.")).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByText(MULTI_SCHOOL[0].name)).toHaveCount(0);
+  await expect(page).toHaveURL(/\/platform-admin\/$/);
+  await page.waitForTimeout(500);
+  expect(controlRequests).toBe(1);
+
+  await signInPlatform(page);
+  await expect(page.getByText("Your privileged session expired. Sign in again.")).toHaveCount(0);
+});
+
+test("reload after database-style session invalidation shows no stale dashboard and allows re-login", async ({ page }) => {
+  test.setTimeout(60_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  await signInPlatform(page);
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await expect(page.getByText(MULTI_SCHOOL[0].users[0].email)).toBeVisible();
+
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    await pool.query("delete from platform_admin_sessions where platform_admin_id=$1", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
+  } finally {
+    await pool.end();
+  }
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(page.getByText(MULTI_SCHOOL[0].users[0].email)).toHaveCount(0);
+  await signInPlatform(page);
+  for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  }
+});
+
+test("invalid Origin remains 403 without destroying the valid session, and host cookies stay isolated", async ({ page, browser }) => {
+  test.setTimeout(60_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  await signInPlatform(page);
+  const forbidden = await page.request.post("/platform-admin/api/control?action=create-school", {
+    data: { name: "Forbidden Origin School" },
+    headers: { Origin: "https://invalid-origin.example" },
+  });
+  expect(forbidden.status()).toBe(403);
+  expect((await page.request.get("/platform-admin/api/auth?action=me")).status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+  const localhostContext = await browser.newContext({ baseURL: "http://localhost:8888" });
+  const localhostPage = await localhostContext.newPage();
+  await localhostPage.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  await expect(localhostPage.getByLabel("Email")).toBeVisible();
+  await expect(localhostPage.getByText(MULTI_SCHOOL[0].name)).toHaveCount(0);
+  await localhostContext.close();
+});
+
+test("Platform Administration remains page-overflow free across required desktop and tablet viewports", async ({ page }) => {
+  test.setTimeout(90_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  await signInPlatform(page);
+  const viewports = [
+    { width: 1920, height: 1080 },
+    { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1280, height: 720 },
+    { width: 1024, height: 768 },
+    { width: 768, height: 1024 },
+  ];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await expect(page.getByRole("heading", { name: label })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
+    }
+  }
 });

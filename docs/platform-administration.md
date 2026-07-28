@@ -19,6 +19,12 @@ The ordinary `hh_lms_session` cookie cannot authorize Platform Admin APIs. A Pla
 
 Login uses generic invalid-credential errors, bcrypt password verification, request/email rate limiting, Origin validation for mutations, and audited threshold events. Tokens and passwords are never stored in browser storage.
 
+Missing, malformed, expired, revoked, or paused Platform Admin sessions return `401 Unauthorized`, regardless of whether an ordinary LMS cookie is also present. A `403 Forbidden` is reserved for an authenticated privileged request that fails a security check such as mutation Origin validation. On any control-plane `401`, the browser cancels parallel privileged requests, clears the Platform Admin identity and all loaded school/user/class/access/audit data, replaces the route with `/platform-admin/`, and shows the dedicated login with an expiry notice. A genuine `403` remains visible as an error and does not destroy the valid Platform Admin session.
+
+Browser cookies are host-scoped. Use `http://127.0.0.1:8888/platform-admin/` as the canonical local URL and keep using that hostname throughout a session. Opening `localhost` after logging in on `127.0.0.1` (or the reverse) is a separate unauthenticated visit and requires its own login; EduForge does not weaken cookie scope with a cross-host `Domain` workaround.
+
+The dedicated application uses the normal EduForge typography, card radius, border, shadow, input, and button conventions with white/off-white surfaces and the EduForge orange accent. It remains a separate bundle and does not import ordinary LMS routing or expose a normal-LMS navigation entry.
+
 ## Creating a production account
 
 There is no browser registration and no production default account. Apply migration `028_platform_administration.sql`, then use the operator CLI with a password supplied only through the environment:
@@ -72,7 +78,7 @@ This account is created by the isolated demo seed only; it is not present in mig
 Before production:
 
 1. use a dedicated staging database and operator account;
-2. confirm ordinary cookies and roles receive 401/403 from Platform Admin endpoints;
+2. confirm missing/ordinary-only/invalid privileged sessions receive 401 while authenticated Origin failures receive 403;
 3. verify school pause/session revocation and audit events;
 4. inspect logs for secret-free failures;
 5. verify direct and refreshed `/platform-admin/` routes;

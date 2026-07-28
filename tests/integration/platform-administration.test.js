@@ -121,9 +121,12 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   const cookies = {};
   for (const user of users) cookies[user.role + (user.school_id === piraeus.id ? "-piraeus" : "")] = await ordinarySession(pool, user.id);
   assert.equal((await call(platformApi)).status, 401);
-  assert.equal((await call(platformApi, { cookie: cookies.admin })).status, 403);
-  assert.equal((await call(platformApi, { cookie: cookies.teacher })).status, 403);
-  assert.equal((await call(platformApi, { cookie: cookies.student })).status, 403);
+  assert.equal((await call(platformApi, { cookie: cookies.admin })).status, 401);
+  assert.equal((await call(platformApi, { cookie: cookies.teacher })).status, 401);
+  assert.equal((await call(platformApi, { cookie: cookies.student })).status, 401);
+  const invalidPlatformCookie = `${platformAdminCookieName}=unknown-platform-session`;
+  assert.equal((await call(platformApi, { cookie: invalidPlatformCookie })).status, 401);
+  assert.equal((await call(platformApi, { cookie: `${cookies.admin}; ${invalidPlatformCookie}` })).status, 401);
 
   const unknown = await call(platformAuth, { method: "POST", query: { action: "login" }, body: { email: "missing@platform.test", password: "wrong" }, ip: "127.0.8.20" });
   const wrong = await call(platformAuth, { method: "POST", query: { action: "login" }, body: { email: "operator@platform.test", password: "wrong" }, ip: "127.0.8.21" });
@@ -137,6 +140,23 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   assert.match(platformCookie, new RegExp(`^${platformAdminCookieName}=`));
   assert.equal((await call(ordinaryMe, { cookie: platformCookie })).status, 401);
   assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 200);
+  assert.equal((await call(platformApi, { cookie: `${cookies.admin}; ${platformCookie}`, query: { action: "overview" } })).status, 200);
+
+  const forbiddenMutation = await call(platformApi, {
+    method: "POST",
+    cookie: platformCookie,
+    origin: false,
+    query: { action: "create-school" },
+    body: { name: "Must Not Be Created" },
+  });
+  assert.equal(forbiddenMutation.status, 403);
+  assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 200);
+
+  const logoutLogin = await call(platformAuth, { method: "POST", query: { action: "login" }, body: { email: "operator@platform.test", password: "Platform-Safe-2026!" }, ip: "127.0.8.23" });
+  const logoutCookie = logoutLogin.headers["Set-Cookie"].split(";")[0];
+  assert.equal((await call(platformAuth, { method: "POST", query: { action: "logout" }, cookie: logoutCookie })).status, 200);
+  assert.equal((await call(platformAuth, { method: "POST", query: { action: "logout" }, cookie: logoutCookie })).status, 200);
+  assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: logoutCookie })).status, 401);
 
   const overview = await call(platformApi, { cookie: platformCookie, query: { action: "overview" } });
   assert.equal(overview.body.overview.schools, 4);
@@ -175,6 +195,11 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   assert.equal(ownUsers.body.users.every((user) => user.school_id === undefined || user.school_id === athens.id), true);
   assert.equal((await call(schoolUser, { cookie: athensAdminCookie, query: { id: users.find((user) => user.school_id === piraeus.id).id } })).status, 404);
   assert.equal((await call(platformApi, { cookie: platformCookie, query: { action: "teacher-solutions" } })).status, 404);
+
+  await pool.query("update platform_admins set status='paused' where id=$1", [platformAdminId]);
+  assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 401);
+  await pool.query("update platform_admins set status='active' where id=$1", [platformAdminId]);
+  assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 200);
 
   const audit = (await pool.query("select action,metadata::text metadata from platform_admin_audit_log where platform_admin_id=$1", [platformAdminId])).rows;
   for (const action of ["login_succeeded", "school_created", "ordinary_user_invited", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {

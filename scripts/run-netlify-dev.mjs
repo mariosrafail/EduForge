@@ -1,5 +1,24 @@
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
+import { connect } from "node:net";
+
+function portIsListening(port, host) {
+  return new Promise((resolve) => {
+    const socket = connect({ port, host });
+    socket.setTimeout(750);
+    socket.once("connect", () => { socket.destroy(); resolve(true); });
+    socket.once("timeout", () => { socket.destroy(); resolve(false); });
+    socket.once("error", () => resolve(false));
+  });
+}
+
+if (await portIsListening(8888, "127.0.0.1")) {
+  console.error(
+    "Port 8888 is already in use. First try the existing http://127.0.0.1:8888; "
+    + "if it is stale, terminate that listening process before starting another demo server.",
+  );
+  process.exit(1);
+}
 
 const env = { ...process.env };
 
