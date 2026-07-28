@@ -1,4 +1,5 @@
 import { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody } from "./_course-utils.js";
+import { isPhaseOneComponentVisible } from "../../src/config/bookCatalogVisibility.js";
 
 export { databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody };
 
@@ -151,12 +152,13 @@ export async function fetchPackageTree(sql, query = {}) {
   const pkg = await getPackageRows(sql, query);
   if (!pkg) return null;
 
-  const components = await sql`
+  const componentRows = await sql`
     select *
     from book_components
     where book_package_id = ${pkg.id}
     order by sort_order asc, title asc
   `;
+  const components = componentRows.filter((component) => isPhaseOneComponentVisible(pkg.slug, component.slug));
   const componentIds = components.map((item) => item.id);
   const units = componentIds.length
     ? await sql`

@@ -7,6 +7,12 @@ import { ultimateB2StudentsBookTeacherCatalog } from "../../src/data/ultimate-b2
 const marker = readLocalMultiSchoolMarker();
 const athens = MULTI_SCHOOL.find((school) => school.key === "athens");
 const piraeus = MULTI_SCHOOL.find((school) => school.key === "piraeus");
+const visibleB2Components = ["ultimate-b2-students-book", "ultimate-b2-workbook"];
+const visibleComponentsByPackage = {
+  "ultimate-b1": ["ultimate-b1-students-book", "ultimate-b1-workbook"],
+  "ultimate-b1-plus": ["ultimate-b1-plus-students-book", "ultimate-b1-plus-workbook"],
+  "ultimate-b2": visibleB2Components,
+};
 
 test.afterEach(async () => {
   if (!marker) return;
@@ -59,6 +65,10 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   expect(hiddenPiraeusUser.status()).toBe(404);
   const adminCatalog = await api(page, "list");
   expect(adminCatalog.body.bookPackages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
+  for (const [slug, expectedComponents] of Object.entries(visibleComponentsByPackage)) {
+    const adminTree = await api(page, "", { query: { slug } });
+    expect(adminTree.body.bookPackage.components.map((item) => item.slug)).toEqual(expectedComponents);
+  }
   const licensing = await page.request.get("/.netlify/functions/book-licensing?action=overview");
   expect((await licensing.json()).packages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
   const archivedAdmin = await api(page, "", { query: { slug: "english-journey-6" } });
@@ -74,6 +84,27 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
     expect(emptyPackage.body.bookPackage.components).toHaveLength(2);
     expect(emptyPackage.body.bookPackage.components.map((item) => item.componentType)).toEqual(["students_book", "workbook"]);
     expect(emptyPackage.body.bookPackage.components.every((item) => item.units.length === 0 && item.coverAssetPath === null)).toBeTruthy();
+  }
+  const teacherB2Tree = await api(page, "", { query: { slug: "ultimate-b2" } });
+  expect(teacherB2Tree.response.ok()).toBeTruthy();
+  expect(teacherB2Tree.body.bookPackage.components.map((item) => item.slug)).toEqual(visibleB2Components);
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+    const hiddenComponent = await api(page, "component", {
+      query: { packageSlug: "ultimate-b2", slug },
+    });
+    expect(hiddenComponent.response.status()).toBe(404);
+  }
+  await page.goto("/#teacher/books/ultimate-b2", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".book-component-card")).toHaveCount(2);
+  await expect(page.getByText("Ultimate B2 Students Book", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Ultimate B2 Workbook", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Ultimate B2 Grammar Book", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Ultimate B2 Test Book", { exact: true })).toHaveCount(0);
+  await page.goto("/#teacher/books/ultimate-b2/components/ultimate-b2-workbook", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Ultimate B2 Workbook", exact: true })).toBeVisible();
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+    await page.goto(`/#teacher/books/ultimate-b2/components/${slug}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "This page link is not available." })).toBeVisible();
   }
   await page.goto("/#teacher/books/ultimate-b1/components/ultimate-b1-students-book/exercises", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Ultimate English B1 Students Book", exact: true })).toBeVisible();
@@ -100,6 +131,17 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
 
   await page.goto("/#teacher/books/ultimate-b2/components/students-book/exercises");
   await expect(page.getByText(/unsupported editorial records disabled/i)).toBeVisible();
+  const enabledPresentationActivity = ultimateB2StudentsBookTeacherCatalog.units
+    .flatMap((unit) => unit.lessons)
+    .flatMap((lesson) => lesson.exercises)
+    .find((activity) => activity.availability !== "disabled");
+  const teacherSolution = await api(page, "teacher-activity-solutions", {
+    query: { stableActivityId: enabledPresentationActivity.stableActivityId },
+  });
+  expect(teacherSolution.response.ok()).toBeTruthy();
+  expect(teacherSolution.body.solution.activityId).toBe(enabledPresentationActivity.stableActivityId);
+  await page.goto(`/#teacher/books/ultimate-b2/components/students-book/activities/${enabledPresentationActivity.stableActivityId}/presentation`);
+  await expect(page.getByText("Teacher presentation", { exact: true }).first()).toBeVisible();
 
   const crossSchool = await api(page, "assignment-results", { query: { assignmentId: piraeus.assignments[0].id } });
   expect(crossSchool.response.status()).toBe(403);
@@ -115,11 +157,16 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   await signIn(page, "student", strong.email);
   const strongCatalog = await api(page, "list");
   expect(strongCatalog.body.bookPackages.map((item) => item.slug)).toEqual(["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
+  for (const [slug, expectedComponents] of Object.entries(visibleComponentsByPackage)) {
+    const studentPackage = await api(page, "", { query: { slug } });
+    expect(studentPackage.body.bookPackage.components.map((item) => item.slug)).toEqual(expectedComponents);
+  }
   const grades = await api(page, "grades");
   const reviewedGrade = grades.body.grades.find((grade) => grade.id === pending.submissionId);
   expect(reviewedGrade.scorePercent).toBe(83);
   expect(reviewedGrade.teacherFeedback).toBe("Focused evidence and a clear final response.");
   const studentTree = await api(page, "", { query: { slug: "ultimate-b2" } });
+  expect(studentTree.body.bookPackage.components.map((item) => item.slug)).toEqual(visibleB2Components);
   expect(JSON.stringify(studentTree.body)).not.toContain("acceptedAnswers");
   expect(JSON.stringify(studentTree.body)).not.toContain("correctAnswers");
   const solutionDenied = await api(page, "teacher-activity-solutions", { query: { activitySlug: benchmark.activitySlug } });
@@ -129,6 +176,14 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
     .flatMap((lesson) => lesson.exercises)
     .find((activity) => activity.availability === "disabled");
   expect(disabledActivity).toBeTruthy();
+  await page.goto("/#courses/ultimate-b2/components", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".book-component-card")).toHaveCount(2);
+  await expect(page.getByText("Ultimate B2 Grammar Book", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Ultimate B2 Test Book", { exact: true })).toHaveCount(0);
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+    await page.goto(`/#courses/ultimate-b2/components/${slug}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "This page link is not available." })).toBeVisible();
+  }
   await page.goto(`/#courses/ultimate-b2/components/students-book/exercises/${disabledActivity.stableActivityId}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "This page link is not available." })).toBeVisible();
 

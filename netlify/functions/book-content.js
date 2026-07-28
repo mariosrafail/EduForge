@@ -27,9 +27,19 @@ import {
   isUltimateB2PresentationActivityEnabled,
 } from "./_ultimate-b2-teacher-solutions.js";
 import { createHash } from "node:crypto";
+import { isPhaseOneComponentVisible } from "../../src/config/bookCatalogVisibility.js";
 
 function badRequest(message) {
   return json(400, { error: message });
+}
+
+function requestsHiddenPhaseOneComponent(query = {}) {
+  const componentSlug = query.componentSlug || (query.action === "component" ? query.slug : "");
+  return Boolean(
+    query.packageSlug
+    && componentSlug
+    && !isPhaseOneComponentVisible(query.packageSlug, componentSlug)
+  );
 }
 
 const teacherSolutionHeaders = {
@@ -208,39 +218,39 @@ async function packageIdForQuery(sql, query = {}) {
   if (query.componentId) {
     if (!isValidUuid(query.componentId)) return null;
     const rows = await sql`
-      select bp.id
+      select bp.id, bp.slug as package_slug, bc.slug as component_slug
       from book_components bc join book_packages bp on bp.id = bc.book_package_id
       where bc.id = ${query.componentId} and bp.status = 'active'
       limit 1
     `;
-    return rows[0]?.id || null;
+    return rows[0] && isPhaseOneComponentVisible(rows[0].package_slug, rows[0].component_slug) ? rows[0].id : null;
   }
   if (query.componentSlug) {
     const rows = await sql`
-      select bp.id
+      select bp.id, bp.slug as package_slug, bc.slug as component_slug
       from book_components bc join book_packages bp on bp.id = bc.book_package_id
       where bc.slug = ${query.componentSlug}
         and bp.status = 'active'
         and (${query.packageSlug || null}::text is null or bp.slug = ${query.packageSlug || null})
       limit 1
     `;
-    return rows[0]?.id || null;
+    return rows[0] && isPhaseOneComponentVisible(rows[0].package_slug, rows[0].component_slug) ? rows[0].id : null;
   }
   if (query.activityId || query.activitySlug) {
     const rows = query.activityId
       ? await sql`
-          select bp.id
+          select bp.id, bp.slug as package_slug, bc.slug as component_slug
           from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
           join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
           where a.id = ${query.activityId} and bp.status = 'active' limit 1
         `
       : await sql`
-          select bp.id
+          select bp.id, bp.slug as package_slug, bc.slug as component_slug
           from activities a join lessons l on l.id = a.lesson_id join units u on u.id = l.unit_id
           join book_components bc on bc.id = u.book_component_id join book_packages bp on bp.id = bc.book_package_id
           where a.slug = ${query.activitySlug} and bp.status = 'active' limit 1
         `;
-    return rows[0]?.id || null;
+    return rows[0] && isPhaseOneComponentVisible(rows[0].package_slug, rows[0].component_slug) ? rows[0].id : null;
   }
   return null;
 }
@@ -1799,6 +1809,9 @@ export async function handler(event) {
     const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
+      if (requestsHiddenPhaseOneComponent(query)) {
+        return json(404, { error: "Component not found" });
+      }
       if (query.action === "teacher-activity-solutions") {
         return getTeacherActivitySolutions(sql, currentUser, query);
       }

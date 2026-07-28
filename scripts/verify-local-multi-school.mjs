@@ -78,7 +78,7 @@ try {
   expectEqual("students without access", accessStates.filter((row) => !row.has_access).length, 3);
   const catalog = (await pool.query(`
     select bp.slug,bp.title,bp.level,bp.status,bp.cover_asset_path,
-      count(bc.id)::int component_count,
+      count(distinct bc.id)::int component_count,
       count(u.id)::int unit_count
     from book_packages bp
     left join book_components bc on bc.book_package_id=bp.id
@@ -90,9 +90,42 @@ try {
   expectEqual("catalog records", catalog.length, 4);
   expectEqual("B1 components", catalog.find((row) => row.slug === "ultimate-b1")?.component_count, 2);
   expectEqual("B1+ components", catalog.find((row) => row.slug === "ultimate-b1-plus")?.component_count, 2);
+  expectEqual("B2 preserved database components", catalog.find((row) => row.slug === "ultimate-b2")?.component_count, 4);
   expectEqual("B1 units", catalog.find((row) => row.slug === "ultimate-b1")?.unit_count, 0);
   expectEqual("B1+ units", catalog.find((row) => row.slug === "ultimate-b1-plus")?.unit_count, 0);
   expectTrue("English Journey 6 must be archived", catalog.find((row) => row.slug === "english-journey-6")?.status === "archived");
+  const b2Components = (await pool.query(`
+    select bc.slug,
+      count(distinct u.id)::int unit_count,
+      count(distinct l.id)::int lesson_count,
+      count(distinct a.id)::int activity_count,
+      count(distinct q.id)::int question_count
+    from book_components bc
+    join book_packages bp on bp.id=bc.book_package_id
+    left join units u on u.book_component_id=bc.id
+    left join lessons l on l.unit_id=u.id
+    left join activities a on a.lesson_id=l.id
+    left join questions q on q.activity_id=a.id
+    where bp.slug='ultimate-b2'
+    group by bc.id
+    order by bc.sort_order
+  `)).rows;
+  expectTrue(
+    "B2 component slugs must remain unchanged",
+    JSON.stringify(b2Components.map((row) => row.slug)) === JSON.stringify([
+      "ultimate-b2-students-book",
+      "ultimate-b2-workbook",
+      "ultimate-b2-grammar-book",
+      "ultimate-b2-test-book",
+    ]),
+  );
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+    const preserved = b2Components.find((row) => row.slug === slug);
+    expectTrue(`${slug} units must remain`, Number(preserved?.unit_count) > 0);
+    expectTrue(`${slug} lessons must remain`, Number(preserved?.lesson_count) > 0);
+    expectTrue(`${slug} activities must remain`, Number(preserved?.activity_count) > 0);
+    expectTrue(`${slug} questions must remain`, Number(preserved?.question_count) > 0);
+  }
 
   const staffAccess = (await pool.query(`
     select u.email,count(distinct bp.slug)::int package_count
@@ -151,7 +184,7 @@ try {
   if (failures.length) throw new Error(`Local multi-school verification failed:\n- ${failures.join("\n- ")}`);
   console.table(perSchool);
   console.table([{ ...counts, ...states, enabled_activities: enabledActivities, disabled_activities: disabledActivities }]);
-  console.log(`Verified deterministic fictional data, tenant scope, workflows, licensing lifecycle, and answer-key safety.`);
+  console.log(`Verified deterministic fictional data, preserved four-component B2 storage, tenant scope, workflows, licensing lifecycle, and answer-key safety.`);
   console.log(`Demo password: ${MULTI_SCHOOL_DEMO_PASSWORD} (development-only)`);
 } finally {
   await pool.end();

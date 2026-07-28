@@ -1,4 +1,5 @@
 import { demoBookPackages, inferPackageSlugFromBookId } from "../data/bookPackages.js";
+import { isPhaseOneComponentVisible } from "../config/bookCatalogVisibility.js";
 
 export const bookIds = [
   "students-book",
@@ -188,7 +189,10 @@ function componentAliases(component = {}, bookPackage = {}) {
 
 export function findComponentByRouteSlug(bookPackage = {}, componentSlug = "") {
   const normalized = slugifyRoute(componentSlug);
-  return bookPackage?.components?.find((component) => componentAliases(component, bookPackage).includes(normalized)) || null;
+  return bookPackage?.components?.find((component) => (
+    isPhaseOneComponentVisible(bookPackage, component)
+    && componentAliases(component, bookPackage).includes(normalized)
+  )) || null;
 }
 
 function getComponentExercises(component = {}) {

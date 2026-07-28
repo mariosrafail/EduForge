@@ -45,6 +45,8 @@ The seeded codes for each school are fictional examples named `DEV-<SCHOOL>-B2-<
 
 Every fictional administrator and both teachers in each school have explicit access to Ultimate English B1, Ultimate English B1+, and Ultimate B2. Athens `student1` has the same three-package catalog for the learner walkthrough. Other entitled students retain their existing B2-only state, and every `student8` remains intentionally unentitled. B1 and B1+ are selectable in licensing, but no B1 assignments or invented publisher content are seeded.
 
+Each Phase 1 package visibly contains exactly two components: Students Book and Workbook. Ultimate B2 Grammar Book and Test Book remain preserved in the local database but are intentionally absent from admin, teacher, student, and Android catalogs. English Journey 6 remains archived and absent.
+
 ## 10–15 minute walkthrough
 
 1. Sign in as the Athens admin. Open Users, Classes, and Licensing. Confirm the school boundary, three lifecycle counts, and the unused/redeemed/expired/revoked examples.
@@ -55,7 +57,7 @@ Every fictional administrator and both teachers in each school have explicit acc
    - `Future assignment — not started`
 3. Open the benchmark results. Compare Alex at 96%, Niki at 42%, Chris with no submission, and the class aggregate.
 4. Open the teacher-review results. Review Alex with a score and feedback; confirm Niki already has a completed review.
-5. Browse Ultimate B2 Students Book. The pilot keeps 77 enabled Unit 1–2 activities and 12 unsupported editorial records disabled. Teacher solutions remain teacher-only.
+5. Browse each package and confirm exactly two component cards: Students Book and Workbook. In Ultimate B2, open both visible components and confirm Grammar Book and Test Book are absent. The Students Book pilot keeps 77 enabled Unit 1–2 activities and 12 unsupported editorial records disabled; Teacher Presentation and teacher-only solutions remain available.
 6. Sign in as Alex to inspect grades and teacher feedback. Student payloads do not contain accepted/correct answer keys.
 7. Sign in as Kostas (`student8`) and confirm Ultimate B2 is unavailable because the account has no entitlement.
 8. Sign in as the Piraeus admin or teacher and confirm Athens records are not visible.
@@ -64,9 +66,9 @@ The browser can keep unsent form input locally while a page stays open, but the 
 
 ## Automated verification
 
-`npm run demo:multi-school:verify` checks stable counts, per-school ownership, the exact Phase 1 catalog and entitlements, archived English Journey 6 state, high/low/missing work, pending/reviewed feedback, late/future/expired deadlines, licensing states, 77/12 B2 pilot catalog counts, tenant-integrity views, and seeded answer-key safety.
+`npm run demo:multi-school:verify` checks stable counts, per-school ownership, the exact Phase 1 catalog and entitlements, all four preserved B2 database components and their hidden-component descendants, archived English Journey 6 state, high/low/missing work, pending/reviewed feedback, late/future/expired deadlines, licensing states, 77/12 B2 pilot catalog counts, tenant-integrity views, and seeded answer-key safety.
 
-With `demo:multi-school:start` running, `npm run test:e2e` automatically detects the local runtime marker and runs only `tests/e2e/local-multi-school.spec.js`. It exercises real authentication and functions for admin, teacher, student, review mutation/final state, missing entitlement, cross-school denial, student solution denial, disabled catalog visibility, console errors, and failed-request loops. The reviewed seed row is restored after each test.
+With `demo:multi-school:start` running, `npm run test:e2e` automatically detects the local runtime marker and runs only `tests/e2e/local-multi-school.spec.js`. It exercises real authentication and functions for admin, teacher, student, two-component Phase 1 trees and cards, hidden B2 API/route denial, visible B2 navigation, Teacher Presentation, review mutation/final state, missing entitlement, cross-school denial, student solution denial, disabled catalog visibility, console errors, and failed-request loops. The reviewed seed row is restored after each test.
 
 ## Troubleshooting
 

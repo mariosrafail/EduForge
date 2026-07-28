@@ -1,6 +1,6 @@
 import { englishJourney6Package } from "./englishJourney6DemoData.js";
 import { ultimateB2Package } from "./ultimateB2DemoData.js";
-import { sortPhaseOnePackages } from "../config/bookCatalogVisibility.js";
+import { filterPhaseOneComponents, sortPhaseOnePackages } from "../config/bookCatalogVisibility.js";
 
 const emptyCatalogComponent = (packageSlug, packageTitle, suffix, title, componentType, sortOrder) => ({
   id: `${packageSlug}-${suffix}`,
@@ -35,7 +35,11 @@ function emptyUltimatePackage(slug, packageTitle, level) {
 
 export const ultimateB1Package = emptyUltimatePackage("ultimate-b1", "Ultimate English B1", "B1");
 export const ultimateB1PlusPackage = emptyUltimatePackage("ultimate-b1-plus", "Ultimate English B1+", "B1+");
-export const demoBookPackages = sortPhaseOnePackages([ultimateB1Package, ultimateB1PlusPackage, ultimateB2Package]);
+export const demoBookPackages = sortPhaseOnePackages([
+  ultimateB1Package,
+  ultimateB1PlusPackage,
+  filterPhaseOneComponents(ultimateB2Package),
+]);
 const internalFallbackPackages = [...demoBookPackages, englishJourney6Package];
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
