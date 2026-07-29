@@ -1,0 +1,268 @@
+:root {
+  --app-chrome-header-height: 68px;
+  --app-chrome-rail-width: 78px;
+  --app-chrome-rail-expanded-width: 276px;
+  --app-chrome-context-tile-size: 44px;
+  --app-chrome-brand-tile-size: 42px;
+  --app-chrome-nav-row-height: 58px;
+  --app-chrome-nav-icon-size: 38px;
+  --app-chrome-rail-duration: 220ms;
+  --app-chrome-topbar-z: 300;
+  --app-chrome-rail-z: 200;
+  --app-chrome-drawer-z: 400;
+  --app-chrome-accent: var(--brand-primary, #175cd3);
+  --app-chrome-accent-strong: var(--brand-primary-strong, #123f8f);
+}
+
+.app-chrome {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-top: var(--app-chrome-header-height);
+}
+
+.app-chrome-topbar {
+  position: fixed;
+  z-index: var(--app-chrome-topbar-z);
+  inset: 0 0 auto;
+  width: 100%;
+  height: var(--app-chrome-header-height);
+  display: grid;
+  grid-template-columns: minmax(250px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 8px clamp(16px, 2.5vw, 32px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 0;
+  border-bottom: 1px solid rgba(213, 223, 235, 0.9);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.055);
+  backdrop-filter: blur(18px);
+}
+
+.app-chrome-brand-area,
+.app-chrome-brand,
+.app-chrome-topbar-context,
+.app-chrome-topbar-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.app-chrome-brand-area { gap: 12px; }
+.app-chrome-brand {
+  gap: 12px;
+  padding: 0;
+  color: #101828;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+}
+.app-chrome-brand:is(button):hover .app-chrome-brand-copy strong { color: var(--app-chrome-accent-strong); }
+.app-chrome-brand:is(button):focus-visible { outline: 3px solid color-mix(in srgb, var(--app-chrome-accent) 25%, transparent); outline-offset: 4px; }
+
+.app-chrome-brand-mark {
+  width: var(--app-chrome-brand-tile-size);
+  height: var(--app-chrome-brand-tile-size);
+  flex: 0 0 var(--app-chrome-brand-tile-size);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, var(--app-chrome-accent), var(--brand-secondary, #f59e0b));
+  border-radius: 8px;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--app-chrome-accent) 20%, transparent);
+  font-size: 18px;
+  font-weight: 950;
+}
+.app-chrome-brand-mark img { display: block; width: 100%; height: 100%; padding: 5px; object-fit: contain; background: #fff; }
+.app-chrome-brand-copy { display: grid; gap: 3px; min-width: 0; }
+.app-chrome-brand-copy strong { font-size: 16px; line-height: 1.05; transition: color 150ms ease; }
+.app-chrome-brand-copy small { color: #667085; font-size: 12px; font-weight: 750; white-space: nowrap; }
+
+.app-chrome-topbar-context { justify-content: center; }
+.app-chrome-topbar-actions { justify-content: flex-end; gap: 8px; }
+
+.app-chrome-button {
+  min-width: 0;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  color: #344054;
+  background: #fff;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  font-weight: 820;
+  white-space: nowrap;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+.app-chrome-button:hover { color: var(--app-chrome-accent-strong); background: color-mix(in srgb, var(--app-chrome-accent) 5%, #fff); border-color: color-mix(in srgb, var(--app-chrome-accent) 28%, #d5dfeb); }
+.app-chrome-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--app-chrome-accent) 25%, transparent); outline-offset: 2px; }
+.app-chrome-button.is-icon-only { width: 42px; padding: 0; }
+.app-chrome-button-danger { color: #b42318; background: #fff8f7; border-color: #fecdca; }
+.app-chrome-button-danger:hover { color: #912018; background: #fee4e2; border-color: #fda29b; }
+.app-chrome-menu-trigger { display: none; }
+
+.app-chrome-rail {
+  position: fixed;
+  z-index: var(--app-chrome-rail-z);
+  inset: var(--app-chrome-header-height) auto 0 0;
+  width: var(--app-chrome-rail-width);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.97);
+  border-right: 1px solid #d5dfeb;
+  box-shadow: 8px 0 22px rgba(16, 24, 40, 0.035);
+  transition: width var(--app-chrome-rail-duration) ease;
+}
+.app-chrome.is-rail-expanded .app-chrome-rail { width: var(--app-chrome-rail-expanded-width); }
+
+.app-chrome-rail-context {
+  width: var(--app-chrome-rail-expanded-width);
+  min-height: 75px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  padding: 10px 12px 7px;
+}
+.app-chrome-context-tile {
+  width: var(--app-chrome-context-tile-size);
+  height: var(--app-chrome-context-tile-size);
+  display: grid;
+  place-items: center;
+  color: var(--app-chrome-accent-strong);
+  background: color-mix(in srgb, var(--app-chrome-accent) 9%, #fff);
+  border: 1px solid color-mix(in srgb, var(--app-chrome-accent) 18%, #d5dfeb);
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 950;
+}
+.app-chrome-context-copy,
+.app-chrome-nav-copy {
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 130ms ease 30ms;
+}
+.app-chrome.is-rail-expanded :is(.app-chrome-context-copy, .app-chrome-nav-copy),
+.app-chrome-navigation.is-mobile .app-chrome-nav-copy {
+  opacity: 1;
+  pointer-events: auto;
+}
+.app-chrome-context-copy > * { display: block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-chrome-context-copy strong { color: #344054; font-size: 13px; }
+.app-chrome-context-copy > span { margin-top: 2px; color: #101828; font-size: 12px; font-weight: 850; }
+.app-chrome-context-copy small { margin-top: 3px; color: #667085; font-size: 11px; font-weight: 750; }
+
+.app-chrome-navigation {
+  width: var(--app-chrome-rail-expanded-width);
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.app-chrome-nav-item {
+  width: 100%;
+  min-height: var(--app-chrome-nav-row-height);
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  padding: 4px 0;
+  color: #475467;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.app-chrome-nav-item:hover { color: var(--app-chrome-accent-strong); background: color-mix(in srgb, var(--app-chrome-accent) 7%, #fff); transform: translateX(2px); }
+.app-chrome-nav-item[aria-current="page"] { color: var(--app-chrome-accent-strong); background: color-mix(in srgb, var(--app-chrome-accent) 8%, #fff); border-color: color-mix(in srgb, var(--app-chrome-accent) 24%, #d5dfeb); }
+.app-chrome-nav-item:focus-visible { outline: 3px solid color-mix(in srgb, var(--app-chrome-accent) 25%, transparent); outline-offset: 1px; }
+.app-chrome-nav-icon {
+  width: var(--app-chrome-nav-icon-size);
+  height: var(--app-chrome-nav-icon-size);
+  display: grid;
+  place-items: center;
+  margin-left: 7px;
+  color: #475467;
+  background: #f2f4f7;
+  border-radius: 8px;
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.app-chrome-nav-item[aria-current="page"] .app-chrome-nav-icon { color: #fff; background: linear-gradient(135deg, var(--app-chrome-accent), var(--app-chrome-accent-strong)); box-shadow: 0 7px 15px color-mix(in srgb, var(--app-chrome-accent) 22%, transparent); }
+.app-chrome-nav-copy > * { display: block; white-space: nowrap; }
+.app-chrome-nav-copy strong { font-size: 13px; line-height: 1.2; }
+.app-chrome-nav-copy small { margin-top: 3px; color: #667085; font-size: 11px; line-height: 1.25; }
+
+.app-chrome-main {
+  width: calc(100% - var(--app-chrome-rail-width));
+  min-width: 0;
+  margin-left: var(--app-chrome-rail-width);
+  transition: width var(--app-chrome-rail-duration) ease, margin-left var(--app-chrome-rail-duration) ease;
+}
+.app-chrome.is-rail-expanded .app-chrome-main { width: calc(100% - var(--app-chrome-rail-expanded-width)); margin-left: var(--app-chrome-rail-expanded-width); }
+.app-chrome-content { width: min(100%, 1480px); min-width: 0; margin: 0 auto; padding: clamp(20px, 3vw, 32px) clamp(16px, 3vw, 40px) 64px; }
+
+.app-chrome-drawer-layer { position: fixed; z-index: var(--app-chrome-drawer-z); inset: 0; }
+.app-chrome-drawer-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; background: rgba(15, 23, 42, 0.5); border: 0; backdrop-filter: blur(2px); }
+.app-chrome-drawer {
+  position: relative;
+  width: min(360px, calc(100vw - 38px));
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 24px 0 60px rgba(15, 23, 42, 0.24);
+  animation: app-chrome-drawer-in 190ms ease-out;
+}
+@keyframes app-chrome-drawer-in { from { transform: translateX(-100%); } }
+.app-chrome-drawer-header,
+.app-chrome-drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #e6edf6; }
+.app-chrome-drawer-header strong,
+.app-chrome-drawer-header small { display: block; }
+.app-chrome-drawer-header strong { color: #101828; font-size: 16px; }
+.app-chrome-drawer-header small { margin-top: 3px; color: #667085; font-size: 12px; font-weight: 750; }
+.app-chrome-drawer .app-chrome-navigation { width: 100%; padding: 12px; overflow-y: auto; }
+.app-chrome-drawer-footer { align-items: stretch; flex-direction: column; border-top: 1px solid #e6edf6; border-bottom: 0; }
+
+@media (max-width: 1024px) {
+  .app-chrome-menu-trigger { display: inline-flex; }
+  .app-chrome-rail { display: none; }
+  .app-chrome-main,
+  .app-chrome.is-rail-expanded .app-chrome-main { width: 100%; margin-left: 0; }
+  .app-chrome-topbar { grid-template-columns: minmax(0, 1fr) auto; padding-inline: 12px; }
+  .app-chrome-topbar-context { display: none; }
+}
+
+@media (max-width: 1100px) {
+  .app-chrome-topbar-actions :is(.app-chrome-identity-copy, .lms-topbar-identity) { display: none; }
+}
+
+@media (max-width: 700px) {
+  .app-chrome-brand-copy small { display: none; }
+  .app-chrome-topbar-actions { gap: 5px; }
+  .app-chrome-topbar-actions .app-chrome-action-label,
+  .app-chrome-topbar-actions .app-chrome-identity-copy { display: none; }
+  .app-chrome-topbar-actions .app-chrome-button { width: 42px; padding: 0; }
+  .app-chrome-content { padding: 16px 12px 48px; }
+}
+
+@media (max-width: 430px) {
+  .app-chrome-brand-area { gap: 7px; }
+  .app-chrome-brand { gap: 7px; }
+  .app-chrome-brand-copy strong { font-size: 14px; }
+  .app-chrome-topbar { gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-chrome *,
+  .app-chrome-drawer-layer * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

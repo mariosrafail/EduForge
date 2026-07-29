@@ -71,12 +71,6 @@
 
 .teacher-help-list svg { color: #067647; }
 
-.teacher-portal-workspace,
-.student-portal-workspace {
-  width: calc(100% - (var(--app-page-padding) * 2));
-  max-width: none;
-}
-
 .teacher-section-stack { display: grid; gap: 18px; }
 
 .teacher-dashboard-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }

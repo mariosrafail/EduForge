@@ -1,8 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
-import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, X } from "lucide-react";
-import { useSoundEffects } from "../../context/SoundContext.jsx";
+import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 
 export const roles = {
   student: { label: "Student", icon: UserRound, targetView: "student" },
@@ -34,218 +33,34 @@ function displayRole(role) {
 }
 
 export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, showSignOut = true }) {
-  const { muted, volume, toggleMuted, setVolume } = useSoundEffects();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobileNav, setIsMobileNav] = useState(() => (typeof window === "undefined" ? false : window.matchMedia("(max-width: 1100px)").matches));
   const roleLabel = roles[activeRole]?.label ?? "Role selection";
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia("(max-width: 1100px)");
-    const syncMobileNav = () => {
-      setIsMobileNav(mediaQuery.matches);
-      if (!mediaQuery.matches) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    syncMobileNav();
-    mediaQuery.addEventListener("change", syncMobileNav);
-
-    return () => {
-      mediaQuery.removeEventListener("change", syncMobileNav);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!mobileMenuOpen || !isMobileNav) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    document.body.classList.add("mobile-nav-open");
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.classList.remove("mobile-nav-open");
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isMobileNav, mobileMenuOpen]);
-
-  const handleNavigate = (nextView) => {
-    navigateTo(nextView);
-    setMobileMenuOpen(false);
-  };
-
-  const handleSignOut = async () => {
-    await onSignOut?.();
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <>
-      <header className="app-header">
-        {isMobileNav && (
-          <button
-            className="mobile-menu-toggle"
-            type="button"
-            aria-label="Open navigation menu"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu size={22} />
-          </button>
-        )}
-
-        <button className="brand-lockup text-only" onClick={() => handleNavigate("home")} aria-label="Return to role selection">
-          <span>
-            <strong>Hamilton House Ultimate</strong>
-            <small>Digital learning platform</small>
-            <small className="build-label">EduForge LMS</small>
-          </span>
-        </button>
-
-        {!isMobileNav && (
-          <>
-            <div className="header-context">
-              <span className="role-chip">{roleLabel}</span>
-              {currentUser && (
-                <span className="signed-in-chip">
-                  {currentUser.full_name} ({displayRole(currentUser.role)})
-                </span>
-              )}
-            </div>
-
-            <nav className="quick-actions desktop-header-actions" aria-label="Demo navigation">
-              {Object.entries(roles).map(([id, role]) => {
-                const Icon = role.icon;
-                return (
-                  <button key={id} className={activeRole === id ? "is-active" : ""} onClick={() => navigateTo(role.targetView || id)}>
-                    <Icon size={17} />
-                    <span>{role.label}</span>
-                  </button>
-                );
-              })}
-              <button className="nav-secondary-link" onClick={() => navigateTo("home")}>Home</button>
-              {currentUser && <button className="nav-secondary-link" onClick={() => navigateTo("account-security")}><KeyRound size={16}/><span>Account security</span></button>}
-              <button
-                className="nav-secondary-link sound-toggle-button"
-                type="button"
-                aria-pressed={!muted}
-                aria-label={muted ? "Sound Off" : "Sound On"}
-                onClick={toggleMuted}
-              >
-                {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                <span>{muted ? "Sound Off" : "Sound On"}</span>
-              </button>
-              <label className="sound-volume-control" title="Sound volume">
-                <Volume2 size={15} />
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={volume}
-                  aria-label="Sound volume"
-                  onChange={(event) => setVolume(event.target.value)}
-                />
-                <span>{Math.round(volume * 100)}%</span>
-              </label>
-              {showSignOut && onSignOut && (
-                <button className="header-logout-button" type="button" onClick={handleSignOut} title="Log out and reset progress" data-sound-click="tab">
-                  <LogOut size={17} />
-                  <span>Sign out</span>
-                </button>
-              )}
-            </nav>
-          </>
-        )}
-
-        {isMobileNav && (
-          <button
-            className="mobile-sound-status"
-            type="button"
-            aria-pressed={!muted}
-            aria-label={muted ? "Sound Off" : "Sound On"}
-            onClick={toggleMuted}
-          >
-            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-        )}
-      </header>
-
-      {isMobileNav && (
-        <button
-          className={`mobile-menu-backdrop ${mobileMenuOpen ? "open" : ""}`}
-          type="button"
-          aria-label="Close navigation menu"
-          tabIndex={mobileMenuOpen ? 0 : -1}
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-      {isMobileNav && (
-        <aside className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`} aria-hidden={!mobileMenuOpen}>
-        <div className="mobile-nav-header">
-          <div>
-            <strong>Hamilton House Ultimate B2</strong>
-            <small>{roleLabel}</small>
-          </div>
-          <button className="mobile-nav-close" type="button" aria-label="Close navigation menu" onClick={() => setMobileMenuOpen(false)}>
-            <X size={20} />
-          </button>
-        </div>
-
-        <nav className="mobile-nav-items" aria-label="Mobile navigation">
-          {Object.entries(roles).map(([id, role]) => {
-            const Icon = role.icon;
-            return (
-              <button key={id} className={`mobile-nav-button ${activeRole === id ? "active" : ""}`} onClick={() => handleNavigate(role.targetView || id)}>
-                <Icon size={18} />
-                <span>{role.label}</span>
-              </button>
-            );
-          })}
-          <button className={`mobile-nav-button ${activeRole === "home" ? "active" : ""}`} onClick={() => handleNavigate("home")}>
-            <BookOpen size={18} />
-            <span>Home</span>
-          </button>
-          {currentUser && <button className="mobile-nav-button" onClick={() => handleNavigate("account-security")}><KeyRound size={18}/><span>Account security</span></button>}
-          <button className="mobile-nav-button" type="button" aria-pressed={!muted} onClick={toggleMuted}>
-            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-            <span>{muted ? "Sound Off" : "Sound On"}</span>
-          </button>
-          <label className="mobile-volume-row">
-            <Volume2 size={18} />
-            <span>Volume</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={volume}
-              aria-label="Sound volume"
-              onChange={(event) => setVolume(event.target.value)}
-            />
-            <strong>{Math.round(volume * 100)}%</strong>
-          </label>
-          {showSignOut && onSignOut && (
-            <button className="mobile-nav-button" type="button" onClick={handleSignOut} data-sound-click="tab">
-              <LogOut size={18} />
-              <span>Sign out</span>
+    <header className="app-header public-app-header">
+      <button className="brand-lockup" onClick={() => navigateTo("home")} aria-label="Return to role selection">
+        <span className="brand-logo image-logo"><img src={hamiltonHouseLogo} alt="" /></span>
+        <span>
+          <strong>EduForge</strong>
+          <small>Hamilton House Ultimate</small>
+        </span>
+      </button>
+      <div className="public-header-context">
+        <span className="role-chip">{roleLabel}</span>
+        {currentUser && <span className="signed-in-chip">{currentUser.full_name} ({displayRole(currentUser.role)})</span>}
+      </div>
+      {showSignOut && onSignOut && (
+        <div className="public-header-actions">
+          {currentUser && (
+            <button type="button" onClick={() => navigateTo("account-security")}>
+              <KeyRound size={16} /><span>Account security</span>
             </button>
           )}
-        </nav>
-      </aside>
+          <button className="header-logout-button" type="button" onClick={onSignOut} data-sound-click="tab">
+            <LogOut size={17} /><span>Sign out</span>
+          </button>
+        </div>
       )}
-    </>
+    </header>
   );
 }
 

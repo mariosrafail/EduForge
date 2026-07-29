@@ -34,7 +34,7 @@ async function signInPlatform(page) {
 async function navigatePlatform(page, label) {
   const target = page.getByRole("button", { name: label, exact: true });
   if (!await target.isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.getByRole("button", { name: "Open Platform Administration navigation" }).click();
   }
   await page.getByRole("button", { name: label, exact: true }).click();
   await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
@@ -149,10 +149,11 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
 
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await expect(page.getByLabel("Mobile Platform Administration navigation")).toBeVisible();
+  await page.getByRole("button", { name: "Open Platform Administration navigation" }).click();
+  const mobileNavigation = page.getByRole("dialog", { name: "Platform Administration navigation" });
+  await expect(mobileNavigation).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByLabel("Mobile Platform Administration navigation")).toHaveCount(0);
+  await expect(mobileNavigation).toHaveCount(0);
   for (const [label, filename] of [["Overview", "overview"], ["Schools", "schools"], ["Users", "users"], ["Book access", "book-access"], ["Audit log", "audit-log"]]) {
     await navigatePlatform(page, label);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();

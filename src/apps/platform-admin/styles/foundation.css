@@ -17,9 +17,6 @@
   --shadow: 0 16px 34px rgba(16, 24, 40, .075);
   --shadow-soft: 0 8px 22px rgba(16, 24, 40, .055);
   --app-card-radius: 8px;
-  --pa-header-height: 68px;
-  --pa-rail-width: 78px;
-  --pa-rail-expanded-width: 276px;
 }
 
 * { box-sizing: border-box; }

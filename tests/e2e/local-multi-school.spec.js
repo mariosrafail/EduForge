@@ -73,6 +73,13 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
     await trigger.click();
     const drawer = page.getByRole("dialog", { name: `${entry.title} navigation` });
     await expect(drawer).toBeVisible();
+    await expect(drawer.locator("[aria-current='page']")).toBeFocused();
+    const activeDrawerIcon = drawer.locator("[aria-current='page'] .app-chrome-nav-icon");
+    await expect(activeDrawerIcon).toHaveCSS("width", "38px");
+    await expect(activeDrawerIcon).toHaveCSS("height", "38px");
+    expect(await activeDrawerIcon.evaluate((node) => getComputedStyle(node).backgroundImage)).toContain("linear-gradient");
+    expect(await page.locator(".app-chrome-drawer").count()).toBe(1);
+    expect(await page.locator(".mobile-nav-drawer, .portal-mobile-drawer").count()).toBe(0);
     expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
     await drawer.getByRole("button", { name: new RegExp(`^${entry.section}`) }).click();
     await expect(drawer).toBeHidden();
@@ -82,8 +89,19 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
   await page.setViewportSize({ width: 390, height: 844 });
   const adminTrigger = page.getByRole("button", { name: "Open School Admin navigation" });
   await adminTrigger.click();
+  const adminDrawer = page.getByRole("dialog", { name: "School Admin navigation" });
+  const drawerButtons = adminDrawer.locator("button");
+  await drawerButtons.first().focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(drawerButtons.last()).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(drawerButtons.first()).toBeFocused();
+  await page.locator(".app-chrome-drawer-backdrop").click({ position: { x: 380, y: 400 } });
+  await expect(adminDrawer).toBeHidden();
+  await expect(adminTrigger).toBeFocused();
+  await adminTrigger.click();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "School Admin navigation" })).toBeHidden();
+  await expect(adminDrawer).toBeHidden();
   await expect(adminTrigger).toBeFocused();
 
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -92,9 +110,25 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
   await expect(reducedMotionDrawer).toBeVisible();
   await reducedMotionDrawer.getByRole("button", { name: "Close navigation", exact: true }).click();
 
-  const shell = page.locator(".portal-shell");
-  const sidebar = page.locator(".portal-sidebar");
-  const main = page.locator(".portal-main");
+  const soundButton = page.getByRole("button", { name: "Sound controls" });
+  await expect(soundButton).toBeVisible();
+  await soundButton.click();
+  const soundDialog = page.getByRole("dialog", { name: "Sound controls" });
+  await expect(soundDialog.getByLabel("Sound volume")).toBeVisible();
+  await soundDialog.getByLabel("Sound volume").fill("0.65");
+  await page.keyboard.press("Escape");
+  await expect(soundDialog).toBeHidden();
+  await expect(soundButton).toBeFocused();
+  await expect(page.getByRole("button", { name: "Account security" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Return to role selection" }).click();
+  await expect(page.locator(".role-entry")).toHaveCount(3);
+  await signIn(page, "admin", athens.users[0].email);
+
+  const shell = page.locator(".app-chrome");
+  const sidebar = page.locator(".app-chrome-rail");
+  const main = page.locator(".app-chrome-main");
   for (const viewport of [
     { width: 1920, height: 1080 },
     { width: 1440, height: 900 },
@@ -103,22 +137,22 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
   ]) {
     await page.setViewportSize(viewport);
     await main.hover();
-    await page.waitForTimeout(300);
-    await expect(shell).toHaveClass(/sidebar-collapsed/);
+    await page.waitForTimeout(520);
+    await expect(shell).toHaveClass(/is-rail-collapsed/);
     await expect(sidebar).toHaveCSS("position", "fixed");
     await expect(sidebar).toHaveCSS("width", "78px");
     const collapsedLayout = await page.evaluate(() => ({
-      mainLeft: document.querySelector(".portal-main")?.getBoundingClientRect().left,
+      mainLeft: document.querySelector(".app-chrome-main")?.getBoundingClientRect().left,
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }));
     expect(collapsedLayout.mainLeft).toBeGreaterThanOrEqual(78);
     expect(collapsedLayout.pageOverflow).toBeFalsy();
 
     await sidebar.hover();
-    await expect(shell).toHaveClass(/sidebar-expanded/);
+    await expect(shell).toHaveClass(/is-rail-expanded/);
     await expect(sidebar).toHaveCSS("width", "276px");
     const expandedLayout = await page.evaluate(() => ({
-      mainLeft: document.querySelector(".portal-main")?.getBoundingClientRect().left,
+      mainLeft: document.querySelector(".app-chrome-main")?.getBoundingClientRect().left,
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }));
     expect(expandedLayout.mainLeft).toBeGreaterThanOrEqual(276);
@@ -127,14 +161,14 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await sidebar.hover();
-  await expect(shell).toHaveClass(/sidebar-expanded/);
+  await expect(shell).toHaveClass(/is-rail-expanded/);
   await main.hover();
   await page.waitForTimeout(100);
-  await expect(shell).toHaveClass(/sidebar-expanded/);
+  await expect(shell).toHaveClass(/is-rail-expanded/);
   await page.waitForTimeout(200);
-  await expect(shell).toHaveClass(/sidebar-collapsed/);
-  await page.locator(".portal-sidebar-nav button").first().focus();
-  await expect(shell).toHaveClass(/sidebar-expanded/);
+  await expect(shell).toHaveClass(/is-rail-collapsed/);
+  await page.locator(".app-chrome-navigation.is-desktop button").first().focus();
+  await expect(shell).toHaveClass(/is-rail-expanded/);
 });
 
 test("real multi-school roles, workflows, licensing, and isolation", async ({ page, context }) => {

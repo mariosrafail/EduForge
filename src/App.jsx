@@ -139,6 +139,18 @@ export default function App() {
   const teacherAccessAllowed = canAccessRole(auth.currentUser, "teacher");
   const adminAccessAllowed = canAccessRole(auth.currentUser, "admin");
   const studentAccessAllowed = canAccessRole(auth.currentUser, "student");
+  const authenticatedPortalVisible = Boolean(
+    (adminSectionByView[view] && adminAccessAllowed)
+    || (teacherSectionByView[view] && teacherAccessAllowed)
+    || (studentSection && studentAccessAllowed),
+  );
+
+  const signOut = async () => {
+    await auth.signOut();
+    if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
+    courseData.resetCourse();
+    navigateTo("home");
+  };
 
   const isRoleView = view !== "home";
   const headerActiveRole = view.startsWith("auth-")
@@ -161,19 +173,14 @@ export default function App() {
   return (
     <div className="eduforge-app" style={cssVars}>
       <AppIntro />
-      {isRoleView && !isTeacherPresentation && (
+      {isRoleView && !isTeacherPresentation && !authenticatedPortalVisible && (
         <>
           <Header
             activeRole={headerActiveRole}
             brand={brand}
             currentUser={auth.currentUser}
             navigateTo={navigateTo}
-            onSignOut={async () => {
-              await auth.signOut();
-              if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
-              courseData.resetCourse();
-              navigateTo("home");
-            }}
+            onSignOut={signOut}
             showSignOut={!view.startsWith("auth-")}
           />
         </>
@@ -212,6 +219,7 @@ export default function App() {
               setBrand={setBrand}
               navigateTo={navigateTo}
               currentUser={auth.currentUser}
+              onSignOut={signOut}
           />
         )}
         {teacherSectionByView[view] && !teacherAccessAllowed && (
@@ -231,6 +239,7 @@ export default function App() {
               routeAction={routeAction}
               initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
               currentUser={auth.currentUser}
+              onSignOut={signOut}
               course={courseData.course}
               onCourseChange={courseData.setCourse}
               navigateTo={navigateTo}
@@ -265,6 +274,7 @@ export default function App() {
               onSubmission={addCourseSubmission}
               navigateTo={navigateTo}
               currentUser={auth.currentUser}
+              onSignOut={signOut}
               courseLoading={courseData.loading}
               courseError={courseData.error}
               submitLesson={courseData.submitCourseLesson}

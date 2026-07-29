@@ -8,7 +8,7 @@ import { teacherNavItems } from "./teacherPortalConfig.js";
 import { TeacherAssignments, TeacherBooks, TeacherClasses, TeacherCustomAssignment, TeacherDashboard, TeacherStudents } from "./TeacherPortalSections.jsx";
 import { initialTeacherBooksState, teacherBooksReducer } from "./teacherBooksState.js";
 
-export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, ...editorProps }) {
+export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, onSignOut, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
   const [selectedPackageSlug, setSelectedPackageSlug] = useState(editorProps.initialSelectedPackageSlug || "ultimate-b2");
@@ -110,15 +110,16 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   };
 
   return (
-    <div className="workspace teacher-portal-workspace">
       <PortalShell
         title="Teacher portal"
-        profile={currentUser?.full_name ? `${currentUser.full_name} (Teacher)` : "Teacher portal"}
+        profile={currentUser?.full_name || "Teacher"}
         subtitle="Ultimate B2 workspace"
         navItems={teacherNavItems}
         activeItem={activeSection === "books" ? "books" : activeSection}
         onNavigate={goToSection}
-        variant="teacher-portal-shell"
+        navigateTo={navigateTo}
+        onSignOut={onSignOut}
+        variant="teacher-portal-shell teacher-portal-workspace"
       >
         {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
         {activeSection === "books" && (
@@ -171,6 +172,5 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         )}
         {activeSection === "custom-assignment" && <TeacherCustomAssignment {...editorProps} />}
       </PortalShell>
-    </div>
   );
 }

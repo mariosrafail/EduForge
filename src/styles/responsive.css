@@ -362,32 +362,6 @@
 @media (max-width: 1100px) {
   .header-tools { position: relative; display: flex; width: min(100% - 32px, 1480px); margin: 10px auto 0; justify-content: flex-end; }
   .tool-popover { top: auto; right: 16px; margin-top: 50px; }
-  .admin-dashboard-shell {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .admin-sidebar {
-    position: static;
-    top: auto;
-  }
-  .admin-sidebar-card {
-    gap: 10px;
-    padding: 12px;
-  }
-  .admin-sidebar-card h2,
-  .admin-sidebar-card p {
-    display: none;
-  }
-  .admin-sidebar-nav {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
-  }
-  .admin-nav-button {
-    flex: 0 0 240px;
-  }
   .landing-hero, .admin-grid, .teacher-grid, .student-grid, .publisher-strip, .demo-script, .presentation-mode, .test-overview, .test-workbench, .activation-panel, .auth-panel, .activity-builder-layout, .course-lesson-layout, .teacher-editor-layout, .selected-activity-editor-layout, .activity-manager-layout { grid-template-columns: 1fr; }
   .landing-hero { min-height: auto; padding-top: 42px; }
   .role-selection-screen {
@@ -431,14 +405,6 @@
     min-height: var(--app-header-height);
     padding: 7px 8px;
   }
-  .mobile-menu-toggle,
-  .mobile-sound-status {
-    display: grid;
-  }
-  .desktop-header-actions,
-  .header-context {
-    display: none;
-  }
   .brand-lockup {
     min-width: 0;
     justify-self: start;
@@ -461,27 +427,8 @@
   .workspace {
     width: min(100% - 24px, 1480px);
   }
-  .admin-workspace {
-    width: calc(100% - 24px);
-    padding: var(--app-content-top-offset) 0 18px;
-  }
   .role-selection-screen {
     padding-top: calc(var(--app-content-top-offset) + 4px);
-  }
-  .admin-sidebar-card {
-    border-radius: 8px;
-  }
-  .admin-sidebar-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 2px 2px 8px;
-    scroll-snap-type: x proximity;
-  }
-  .admin-nav-button {
-    flex: 0 0 min(230px, 76vw);
-    min-height: 58px;
-    scroll-snap-align: start;
   }
   .auth-screen {
     padding-top: var(--app-content-top-offset);
@@ -495,16 +442,6 @@
     --app-header-bottom-gap: 14px;
   }
   .role-screen, .workspace { width: min(100% - 24px, 1480px); }
-  .admin-workspace,
-  .teacher-portal-workspace,
-  .student-portal-workspace { width: calc(100% - 24px); }
-  .admin-workspace { padding: var(--app-content-top-offset) 0 16px; }
-  .admin-sidebar-card { padding: 10px; }
-  .admin-sidebar-nav { gap: 8px; }
-  .admin-nav-button {
-    flex-basis: 210px;
-    padding: 10px 11px;
-  }
   .landing-hero { padding-top: 30px; }
   .role-selection-screen {
     padding-top: calc(var(--app-content-top-offset) + 8px);
@@ -523,7 +460,6 @@
   .screen { position: static; width: 100%; }
   .role-card-grid, .metric-grid, .metric-grid.four, .flow-grid, .test-section-grid, .revision-grid, .publisher-metric-grid, .create-user-form, .builder-grid, .demo-checklist, .rollout-action-grid, .activity-builder-grid, .integration-grid, .activity-author-fields, .matching-answer-grid, .teacher-review-box, .editor-field-grid, .mc-options, .matching-activity article, .lesson-submit-panel, .activity-stepper, .completion-grid, .season-match-board, .gap-drop-list article, .activity-feedback-panel, .line-match-board, .student-objectives-panel { grid-template-columns: 1fr; }
   .section-title, .card-heading { flex-direction: column; }
-  .desktop-header-actions { display: none; }
   .data-table div, .assignment-list article, .wizard-list div, .notification-stack div { grid-template-columns: 1fr; }
   .data-table,
   .user-data-table,
@@ -538,7 +474,7 @@
   .user-data-table div {
     min-width: 0;
   }
-  .header-context, .school-preview, .landing-actions, .flow-actions, .primary-action, .secondary-action { width: 100%; }
+  .school-preview, .landing-actions, .flow-actions, .primary-action, .secondary-action { width: 100%; }
   .auth-tabs { grid-template-columns: 1fr; }
   .school-preview { justify-content: flex-start; }
   .header-tools { justify-content: stretch; display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -601,10 +537,6 @@
     width: min(100% - 32px, 1480px);
   }
 
-  .admin-workspace {
-    max-width: none;
-  }
-
   .metric-grid,
   .metric-grid.four,
   .publisher-metric-grid,
@@ -643,15 +575,6 @@
     overflow: hidden;
   }
 
-  .mobile-nav-drawer {
-    width: min(340px, 88vw);
-    padding: 18px;
-  }
-
-  .mobile-menu-backdrop {
-    min-height: 100dvh;
-  }
-
   .role-screen,
   .workspace,
   .course-workspace,
@@ -664,19 +587,6 @@
     padding-top: calc(var(--app-shell-top-offset) + 6px);
   }
 
-  .admin-workspace {
-    width: calc(100% - 32px);
-    max-width: none;
-    padding: var(--app-shell-top-offset) 0 18px;
-  }
-
-  .teacher-portal-workspace,
-  .student-portal-workspace {
-    width: calc(100% - 32px);
-  }
-
-  .admin-dashboard-shell,
-  .portal-shell,
   .course-lesson-layout,
   .teacher-editor-layout,
   .activity-manager-layout,
@@ -708,72 +618,11 @@
     min-width: 0;
   }
 
-  .admin-sidebar,
-  .portal-sidebar,
   .lesson-sidebar,
   .teacher-editor-side,
   .selected-activity-actions {
     position: static;
     top: auto;
-  }
-
-  .admin-sidebar-card {
-    padding: 12px;
-    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
-  }
-
-  .admin-sidebar-card > .eyebrow,
-  .admin-sidebar-card h2,
-  .admin-sidebar-card p {
-    display: none;
-  }
-
-  .admin-sidebar-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 2px 2px 8px;
-    scrollbar-width: thin;
-    scroll-snap-type: x proximity;
-  }
-
-  .admin-nav-button {
-    flex: 0 0 min(238px, 78vw);
-    min-height: 58px;
-    scroll-snap-align: start;
-  }
-
-  .portal-sidebar-card {
-    padding: 12px;
-    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.06);
-  }
-
-  .portal-sidebar-card > .eyebrow,
-  .portal-sidebar-card > strong,
-  .portal-sidebar-card > small {
-    display: none;
-  }
-
-  .admin-rail-avatar,
-  .admin-rail-handle,
-  .portal-rail-avatar,
-  .portal-rail-handle {
-    display: none;
-  }
-
-  .portal-sidebar-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 2px 2px 8px;
-    scrollbar-width: thin;
-    scroll-snap-type: x proximity;
-  }
-
-  .portal-sidebar-nav button {
-    flex: 0 0 min(230px, 76vw);
-    min-height: 58px;
-    scroll-snap-align: start;
   }
 
   .section-title {
@@ -955,12 +804,6 @@
   .course-workspace,
   .editor-workspace {
     width: min(100% - 28px, 1480px);
-  }
-
-  .admin-workspace,
-  .teacher-portal-workspace,
-  .student-portal-workspace {
-    width: calc(100% - 28px);
   }
 
   .role-selection-screen {
@@ -1287,13 +1130,6 @@
     gap: 6px;
   }
 
-  .mobile-menu-toggle,
-  .mobile-sound-status,
-  .mobile-nav-close {
-    width: 44px;
-    height: 44px;
-  }
-
   .brand-lockup {
     padding: 4px;
   }
@@ -1303,11 +1139,6 @@
     font-size: 13px;
   }
 
-  .mobile-nav-drawer {
-    width: min(340px, 88vw);
-    padding: 16px 14px;
-  }
-
   .role-screen,
   .workspace,
   .course-workspace,
@@ -1315,15 +1146,6 @@
     width: min(100% - 24px, 1480px);
   }
 
-  .admin-workspace,
-  .teacher-portal-workspace,
-  .student-portal-workspace {
-    width: calc(100% - 24px);
-  }
-
-  .admin-workspace {
-    padding-inline: 0;
-  }
 
   .hero-copy h1 {
     font-size: clamp(40px, 13vw, 60px);
@@ -1342,10 +1164,6 @@
   .teacher-help-card,
   .student-preview-panel {
     padding: 14px;
-  }
-
-  .admin-nav-button {
-    flex-basis: min(220px, 76vw);
   }
 
   .lesson-nav-list button,

@@ -325,12 +325,6 @@
 
 .embedded-student-preview .lesson-sidebar { top: 18px; }
 
-.student-portal-shell .portal-sidebar-card {
-  background:
-    linear-gradient(165deg, color-mix(in srgb, var(--brand-secondary) 9%, #fff), #fff 48%),
-    rgba(255, 255, 255, 0.96);
-}
-
 .student-section-stack { display: grid; gap: 18px; }
 
 .student-profile-strip {

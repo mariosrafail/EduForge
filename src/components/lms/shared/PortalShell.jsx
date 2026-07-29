@@ -1,16 +1,74 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Building2, GraduationCap, KeyRound, LogOut, UserRound, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import houseLogo from "../../../assets/branding/hamilton-house-logo-houseonly.png";
+import { AppChrome, AppChromeButton } from "../../app-chrome/AppChrome.jsx";
+import { useSoundEffects } from "../../../context/SoundContext.jsx";
 
-const FOCUSABLE_ELEMENTS = [
-  "button:not([disabled])",
-  "[href]",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
-].join(",");
+const roleDetails = {
+  "Student portal": { label: "Student", icon: UserRound },
+  "Teacher portal": { label: "Teacher", icon: GraduationCap },
+  "School Admin": { label: "School Admin", icon: Building2 },
+};
+
+function SoundUtility() {
+  const { muted, volume, toggleMuted, setVolume } = useSoundEffects();
+  const [open, setOpen] = useState(false);
+  const utilityRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsidePointer = (event) => {
+      if (!utilityRef.current?.contains(event.target)) setOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        utilityRef.current?.querySelector("button")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={utilityRef} className="lms-sound-utility">
+      <AppChromeButton
+        icon={muted ? VolumeX : Volume2}
+        iconOnly
+        aria-label="Sound controls"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((current) => !current)}
+      />
+      {open && (
+        <div className="lms-sound-popover" role="dialog" aria-label="Sound controls">
+          <button type="button" aria-pressed={!muted} onClick={toggleMuted}>
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            <span>{muted ? "Unmute sound" : "Mute sound"}</span>
+          </button>
+          <label>
+            <span>Volume</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              aria-label="Sound volume"
+              onChange={(event) => setVolume(event.target.value)}
+            />
+            <strong>{Math.round(volume * 100)}%</strong>
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PortalShell({
   title,
@@ -19,196 +77,77 @@ export function PortalShell({
   navItems,
   activeItem,
   onNavigate,
+  navigateTo,
+  onSignOut,
   children,
   variant = "",
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const closeTimerRef = useRef(null);
-  const drawerRef = useRef(null);
-  const menuTriggerRef = useRef(null);
   const reduceMotion = useReducedMotion();
+  const role = roleDetails[title] || { label: title, icon: UserRound };
+  const accountName = profile || role.label;
+  const goHome = () => navigateTo?.("home");
+  const openAccountSecurity = () => navigateTo?.("account-security");
 
-  const openSidebar = () => {
-    window.clearTimeout(closeTimerRef.current);
-    setExpanded(true);
-  };
-
-  const scheduleClose = () => {
-    window.clearTimeout(closeTimerRef.current);
-    closeTimerRef.current = window.setTimeout(() => setExpanded(false), 250);
-  };
-
-  const closeDrawer = ({ restoreFocus = true } = {}) => {
-    setDrawerOpen(false);
-    if (restoreFocus) window.requestAnimationFrame(() => menuTriggerRef.current?.focus());
-  };
-
-  const handleNavigate = (itemId) => {
-    onNavigate(itemId);
-    if (drawerOpen) closeDrawer();
-  };
-
-  useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
-
-  useEffect(() => {
-    if (!drawerOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.requestAnimationFrame(() => {
-      drawerRef.current?.querySelector(FOCUSABLE_ELEMENTS)?.focus();
-    });
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeDrawer();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const focusable = [...(drawerRef.current?.querySelectorAll(FOCUSABLE_ELEMENTS) || [])];
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [drawerOpen]);
-
-  const renderNavigation = (mobile = false) => (
-    <nav className={mobile ? "portal-drawer-nav" : "portal-sidebar-nav"} aria-label={`${title} sections`}>
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = activeItem === item.id;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={isActive ? "active" : ""}
-            onClick={() => handleNavigate(item.id)}
-            data-sound-click="tab"
-            aria-current={isActive ? "page" : undefined}
-            title={item.label}
-          >
-            <span className="portal-nav-icon">{Icon && <Icon size={19} aria-hidden="true" />}</span>
-            <span className="portal-nav-copy">
-              <strong>{item.label}</strong>
-              <small>{item.description}</small>
-            </span>
-          </button>
-        );
-      })}
-    </nav>
+  const utilityActions = (
+    <>
+      <span className="lms-topbar-identity">
+        <strong>{accountName}</strong>
+        <small>{role.label}</small>
+      </span>
+      <SoundUtility />
+      <AppChromeButton icon={KeyRound} aria-label="Account security" onClick={openAccountSecurity}>
+        <span className="app-chrome-action-label">Account security</span>
+      </AppChromeButton>
+      <AppChromeButton icon={LogOut} tone="danger" aria-label="Sign out" onClick={onSignOut}>
+        <span className="app-chrome-action-label">Sign out</span>
+      </AppChromeButton>
+    </>
   );
 
   return (
-    <div className={`portal-shell ${variant} ${expanded ? "sidebar-expanded" : "sidebar-collapsed"}`}>
-      <div className="portal-mobile-bar">
-        <button
-          ref={menuTriggerRef}
-          className="portal-menu-trigger"
-          type="button"
-          aria-label={`Open ${title} navigation`}
-          aria-expanded={drawerOpen}
-          aria-controls="portal-mobile-drawer"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Menu size={20} />
-          <span>Menu</span>
-        </button>
-        <div>
-          <strong>{title}</strong>
-          <small>{navItems.find((item) => item.id === activeItem)?.label || "Dashboard"}</small>
+    <AppChrome
+      className={`portal-shell ${variant}`}
+      contentClassName="portal-main"
+      brand={{
+        mark: <img src={houseLogo} alt="" />,
+        primary: "EduForge",
+        secondary: "Hamilton House Ultimate",
+        ariaLabel: "Return to role selection",
+        onActivate: goHome,
+      }}
+      topbarContext={<span className="lms-role-context">{role.label}</span>}
+      topbarActions={utilityActions}
+      railContext={{
+        icon: role.icon,
+        title,
+        profile: accountName,
+        subtitle,
+        navigationLabel: `${title} navigation`,
+      }}
+      navItems={navItems}
+      activeItem={activeItem}
+      onNavigate={onNavigate}
+      drawerTitle={title}
+      drawerSubtitle={`${accountName} · ${subtitle}`}
+      drawerFooter={(
+        <div className="lms-drawer-utilities">
+          <AppChromeButton icon={KeyRound} onClick={openAccountSecurity}>Account security</AppChromeButton>
+          <AppChromeButton icon={LogOut} tone="danger" onClick={onSignOut}>Sign out</AppChromeButton>
         </div>
-      </div>
-      <aside
-        className="portal-sidebar"
-        aria-label={`${title} navigation`}
-        onMouseEnter={openSidebar}
-        onMouseLeave={scheduleClose}
-        onFocus={openSidebar}
-        onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget)) scheduleClose();
-        }}
-      >
-        <div className="portal-sidebar-card">
-          <div className="portal-sidebar-context">
-            <span className="portal-rail-avatar" aria-hidden="true">{title?.charAt(0) || "P"}</span>
-            <div className="portal-context-copy">
-              <span className="eyebrow">{title}</span>
-              <strong>{profile}</strong>
-              <small>{subtitle}</small>
-            </div>
-          </div>
-          {renderNavigation()}
-        </div>
-      </aside>
-      <main className="portal-main">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            className="portal-section-transition"
-            key={activeItem}
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -5 }}
-            transition={{ duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-      {typeof document !== "undefined" && createPortal(
-        <AnimatePresence>
-          {drawerOpen && (
-            <motion.div
-              className="portal-drawer-layer"
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.16 }}
-            >
-              <button className="portal-drawer-backdrop" type="button" aria-label="Close navigation" onClick={() => closeDrawer()} />
-              <motion.aside
-                ref={drawerRef}
-                id="portal-mobile-drawer"
-                className="portal-mobile-drawer"
-                role="dialog"
-                aria-modal="true"
-                aria-label={`${title} navigation`}
-                initial={reduceMotion ? false : { x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={reduceMotion ? undefined : { x: "-100%" }}
-                transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="portal-drawer-header">
-                  <div>
-                    <span className="eyebrow">{title}</span>
-                    <strong>{profile}</strong>
-                    <small>{subtitle}</small>
-                  </div>
-                  <button type="button" aria-label="Close navigation" onClick={() => closeDrawer()}>
-                    <X size={20} />
-                  </button>
-                </div>
-                {renderNavigation(true)}
-              </motion.aside>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body,
       )}
-    </div>
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          className="portal-section-transition"
+          key={activeItem}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -5 }}
+          transition={{ duration: reduceMotion ? 0 : 0.18, ease: "easeOut" }}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </AppChrome>
   );
 }

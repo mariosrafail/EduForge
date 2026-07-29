@@ -25,7 +25,7 @@ import { AdminUsersSection } from "./sections/AdminUsersSection.jsx";
 
 const emptyUser = { name: "", email: "", role: "Student", level: "B2", status: "Invited" };
 
-export function AdminView({ brand, setBrand, initialSection = "overview", navigateTo, currentUser = null }) {
+export function AdminView({ brand, setBrand, initialSection = "overview", navigateTo, currentUser = null, onSignOut }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
@@ -178,7 +178,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   };
 
   return (
-    <div className="workspace admin-workspace">
       <PortalShell
         title="School Admin"
         profile={currentUser?.full_name || "School administrator"}
@@ -186,7 +185,9 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
         navItems={adminNavItems}
         activeItem={activeSection}
         onNavigate={goToSection}
-        variant="admin-portal-shell"
+        navigateTo={navigateTo}
+        onSignOut={onSignOut}
+        variant="admin-portal-shell admin-workspace"
       >
         {activeSection === "overview" && (
           <AdminOverviewSection
@@ -230,6 +231,5 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
         {activeSection === "publisher-intelligence" && <AdminPublisherIntelligenceSection exported={exported} onExport={() => setExported(true)} />}
         {activeSection === "integrations" && <AdminIntegrationsSection selectedIntegration={selectedIntegration} onSelect={setSelectedIntegration} />}
       </PortalShell>
-    </div>
   );
 }

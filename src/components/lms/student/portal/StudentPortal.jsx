@@ -32,6 +32,7 @@ export function StudentPortal({
   courseError = "",
   submitLesson,
   currentUser = null,
+  onSignOut,
 }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [activeExercise, setActiveExercise] = useState(null);
@@ -169,15 +170,16 @@ export function StudentPortal({
   };
 
   return (
-    <div className="workspace student-portal-workspace">
       <PortalShell
         title="Student portal"
-        profile={currentUser?.full_name ? `${currentUser.full_name} (Student)` : "Student portal"}
+        profile={currentUser?.full_name || "Student"}
         subtitle="Ultimate B2 A"
         navItems={studentNavItems}
         activeItem={activeSection === "activity" ? previousSection : activeSection}
         onNavigate={goToSection}
-        variant="student-portal-shell"
+        navigateTo={navigateTo}
+        onSignOut={onSignOut}
+        variant="student-portal-shell student-portal-workspace"
       >
         {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} currentUser={currentUser} />}
         {activeSection === "books" && (
@@ -227,6 +229,5 @@ export function StudentPortal({
           />
         )}
       </PortalShell>
-    </div>
   );
 }

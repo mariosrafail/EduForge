@@ -26,6 +26,7 @@ const [
   migration, platformAuth, platformApi, authHandler, ordinaryAuth, signin, vite, netlify,
   platformClient, platformApp, platformCss, platformShell, platformUi, platformNavigation, ...normalUi
 ] = files;
+const sharedChrome = await readFile("src/components/app-chrome/AppChrome.jsx", "utf8");
 
 test("Platform Admin identity, sessions, and audit are physically separate from ordinary users", () => {
   assert.match(migration, /create table if not exists platform_admins/);
@@ -78,11 +79,13 @@ test("Platform Administration navigation is a six-section keyboard and mobile-sa
   for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
     assert.match(platformNavigation, new RegExp(`label: "${label}"`));
   }
-  assert.match(platformShell, /onMouseEnter=\{openRail\}/);
-  assert.match(platformShell, /onFocus=\{openRail\}/);
-  assert.match(platformShell, /event\.key === "Escape"/);
-  assert.match(platformShell, /document\.body\.style\.overflow = "hidden"/);
-  assert.match(platformShell, /aria-current=\{activeSection === id \? "page"/);
+  assert.match(platformShell, /<AppChrome/);
+  assert.match(platformShell, /navItems=\{platformSections\}/);
+  assert.match(sharedChrome, /onMouseEnter=\{onOpen\}/);
+  assert.match(sharedChrome, /onFocus=\{onOpen\}/);
+  assert.match(sharedChrome, /event\.key === "Escape"/);
+  assert.match(sharedChrome, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(sharedChrome, /aria-current=\{active \? "page"/);
   assert.match(platformApp, /history\.pushState\(\{\}, "", `\/platform-admin\/\$\{next\}`\)/);
   assert.match(platformApp, /addEventListener\("popstate"/);
 });
