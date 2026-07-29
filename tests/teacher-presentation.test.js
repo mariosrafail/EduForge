@@ -295,7 +295,10 @@ test("presentation state clears on activity changes and never enters student pro
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/TeacherPresentationView.jsx", "utf8"),
     readFile("src/App.jsx", "utf8"),
-    readFile("netlify/functions/book-content.js", "utf8"),
+    Promise.all([
+      readFile("netlify/functions/_book-content/submission-actions.js", "utf8"),
+      readFile("netlify/functions/_book-content/book-activity-actions.js", "utf8"),
+    ]).then((parts) => parts.join("\n")),
   ]);
   assert.match(renderer, /useEffect\(\(\) => \{[\s\S]*setSolutions\(null\)[\s\S]*setRevealedQuestionIds\(\[\]\)[\s\S]*setCheckResults\(\{\}\)[\s\S]*\}, \[activityId\]\)/);
   assert.match(renderer, /if \(!capabilities\.canSubmitStudentWork\) return;/);

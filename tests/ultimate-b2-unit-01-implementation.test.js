@@ -123,7 +123,11 @@ test("generic Students Book renderer selects both Unit 1 and Unit 2 catalogs", a
 
 test("Unit 1 teacher review persists an explicit score while unscored work remains score-null", async () => {
   const [server, teacherPortal] = await Promise.all([
-    readFile("netlify/functions/book-content.js", "utf8"),
+    Promise.all([
+      readFile("netlify/functions/_book-content/submission-actions.js", "utf8"),
+      readFile("netlify/functions/_book-content/class-actions.js", "utf8"),
+      readFile("netlify/functions/_book-content/assignment-actions.js", "utf8"),
+    ]).then((parts) => parts.join("\n")),
     readFile("src/components/lms/teacher/TeacherPortalSections.jsx", "utf8"),
   ]);
   assert.match(server, /requiresTeacherReview \|\| unscoredPractice \? null/);

@@ -117,7 +117,10 @@ test("database IDs merge onto stable rows without making disabled records assign
 
 test("assignment and submission safeguards cover disabled, practice, and reading modes", async () => {
   const [server, migration, manifest] = await Promise.all([
-    readFile("netlify/functions/book-content.js", "utf8"),
+    Promise.all([
+      readFile("netlify/functions/_book-content/assignment-actions.js", "utf8"),
+      readFile("netlify/functions/_book-content/submission-actions.js", "utf8"),
+    ]).then((parts) => parts.join("\n")),
     readFile("database/022_ultimate_b2_students_book_assignment_modes.sql", "utf8"),
     readFile("database/MIGRATIONS.md", "utf8"),
   ]);

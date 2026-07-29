@@ -99,7 +99,7 @@ test("unsupported interactions stay disabled and legacy games are not reproduced
 
 test("migration seeds only evidence-backed assignable activities and server supports pending teacher review", async () => {
   const migration = await readFile("database/020_ultimate_b2_unit2_recovered_activities.sql", "utf8");
-  const server = await readFile("netlify/functions/book-content.js", "utf8");
+  const server = await readFile("netlify/functions/_book-content/submission-actions.js", "utf8");
   assert.match(migration, /implementationMode/);
   assert.match(migration, /decoded-publisher-explicit-answer/);
   assert.doesNotMatch(migration, /ticTacToe|choosingGame/);
