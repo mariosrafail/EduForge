@@ -183,10 +183,21 @@ test("ordinary sign-in limiter is distributed, atomic, recoverable, and privacy 
   }
   const accountThreshold = await call({ email: accountUser.email, ip: "127.0.8.100" });
   assert.equal(accountThreshold.status, 429);
-  const recovered = await call({ email: accountUser.email, ip: "127.0.8.101", suppliedPassword: password });
+  assert.equal((await call({ email: accountUser.email, ip: "127.0.8.101" })).status, 429);
+  const accountIdentifiers = authLoginIdentifiers(
+    { headers: { "x-nf-client-connection-ip": "127.0.8.101" } },
+    accountUser.email,
+  );
+  const accountLimitedRows = await pool.query(`
+    select outcome from auth_login_attempts
+    where request_fingerprint=$1 and email_hash=$2
+    order by attempted_at desc limit 1
+  `, [accountIdentifiers.requestFingerprint, accountIdentifiers.emailHash]);
+  assert.equal(accountLimitedRows.rows[0].outcome, "rate_limited");
+  const recovered = await call({ email: accountUser.email, ip: "127.0.8.102", suppliedPassword: password });
   assert.equal(recovered.status, 200);
   assert.ok(recovered.headers["Set-Cookie"]);
-  assert.equal((await call({ email: accountUser.email, ip: "127.0.8.102" })).status, 401);
+  assert.equal((await call({ email: accountUser.email, ip: "127.0.8.103" })).status, 401);
 
   const sourceIp = "127.0.9.1";
   const sourceUsers = [];

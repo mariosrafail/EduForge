@@ -259,13 +259,21 @@ export async function completeAuthLoginAttempt(sql, {
       where attempt.request_fingerprint = ${requestFingerprint}
         and attempt.outcome = 'invalid_credentials'
         and attempt.attempted_at > parameters.window_start
+    ), existing_account as materialized (
+      select count(*)::int as count
+      from auth_login_attempts attempt, parameters, last_success
+      where attempt.email_hash = ${emailHash}
+        and attempt.outcome = 'invalid_credentials'
+        and attempt.attempted_at > parameters.window_start
+        and attempt.attempted_at > coalesce(last_success.attempted_at, parameters.window_start)
     ), finalized as materialized (
       update auth_login_attempts attempt
       set user_id = ${userId},
           outcome = case
             when ${outcome} = 'invalid_credentials'
               and ((select count from existing_pair) >= ${authLoginPairLimit}
-                or (select count from existing_source) >= ${authLoginSourceLimit})
+                or (select count from existing_source) >= ${authLoginSourceLimit}
+                or (select count from existing_account) >= ${authLoginAccountLimit})
               then 'rate_limited'
             else ${outcome}
           end
