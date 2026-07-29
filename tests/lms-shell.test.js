@@ -22,7 +22,11 @@ test("ordinary LMS role entry, header, and access gates remain present", async (
 });
 
 test("shared portal shell owns desktop rail, accessible drawer, and reduced motion", async () => {
-  const shell = await read("src/components/lms/shared/PortalShell.jsx");
+  const [shell, layout, styles] = await Promise.all([
+    read("src/components/lms/shared/PortalShell.jsx"),
+    read("src/styles/layout.css"),
+    read("src/styles/lms-shell.css"),
+  ]);
 
   assert.match(shell, /onMouseEnter=\{openSidebar\}/);
   assert.match(shell, /onFocus=\{openSidebar\}/);
@@ -34,6 +38,15 @@ test("shared portal shell owns desktop rail, accessible drawer, and reduced moti
   assert.match(shell, /event\.key !== "Tab"/);
   assert.match(shell, /useReducedMotion/);
   assert.match(shell, /AnimatePresence/);
+  assert.match(shell, /aria-current=\{isActive \? "page" : undefined\}/);
+  assert.match(layout, /--lms-rail-width: 78px/);
+  assert.match(layout, /--lms-rail-expanded-width: 276px/);
+  assert.match(layout, /\.portal-sidebar\s*\{[^}]*position: fixed/s);
+  assert.match(layout, /\.portal-shell\s*\{[^}]*padding-left: var\(--lms-rail-width\)/s);
+  assert.match(layout, /\.portal-shell\.sidebar-expanded\s*\{[^}]*padding-left: var\(--lms-rail-expanded-width\)/s);
+  assert.match(layout, /\.portal-sidebar-nav button:hover\s*\{[^}]*translateX\(2px\)/s);
+  assert.doesNotMatch(layout, /\.portal-sidebar-nav button:hover[^}]*translateY/s);
+  assert.match(styles, /@media \(max-width: 1100px\)[\s\S]*\.portal-mobile-drawer/);
 });
 
 test("all three portals use one shared shell and retain their navigation sections", async () => {

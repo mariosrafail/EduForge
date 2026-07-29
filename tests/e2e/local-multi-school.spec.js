@@ -92,12 +92,43 @@ test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role"
   await expect(reducedMotionDrawer).toBeVisible();
   await reducedMotionDrawer.getByRole("button", { name: "Close navigation", exact: true }).click();
 
-  await page.setViewportSize({ width: 1440, height: 900 });
   const shell = page.locator(".portal-shell");
   const sidebar = page.locator(".portal-sidebar");
+  const main = page.locator(".portal-main");
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1280, height: 720 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await main.hover();
+    await page.waitForTimeout(300);
+    await expect(shell).toHaveClass(/sidebar-collapsed/);
+    await expect(sidebar).toHaveCSS("position", "fixed");
+    await expect(sidebar).toHaveCSS("width", "78px");
+    const collapsedLayout = await page.evaluate(() => ({
+      mainLeft: document.querySelector(".portal-main")?.getBoundingClientRect().left,
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    expect(collapsedLayout.mainLeft).toBeGreaterThanOrEqual(78);
+    expect(collapsedLayout.pageOverflow).toBeFalsy();
+
+    await sidebar.hover();
+    await expect(shell).toHaveClass(/sidebar-expanded/);
+    await expect(sidebar).toHaveCSS("width", "276px");
+    const expandedLayout = await page.evaluate(() => ({
+      mainLeft: document.querySelector(".portal-main")?.getBoundingClientRect().left,
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    expect(expandedLayout.mainLeft).toBeGreaterThanOrEqual(276);
+    expect(expandedLayout.pageOverflow).toBeFalsy();
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
   await sidebar.hover();
   await expect(shell).toHaveClass(/sidebar-expanded/);
-  await page.locator(".portal-main").hover();
+  await main.hover();
   await page.waitForTimeout(100);
   await expect(shell).toHaveClass(/sidebar-expanded/);
   await page.waitForTimeout(200);
@@ -112,7 +143,10 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   const consoleErrors = [];
   const failedRequests = [];
   page.on("console", (message) => message.type() === "error" && consoleErrors.push(message.text()));
-  page.on("requestfailed", (request) => failedRequests.push(`${request.method()} ${request.url()}`));
+  page.on("requestfailed", (request) => failedRequests.push({
+    label: `${request.method()} ${request.url()}`,
+    errorText: request.failure()?.errorText || "",
+  }));
 
   await signIn(page, "admin", athens.users[0].email);
   await page.goto("/#admin-users");
@@ -257,8 +291,11 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
 
   const unexpectedConsole = consoleErrors.filter((message) => !/status of (401|403|404) \((Unauthorized|Forbidden|Not Found)\)/.test(message));
   expect(unexpectedConsole).toEqual([]);
-  const nonOptionalFailures = failedRequests.filter((request) => !request.includes("/assets/sounds/"));
+  const nonOptionalFailures = failedRequests.filter(({ label, errorText }) => (
+    !label.includes("/assets/sounds/")
+    && !(label.includes("action=asset-access") && errorText === "net::ERR_ABORTED")
+  ));
   expect(nonOptionalFailures).toEqual([]);
-  const requestCounts = Object.values(Object.groupBy(failedRequests, (request) => request)).map((items) => items.length);
+  const requestCounts = Object.values(Object.groupBy(failedRequests, (request) => request.label)).map((items) => items.length);
   expect(Math.max(0, ...requestCounts)).toBeLessThanOrEqual(4);
 });

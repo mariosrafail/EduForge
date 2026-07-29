@@ -102,9 +102,11 @@ export function PortalShell({
             aria-current={isActive ? "page" : undefined}
             title={item.label}
           >
-            <span>{Icon && <Icon size={18} />}</span>
-            <strong>{item.label}</strong>
-            <small>{item.description}</small>
+            <span className="portal-nav-icon">{Icon && <Icon size={19} aria-hidden="true" />}</span>
+            <span className="portal-nav-copy">
+              <strong>{item.label}</strong>
+              <small>{item.description}</small>
+            </span>
           </button>
         );
       })}
@@ -142,10 +144,14 @@ export function PortalShell({
         }}
       >
         <div className="portal-sidebar-card">
-          <span className="portal-rail-avatar" aria-hidden="true">{title?.charAt(0) || "P"}</span>
-          <span className="eyebrow">{title}</span>
-          <strong>{profile}</strong>
-          <small>{subtitle}</small>
+          <div className="portal-sidebar-context">
+            <span className="portal-rail-avatar" aria-hidden="true">{title?.charAt(0) || "P"}</span>
+            <div className="portal-context-copy">
+              <span className="eyebrow">{title}</span>
+              <strong>{profile}</strong>
+              <small>{subtitle}</small>
+            </div>
+          </div>
           {renderNavigation()}
         </div>
       </aside>
