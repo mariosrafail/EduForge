@@ -78,6 +78,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://eduforge_test:eduforge_test@localhost:5432/eduforge_test
       TEST_DATABASE_CONFIRMATION: isolated-test-database
       AUTH_RATE_LIMIT_SALT: isolated-ci-ordinary-auth-rate-limit-only
+      PLATFORM_ADMIN_RATE_LIMIT_SALT: isolated-ci-platform-admin-rate-limit-only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

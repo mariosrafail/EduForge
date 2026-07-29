@@ -8,12 +8,10 @@ import {
   normalizeEmail,
   unauthorized,
 } from "./_auth-utils.js";
+import { platformAdminLoginIdentifiers } from "./_platform-admin-login-rate-limit.js";
 
 export const platformAdminCookieName = "hh_platform_admin_session";
 export const platformAdminSessionMaxAgeSeconds = 8 * 60 * 60;
-export const platformAdminLoginWindowMinutes = 15;
-export const platformAdminLoginLimit = 5;
-
 const forbiddenAuditKey = /password|hash|token|secret|database|answer|solution/i;
 
 function localHost(event) {
@@ -43,13 +41,7 @@ export function clearPlatformAdminCookie(event) {
 }
 
 export function platformAdminRequestFingerprint(event) {
-  const isolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database"
-    || process.env.LOCAL_DATABASE_CONFIRMATION === "isolated-local-pilot";
-  const salt = process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT || (isolated ? "isolated-platform-admin-rate-limit-only" : "");
-  if (!salt) throw new Error("PLATFORM_ADMIN_RATE_LIMIT_SALT is required");
-  const headers = event.headers || {};
-  const ip = headers["x-nf-client-connection-ip"] || headers["x-forwarded-for"] || "unknown";
-  return createHash("sha256").update(`${salt}:${String(ip).split(",")[0].trim()}`).digest("hex");
+  return platformAdminLoginIdentifiers(event, "").requestFingerprint;
 }
 
 export function requirePlatformAdminOrigin(event) {

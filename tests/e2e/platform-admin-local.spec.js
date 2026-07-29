@@ -8,12 +8,47 @@ import {
   MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
 } from "../../scripts/_multi-school-seed-data.mjs";
 import { readLocalMultiSchoolMarker } from "../../scripts/_local-multi-school.mjs";
+import { setSqlForTests } from "../../netlify/functions/_auth-utils.js";
+import { handler as platformAuthHandler } from "../../netlify/functions/platform-admin-auth.js";
 
 const marker = readLocalMultiSchoolMarker();
 const temporarySchoolName = "Platform E2E Fictional School";
 const temporaryAdminEmail = "platform-e2e-admin@multi-school.dev.invalid";
 let temporarySchoolId = null;
 let temporaryAdminId = null;
+
+function databaseTag(pool) {
+  const queryTemplate = (queryable) => async (strings, ...values) => {
+    let text = strings[0];
+    for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`;
+    return (await queryable.query(text, values)).rows;
+  };
+  const template = queryTemplate(pool);
+  template.authLoginTransaction = async (lockValues, callback) => {
+    const client = await pool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`
+        select pg_advisory_xact_lock(lock_key)
+        from (
+          select distinct hashtextextended(value, 0) as lock_key
+          from unnest(${lockValues}::text[]) value
+        ) locks
+        order by lock_key
+      `;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+  return template;
+}
 
 async function control(page, action, body) {
   const response = await page.request.post(`/platform-admin/api/control?action=${action}`, {
@@ -51,12 +86,61 @@ test.afterEach(async () => {
     if (targetIds.length) {
       await pool.query("delete from platform_admin_audit_log where target_id=any($1::text[]) or target_school_id=$2", [targetIds, school || null]);
     }
+    await pool.query("delete from platform_admin_login_attempts");
+    await pool.query(`
+      delete from platform_admin_audit_log
+      where action in ('login_pair_rate_limited','login_source_rate_limited','login_account_risk_detected')
+    `);
     if (school) await pool.query("delete from schools where id=$1 and name=$2", [school, temporarySchoolName]);
   } finally {
     await pool.end();
     temporarySchoolId = null;
     temporaryAdminId = null;
   }
+});
+
+test("account-wide pressure cannot lock out a Platform Admin with the correct password", async ({ page }) => {
+  test.setTimeout(90_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  const previousSalt = process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT;
+  const previousConfirmation = process.env.TEST_DATABASE_CONFIRMATION;
+  process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT = "local-multi-school-platform-admin-rate-limit-only";
+  process.env.TEST_DATABASE_CONFIRMATION = "isolated-test-database";
+  setSqlForTests(databaseTag(pool));
+  try {
+    for (let index = 0; index < 20; index += 1) {
+      const response = await platformAuthHandler({
+        httpMethod: "POST",
+        headers: {
+          host: "127.0.0.1:8888",
+          origin: marker.baseURL,
+          "x-nf-client-connection-ip": `127.20.0.${index + 1}`,
+        },
+        queryStringParameters: { action: "login" },
+        rawQuery: "action=login",
+        body: JSON.stringify({
+          email: MULTI_SCHOOL_PLATFORM_ADMIN.email,
+          password: "Definitely-Wrong-Platform-Password!",
+        }),
+      });
+      expect(response.statusCode).toBe(index === 19 ? 429 : 401);
+    }
+  } finally {
+    setSqlForTests(null);
+    if (previousSalt === undefined) delete process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT;
+    else process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT = previousSalt;
+    if (previousConfirmation === undefined) delete process.env.TEST_DATABASE_CONFIRMATION;
+    else process.env.TEST_DATABASE_CONFIRMATION = previousConfirmation;
+    await pool.end();
+  }
+
+  await signInPlatform(page);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await signInPlatform(page);
 });
 
 test("Platform Admin local control-plane walkthrough and session separation", async ({ page, browser }, testInfo) => {

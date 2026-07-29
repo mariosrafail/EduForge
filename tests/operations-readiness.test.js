@@ -49,6 +49,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     STAGING_PRODUCTION_APP_URL: "https://app.example.test",
     PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/eduforge_production"),
     AUTH_RATE_LIMIT_SALT: "e".repeat(40),
+    PLATFORM_ADMIN_RATE_LIMIT_SALT: "f".repeat(40),
     ACCOUNT_RATE_LIMIT_SALT: "a".repeat(40),
     INVITE_RATE_LIMIT_SALT: "b".repeat(40),
     ACCOUNT_EMAIL_DISPATCH_SECRET: "c".repeat(40),
@@ -57,7 +58,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     EDUFORGE_STAGING_QA_PASSWORD: "Unique-QA-Password-2026",
   };
   const result = await checkStagingDeployment(environment);
-  assert.equal(result.latest_migration, "029_ordinary_auth_login_rate_limit.sql");
+  assert.equal(result.latest_migration, "030_platform_admin_login_rate_limit.sql");
   await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
   await assert.rejects(checkStagingDeployment({ ...environment, EDUFORGE_STAGING_QA_PASSWORD: "StagingOnly!2026" }), /retired shared staging password/);
 });

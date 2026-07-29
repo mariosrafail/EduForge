@@ -119,7 +119,7 @@ test("ordinary sign-in limiter is distributed, atomic, recoverable, and privacy 
     .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
     .sort((left, right) => left.localeCompare(right));
   for (const filename of migrationFiles) await pool.query(await readFile(`database/${filename}`, "utf8"));
-  assert.equal(migrationFiles.at(-1), "029_ordinary_auth_login_rate_limit.sql");
+  assert.equal(migrationFiles.at(-1), "030_platform_admin_login_rate_limit.sql");
 
   const columns = (await pool.query(`
     select column_name from information_schema.columns

@@ -243,5 +243,6 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   }
   const limited = await call(platformAuth, { method: "POST", query: { action: "login" }, body: { email: "rate-limit@platform.test", password: "wrong" }, ip: "127.0.8.40" });
   assert.equal(limited.status, 429);
-  assert.equal(limited.headers["Retry-After"], "900");
+  assert.ok(Number(limited.headers["Retry-After"]) >= 1);
+  assert.ok(Number(limited.headers["Retry-After"]) <= 900);
 });
