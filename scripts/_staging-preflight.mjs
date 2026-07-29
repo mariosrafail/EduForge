@@ -5,7 +5,7 @@ import { requireQaPassword } from "./_staging-qa-data.mjs";
 const requiredNames = [
   "STAGING_DATABASE_URL", "STAGING_DATABASE_CONFIRMATION", "STAGING_ENVIRONMENT_CONFIRMATION",
   "DATABASE_URL", "APP_PUBLIC_URL", "STAGING_PRODUCTION_APP_URL", "PRODUCTION_DATABASE_FINGERPRINT",
-  "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET",
+  "AUTH_RATE_LIMIT_SALT", "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET",
   "OPERATIONAL_MONITORING_SECRET", "ACCOUNT_EMAIL_MODE",
   "EDUFORGE_STAGING_QA_PASSWORD",
 ];
@@ -55,11 +55,13 @@ export async function checkStagingDeployment(environment = process.env) {
   const productionApp = parsedUrl(environment.STAGING_PRODUCTION_APP_URL, "STAGING_PRODUCTION_APP_URL", ["https:"]);
   if (app.origin === productionApp.origin) throw new Error("Hosted staging and production application URLs must differ");
   if (!/(staging|stage|qa|sandbox|preview|test)/i.test(app.hostname)) throw new Error("APP_PUBLIC_URL hostname must visibly identify staging");
-  for (const name of ["ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET", "OPERATIONAL_MONITORING_SECRET"]) {
+  for (const name of ["AUTH_RATE_LIMIT_SALT", "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET", "OPERATIONAL_MONITORING_SECRET"]) {
     const value = String(environment[name]);
     if (value.length < 32 || placeholderPattern.test(value)) throw new Error(`${name} must be a non-placeholder secret of at least 32 characters`);
   }
-  if (environment.ACCOUNT_RATE_LIMIT_SALT === environment.INVITE_RATE_LIMIT_SALT) throw new Error("Account and invite salts must differ");
+  if (new Set([environment.AUTH_RATE_LIMIT_SALT, environment.ACCOUNT_RATE_LIMIT_SALT, environment.INVITE_RATE_LIMIT_SALT]).size !== 3) {
+    throw new Error("Ordinary login, account lifecycle, and invite salts must differ");
+  }
   if (!['preview', 'smtp'].includes(environment.ACCOUNT_EMAIL_MODE)) throw new Error("Hosted staging email mode must be preview or smtp");
   if (environment.ACCOUNT_EMAIL_MODE === "smtp") {
     required(environment, ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM", "STAGING_EMAIL_RECIPIENT", "STAGING_EMAIL_CONFIRMATION"]);
@@ -68,6 +70,8 @@ export async function checkStagingDeployment(environment = process.env) {
   }
   const migrations = await loadProductionMigrationManifest();
   if (migrations.some((item) => item.filename === "012_demo_login_passwords.sql")) throw new Error("Demo-password migration is forbidden");
-  if (migrations.at(-1)?.filename !== "028_platform_administration.sql") throw new Error("Production migration manifest must end at 028_platform_administration.sql");
+  if (migrations.at(-1)?.filename !== "029_ordinary_auth_login_rate_limit.sql") {
+    throw new Error("Production migration manifest must end at 029_ordinary_auth_login_rate_limit.sql");
+  }
   return { environment: "hosted-staging", app_host: app.hostname, email_mode: environment.ACCOUNT_EMAIL_MODE, migration_count: migrations.length, latest_migration: migrations.at(-1).filename };
 }

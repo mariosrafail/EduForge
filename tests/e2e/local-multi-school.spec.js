@@ -24,13 +24,16 @@ test.afterEach(async () => {
       from activity_assignments aa
       where s.activity_assignment_id=aa.id and aa.id=$1 and s.student_id=$2
     `, [athens.assignments[1].id, athens.users.find((user) => user.profile === "strong").id]);
+    await pool.query("delete from auth_login_attempts");
   } finally {
     await pool.end();
   }
 });
 
 async function signIn(page, role, email) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/#auth-${role}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".app-intro-overlay")).toBeHidden();
   const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Sign in", exact: true }) });
   await form.getByLabel(role === "student" ? "Email or username" : "Email", { exact: true }).fill(email);
   await form.getByLabel("Password", { exact: true }).fill(MULTI_SCHOOL_DEMO_PASSWORD);
@@ -47,6 +50,18 @@ async function api(page, action = "", options = {}) {
   });
   return { response, body: await response.json() };
 }
+
+test("ordinary Student sign-in, sign-out, and clean reauthentication remain functional", async ({ page }) => {
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+  const student = athens.users.find((user) => user.profile === "strong");
+  await signIn(page, "student", student.email);
+  const signOut = page.getByRole("button", { name: "Sign out", exact: true }).first();
+  await expect(signOut).toBeVisible();
+  await signOut.click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await signIn(page, "student", student.email);
+  await expect(page.getByRole("button", { name: "Sign out", exact: true }).first()).toBeVisible();
+});
 
 test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role", async ({ page, context }) => {
   test.setTimeout(90_000);

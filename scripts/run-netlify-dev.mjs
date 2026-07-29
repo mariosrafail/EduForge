@@ -22,6 +22,7 @@ if (await portIsListening(8888, "127.0.0.1")) {
 
 const env = { ...process.env };
 
+env.AUTH_RATE_LIMIT_SALT ||= randomBytes(32).toString("hex");
 env.ACCOUNT_RATE_LIMIT_SALT ||= randomBytes(32).toString("hex");
 env.INVITE_RATE_LIMIT_SALT ||= randomBytes(32).toString("hex");
 

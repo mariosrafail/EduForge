@@ -24,11 +24,36 @@ function scoped(base, schema) {
 }
 
 function tag(pool) {
-  return async (strings, ...values) => {
+  const queryTemplate = (queryable) => async (strings, ...values) => {
     let text = strings[0];
     for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`;
-    return (await pool.query(text, values)).rows;
+    return (await queryable.query(text, values)).rows;
   };
+  const template = queryTemplate(pool);
+  template.authLoginTransaction = async (lockValues, callback) => {
+    const client = await pool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`
+        select pg_advisory_xact_lock(lock_key)
+        from (
+          select distinct hashtextextended(value, 0) as lock_key
+          from unnest(${lockValues}::text[]) value
+        ) locks
+        order by lock_key
+      `;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+  return template;
 }
 
 function parse(response) {

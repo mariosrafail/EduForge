@@ -30,6 +30,7 @@ Apply production migrations in this exact order:
 26. `026_ultimate_b2_unit2_runtime_parity.sql`
 27. `027_phase_one_ultimate_book_catalog.sql`
 28. `028_platform_administration.sql`
+29. `029_ordinary_auth_login_rate_limit.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 
