@@ -31,6 +31,16 @@ async function signInPlatform(page) {
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 }
 
+async function navigatePlatform(page, label) {
+  const target = page.getByRole("button", { name: label, exact: true });
+  if (!await target.isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+  }
+  await page.getByRole("button", { name: label, exact: true }).click();
+  await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/platform-admin/${label === "Book access" ? "access" : label === "Audit log" ? "audit" : label.toLowerCase()}$`));
+}
+
 test.afterEach(async () => {
   if (!marker) return;
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
@@ -75,12 +85,11 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   expect(ordinaryMeBeforeLogin.status()).toBe(401);
 
   for (const [label, filename] of [["Schools", "schools"], ["Users", "users"], ["Classes", "classes"], ["Book access", "book-access"], ["Audit log", "audit-log"]]) {
-    await page.getByRole("button", { name: label, exact: true }).click();
-    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    await navigatePlatform(page, label);
     await page.screenshot({ path: testInfo.outputPath(`platform-admin-desktop-${filename}.png`), fullPage: true });
   }
 
-  await page.getByRole("button", { name: "Schools", exact: true }).click();
+  await navigatePlatform(page, "Schools");
   for (const school of MULTI_SCHOOL) await expect(page.getByRole("button", { name: school.name })).toBeVisible();
   await page.getByRole("button", { name: MULTI_SCHOOL[0].name }).click();
   await expect(page.getByText(/1 admins · 2 teachers · 8 students · 3 classes/)).toBeVisible();
@@ -131,7 +140,7 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   expect((await ordinaryPage.request.get("/.netlify/functions/auth-me")).status()).toBe(401);
   await ordinaryContext.close();
 
-  await page.getByRole("button", { name: "Audit log" }).click();
+  await navigatePlatform(page, "Audit log");
   for (const action of ["school_created", "ordinary_user_invited", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {
     await expect(page.getByText(action, { exact: true }).first()).toBeVisible();
   }
@@ -140,9 +149,12 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
 
   await page.setViewportSize({ width: 768, height: 1024 });
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByLabel("Mobile Platform Administration navigation")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByLabel("Mobile Platform Administration navigation")).toHaveCount(0);
   for (const [label, filename] of [["Overview", "overview"], ["Schools", "schools"], ["Users", "users"], ["Book access", "book-access"], ["Audit log", "audit-log"]]) {
-    await page.getByRole("button", { name: label, exact: true }).click();
-    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    await navigatePlatform(page, label);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
     await page.screenshot({ path: testInfo.outputPath(`platform-admin-tablet-${filename}.png`), fullPage: true });
   }
@@ -161,7 +173,7 @@ test("revoked privileged session clears all loaded data and recovers through log
 
   await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
   await signInPlatform(page);
-  await page.getByRole("button", { name: "Schools", exact: true }).click();
+  await navigatePlatform(page, "Schools");
   await expect(page.getByRole("button", { name: MULTI_SCHOOL[0].name })).toBeVisible();
 
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
@@ -193,7 +205,7 @@ test("reload after database-style session invalidation shows no stale dashboard 
 
   await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
   await signInPlatform(page);
-  await page.getByRole("button", { name: "Users", exact: true }).click();
+  await navigatePlatform(page, "Users");
   await expect(page.getByText(MULTI_SCHOOL[0].users[0].email)).toBeVisible();
 
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
@@ -208,8 +220,7 @@ test("reload after database-style session invalidation shows no stale dashboard 
   await expect(page.getByText(MULTI_SCHOOL[0].users[0].email)).toHaveCount(0);
   await signInPlatform(page);
   for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
-    await page.getByRole("button", { name: label, exact: true }).click();
-    await expect(page.getByRole("heading", { name: label })).toBeVisible();
+    await navigatePlatform(page, label);
   }
 });
 
@@ -248,12 +259,12 @@ test("Platform Administration remains page-overflow free across required desktop
     { width: 1280, height: 720 },
     { width: 1024, height: 768 },
     { width: 768, height: 1024 },
+    { width: 390, height: 844 },
   ];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
-      await page.getByRole("button", { name: label, exact: true }).click();
-      await expect(page.getByRole("heading", { name: label })).toBeVisible();
+      await navigatePlatform(page, label);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBeTruthy();
     }
   }

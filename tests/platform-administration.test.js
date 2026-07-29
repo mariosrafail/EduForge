@@ -13,11 +13,19 @@ const files = await Promise.all([
   readFile("netlify.toml", "utf8"),
   readFile("src/apps/platform-admin/platformAdminApi.js", "utf8"),
   readFile("src/apps/platform-admin/PlatformAdminApp.jsx", "utf8"),
-  readFile("src/apps/platform-admin/platformAdmin.css", "utf8"),
+  Promise.all([
+    "foundation.css", "shell.css", "components.css", "sections.css", "responsive.css",
+  ].map((file) => readFile(`src/apps/platform-admin/styles/${file}`, "utf8"))).then((styles) => styles.join("\n")),
+  readFile("src/apps/platform-admin/components/PlatformAdminShell.jsx", "utf8"),
+  readFile("src/apps/platform-admin/components/PlatformUi.jsx", "utf8"),
+  readFile("src/apps/platform-admin/platformAdminNavigation.js", "utf8"),
   readFile("src/apps/lms/LmsApp.jsx", "utf8"),
   readFile("src/components/lms/AuthPage.jsx", "utf8").catch(() => ""),
 ]);
-const [migration, platformAuth, platformApi, authHandler, ordinaryAuth, signin, vite, netlify, platformClient, platformApp, platformCss, ...normalUi] = files;
+const [
+  migration, platformAuth, platformApi, authHandler, ordinaryAuth, signin, vite, netlify,
+  platformClient, platformApp, platformCss, platformShell, platformUi, platformNavigation, ...normalUi
+] = files;
 
 test("Platform Admin identity, sessions, and audit are physically separate from ordinary users", () => {
   assert.match(migration, /create table if not exists platform_admins/);
@@ -60,10 +68,32 @@ test("the centralized client clears stale privileged state on 401 without consum
   assert.match(platformClient, /unauthorizedHandler\?\.\(\)/);
   assert.match(platformClient, /response\.status === 403 && notifySecurityError/);
   assert.match(platformApp, /setData\(\{\}\)/);
-  assert.match(platformApp, /setSelectedSchool\(null\)/);
+  assert.match(platformApp, /setLoading\(\{\}\)/);
   assert.match(platformApp, /history\.replaceState\(\{\}, "", "\/platform-admin\/"\)/);
   assert.match(platformApp, /Your privileged session expired\. Sign in again\./);
   assert.doesNotMatch(platformApp, /localStorage|sessionStorage/);
+});
+
+test("Platform Administration navigation is a six-section keyboard and mobile-safe rail", () => {
+  for (const label of ["Overview", "Schools", "Users", "Classes", "Book access", "Audit log"]) {
+    assert.match(platformNavigation, new RegExp(`label: "${label}"`));
+  }
+  assert.match(platformShell, /onMouseEnter=\{openRail\}/);
+  assert.match(platformShell, /onFocus=\{openRail\}/);
+  assert.match(platformShell, /event\.key === "Escape"/);
+  assert.match(platformShell, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(platformShell, /aria-current=\{activeSection === id \? "page"/);
+  assert.match(platformApp, /history\.pushState\(\{\}, "", `\/platform-admin\/\$\{next\}`\)/);
+  assert.match(platformApp, /addEventListener\("popstate"/);
+});
+
+test("Platform Admin controls use scoped variants, duplicate guards, and reduced motion", () => {
+  for (const variant of ["primary", "secondary", "ghost", "warning", "danger", "link"]) {
+    assert.match(platformCss, new RegExp(`\\.pa-button-${variant}`));
+  }
+  assert.match(platformUi, /disabled=\{disabled \|\| loading\}/);
+  assert.match(platformCss, /prefers-reduced-motion: reduce/);
+  assert.doesNotMatch(platformCss, /(^|\n)button\s*\{/);
 });
 
 test("Platform Administration uses the EduForge white and orange visual system", () => {
