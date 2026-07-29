@@ -19,6 +19,7 @@
     "demo:multi-school:reset": "node scripts/local-multi-school-demo.mjs reset --confirm=isolated-local-multi-school-demo",
     "platform-admin:create": "node scripts/create-platform-admin.mjs",
     "audit:ultimate-b2:functional": "node scripts/ultimate-b2/generate-functional-audit.mjs",
+    "audit:source-structure": "node scripts/audit-source-structure.mjs",
     "test:e2e:staging": "playwright test",
     "staging:migrate": "node scripts/run-staging-migrations.mjs",
     "staging:integrity": "node scripts/verify-tenant-integrity.mjs",
