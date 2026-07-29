@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
-import { ArrowRight, BookOpenCheck, Building2, GraduationCap, KeyRound, Layers3, MonitorCheck, UserRound } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Building2, GraduationCap, KeyRound, UserRound } from "lucide-react";
 import { Card, Tag } from "./Shared.jsx";
 
 const roleCards = [
@@ -27,14 +27,20 @@ const roleCards = [
 ];
 
 export function RoleSelection({ navigateTo, brand }) {
+  const reduceMotion = useReducedMotion();
   return (
     <main className="role-screen role-selection-screen">
       <section className="landing-hero">
         <div className="hero-copy">
-          <Tag tone="gold">Hamilton House platform demo</Tag>
-          <h1>Hamilton House Ultimate digital book platform.</h1>
+          <Tag tone="gold">EduForge learning platform</Tag>
+          <h1>One welcoming place for your school community.</h1>
+          <p>Choose your role to sign in to the learning, teaching, or school administration workspace.</p>
         </div>
-
+        <div className="landing-brand-mark" aria-hidden="true">
+          <span>EF</span>
+          <strong>{brand?.schoolName || "EduForge"}</strong>
+          <small>Learn · Teach · Grow</small>
+        </div>
       </section>
 
       <section className="role-card-grid" aria-label="Role entry points">
@@ -49,15 +55,15 @@ export function RoleSelection({ navigateTo, brand }) {
               key={role.id}
               className="role-entry"
               onClick={() => navigateTo(role.id === "teacher" ? "teacher" : role.id === "student" ? "student" : "admin")}
-              initial={{ opacity: 0, y: 18 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.07 + 0.12 }}
+              transition={{ delay: reduceMotion ? 0 : index * 0.07 + 0.12 }}
             >
-              <Icon size={26} />
+              <span className="role-entry-icon"><Icon size={27} /></span>
               <h2>{role.title}</h2>
               <p>{role.text}</p>
               <small>{role.stats}</small>
-              <span><ArrowRight size={18} /></span>
+              <span className="role-entry-arrow"><ArrowRight size={18} /></span>
             </motion.button>
           );
         })}

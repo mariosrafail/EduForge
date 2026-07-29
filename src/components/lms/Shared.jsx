@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Menu, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, VolumeX, X } from "lucide-react";
@@ -11,14 +11,15 @@ export const roles = {
 };
 
 export function PageTransition({ children, pageKey }) {
+  const reduceMotion = useReducedMotion();
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={pageKey}
-        initial={{ opacity: 0, y: 14 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.24, ease: "easeOut" }}
+        exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+        transition={{ duration: reduceMotion ? 0 : 0.24, ease: "easeOut" }}
       >
         {children}
       </motion.div>
@@ -107,8 +108,8 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
         <button className="brand-lockup text-only" onClick={() => handleNavigate("home")} aria-label="Return to role selection">
           <span>
             <strong>Hamilton House Ultimate</strong>
-            <small>Digital book platform demo</small>
-            <small className="build-label">EduForge LMS Demo v0.4</small>
+            <small>Digital learning platform</small>
+            <small className="build-label">EduForge LMS</small>
           </span>
         </button>
 
@@ -161,7 +162,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
               {showSignOut && onSignOut && (
                 <button className="header-logout-button" type="button" onClick={handleSignOut} title="Log out and reset progress" data-sound-click="tab">
                   <LogOut size={17} />
-                  <span>Log out and reset progress</span>
+                  <span>Sign out</span>
                 </button>
               )}
             </nav>
@@ -238,7 +239,7 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
           {showSignOut && onSignOut && (
             <button className="mobile-nav-button" type="button" onClick={handleSignOut} data-sound-click="tab">
               <LogOut size={18} />
-              <span>Log out and reset progress</span>
+              <span>Sign out</span>
             </button>
           )}
         </nav>
@@ -266,12 +267,13 @@ export function Card({ children, className = "", ...props }) {
 }
 
 export function MetricCard({ label, value, note, icon: Icon = ShieldCheck, delay = 0 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.article
       className="metric-card"
-      initial={{ opacity: 0, y: 12 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: delay * 0.05, duration: 0.28 }}
+      transition={{ delay: reduceMotion ? 0 : delay * 0.05, duration: reduceMotion ? 0 : 0.28 }}
     >
       <Icon size={20} />
       <span>{label}</span>
@@ -282,12 +284,13 @@ export function MetricCard({ label, value, note, icon: Icon = ShieldCheck, delay
 }
 
 export function Progress({ value, color }) {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="progress-track">
       <motion.span
-        initial={{ width: 0 }}
+        initial={reduceMotion ? false : { width: 0 }}
         animate={{ width: `${value}%` }}
-        transition={{ duration: 0.75, ease: "easeOut" }}
+        transition={{ duration: reduceMotion ? 0 : 0.75, ease: "easeOut" }}
         style={{ background: color }}
       />
     </div>

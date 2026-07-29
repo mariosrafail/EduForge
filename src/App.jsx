@@ -211,6 +211,7 @@ export default function App() {
               brand={brand}
               setBrand={setBrand}
               navigateTo={navigateTo}
+              currentUser={auth.currentUser}
           />
         )}
         {teacherSectionByView[view] && !teacherAccessAllowed && (

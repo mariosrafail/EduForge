@@ -48,6 +48,64 @@ async function api(page, action = "", options = {}) {
   return { response, body: await response.json() };
 }
 
+test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await page.goto("/#home", { waitUntil: "domcontentloaded" });
+  for (const role of ["School Admin", "Teacher", "Student"]) {
+    await expect(page.locator(".role-entry").getByRole("heading", { name: role })).toBeVisible();
+  }
+
+  const cases = [
+    { role: "student", email: athens.users.find((user) => user.profile === "strong").email, title: "Student portal", section: "Assignments", width: 390, height: 844 },
+    { role: "teacher", email: athens.users[1].email, title: "Teacher portal", section: "Classes", width: 768, height: 1024 },
+    { role: "admin", email: athens.users[0].email, title: "School Admin", section: "Users", width: 1024, height: 768 },
+  ];
+
+  for (const entry of cases) {
+    await context.clearCookies();
+    await page.setViewportSize({ width: entry.width, height: entry.height });
+    await signIn(page, entry.role, entry.email);
+
+    const trigger = page.getByRole("button", { name: `Open ${entry.title} navigation` });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    const drawer = page.getByRole("dialog", { name: `${entry.title} navigation` });
+    await expect(drawer).toBeVisible();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    await drawer.getByRole("button", { name: new RegExp(`^${entry.section}`) }).click();
+    await expect(drawer).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const adminTrigger = page.getByRole("button", { name: "Open School Admin navigation" });
+  await adminTrigger.click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "School Admin navigation" })).toBeHidden();
+  await expect(adminTrigger).toBeFocused();
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await adminTrigger.click();
+  const reducedMotionDrawer = page.getByRole("dialog", { name: "School Admin navigation" });
+  await expect(reducedMotionDrawer).toBeVisible();
+  await reducedMotionDrawer.getByRole("button", { name: "Close navigation", exact: true }).click();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const shell = page.locator(".portal-shell");
+  const sidebar = page.locator(".portal-sidebar");
+  await sidebar.hover();
+  await expect(shell).toHaveClass(/sidebar-expanded/);
+  await page.locator(".portal-main").hover();
+  await page.waitForTimeout(100);
+  await expect(shell).toHaveClass(/sidebar-expanded/);
+  await page.waitForTimeout(200);
+  await expect(shell).toHaveClass(/sidebar-collapsed/);
+  await page.locator(".portal-sidebar-nav button").first().focus();
+  await expect(shell).toHaveClass(/sidebar-expanded/);
+});
+
 test("real multi-school roles, workflows, licensing, and isolation", async ({ page, context }) => {
   test.setTimeout(90_000);
   test.skip(!marker, "Requires npm run demo:multi-school:setup");

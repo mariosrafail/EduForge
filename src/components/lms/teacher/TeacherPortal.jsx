@@ -113,7 +113,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
     <div className="workspace teacher-portal-workspace">
       <PortalShell
         title="Teacher portal"
-        profile="Paris Georgoulakis (Teacher)"
+        profile={currentUser?.full_name ? `${currentUser.full_name} (Teacher)` : "Teacher portal"}
         subtitle="Ultimate B2 workspace"
         navItems={teacherNavItems}
         activeItem={activeSection === "books" ? "books" : activeSection}
