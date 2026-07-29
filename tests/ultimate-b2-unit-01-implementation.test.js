@@ -128,7 +128,10 @@ test("Unit 1 teacher review persists an explicit score while unscored work remai
       readFile("netlify/functions/_book-content/class-actions.js", "utf8"),
       readFile("netlify/functions/_book-content/assignment-actions.js", "utf8"),
     ]).then((parts) => parts.join("\n")),
-    readFile("src/components/lms/teacher/TeacherPortalSections.jsx", "utf8"),
+    Promise.all([
+      readFile("src/components/lms/teacher/sections/TeacherAssignmentsSection.jsx", "utf8"),
+      readFile("src/components/lms/teacher/components/TeacherResultsModal.jsx", "utf8"),
+    ]).then((parts) => parts.join("\n")),
   ]);
   assert.match(server, /requiresTeacherReview \|\| unscoredPractice \? null/);
   assert.match(server, /requiresTeacherReview \? "awaiting_review" : unscoredPractice \? "completed"/);
