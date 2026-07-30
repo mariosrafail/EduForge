@@ -1,19 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { accountActionUrl, createAccountToken, genericForgotPasswordMessage, hashPrivateValue, validAccountTokenInput, validatePassword } from "../netlify/functions/_account-lifecycle-utils.js";
+import {
+  accountActionUrl,
+  createAccountToken,
+  genericForgotPasswordMessage,
+  hashPrivateValue,
+  maximumPasswordLength,
+  minimumPasswordLength,
+  validAccountTokenInput,
+  validatePassword,
+} from "../netlify/functions/_account-lifecycle-utils.js";
+import {
+  passwordPolicyMaximumLength,
+  passwordPolicyMinimumLength,
+} from "../src/config/passwordPolicy.js";
 
 test("account tokens are high entropy and hashes do not expose input", () => {
   const first=createAccountToken(); const second=createAccountToken();
   assert.notEqual(first,second); assert.ok(first.length>=43); assert.equal(hashPrivateValue(first).includes(first),false);
 });
 
-test("lifecycle password policy rejects weak and demo credentials", () => {
-  assert.match(validatePassword("short","user@example.com"),/10/);
-  assert.match(validatePassword("          ","user@example.com"),/whitespace/);
-  assert.match(validatePassword("user@example.com","user@example.com"),/email/);
-  assert.match(validatePassword("password123","user@example.com"),/demo/);
-  assert.equal(validatePassword("A-unique-long-passphrase","user@example.com"),"");
-  assert.match(validatePassword("x".repeat(129),"user@example.com"),/at most 128/);
+test("authoritative lifecycle password policy preserves exact boundaries and semantics", () => {
+  const email = "user@example.com";
+  const unchanged = "A-unique-long-passphrase";
+  assert.equal(validatePassword("x".repeat(9), email), "Password must be at least 10 characters");
+  assert.equal(validatePassword("x".repeat(10), email), "");
+  assert.equal(validatePassword("x".repeat(128), email), "");
+  assert.equal(validatePassword("x".repeat(129), email), "Password must be at most 128 characters");
+  assert.equal(validatePassword("", email), "Password must be at least 10 characters");
+  assert.equal(validatePassword(" ".repeat(10), email), "Password cannot contain only whitespace");
+  assert.equal(validatePassword(" visible  ", email), "");
+  assert.equal(validatePassword("USER@EXAMPLE.COM", email), "Password cannot be the same as the email address");
+  assert.equal(validatePassword("password123", email), "Choose a password that is not a documented demo password");
+  assert.equal(validatePassword("password123", email, { allowDemo: true }), "");
+  assert.equal(validatePassword(unchanged, email), "");
+  assert.equal(unchanged, "A-unique-long-passphrase");
+  assert.equal(validatePassword("ασφαλής κωδικός 2026", email), "");
+  assert.equal(minimumPasswordLength, passwordPolicyMinimumLength);
+  assert.equal(maximumPasswordLength, passwordPolicyMaximumLength);
   assert.equal(validAccountTokenInput(createAccountToken()),true);
   assert.equal(validAccountTokenInput("x".repeat(129)),false);
   assert.equal(validAccountTokenInput("not valid token spaces"),false);

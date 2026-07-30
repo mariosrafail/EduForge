@@ -7,6 +7,8 @@ import { ultimateB2StudentsBookTeacherCatalog } from "../../src/data/ultimate-b2
 const marker = readLocalMultiSchoolMarker();
 const athens = MULTI_SCHOOL.find((school) => school.key === "athens");
 const piraeus = MULTI_SCHOOL.find((school) => school.key === "piraeus");
+const onboardingEmail = "password-policy-onboarding@multi-school.dev.invalid";
+const onboardingPassword = "Public-Student-Onboarding-2026!";
 const visibleB2Components = ["ultimate-b2-students-book", "ultimate-b2-workbook"];
 const visibleComponentsByPackage = {
   "ultimate-b1": ["ultimate-b1-students-book", "ultimate-b1-workbook"],
@@ -18,6 +20,7 @@ test.afterEach(async () => {
   if (!marker) return;
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
   try {
+    await pool.query("delete from app_users where email=$1", [onboardingEmail]);
     await pool.query(`
       update activity_submissions s
       set status='awaiting_review', score=null, score_percent=null, teacher_feedback='', reviewed_at=null, reviewed_by=null
@@ -30,13 +33,86 @@ test.afterEach(async () => {
   }
 });
 
-async function signIn(page, role, email) {
+test("Student class-invite onboarding enforces the centralized password policy", async ({ page }) => {
+  test.setTimeout(90_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+  const invitedClass = athens.classes[0];
+  const cleanupPool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    await cleanupPool.query("delete from app_users where email=$1", [onboardingEmail]);
+  } finally {
+    await cleanupPool.end();
+  }
+
+  await page.goto(`/#join-class/${invitedClass.invite}`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: `You are joining: ${invitedClass.name}` })).toBeVisible();
+  await page.getByRole("button", { name: "Create student account" }).click();
+
+  const createForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Create account", exact: true }) });
+  await createForm.getByLabel("Student name").fill("Password Policy Student");
+  await createForm.getByLabel("Email").fill(onboardingEmail);
+  const passwordInput = createForm.getByLabel("Password");
+  await expect(passwordInput).toHaveAttribute("minlength", "10");
+  await expect(passwordInput).toHaveAttribute("maxlength", "128");
+  await expect(passwordInput).toHaveAttribute("autocomplete", "new-password");
+  await expect(page.locator(`#${await passwordInput.getAttribute("aria-describedby")}`)).toContainText("Use 10–128 characters");
+
+  await passwordInput.fill("NineChars");
+  await createForm.getByRole("button", { name: "Create account", exact: true }).click();
+  expect(await passwordInput.evaluate((input) => input.validationMessage)).not.toBe("");
+  await createForm.evaluate((form) => form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true })));
+  await expect(page.getByText("Password must be at least 10 characters", { exact: true })).toBeVisible();
+
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    const count = (await pool.query("select count(*)::int count from app_users where email=$1", [onboardingEmail])).rows[0].count;
+    expect(count).toBe(0);
+  } finally {
+    await pool.end();
+  }
+
+  await passwordInput.fill(onboardingPassword);
+  await createForm.getByRole("button", { name: "Create account", exact: true }).click();
+  await expect(page.getByRole("heading", { name: `You are joining: ${invitedClass.name}` })).toBeVisible();
+  await expect(page.getByText("You are already in this class.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Continue to student portal" }).click();
+  await expect(page.getByText("Student portal", { exact: true }).first()).toBeVisible();
+
+  const me = await page.request.get("/.netlify/functions/auth-me");
+  expect(me.status()).toBe(200);
+  const user = (await me.json()).user;
+  expect(user.school_id).toBe(athens.id);
+  const foreignUser = await page.request.get(`/.netlify/functions/user?id=${piraeus.users[0].id}`);
+  expect(foreignUser.status()).toBe(403);
+
+  const membershipPool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    const membership = await membershipPool.query(`
+      select count(*)::int count
+      from class_students cs join app_users u on u.id=cs.student_id
+      where cs.class_id=$1 and u.email=$2 and cs.status='active'
+    `, [invitedClass.id, onboardingEmail]);
+    expect(membership.rows[0].count).toBe(1);
+  } finally {
+    await membershipPool.end();
+  }
+
+  await page.getByRole("button", { name: "Sign out", exact: true }).first().click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await signIn(page, "student", onboardingEmail, onboardingPassword);
+  await expect(page.getByText("Student portal", { exact: true }).first()).toBeVisible();
+});
+
+async function signIn(page, role, email, password = MULTI_SCHOOL_DEMO_PASSWORD) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`/#auth-${role}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator(".app-intro-overlay")).toBeHidden();
   const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Sign in", exact: true }) });
   await form.getByLabel(role === "student" ? "Email or username" : "Email", { exact: true }).fill(email);
-  await form.getByLabel("Password", { exact: true }).fill(MULTI_SCHOOL_DEMO_PASSWORD);
+  const passwordInput = form.getByLabel("Password", { exact: true });
+  await expect(passwordInput).not.toHaveAttribute("minlength");
+  await expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+  await passwordInput.fill(password);
   await form.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`#/?${role}`));
 }

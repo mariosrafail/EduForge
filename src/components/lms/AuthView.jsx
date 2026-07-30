@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, KeyRound, LogIn, School, ShieldCheck, TicketCheck } from "lucide-react";
+import {
+  passwordPolicyGuidance,
+  passwordPolicyMaximumLength,
+  passwordPolicyMinimumLength,
+} from "../../config/passwordPolicy.js";
 import { dashboardForRole } from "../../hooks/useAuth.js";
 import { requestPasswordReset } from "../../services/authApi.js";
 import { Card, Tag } from "./Shared.jsx";
@@ -194,7 +199,7 @@ export function AuthView({
               </label>
               <label>
                 Password
-                <input type="password" value={signinForm.password} onChange={(event) => setSigninForm({ ...signinForm, password: event.target.value })} placeholder="Minimum 8 characters" />
+                <input type="password" autoComplete="current-password" value={signinForm.password} onChange={(event) => setSigninForm({ ...signinForm, password: event.target.value })} placeholder="Enter your password" />
               </label>
               <button className="primary-action" disabled={submitting} type="submit"><KeyRound size={17} /> {submitting ? "Signing in..." : "Sign in"}</button>
               <button className="secondary-action" type="button" onClick={() => { setForgotEmail(signinForm.email); setActiveTab("forgot"); clearMessages(); }}>Forgot password?</button>
@@ -229,8 +234,19 @@ export function AuthView({
               </label>
               <label>
                 Password
-                <input type="password" value={studentJoin.password} onChange={(event) => setStudentJoin({ ...studentJoin, password: event.target.value })} placeholder="Minimum 8 characters" />
+                <input
+                  id="student-new-password"
+                  type="password"
+                  minLength={passwordPolicyMinimumLength}
+                  maxLength={passwordPolicyMaximumLength}
+                  autoComplete="new-password"
+                  aria-describedby="student-new-password-guidance"
+                  value={studentJoin.password}
+                  onChange={(event) => setStudentJoin({ ...studentJoin, password: event.target.value })}
+                  placeholder="Create a password"
+                />
               </label>
+              <p className="form-hint" id="student-new-password-guidance">{passwordPolicyGuidance}</p>
               <button className="primary-action" disabled={submitting} type="submit"><TicketCheck size={17} /> {submitting ? "Creating..." : "Create account"}</button>
             </form>
           )}

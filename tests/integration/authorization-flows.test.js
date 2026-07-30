@@ -8,6 +8,7 @@ import { hashToken, sessionCookieName, setSqlForTests } from "../../netlify/func
 import { handler as usersHandler } from "../../netlify/functions/users.js";
 import { handler as userHandler } from "../../netlify/functions/user.js";
 import { handler as studentSignupHandler } from "../../netlify/functions/auth-student-signup.js";
+import { handler as authMeHandler } from "../../netlify/functions/auth-me.js";
 import { handler as lessonSubmitHandler } from "../../netlify/functions/lesson-submit.js";
 import { handler as bookContentHandler } from "../../netlify/functions/book-content.js";
 import { handler as courseHandler } from "../../netlify/functions/course.js";
@@ -225,21 +226,98 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   await t.test("signup and joining require active invite codes and are atomic", async () => {
     assert.equal((await call(bookContentHandler, { query: { action: "class-by-slug", slug: `class-a-${schema}` } })).status, 404);
     assert.equal((await call(bookContentHandler, { query: { action: "class-by-invite", inviteCode: "INACT123" } })).status, 404);
+    const inviteAttemptsBeforePolicyFailures = (await pool.query("select count(*)::int count from class_invite_attempts")).rows[0].count;
+    const policyFailures = [
+      { email: "nine-character@integration.test", password: "NineChars" },
+      { email: "too-long@integration.test", password: "x".repeat(129) },
+      { email: "whitespace@integration.test", password: " ".repeat(10) },
+      { email: "equal-password@integration.test", password: "EQUAL-PASSWORD@INTEGRATION.TEST" },
+      { email: "demo-password@integration.test", password: "password123" },
+    ];
+    for (const [index, policyCase] of policyFailures.entries()) {
+      const response = await call(studentSignupHandler, {
+        method: "POST", ip: `127.0.0.${30 + index}`,
+        body: { fullName: "Rejected Policy Student", classCode: "VALIDA12", ...policyCase },
+      });
+      assert.equal(response.status, 400);
+      assert.equal(response.headers["Set-Cookie"], undefined);
+      assert.equal((await pool.query("select count(*)::int count from app_users where email=$1", [policyCase.email])).rows[0].count, 0);
+    }
+    assert.equal((await pool.query("select count(*)::int count from class_invite_attempts")).rows[0].count, inviteAttemptsBeforePolicyFailures);
+
     const invalidEmail = "invalid-invite@integration.test";
     const invalid = await call(studentSignupHandler, {
       method: "POST", ip: "127.0.0.20",
-      body: { fullName: "Invalid", email: invalidEmail, password: "password123", classCode: `class-a-${schema}` },
+      body: { fullName: "Invalid", email: invalidEmail, password: "Invalid-Invite-2026!", classCode: `class-a-${schema}` },
     });
     assert.equal(invalid.status, 400);
     assert.equal((await pool.query("select count(*)::int as count from app_users where email = $1", [invalidEmail])).rows[0].count, 0);
+
+    for (const [field, value] of [["classId", classA.id], ["classSlug", `class-a-${schema}`]]) {
+      const injectedEmail = `${field.toLowerCase()}-injection@integration.test`;
+      const injected = await call(studentSignupHandler, {
+        method: "POST", ip: field === "classId" ? "127.0.0.41" : "127.0.0.42",
+        body: { fullName: "Injection Rejected", email: injectedEmail, password: "Safe-Injection-2026!", classCode: "VALIDA12", [field]: value },
+      });
+      assert.equal(injected.status, 400);
+      assert.equal((await pool.query("select count(*)::int count from app_users where email=$1", [injectedEmail])).rows[0].count, 0);
+    }
+
     const signup = await call(studentSignupHandler, {
       method: "POST", ip: "127.0.0.21",
-      body: { fullName: "New Student", email: "new-student@integration.test", password: "password123", classCode: "VALIDA12" },
+      body: {
+        fullName: "New Student",
+        email: "new-student@integration.test",
+        password: "TenChars1!",
+        classCode: "VALIDA12",
+        schoolId: schoolB,
+        school_id: schoolB,
+        role: "teacher",
+        status: "invited",
+      },
     });
     assert.equal(signup.status, 201);
+    assert.match(signup.headers["Set-Cookie"], new RegExp(`^${sessionCookieName}=`));
     assert.equal(signup.body.joinedClass.inviteCode, undefined);
     const newStudentId = signup.body.user.id;
+    const storedStudent = (await pool.query("select school_id,role,status,password_hash from app_users where id=$1", [newStudentId])).rows[0];
+    assert.equal(storedStudent.school_id, schoolA);
+    assert.equal(storedStudent.role, "student");
+    assert.equal(storedStudent.status, "active");
+    assert.match(storedStudent.password_hash, /^\$2[aby]\$12\$/);
     assert.equal((await pool.query("select count(*)::int as count from class_students where class_id = $1 and student_id = $2", [classA.id, newStudentId])).rows[0].count, 1);
+    assert.equal((await pool.query("select count(*)::int as count from class_students where class_id = $1 and student_id = $2", [classB.id, newStudentId])).rows[0].count, 0);
+    assert.equal((await pool.query("select count(*)::int count from auth_sessions where user_id=$1", [newStudentId])).rows[0].count, 1);
+    const newStudentCookie = signup.headers["Set-Cookie"].split(";")[0];
+    const currentStudent = await call(authMeHandler, { cookie: newStudentCookie });
+    assert.equal(currentStudent.status, 200);
+    assert.equal(currentStudent.body.user.id, newStudentId);
+    assert.equal(currentStudent.body.user.school_id, schoolA);
+    assert.equal((await call(userHandler, { cookie: newStudentCookie, query: { id: otherTeacherId } })).status, 403);
+
+    for (const [email, password, ip] of [
+      ["max-length@integration.test", "x".repeat(128), "127.0.0.43"],
+      ["unicode-passphrase@integration.test", "ασφαλής κωδικός 2026", "127.0.0.44"],
+    ]) {
+      const boundarySignup = await call(studentSignupHandler, {
+        method: "POST", ip,
+        body: { fullName: "Boundary Student", email, password, classCode: "VALIDA12" },
+      });
+      assert.equal(boundarySignup.status, 201);
+      assert.equal((await pool.query(
+        "select count(*)::int count from class_students cs join app_users u on u.id=cs.student_id where cs.class_id=$1 and u.email=$2",
+        [classA.id, email],
+      )).rows[0].count, 1);
+    }
+
+    const duplicate = await call(studentSignupHandler, {
+      method: "POST", ip: "127.0.0.45",
+      body: { fullName: "Duplicate Student", email: "new-student@integration.test", password: "Another-Safe-2026!", classCode: "VALIDA12" },
+    });
+    assert.equal(duplicate.status, 409);
+    assert.equal((await pool.query("select count(*)::int count from app_users where email='new-student@integration.test'")).rows[0].count, 1);
+    assert.equal((await pool.query("select count(*)::int count from class_students where student_id=$1", [newStudentId])).rows[0].count, 1);
+
     const slugJoin = await call(bookContentHandler, { method: "POST", cookie: studentCookie, query: { action: "join-class" }, body: { slug: `class-a-${schema}` } });
     assert.equal(slugJoin.status, 400);
     const crossSchool = await call(bookContentHandler, { method: "POST", cookie: studentCookie, query: { action: "join-class" }, body: { inviteCode: "VALIDB12" }, ip: "127.0.0.22" });

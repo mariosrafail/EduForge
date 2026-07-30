@@ -10,6 +10,7 @@ import {
 
 export const initialPasswordLifetimeMinutes = 60 * 24 * 3;
 export const passwordResetLifetimeMinutes = 30;
+export const minimumPasswordLength = 10;
 export const maximumPasswordLength = 128;
 export const maximumAccountTokenLength = 128;
 export const genericTokenError = "This link is invalid or has expired";
@@ -27,7 +28,7 @@ export function hashPrivateValue(value) {
 
 export function validatePassword(password, normalizedEmail, { allowDemo = false } = {}) {
   const value = String(password ?? "");
-  if (value.length < 10) return "Password must be at least 10 characters";
+  if (value.length < minimumPasswordLength) return `Password must be at least ${minimumPasswordLength} characters`;
   if (value.length > maximumPasswordLength) return `Password must be at most ${maximumPasswordLength} characters`;
   if (!value.trim()) return "Password cannot contain only whitespace";
   if (value.toLowerCase() === String(normalizedEmail || "").toLowerCase()) return "Password cannot be the same as the email address";

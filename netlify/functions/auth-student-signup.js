@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
+import { validatePassword } from "./_account-lifecycle-utils.js";
 import { enforceInviteRateLimit, findClassByInviteCode, isValidInviteCode, publicClassInviteRow, recordInviteAttempt } from "./_class-utils.js";
 
 function validate(payload) {
@@ -10,7 +11,8 @@ function validate(payload) {
 
   if (!fullName) return { error: "fullName is required" };
   if (!emailPattern.test(email)) return { error: "A valid email is required" };
-  if (password.length < 8) return { error: "Password must be at least 8 characters" };
+  const passwordError = validatePassword(password, email);
+  if (passwordError) return { error: passwordError };
   if (!isValidInviteCode(classCode) || payload.classSlug || payload.classId) {
     return { error: "A valid class invite code is required for student signup" };
   }

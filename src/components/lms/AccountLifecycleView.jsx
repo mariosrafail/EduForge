@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
+import {
+  passwordPolicyGuidance,
+  passwordPolicyMaximumLength,
+  passwordPolicyMinimumLength,
+} from "../../config/passwordPolicy.js";
 import { acceptInvitation, changePassword, checkAccountToken, resetPassword, revokeSessions } from "../../services/authApi.js";
 import { dashboardForRole } from "../../hooks/useAuth.js";
 import { Card } from "./Shared.jsx";
@@ -65,10 +70,10 @@ export function AccountLifecycleView({ mode, token, currentUser, onAuthenticated
     {validating && <div className="inline-status">Checking this secure link…</div>}
     {message && <div className={`inline-status ${succeeded ? "success" : "warning"}`}>{message}</div>}
     {valid && !succeeded && <form className="auth-form" onSubmit={submit}>
-      {mode === "account-security" && <label>Current password<input type={showPasswords ? "text" : "password"} value={currentPassword} onChange={(event)=>setCurrentPassword(event.target.value)} required /></label>}
-      <label>New password<input type={showPasswords ? "text" : "password"} minLength={10} maxLength={128} value={password} onChange={(event)=>setPassword(event.target.value)} required /></label>
-      <label>Confirm new password<input type={showPasswords ? "text" : "password"} minLength={10} maxLength={128} value={confirmPassword} onChange={(event)=>setConfirmPassword(event.target.value)} required /></label>
-      <p className="form-hint">Use 10–128 characters. Do not use your email or a documented demo password.</p>
+      {mode === "account-security" && <label>Current password<input type={showPasswords ? "text" : "password"} autoComplete="current-password" value={currentPassword} onChange={(event)=>setCurrentPassword(event.target.value)} required /></label>}
+      <label>New password<input type={showPasswords ? "text" : "password"} minLength={passwordPolicyMinimumLength} maxLength={passwordPolicyMaximumLength} autoComplete="new-password" aria-describedby="new-password-guidance" value={password} onChange={(event)=>setPassword(event.target.value)} required /></label>
+      <label>Confirm new password<input type={showPasswords ? "text" : "password"} minLength={passwordPolicyMinimumLength} maxLength={passwordPolicyMaximumLength} autoComplete="new-password" aria-describedby="new-password-guidance" value={confirmPassword} onChange={(event)=>setConfirmPassword(event.target.value)} required /></label>
+      <p className="form-hint" id="new-password-guidance">{passwordPolicyGuidance}</p>
       <button className="secondary-action compact-action" type="button" onClick={()=>setShowPasswords((value)=>!value)}>{showPasswords ? <EyeOff size={16}/> : <Eye size={16}/>} {showPasswords ? "Hide passwords" : "Show passwords"}</button>
       <button className="primary-action" disabled={submitting || !passwordsMatch(password, confirmPassword)}><KeyRound size={17}/>{submitting ? "Saving…" : "Save password"}</button>
     </form>}

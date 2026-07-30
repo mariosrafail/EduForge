@@ -14,7 +14,9 @@ Never expose these through Vite, logs, responses, screenshots, or source control
 
 ## Security behavior
 
-Invitation links expire after 3 days and reset links after 30 minutes. PostgreSQL stores only SHA-256 hashes; raw tokens exist in request memory only while the invitation/reset message is sent. Passwords require 10–128 characters, cannot be whitespace, equal the normalized email, reuse the current password, or match documented demo passwords. Lifecycle hashing uses bcrypt cost 12.
+Invitation links expire after 3 days and reset links after 30 minutes. PostgreSQL stores only SHA-256 hashes; raw tokens exist in request memory only while the invitation/reset message is sent. All new passwords—including Student class-code signup, invitation acceptance, reset, and authenticated change—use the centralized 10–128 character policy. They cannot be whitespace, equal the normalized email, reuse the current password where applicable, or match documented demo passwords. Lifecycle hashing uses bcrypt cost 12.
+
+Public School Admin signup remains disabled. Documented demo credentials are confined to explicitly confirmed seed/setup tooling and are rejected by public Student account creation.
 
 Password setup, reset, and authenticated change atomically revoke old sessions and create one fresh session. Pause, role change, deletion, and admin force-revocation invalidate existing sessions. An admin may force-revoke only active same-school teachers/students and never another admin. Self-revocation rotates the caller's session.
 
