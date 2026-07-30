@@ -44,6 +44,10 @@ if (action === "setup") {
     DATABASE_URL: localMultiSchoolDatabaseUrl(),
     LOCAL_DATABASE_CONFIRMATION: "isolated-local-pilot",
     EDUFORGE_NETLIFY_LOOPBACK: "true",
+    STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
+    ACCOUNT_EMAIL_MODE: "preview",
+    ACCOUNT_RATE_LIMIT_SALT: "local-multi-school-account-lifecycle-only",
+    APP_PUBLIC_URL: "http://127.0.0.1:8888",
   }));
   child.on("exit", (code, signal) => {
     if (signal) process.kill(process.pid, signal);

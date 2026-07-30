@@ -175,13 +175,14 @@ Test editable course persistence:
 6. Open `http://localhost:8888/#student-course`.
 7. Confirm the student course shows the updated content.
 
-Test signup:
+Public school self-signup is permanently disabled. The compatibility endpoint returns `403` without connecting to PostgreSQL:
 
 ```bash
 curl -X POST http://localhost:8888/.netlify/functions/auth-signup \
-  -H "Content-Type: application/json" \
-  -d "{\"schoolName\":\"Hamilton House Demo School\",\"adminName\":\"Sofia Laskari\",\"email\":\"sofia@example.com\",\"password\":\"password123\"}"
+  -H "Content-Type: application/json"
 ```
+
+Create pilot schools through Platform Administration, which creates an active tenant and an invited School Admin without assigning an initial password. Local demos use their deterministic seeded identities or this same Platform Admin provisioning flow.
 
 Test signin:
 

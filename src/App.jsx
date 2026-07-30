@@ -199,7 +199,6 @@ export default function App() {
             authError={auth.authError}
             setAuthError={auth.setAuthError}
             signIn={auth.signIn}
-            createSchoolAccount={auth.createSchoolAccount}
             createStudentAccount={auth.createStudentAccount}
             signOut={async () => {
               await auth.signOut();

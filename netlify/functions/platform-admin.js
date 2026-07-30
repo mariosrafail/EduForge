@@ -22,6 +22,7 @@ import {
   requirePlatformAdminOrigin,
   writePlatformAdminAudit,
 } from "./_platform-admin-auth.js";
+import { provisionSchool } from "./_platform-admin-provisioning.js";
 
 const phaseOneSlugs = ["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"];
 const maximumPageSize = 100;
@@ -438,6 +439,7 @@ export async function handler(event) {
     const parsed = parsePlatformAdminBody(event);
     if (parsed.error) return parsed.error;
     if (action === "create-school") return createSchool(sql, auth.platformAdmin, parsed.value);
+    if (action === "provision-school") return await provisionSchool(sql, auth.platformAdmin, parsed.value);
     if (action === "update-school") return updateSchool(sql, auth.platformAdmin, parsed.value);
     if (action === "school-status") return setSchoolStatus(sql, auth.platformAdmin, parsed.value);
     if (action === "create-user") return createUser(sql, auth.platformAdmin, parsed.value);

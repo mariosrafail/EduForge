@@ -9,7 +9,7 @@ const roleConfig = {
     title: "School Admin access",
     tag: "School rollout access",
     signinTitle: "Sign in as School Admin",
-    joinTitle: "Create account",
+    joinTitle: "Account access",
     primaryRoute: "admin",
     copy: "School admins manage their Hamilton House demo profile, teachers, students, book activation codes, and Ultimate B2 rollout.",
   },
@@ -32,13 +32,6 @@ const roleConfig = {
 };
 
 const initialSignin = {
-  email: "",
-  password: "",
-};
-
-const initialSignup = {
-  schoolName: "Hamilton House ELT Demo",
-  adminName: "Elena Markou",
   email: "",
   password: "",
 };
@@ -83,14 +76,12 @@ export function AuthView({
   authError,
   setAuthError,
   signIn,
-  createSchoolAccount,
   createStudentAccount,
   signOut,
 }) {
   const config = roleConfig[role] ?? roleConfig.admin;
   const [activeTab, setActiveTab] = useState("signin");
   const [signinForm, setSigninForm] = useState(initialSignin);
-  const [signupForm, setSignupForm] = useState(initialSignup);
   const [studentJoin, setStudentJoin] = useState(initialStudentJoin);
   const [submitting, setSubmitting] = useState(false);
   const [localStatus, setLocalStatus] = useState("");
@@ -116,21 +107,6 @@ export function AuthView({
       await signIn(signinForm);
       const pendingInvite = role === "student" ? consumePendingInviteRoute() : "";
       navigateTo(pendingInvite || config.primaryRoute);
-    } catch (error) {
-      setAuthError(error.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleAdminSignup = async (event) => {
-    event.preventDefault();
-    setSubmitting(true);
-    clearMessages();
-
-    try {
-      await createSchoolAccount(signupForm);
-      navigateTo("admin");
     } catch (error) {
       setAuthError(error.message);
     } finally {
@@ -228,25 +204,9 @@ export function AuthView({
           {activeTab === "forgot" && <form className="auth-form" onSubmit={handleForgot}><label>Email<input type="email" value={forgotEmail} onChange={(event)=>setForgotEmail(event.target.value)} required /></label><button className="primary-action" disabled={submitting}><KeyRound size={17}/>{submitting ? "Sending…" : "Send reset instructions"}</button><button className="secondary-action" type="button" onClick={()=>setActiveTab("signin")}>Back to sign in</button></form>}
 
           {activeTab === "join" && role === "admin" && (
-            <form className="auth-form" onSubmit={handleAdminSignup}>
-              <label>
-                School name
-                <input value={signupForm.schoolName} onChange={(event) => setSignupForm({ ...signupForm, schoolName: event.target.value })} />
-              </label>
-              <label>
-                School admin full name
-                <input value={signupForm.adminName} onChange={(event) => setSignupForm({ ...signupForm, adminName: event.target.value })} placeholder="Elena Markou" />
-              </label>
-              <label>
-                Email
-                <input type="email" value={signupForm.email} onChange={(event) => setSignupForm({ ...signupForm, email: event.target.value })} placeholder="admin@example.com" />
-              </label>
-              <label>
-                Password
-                <input type="password" value={signupForm.password} onChange={(event) => setSignupForm({ ...signupForm, password: event.target.value })} placeholder="Minimum 8 characters" />
-              </label>
-              <button className="primary-action" disabled={submitting} type="submit"><School size={17} /> {submitting ? "Creating..." : "Create account"}</button>
-            </form>
+            <div className="inline-status">
+              School administrator accounts are provisioned by the publisher. Use the invitation email you received or sign in with your active account.
+            </div>
           )}
 
           {activeTab === "join" && role === "teacher" && (

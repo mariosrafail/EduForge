@@ -84,8 +84,13 @@ export function SchoolsSection({ data, load, loading, setError }) {
   const schools = data.schools?.schools || [];
   const [selectedId, setSelectedId] = useState(null);
   const [name, setName] = useState("");
+  const [provisioning, setProvisioning] = useState({
+    name: "", logo: "", primary_color: "#f97316", secondary_color: "#101828",
+    admin_full_name: "", admin_email: "",
+  });
   const [busy, setBusy] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [provisioned, setProvisioned] = useState(null);
   const selected = schools.find((school) => school.id === selectedId);
 
   async function create(event) {
@@ -96,6 +101,20 @@ export function SchoolsSection({ data, load, loading, setError }) {
       await platformApi.mutate("create-school", { name });
       setName("");
       setFeedback("School created successfully.");
+      await load("schools");
+    } catch (error) { setError(error.message); } finally { setBusy(""); }
+  }
+  async function provision(event) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy("provision"); setError(""); setFeedback(""); setProvisioned(null);
+    try {
+      const result = await platformApi.mutate("provision-school", provisioning);
+      setProvisioned(result);
+      setProvisioning({
+        name: "", logo: "", primary_color: "#f97316", secondary_color: "#101828",
+        admin_full_name: "", admin_email: "",
+      });
       await load("schools");
     } catch (error) { setError(error.message); } finally { setBusy(""); }
   }
@@ -113,6 +132,24 @@ export function SchoolsSection({ data, load, loading, setError }) {
   if (selected) return <SchoolDetail school={selected} onClose={() => setSelectedId(null)} onRefresh={() => load("schools")} />;
   return (
     <div className="pa-section-stack">
+      <PlatformCard title="Provision a pilot school" description="Recommended: create the tenant and send its first School Admin invitation together.">
+        <form className="pa-form-grid" onSubmit={provision}>
+          <label>School name<input value={provisioning.name} onChange={(event) => setProvisioning({ ...provisioning, name: event.target.value })} required /></label>
+          <label>Logo label<input value={provisioning.logo} onChange={(event) => setProvisioning({ ...provisioning, logo: event.target.value })} /></label>
+          <label>Primary color<input type="color" value={provisioning.primary_color} onChange={(event) => setProvisioning({ ...provisioning, primary_color: event.target.value })} /></label>
+          <label>Secondary color<input type="color" value={provisioning.secondary_color} onChange={(event) => setProvisioning({ ...provisioning, secondary_color: event.target.value })} /></label>
+          <label>Initial School Admin full name<input value={provisioning.admin_full_name} onChange={(event) => setProvisioning({ ...provisioning, admin_full_name: event.target.value })} required /></label>
+          <label>Initial School Admin email<input type="email" value={provisioning.admin_email} onChange={(event) => setProvisioning({ ...provisioning, admin_email: event.target.value })} required /></label>
+          <div className="pa-form-actions"><PlatformButton type="submit" icon={Send} loading={busy === "provision"} disabled={Boolean(busy)}>Create school and invite admin</PlatformButton></div>
+        </form>
+      </PlatformCard>
+      {provisioned && (
+        <PlatformAlert tone={provisioned.delivery_status === "failed" ? "error" : "success"} onDismiss={() => setProvisioned(null)}>
+          School created and administrator invited. Email delivery: {provisioned.delivery_status}.
+          {provisioned.delivery_status === "failed" && " Use the existing invitation resend or recovery action."}
+          {provisioned.preview_url && <> <a href={provisioned.preview_url}>Open local invitation preview</a>.</>}
+        </PlatformAlert>
+      )}
       <PlatformCard title="Create a school" description="Add a new tenant without changing existing school data.">
         <form className="pa-inline-form" onSubmit={create}>
           <label>New school name<input value={name} onChange={(event) => setName(event.target.value)} required /></label>

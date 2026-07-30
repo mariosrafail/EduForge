@@ -11,6 +11,8 @@ The dedicated URL is:
 
 The normal LMS deliberately contains no link to this URL. This reduces accidental discovery, but URL secrecy is not authorization: every control-plane API request validates the dedicated server-side session.
 
+Public school self-signup is disabled. For the controlled pilot, an authenticated Platform Admin provisions each school and its first School Admin through the combined `provision-school` action. The tenant is active immediately, while the school-scoped administrator is created with role `admin`, status `invited`, and no password hash or ordinary session. The administrator establishes a password through the existing expiring invitation lifecycle; the Platform Admin never assigns or sees an initial password.
+
 ## Authentication and sessions
 
 The control plane uses the `hh_platform_admin_session` HttpOnly cookie. It is `SameSite=Strict`, restricted to `/platform-admin`, secure outside loopback development, and expires after at most eight hours. Only a SHA-256 hash of the opaque random token is stored. Logout revokes the session. Password rotation and pausing a Platform Admin revoke all of that account's sessions.
@@ -48,6 +50,7 @@ The first-phase console provides:
 - database-backed platform metrics;
 - paginated school, user, class, package-access, and audit views;
 - school creation and branding updates;
+- atomic pilot-school provisioning with an initial School Admin invitation;
 - reversible school pause/reactivation;
 - ordinary School Admin, teacher, and student invitations;
 - ordinary account status changes and session revocation;
@@ -72,6 +75,8 @@ The explicitly confirmed multi-school demo creates one fictional Platform Admin:
 - development-only password: `EduForge-Platform-Dev-Only-2026!`
 
 This account is created by the isolated demo seed only; it is not present in migration 028. Demo reset removes the dedicated local database, including Platform Admin sessions and audit records.
+
+Local demos use deterministic seeded identities or the same Platform Admin provisioning workflow. The multi-school demo starts its existing isolated invitation-preview mode so the full password-establishment lifecycle can be exercised without production email.
 
 ## Staging acceptance
 

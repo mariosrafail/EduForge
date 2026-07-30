@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import pg from "pg";
-import bcrypt from "bcryptjs";
 import {
   MULTI_SCHOOL,
   MULTI_SCHOOL_DEMO_PASSWORD,
@@ -182,33 +181,50 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   await expect(page.getByText(/1 admins · 2 teachers · 8 students · 3 classes/)).toBeVisible();
   await page.getByRole("button", { name: "← All schools" }).click();
 
-  await page.getByLabel("New school name").fill(temporarySchoolName);
-  await page.getByRole("button", { name: "Create school" }).click();
+  await page.getByLabel("School name", { exact: true }).fill(temporarySchoolName);
+  await page.getByLabel("Initial School Admin full name").fill("Platform E2E School Admin");
+  await page.getByLabel("Initial School Admin email").fill(temporaryAdminEmail);
+  await page.getByRole("button", { name: "Create school and invite admin" }).click();
+  await expect(page.getByText("School created and administrator invited. Email delivery: preview.")).toBeVisible();
+  const invitationPreviewUrl = await page.getByRole("link", { name: "Open local invitation preview" }).getAttribute("href");
+  expect(invitationPreviewUrl).toBeTruthy();
   await expect(page.getByRole("button", { name: temporarySchoolName })).toBeVisible();
   const schoolRows = await page.request.get(`/platform-admin/api/control?action=schools&search=${encodeURIComponent(temporarySchoolName)}`);
   temporarySchoolId = (await schoolRows.json()).schools[0].id;
-
-  const invited = await control(page, "create-user", {
-    school_id: temporarySchoolId,
-    full_name: "Platform E2E School Admin",
-    email: temporaryAdminEmail,
-    role: "admin",
-  });
-  expect(invited.response.status()).toBe(201);
-  temporaryAdminId = invited.body.user.id;
-
+  await navigatePlatform(page, "Users");
+  const invitedRow = page.getByRole("row").filter({ hasText: temporaryAdminEmail });
+  await expect(invitedRow).toContainText("invited");
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
   const temporaryPassword = "Platform-E2E-Ordinary-2026!";
   try {
-    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
-    await pool.query(`
-      update app_users set password_hash=$2,status='active',password_set_at=now(),invitation_accepted_at=now()
-      where id=$1
-    `, [temporaryAdminId, passwordHash]);
-    await pool.query("update account_tokens set revoked_at=now() where user_id=$1 and revoked_at is null", [temporaryAdminId]);
+    temporaryAdminId = (await pool.query("select id from app_users where email=$1", [temporaryAdminEmail])).rows[0].id;
   } finally {
     await pool.end();
   }
+
+  const invitationPage = await page.context().newPage();
+  await invitationPage.goto(invitationPreviewUrl, { waitUntil: "domcontentloaded" });
+  await expect(invitationPage.getByRole("heading", { name: "Accept invitation" })).toBeVisible();
+  await expect(invitationPage.getByLabel("New password", { exact: true })).toBeVisible();
+  await invitationPage.getByLabel("New password", { exact: true }).fill(temporaryPassword);
+  await invitationPage.getByLabel("Confirm new password", { exact: true }).fill(temporaryPassword);
+  await invitationPage.getByRole("button", { name: "Save password" }).click();
+  await expect(invitationPage.getByText("Password saved. Your other sessions were signed out.")).toBeVisible();
+  await expect(invitationPage).toHaveURL(/#\/admin/);
+  await expect(invitationPage.getByRole("heading", { name: "Launch school rollout and publisher-controlled book access." })).toBeVisible();
+  for (const otherSchool of MULTI_SCHOOL) await expect(invitationPage.getByText(otherSchool.name, { exact: true })).toHaveCount(0);
+  const ordinaryMe = await invitationPage.request.get("/.netlify/functions/auth-me");
+  expect(ordinaryMe.status()).toBe(200);
+  expect((await ordinaryMe.json()).user.school_id).toBe(temporarySchoolId);
+  expect((await invitationPage.request.get("/platform-admin/api/auth?action=me")).status()).toBe(200);
+  await Promise.all([
+    invitationPage.waitForResponse((response) => response.url().includes("/.netlify/functions/auth-signout") && response.request().method() === "POST"),
+    invitationPage.getByRole("button", { name: "Sign out", exact: true }).click(),
+  ]);
+  expect((await invitationPage.request.get("/.netlify/functions/auth-me")).status()).toBe(401);
+  expect((await invitationPage.request.get("/platform-admin/api/auth?action=me")).status()).toBe(200);
+  await invitationPage.close();
+  await navigatePlatform(page, "Schools");
 
   expect((await control(page, "school-status", { id: temporarySchoolId, status: "paused" })).response.ok()).toBeTruthy();
   const ordinaryContext = await browser.newContext({ baseURL: marker.baseURL });
@@ -225,7 +241,7 @@ test("Platform Admin local control-plane walkthrough and session separation", as
   await ordinaryContext.close();
 
   await navigatePlatform(page, "Audit log");
-  for (const action of ["school_created", "ordinary_user_invited", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {
+  for (const action of ["school_provisioned", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {
     await expect(page.getByText(action, { exact: true }).first()).toBeVisible();
   }
 

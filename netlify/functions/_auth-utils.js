@@ -48,6 +48,22 @@ function localPostgresTemplate(connectionString) {
       client.release();
     }
   };
+  template.schoolProvisioningTransaction = async (email, callback) => {
+    const client = await localPool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`select pg_advisory_xact_lock(hashtextextended(${"school-provisioning:" + email}, 0))`;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
   return template;
 }
 

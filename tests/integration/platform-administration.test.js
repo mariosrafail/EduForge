@@ -10,8 +10,15 @@ import { handler as platformAuth } from "../../netlify/functions/platform-admin-
 import { handler as platformApi } from "../../netlify/functions/platform-admin.js";
 import { handler as ordinarySignin } from "../../netlify/functions/auth-signin.js";
 import { handler as ordinaryMe } from "../../netlify/functions/auth-me.js";
+import { handler as accountTokenCheck } from "../../netlify/functions/account-token-check.js";
+import { handler as accountSetPassword } from "../../netlify/functions/account-set-password.js";
 import { handler as schoolUsers } from "../../netlify/functions/users.js";
 import { handler as schoolUser } from "../../netlify/functions/user.js";
+import {
+  clearCapturedEmailsForTests,
+  getCapturedEmailsForTests,
+  setEmailTransportForTests,
+} from "../../netlify/functions/_email-utils.js";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const enabled = Boolean(testDatabaseUrl) && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
@@ -43,6 +50,22 @@ function tag(pool) {
         ) locks
         order by lock_key
       `;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+  template.schoolProvisioningTransaction = async (email, callback) => {
+    const client = await pool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`select pg_advisory_xact_lock(hashtextextended(${"school-provisioning:" + email}, 0))`;
       const result = await callback(transactionSql);
       await client.query("commit");
       return result;
@@ -93,17 +116,26 @@ test("dedicated Platform Administration enforces cross-tenant capability without
     DATABASE_URL: process.env.DATABASE_URL,
     LOCAL_DATABASE_CONFIRMATION: process.env.LOCAL_DATABASE_CONFIRMATION,
     PLATFORM_ADMIN_RATE_LIMIT_SALT: process.env.PLATFORM_ADMIN_RATE_LIMIT_SALT,
+    ACCOUNT_RATE_LIMIT_SALT: process.env.ACCOUNT_RATE_LIMIT_SALT,
     ACCOUNT_EMAIL_MODE: process.env.ACCOUNT_EMAIL_MODE,
     APP_PUBLIC_URL: process.env.APP_PUBLIC_URL,
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_SECURE: process.env.SMTP_SECURE,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_FROM: process.env.SMTP_FROM,
   };
   Object.assign(process.env, {
     DATABASE_URL: databaseUrl,
     LOCAL_DATABASE_CONFIRMATION: "isolated-local-pilot",
     PLATFORM_ADMIN_RATE_LIMIT_SALT: "isolated-platform-admin-integration-rate-limit",
+    ACCOUNT_RATE_LIMIT_SALT: "isolated-account-lifecycle-integration-rate-limit",
     ACCOUNT_EMAIL_MODE: "capture",
     APP_PUBLIC_URL: "http://localhost:8888",
   });
   setSqlForTests(tag(pool));
+  clearCapturedEmailsForTests();
   t.after(async () => {
     setSqlForTests(null);
     for (const [key, value] of Object.entries(previous)) {
@@ -175,6 +207,33 @@ test("dedicated Platform Administration enforces cross-tenant capability without
     body: { name: "Must Not Be Created" },
   });
   assert.equal(forbiddenMutation.status, 403);
+  assert.equal((await call(platformApi, {
+    method: "POST",
+    query: { action: "provision-school" },
+    body: { name: "Denied School", admin_full_name: "Denied Admin", admin_email: "denied@platform.test" },
+  })).status, 401);
+  assert.equal((await call(platformApi, {
+    method: "POST",
+    cookie: cookies.admin,
+    query: { action: "provision-school" },
+    body: { name: "Denied School", admin_full_name: "Denied Admin", admin_email: "denied@platform.test" },
+  })).status, 401);
+  assert.equal((await call(platformApi, {
+    method: "POST",
+    cookie: platformCookie,
+    origin: false,
+    query: { action: "provision-school" },
+    body: { name: "Denied School", admin_full_name: "Denied Admin", admin_email: "denied@platform.test" },
+  })).status, 403);
+  for (const body of [
+    { name: "", admin_full_name: "Valid Admin", admin_email: "valid@platform.test" },
+    { name: "Valid School", admin_full_name: "", admin_email: "valid@platform.test" },
+    { name: "Valid School", admin_full_name: "Valid Admin", admin_email: "invalid" },
+  ]) {
+    assert.equal((await call(platformApi, {
+      method: "POST", cookie: platformCookie, query: { action: "provision-school" }, body,
+    })).status, 400);
+  }
   assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 200);
 
   const logoutLogin = await call(platformAuth, { method: "POST", query: { action: "login" }, body: { email: "operator@platform.test", password: "Platform-Safe-2026!" }, ip: "127.0.8.23" });
@@ -189,14 +248,113 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   const allUsers = await call(platformApi, { cookie: platformCookie, query: { action: "users", pageSize: "100" } });
   assert.equal(allUsers.body.users.length, 7);
 
-  const createdSchool = await call(platformApi, { method: "POST", cookie: platformCookie, query: { action: "create-school" }, body: { name: "Temporary Platform School" } });
-  assert.equal(createdSchool.status, 201);
-  const temporarySchoolId = createdSchool.body.school.id;
-  const invited = await call(platformApi, { method: "POST", cookie: platformCookie, query: { action: "create-user" }, body: { school_id: temporarySchoolId, full_name: "Temporary School Admin", email: "temporary-admin@platform.test", role: "admin" } });
-  assert.equal(invited.status, 201);
-  assert.equal(invited.body.user.status, "invited");
-  const temporaryAdminId = invited.body.user.id;
-  await pool.query("update app_users set password_hash=$2,status='active' where id=$1", [temporaryAdminId, ordinaryHash]);
+  const provisioned = await call(platformApi, {
+    method: "POST",
+    cookie: platformCookie,
+    query: { action: "provision-school" },
+    body: {
+      name: "Temporary Platform School",
+      admin_full_name: "Temporary School Admin",
+      admin_email: "TEMPORARY-ADMIN@PLATFORM.TEST",
+      role: "teacher",
+      status: "active",
+      password: "request-must-not-control-this",
+      school_id: athens.id,
+    },
+  });
+  assert.equal(provisioned.status, 201);
+  assert.equal(provisioned.body.school.status, "active");
+  assert.equal(provisioned.body.administrator.role, "admin");
+  assert.equal(provisioned.body.administrator.status, "invited");
+  assert.equal(provisioned.body.delivery_status, "captured");
+  assert.equal(provisioned.body.preview_url, undefined);
+  const temporarySchoolId = provisioned.body.school.id;
+  const temporaryAdminId = provisioned.body.administrator.id;
+  const provisionedUser = (await pool.query("select * from app_users where id=$1", [temporaryAdminId])).rows[0];
+  assert.equal(provisionedUser.email, "temporary-admin@platform.test");
+  assert.equal(provisionedUser.password_hash, null);
+  assert.equal(provisionedUser.auth_provider, "password");
+  assert.equal((await pool.query("select count(*)::int count from auth_sessions where user_id=$1", [temporaryAdminId])).rows[0].count, 0);
+  const tokenRows = (await pool.query("select purpose,token_hash from account_tokens where user_id=$1", [temporaryAdminId])).rows;
+  assert.equal(tokenRows.length, 1);
+  assert.equal(tokenRows[0].purpose, "initial_password");
+  assert.match(tokenRows[0].token_hash, /^[a-f0-9]{64}$/);
+  assert.equal((await pool.query("select count(*)::int count from account_email_outbox where user_id=$1 and template_type='account_invitation'", [temporaryAdminId])).rows[0].count, 1);
+  assert.equal((await call(ordinarySignin, { method: "POST", body: { email: "temporary-admin@platform.test", password: "Ordinary-Safe-2026!" } })).status, 401);
+
+  const captured = getCapturedEmailsForTests().find((message) => message.recipient === "temporary-admin@platform.test");
+  assert.ok(captured);
+  const invitationToken = new URL(captured.actionUrl).hash.match(/[?&]token=([^&]+)/)?.[1];
+  assert.ok(invitationToken);
+  assert.notEqual(tokenRows[0].token_hash, invitationToken);
+  assert.equal((await call(accountTokenCheck, { method: "POST", body: { token: invitationToken, purpose: "initial_password" } })).status, 200);
+  const weakPassword = await call(accountSetPassword, { method: "POST", body: { token: invitationToken, password: "short" } });
+  assert.equal(weakPassword.status, 400);
+  const accepted = await call(accountSetPassword, { method: "POST", body: { token: invitationToken, password: "Ordinary-Safe-2026!" } });
+  assert.equal(accepted.status, 200);
+  assert.equal(accepted.body.user.status, "active");
+  assert.match(accepted.headers["Set-Cookie"], new RegExp(`^${sessionCookieName}=`));
+
+  const countSchools = async (name) => Number((await pool.query("select count(*) count from schools where name=$1", [name])).rows[0].count);
+  const duplicate = await call(platformApi, {
+    method: "POST", cookie: platformCookie, query: { action: "provision-school" },
+    body: { name: "Must Not Survive Duplicate", admin_full_name: "Duplicate Admin", admin_email: "temporary-admin@platform.test" },
+  });
+  assert.equal(duplicate.status, 409);
+  assert.equal(await countSchools("Must Not Survive Duplicate"), 0);
+
+  const concurrentName = "Concurrent Provisioning School";
+  const concurrentBody = {
+    name: concurrentName,
+    admin_full_name: "Concurrent Admin",
+    admin_email: "concurrent-admin@platform.test",
+  };
+  const concurrent = await Promise.all([
+    call(platformApi, { method: "POST", cookie: platformCookie, query: { action: "provision-school" }, body: concurrentBody, ip: "127.0.8.51" }),
+    call(platformApi, { method: "POST", cookie: platformCookie, query: { action: "provision-school" }, body: concurrentBody, ip: "127.0.8.52" }),
+  ]);
+  assert.deepEqual(concurrent.map((response) => response.status).sort(), [201, 409]);
+  assert.equal(await countSchools(concurrentName), 1);
+  assert.equal((await pool.query("select count(*)::int count from app_users where email='concurrent-admin@platform.test'")).rows[0].count, 1);
+
+  await pool.query(`
+    create function fail_provisioning_token() returns trigger language plpgsql as $$
+    begin
+      if new.user_id in (select id from app_users where email='rollback-admin@platform.test') then
+        raise exception 'injected provisioning failure';
+      end if;
+      return new;
+    end $$;
+    create trigger fail_provisioning_token before insert on account_tokens
+    for each row execute function fail_provisioning_token()
+  `);
+  const rollback = await call(platformApi, {
+    method: "POST", cookie: platformCookie, query: { action: "provision-school" },
+    body: { name: "Rollback Provisioning School", admin_full_name: "Rollback Admin", admin_email: "rollback-admin@platform.test" },
+  });
+  assert.equal(rollback.status, 500);
+  await pool.query("drop trigger fail_provisioning_token on account_tokens; drop function fail_provisioning_token()");
+  assert.equal(await countSchools("Rollback Provisioning School"), 0);
+  assert.equal((await pool.query("select count(*)::int count from app_users where email='rollback-admin@platform.test'")).rows[0].count, 0);
+  assert.equal((await pool.query("select count(*)::int count from platform_admin_audit_log where action='school_provisioned' and target_id in (select id::text from schools where name='Rollback Provisioning School')")).rows[0].count, 0);
+
+  process.env.ACCOUNT_EMAIL_MODE = "smtp";
+  Object.assign(process.env, {
+    SMTP_HOST: "smtp.invalid", SMTP_PORT: "587", SMTP_SECURE: "false",
+    SMTP_USER: "isolated", SMTP_PASS: "isolated", SMTP_FROM: "EduForge <noreply@example.test>",
+  });
+  setEmailTransportForTests({ sendMail: async () => { throw new Error("isolated delivery failure"); } });
+  const deliveryFailure = await call(platformApi, {
+    method: "POST", cookie: platformCookie, query: { action: "provision-school" },
+    body: { name: "Delivery Failure School", admin_full_name: "Delivery Failure Admin", admin_email: "delivery-failure@platform.test" },
+  });
+  setEmailTransportForTests(null);
+  process.env.ACCOUNT_EMAIL_MODE = "capture";
+  assert.equal(deliveryFailure.status, 201);
+  assert.equal(deliveryFailure.body.delivery_status, "failed");
+  assert.equal(deliveryFailure.body.preview_url, undefined);
+  assert.equal((await pool.query("select status from app_users where email='delivery-failure@platform.test'")).rows[0].status, "invited");
+  assert.equal((await pool.query("select delivery_state from account_email_outbox where user_id=$1", [deliveryFailure.body.administrator.id])).rows[0].delivery_state, "failed");
 
   const temporaryLogin = await call(ordinarySignin, { method: "POST", body: { email: "temporary-admin@platform.test", password: "Ordinary-Safe-2026!" } });
   assert.equal(temporaryLogin.status, 200);
@@ -227,10 +385,16 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   assert.equal((await call(platformAuth, { query: { action: "me" }, cookie: platformCookie })).status, 200);
 
   const audit = (await pool.query("select action,metadata::text metadata from platform_admin_audit_log where platform_admin_id=$1", [platformAdminId])).rows;
-  for (const action of ["login_succeeded", "school_created", "ordinary_user_invited", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {
+  for (const action of ["login_succeeded", "school_provisioned", "school_paused", "school_reactivated", "ordinary_sessions_revoked"]) {
     assert.equal(audit.some((row) => row.action === action), true, `missing audit action ${action}`);
   }
   assert.doesNotMatch(JSON.stringify(audit), /Platform-Safe-2026|Ordinary-Safe-2026|hh_platform_admin_session/);
+  const provisioningAudit = audit.find((row) => row.action === "school_provisioned");
+  assert.ok(provisioningAudit);
+  assert.match(provisioningAudit.metadata, /"initial_admin_role": "admin"/);
+  assert.match(provisioningAudit.metadata, /"initial_admin_status": "invited"/);
+  assert.match(provisioningAudit.metadata, /"provisioning_source": "platform_admin"/);
+  assert.doesNotMatch(JSON.stringify(audit), /temporary-admin@platform\.test|token|password|session_id|cookie|127\.0\./i);
 
   const sessionTokenHash = (await pool.query("select token_hash from platform_admin_sessions where platform_admin_id=$1 and revoked_at is null limit 1", [platformAdminId])).rows[0].token_hash;
   await pool.query("update platform_admin_sessions set created_at=now()-interval '9 hours',last_seen_at=now()-interval '1 hour',expires_at=now()-interval '1 minute' where token_hash=$1", [sessionTokenHash]);

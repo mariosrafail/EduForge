@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSchoolAccount, createStudentAccount, getCurrentUser, signIn, signOut } from "../services/authApi.js";
+import { createStudentAccount, getCurrentUser, signIn, signOut } from "../services/authApi.js";
 import { resetDemoProgressAndLogout } from "../services/demoReset.js";
 
 export function dashboardForRole(role) {
@@ -45,13 +45,6 @@ export function useAuth() {
     return user;
   };
 
-  const handleCreateSchoolAccount = async (account) => {
-    setAuthError("");
-    const user = await createSchoolAccount(account);
-    setCurrentUser(user);
-    return user;
-  };
-
   const handleCreateStudentAccount = async (account) => {
     setAuthError("");
     const payload = await createStudentAccount(account);
@@ -79,7 +72,6 @@ export function useAuth() {
     setAuthError,
     adoptAuthenticatedUser: setCurrentUser,
     signIn: handleSignIn,
-    createSchoolAccount: handleCreateSchoolAccount,
     createStudentAccount: handleCreateStudentAccount,
     signOut: handleSignOut,
   };
