@@ -103,6 +103,13 @@ test("migration checksums are deterministic across LF and CRLF checkouts while r
   assert.equal(migrationChecksumMatches(lfMigration, "0".repeat(64)), false);
 });
 
+test("staging preflight derives the latest migration rather than hardcoding migration 030", async () => {
+  const source = await readFile("scripts/_staging-preflight.mjs", "utf8");
+  assert.match(source, /migrationManifestSummary/);
+  assert.doesNotMatch(source, /030_platform_admin_login_rate_limit\.sql/);
+  assert.match(source, /manifest_fingerprint/);
+});
+
 test("staging smoke derives active book-package metrics from retained staging entitlements", async () => {
   const smoke = await readFile("scripts/run-staging-smoke-tests.mjs", "utf8");
   assert.match(smoke, /const expectedActiveBookPackages = await count/);

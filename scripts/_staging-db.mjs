@@ -1,6 +1,12 @@
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import pg from "pg";
+export {
+  loadProductionMigrationFiles,
+  loadProductionMigrationManifest,
+  migrationChecksumMatches,
+  migrationChecksums,
+  parseProductionMigrationManifest,
+  sha256,
+} from "./_migration-readiness.mjs";
 
 const { Pool } = pg;
 
@@ -67,59 +73,6 @@ export function requireSafeDatabase(kind = "staging", environment = process.env)
 export function createSafePool(kind = "staging") {
   const target = requireSafeDatabase(kind);
   return { ...target, pool: new Pool({ connectionString: target.connectionString }) };
-}
-
-export function sha256(value) {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-function normalizeMigrationNewlines(value) {
-  return value.replace(/\r\n?/g, "\n");
-}
-
-export function migrationChecksums(sql) {
-  const normalized = normalizeMigrationNewlines(sql);
-  const checksum = sha256(normalized);
-  const compatibleChecksums = [...new Set([
-    checksum,
-    sha256(sql),
-    sha256(normalized.replaceAll("\n", "\r\n")),
-  ])];
-  return { checksum, compatibleChecksums };
-}
-
-export function migrationChecksumMatches(migration, appliedChecksum) {
-  return (migration.compatibleChecksums || [migration.checksum]).includes(appliedChecksum);
-}
-
-export function parseProductionMigrationManifest(markdown) {
-  const files = [...markdown.matchAll(/^\d+\. `([^`]+\.sql)`$/gm)].map((match) => match[1]);
-  if (!files.length) throw new Error("database/MIGRATIONS.md contains no ordered production migrations");
-  if (files.includes("012_demo_login_passwords.sql")) throw new Error("Demo password migration must not be in the production manifest");
-  if (!files.includes("013_authorization_phase2.sql")) throw new Error("013_authorization_phase2.sql must be present in the production manifest");
-  const duplicates = files.filter((filename, index) => files.indexOf(filename) !== index);
-  if (duplicates.length) throw new Error(`Production migration manifest contains duplicate filename: ${duplicates[0]}`);
-  return files;
-}
-
-export async function loadProductionMigrationFiles(files, readMigration = (filename) => readFile(`database/${filename}`, "utf8")) {
-  const migrations = [];
-  for (const filename of files) {
-    let sql;
-    try {
-      sql = await readMigration(filename);
-    } catch (error) {
-      if (error.code === "ENOENT") throw new Error(`Production migration listed in manifest does not exist: ${filename}`);
-      throw error;
-    }
-    migrations.push({ filename, sql, ...migrationChecksums(sql) });
-  }
-  return migrations;
-}
-
-export async function loadProductionMigrationManifest() {
-  const markdown = await readFile("database/MIGRATIONS.md", "utf8");
-  return loadProductionMigrationFiles(parseProductionMigrationManifest(markdown));
 }
 
 export async function withAdvisoryLock(client, lockName, callback) {

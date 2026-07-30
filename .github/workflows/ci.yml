@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run verify:migration-manifest
       - run: npm test
       - run: npm run audit:source-structure
       - run: npm run build

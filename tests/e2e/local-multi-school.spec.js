@@ -321,10 +321,12 @@ test("School Admin downloads a live tenant-scoped aggregate adoption CSV", async
 
   const athensSummary = await verifySchoolExport(athens, MULTI_SCHOOL.filter((school) => school.id !== athens.id));
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
   await context.clearCookies();
   const piraeusSummary = await verifySchoolExport(piraeus, MULTI_SCHOOL.filter((school) => school.id !== piraeus.id));
   expect(athensSummary.activeStudentEntitlements).not.toBe(piraeusSummary.activeStudentEntitlements);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
 });
 
 async function api(page, action = "", options = {}) {

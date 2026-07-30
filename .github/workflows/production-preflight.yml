@@ -1,0 +1,37 @@
+name: Production preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  require-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse non-main production preflight
+        env:
+          REQUESTED_REF: ${{ github.ref }}
+        run: test "$REQUESTED_REF" = "refs/heads/main"
+
+  read-only-production-preflight:
+    needs: require-main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      PRODUCTION_DATABASE_FINGERPRINT: ${{ secrets.PRODUCTION_DATABASE_FINGERPRINT }}
+      PRODUCTION_ENVIRONMENT_CONFIRMATION: hosted-production
+      PRODUCTION_DATABASE_CONFIRMATION: read-only-production-preflight
+      PRODUCTION_APP_URL: ${{ vars.PRODUCTION_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:migration-manifest
+      - run: npm run production:preflight
