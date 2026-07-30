@@ -11,8 +11,6 @@ import {
   updateUser as updateUserRequest,
 } from "../../../services/usersApi.js";
 import { PortalShell } from "../shared/PortalShell.jsx";
-import { ALLOWED_PRIMARY_COLORS } from "./adminConfig.js";
-import { contrastWithWhite } from "./adminColorUtils.js";
 import { adminNavItems, adminRouteForSection } from "./adminPortalConfig.js";
 import {
   AdminBooksClassesSection,
@@ -22,10 +20,20 @@ import {
 import { AdminOverviewSection } from "./sections/AdminOverviewSection.jsx";
 import { AdminSchoolSetupSection } from "./sections/AdminSchoolSetupSection.jsx";
 import { AdminUsersSection } from "./sections/AdminUsersSection.jsx";
+import { useSchoolBrandDraft } from "./useSchoolBrandDraft.js";
 
 const emptyUser = { name: "", email: "", role: "Student", level: "B2", status: "Invited" };
 
-export function AdminView({ brand, setBrand, initialSection = "overview", navigateTo, currentUser = null, onSignOut }) {
+export function AdminView({
+  brand,
+  brandLoading = false,
+  brandError = "",
+  onBrandPersisted,
+  initialSection = "overview",
+  navigateTo,
+  currentUser = null,
+  onSignOut,
+}) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
@@ -41,11 +49,12 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   const [pendingUserAction, setPendingUserAction] = useState("");
   const [userCreated, setUserCreated] = useState(false);
   const [userActionStatus, setUserActionStatus] = useState("");
-  const [primaryColorWarning, setPrimaryColorWarning] = useState("");
   const creatableRoleOptions = roleOptions.filter((role) => role !== "School Admin");
-  const selectedPrimaryColor = ALLOWED_PRIMARY_COLORS.some((option) => option.value === String(brand.primary || "").toLowerCase())
-    ? String(brand.primary).toLowerCase()
-    : ALLOWED_PRIMARY_COLORS[0].value;
+  const schoolBrand = useSchoolBrandDraft({
+    persistedBrand: brand,
+    profileLoading: brandLoading,
+    onBrandPersisted,
+  });
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -69,13 +78,6 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
   }, [loadUsers]);
 
   useEffect(() => setActiveSection(initialSection), [initialSection]);
-
-  useEffect(() => {
-    const normalizedPrimary = String(brand.primary || "").toLowerCase();
-    if (!ALLOWED_PRIMARY_COLORS.some((option) => option.value === normalizedPrimary)) {
-      setBrand({ ...brand, primary: ALLOWED_PRIMARY_COLORS[0].value });
-    }
-  }, [brand, setBrand]);
 
   const goToSection = (sectionId) => {
     setActiveSection(sectionId);
@@ -166,22 +168,12 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
     }
   };
 
-  const applyPrimaryColor = (nextColor) => {
-    const normalized = String(nextColor || "").toLowerCase();
-    const allowed = ALLOWED_PRIMARY_COLORS.some((option) => option.value === normalized);
-    if (!allowed || contrastWithWhite(normalized) < 4.5) {
-      setPrimaryColorWarning("Primary color must be a dark, high-contrast shade that stays readable with white text.");
-      return;
-    }
-    setPrimaryColorWarning("");
-    setBrand({ ...brand, primary: normalized });
-  };
-
   return (
       <PortalShell
         title="School Admin"
         profile={currentUser?.full_name || "School administrator"}
         subtitle={brand.schoolName}
+        brand={brand}
         navItems={adminNavItems}
         activeItem={activeSection}
         onNavigate={goToSection}
@@ -198,11 +190,17 @@ export function AdminView({ brand, setBrand, initialSection = "overview", naviga
         )}
         {activeSection === "school-setup" && (
           <AdminSchoolSetupSection
-            brand={brand}
-            selectedPrimaryColor={selectedPrimaryColor}
-            primaryColorWarning={primaryColorWarning}
-            onBrandChange={setBrand}
-            onPrimaryColorChange={applyPrimaryColor}
+            brand={schoolBrand.draft}
+            profileLoading={brandLoading}
+            profileLoadError={brandError}
+            dirty={schoolBrand.dirty}
+            validationError={schoolBrand.validationError}
+            saving={schoolBrand.saving}
+            saveError={schoolBrand.saveError}
+            saved={schoolBrand.saved}
+            onBrandChange={schoolBrand.changeDraft}
+            onSave={schoolBrand.save}
+            onDiscard={schoolBrand.discard}
           />
         )}
         {activeSection === "users" && (

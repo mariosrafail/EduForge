@@ -33,6 +33,7 @@ export function StudentPortal({
   courseError = "",
   submitLesson,
   currentUser = null,
+  brand,
   onSignOut,
 }) {
   const [activeSection, setActiveSection] = useState(initialSection);
@@ -201,6 +202,7 @@ export function StudentPortal({
         title="Student portal"
         profile={currentUser?.full_name || "Student"}
         subtitle={metricsState.data?.profile?.primaryClassName || "Student workspace"}
+        brand={brand}
         navItems={studentNavItems}
         activeItem={activeSection === "activity" ? previousSection : activeSection}
         onNavigate={goToSection}

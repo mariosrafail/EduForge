@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { AdminView } from "./components/lms/AdminView.jsx";
 import { AuthView } from "./components/lms/AuthView.jsx";
@@ -13,10 +13,10 @@ import { StudentPortal } from "./components/lms/student/StudentPortal.jsx";
 import { TeacherPortal } from "./components/lms/teacher/TeacherPortal.jsx";
 import { TeacherPresentationView } from "./components/lms/activities/ultimate-b2/TeacherPresentationView.jsx";
 import houseLogoMark from "./assets/branding/hamilton-house-logo-houseonly.png";
-import { brandPresets } from "./data/lmsDemoData.js";
 import { dashboardForRole, useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
+import { useSchoolBrand } from "./hooks/useSchoolBrand.js";
 
 const teacherSectionByView = {
   teacher: "dashboard",
@@ -122,7 +122,12 @@ export default function App() {
     mode: routeMode,
   } = useHashView();
   const auth = useAuth();
-  const [brand, setBrand] = useState(brandPresets[0]);
+  const {
+    brand,
+    brandLoading,
+    brandError,
+    acceptPersistedBrand,
+  } = useSchoolBrand(auth.currentUser);
   const courseData = useCourseData();
 
   const cssVars = useMemo(
@@ -215,7 +220,9 @@ export default function App() {
           <AdminView
               initialSection={adminSectionByView[view]}
               brand={brand}
-              setBrand={setBrand}
+              brandLoading={brandLoading}
+              brandError={brandError}
+              onBrandPersisted={acceptPersistedBrand}
               navigateTo={navigateTo}
               currentUser={auth.currentUser}
               onSignOut={signOut}
@@ -238,6 +245,7 @@ export default function App() {
               routeAction={routeAction}
               initialPreviewActivityKey={routeMode === "teacher-preview" ? activityKey : null}
               currentUser={auth.currentUser}
+              brand={brand}
               onSignOut={signOut}
               course={courseData.course}
               onCourseChange={courseData.setCourse}
@@ -273,6 +281,7 @@ export default function App() {
               onSubmission={addCourseSubmission}
               navigateTo={navigateTo}
               currentUser={auth.currentUser}
+              brand={brand}
               onSignOut={signOut}
               courseLoading={courseData.loading}
               courseError={courseData.error}

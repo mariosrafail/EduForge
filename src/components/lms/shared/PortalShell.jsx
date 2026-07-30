@@ -1,7 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Building2, GraduationCap, KeyRound, LogOut, UserRound, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import houseLogo from "../../../assets/branding/hamilton-house-logo-houseonly.png";
 import { AppChrome, AppChromeButton } from "../../app-chrome/AppChrome.jsx";
 import { useSoundEffects } from "../../../context/SoundContext.jsx";
 
@@ -79,6 +78,7 @@ export function PortalShell({
   onNavigate,
   navigateTo,
   onSignOut,
+  brand,
   children,
   variant = "",
 }) {
@@ -109,9 +109,9 @@ export function PortalShell({
       className={`portal-shell ${variant}`}
       contentClassName="portal-main"
       brand={{
-        mark: <img src={houseLogo} alt="" />,
+        mark: brand?.logo || "EF",
         primary: "EduForge",
-        secondary: "Hamilton House Ultimate",
+        secondary: brand?.schoolName || "School workspace",
         ariaLabel: "Return to role selection",
         onActivate: goHome,
       }}

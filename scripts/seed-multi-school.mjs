@@ -95,7 +95,13 @@ try {
       `, [MULTI_SCHOOL_SEED_KEY, MULTI_SCHOOL_PLATFORM_ADMIN.id]);
 
       for (const school of MULTI_SCHOOL) {
-        await client.query(`insert into schools(id,name,logo,primary_color,secondary_color) values($1,$2,'DEV','#1d4ed8','#0f172a') on conflict(id) do update set name=excluded.name`, [school.id, school.name]);
+        await client.query(
+          `insert into schools(id,name,logo,primary_color,secondary_color)
+           values($1,$2,$3,$4,$5)
+           on conflict(id) do update
+           set name=excluded.name,logo=excluded.logo,primary_color=excluded.primary_color,secondary_color=excluded.secondary_color`,
+          [school.id, school.name, school.branding.logo, school.branding.primary, school.branding.secondary],
+        );
         for (const user of school.users) {
           await client.query(`insert into app_users(id,school_id,full_name,email,role,level,status,password_hash,auth_provider) values($1,$2,$3,$4,$5,'B2','active',$6,'password') on conflict(id) do update set school_id=excluded.school_id,full_name=excluded.full_name,email=excluded.email,role=excluded.role,status='active',password_hash=excluded.password_hash`, [user.id, school.id, user.name, user.email, user.role, passwordHash]);
           if (user.role !== "student") {

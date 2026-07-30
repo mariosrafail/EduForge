@@ -13,6 +13,7 @@ const onboardingPassword = "Public-Student-Onboarding-2026!";
 const emptyMetricsSchoolName = "Empty Metrics School";
 const emptyMetricsEmail = "empty-metrics@student.dev.invalid";
 const emptyMetricsPassword = "Empty-Metrics-Student-2026!";
+const temporaryAthensBrandName = "Athens Branding E2E";
 const visibleB2Components = ["ultimate-b2-students-book", "ultimate-b2-workbook"];
 const visibleComponentsByPackage = {
   "ultimate-b1": ["ultimate-b1-students-book", "ultimate-b1-workbook"],
@@ -26,6 +27,10 @@ test.afterEach(async () => {
   try {
     await pool.query("delete from app_users where email=$1", [onboardingEmail]);
     await pool.query("delete from schools where name=$1", [emptyMetricsSchoolName]);
+    await pool.query(
+      "update schools set name=$2,logo=$3,primary_color=$4,secondary_color=$5 where id=$1",
+      [athens.id, athens.name, athens.branding.logo, athens.branding.primary, athens.branding.secondary],
+    );
     await pool.query(`
       update activity_submissions s
       set status='awaiting_review', score=null, score_percent=null, teacher_feedback='', reviewed_at=null, reviewed_by=null
@@ -146,6 +151,106 @@ test("ordinary Student sign-in, sign-out, and clean reauthentication remain func
   await expect(page).toHaveURL(/#\/?home/);
   await signIn(page, "student", student.email);
   await expect(page.getByRole("button", { name: "Sign out", exact: true }).first()).toBeVisible();
+});
+
+test("School Admin branding saves, survives refresh, remains tenant-scoped, and preserves failed drafts", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await signIn(page, "admin", athens.users[0].email);
+  await page.goto("/#admin-school-setup", { waitUntil: "domcontentloaded" });
+  const schoolName = page.getByLabel("School name");
+  const logo = page.getByLabel("Logo / mark text");
+  const primary = page.getByLabel("Primary color");
+  const secondary = page.getByLabel("Secondary color");
+  await expect(schoolName).toHaveValue(athens.name, { timeout: 15_000 });
+  await expect(logo).toHaveValue(athens.branding.logo);
+  await expect(primary).toHaveValue(athens.branding.primary);
+  await expect(secondary).toHaveValue(athens.branding.secondary);
+
+  await schoolName.fill(temporaryAthensBrandName);
+  await logo.fill("AE");
+  await primary.selectOption("#166534");
+  await secondary.fill("#223344");
+  await expect(page.getByText("Unsaved preview changes", { exact: true })).toBeVisible();
+  await expect(page.locator(".portal-preview")).toContainText(temporaryAthensBrandName);
+  await expect(page.locator(".app-chrome-brand-copy small")).toHaveText(athens.name);
+  await page.getByRole("button", { name: "Save school profile", exact: true }).click();
+  await expect(page.getByText("School profile saved.", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-chrome-brand-copy small")).toHaveText(temporaryAthensBrandName);
+  await expect(page.locator(".eduforge-app")).toHaveCSS("--brand-primary", "#166534");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(schoolName).toHaveValue(temporaryAthensBrandName);
+  await expect(primary).toHaveValue("#166534");
+  await expect(secondary).toHaveValue("#223344");
+  const savedProfile = await page.request.get("/.netlify/functions/school-profile");
+  expect((await savedProfile.json()).school.name).toBe(temporaryAthensBrandName);
+
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await expect(page.locator("body")).not.toContainText(temporaryAthensBrandName);
+  await context.clearCookies();
+  await signIn(page, "admin", piraeus.users[0].email);
+  await page.goto("/#admin-school-setup", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("School name")).toHaveValue(piraeus.name, { timeout: 15_000 });
+  await expect(page.locator(".app-chrome-brand-copy small")).toHaveText(piraeus.name);
+
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await context.clearCookies();
+  await signIn(page, "admin", athens.users[0].email);
+  await page.goto("/#admin-school-setup", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("School name")).toHaveValue(temporaryAthensBrandName, { timeout: 15_000 });
+  await page.getByLabel("School name").fill(athens.name);
+  await page.getByLabel("Logo / mark text").fill(athens.branding.logo);
+  await page.getByLabel("Primary color").selectOption(athens.branding.primary);
+  await page.getByLabel("Secondary color").fill(athens.branding.secondary);
+  await page.getByRole("button", { name: "Save school profile", exact: true }).click();
+  await expect(page.getByText("School profile saved.", { exact: true })).toBeVisible();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("School name")).toHaveValue(athens.name);
+
+  await page.route("**/.netlify/functions/school-profile", async (route) => {
+    if (route.request().method() === "PATCH") {
+      await route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "Rejected E2E branding update" }) });
+    } else {
+      await route.continue();
+    }
+  });
+  await page.getByLabel("School name").fill("Rejected Branding Draft");
+  await page.getByRole("button", { name: "Save school profile", exact: true }).click();
+  await expect(page.getByText(/School profile could not be saved.*Rejected E2E branding update/)).toBeVisible();
+  await expect(page.getByText("School profile saved.", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("School name")).toHaveValue("Rejected Branding Draft");
+  await expect(page.locator(".app-chrome-brand-copy small")).toHaveText(athens.name);
+  await page.unroute("**/.netlify/functions/school-profile");
+  await page.getByRole("button", { name: "Discard changes", exact: true }).click();
+  await expect(page.getByLabel("School name")).toHaveValue(athens.name);
+
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    const rows = (await pool.query(
+      "select id,name,logo,primary_color,secondary_color from schools where id=any($1::uuid[]) order by id",
+      [[athens.id, piraeus.id]],
+    )).rows;
+    const finalAthens = rows.find((school) => school.id === athens.id);
+    const finalPiraeus = rows.find((school) => school.id === piraeus.id);
+    expect(finalAthens).toMatchObject({
+      name: athens.name,
+      logo: athens.branding.logo,
+      primary_color: athens.branding.primary,
+      secondary_color: athens.branding.secondary,
+    });
+    expect(finalPiraeus).toMatchObject({
+      name: piraeus.name,
+      logo: piraeus.branding.logo,
+      primary_color: piraeus.branding.primary,
+      secondary_color: piraeus.branding.secondary,
+    });
+  } finally {
+    await pool.end();
+  }
 });
 
 test("Teacher and Student dashboards render only authenticated live metrics, including a true empty account", async ({ page, context }) => {
@@ -500,6 +605,8 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
   const nonOptionalFailures = failedRequests.filter(({ label, errorText }) => (
     !label.includes("/assets/sounds/")
     && !(label.includes("action=asset-access") && errorText === "net::ERR_ABORTED")
+    && !(label.includes("action=dashboard-metrics") && errorText === "net::ERR_ABORTED")
+    && !(label.includes("/school-profile") && errorText === "net::ERR_ABORTED")
   ));
   expect(nonOptionalFailures).toEqual([]);
   const requestCounts = Object.values(Object.groupBy(failedRequests, (request) => request.label)).map((items) => items.length);

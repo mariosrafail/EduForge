@@ -200,6 +200,22 @@ export function requireSameSchool(resourceSchoolId, currentUser) {
   return null;
 }
 
+export function requireSameOrigin(event) {
+  const origin = String(event?.headers?.origin || event?.headers?.Origin || "");
+  if (!origin) return null;
+  const host = String(event?.headers?.host || event?.headers?.Host || "");
+  if (!host) return forbidden("Origin validation failed");
+  try {
+    const parsed = new URL(origin);
+    if (!["http:", "https:"].includes(parsed.protocol) || parsed.host.toLowerCase() !== host.toLowerCase()) {
+      return forbidden("Origin validation failed");
+    }
+  } catch {
+    return forbidden("Origin validation failed");
+  }
+  return null;
+}
+
 export function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }

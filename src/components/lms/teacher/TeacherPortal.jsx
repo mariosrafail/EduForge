@@ -9,7 +9,7 @@ import { teacherNavItems } from "./teacherPortalConfig.js";
 import { TeacherAssignments, TeacherBooks, TeacherClasses, TeacherCustomAssignment, TeacherDashboard, TeacherStudents } from "./TeacherPortalSections.jsx";
 import { initialTeacherBooksState, teacherBooksReducer } from "./teacherBooksState.js";
 
-export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, onSignOut, ...editorProps }) {
+export function TeacherPortal({ initialSection = "dashboard", initialSelectedBookId = null, initialSelectedPageUnitId = null, initialSelectedPageId = null, initialPreviewActivityKey = null, currentUser = null, brand, onSignOut, ...editorProps }) {
   const { navigateTo } = editorProps;
   const [activeSection, setActiveSection] = useState(initialSection);
   const [selectedPackageSlug, setSelectedPackageSlug] = useState(editorProps.initialSelectedPackageSlug || "ultimate-b2");
@@ -141,6 +141,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         title="Teacher portal"
         profile={currentUser?.full_name || "Teacher"}
         subtitle="Teaching workspace"
+        brand={brand}
         navItems={teacherNavItems}
         activeItem={activeSection === "books" ? "books" : activeSection}
         onNavigate={goToSection}

@@ -48,6 +48,7 @@ export const MULTI_SCHOOL = definitions.map(([key, name], schoolOffset) => {
   }));
   return {
     key, name, id: uuid(0x01, school, 1), users, classes,
+    branding: { logo: "DEV", primary: "#1e3a8a", secondary: "#0f172a" },
     batchId: uuid(0x30, school, 1), requestKey: uuid(0x31, school, 1),
     codes: ["unused", "redeemed", "expired", "revoked"].map((status, index) => ({
       id: uuid(0x40, school, index + 1), status,

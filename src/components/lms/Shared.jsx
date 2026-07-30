@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useState } from "react";
-import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
 import { Bell, BookOpen, Building2, Download, GraduationCap, KeyRound, LogOut, Search, Settings, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 
 export const roles = {
@@ -38,10 +37,10 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
   return (
     <header className="app-header public-app-header">
       <button className="brand-lockup" onClick={() => navigateTo("home")} aria-label="Return to role selection">
-        <span className="brand-logo image-logo"><img src={hamiltonHouseLogo} alt="" /></span>
+        <span className="brand-logo">{brand?.logo || "EF"}</span>
         <span>
           <strong>EduForge</strong>
-          <small>Hamilton House Ultimate</small>
+          <small>{brand?.schoolName || "School workspace"}</small>
         </span>
       </button>
       <div className="public-header-context">
@@ -162,9 +161,7 @@ export function PortalPreview({ brand }) {
   return (
     <div className="portal-preview" style={{ "--preview-primary": brand.primary, "--preview-secondary": brand.secondary }}>
       <div className="portal-bar">
-        <span className="school-logo image-school-logo">
-          <img src={hamiltonHouseLogo} alt="Hamilton House digital book platform logo" />
-        </span>
+        <span className="school-logo" aria-hidden="true">{brand.logo || "EF"}</span>
         <strong>{brand.schoolName}</strong>
       </div>
       <div className="portal-hero">
