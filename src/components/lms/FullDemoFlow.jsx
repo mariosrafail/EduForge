@@ -1,6 +1,5 @@
-import { ArrowRight, BarChart3, BookCheck, Building2, CheckCircle2, GraduationCap, KeyRound, UserRound } from "lucide-react";
+import { ArrowRight, BarChart3, Building2, CheckCircle2, GraduationCap, KeyRound, UserRound } from "lucide-react";
 import { useState } from "react";
-import { publisherIntelligence } from "../../data/lmsDemoData.js";
 import { Card, SectionTitle, Tag } from "./Shared.jsx";
 
 const flow = [
@@ -54,7 +53,6 @@ const demoChecklist = [
 
 export function FullDemoFlow({ navigateTo }) {
   const [activeStep, setActiveStep] = useState(0);
-  const [exported, setExported] = useState(false);
   const [checkedItems, setCheckedItems] = useState(["School profile personalization"]);
   const active = flow[activeStep];
   const ActiveIcon = active.icon;
@@ -138,27 +136,6 @@ export function FullDemoFlow({ navigateTo }) {
         </div>
       </Card>
 
-      <Card className="publisher-intelligence">
-        <div className="card-heading">
-          <div>
-            <span className="eyebrow"><BookCheck size={15} /> Publisher intelligence</span>
-            <h2>What the publisher or owner can prove</h2>
-            <p>Book activation codes, unit usage, skill gap analysis, engagement, and adoption exports turn digital book usage into sales and renewal evidence.</p>
-          </div>
-          <button className="secondary-action" onClick={() => setExported(true)}>Export adoption snapshot</button>
-        </div>
-        {exported && <div className="inline-status success">Snapshot export prepared for publisher review.</div>}
-        <div className="publisher-metric-grid">
-          {publisherIntelligence.map((item) => (
-            <article key={item.label}>
-              <span style={{ background: item.accent }} />
-              <small>{item.label}</small>
-              <strong>{item.value}</strong>
-              <p>{item.note}</p>
-            </article>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

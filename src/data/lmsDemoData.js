@@ -25,14 +25,6 @@ export const users = [
   { name: "Nikos Stavrou", role: "Student", level: "B2", status: "Active" },
 ];
 
-export const publisherIntelligence = [
-  { label: "Activated book codes", value: "3,842", note: "Ultimate B2 package campaign", accent: "#175cd3" },
-  { label: "Most used book units", value: "Unit 2", note: "Ultimate B2 Unit 2 across demo classes", accent: "#0f766e" },
-  { label: "Difficult skills", value: "Writing", note: "58% average across partner schools", accent: "#7c3aed" },
-  { label: "Book engagement", value: "82%", note: "weekly active learners per adoption", accent: "#dc6803" },
-  { label: "Adoption data", value: "CSV", note: "exportable by school, unit, and skill", accent: "#101828" },
-];
-
 export const rolloutActions = [
   "Create school",
   "Create class",

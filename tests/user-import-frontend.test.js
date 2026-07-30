@@ -27,16 +27,16 @@ test("School Admin CSV import uses real preview, confirmation, truthful results,
   assert.match(table, /invitationDeliveryState/);
 });
 
-test("single invitation success stays separate and publisher export remains unresolved", async () => {
-  const [admin, usersSection, operations] = await Promise.all([
+test("single invitation success stays separate and publisher export is delegated to its focused live section", async () => {
+  const [admin, usersSection, publisher] = await Promise.all([
     readFile("src/components/lms/admin/AdminView.jsx", "utf8"),
     readFile("src/components/lms/admin/sections/AdminUsersSection.jsx", "utf8"),
-    readFile("src/components/lms/admin/sections/AdminOperationsSections.jsx", "utf8"),
+    readFile("src/components/lms/admin/sections/AdminPublisherIntelligenceSection.jsx", "utf8"),
   ]);
   assert.match(usersSection, /userCreated[\s\S]*Invitation account saved to the database/);
   assert.match(admin, /setUserCreated\(true\)/);
   assert.match(admin, /onImportOpen=\{\(\) =>/);
-  assert.match(admin, /onExport=\{\(\) => setExported\(true\)\}/);
-  assert.match(operations, /Export adoption data/);
-  assert.match(operations, /Adoption export prepared/);
+  assert.doesNotMatch(admin, /onExport|setExported/);
+  assert.match(publisher, /downloadSchoolAdoptionCsv/);
+  assert.match(publisher, /Export adoption data/);
 });

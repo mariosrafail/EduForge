@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { hashToken } from "../../netlify/functions/_auth-utils.js";
+import { ADOPTION_CSV_COLUMNS } from "../../netlify/functions/_csv-utils.js";
 import { MULTI_SCHOOL, MULTI_SCHOOL_DEMO_PASSWORD } from "../../scripts/_multi-school-seed-data.mjs";
 import { readLocalMultiSchoolMarker } from "../../scripts/_local-multi-school.mjs";
 import { ultimateB2StudentsBookTeacherCatalog } from "../../src/data/ultimate-b2/studentsBookCatalog.js";
@@ -35,6 +36,10 @@ test.afterEach(async () => {
     await pool.query("delete from account_email_outbox where recipient_email=any($1::text[])", [importedEmails]);
     await pool.query("delete from app_users where email=any($1::text[])", [importedEmails]);
     await pool.query("delete from account_security_events where school_id=$1 and event_type='user_csv_import_completed'", [athens.id]);
+    await pool.query(
+      "delete from account_security_events where school_id=any($1::uuid[]) and event_type='school_adoption_exported'",
+      [MULTI_SCHOOL.map((school) => school.id)],
+    );
     await pool.query("delete from app_users where email=$1", [onboardingEmail]);
     await pool.query("delete from schools where name=$1", [emptyMetricsSchoolName]);
     await pool.query(
@@ -230,6 +235,97 @@ async function signIn(page, role, email, password = MULTI_SCHOOL_DEMO_PASSWORD) 
   await form.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`#/?${role}`));
 }
+
+test("School Admin downloads a live tenant-scoped aggregate adoption CSV", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await signIn(page, "admin", athens.users[0].email);
+  const summaryPattern = "**/.netlify/functions/school-adoption-report?action=summary";
+  await page.route(summaryPattern, (route) => route.fulfill({
+    status: 500,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "Injected report failure" }),
+  }));
+  await page.goto("/#admin-publisher-intelligence", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".inline-status.error").filter({ hasText: "Adoption data could not be loaded." })).toBeVisible();
+  await expect(page.locator(".publisher-metric-grid strong")).toHaveText(Array(5).fill("Unavailable"));
+  await expect(page.getByText("Adoption CSV downloaded.", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+  await page.unroute(summaryPattern);
+  await context.clearCookies();
+
+  await signIn(page, "admin", athens.users[0].email);
+  await page.route(summaryPattern, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      school: { name: athens.name },
+      summary: {
+        packageCount: 0, generatedCodes: 0, redeemedCodes: 0, unusedCodes: 0,
+        expiredCodes: 0, revokedCodes: 0, activeStudentEntitlements: 0,
+        activeTeacherEntitlements: 0, activeAssignments: 0, uniqueSubmittedAssignments: 0,
+        uniqueStudentsSubmitted: 0, scoredSubmissions: 0, averageScorePercent: null,
+        lastSubmissionAt: null, hasExportableData: false,
+      },
+    }),
+  }));
+  await page.goto("/#admin-publisher-intelligence", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("No adoption activity has been recorded for this school yet.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export adoption data" })).toBeDisabled();
+  await expect(page.getByText("Adoption CSV downloaded.", { exact: true })).toHaveCount(0);
+  await page.unroute(summaryPattern);
+  await context.clearCookies();
+
+  async function verifySchoolExport(school, excludedSchools) {
+    await signIn(page, "admin", school.users[0].email);
+    await page.goto("/#admin-publisher-intelligence", { waitUntil: "domcontentloaded" });
+    const summaryResponse = await page.request.get("/.netlify/functions/school-adoption-report?action=summary");
+    expect(summaryResponse.status()).toBe(200);
+    const report = await summaryResponse.json();
+    expect(report.school.name).toBe(school.name);
+    expect(report.summary.hasExportableData).toBe(true);
+    for (const [label, field] of [
+      ["Redeemed book codes", "redeemedCodes"],
+      ["Active learner entitlements", "activeStudentEntitlements"],
+      ["Active assignments", "activeAssignments"],
+      ["Submitted assignments", "uniqueSubmittedAssignments"],
+    ]) {
+      await expect(page.locator(".publisher-metric-grid article").filter({ hasText: label }).locator("strong"))
+        .toHaveText(String(report.summary[field]));
+    }
+    const average = report.summary.averageScorePercent === null ? "No scored work" : `${report.summary.averageScorePercent}%`;
+    await expect(page.locator(".publisher-metric-grid article").filter({ hasText: "Average score" }).locator("strong"))
+      .toHaveText(average);
+    await expect(page.locator("body")).not.toContainText("3,842");
+    await expect(page.locator("body")).not.toContainText("58% average across partner schools");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export adoption data" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^eduforge-adoption-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.csv$/);
+    const csv = await (await import("node:fs/promises")).readFile(await download.path(), "utf8");
+    expect(csv.replace(/^\uFEFF/, "").split(/\r?\n/)[0]).toBe(ADOPTION_CSV_COLUMNS.join(","));
+    expect(csv).toContain(school.name);
+    for (const excluded of excludedSchools) expect(csv).not.toContain(excluded.name);
+    expect(csv).not.toMatch(/@multi-school\.dev\.invalid/);
+    expect(csv).not.toContain("Fictional learner response");
+    for (const code of school.codes) {
+      expect(csv).not.toContain(code.value);
+    }
+    expect(csv).not.toContain("••••-");
+    await expect(page.getByText("Adoption CSV downloaded.", { exact: true })).toBeVisible();
+    await download.delete();
+    return report.summary;
+  }
+
+  const athensSummary = await verifySchoolExport(athens, MULTI_SCHOOL.filter((school) => school.id !== athens.id));
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await context.clearCookies();
+  const piraeusSummary = await verifySchoolExport(piraeus, MULTI_SCHOOL.filter((school) => school.id !== piraeus.id));
+  expect(athensSummary.activeStudentEntitlements).not.toBe(piraeusSummary.activeStudentEntitlements);
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+});
 
 async function api(page, action = "", options = {}) {
   const query = new URLSearchParams(action ? { action } : {});

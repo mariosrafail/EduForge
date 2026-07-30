@@ -15,9 +15,9 @@ import { adminNavItems, adminRouteForSection } from "./adminPortalConfig.js";
 import {
   AdminBooksClassesSection,
   AdminIntegrationsSection,
-  AdminPublisherIntelligenceSection,
 } from "./sections/AdminOperationsSections.jsx";
 import { AdminOverviewSection } from "./sections/AdminOverviewSection.jsx";
+import { AdminPublisherIntelligenceSection } from "./sections/AdminPublisherIntelligenceSection.jsx";
 import { AdminSchoolSetupSection } from "./sections/AdminSchoolSetupSection.jsx";
 import { AdminUsersSection } from "./sections/AdminUsersSection.jsx";
 import { useSchoolBrandDraft } from "./useSchoolBrandDraft.js";
@@ -37,7 +37,6 @@ export function AdminView({
   const [activeSection, setActiveSection] = useState(initialSection);
   const [completedRollout, setCompletedRollout] = useState(["Create school"]);
   const [selectedIntegration, setSelectedIntegration] = useState("");
-  const [exported, setExported] = useState(false);
   const [newUser, setNewUser] = useState(emptyUser);
   const [createdUsers, setCreatedUsers] = useState([]);
   const [adminClasses, setAdminClasses] = useState([]);
@@ -230,7 +229,7 @@ export function AdminView({
           />
         )}
         {activeSection === "books-classes" && <AdminBooksClassesSection classes={adminClasses} error={classesError} />}
-        {activeSection === "publisher-intelligence" && <AdminPublisherIntelligenceSection exported={exported} onExport={() => setExported(true)} />}
+        {activeSection === "publisher-intelligence" && <AdminPublisherIntelligenceSection />}
         {activeSection === "integrations" && <AdminIntegrationsSection selectedIntegration={selectedIntegration} onSelect={setSelectedIntegration} />}
       </PortalShell>
   );
