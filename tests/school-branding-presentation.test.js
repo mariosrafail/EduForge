@@ -41,7 +41,7 @@ test("draft comparison and partial payload preserve persisted values until confi
   });
 });
 
-test("authenticated loading and School Setup expose truthful accessible draft states without changing deferred workflows", async () => {
+test("authenticated loading and School Setup expose truthful accessible draft states while publisher export remains deferred", async () => {
   const [app, loader, admin, draftHook, setup] = await Promise.all([
     readFile("src/App.jsx", "utf8"),
     readFile("src/hooks/useSchoolBrand.js", "utf8"),
@@ -66,6 +66,6 @@ test("authenticated loading and School Setup expose truthful accessible draft st
   assert.match(setup, /type="button"/);
   assert.match(setup, /Preview preset/);
   assert.match(setup, /role="alert"/);
-  assert.match(admin, /onImport=\{\(\) => setUserCreated\(true\)\}/);
+  assert.doesNotMatch(admin, /onImport=\{\(\) => setUserCreated\(true\)\}/);
   assert.match(admin, /onExport=\{\(\) => setExported\(true\)\}/);
 });

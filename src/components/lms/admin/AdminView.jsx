@@ -218,7 +218,11 @@ export function AdminView({
             pendingUserAction={pendingUserAction}
             statusOptions={statusOptions}
             onCreateUser={handleCreateUser}
-            onImport={() => setUserCreated(true)}
+            onImportOpen={() => {
+              setUserCreated(false);
+              setUserActionStatus("");
+            }}
+            onUsersImported={loadUsers}
             onUpdateUser={updateUser}
             onDeleteUser={deleteUser}
             onResendInvitation={resendInvitation}

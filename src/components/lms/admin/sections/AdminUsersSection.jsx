@@ -1,6 +1,7 @@
-import { UploadCloud, UserPlus, Users } from "lucide-react";
-import { cefrLevels } from "../../../../data/lmsDemoData.js";
+import { UserPlus, Users } from "lucide-react";
+import { CEFR_LEVELS } from "../../../../../shared/userImport.js";
 import { Card } from "../../Shared.jsx";
+import { AdminUserCsvImport } from "../components/AdminUserCsvImport.jsx";
 import { AdminUserTable } from "../components/AdminUserTable.jsx";
 
 export function AdminUsersSection({
@@ -17,7 +18,8 @@ export function AdminUsersSection({
   pendingUserAction,
   statusOptions,
   onCreateUser,
-  onImport,
+  onImportOpen,
+  onUsersImported,
   onUpdateUser,
   onDeleteUser,
   onResendInvitation,
@@ -28,7 +30,7 @@ export function AdminUsersSection({
       <Card>
         <div className="card-heading">
           <div><span className="eyebrow"><Users size={15} /> User management</span><h2>Users for the Ultimate B2 package</h2></div>
-          <button className="secondary-action" type="button" data-sound-click="submit" onClick={onImport}><UploadCloud size={17} /> Import CSV</button>
+          <AdminUserCsvImport onOpen={onImportOpen} onImported={onUsersImported} />
         </div>
         <form className="create-user-form" onSubmit={onCreateUser}>
           <label>Name<input value={newUser.name} placeholder="e.g. Elena Markou" onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} /></label>
@@ -42,7 +44,7 @@ export function AdminUsersSection({
           <label>
             CEFR level
             <select value={newUser.level} onChange={(event) => setNewUser({ ...newUser, level: event.target.value })}>
-              {cefrLevels.map((level) => <option key={level}>{level}</option>)}
+              {CEFR_LEVELS.map((level) => <option key={level}>{level}</option>)}
             </select>
           </label>
           <button className="primary-action" data-sound-click="submit" type="submit" disabled={savingUser}>

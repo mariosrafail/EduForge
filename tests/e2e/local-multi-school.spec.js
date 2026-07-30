@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import pg from "pg";
+import { hashToken } from "../../netlify/functions/_auth-utils.js";
 import { MULTI_SCHOOL, MULTI_SCHOOL_DEMO_PASSWORD } from "../../scripts/_multi-school-seed-data.mjs";
 import { readLocalMultiSchoolMarker } from "../../scripts/_local-multi-school.mjs";
 import { ultimateB2StudentsBookTeacherCatalog } from "../../src/data/ultimate-b2/studentsBookCatalog.js";
@@ -14,6 +16,10 @@ const emptyMetricsSchoolName = "Empty Metrics School";
 const emptyMetricsEmail = "empty-metrics@student.dev.invalid";
 const emptyMetricsPassword = "Empty-Metrics-Student-2026!";
 const temporaryAthensBrandName = "Athens Branding E2E";
+const importedTeacherEmail = "csv-teacher@e2e.example.invalid";
+const importedStudentEmails = ["csv-student-one@e2e.example.invalid", "csv-student-two@e2e.example.invalid"];
+const importedEmails = [importedTeacherEmail, ...importedStudentEmails];
+const importedPassword = "CSV-Imported-Student-2026!";
 const visibleB2Components = ["ultimate-b2-students-book", "ultimate-b2-workbook"];
 const visibleComponentsByPackage = {
   "ultimate-b1": ["ultimate-b1-students-book", "ultimate-b1-workbook"],
@@ -25,6 +31,10 @@ test.afterEach(async () => {
   if (!marker) return;
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
   try {
+    await pool.query("delete from account_security_events where user_id in (select id from app_users where email=any($1::text[]))", [importedEmails]);
+    await pool.query("delete from account_email_outbox where recipient_email=any($1::text[])", [importedEmails]);
+    await pool.query("delete from app_users where email=any($1::text[])", [importedEmails]);
+    await pool.query("delete from account_security_events where school_id=$1 and event_type='user_csv_import_completed'", [athens.id]);
     await pool.query("delete from app_users where email=$1", [onboardingEmail]);
     await pool.query("delete from schools where name=$1", [emptyMetricsSchoolName]);
     await pool.query(
@@ -41,6 +51,100 @@ test.afterEach(async () => {
   } finally {
     await pool.end();
   }
+});
+
+test("School Admin CSV import previews, commits, persists, isolates tenants, and uses invitation acceptance", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    await pool.query("delete from account_security_events where user_id in (select id from app_users where email=any($1::text[]))", [importedEmails]);
+    await pool.query("delete from account_email_outbox where recipient_email=any($1::text[])", [importedEmails]);
+    await pool.query("delete from app_users where email=any($1::text[])", [importedEmails]);
+  } finally {
+    await pool.end();
+  }
+
+  await signIn(page, "admin", athens.users[0].email);
+  await page.goto("/#admin-users", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Import CSV", exact: true }).click();
+  await expect(page.getByText("Invitation account saved to the database.", { exact: true })).toHaveCount(0);
+
+  const input = page.locator('input[type="file"][accept=".csv,text/csv"]');
+  await input.setInputFiles({
+    name: "invalid-user-import.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from([
+      "full_name,email,role,level",
+      `Duplicate One,${importedStudentEmails[0]},Student,B2`,
+      `Duplicate Two,${importedStudentEmails[0].toUpperCase()},Teacher,C1`,
+    ].join("\n")),
+  });
+  await expect(page.getByText(/2 duplicate rows/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Import 0 invitation accounts" })).toBeDisabled();
+  const invalidPool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    expect((await invalidPool.query("select count(*)::int count from app_users where email=any($1::text[])", [importedEmails])).rows[0].count).toBe(0);
+  } finally {
+    await invalidPool.end();
+  }
+
+  await input.setInputFiles({
+    name: "valid-user-import.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from([
+      "full_name,email,role,level",
+      `CSV Example Teacher,${importedTeacherEmail},Teacher,B2`,
+      `CSV Example Student One,${importedStudentEmails[0]},Student,A2`,
+      `CSV Example Student Two,${importedStudentEmails[1]},Student,`,
+    ].join("\r\n")),
+  });
+  await expect(page.getByText("3 rows: 3 valid and 0 invalid.", { exact: true })).toBeVisible();
+  await expect(page.locator(".user-import-preview strong").filter({ hasText: "CSV Example Teacher" })).toBeVisible();
+  await expect(page.locator(".user-import-preview strong").filter({ hasText: "CSV Example Student One" })).toBeVisible();
+  const beforeCommitPool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    expect((await beforeCommitPool.query("select count(*)::int count from app_users where email=any($1::text[])", [importedEmails])).rows[0].count).toBe(0);
+  } finally {
+    await beforeCommitPool.end();
+  }
+
+  await page.getByRole("button", { name: "Import 3 invitation accounts" }).click();
+  await expect(page.locator(".inline-status").getByText("Creating invitation accounts…", { exact: true })).toBeVisible();
+  await expect(page.getByText("3 invitation accounts created and 3 invitation emails sent.", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".user-data-table strong").filter({ hasText: "CSV Example Student One" })).toBeVisible();
+  await expect(page.locator(".user-data-table").getByText(importedStudentEmails[0], { exact: true })).toBeVisible();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator(".user-data-table").getByText(importedStudentEmails[0], { exact: true })).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/#\/?home/);
+  await context.clearCookies();
+  await signIn(page, "admin", piraeus.users[0].email);
+  await page.goto("/#admin-users", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText(importedStudentEmails[0], { exact: true })).toHaveCount(0);
+
+  const rawToken = randomBytes(32).toString("base64url");
+  const tokenPool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    await tokenPool.query(
+      `update account_tokens set token_hash=$2,expires_at=now()+interval '1 day'
+       where user_id=(select id from app_users where email=$1) and purpose='initial_password'`,
+      [importedStudentEmails[0], hashToken(rawToken)],
+    );
+  } finally {
+    await tokenPool.end();
+  }
+  await context.clearCookies();
+  await page.goto(`/#accept-invitation?token=${encodeURIComponent(rawToken)}`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Accept invitation" })).toBeVisible();
+  await page.getByLabel("New password", { exact: true }).fill(importedPassword);
+  await page.getByLabel("Confirm new password", { exact: true }).fill(importedPassword);
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page).toHaveURL(/#\/?student/, { timeout: 15_000 });
+  const me = await page.request.get("/.netlify/functions/auth-me");
+  expect(me.status()).toBe(200);
+  expect((await me.json()).user.school_id).toBe(athens.id);
 });
 
 test("Student class-invite onboarding enforces the centralized password policy", async ({ page }) => {
