@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play, UserRound } from "lucide-react";
+import { BookOpen, CheckCircle2, ClipboardList, GraduationCap, KeyRound, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { listStudentAssignments, listStudentGrades, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
@@ -7,56 +7,10 @@ import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../.
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
-import { studentDashboardCards } from "../studentPortalData.js";
-import { sectionIcons } from "./studentPortalConfig.js";
-
-export function StudentProfileStrip({ currentUser = null }) {
-  return (
-    <Card className="student-profile-strip">
-      <div>
-        <span><UserRound size={19} /></span>
-        <div>
-          <strong>{currentUser?.full_name || "Student"} (Student)</strong>
-          <small>Ultimate B2 A / Hamilton House demo</small>
-        </div>
-      </div>
-      <Tag tone="green">B2 active</Tag>
-    </Card>
-  );
-}
-
-export function StudentDashboard({ goToSection, currentUser = null }) {
-  const firstName = currentUser?.full_name?.split(" ")?.[0] || "there";
-  return (
-    <>
-      <SectionTitle
-        eyebrow="Student portal"
-        title={`Welcome back, ${firstName}.`}
-        text="Open your Ultimate B2 package, complete assigned exercises, and review corrected work from your teacher."
-      />
-      <StudentProfileStrip currentUser={currentUser} />
-      <section className="student-dashboard-grid" aria-label="Student dashboard sections">
-        {studentDashboardCards.map((card) => {
-          const Icon = sectionIcons[card.id];
-          return (
-            <button
-              key={card.id}
-              type="button"
-              className="student-dashboard-card"
-              onClick={() => goToSection(card.id)}
-              data-sound-click="submit"
-            >
-              <span><Icon size={25} /></span>
-              <strong>{card.title}</strong>
-              <p>{card.description}</p>
-              <small>{card.metric}</small>
-            </button>
-          );
-        })}
-      </section>
-    </>
-  );
-}
+import {
+  studentGradeSummary,
+} from "../../shared/portalDashboardPresentation.js";
+export { StudentDashboard, StudentProfileStrip } from "./StudentDashboardSection.jsx";
 
 export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelectPackage }) {
   return (
@@ -312,17 +266,15 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
   );
 }
 
-export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
+export function StudentGrades({ currentUser = null, refreshKey = 0, metricsState = { loading: true, error: "", data: null } }) {
   const [grades, setGrades] = useState([]);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [gradeError, setGradeError] = useState("");
   const [selectedResult, setSelectedResult] = useState("");
   const visibleGrades = grades;
-  const submittedGrades = visibleGrades.filter((row) => row.scorePercent !== null && row.scorePercent !== undefined);
-  const averageScore = submittedGrades.length
-    ? Math.round(submittedGrades.reduce((sum, row) => sum + Number(row.scorePercent || 0), 0) / submittedGrades.length)
-    : 0;
   const selectedLiveGrade = visibleGrades.find((row) => (row.id || row.title) === selectedResult || row.title === selectedResult);
+  const latestFeedback = visibleGrades.find((row) => String(row.teacherFeedback || "").trim())?.teacherFeedback || "No feedback yet.";
+  const summary = studentGradeSummary(metricsState);
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -369,14 +321,15 @@ export function StudentGrades({ currentUser = null, refreshKey = 0 }) {
       <SectionTitle
         eyebrow="My grades"
         title="Scores, feedback, and corrected work."
-        text="Review your latest results and teacher feedback for Ultimate B2 Unit 2."
+        text="Review your latest results and teacher feedback."
       />
 
+      {metricsState.error && <div className="inline-status warning">Live grade summary metrics are unavailable.</div>}
       <section className="student-grade-summary">
-        <Card><strong>{`${averageScore}%`}</strong><span>Overall average score</span></Card>
-        <Card><strong>{visibleGrades.length}</strong><span>Completed assignments</span></Card>
-        <Card><strong>0</strong><span>Pending assignments</span></Card>
-        <Card><strong>{selectedLiveGrade?.teacherFeedback || "No feedback yet."}</strong><span>Latest teacher feedback</span></Card>
+        <Card><strong>{summary.average}</strong><span>Overall average score</span></Card>
+        <Card><strong>{summary.completed}</strong><span>Completed assignments</span></Card>
+        <Card><strong>{summary.pending}</strong><span>Pending assignments</span></Card>
+        <Card><strong>{loadingGrades ? "Loading…" : gradeError ? "Unavailable" : latestFeedback}</strong><span>Latest teacher feedback</span></Card>
       </section>
 
       <Card>

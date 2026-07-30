@@ -491,6 +491,21 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     assert.equal(studentMetrics.headers["Cache-Control"], "private, no-store");
     assert.equal(studentMetrics.headers.Vary, "Cookie");
 
+    const otherTeacherMetrics = await call(bookContentHandler, {
+      cookie: otherTeacherCookie,
+      query: { action: "dashboard-metrics" },
+    });
+    assert.deepEqual(otherTeacherMetrics.body, {
+      role: "teacher",
+      metrics: {
+        activeBookPackages: 1,
+        activeBookComponents: 0,
+        activeClasses: 1,
+        activeStudents: 0,
+        activeAssignments: 1,
+      },
+    });
+
     const emptyMetrics = await call(bookContentHandler, {
       cookie: zeroStudentCookie,
       query: { action: "dashboard-metrics" },

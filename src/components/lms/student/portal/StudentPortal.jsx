@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { inferPackageSlugFromBookId } from "../../../../data/bookPackages.js";
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { getBookPackageTreeWithFallback, listBookPackages } from "../../../../services/bookContentApi.js";
+import { getPortalDashboardMetrics } from "../../../../services/portalMetricsApi.js";
 import {
   buildCourseComponentHash,
   buildCourseComponentsHash,
@@ -48,6 +49,7 @@ export function StudentPortal({
   const [bookPackages, setBookPackages] = useState([]);
   const [selectedPackageSlug, setSelectedPackageSlug] = useState(initialSelectedPackageSlug || "ultimate-b2");
   const [bookSourceMessage, setBookSourceMessage] = useState("");
+  const [metricsState, setMetricsState] = useState({ loading: true, error: "", data: null });
 
   useEffect(() => {
     setActiveSection(initialSection);
@@ -96,6 +98,31 @@ export function StudentPortal({
     });
     return () => { mounted = false; };
   }, [reloadBookPackages]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    if (!currentUser?.id) {
+      setMetricsState({ loading: false, error: "Sign in required", data: null });
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+    setMetricsState({ loading: true, error: "", data: null });
+    getPortalDashboardMetrics({ signal: controller.signal }).then((payload) => {
+      if (!active) return;
+      if (payload.role !== "student") throw new Error("Student dashboard metrics were unavailable");
+      setMetricsState({ loading: false, error: "", data: payload });
+    }).catch((error) => {
+      if (!active || error.name === "AbortError") return;
+      setMetricsState({ loading: false, error: error.message || "Dashboard metrics could not be loaded", data: null });
+    });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [activeSection, assignmentRefreshKey, currentUser?.id]);
 
   const goToSection = (section) => {
     if (section === "books") {
@@ -173,7 +200,7 @@ export function StudentPortal({
       <PortalShell
         title="Student portal"
         profile={currentUser?.full_name || "Student"}
-        subtitle="Ultimate B2 A"
+        subtitle={metricsState.data?.profile?.primaryClassName || "Student workspace"}
         navItems={studentNavItems}
         activeItem={activeSection === "activity" ? previousSection : activeSection}
         onNavigate={goToSection}
@@ -181,7 +208,7 @@ export function StudentPortal({
         onSignOut={onSignOut}
         variant="student-portal-shell student-portal-workspace"
       >
-        {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} currentUser={currentUser} />}
+        {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} currentUser={currentUser} metricsState={metricsState} />}
         {activeSection === "books" && (
           <StudentBooks
             openActivity={openActivity}
@@ -209,7 +236,7 @@ export function StudentPortal({
             submitMessage={assignmentSubmitMessage}
           />
         )}
-        {activeSection === "grades" && <StudentGrades currentUser={currentUser} refreshKey={assignmentRefreshKey} />}
+        {activeSection === "grades" && <StudentGrades currentUser={currentUser} refreshKey={assignmentRefreshKey} metricsState={metricsState} />}
         {activeSection === "activity" && (
           <StudentActivitySection
             activeExercise={activeExercise}

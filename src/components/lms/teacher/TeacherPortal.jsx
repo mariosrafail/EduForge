@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState } from "react";
 import { dedupeBookPackages, inferPackageSlugFromBookId } from "../../../data/bookPackages.js";
 import { useTeacherClasses } from "../../../hooks/useTeacherClasses.js";
 import { listAuthorizedBookPackageTrees } from "../../../services/bookContentApi.js";
+import { getPortalDashboardMetrics } from "../../../services/portalMetricsApi.js";
 import { buildTeacherSectionHash } from "../../../utils/hashRoutes.js";
 import { PortalShell } from "../shared/PortalShell.jsx";
 import { teacherNavItems } from "./teacherPortalConfig.js";
@@ -18,6 +19,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   const [selectedPageId, setSelectedPageId] = useState(initialSelectedPageId);
   const [selectedPageNumber, setSelectedPageNumber] = useState(editorProps.initialSelectedPageNumber || null);
   const [teacherBooksState, dispatchTeacherBooks] = useReducer(teacherBooksReducer, initialTeacherBooksState);
+  const [metricsState, setMetricsState] = useState({ loading: true, error: "", data: null });
   const bookPackages = teacherBooksState.packages;
   const {
     classes: teacherClasses,
@@ -55,6 +57,31 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    if (!currentUser?.id) {
+      setMetricsState({ loading: false, error: "Sign in required", data: null });
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }
+    setMetricsState({ loading: true, error: "", data: null });
+    getPortalDashboardMetrics({ signal: controller.signal }).then((payload) => {
+      if (!active) return;
+      if (payload.role !== "teacher") throw new Error("Teacher dashboard metrics were unavailable");
+      setMetricsState({ loading: false, error: "", data: payload });
+    }).catch((error) => {
+      if (!active || error.name === "AbortError") return;
+      setMetricsState({ loading: false, error: error.message || "Dashboard metrics could not be loaded", data: null });
+    });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [activeSection, currentUser?.id]);
 
   const goToSection = (section) => {
     if (navigateTo) {
@@ -113,7 +140,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
       <PortalShell
         title="Teacher portal"
         profile={currentUser?.full_name || "Teacher"}
-        subtitle="Ultimate B2 workspace"
+        subtitle="Teaching workspace"
         navItems={teacherNavItems}
         activeItem={activeSection === "books" ? "books" : activeSection}
         onNavigate={goToSection}
@@ -121,7 +148,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         onSignOut={onSignOut}
         variant="teacher-portal-shell teacher-portal-workspace"
       >
-        {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} />}
+        {activeSection === "dashboard" && <TeacherDashboard goToSection={goToSection} metricsState={metricsState} />}
         {activeSection === "books" && (
           <TeacherBooks
             bookPackages={bookPackages}

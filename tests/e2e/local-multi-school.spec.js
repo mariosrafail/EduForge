@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import bcrypt from "bcryptjs";
 import pg from "pg";
 import { MULTI_SCHOOL, MULTI_SCHOOL_DEMO_PASSWORD } from "../../scripts/_multi-school-seed-data.mjs";
 import { readLocalMultiSchoolMarker } from "../../scripts/_local-multi-school.mjs";
@@ -9,6 +10,9 @@ const athens = MULTI_SCHOOL.find((school) => school.key === "athens");
 const piraeus = MULTI_SCHOOL.find((school) => school.key === "piraeus");
 const onboardingEmail = "password-policy-onboarding@multi-school.dev.invalid";
 const onboardingPassword = "Public-Student-Onboarding-2026!";
+const emptyMetricsSchoolName = "Empty Metrics School";
+const emptyMetricsEmail = "empty-metrics@student.dev.invalid";
+const emptyMetricsPassword = "Empty-Metrics-Student-2026!";
 const visibleB2Components = ["ultimate-b2-students-book", "ultimate-b2-workbook"];
 const visibleComponentsByPackage = {
   "ultimate-b1": ["ultimate-b1-students-book", "ultimate-b1-workbook"],
@@ -21,6 +25,7 @@ test.afterEach(async () => {
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
   try {
     await pool.query("delete from app_users where email=$1", [onboardingEmail]);
+    await pool.query("delete from schools where name=$1", [emptyMetricsSchoolName]);
     await pool.query(`
       update activity_submissions s
       set status='awaiting_review', score=null, score_percent=null, teacher_feedback='', reviewed_at=null, reviewed_by=null
@@ -127,6 +132,10 @@ async function api(page, action = "", options = {}) {
   return { response, body: await response.json() };
 }
 
+function countLabel(value, singular, plural = `${singular}s`) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
 test("ordinary Student sign-in, sign-out, and clean reauthentication remain functional", async ({ page }) => {
   test.skip(!marker, "Requires npm run demo:multi-school:setup");
   const student = athens.users.find((user) => user.profile === "strong");
@@ -137,6 +146,75 @@ test("ordinary Student sign-in, sign-out, and clean reauthentication remain func
   await expect(page).toHaveURL(/#\/?home/);
   await signIn(page, "student", student.email);
   await expect(page.getByRole("button", { name: "Sign out", exact: true }).first()).toBeVisible();
+});
+
+test("Teacher and Student dashboards render only authenticated live metrics, including a true empty account", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+
+  await signIn(page, "teacher", athens.users[1].email);
+  const teacherMetrics = await api(page, "dashboard-metrics");
+  expect(teacherMetrics.response.status()).toBe(200);
+  const teacher = teacherMetrics.body.metrics;
+  await expect(page.locator(".teacher-dashboard-card small")).toHaveText([
+    countLabel(teacher.activeBookComponents, "active component"),
+    countLabel(teacher.activeClasses, "active class", "active classes"),
+    countLabel(teacher.activeStudents, "active student"),
+    countLabel(teacher.activeAssignments, "active assignment"),
+    "Editor available",
+  ]);
+  await expect(page.locator("body")).not.toContainText("55 demo students");
+  await expect(page.locator("body")).not.toContainText("3 B2 classes");
+
+  await context.clearCookies();
+  const strong = athens.users.find((user) => user.profile === "strong");
+  await signIn(page, "student", strong.email);
+  const studentMetrics = await api(page, "dashboard-metrics");
+  expect(studentMetrics.response.status()).toBe(200);
+  const student = studentMetrics.body;
+  const average = student.metrics.averageScore === null ? "No scored work yet" : `${student.metrics.averageScore}% average`;
+  await expect(page.locator(".student-dashboard-card small")).toHaveText([
+    countLabel(student.metrics.activeBookComponents, "active component"),
+    countLabel(student.metrics.pendingAssignments, "pending assignment"),
+    average,
+  ]);
+  await expect(page.locator(".student-profile-strip")).toContainText(student.profile.primaryClassName);
+  await expect(page.locator(".student-profile-strip")).toContainText(student.profile.schoolName);
+  await page.locator(".student-dashboard-card").filter({ hasText: "Grades" }).click();
+  const summary = page.locator(".student-grade-summary");
+  await expect(summary.locator("strong").nth(0)).toHaveText(
+    student.metrics.averageScore === null ? "No scored work" : `${student.metrics.averageScore}%`,
+  );
+  await expect(summary.locator("strong").nth(1)).toHaveText(String(student.metrics.completedAssignments));
+  await expect(summary.locator("strong").nth(2)).toHaveText(String(student.metrics.pendingAssignments));
+  await expect(page.locator("body")).not.toContainText("78% average");
+  await expect(page.locator("body")).not.toContainText("Hamilton House demo");
+
+  const pool = new pg.Pool({ connectionString: marker.databaseUrl });
+  try {
+    const schoolId = (await pool.query(
+      "insert into schools (name) values ($1) returning id",
+      [emptyMetricsSchoolName],
+    )).rows[0].id;
+    const passwordHash = await bcrypt.hash(emptyMetricsPassword, 4);
+    await pool.query(
+      `insert into app_users (school_id, full_name, email, role, status, password_hash, auth_provider)
+       values ($1, 'Empty Metrics Student', $2, 'student', 'active', $3, 'password')`,
+      [schoolId, emptyMetricsEmail, passwordHash],
+    );
+  } finally {
+    await pool.end();
+  }
+
+  await context.clearCookies();
+  await signIn(page, "student", emptyMetricsEmail, emptyMetricsPassword);
+  await expect(page.locator(".student-dashboard-card small")).toHaveText([
+    "0 active components",
+    "0 pending assignments",
+    "No scored work yet",
+  ]);
+  await expect(page.locator(".student-profile-strip")).toContainText(emptyMetricsSchoolName);
+  await expect(page.locator(".student-profile-strip")).toContainText("Active account");
 });
 
 test("ordinary LMS shell is responsive, keyboard-safe, and shared by every role", async ({ page, context }) => {
