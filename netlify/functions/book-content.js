@@ -28,6 +28,9 @@ import {
   updateBookActivity, deleteBookActivity
 } from "./_book-content/book-activity-actions.js";
 import { listBookMediaAssets, createBookMediaAsset } from "./_book-content/media-asset-actions.js";
+import {
+  getDashboardMetrics, withDashboardMetricsHeaders
+} from "./_book-content/dashboard-metrics.js";
 
 export {
   stripStudentAnswerKeys,
@@ -63,13 +66,18 @@ export async function handler(event) {
 
     const auth = await requireAuth(event, sql);
     if (auth.error) {
-      return query.action === "teacher-activity-solutions"
+      return query.action === "dashboard-metrics"
+        ? withDashboardMetricsHeaders(auth.error)
+        : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(auth.error)
         : auth.error;
     }
     const currentUser = auth.currentUser;
 
     if (event.httpMethod === "GET") {
+      if (query.action === "dashboard-metrics") {
+        return await getDashboardMetrics(sql, currentUser, event.queryStringParameters || {});
+      }
       if (requestsHiddenPhaseOneComponent(query)) {
         return json(404, { error: "Component not found" });
       }
@@ -266,7 +274,9 @@ export async function handler(event) {
   } catch (error) {
     if (isDatabaseNotConfiguredError(error)) {
       const response = databaseNotConfiguredResponse();
-      return query.action === "teacher-activity-solutions"
+      return query.action === "dashboard-metrics"
+        ? withDashboardMetricsHeaders(response)
+        : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(response)
         : response;
     }
@@ -275,12 +285,16 @@ export async function handler(event) {
         error: "Assignment database migration is missing",
         migration: "database/010_assignment_live_flow.sql",
       });
-      return query.action === "teacher-activity-solutions"
+      return query.action === "dashboard-metrics"
+        ? withDashboardMetricsHeaders(response)
+        : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(response)
         : response;
     }
     const response = safeServerError(error, "Book content API failed");
-    return query.action === "teacher-activity-solutions"
+    return query.action === "dashboard-metrics"
+      ? withDashboardMetricsHeaders(response)
+      : query.action === "teacher-activity-solutions"
       ? withTeacherSolutionHeaders(response)
       : response;
   }

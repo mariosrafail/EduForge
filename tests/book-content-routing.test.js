@@ -4,6 +4,7 @@ import test from "node:test";
 
 const getActions = [
   "class-by-invite",
+  "dashboard-metrics",
   "teacher-activity-solutions",
   "asset-access",
   "list",
@@ -62,6 +63,7 @@ test("book-content remains a thin compatible entry over cohesive domain modules"
     "hotspot-actions",
     "book-activity-actions",
     "media-asset-actions",
+    "dashboard-metrics",
   ];
   assert.ok(entry.split(/\r?\n/).length <= 400);
   for (const moduleName of modules) assert.match(entry, new RegExp(`_book-content/${moduleName}\\.js`));

@@ -381,6 +381,136 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   await pool.query("insert into question_options (question_id, option_label, option_text, is_correct) values ($1, 'A', 'yes', true), ($1, 'B', 'no', false)", [question.id]);
   await pool.query("insert into book_access (user_id, book_package_id, role_scope) values ($1, $2, 'teacher')", [teacherId, bookPackage.id]);
 
+  await t.test("dashboard metrics use session-scoped tenant data, distinct memberships, and latest submissions", async () => {
+    const metricsActivity = (await pool.query(
+      `insert into activities (school_id, lesson_id, title, type, slug, activity_type, content, content_json, ownership_type)
+       values ($1, $2, 'Metrics Activity', 'multiple_choice', $3, 'multiple_choice', '{}', '{}', 'official') returning id`,
+      [schoolA, bookLesson.id, `metrics-activity-${schema}`],
+    )).rows[0];
+    const secondStudentId = await insertUser(pool, {
+      schoolId: schoolA,
+      name: "Second Student",
+      email: `second-student-${schema}@integration.test`,
+      role: "student",
+    });
+    const zeroStudentId = await insertUser(pool, {
+      schoolId: schoolA,
+      name: "New Student",
+      email: `new-student-${schema}@integration.test`,
+      role: "student",
+    });
+    const zeroStudentCookie = await createSession(pool, zeroStudentId);
+    await pool.query(
+      "insert into book_access (user_id, book_package_id, role_scope) values ($1, $2, 'student')",
+      [studentId, bookPackage.id],
+    );
+    const alphaClass = (await pool.query(
+      `insert into classes (school_id, teacher_id, name, level, slug, invite_code, status)
+       values ($1, $2, 'Alpha Class', 'B1', $3, 'ALPHA123', 'active') returning id`,
+      [schoolA, teacherId, `alpha-${schema}`],
+    )).rows[0];
+    await pool.query(
+      `insert into class_students (class_id, student_id, status)
+       values ($1, $2, 'active'), ($1, $3, 'active')`,
+      [alphaClass.id, studentId, secondStudentId],
+    );
+
+    const assignments = (await pool.query(
+      `insert into activity_assignments (school_id, activity_id, teacher_id, class_id, student_id, status, title)
+       values
+         ($1, $2, $3, $4, null, 'assigned', 'Scored class work'),
+         ($1, $2, $3, null, $5, 'assigned', 'Direct work'),
+         ($1, $2, $3, $4, null, 'assigned', 'Unscored work'),
+         ($1, $2, $3, $4, null, 'assigned', 'Pending work'),
+         ($1, $2, $3, $4, null, 'closed', 'Closed work')
+       returning id, title`,
+      [schoolA, metricsActivity.id, teacherId, classA.id, studentId],
+    )).rows;
+    const assignmentId = (title) => assignments.find((row) => row.title === title).id;
+    await pool.query(
+      `insert into activity_submissions
+         (school_id, activity_id, activity_assignment_id, student_id, answers, score, score_percent, status, submitted_at)
+       values
+         ($1, $2, $3, $4, '{}', 100, 100, 'submitted', now() - interval '2 hours'),
+         ($1, $2, $3, $4, '{}', 0, 0, 'submitted', now() - interval '1 hour'),
+         ($1, $2, $5, $4, '{}', 80, 80, 'submitted', now()),
+         ($1, $2, $6, $4, '{}', null, null, 'awaiting_review', now())`,
+      [
+        schoolA,
+        metricsActivity.id,
+        assignmentId("Scored class work"),
+        studentId,
+        assignmentId("Direct work"),
+        assignmentId("Unscored work"),
+      ],
+    );
+    await pool.query(
+      `insert into activity_assignments (school_id, activity_id, teacher_id, student_id, status, title)
+       values ($1, $2, $3, $4, 'assigned', 'Foreign assignment')`,
+      [schoolB, metricsActivity.id, otherTeacherId, studentId],
+    );
+
+    const teacherMetrics = await call(bookContentHandler, {
+      cookie: teacherCookie,
+      query: { action: "dashboard-metrics" },
+    });
+    assert.equal(teacherMetrics.status, 200);
+    assert.deepEqual(teacherMetrics.body, {
+      role: "teacher",
+      metrics: {
+        activeBookPackages: 1,
+        activeBookComponents: 1,
+        activeClasses: 2,
+        activeStudents: 5,
+        activeAssignments: 4,
+      },
+    });
+
+    const studentMetrics = await call(bookContentHandler, {
+      cookie: studentCookie,
+      query: { action: "dashboard-metrics" },
+    });
+    assert.equal(studentMetrics.status, 200);
+    assert.deepEqual(studentMetrics.body, {
+      role: "student",
+      metrics: {
+        activeBookPackages: 1,
+        activeBookComponents: 1,
+        pendingAssignments: 1,
+        completedAssignments: 3,
+        scoredAssignments: 2,
+        averageScore: 40,
+      },
+      profile: {
+        schoolName: "Integration School A",
+        classNames: ["Alpha Class", "Class A"],
+        primaryClassName: "Alpha Class",
+        level: "B1",
+      },
+    });
+    assert.equal(studentMetrics.headers["Cache-Control"], "private, no-store");
+    assert.equal(studentMetrics.headers.Vary, "Cookie");
+
+    const emptyMetrics = await call(bookContentHandler, {
+      cookie: zeroStudentCookie,
+      query: { action: "dashboard-metrics" },
+    });
+    assert.deepEqual(emptyMetrics.body.metrics, {
+      activeBookPackages: 0,
+      activeBookComponents: 0,
+      pendingAssignments: 0,
+      completedAssignments: 0,
+      scoredAssignments: 0,
+      averageScore: null,
+    });
+    assert.deepEqual(emptyMetrics.body.profile, {
+      schoolName: "Integration School A",
+      classNames: [],
+      primaryClassName: null,
+      level: null,
+    });
+  });
+
   await t.test("assignment, results, review, hotspots and custom activities enforce owner/tenant", async () => {
     const createdAssignment = await call(bookContentHandler, {
       method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
