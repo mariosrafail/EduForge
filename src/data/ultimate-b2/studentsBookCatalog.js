@@ -174,8 +174,6 @@ function exerciseFromActivity(implementation, page, databaseRecord = null) {
     isAssignable: enabled,
     availableToStudent: enabled,
     status: enabled ? "Available" : "Editorially disabled",
-    progressLabel: enabled ? implementationModeLabel : "Unsupported recovered interaction",
-    studentProgressLabel: implementationModeLabel,
     locked: !enabled,
     disabledReason: enabled ? "" : "Unsupported recovered interaction",
     assignmentActivityId,

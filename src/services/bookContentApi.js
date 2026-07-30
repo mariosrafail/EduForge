@@ -1,5 +1,6 @@
 import { getDemoBookPackage, mergeBookPackageWithDemoFallback, normalizeBookPackageKey } from "../data/bookPackages.js";
 import { applyStudentsBookCatalog } from "../data/ultimate-b2/studentsBookCatalog.js";
+import { databaseActivityPresentation } from "./bookActivityPresentation.js";
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -64,14 +65,10 @@ async function request(path, options = {}) {
   return parseJsonResponse(response);
 }
 
-function minutesLabel(minutes) {
-  return minutes ? `${minutes} min` : "Demo";
-}
-
 function normalizeDbActivity(activity, component, unit, lesson) {
   const contentJson = activity.contentJson || activity.content_json || {};
   const activityType = activity.activityType || activity.activity_type;
-  const status = activityType === "media_video" ? "Available" : activityType === "reading_evidence" ? "Completed" : "Assigned";
+  const presentation = databaseActivityPresentation(activity);
 
   return {
     id: activity.id,
@@ -84,7 +81,7 @@ function normalizeDbActivity(activity, component, unit, lesson) {
     type: activityTypeLabels[activityType] || activityType,
     activityType,
     activity_type: activityType,
-    estimatedTime: minutesLabel(activity.estimatedMinutes || activity.estimated_minutes),
+    estimatedTime: presentation.estimatedTime,
     timerSeconds: activity.timerSeconds || activity.timer_seconds || null,
     mediaAssetPath: activity.mediaAssetPath || activity.media_asset_path || null,
     contentJson,
@@ -95,9 +92,7 @@ function normalizeDbActivity(activity, component, unit, lesson) {
     assignable: activity.isAssignable ?? activity.is_assignable ?? true,
     isAssignable: activity.isAssignable ?? activity.is_assignable ?? true,
     availableToStudent: true,
-    status,
-    progressLabel: activityType === "timed_quiz" ? "11/16 submitted" : "Assigned to 2 classes",
-    studentProgressLabel: status === "Completed" ? "Teacher feedback ready" : status,
+    status: presentation.status,
     demoActivityKey: contentJson.demoActivityKey || activity.demoActivityKey || activity.slug,
     description: activity.instructions || "Structured digital book exercise from the database-backed content model.",
     dbActivity: activity,

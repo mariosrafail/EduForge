@@ -2,6 +2,7 @@ import { Copy, Eye, FileText, Lock, MonitorPlay, Play } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 import { DisabledAssignControl, TeacherAssignControl } from "./TeacherAssignControl.jsx";
 import { buildActivityHash, copyHashLink, exerciseActionLabel, getExerciseActivityKey, isExerciseActive, statusTone } from "./bookBrowserUtils.js";
+import { exerciseDisplayStatus, exerciseSecondaryText } from "./bookExercisePresentation.js";
 
 function ExerciseMetadata({ exercise }) {
   return (
@@ -20,13 +21,7 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
   const isTeacher = mode === "teacher";
   const activityKey = getExerciseActivityKey(exercise);
   const completed = !isTeacher && completedActivities[activityKey];
-  const displayExercise = completed
-    ? {
-        ...exercise,
-        status: "Submitted",
-        studentProgressLabel: Number.isFinite(completed.score) ? `Submitted / ${completed.score}%` : "Submitted",
-      }
-    : exercise;
+  const displayExercise = { ...exercise, status: exerciseDisplayStatus(exercise, completed) };
   const canStart = exercise.availableToStudent && typeof onStartExercise === "function";
 
   return (
@@ -38,7 +33,7 @@ export function ActiveExerciseRow({ exercise, mode, onStartExercise, onPreviewEx
       </div>
       <div className="book-exercise-status">
         <Tag tone={statusTone(displayExercise.status)}>{displayExercise.status}</Tag>
-        <small>{isTeacher ? displayExercise.progressLabel : displayExercise.studentProgressLabel}</small>
+        <small>{exerciseSecondaryText(exercise, { isTeacher, completed })}</small>
       </div>
       {isTeacher ? (
         <div className="book-browser-teacher-actions">
@@ -94,7 +89,7 @@ export function TeacherExerciseRow({ exercise, onPreviewExercise, onPresentExerc
       </div>
       <div className="teacher-book-exercise-status">
         <Tag tone={active ? statusTone(exercise.status) : "slate"}>{active ? exercise.status : exercise.status || "Unavailable"}</Tag>
-        <small>{active ? exercise.progressLabel : exercise.disabledReason || "Unavailable"}</small>
+        <small>{exerciseSecondaryText(exercise, { isTeacher: true })}</small>
       </div>
       <div className="teacher-book-row-actions">
         <button

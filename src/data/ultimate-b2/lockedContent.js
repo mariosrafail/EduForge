@@ -12,8 +12,6 @@ export function lockedExercise({ id, title, component, unit, lesson, skill = "Pr
     availableToStudent: false,
     locked: true,
     status: "Locked",
-    progressLabel: "Locked for demo",
-    studentProgressLabel: "Locked for demo",
     description: "Full publisher content placeholder. This item is visible in the demo package but not active.",
   };
 }

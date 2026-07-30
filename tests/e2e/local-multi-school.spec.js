@@ -390,6 +390,9 @@ test("real multi-school roles, workflows, licensing, and isolation", async ({ pa
     expect(hiddenComponent.response.status()).toBe(404);
   }
   await page.goto("/#teacher/books/ultimate-b2", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("body")).not.toContainText("11/16 submitted");
+  await expect(page.locator("body")).not.toContainText("Assigned to 2 classes");
+  await expect(page.locator("body")).not.toContainText("Teacher feedback ready");
   await expect(page.locator(".book-component-card")).toHaveCount(2);
   await expect(page.getByText("Ultimate B2 Students Book", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Ultimate B2 Workbook", { exact: true }).first()).toBeVisible();

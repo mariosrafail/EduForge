@@ -30,7 +30,7 @@ export function LockedExerciseRow({ exercise }) {
       </div>
       <div className="book-exercise-status">
         <Tag tone="slate">Locked</Tag>
-        <small>{exercise.studentProgressLabel || "Locked for demo"}</small>
+        <small>{exercise.disabledReason || "Unavailable"}</small>
       </div>
       <button className="secondary-action compact-action" type="button" disabled>
         <Lock size={16} /> Locked

@@ -12,8 +12,6 @@ function lockedResourceExercise({ id, title, component, unit, lesson, resourceCo
     availableToStudent: false,
     locked: true,
     status: "Locked",
-    progressLabel: "Imported, not mapped",
-    studentProgressLabel: "Locked for mapping",
     description: `${resourceCount} source asset${resourceCount === 1 ? "" : "s"} found in the English Journey 6 AIR package. Map this part to an interactive activity before assigning it.`,
   };
 }
