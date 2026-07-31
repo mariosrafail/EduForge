@@ -37,6 +37,7 @@
     "verify:migration-manifest": "node scripts/verify-migration-manifest.mjs",
     "audit:runtime-schema-boundary": "node scripts/audit-runtime-schema-boundary.mjs",
     "production:preflight": "node scripts/check-production-deployment.mjs",
+    "production:inventory:demo-entitlements": "node scripts/inventory-production-demo-entitlements.mjs",
     "deploy:build": "node scripts/netlify-build.mjs",
     "build": "vite build",
     "verify:web-bundle-safety": "node scripts/verify-web-bundle-safety.mjs",

@@ -124,6 +124,12 @@ After deployment, an approved operator must verify:
 
 Do not place production credentials, session cookies, personal data, tenant identifiers, or raw log payloads in the release record.
 
+### PR-014 historical demo entitlement inventory
+
+Repository tooling for the read-only Phase 1 inventory is documented in `docs/demo-entitlement-inventory.md`. Run `npm run production:inventory:demo-entitlements` only from an explicitly confirmed hosted production operator environment and retain aggregate evidence only.
+
+The repository implementation does not prove the state of any target environment. Actual target-environment inventory remains **Needs verification**, PR-014 is not fully remediated, and any forward-only cleanup migration is deferred until the inventory evidence receives separate review.
+
 ## 7. Rollback decision
 
 Stop before deployment when preflight or evidence fails; no rollback is then required.
@@ -158,4 +164,4 @@ The following remain **Needs verification** until evidence is supplied:
 - Backup availability and restore testing.
 - Production monitoring destinations and alert ownership.
 
-Repository-level PR-008 remediation does not close these external evidence gaps. PR-007 remains unresolved pending successful PR-008 gate adoption. PR-014 remains unresolved pending deployed migration-history and environment inventory.
+Repository-level PR-008 remediation does not close these external evidence gaps. PR-007 remains unresolved pending successful PR-008 gate adoption. PR-014 repository inventory tooling exists, but target-environment inventory remains **Needs verification** and PR-014 is not fully remediated.
