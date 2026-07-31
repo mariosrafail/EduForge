@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import bcrypt from "bcryptjs";
 import pg from "pg";
@@ -12,6 +11,7 @@ import {
 } from "../../netlify/functions/_auth-login-rate-limit.js";
 import { setSqlForTests } from "../../netlify/functions/_auth-utils.js";
 import { handler as signIn } from "../../netlify/functions/auth-signin.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -115,11 +115,8 @@ test("ordinary sign-in limiter is distributed, atomic, recoverable, and privacy 
     await adminPool.end();
   });
 
-  const migrationFiles = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const filename of migrationFiles) await pool.query(await readFile(`database/${filename}`, "utf8"));
-  assert.equal(migrationFiles.at(-1), "030_platform_admin_login_rate_limit.sql");
+  const migrations = await applyCanonicalProductionMigrations(pool);
+  assert.equal(migrations.at(-1).filename, "030_platform_admin_login_rate_limit.sql");
 
   const columns = (await pool.query(`
     select column_name from information_schema.columns

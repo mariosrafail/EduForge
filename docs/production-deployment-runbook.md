@@ -4,7 +4,9 @@
 
 This runbook governs a production release of EduForge. The repository production preflight is read-only: it validates the ordered migration manifest, recorded checksums, critical schema objects, and tenant-integrity counts inside a `BEGIN READ ONLY` transaction that always ends with `ROLLBACK`.
 
-The Netlify build does not apply migrations. Production credentials are not used by ordinary CI, deploy previews, branch deploys, or local `npm run build`. PR-007 runtime authentication DDL removal is a later change and must not occur until this gate has been adopted successfully.
+The Netlify build does not apply migrations. Production credentials are not used by ordinary CI, deploy previews, branch deploys, or local `npm run build`. Migrations are the sole schema authority: normal authentication requests perform the read-only contract in `docs/runtime-database-role.md` and return `SCHEMA_NOT_READY` rather than repairing an incomplete schema.
+
+The deployment preflight requires an exact repository/database history match. Runtime readiness permits additional forward-compatible migration rows while requiring every migration and authentication object expected by the running code. Production runtime credentials should be separate from migration-owner and optional read-only preflight credentials. The actual production runtime-role rollout remains **Needs verification**.
 
 The gate proves repository behavior. It does not prove that external GitHub, Netlify, database, backup, or monitoring controls are configured.
 

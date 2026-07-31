@@ -1,5 +1,9 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import pg from "pg";
+import {
+  loadProductionMigrationManifest,
+  migrationChecksumMatches,
+} from "./_migration-readiness.mjs";
 
 function requireIsolatedLocalDatabase(environment = process.env) {
   if (environment.PILOT_DATABASE_CONFIRMATION !== "isolated-local-pilot") {
@@ -21,32 +25,56 @@ const connectionString = requireIsolatedLocalDatabase();
 const pool = new pg.Pool({ connectionString });
 
 try {
+  const migrations = await loadProductionMigrationManifest();
+  const historyExists = (await pool.query(
+    "select to_regclass(current_schema() || '.eduforge_migration_history') is not null as exists",
+  )).rows[0].exists;
+  const existingTables = Number((await pool.query(`
+    select count(*)::int count from information_schema.tables
+    where table_schema=current_schema()
+      and table_name not in ('eduforge_migration_history','local_pilot_migrations')
+  `)).rows[0].count);
+  if (!historyExists && existingTables) {
+    throw new Error("Local pilot schema predates canonical migration history; reset the explicitly isolated pilot database");
+  }
   await pool.query(`
-    create table if not exists local_pilot_migrations (
+    create table if not exists eduforge_migration_history (
       filename text primary key,
+      checksum_sha256 text not null,
       applied_at timestamptz not null default now()
     )
   `);
-  const tracked = new Set((await pool.query("select filename from local_pilot_migrations")).rows.map((row) => row.filename));
-  const existingTables = Number((await pool.query(`
-    select count(*)::int as count
-    from information_schema.tables
-    where table_schema = current_schema()
-      and table_name <> 'local_pilot_migrations'
-  `)).rows[0].count);
-  if (!tracked.size && existingTables) {
-    throw new Error("Local pilot database is not empty and has no migration history; use a fresh isolated database");
+  const applied = (await pool.query(
+    "select filename,checksum_sha256 from eduforge_migration_history order by applied_at,filename",
+  )).rows;
+  const expectedPrefix = migrations.slice(0, applied.length).map(({ filename }) => filename);
+  if (JSON.stringify(applied.map(({ filename }) => filename)) !== JSON.stringify(expectedPrefix)) {
+    throw new Error("Local pilot canonical migration history is not an ordered manifest prefix");
   }
-  const migrationFiles = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const file of migrationFiles) {
-    if (tracked.has(file)) continue;
-    await pool.query(await readFile(`database/${file}`, "utf8"));
-    await pool.query("insert into local_pilot_migrations (filename) values ($1)", [file]);
+  for (const row of applied) {
+    const migration = migrations.find(({ filename }) => filename === row.filename);
+    if (!migration || !migrationChecksumMatches(migration, row.checksum_sha256)) {
+      throw new Error(`Local pilot canonical migration history mismatch: ${row.filename}`);
+    }
+  }
+  const tracked = new Set(applied.map(({ filename }) => filename));
+  for (const migration of migrations) {
+    if (tracked.has(migration.filename)) continue;
+    await pool.query("begin");
+    try {
+      await pool.query(migration.sql);
+      await pool.query(
+        "insert into eduforge_migration_history(filename,checksum_sha256) values($1,$2)",
+        [migration.filename, migration.checksum],
+      );
+      await pool.query("commit");
+    } catch (error) {
+      await pool.query("rollback").catch(() => {});
+      throw error;
+    }
   }
   await pool.query(await readFile("database/012_demo_login_passwords.sql", "utf8"));
-  console.log(`Seeded isolated local pilot with ${migrationFiles.length} production migrations and the demo-only seed.`);
+  console.log(`Seeded isolated local pilot with ${migrations.length} canonical production migrations and the demo-only seed.`);
 } finally {
   await pool.end();
 }

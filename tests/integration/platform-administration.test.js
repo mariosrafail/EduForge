@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import bcrypt from "bcryptjs";
 import pg from "pg";
@@ -14,6 +13,7 @@ import { handler as accountTokenCheck } from "../../netlify/functions/account-to
 import { handler as accountSetPassword } from "../../netlify/functions/account-set-password.js";
 import { handler as schoolUsers } from "../../netlify/functions/users.js";
 import { handler as schoolUser } from "../../netlify/functions/user.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 import {
   clearCapturedEmailsForTests,
   getCapturedEmailsForTests,
@@ -147,11 +147,7 @@ test("dedicated Platform Administration enforces cross-tenant capability without
     await adminPool.end();
   });
 
-  const migrationFiles = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const file of migrationFiles) await pool.query(await readFile(`database/${file}`, "utf8"));
-  await pool.query(await readFile("database/028_platform_administration.sql", "utf8"));
+  await applyCanonicalProductionMigrations(pool);
 
   const platformColumns = (await pool.query("select column_name from information_schema.columns where table_schema=$1 and table_name='platform_admins'", [schema])).rows.map((row) => row.column_name);
   assert.equal(platformColumns.includes("school_id"), false);

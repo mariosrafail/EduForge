@@ -32,7 +32,7 @@ test("Student signup rejects password-policy failures before database access", a
     assert.equal(response.headers?.["Set-Cookie"], undefined);
   }
   const source = await readFile("netlify/functions/auth-student-signup.js", "utf8");
-  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const sql = getSql()"));
-  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const classItem = await findClassByInviteCode"));
-  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const passwordHash = await bcrypt.hash"));
+  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const sql = database()"));
+  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const classItem = await findClass"));
+  assert.ok(source.indexOf("validatePassword(password, email)") < source.indexOf("const passwordHash = await hashPassword"));
 });

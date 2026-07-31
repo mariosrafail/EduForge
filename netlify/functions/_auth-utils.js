@@ -1,6 +1,10 @@
 import { randomBytes, createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import pg from "pg";
+import {
+  requireRuntimeSchema,
+  schemaFailureResponse,
+} from "./_runtime-schema-readiness.js";
 
 export const allowedRoles = new Set(["admin", "teacher", "student"]);
 export const allowedStatuses = new Set(["active", "invited", "paused"]);
@@ -136,32 +140,6 @@ export function getSql() {
   return neon(databaseUrl);
 }
 
-export async function ensureAuthSchema(sql) {
-  await sql`create extension if not exists pgcrypto`;
-  await sql`
-    alter table app_users
-    add column if not exists password_hash text,
-    add column if not exists last_login_at timestamptz,
-    add column if not exists auth_provider text default 'password'
-  `;
-  await sql`
-    update app_users
-    set auth_provider = 'password'
-    where auth_provider is null
-  `;
-  await sql`
-    create table if not exists auth_sessions (
-      id uuid primary key default gen_random_uuid(),
-      user_id uuid references app_users(id) on delete cascade,
-      token_hash text not null,
-      expires_at timestamptz not null,
-      created_at timestamptz default now()
-    )
-  `;
-  await sql`create index if not exists auth_sessions_token_hash_idx on auth_sessions (token_hash)`;
-  await sql`create index if not exists auth_sessions_user_id_idx on auth_sessions (user_id)`;
-}
-
 export function normalizeEmail(email) {
   return String(email ?? "").trim().toLowerCase();
 }
@@ -287,10 +265,19 @@ export async function currentUserFromEvent(sql, event) {
  */
 export async function requireAuth(event, sql = null) {
   const database = sql || getSql();
+  const readinessError = await requireRuntimeSchema(database);
+  if (readinessError) return { error: readinessError };
   const token = getCookie(event, sessionCookieName);
   if (!token) return { error: unauthorized() };
 
-  const currentUser = await currentUserFromEvent(database, event);
+  let currentUser;
+  try {
+    currentUser = await currentUserFromEvent(database, event);
+  } catch (error) {
+    const schemaError = schemaFailureResponse(error);
+    if (schemaError) return { error: schemaError };
+    throw error;
+  }
   if (!currentUser) return { error: unauthorized() };
   return { sql: database, currentUser };
 }
@@ -305,5 +292,7 @@ export async function requireRole(event, allowedRoleList, sql = null) {
 
 export function safeServerError(error, message = "Request failed") {
   console.error(error);
+  const schemaError = schemaFailureResponse(error);
+  if (schemaError) return schemaError;
   return json(500, { error: message });
 }

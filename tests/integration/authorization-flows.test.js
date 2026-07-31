@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { hashToken, sessionCookieName, setSqlForTests } from "../../netlify/functions/_auth-utils.js";
@@ -16,6 +15,7 @@ import { handler as lessonHandler } from "../../netlify/functions/lesson.js";
 import { handler as activityHandler } from "../../netlify/functions/activity.js";
 import { handler as operationalHealthHandler } from "../../netlify/functions/operational-health.js";
 import { relationshipChecks } from "../../scripts/_tenant-integrity-checks.mjs";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const confirmedIsolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
@@ -92,12 +92,7 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     await adminPool.end();
   });
 
-  const migrationFiles = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((a, b) => a.localeCompare(b));
-  for (const file of migrationFiles) {
-    await pool.query(await readFile(`database/${file}`, "utf8"));
-  }
+  await applyCanonicalProductionMigrations(pool);
 
   const schools = await pool.query(
     `insert into schools (name) values ('Integration School A'), ('Integration School B') returning id, name`,

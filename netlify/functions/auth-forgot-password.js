@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { getSql, hashToken, json, safeServerError } from "./_auth-utils.js";
 import { checkRateLimit, createAccountToken, genericForgotPasswordMessage, hashPrivateValue, parseJsonBody, passwordResetLifetimeMinutes, recordRateLimitAttempt, requestFingerprint, tokenExpiry, validateEmail } from "./_account-lifecycle-utils.js";
 import { deliverAccountEmail, markEmailDelivery, recordDeliveryFailureEvent } from "./_email-utils.js";
+import { requireRuntimeSchema, schemaFailureResponse } from "./_runtime-schema-readiness.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") return json(405, { error: "Method not allowed" });
@@ -9,6 +10,8 @@ export async function handler(event) {
     const parsed = parseJsonBody(event);
     const email = validateEmail(parsed.value?.email);
     const sql = getSql();
+    const readinessError = await requireRuntimeSchema(sql);
+    if (readinessError) return readinessError;
     const fingerprint = requestFingerprint(event);
     const emailHash = hashPrivateValue(email || "invalid");
     if (await checkRateLimit(sql, { scope: "forgot_password", fingerprint, emailHash, limit: 5 })) return json(429, { message: genericForgotPasswordMessage }, { "Retry-After": "900" });
@@ -30,5 +33,5 @@ export async function handler(event) {
     }
     await recordRateLimitAttempt(sql, { scope: "forgot_password", fingerprint, emailHash, succeeded: Boolean(user) });
     return json(200, { message: genericForgotPasswordMessage });
-  } catch (error) { return safeServerError(error, "Password reset request failed"); }
+  } catch (error) { return schemaFailureResponse(error) || safeServerError(error, "Password reset request failed"); }
 }

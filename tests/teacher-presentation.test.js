@@ -30,6 +30,7 @@ import {
   handler as bookContentHandler,
 } from "../netlify/functions/book-content.js";
 import { setSqlForTests } from "../netlify/functions/_auth-utils.js";
+import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 
 const enabledMultipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const enabledTypedId = "ultimate-b2-sb-u2-p3-o4";
@@ -68,7 +69,7 @@ function activityRow(stableActivityId, overrides = {}) {
 }
 
 function mockSql({ currentUser = null, activity = null, accessiblePackageIds = [] } = {}) {
-  return async (strings) => {
+  return runtimeReadySql(async (strings) => {
     const query = strings.join("?").replace(/\s+/g, " ");
     if (query.includes("from auth_sessions s")) return currentUser ? [currentUser] : [];
     if (query.includes("join book_components bc on bc.book_package_id = bp.id")) return activity ? [activity] : [];
@@ -76,7 +77,7 @@ function mockSql({ currentUser = null, activity = null, accessiblePackageIds = [
       return accessiblePackageIds.map((id) => ({ id }));
     }
     throw new Error(`Unexpected verification query: ${query}`);
-  };
+  });
 }
 
 function responseBody(response) {

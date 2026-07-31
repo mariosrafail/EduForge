@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomBytes } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { hashToken, sessionCookieName } from "../../netlify/functions/_auth-utils.js";
@@ -11,6 +10,7 @@ import { handler as tokenCheck } from "../../netlify/functions/account-token-che
 import { handler as setPassword } from "../../netlify/functions/account-set-password.js";
 import { handler as signIn } from "../../netlify/functions/auth-signin.js";
 import { handler as invite } from "../../netlify/functions/account-invite.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;
 const databaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -74,10 +74,7 @@ test("CSV user import is atomic, invitation-only, race-safe, recoverable, and te
     await adminPool.end();
   });
 
-  const migrations = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const migration of migrations) await pool.query(await readFile(`database/${migration}`, "utf8"));
+  await applyCanonicalProductionMigrations(pool);
 
   const schools = (await pool.query("insert into schools(name) values('Import School A'),('Import School B') returning id")).rows;
   const passwordHash = await bcrypt.hash("Admin-Import-2026", 4);

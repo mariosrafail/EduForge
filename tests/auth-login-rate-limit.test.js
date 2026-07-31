@@ -117,7 +117,7 @@ test("handler pre-blocks pair/source limits without bcrypt or session creation",
   let sessions = 0;
   const handler = createSigninHandler({
     getDatabase: () => fakeSql(),
-    ensureSchema: async () => {},
+    checkReadiness: async () => null,
     beginAttempt: async () => ({ limited: true, retryAfter: 17 }),
     completeAttempt: async () => { throw new Error("must not finalize a pre-blocked request"); },
     comparePassword: async () => { compares += 1; return false; },
@@ -147,7 +147,7 @@ test("handler verifies account-limited requests and lets a correct active passwo
   let sessions = 0;
   const handler = createSigninHandler({
     getDatabase: () => fakeSql(user),
-    ensureSchema: async () => {},
+    checkReadiness: async () => null,
     beginAttempt: async () => ({ attemptId: "1", limited: false, accountLimited: true }),
     completeAttempt: async (_sql, attempt) => {
       outcomes.push(attempt);
@@ -169,7 +169,7 @@ test("handler keeps unknown and wrong-account errors generic and uses the dummy 
   let completed = null;
   const handler = createSigninHandler({
     getDatabase: () => fakeSql(),
-    ensureSchema: async () => {},
+    checkReadiness: async () => null,
     beginAttempt: async () => ({ attemptId: "2", limited: false }),
     completeAttempt: async (_sql, attempt) => {
       completed = attempt;
@@ -205,7 +205,7 @@ test("handler preserves inactive-account, method, and payload contracts", async 
   let sessions = 0;
   const handler = createSigninHandler({
     getDatabase: () => fakeSql(user),
-    ensureSchema: async () => {},
+    checkReadiness: async () => null,
     beginAttempt: async () => ({ attemptId: "3", limited: false }),
     completeAttempt: async (_sql, attempt) => { outcome = attempt.outcome; return { limited: false, retryAfter: 1 }; },
     comparePassword: async () => true,

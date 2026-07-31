@@ -27,7 +27,9 @@ async function runNode(script) {
 if (action === "setup") {
   const adminUrl = await ensureLocalPostgres();
   await createDemoDatabase(adminUrl);
-  const count = await applyDemoMigrations(localMultiSchoolDatabaseUrl());
+  const count = await applyDemoMigrations(localMultiSchoolDatabaseUrl(), {
+    confirmation: LOCAL_MULTI_SCHOOL.confirmation,
+  });
   await runNode("scripts/seed-multi-school.mjs");
   await writeLocalMultiSchoolMarker();
   console.log(`Local multi-school demo ready: ${count} production migrations, dedicated database ${LOCAL_MULTI_SCHOOL.databaseName}.`);

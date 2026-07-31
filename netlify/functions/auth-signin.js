@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
+import { createSession, emailPattern, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
 import {
   authLoginDummyPasswordHash,
   authLoginIdentifiers,
@@ -7,6 +7,10 @@ import {
   beginAuthLoginAttempt,
   completeAuthLoginAttempt,
 } from "./_auth-login-rate-limit.js";
+import {
+  requireRuntimeSchema,
+  schemaFailureResponse,
+} from "./_runtime-schema-readiness.js";
 
 function validate(payload) {
   const email = normalizeEmail(payload.email);
@@ -25,7 +29,7 @@ function rateLimited(result) {
 export function createSigninHandler(dependencies = {}) {
   const comparePassword = dependencies.comparePassword || bcrypt.compare;
   const database = dependencies.getDatabase || getSql;
-  const ensureSchema = dependencies.ensureSchema || ensureAuthSchema;
+  const checkReadiness = dependencies.checkReadiness || requireRuntimeSchema;
   const beginAttempt = dependencies.beginAttempt || beginAuthLoginAttempt;
   const completeAttempt = dependencies.completeAttempt || completeAuthLoginAttempt;
   const createAuthSession = dependencies.createAuthSession || createSession;
@@ -53,7 +57,8 @@ export function createSigninHandler(dependencies = {}) {
       }
 
       const sql = database();
-      await ensureSchema(sql);
+      const readinessError = await checkReadiness(sql);
+      if (readinessError) return readinessError;
       const { email, password } = validation.value;
       const identifiers = authLoginIdentifiers(event, email);
       const attempt = await beginAttempt(sql, identifiers);
@@ -110,6 +115,8 @@ export function createSigninHandler(dependencies = {}) {
       return json(200, { user: publicUser(updated[0]) }, { "Set-Cookie": session.cookie });
     } catch (error) {
       console.error(error);
+      const schemaError = schemaFailureResponse(error);
+      if (schemaError) return schemaError;
       return serverError("Signin failed. Check database setup and migrations.");
     }
   };

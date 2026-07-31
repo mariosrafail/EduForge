@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { requireAuth, requireRole, requireSameSchool } from "../netlify/functions/_auth-utils.js";
+import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 import {
   browserSafeBookActivityPayload,
   canAccessStudentScopedRow,
@@ -32,7 +33,7 @@ function fakeSqlForUser(user) {
     return user ? [user] : [];
   };
   sql.calls = calls;
-  return sql;
+  return runtimeReadySql(sql);
 }
 
 test("unauthenticated request returns 401", async () => {

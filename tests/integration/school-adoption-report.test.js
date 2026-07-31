@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import bcrypt from "bcryptjs";
 import pg from "pg";
@@ -10,6 +9,7 @@ import {
   setSqlForTests,
 } from "../../netlify/functions/_auth-utils.js";
 import { handler } from "../../netlify/functions/school-adoption-report.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const databaseUrl = process.env.TEST_DATABASE_URL || "";
 const enabled = Boolean(databaseUrl) && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
@@ -146,10 +146,7 @@ test("School adoption summary and CSV are exact, latest-only, private, audited, 
     await adminPool.end();
   });
 
-  const migrations = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const migration of migrations) await pool.query(await readFile(`database/${migration}`, "utf8"));
+  await applyCanonicalProductionMigrations(pool);
 
   const schools = (await pool.query(
     "insert into schools(name) values('Adoption School A'),('Adoption School B'),('Empty Adoption School') returning id,name",

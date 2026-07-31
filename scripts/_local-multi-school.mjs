@@ -1,7 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 import pg from "pg";
+import {
+  loadProductionMigrationManifest,
+  migrationChecksumMatches,
+} from "./_migration-readiness.mjs";
 
 export const LOCAL_MULTI_SCHOOL = Object.freeze({
   confirmation: "isolated-local-multi-school-demo",
@@ -102,22 +106,125 @@ export async function createDemoDatabase(adminUrl) {
   }
 }
 
-export async function applyDemoMigrations(connectionString) {
+function assertDedicatedDemoMigrationTarget(connectionString, confirmation) {
+  if (confirmation !== LOCAL_MULTI_SCHOOL.confirmation) {
+    throw new Error("Canonical local migration history requires explicit local demo confirmation");
+  }
+  const url = new URL(connectionString);
+  const databaseName = decodeURIComponent(url.pathname.replace(/^\//, ""));
+  if (
+    !["postgres:", "postgresql:"].includes(url.protocol)
+    || !["127.0.0.1", "localhost", "::1"].includes(url.hostname)
+    || databaseName !== LOCAL_MULTI_SCHOOL.databaseName
+  ) {
+    throw new Error("Canonical local migration history is restricted to the dedicated loopback demo database");
+  }
+}
+
+export async function applyDemoMigrations(connectionString, {
+  confirmation,
+  migrations: suppliedMigrations,
+} = {}) {
+  assertDedicatedDemoMigrationTarget(connectionString, confirmation);
+  const migrations = suppliedMigrations || await loadProductionMigrationManifest();
   const pool = new pg.Pool({ connectionString });
   try {
-    await pool.query("create table if not exists local_multi_school_migrations(filename text primary key, applied_at timestamptz not null default now())");
-    const tracked = new Set((await pool.query("select filename from local_multi_school_migrations")).rows.map((row) => row.filename));
-    const existing = Number((await pool.query("select count(*)::int count from information_schema.tables where table_schema=current_schema() and table_name <> 'local_multi_school_migrations'")).rows[0].count);
-    if (!tracked.size && existing) throw new Error("Dedicated demo database is non-empty without migration history");
-    const files = (await readdir("database"))
-      .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-      .sort((left, right) => left.localeCompare(right));
-    for (const filename of files) {
-      if (tracked.has(filename)) continue;
-      await pool.query(await readFile(`database/${filename}`, "utf8"));
-      await pool.query("insert into local_multi_school_migrations(filename) values($1)", [filename]);
+    const relationState = (await pool.query(`
+      select
+        to_regclass(current_schema() || '.eduforge_migration_history') is not null canonical_exists,
+        to_regclass(current_schema() || '.local_multi_school_migrations') is not null legacy_exists
+    `)).rows[0];
+    const nonHistoryTableCount = Number((await pool.query(`
+      select count(*)::int count from information_schema.tables
+      where table_schema=current_schema()
+        and table_name not in ('eduforge_migration_history','local_multi_school_migrations')
+    `)).rows[0].count);
+
+    if (!relationState.canonical_exists && relationState.legacy_exists) {
+      const legacyFiles = (await pool.query(
+        "select filename from local_multi_school_migrations order by applied_at,filename",
+      )).rows.map(({ filename }) => filename);
+      const expectedFiles = migrations.map(({ filename }) => filename);
+      if (JSON.stringify(legacyFiles) !== JSON.stringify(expectedFiles)) {
+        throw new Error("Legacy local migration history cannot be proven; reset the dedicated demo database");
+      }
+      const requiredTables = [
+        "schools", "app_users", "auth_sessions", "auth_login_attempts",
+        "account_tokens", "account_email_outbox",
+      ];
+      const present = new Set((await pool.query(`
+        select table_name from information_schema.tables
+        where table_schema=current_schema() and table_name=any($1::text[])
+      `, [requiredTables])).rows.map(({ table_name }) => table_name));
+      if (requiredTables.some((table) => !present.has(table))) {
+        throw new Error("Legacy local schema probes failed; reset the dedicated demo database");
+      }
+      await pool.query("begin");
+      try {
+        await pool.query(`
+          create table eduforge_migration_history(
+            filename text primary key,
+            checksum_sha256 text not null,
+            applied_at timestamptz not null default now()
+          )
+        `);
+        for (const migration of migrations) {
+          await pool.query(
+            "insert into eduforge_migration_history(filename,checksum_sha256) values($1,$2)",
+            [migration.filename, migration.checksum],
+          );
+        }
+        await pool.query("commit");
+      } catch (error) {
+        await pool.query("rollback").catch(() => {});
+        throw error;
+      }
+    } else if (!relationState.canonical_exists) {
+      if (nonHistoryTableCount) {
+        throw new Error("Dedicated demo database is non-empty without canonical migration history");
+      }
+      await pool.query(`
+        create table eduforge_migration_history(
+          filename text primary key,
+          checksum_sha256 text not null,
+          applied_at timestamptz not null default now()
+        )
+      `);
     }
-    return files.length;
+
+    const appliedRows = (await pool.query(
+      "select filename,checksum_sha256 from eduforge_migration_history order by applied_at,filename",
+    )).rows;
+    const appliedByName = new Map(appliedRows.map((row) => [row.filename, row]));
+    for (const row of appliedRows) {
+      const migration = migrations.find(({ filename }) => filename === row.filename);
+      if (!migration) throw new Error(`Unknown canonical local migration history row: ${row.filename}`);
+      if (!migrationChecksumMatches(migration, row.checksum_sha256)) {
+        throw new Error(`Canonical local migration checksum mismatch: ${row.filename}`);
+      }
+    }
+    const appliedNames = appliedRows.map(({ filename }) => filename);
+    const expectedPrefix = migrations.slice(0, appliedRows.length).map(({ filename }) => filename);
+    if (JSON.stringify(appliedNames) !== JSON.stringify(expectedPrefix)) {
+      throw new Error("Canonical local migration history is not an ordered manifest prefix");
+    }
+
+    for (const migration of migrations) {
+      if (appliedByName.has(migration.filename)) continue;
+      await pool.query("begin");
+      try {
+        await pool.query(migration.sql);
+        await pool.query(
+          "insert into eduforge_migration_history(filename,checksum_sha256) values($1,$2)",
+          [migration.filename, migration.checksum],
+        );
+        await pool.query("commit");
+      } catch (error) {
+        await pool.query("rollback").catch(() => {});
+        throw error;
+      }
+    }
+    return migrations.length;
   } finally {
     await pool.end();
   }

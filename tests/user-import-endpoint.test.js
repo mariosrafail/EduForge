@@ -3,6 +3,7 @@ import test from "node:test";
 import { setSqlForTests } from "../netlify/functions/_auth-utils.js";
 import { clearCapturedEmailsForTests, getCapturedEmailsForTests } from "../netlify/functions/_email-utils.js";
 import { handler } from "../netlify/functions/user-import.js";
+import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 
 const schoolId = "00000000-0000-4000-8000-000000000010";
 const userId = "00000000-0000-4000-8000-000000000001";
@@ -64,7 +65,7 @@ function mockSql({ authenticated = true, role = "admin", existing = [], failCrea
     }
     throw new Error(`Unexpected SQL: ${query}`);
   };
-  return { sql, state };
+  return { sql: runtimeReadySql(sql), state };
 }
 
 test("user import endpoint enforces method, authentication, role, origin, controls, and private caching", async (t) => {

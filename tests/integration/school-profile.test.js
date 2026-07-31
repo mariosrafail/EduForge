@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import pg from "pg";
 import {
@@ -9,6 +8,7 @@ import {
   setSqlForTests,
 } from "../../netlify/functions/_auth-utils.js";
 import { handler as schoolProfile } from "../../netlify/functions/school-profile.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const enabled = Boolean(testDatabaseUrl)
@@ -65,10 +65,7 @@ test("school profile persistence is atomic and isolated across ordinary tenants"
     await adminPool.end();
   });
 
-  const migrations = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
-    .sort((left, right) => left.localeCompare(right));
-  for (const migration of migrations) await pool.query(await readFile(`database/${migration}`, "utf8"));
+  await applyCanonicalProductionMigrations(pool);
 
   const schools = (await pool.query(`
     insert into schools(name,logo,primary_color,secondary_color,status)

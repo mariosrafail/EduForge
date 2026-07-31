@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { setSqlForTests } from "../netlify/functions/_auth-utils.js";
 import { handler } from "../netlify/functions/school-adoption-report.js";
+import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 
 const schoolId = "00000000-0000-4000-8000-000000000010";
 const userId = "00000000-0000-4000-8000-000000000001";
@@ -75,7 +76,7 @@ function mockSql({ authenticated = true, role = "admin", empty = false, database
     }
     throw new Error(`Unexpected SQL: ${query}`);
   };
-  return { sql, state };
+  return { sql: runtimeReadySql(sql), state };
 }
 
 async function withDatabase(t, options = {}) {

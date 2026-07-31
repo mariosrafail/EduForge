@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { hashToken, sessionCookieName, setSqlForTests } from "../../netlify/functions/_auth-utils.js";
 import { hashAccessCode, maskAccessCode } from "../../netlify/functions/_licensing-utils.js";
 import { handler as licensingHandler } from "../../netlify/functions/book-licensing.js";
 import { handler as bookContentHandler } from "../../netlify/functions/book-content.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const integrationEnabled = Boolean(testDatabaseUrl && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database");
@@ -60,8 +60,7 @@ test("one-time book licensing is atomic, role-scoped, and tenant-isolated", { sk
     if (previousUrl === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = previousUrl;
     setSqlForTests(null); await pool.end(); await adminPool.query(`drop schema if exists "${schema}" cascade`); await adminPool.end();
   });
-  const migrations = (await readdir("database")).filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql").sort((a, b) => a.localeCompare(b));
-  for (const migration of migrations) await pool.query(await readFile(`database/${migration}`, "utf8"));
+  await applyCanonicalProductionMigrations(pool);
 
   const schools = (await pool.query("insert into schools(name) values('License School A'),('License School B') returning id,name")).rows;
   const schoolA = schools.find((row) => row.name.endsWith("A")).id;

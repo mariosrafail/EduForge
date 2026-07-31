@@ -1,6 +1,5 @@
 import { handler as accountInviteHandler } from "./account-invite.js";
 import {
-  ensureAuthSchema,
   getSql,
   json,
   publicUser,
@@ -14,7 +13,6 @@ export async function handler(event) {
 
   try {
     const sql = getSql();
-    await ensureAuthSchema(sql);
     const auth = await requireRole(event, ["admin"], sql);
     if (auth.error) return auth.error;
     if (!auth.currentUser.school_id) return json(403, { error: "Forbidden" });

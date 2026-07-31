@@ -1,7 +1,11 @@
 import bcrypt from "bcryptjs";
-import { createSession, emailPattern, ensureAuthSchema, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
+import { createSession, emailPattern, getSql, json, normalizeEmail, publicUser, serverError } from "./_auth-utils.js";
 import { validatePassword } from "./_account-lifecycle-utils.js";
 import { enforceInviteRateLimit, findClassByInviteCode, isValidInviteCode, publicClassInviteRow, recordInviteAttempt } from "./_class-utils.js";
+import {
+  requireRuntimeSchema,
+  schemaFailureResponse,
+} from "./_runtime-schema-readiness.js";
 
 function validate(payload) {
   const fullName = String(payload.fullName ?? payload.studentName ?? "").trim();
@@ -20,7 +24,16 @@ function validate(payload) {
   return { value: { fullName, email, password, classCode } };
 }
 
-export async function handler(event) {
+export function createStudentSignupHandler(dependencies = {}) {
+  const database = dependencies.getDatabase || getSql;
+  const checkReadiness = dependencies.checkReadiness || requireRuntimeSchema;
+  const enforceRateLimit = dependencies.enforceRateLimit || enforceInviteRateLimit;
+  const findClass = dependencies.findClass || findClassByInviteCode;
+  const recordAttempt = dependencies.recordAttempt || recordInviteAttempt;
+  const hashPassword = dependencies.hashPassword || ((password) => bcrypt.hash(password, 12));
+  const createAuthSession = dependencies.createAuthSession || createSession;
+
+  return async function studentSignupHandler(event) {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
   }
@@ -30,18 +43,24 @@ export async function handler(event) {
   }
 
   try {
-    const payload = JSON.parse(event.body || "{}");
+    let payload;
+    try {
+      payload = JSON.parse(event.body || "{}");
+    } catch {
+      return json(400, { error: "Request body must be valid JSON" });
+    }
     const validation = validate(payload);
     if (validation.error) return json(400, { error: validation.error });
 
-    const sql = getSql();
-    await ensureAuthSchema(sql);
+    const sql = database();
+    const readinessError = await checkReadiness(sql);
+    if (readinessError) return readinessError;
     const { fullName, email, password, classCode } = validation.value;
 
-    const rateLimitError = await enforceInviteRateLimit(sql, event);
+    const rateLimitError = await enforceRateLimit(sql, event);
     if (rateLimitError) return rateLimitError;
-    const classItem = await findClassByInviteCode(sql, classCode);
-    await recordInviteAttempt(sql, event, Boolean(classItem));
+    const classItem = await findClass(sql, classCode);
+    await recordAttempt(sql, event, Boolean(classItem));
     if (!classItem?.schoolId) {
       return json(400, { error: "A valid class invite code is required for student signup" });
     }
@@ -49,7 +68,7 @@ export async function handler(event) {
     const existing = await sql`select id from app_users where lower(email) = ${email} limit 1`;
     if (existing.length > 0) return json(409, { error: "Email already exists" });
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await hashPassword(password);
     const users = await sql`
       with inserted_user as (
         insert into app_users (school_id, full_name, email, role, level, status, password_hash, auth_provider)
@@ -65,7 +84,7 @@ export async function handler(event) {
       join inserted_membership m on m.student_id = u.id
     `;
 
-    const session = await createSession(sql, users[0].id, event);
+    const session = await createAuthSession(sql, users[0].id, event);
     const { school_id: _internalSchoolId, ...signupUser } = publicUser(users[0]);
     return json(201, {
       user: signupUser,
@@ -74,6 +93,11 @@ export async function handler(event) {
   } catch (error) {
     console.error(error);
     if (error.code === "23505") return json(409, { error: "Email already exists" });
+    const schemaError = schemaFailureResponse(error);
+    if (schemaError) return schemaError;
     return serverError("Student signup failed. Check database setup and migrations.");
   }
+  };
 }
+
+export const handler = createStudentSignupHandler();

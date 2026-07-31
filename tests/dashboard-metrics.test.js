@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { setSqlForTests } from "../netlify/functions/_auth-utils.js";
+import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 import {
   rejectsDashboardIdentityParameters,
   studentDashboardPayload,
@@ -23,7 +24,7 @@ function responseBody(response) {
 }
 
 function mockSql({ user, packages = [], metrics = {}, failMetrics = false }) {
-  return async (strings) => {
+  return runtimeReadySql(async (strings) => {
     const query = strings.join(" ");
     if (query.includes("from auth_sessions")) return user ? [user] : [];
     if (query.includes("select distinct bp.id")) return packages.map((id) => ({ id }));
@@ -32,7 +33,7 @@ function mockSql({ user, packages = [], metrics = {}, failMetrics = false }) {
       return [metrics];
     }
     throw new Error(`Unexpected query: ${query}`);
-  };
+  });
 }
 
 test("dashboard payload helpers preserve zeroes, null averages, rounding, and deterministic class order", () => {

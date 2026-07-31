@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { setSqlForTests, hashToken, sessionCookieName } from "../../netlify/functions/_auth-utils.js";
@@ -16,6 +15,7 @@ import { handler as revokeSessions } from "../../netlify/functions/auth-revoke-s
 import { handler as authMe } from "../../netlify/functions/auth-me.js";
 import { handler as userHandler } from "../../netlify/functions/user.js";
 import { handler as emailDispatch } from "../../netlify/functions/account-email-dispatch.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool }=pg;
 const url=process.env.TEST_DATABASE_URL||"";
@@ -31,7 +31,7 @@ test("account lifecycle handlers use single-use links, tenant admin scope and se
   const previous={DATABASE_URL:process.env.DATABASE_URL,APP_PUBLIC_URL:process.env.APP_PUBLIC_URL,ACCOUNT_EMAIL_MODE:process.env.ACCOUNT_EMAIL_MODE,STAGING_DATABASE_CONFIRMATION:process.env.STAGING_DATABASE_CONFIRMATION,SMTP_HOST:process.env.SMTP_HOST,SMTP_PORT:process.env.SMTP_PORT,SMTP_SECURE:process.env.SMTP_SECURE,SMTP_USER:process.env.SMTP_USER,SMTP_PASS:process.env.SMTP_PASS,SMTP_FROM:process.env.SMTP_FROM,ACCOUNT_EMAIL_DISPATCH_SECRET:process.env.ACCOUNT_EMAIL_DISPATCH_SECRET};
   process.env.DATABASE_URL=scoped(url,schema);process.env.APP_PUBLIC_URL="http://localhost:8888";process.env.ACCOUNT_EMAIL_MODE="capture";setSqlForTests(tag(pool));clearCapturedEmailsForTests();
   t.after(async()=>{setSqlForTests(null);for(const [key,value] of Object.entries(previous)){if(value===undefined)delete process.env[key];else process.env[key]=value;}await pool.end();await adminPool.query(`drop schema if exists "${schema}" cascade`);await adminPool.end();});
-  const files=(await readdir("database")).filter(n=>/^\d+.*\.sql$/.test(n)&&n!=="012_demo_login_passwords.sql").sort((a,b)=>a.localeCompare(b));for(const file of files)await pool.query(await readFile(`database/${file}`,"utf8"));
+  await applyCanonicalProductionMigrations(pool);
   const schools=(await pool.query("insert into schools(name) values('Lifecycle A'),('Lifecycle B') returning id,name")).rows;const a=schools[0].id,b=schools[1].id;const pass=await bcrypt.hash("Admin-Original-2026",4);
   const admins=(await pool.query("insert into app_users(school_id,full_name,email,role,status,password_hash) values($1,'Admin A','admin-a@life.test','admin','active',$3),($2,'Admin B','admin-b@life.test','admin','active',$3),($1,'Admin A2','admin-a2@life.test','admin','active',$3) returning id,school_id",[a,b,pass])).rows;
   let cookie=await session(pool,admins[0].id);const cookieB=await session(pool,admins[1].id);

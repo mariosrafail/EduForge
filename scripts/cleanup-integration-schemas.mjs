@@ -11,7 +11,17 @@ try {
     }
     await pool.query(`drop schema "${nspname}" cascade`);
   }
-  console.log(`Removed ${rows.length} temporary integration schema(s) from isolated test target ${safeLabel}.`);
+  const roles = (await pool.query(
+    "select rolname from pg_roles where rolname like 'runtime_role_%' order by rolname",
+  )).rows;
+  for (const { rolname } of roles) {
+    if (!/^runtime_role_[a-f0-9]{12}$/.test(rolname)) {
+      throw new Error(`Refusing to remove unexpected integration role name: ${rolname}`);
+    }
+    await pool.query(`drop owned by "${rolname}" cascade`);
+    await pool.query(`drop role "${rolname}"`);
+  }
+  console.log(`Removed ${rows.length} temporary integration schema(s) and ${roles.length} runtime role(s) from isolated test target ${safeLabel}.`);
 } finally {
   await pool.end();
 }
