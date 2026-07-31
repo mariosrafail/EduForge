@@ -1,10 +1,11 @@
 import { BookOpen, MonitorPlay } from "lucide-react";
 import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
+import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
   const manifest = pack.manifest;
   return (
-    <main className="teacher-offline-library">
+    <main className="teacher-offline-library" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
       <header>
         <div>
           <span className="teacher-offline-eyebrow"><MonitorPlay size={18} /> Teacher presentation · Offline</span>
@@ -16,6 +17,7 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
         <article className="teacher-offline-book-card">
           <img src={studentsBookCover} alt="Ultimate B2 Students Book cover" decoding="async" />
           <div>
+            <div className="legacy-classroom-title-badge" aria-label="Ultimate English B2">ULTIMATE <b>B2</b></div>
             <span className="teacher-offline-eyebrow">Installed classroom content</span>
             <h2>{manifest.bookTitle}</h2>
             <p>Units 1 and 2 · pages, media, interactive activities, and verified teacher solutions.</p>

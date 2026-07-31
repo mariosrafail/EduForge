@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
+import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
 import teacherSolutions from "../../android-content-packs/ultimate-b2-students-book/teacher-solutions.json" with { type: "json" };
 
@@ -45,7 +46,7 @@ async function backToBook(page) {
 let browser;
 try {
   await waitForPreview();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(localPlaywrightLaunchOptions());
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
   const requests = [];

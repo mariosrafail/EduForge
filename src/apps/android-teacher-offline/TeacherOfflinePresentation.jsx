@@ -1,8 +1,9 @@
-import { ArrowLeft, ChevronLeft, ChevronRight, Expand, Minimize2 } from "lucide-react";
+import { Expand, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
+import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflinePresentation({
   activityId,
@@ -45,7 +46,7 @@ export default function TeacherOfflinePresentation({
   return (
     <main ref={stageRef} className="teacher-offline-presentation">
       <header>
-        <button type="button" onClick={onBack}><ArrowLeft size={22} /> Back to book</button>
+        <button type="button" onClick={onBack}><LegacyClassroomIcon name="back" /> Back to book</button>
         <div>
           <span>Ultimate B2 · Students Book · Unit {activity.unitNumber}</span>
           <strong>{activity.sectionTitle} · Page {activity.printedPage}</strong>
@@ -65,11 +66,11 @@ export default function TeacherOfflinePresentation({
       </section>
       <nav aria-label="Enabled Students Book activities">
         <button type="button" disabled={!previous} onClick={() => onNavigate(previous.stableActivityId)}>
-          <ChevronLeft size={24} /> Previous
+          <LegacyClassroomIcon name="previous" /> Previous
         </button>
         <span>{index + 1} / {activities.length} enabled activities</span>
         <button type="button" disabled={!next} onClick={() => onNavigate(next.stableActivityId)}>
-          Next <ChevronRight size={24} />
+          Next <LegacyClassroomIcon name="next" />
         </button>
       </nav>
     </main>

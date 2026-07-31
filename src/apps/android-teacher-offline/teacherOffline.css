@@ -1056,3 +1056,357 @@ html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > 
     transition: none !important;
   }
 }
+
+/* Recovered Ultimate B2 classroom identity: ice-blue stage, cyan glass and purple controls. */
+html[data-app-mode="android-teacher-offline"] {
+  --legacy-ink: #17344d;
+  --legacy-deep-blue: #075b82;
+  --legacy-cyan: #20a9c2;
+  --legacy-cyan-light: #a6daf0;
+  --legacy-lime: #91d715;
+  --legacy-purple: #8e45c2;
+  --legacy-magenta: #e425b7;
+  --legacy-panel: #effaff;
+  --legacy-line: #08769d;
+  --legacy-shadow: 0 5px 0 #063f60, 0 10px 22px rgba(0, 44, 75, 0.28);
+  font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
+}
+
+html[data-app-mode="android-teacher-offline"] body,
+html[data-app-mode="android-teacher-offline"] #root,
+.teacher-offline-book,
+.teacher-offline-media,
+.teacher-offline-presentation {
+  background: linear-gradient(145deg, #e7f7ff, #b9deef 54%, #7abbd7);
+}
+
+.teacher-offline-library > header,
+.teacher-offline-book-header,
+.teacher-offline-media > header,
+.teacher-offline-presentation > header {
+  border-bottom: 3px solid #c8f1ff;
+  background: linear-gradient(180deg, #118cac 0%, #056887 54%, #064968 55%, #063c59 100%);
+  box-shadow: 0 4px 0 #052f48, 0 10px 24px rgba(0, 40, 69, 0.35);
+}
+
+.teacher-offline-library {
+  position: relative;
+  isolation: isolate;
+  background-image: linear-gradient(90deg, rgba(0, 83, 130, 0.22), rgba(8, 171, 206, 0.08)), var(--legacy-classroom-background);
+  background-size: cover;
+  background-position: center;
+}
+
+.teacher-offline-library::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: 22%;
+  background: linear-gradient(180deg, transparent, rgba(0, 40, 70, 0.68));
+  pointer-events: none;
+}
+
+.teacher-offline-library-grid {
+  padding: clamp(18px, 3vw, 54px);
+}
+
+.teacher-offline-book-card {
+  width: min(1040px, 94vw);
+  grid-template-columns: minmax(190px, 280px) minmax(0, 1fr);
+  border: 4px solid #d8f5ff;
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(250, 254, 255, 0.98), rgba(188, 229, 245, 0.96));
+  box-shadow: 0 0 0 4px #08769d, 0 22px 55px rgba(0, 35, 67, 0.44);
+}
+
+.teacher-offline-book-card > img {
+  border: 3px solid #fff;
+  border-radius: 11px;
+  box-shadow: 0 0 0 3px #08769d, 0 15px 28px rgba(0, 40, 75, 0.32);
+}
+
+.legacy-classroom-title-badge {
+  width: fit-content;
+  padding: 7px 15px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #26b7cb, #08779c);
+  box-shadow: 0 3px 0 #064c6b;
+  color: #fff;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 0 #07536f;
+}
+
+.legacy-classroom-title-badge b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 34px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--legacy-lime);
+  color: #164d25;
+  text-shadow: none;
+}
+
+.teacher-primary-button,
+.teacher-offline-book-header button,
+.teacher-offline-view-tabs button,
+.teacher-offline-page-reader header button,
+.teacher-offline-page-actions button,
+.teacher-offline-pages aside button,
+.teacher-offline-media header button,
+.teacher-offline-presentation header button,
+.teacher-offline-presentation > nav button {
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #bde8f8 0%, #83c2df 48%, #4a91b4 52%, #28799f 100%);
+  box-shadow: 0 0 0 2px var(--legacy-line), 0 3px 0 #064767;
+  color: #123b56;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.teacher-primary-button,
+.teacher-offline-book-header button.selected,
+.teacher-offline-view-tabs button.selected,
+.teacher-offline-pages aside button.selected {
+  border-color: #fff;
+  background: linear-gradient(180deg, #bafa35, #8bd410 48%, #48a80c 52%, #27840a);
+  color: #173d25;
+  box-shadow: 0 0 0 2px #477b08, 0 3px 0 #285006;
+}
+
+.teacher-offline-view-tabs button:not(.selected),
+.teacher-offline-book-header button:not(.selected),
+.teacher-offline-media header button,
+.teacher-offline-presentation header button {
+  color: #fff;
+  text-shadow: 0 2px 0 #07536f;
+}
+
+.teacher-offline-book-header button:active,
+.teacher-offline-page-reader header button:active,
+.teacher-offline-presentation button:active,
+.teacher-primary-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 2px var(--legacy-line), 0 1px 0 #063f60;
+}
+
+.legacy-classroom-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 1px rgba(28, 19, 60, 0.25));
+}
+
+.teacher-offline-book-header .legacy-classroom-icon,
+.teacher-offline-presentation .legacy-classroom-icon,
+.teacher-offline-media .legacy-classroom-icon {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+  margin: -4px 0;
+}
+
+.legacy-classroom-sound-toggle {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(68px, calc(env(safe-area-inset-bottom) + 68px));
+  z-index: 30;
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ed66d2, #9d43c8 62%, #64309e);
+  box-shadow: 0 0 0 2px #55257f, 0 5px 14px rgba(27, 16, 63, 0.35);
+  color: #fff;
+}
+
+.teacher-offline-pages aside {
+  border-right: 3px solid #075f85;
+  background: linear-gradient(180deg, #d8f4ff, #9dcde3);
+}
+
+.teacher-offline-pages aside > div button {
+  border-radius: 16px;
+}
+
+.teacher-offline-page-reader > header {
+  border-bottom: 2px solid #075f85;
+  background: linear-gradient(180deg, #f4fcff, #b8e0f0);
+}
+
+.teacher-offline-page-stage {
+  background: radial-gradient(circle at 50% 25%, #2e7ea5, #064868 58%, #032f49);
+}
+
+.teacher-offline-page-image > img {
+  border: 2px solid #eafaff;
+  box-shadow: 0 0 0 3px #076d93, 0 14px 38px rgba(0, 18, 42, 0.55);
+}
+
+.teacher-offline-page-hotspot {
+  border: 2px dashed rgba(228, 37, 183, 0.88);
+  border-radius: 12px;
+  background-color: rgba(228, 37, 183, 0.08);
+  background-image: var(--legacy-hotspot);
+  background-repeat: no-repeat;
+  background-position: 5px 5px;
+  background-size: 34px 34px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.teacher-offline-page-hotspot span {
+  background: linear-gradient(180deg, #a851d3, #7731ad);
+  box-shadow: 0 2px 0 #47216a;
+}
+
+.teacher-offline-page-actions,
+.teacher-offline-presentation > nav {
+  border-top: 3px solid #075f85;
+  background: linear-gradient(180deg, #d8f4ff, #90c6dc);
+}
+
+.teacher-offline-contents {
+  background: linear-gradient(145deg, #e9faff, #b3ddeb);
+}
+
+.teacher-offline-lessons details {
+  border: 3px solid #fff;
+  border-radius: 18px;
+  background: #f7fdff;
+  box-shadow: 0 0 0 2px #08769d, 0 7px 18px rgba(0, 63, 95, 0.18);
+}
+
+.teacher-offline-lessons summary {
+  background: linear-gradient(180deg, #bde8f8, #64add0);
+  color: #103c56;
+}
+
+.teacher-offline-presentation-stage {
+  background: radial-gradient(circle at 50% 5%, #e9faff, #a7d4e6 58%, #62a5c3);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .unit2-normalized-activity,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .ultimate-b2-legacy-pilot {
+  border: 4px solid #fff;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(222, 244, 252, 0.98));
+  box-shadow: 0 0 0 3px #08769d, 0 16px 38px rgba(0, 47, 79, 0.3);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .card-heading {
+  margin: -2px -2px 16px;
+  padding: 12px 16px;
+  border: 2px solid #fff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #b9e9fa, #63b1d2 56%, #3a91b8);
+  box-shadow: 0 3px 0 #086789;
+  color: #103b54;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .unit2-normalized-question,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .legacy-pilot-question {
+  border: 2px solid #8ac9df;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 0 rgba(7, 108, 146, 0.18);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage .unit2-normalized-question > span:first-child,
+html[data-app-mode="android-teacher-offline"] .legacy-pilot-question-number,
+html[data-app-mode="android-teacher-offline"] .legacy-pilot-question legend > span {
+  background: linear-gradient(145deg, #ec5bce, #953dc2);
+  color: #fff;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #653090;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage input,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage select,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage textarea {
+  border: 2px solid #1185aa;
+  border-radius: 12px;
+  background: #faffff;
+  box-shadow: inset 0 2px 4px rgba(4, 73, 105, 0.12);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage input:focus,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage select:focus,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-presentation-stage textarea:focus,
+html[data-app-mode="android-teacher-offline"] button:focus-visible {
+  outline: 4px solid #ffe13f;
+  outline-offset: 3px;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-presentation-answer-controls {
+  border: 3px solid #fff;
+  background: linear-gradient(180deg, rgba(202, 239, 250, 0.98), rgba(116, 190, 216, 0.98));
+  box-shadow: 0 0 0 2px #08769d, 0 -7px 20px rgba(0, 50, 82, 0.22);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-presentation-answer-controls button,
+html[data-app-mode="android-teacher-offline"] .presentation-question-actions button {
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #c06ee5, #8c42be 54%, #67319b);
+  box-shadow: 0 0 0 2px #55247e, 0 3px 0 #3b185d;
+  color: #fff;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-presentation-answer-controls .primary-action {
+  background: linear-gradient(180deg, #c6fb4b, #82d40d 54%, #469809);
+  box-shadow: 0 0 0 2px #477b08, 0 3px 0 #285006;
+  color: #183d22;
+}
+
+html[data-app-mode="android-teacher-offline"] .presentation-answer-correct,
+html[data-app-mode="android-teacher-offline"] .legacy-pilot-answer-correct {
+  border-color: #62b80d !important;
+  background: #efffd7 !important;
+  box-shadow: 0 0 0 3px rgba(145, 215, 21, 0.35) !important;
+}
+
+html[data-app-mode="android-teacher-offline"] .presentation-answer-incorrect,
+html[data-app-mode="android-teacher-offline"] .legacy-pilot-answer-incorrect {
+  border-color: #c91d88 !important;
+  background: #fff0fa !important;
+  box-shadow: 0 0 0 3px rgba(228, 37, 183, 0.25) !important;
+}
+
+html[data-app-mode="android-teacher-offline"] .presentation-revealed-answer,
+html[data-app-mode="android-teacher-offline"] .legacy-pilot-revealed-answer {
+  border: 2px solid #7d3eb0;
+  border-radius: 12px;
+  background: #f5e9ff;
+  color: #4e216c;
+}
+
+@media (min-width: 1600px) and (min-height: 900px) {
+  .teacher-offline-book-card {
+    width: min(1200px, 88vw);
+    gap: clamp(30px, 3vw, 60px);
+    padding: clamp(28px, 2.2vw, 46px);
+  }
+
+  .teacher-offline-library h1 {
+    font-size: clamp(1.7rem, 1.6vw, 2.6rem);
+  }
+}
+
+html[data-teacher-viewport="compact-landscape"] .legacy-classroom-icon {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+}
+
+html[data-teacher-viewport="compact-landscape"] .legacy-classroom-sound-toggle {
+  right: 7px;
+  bottom: 55px;
+  width: 46px;
+  height: 46px;
+}

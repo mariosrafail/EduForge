@@ -1,7 +1,5 @@
 import {
   ArrowLeftRight,
-  ChevronLeft,
-  ChevronRight,
   List,
   Maximize2,
   MonitorPlay,
@@ -14,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TEACHER_VIEWPORT_PROFILES } from "./viewportProfiles.js";
+import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
@@ -278,7 +277,7 @@ export default function TeacherOfflinePages({
               <List size={20} /><span>Pages</span>
             </button>
             <button type="button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page">
-              <ChevronLeft size={22} /><span className="teacher-responsive-label">Previous</span>
+              <LegacyClassroomIcon name="previous" /><span className="teacher-responsive-label">Previous</span>
             </button>
           </div>
           <div className="teacher-offline-page-title">
@@ -303,7 +302,7 @@ export default function TeacherOfflinePages({
               </button>
             )}
             <button type="button" disabled={selectedIndex === pages.length - 1} onClick={() => onSelectPage(pages[selectedIndex + 1].id)} title="Next page">
-              <span className="teacher-responsive-label">Next</span><ChevronRight size={22} />
+              <span className="teacher-responsive-label">Next</span><LegacyClassroomIcon name="next" />
             </button>
           </div>
         </header>
@@ -346,7 +345,7 @@ export default function TeacherOfflinePages({
                   key={action.id}
                   type="button"
                   className="teacher-offline-page-hotspot"
-                  style={{ top: action.top, left: action.left, width: action.width, height: action.height }}
+                  style={{ top: action.top, left: action.left, width: action.width, height: action.height, "--legacy-hotspot": `url(${legacyClassroomAssets.controls.activityHotspot})` }}
                   onClick={(event) => {
                     if (didPan.current) {
                       event.preventDefault();

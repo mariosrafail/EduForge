@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, rm } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
+import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
 const baseURL = "http://127.0.0.1:4179";
 const artifactRoot = "test-results/android-teacher-viewport";
@@ -46,7 +47,7 @@ try {
   await rm(artifactRoot, { recursive: true, force: true });
   await mkdir(artifactRoot, { recursive: true });
   await waitForPreview();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(localPlaywrightLaunchOptions());
   const results = [];
 
   for (const target of viewports) {

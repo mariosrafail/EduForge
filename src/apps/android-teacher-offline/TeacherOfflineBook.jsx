@@ -1,7 +1,8 @@
-import { ArrowLeft, BookOpen, ListChecks } from "lucide-react";
+import { BookOpen, ListChecks } from "lucide-react";
 
 import TeacherOfflineActivityList from "./TeacherOfflineActivityList.jsx";
 import TeacherOfflinePages from "./TeacherOfflinePages.jsx";
+import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineBook({
   pack,
@@ -21,7 +22,7 @@ export default function TeacherOfflineBook({
     <main className="teacher-offline-book">
       <header className="teacher-offline-book-header">
         <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
-          <ArrowLeft size={22} /><span>Library</span>
+          <LegacyClassroomIcon name="home" /><span>Library</span>
         </button>
         <div className="teacher-offline-book-title">
           <span className="teacher-offline-eyebrow">Teacher presentation · Offline</span>

@@ -49,6 +49,7 @@
     "verify:android-teacher-apk": "node scripts/android-teacher/verify-apk.mjs",
     "test:android-teacher-offline:smoke": "node scripts/android-teacher/manual-smoke.mjs",
     "test:android-teacher-offline:viewports": "node scripts/android-teacher/viewport-matrix.mjs",
+    "test:android-teacher-offline:legacy-visual": "node scripts/android-teacher/legacy-classroom-visual.mjs",
     "test:ultimate-b2:legacy-pilot:assets": "node --test tests/ultimate-b2-unit-1-part-2-legacy-pilot.test.js",
     "test:ultimate-b2:legacy-pilot:visual": "node scripts/ultimate-b2/legacy-pilot-visual.mjs",
     "test:ultimate-b2:legacy-pilot:modes": "node scripts/ultimate-b2/legacy-pilot-modes.mjs",

@@ -1,4 +1,4 @@
-import { MonitorPlay } from "lucide-react";
+import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineActivityList({ unit, onOpenActivity }) {
   if (!unit) return <section className="teacher-offline-empty">This unit is not installed.</section>;
@@ -28,7 +28,7 @@ export default function TeacherOfflineActivityList({ unit, onOpenActivity }) {
                     <small>{exercise.implementationModeLabel} · {exercise.pageLabel}</small>
                   </div>
                   <button type="button" className="teacher-primary-button" onClick={() => onOpenActivity(exercise.stableActivityId)}>
-                    <MonitorPlay size={20} /> Present
+                    <LegacyClassroomIcon name="check" /> Present
                   </button>
                 </article>
               ))}

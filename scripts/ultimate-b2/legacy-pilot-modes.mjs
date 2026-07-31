@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
+import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 import teacherSolutions from "../../android-content-packs/ultimate-b2-students-book/teacher-solutions.json" with { type: "json" };
 
@@ -84,7 +85,7 @@ try {
     '<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/scripts/ultimate-b2/legacy-pilot-mode-harness.jsx"></script></body></html>\n',
   );
   await waitForVite();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(localPlaywrightLaunchOptions());
   const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   const page = await context.newPage();
   page.setDefaultNavigationTimeout(120_000);

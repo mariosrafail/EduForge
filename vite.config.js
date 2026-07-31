@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: false,
+      assetsInlineLimit: isAndroidTeacherOffline ? 0 : 4096,
       rollupOptions: {
         input: isAndroidOffline ? path.resolve(process.cwd(), "index.html") : webInputs,
       },

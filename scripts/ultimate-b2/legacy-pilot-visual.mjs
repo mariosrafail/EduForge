@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
+import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 const baseURL = "http://127.0.0.1:4181";
 const artifactRoot = "test-results/ultimate-b2-legacy-pilot/visual";
@@ -92,7 +93,7 @@ try {
   await rm(artifactRoot, { recursive: true, force: true });
   await mkdir(artifactRoot, { recursive: true });
   await waitForPreview();
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch(localPlaywrightLaunchOptions());
   const results = [];
 
   for (const target of targets) {

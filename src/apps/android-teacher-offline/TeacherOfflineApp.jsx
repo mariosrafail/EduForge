@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
+import { Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
 import { teacherContentPackProvider } from "./generatedPackProvider.js";
@@ -12,6 +13,7 @@ import TeacherOfflinePresentation from "./TeacherOfflinePresentation.jsx";
 import TeacherViewportDiagnostics from "./TeacherViewportDiagnostics.jsx";
 import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
 import { useTeacherViewportProfile } from "./viewportProfiles.js";
+import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -21,6 +23,7 @@ function libraryState() {
 
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
+  const classroomSound = useLegacyClassroomSound();
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
@@ -148,5 +151,20 @@ export default function TeacherOfflineApp() {
   } else {
     content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
   }
-  return <>{content}{import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}</>;
+  return (
+    <>
+      {content}
+      <button
+        type="button"
+        className="legacy-classroom-sound-toggle"
+        aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
+        aria-pressed={classroomSound.enabled}
+        title={classroomSound.enabled ? "Mute interface sounds" : "Enable interface sounds"}
+        onClick={() => classroomSound.setEnabled(!classroomSound.enabled)}
+      >
+        {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+      </button>
+      {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
+    </>
+  );
 }
