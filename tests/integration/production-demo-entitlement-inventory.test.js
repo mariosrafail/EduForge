@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import pg from "pg";
 import {
   DEMO_ENTITLEMENT_CLASSIFICATIONS,
@@ -9,6 +9,7 @@ import {
   inventoryProductionDemoEntitlements,
 } from "../../scripts/_production-demo-entitlement-inventory.mjs";
 import { productionDatabaseFingerprint } from "../../scripts/_production-preflight.mjs";
+import { hashAccessCode, maskAccessCode } from "../../netlify/functions/_licensing-utils.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;
@@ -122,21 +123,47 @@ test("production demo entitlement inventory is exact, read-only, and history-gat
         (lower(app_user.email)='maria.teacher@example.com' and app_user.role='teacher' and access.role_scope='teacher')
       )
   `);
+  const adminActivationCode = `INVENTORY-ADMIN-${randomUUID()}`;
+  const teacherActivationCode = `INVENTORY-TEACHER-${randomUUID()}`;
+  const adminActivationHash = hashAccessCode(adminActivationCode);
+  const teacherActivationHash = hashAccessCode(teacherActivationCode);
   await setup.query(`
-    insert into activation_codes(code,book_package_id,max_uses,status)
-    select 'INVENTORY-UNRELATED-ACTIVATION',id,10,'active'
-    from book_packages where slug='ultimate-b2';
+    with fixture(code_hash,code_mask) as (
+      values ($1,$2),($3,$4)
+    )
+    insert into activation_codes(
+      code_hash,code_mask,book_package_id,school_id,
+      max_uses,used_count,status,expires_at
+    )
+    select fixture.code_hash,fixture.code_mask,package_record.id,school.id,
+      1,0,'unused',now()+interval '1 day'
+    from fixture
+    cross join book_packages package_record
+    cross join schools school
+    where package_record.slug='ultimate-b2'
+      and school.name='Hamilton House ELT Demo'
+  `, [
+    adminActivationHash,
+    maskAccessCode(adminActivationCode),
+    teacherActivationHash,
+    maskAccessCode(teacherActivationCode),
+  ]);
+  await setup.query(`
     insert into book_access(user_id,book_package_id,activation_code_id,role_scope)
     select app_user.id,package_record.id,activation.id,
       case app_user.role when 'admin' then 'school_admin' when 'teacher' then 'teacher' end
     from app_users app_user
     join schools school on school.id=app_user.school_id
     cross join book_packages package_record
-    cross join activation_codes activation
+    join activation_codes activation on activation.code_hash=case app_user.role
+      when 'admin' then $1
+      when 'teacher' then $2
+    end
     where school.name='Hamilton House ELT Demo'
       and package_record.slug='ultimate-b2'
-      and activation.code='INVENTORY-UNRELATED-ACTIVATION'
-      and lower(app_user.email) in ('elena.admin@example.com','maria.teacher@example.com');
+      and lower(app_user.email) in ('elena.admin@example.com','maria.teacher@example.com')
+  `, [adminActivationHash, teacherActivationHash]);
+  await setup.query(`
     insert into book_access(user_id,book_package_id,role_scope)
     select app_user.id,package_record.id,
       case app_user.role when 'admin' then 'teacher' when 'teacher' then 'school_admin' end
@@ -145,7 +172,7 @@ test("production demo entitlement inventory is exact, read-only, and history-gat
     cross join book_packages package_record
     where school.name='Hamilton House ELT Demo'
       and package_record.slug='ultimate-b2'
-      and lower(app_user.email) in ('elena.admin@example.com','maria.teacher@example.com');
+      and lower(app_user.email) in ('elena.admin@example.com','maria.teacher@example.com')
   `);
 
   const withoutMatching = await runInventory();
