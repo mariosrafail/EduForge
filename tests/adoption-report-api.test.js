@@ -31,7 +31,7 @@ test("download client respects safe server filename, clicks an anchor, removes i
     assert.equal(JSON.stringify(options).includes("school"), false);
     return {
       ok: true,
-      headers: { get: () => 'attachment; filename="eduforge-adoption-athens-2026-07-30.csv"' },
+      headers: { get: () => 'attachment; filename="hamilton-house-adoption-athens-2026-07-30.csv"' },
       blob: async () => ({ type: "text/csv" }),
     };
   };
@@ -45,15 +45,15 @@ test("download client respects safe server filename, clicks an anchor, removes i
     revokeObjectURL: (url) => calls.push(`revoke:${url}`),
   };
   const result = await downloadSchoolAdoptionCsv({ documentObject, urlObject });
-  assert.equal(result.filename, "eduforge-adoption-athens-2026-07-30.csv");
+  assert.equal(result.filename, "hamilton-house-adoption-athens-2026-07-30.csv");
   assert.equal(anchor.download, result.filename);
   assert.equal(anchor.href, "blob:report");
   assert.deepEqual(calls, ["append", "click", "remove", "revoke:blob:report"]);
 });
 
 test("unsafe filenames fall back and failed exports never initiate a browser download", async (t) => {
-  assert.equal(safeDownloadFilename('attachment; filename="../../bad.csv"'), "eduforge-adoption-report.csv");
-  assert.equal(safeDownloadFilename('attachment; filename="bad\r\n.csv"'), "eduforge-adoption-report.csv");
+  assert.equal(safeDownloadFilename('attachment; filename="../../bad.csv"'), "hamilton-house-adoption-report.csv");
+  assert.equal(safeDownloadFilename('attachment; filename="bad\r\n.csv"'), "hamilton-house-adoption-report.csv");
   const previous = global.fetch;
   t.after(() => { global.fetch = previous; });
   global.fetch = async () => ({

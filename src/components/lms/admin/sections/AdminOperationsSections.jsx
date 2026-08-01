@@ -41,7 +41,7 @@ export function AdminIntegrationsSection({ selectedIntegration, onSelect }) {
           <div>
             <span className="eyebrow"><Link2 size={15} /> Integration-ready architecture</span>
             <h2>Standalone now, connected later</h2>
-            <p>EduForge can connect to existing school systems in later phases.</p>
+            <p>The platform can connect to existing school systems in later phases.</p>
           </div>
           {selectedIntegration && <Tag tone="blue">{selectedIntegration} selected</Tag>}
         </div>

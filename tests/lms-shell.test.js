@@ -4,6 +4,27 @@ import test from "node:test";
 
 const read = (path) => readFile(path, "utf8");
 
+test("user-facing LMS and Platform Admin branding contains no developer identity", async () => {
+  const paths = [
+    "index.html",
+    "platform-admin/index.html",
+    "shared/schoolBranding.js",
+    "src/components/lms/RoleSelection.jsx",
+    "src/components/lms/Shared.jsx",
+    "src/components/lms/shared/PortalShell.jsx",
+    "src/components/lms/admin/sections/AdminOperationsSections.jsx",
+    "src/apps/platform-admin/components/PlatformAdminLogin.jsx",
+    "src/apps/platform-admin/components/PlatformAdminShell.jsx",
+    "src/apps/platform-admin/sections/SchoolsSection.jsx",
+  ];
+  const sources = await Promise.all(paths.map(read));
+  const visibleSource = sources.join("\n");
+  assert.match(visibleSource, /Hamilton House/);
+  assert.doesNotMatch(visibleSource, /EduForge|Made by|Made with|Developed by|Created by/i);
+  assert.match(sources[0], /<title>Hamilton House LMS<\/title>/);
+  assert.match(sources[1], /<title>Platform Administration · Hamilton House<\/title>/);
+});
+
 test("ordinary LMS role entry, header, and access gates remain present", async () => {
   const [roles, shared, app] = await Promise.all([
     read("src/components/lms/RoleSelection.jsx"),

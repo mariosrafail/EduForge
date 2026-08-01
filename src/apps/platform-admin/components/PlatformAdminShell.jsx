@@ -15,8 +15,8 @@ export function PlatformAdminShell({ admin, activeSection, onNavigate, onSignOut
       className="pa-shell"
       contentClassName="pa-main"
       brand={{
-        mark: "E",
-        primary: "EduForge",
+        mark: "HH",
+        primary: "Hamilton House",
         secondary: "Platform Administration",
       }}
       topbarContext={<span className="pa-privileged-badge"><ShieldCheck size={15} /> Restricted operator area</span>}

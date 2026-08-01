@@ -40,7 +40,7 @@ test("SMTP mode uses the injected isolated transport without external email", as
     let sent;
     setEmailTransportForTests({ sendMail: async (message) => { sent = message; return { messageId: "test-message" }; } });
     const result = await deliverAccountEmail({ recipient: "person@example.test", templateType: "password_changed", outboxId: "outbox", name: "Person" });
-    assert.equal(result.state, "sent"); assert.equal(sent.text.includes("EduForge"), true); assert.equal(sent.text.includes("token="), false);
+    assert.equal(result.state, "sent"); assert.equal(sent.text.includes("Hamilton House LMS"), true); assert.doesNotMatch(sent.text, /EduForge|Made by|Made with|Developed by|Created by/i); assert.equal(sent.text.includes("token="), false);
     setEmailTransportForTests(null);
   });
 });

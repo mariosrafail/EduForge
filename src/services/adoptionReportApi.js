@@ -1,5 +1,5 @@
 const endpoint = "/.netlify/functions/school-adoption-report";
-const fallbackFilename = "eduforge-adoption-report.csv";
+const fallbackFilename = "hamilton-house-adoption-report.csv";
 
 async function errorFromResponse(response, fallback) {
   let payload = {};
@@ -19,7 +19,7 @@ export function safeDownloadFilename(disposition) {
   const match = String(disposition || "").match(/filename="([^"]+)"/i);
   const candidate = match?.[1] || "";
   if (
-    !/^eduforge-adoption-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.csv$/.test(candidate)
+    !/^hamilton-house-adoption-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.csv$/.test(candidate)
     || candidate.includes("..")
     || /[\\/\r\n]/.test(candidate)
   ) return fallbackFilename;

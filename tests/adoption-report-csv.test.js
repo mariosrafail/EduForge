@@ -77,6 +77,6 @@ test("CSV and filename exclude personal, answer, tenant, and activation-code mat
     "ABCD-EFGH",
     "••••-EFGH",
   ]) assert.equal(csv.includes(forbidden), false);
-  assert.equal(safeAdoptionFilename("Αθήνα / Academy\r\n", generatedAt), "eduforge-adoption-academy-2026-07-30.csv");
-  assert.match(safeAdoptionFilename("=../../School", generatedAt), /^eduforge-adoption-school-2026-07-30\.csv$/);
+  assert.equal(safeAdoptionFilename("Αθήνα / Academy\r\n", generatedAt), "hamilton-house-adoption-academy-2026-07-30.csv");
+  assert.match(safeAdoptionFilename("=../../School", generatedAt), /^hamilton-house-adoption-school-2026-07-30\.csv$/);
 });

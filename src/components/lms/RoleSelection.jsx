@@ -32,13 +32,13 @@ export function RoleSelection({ navigateTo, brand }) {
     <main className="role-screen role-selection-screen">
       <section className="landing-hero">
         <div className="hero-copy">
-          <Tag tone="gold">EduForge learning platform</Tag>
+          <Tag tone="gold">Hamilton House learning platform</Tag>
           <h1>One welcoming place for your school community.</h1>
           <p>Choose your role to sign in to the learning, teaching, or school administration workspace.</p>
         </div>
         <div className="landing-brand-mark" aria-hidden="true">
-          <span>EF</span>
-          <strong>{brand?.schoolName || "EduForge"}</strong>
+          <span>HH</span>
+          <strong>{brand?.schoolName || "Hamilton House"}</strong>
           <small>Learn · Teach · Grow</small>
         </div>
       </section>

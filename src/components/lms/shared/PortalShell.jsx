@@ -109,8 +109,8 @@ export function PortalShell({
       className={`portal-shell ${variant}`}
       contentClassName="portal-main"
       brand={{
-        mark: brand?.logo || "EF",
-        primary: "EduForge",
+        mark: brand?.logo || "HH",
+        primary: "Hamilton House",
         secondary: brand?.schoolName || "School workspace",
         ariaLabel: "Return to role selection",
         onActivate: goHome,

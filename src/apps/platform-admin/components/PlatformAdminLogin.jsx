@@ -33,10 +33,10 @@ export function PlatformAdminLogin({ message, error: availabilityError, onAuthen
   return (
     <main className="pa-login-shell">
       <section className="pa-login-card" aria-labelledby="pa-login-title">
-        <div className="pa-brand-mark" aria-hidden="true">E</div>
+        <div className="pa-brand-mark" aria-hidden="true">HH</div>
         <p className="pa-restricted-label"><LockKeyhole size={15} /> Restricted operator area</p>
-        <h1 id="pa-login-title">EduForge Platform Administration</h1>
-        <p className="pa-login-copy">Sign in with a dedicated Platform Admin account. Ordinary EduForge accounts cannot access this area.</p>
+        <h1 id="pa-login-title">Platform Administration</h1>
+        <p className="pa-login-copy">Sign in with a dedicated Platform Admin account. Ordinary school accounts cannot access this area.</p>
         <form onSubmit={submit}>
           <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required /></label>
           <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>

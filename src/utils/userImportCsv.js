@@ -128,7 +128,7 @@ export function downloadUserImportTemplate(documentObject = document, urlObject 
   const url = urlObject.createObjectURL(blob);
   const anchor = documentObject.createElement("a");
   anchor.href = url;
-  anchor.download = "eduforge-user-import-template.csv";
+  anchor.download = "hamilton-house-user-import-template.csv";
   anchor.click();
   urlObject.revokeObjectURL(url);
 }

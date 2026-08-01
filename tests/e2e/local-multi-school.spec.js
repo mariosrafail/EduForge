@@ -303,7 +303,7 @@ test("School Admin downloads a live tenant-scoped aggregate adoption CSV", async
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export adoption data" }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/^eduforge-adoption-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(download.suggestedFilename()).toMatch(/^hamilton-house-adoption-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.csv$/);
     const csv = await (await import("node:fs/promises")).readFile(await download.path(), "utf8");
     expect(csv.replace(/^\uFEFF/, "").split(/\r?\n/)[0]).toBe(ADOPTION_CSV_COLUMNS.join(","));
     expect(csv).toContain(school.name);

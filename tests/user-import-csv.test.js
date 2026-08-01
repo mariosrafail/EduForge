@@ -53,7 +53,7 @@ test("user import template download uses the exact filename and revokes its Blob
     { createElement: (name) => { assert.equal(name, "a"); return anchor; } },
     { createObjectURL: (blob) => { assert.equal(blob.type, "text/csv;charset=utf-8"); return "blob:test"; }, revokeObjectURL: (url) => revoked.push(url) },
   );
-  assert.equal(anchor.download, "eduforge-user-import-template.csv");
+  assert.equal(anchor.download, "hamilton-house-user-import-template.csv");
   assert.equal(anchor.href, "blob:test");
   assert.equal(clicks.length, 1);
   assert.deepEqual(revoked, ["blob:test"]);

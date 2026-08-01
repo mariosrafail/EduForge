@@ -160,7 +160,7 @@ try {
   assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("class"), "teacher-offline-settings-surface teacher-effects-off");
   assert.equal(await page.evaluate(() => document.documentElement.style.fontSize), "16.8px");
   await page.getByRole("tab", { name: "About" }).click();
-  await page.getByText("EduForge Android Teacher Offline", { exact: true }).waitFor();
+  await page.getByText("Hamilton House Interactive Classroom", { exact: true }).waitFor();
   await page.getByText("Version 0.1.0", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Close settings" }).click();
   await settingsButton.click();

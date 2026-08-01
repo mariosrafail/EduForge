@@ -88,6 +88,16 @@ async function assertScreen(page, label) {
   }));
   assert.equal(metrics.overflow, 0, `${label} horizontal overflow`);
   assert.deepEqual(metrics.missingImages, [], `${label} missing images`);
+  assert.doesNotMatch(await page.locator("body").innerText(), /EduForge/i, `${label} visible branding`);
+}
+
+async function assertCleanAbout(page, label) {
+  const dialog = page.getByRole("dialog", { name: "Classroom settings" });
+  const text = await dialog.innerText();
+  assert.match(text, /Hamilton House Interactive Classroom/);
+  assert.match(text, /Version 0\.1\.0/);
+  assert.doesNotMatch(text, /EduForge|Made by|Made with|Developed by|Created by/i, `${label} branding`);
+  await assertScreen(page, label);
 }
 
 async function assertLegacyLauncher(page, label) {
@@ -189,6 +199,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/modern-settings-graphics-1920x1080.png` });
     await settingsDialog.getByRole("tab", { name: "About" }).click();
     await settingsDialog.getByText("Version 0.1.0", { exact: true }).waitFor();
+    await assertCleanAbout(page, "modern-about-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/settings-about-1920x1080.png` });
     await settingsDialog.getByRole("button", { name: "Close settings" }).click();
     const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
@@ -242,14 +253,20 @@ try {
     await page.getByRole("button", { name: "Legacy", exact: true }).click();
     assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy");
     await page.screenshot({ path: `${artifactRoot}/legacy-settings-1920x1080.png` });
+    await page.getByRole("tab", { name: "About" }).click();
+    await assertCleanAbout(page, "legacy-about-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/legacy-about-1920x1080.png` });
     await page.getByRole("button", { name: "Close settings" }).click();
+    await assertScreen(page, "legacy-home-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-home-1920x1080.png` });
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
+    await assertScreen(page, "legacy-unit1-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-unit1-overview-1920x1080.png` });
     await openPage(page, "pg 5");
     await page.waitForFunction(() => document.querySelector(".teacher-offline-page-image img")?.getBoundingClientRect().width > innerWidth * 0.2);
+    await assertScreen(page, "legacy-page-viewer-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-page-viewer-1920x1080.png` });
   });
 
@@ -279,6 +296,9 @@ try {
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
     await page.screenshot({ path: `${artifactRoot}/settings-audio-800x360.png` });
+    await page.getByRole("tab", { name: "About" }).click();
+    await assertCleanAbout(page, "modern-about-800x360");
+    await page.screenshot({ path: `${artifactRoot}/modern-about-800x360.png` });
     await page.getByRole("button", { name: "Close settings" }).click();
     await openBook(page);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-800x360");
@@ -303,6 +323,9 @@ try {
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
     await page.screenshot({ path: `${artifactRoot}/settings-audio-3840x2160.png` });
+    await page.getByRole("tab", { name: "About" }).click();
+    await assertCleanAbout(page, "modern-about-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/modern-about-3840x2160.png` });
     await page.getByRole("button", { name: "Close settings" }).click();
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
@@ -320,7 +343,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 43, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 46, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

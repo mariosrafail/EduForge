@@ -52,6 +52,13 @@ const teacherSolutions = {
 };
 const pack = { manifest, catalog, activities, teacherSolutions, assetsManifest };
 
+test("Android Teacher user-facing branding is publisher-owned in both themes", async () => {
+  const source = await readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8");
+  assert.match(source, /Hamilton House Interactive Classroom/);
+  assert.match(source, /Version 0\.1\.0/);
+  assert.doesNotMatch(source, /EduForge|Made by|Made with|Developed by|Created by/i);
+});
+
 test("CI builds the teacher pack before its internal verification", async () => {
   const [workflow, packageJson] = await Promise.all([
     readFile(".github/workflows/ci.yml", "utf8"),

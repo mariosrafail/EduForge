@@ -148,7 +148,7 @@ test("Platform Admin local control-plane walkthrough and session separation", as
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/platform-admin/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "EduForge Platform Administration" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platform Administration" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("platform-admin-desktop-login.png"), fullPage: true });
   await page.getByLabel("Email").fill(MULTI_SCHOOL[0].users[0].email);
   await page.getByLabel("Password").fill(MULTI_SCHOOL_DEMO_PASSWORD);

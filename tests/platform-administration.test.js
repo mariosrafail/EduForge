@@ -99,7 +99,7 @@ test("Platform Admin controls use scoped variants, duplicate guards, and reduced
   assert.doesNotMatch(platformCss, /(^|\n)button\s*\{/);
 });
 
-test("Platform Administration uses the EduForge white and orange visual system", () => {
+test("Platform Administration uses the Hamilton House white and orange visual system", () => {
   assert.match(platformCss, /--brand-primary: #f97316/);
   assert.match(platformCss, /--panel: rgba\(255, 255, 255/);
   assert.match(platformCss, /--app-card-radius: 8px/);

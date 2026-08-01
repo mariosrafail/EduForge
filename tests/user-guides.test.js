@@ -9,15 +9,15 @@ import {
 const guides = [
   {
     path: "docs/user-guides/student-guide-el.txt",
-    title: "Οδηγός Μαθητή EduForge",
+    title: "Οδηγός Μαθητή Hamilton House LMS",
   },
   {
     path: "docs/user-guides/teacher-guide-el.txt",
-    title: "Οδηγός Εκπαιδευτικού EduForge",
+    title: "Οδηγός Εκπαιδευτικού Hamilton House LMS",
   },
   {
     path: "docs/user-guides/school-admin-guide-el.txt",
-    title: "Οδηγός Διαχειριστή Σχολείου EduForge",
+    title: "Οδηγός Διαχειριστή Σχολείου Hamilton House LMS",
   },
 ];
 
@@ -49,6 +49,7 @@ test("Greek LMS user guides contain no credentials, internal URLs, or placeholde
   assert.doesNotMatch(combined, /@multi-school|\.dev\.invalid|127\.0\.0\.1|localhost|https?:\/\//i);
   assert.doesNotMatch(combined, /\b(?:TODO|TBD|placeholder)\b/i);
   assert.doesNotMatch(combined, /platform-admin|Platform Admin|Platform Administration/i);
+  assert.doesNotMatch(combined, /EduForge|Made by|Made with|Developed by|Created by/i);
 });
 
 test("role guides do not document privileged or unsupported controls", async () => {

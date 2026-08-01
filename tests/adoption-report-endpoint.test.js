@@ -146,7 +146,7 @@ test("export validates origin and body before report work, returns real CSV, and
   const response = await handler(event({ method: "POST", action: "export", body: {} }));
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["Content-Type"], "text/csv; charset=utf-8");
-  assert.match(response.headers["Content-Disposition"], /^attachment; filename="eduforge-adoption-athens-academy-\d{4}-\d{2}-\d{2}\.csv"$/);
+  assert.match(response.headers["Content-Disposition"], /^attachment; filename="hamilton-house-adoption-athens-academy-\d{4}-\d{2}-\d{2}\.csv"$/);
   assert.doesNotMatch(response.headers["Content-Disposition"], /[\\/\r\n]/);
   assert.match(response.body, /generated_at_utc,school_name,publisher_name/);
   assert.equal(database.state.audits, 1);

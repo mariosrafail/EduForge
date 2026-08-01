@@ -32,19 +32,19 @@ export function buildAccountEmail({ templateType, name = "", actionUrl = "" }) {
   const safeName = escapeEmailHtml(name || "there");
   const greeting = `Hello ${name || "there"},`;
   if (templateType === "account_invitation") return {
-    subject: "You have been invited to EduForge",
-    text: `${greeting}\n\nYour EduForge account is ready. Set your password using this secure link:\n${actionUrl}\n\nThis link expires in 3 days.`,
-    html: `<p>Hello ${safeName},</p><p>Your EduForge account is ready.</p><p><a href="${escapeEmailHtml(actionUrl)}">Set your password</a></p><p>This link expires in 3 days.</p>`,
+    subject: "You have been invited to Hamilton House LMS",
+    text: `${greeting}\n\nYour Hamilton House LMS account is ready. Set your password using this secure link:\n${actionUrl}\n\nThis link expires in 3 days.`,
+    html: `<p>Hello ${safeName},</p><p>Your Hamilton House LMS account is ready.</p><p><a href="${escapeEmailHtml(actionUrl)}">Set your password</a></p><p>This link expires in 3 days.</p>`,
   };
   if (templateType === "password_reset") return {
-    subject: "Reset your EduForge password",
-    text: `${greeting}\n\nReset your EduForge password using this secure link:\n${actionUrl}\n\nThis link expires in 30 minutes.`,
-    html: `<p>Hello ${safeName},</p><p>We received a request to reset your EduForge password.</p><p><a href="${escapeEmailHtml(actionUrl)}">Reset your password</a></p><p>This link expires in 30 minutes.</p>`,
+    subject: "Reset your Hamilton House LMS password",
+    text: `${greeting}\n\nReset your Hamilton House LMS password using this secure link:\n${actionUrl}\n\nThis link expires in 30 minutes.`,
+    html: `<p>Hello ${safeName},</p><p>We received a request to reset your Hamilton House LMS password.</p><p><a href="${escapeEmailHtml(actionUrl)}">Reset your password</a></p><p>This link expires in 30 minutes.</p>`,
   };
   if (templateType === "password_changed") return {
-    subject: "Your EduForge password was changed",
-    text: `${greeting}\n\nYour EduForge password was changed. If you did not make this change, contact your school administrator.`,
-    html: `<p>Hello ${safeName},</p><p>Your EduForge password was changed.</p><p>If you did not make this change, contact your school administrator.</p>`,
+    subject: "Your Hamilton House LMS password was changed",
+    text: `${greeting}\n\nYour Hamilton House LMS password was changed. If you did not make this change, contact your school administrator.`,
+    html: `<p>Hello ${safeName},</p><p>Your Hamilton House LMS password was changed.</p><p>If you did not make this change, contact your school administrator.</p>`,
   };
   throw new Error("Unsupported account email template");
 }

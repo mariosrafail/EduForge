@@ -67,5 +67,5 @@ export function safeAdoptionFilename(schoolName, generatedAt) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 64) || "school";
-  return `eduforge-adoption-${schoolSlug}-${generatedAt.slice(0, 10)}.csv`;
+  return `hamilton-house-adoption-${schoolSlug}-${generatedAt.slice(0, 10)}.csv`;
 }

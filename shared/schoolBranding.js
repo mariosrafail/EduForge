@@ -13,7 +13,7 @@ export const ALLOWED_PRIMARY_COLORS = Object.freeze([
 
 export const NEUTRAL_SCHOOL_BRAND = Object.freeze({
   schoolName: "School workspace",
-  logo: "EF",
+  logo: "HH",
   primary: "#334155",
   secondary: "#0f172a",
 });

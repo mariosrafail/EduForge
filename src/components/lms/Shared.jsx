@@ -37,9 +37,9 @@ export function Header({ activeRole, brand, currentUser, navigateTo, onSignOut, 
   return (
     <header className="app-header public-app-header">
       <button className="brand-lockup" onClick={() => navigateTo("home")} aria-label="Return to role selection">
-        <span className="brand-logo">{brand?.logo || "EF"}</span>
+        <span className="brand-logo">{brand?.logo || "HH"}</span>
         <span>
-          <strong>EduForge</strong>
+          <strong>Hamilton House</strong>
           <small>{brand?.schoolName || "School workspace"}</small>
         </span>
       </button>
@@ -161,7 +161,7 @@ export function PortalPreview({ brand }) {
   return (
     <div className="portal-preview" style={{ "--preview-primary": brand.primary, "--preview-secondary": brand.secondary }}>
       <div className="portal-bar">
-        <span className="school-logo" aria-hidden="true">{brand.logo || "EF"}</span>
+        <span className="school-logo" aria-hidden="true">{brand.logo || "HH"}</span>
         <strong>{brand.schoolName}</strong>
       </div>
       <div className="portal-hero">

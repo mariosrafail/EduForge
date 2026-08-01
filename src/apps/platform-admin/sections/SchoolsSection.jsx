@@ -157,7 +157,7 @@ export function SchoolsSection({ data, load, loading, setError }) {
         </form>
       </PlatformCard>
       {feedback && <PlatformAlert onDismiss={() => setFeedback("")}>{feedback}</PlatformAlert>}
-      <PlatformCard title="School directory" description={`${schools.length} school${schools.length === 1 ? "" : "s"} across EduForge`}>
+      <PlatformCard title="School directory" description={`${schools.length} school${schools.length === 1 ? "" : "s"} across the platform`}>
         {loading.schools && !data.schools ? <PlatformLoadingState label="Loading schools…" /> : schools.length === 0 ? (
           <PlatformEmptyState icon={Building2} title="No schools found">Create the first school using the form above.</PlatformEmptyState>
         ) : (
