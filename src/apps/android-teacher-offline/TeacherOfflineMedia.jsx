@@ -1,12 +1,10 @@
-import { useState } from "react";
-
 import { StudentsBookMediaPlayer } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
+import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 
 export default function TeacherOfflineMedia({ media, onBack }) {
-  const [isMagnified, setIsMagnified] = useState(false);
   const surfaceKey = `students-book:media:${media?.logicalKey || "unavailable"}`;
   return (
     <main className="teacher-offline-media has-classroom-tools">
@@ -17,7 +15,8 @@ export default function TeacherOfflineMedia({ media, onBack }) {
           <h1>{media?.label || "Book media"}</h1>
         </div>
       </header>
-      <section className={isMagnified ? "classroom-magnified" : ""} data-classroom-surface-id={surfaceKey}>
+      <section data-classroom-surface-id={surfaceKey} tabIndex={-1}>
+        <ClassroomStageTransform surfaceKey={surfaceKey}>
         {media?.logicalKey ? (
           <StudentsBookMediaPlayer
             logicalKey={media.logicalKey}
@@ -28,8 +27,9 @@ export default function TeacherOfflineMedia({ media, onBack }) {
           <div className="teacher-offline-asset-error">This optional media item is unavailable.</div>
         )}
         <ClassroomToolOverlay surfaceKey={surfaceKey} />
+        </ClassroomStageTransform>
       </section>
-      <ClassroomToolbar surfaceKey={surfaceKey} onMagnify={() => setIsMagnified((value) => !value)} />
+      <ClassroomToolbar surfaceKey={surfaceKey} />
     </main>
   );
 }

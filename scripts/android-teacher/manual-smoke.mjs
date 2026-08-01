@@ -95,6 +95,14 @@ try {
   const page = await context.newPage();
   await page.addInitScript(() => {
     globalThis.__teacherSoundPlays = [];
+    localStorage.setItem("interactive-classroom:annotations:v1", JSON.stringify({
+      "migration-probe": [
+        { id: "legacy-stroke", type: "stroke", points: [{ x: .1, y: .1 }, { x: .2, y: .2 }], color: "#111827", strokeWidth: 3 },
+        { id: "legacy-text", type: "text", x: .2, y: .3, value: "Saved", color: "#111827", fontSize: 26 },
+        { id: "legacy-cover", type: "cover", x: .3, y: .3, width: .2, height: .2 },
+        { id: "legacy-spotlight", type: "spotlight", x: .4, y: .4, width: .2, height: .2 },
+      ],
+    }));
     HTMLMediaElement.prototype.play = function play() {
       globalThis.__teacherSoundPlays.push({ source: this.currentSrc || this.src, volume: this.volume });
       return Promise.resolve();
@@ -110,6 +118,10 @@ try {
   const startupStartedAt = performance.now();
   await page.goto(baseURL, { waitUntil: "networkidle" });
   await page.locator(".legacy-home-launcher").waitFor();
+  const migratedMarkup = await page.evaluate(() => JSON.parse(localStorage.getItem("interactive-classroom:annotations:v1"))["migration-probe"]);
+  assert.deepEqual(migratedMarkup.drawing.map(({ type }) => type), ["stroke", "text"], "Legacy drawing elements must migrate into drawing history");
+  assert.deepEqual(migratedMarkup.covers.map(({ type }) => type), ["cover"], "Legacy covers must migrate outside drawing history");
+  assert.equal(migratedMarkup.spotlight.type, "spotlight", "Legacy spotlight must migrate outside drawing history");
   const settingsSurface = page.locator(".teacher-offline-settings-surface");
   assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", "Modern must be the fresh-install default");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "on", "Motion must default on");
@@ -140,8 +152,8 @@ try {
   assert.equal(await page.evaluate(() => globalThis.__teacherSoundPlays.length), buttonSoundCountWhileOff, "Button sounds must stay silent while their category is off");
   await page.getByRole("switch", { name: "Show left navbar buttons" }).click();
   await page.getByRole("switch", { name: "Show right navbar buttons" }).click();
-  await page.getByRole("slider", { name: "Menu buttons auto-hide delay" }).fill("0");
-  await page.getByRole("switch", { name: "Menu buttons auto-hide" }).click();
+  assert.equal(await page.getByRole("slider", { name: "Menu buttons auto-hide delay" }).count(), 0, "Obsolete menu delay must not be visible");
+  assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).count(), 0, "Obsolete auto-hide must not be visible");
   await page.getByText(/left group remains available/i).waitFor();
   await page.getByRole("tab", { name: "Graphics" }).click();
   assert.equal(await page.getByRole("button", { name: "Modern", exact: true }).getAttribute("aria-pressed"), "true");
@@ -198,7 +210,7 @@ try {
   await page.getByRole("tab", { name: "Audio" }).click();
   assert.equal(await page.getByRole("slider", { name: "Navigation sound effects volume" }).inputValue(), "37", "Settings must persist across app reload");
   await page.getByRole("tab", { name: "Content" }).click();
-  assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).getAttribute("aria-checked"), "true", "Auto-hide must persist across app reload");
+  assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).count(), 0);
   await page.getByRole("button", { name: "Close settings" }).click();
   const initialHash = await page.evaluate(() => location.hash);
   await page.getByRole("button", { name: /^Unit 3:.*Locked$/ }).evaluate((button) => button.click());
@@ -232,8 +244,7 @@ try {
   await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "on");
 
   await page.waitForTimeout(1200);
-  await page.getByRole("button", { name: "Show classroom tools" }).waitFor();
-  await page.getByRole("button", { name: "Show classroom tools" }).click();
+  assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Toolbar must never auto-hide behind a reveal button");
   await page.getByRole("button", { name: "Open classroom settings" }).click();
   await page.getByRole("tab", { name: "Graphics" }).click();
   await page.getByRole("button", { name: "Legacy", exact: true }).click();
@@ -245,7 +256,6 @@ try {
   assert.equal(await page.locator('[aria-label="Left overview navigation"]').isVisible(), true, "Both sides off must retain the safe left navigation group");
   await page.getByRole("switch", { name: "Show left navbar buttons" }).click();
   await page.getByRole("switch", { name: "Show right navbar buttons" }).click();
-  await page.getByRole("switch", { name: "Menu buttons auto-hide" }).click();
   await page.getByRole("button", { name: "Close settings" }).click();
 
   await assertCanonicalUnitOverview(page, 1);
@@ -280,7 +290,17 @@ try {
 
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 5" }).first().click();
   const overlay = page.locator(".classroom-tools-overlay");
+  for (const label of ["Pen tool", "Zoom region", "Cover area tool", "Spotlight reveal tool", "Open timer", "Open scoreboard", "Print current view", "Clear classroom markup"]) {
+    assert.equal(await page.getByRole("button", { name: label }).isVisible(), true, `${label} must be directly visible`);
+  }
+  for (const label of ["More classroom tools", "Eraser tool", "Text tool", "Undo drawing", "Redo drawing", "Fit page", "Fit width", "Fullscreen"]) {
+    assert.equal(await page.getByRole("button", { name: label }).count(), 0, `${label} must not be in the normal toolbar`);
+  }
+  await page.waitForTimeout(10_200);
+  assert.equal(await page.locator(".classroom-teaching-toolbar").isVisible(), true, "Page toolbar must remain visible");
   await page.getByRole("button", { name: "Pen tool" }).click();
+  await page.getByText("PEN MODE", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Exit pen mode" }).isVisible(), true);
   assert.equal(await page.evaluate(() => globalThis.__teacherSoundPlays.some((play) => /button/i.test(play.source) && Math.abs(play.volume - 0.52) < 0.001)), true, "Toolbar sounds must use toolbar volume");
   assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "pen");
   const overlayBox = await overlay.boundingBox();
@@ -288,50 +308,94 @@ try {
   await page.mouse.down();
   await page.mouse.move(overlayBox.x + 240, overlayBox.y + 170, { steps: 8 });
   await page.mouse.up();
-  await overlay.locator("path[data-annotation-id]").waitFor();
-  assert.equal(await overlay.locator("path[data-annotation-id]").count(), 1, "Pen stroke should be added");
-  await page.getByRole("button", { name: "Undo annotation" }).click();
-  assert.equal(await overlay.locator("path[data-annotation-id]").count(), 0, "Undo should remove the stroke");
-  await page.getByRole("button", { name: "Redo annotation" }).click();
-  assert.equal(await overlay.locator("path[data-annotation-id]").count(), 1, "Redo should restore the stroke");
+  await overlay.locator("path[data-drawing-id]").waitFor();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 1, "Pen stroke should be added");
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 0, "Undo should remove the stroke");
+  await page.getByRole("button", { name: "Redo drawing" }).click();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 1, "Redo should restore the stroke");
 
   await page.getByRole("button", { name: "Text tool" }).click();
+  assert.equal(await page.locator(".classroom-mode-banner span").getByText("Text", { exact: true }).isVisible(), true);
   await overlay.click({ position: { x: 360, y: 150 } });
   await page.getByRole("textbox", { name: "Annotation text" }).fill("Class note");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByText("Class note", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "More classroom tools" }).click();
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  assert.equal(await overlay.locator("text", { hasText: "Class note" }).count(), 0, "Undo should remove text");
+  await page.getByRole("button", { name: "Redo drawing" }).click();
+  await overlay.locator("text", { hasText: "Class note" }).waitFor();
+  await page.getByRole("button", { name: "Eraser tool" }).click();
+  await overlay.locator("text", { hasText: "Class note" }).click({ force: true });
+  assert.equal(await overlay.locator("text", { hasText: "Class note" }).count(), 0, "Eraser must remove drawing text");
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  await overlay.locator("text", { hasText: "Class note" }).waitFor();
+  await page.getByRole("button", { name: "Text tool" }).click();
   await page.getByRole("button", { name: "Show on-screen keyboard" }).click();
   const keyboardInput = page.getByRole("textbox", { name: "Annotation text" });
   await keyboardInput.waitFor();
   assert.equal(await keyboardInput.evaluate((input) => document.activeElement === input), true, "Keyboard action should focus text input");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Exit pen mode" }).click();
 
-  await page.getByRole("button", { name: "More classroom tools" }).click();
+  await page.getByRole("button", { name: "Cover area tool" }).click();
+  await page.getByText("COVER MODE", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: /Undo drawing/ }).count(), 0);
+  await page.mouse.move(overlayBox.x + 470, overlayBox.y + 110);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 650, overlayBox.y + 230, { steps: 6 });
+  await page.mouse.up();
+  await page.mouse.move(overlayBox.x + 720, overlayBox.y + 280);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 850, overlayBox.y + 390, { steps: 6 });
+  await page.mouse.up();
+  await overlay.locator(".classroom-cover").first().waitFor();
+  await page.getByRole("button", { name: "Exit cover mode" }).first().click();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 2, "Multiple covers must be supported");
+  await overlay.locator(".classroom-cover").first().click({ force: true });
+  await page.getByRole("button", { name: "Delete selected cover" }).waitFor();
+  await page.getByRole("button", { name: "Delete selected cover" }).click();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 1, "Local trash must remove only the selected cover");
+  await page.getByRole("button", { name: "Pen tool" }).click();
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 1, "Drawing undo must not remove a cover");
+  await page.getByRole("button", { name: "Exit pen mode" }).click();
+
   await page.getByRole("button", { name: "Spotlight reveal tool" }).click();
+  await page.getByText("SPOTLIGHT MODE", { exact: true }).waitFor();
   await page.mouse.move(overlayBox.x + 180, overlayBox.y + 90);
   await page.mouse.down();
   await page.mouse.move(overlayBox.x + 410, overlayBox.y + 240, { steps: 6 });
   await page.mouse.up();
   await overlay.locator("mask").waitFor({ state: "attached" });
-  await page.getByRole("button", { name: "Eraser tool" }).click();
-  await overlay.click({ position: { x: 30, y: 30 } });
-  await overlay.locator("mask").waitFor({ state: "detached" });
-  assert.equal(await overlay.locator("mask").count(), 0, "Eraser should remove spotlight");
-
-  await page.getByRole("button", { name: "More classroom tools" }).click();
-  await page.getByRole("button", { name: "Cover area tool" }).click();
-  await page.mouse.move(overlayBox.x + 470, overlayBox.y + 110);
+  const firstSpotlightX = await overlay.locator('rect[stroke="#f4e84a"]').getAttribute("x");
+  await page.mouse.move(overlayBox.x + 260, overlayBox.y + 160);
   await page.mouse.down();
-  await page.mouse.move(overlayBox.x + 650, overlayBox.y + 230, { steps: 6 });
+  await page.mouse.move(overlayBox.x + 500, overlayBox.y + 330, { steps: 6 });
   await page.mouse.up();
-  await overlay.locator('rect[data-annotation-id]').waitFor();
-  await page.getByRole("button", { name: "Eraser tool" }).click();
-  await overlay.click({ position: { x: 550, y: 170 } });
-  await overlay.locator('rect[data-annotation-id]').waitFor({ state: "detached" });
-  assert.equal(await overlay.locator('rect[data-annotation-id]').count(), 0, "Eraser should remove cover mask");
+  assert.equal(await overlay.locator("mask").count(), 1, "A second spotlight must replace the first");
+  assert.notEqual(await overlay.locator('rect[stroke="#f4e84a"]').getAttribute("x"), firstSpotlightX);
+  await page.getByRole("button", { name: "Exit spotlight mode" }).first().click();
+  await page.getByRole("button", { name: "Pen tool" }).click();
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  assert.equal(await overlay.locator("mask").count(), 1, "Drawing undo must not remove the spotlight");
+  await page.getByRole("button", { name: "Exit pen mode" }).click();
+  await page.getByRole("button", { name: "Clear classroom markup" }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Spotlight", exact: true }).click();
+  await overlay.locator("mask").waitFor({ state: "detached" });
 
-  await page.getByRole("button", { name: "More classroom tools" }).click();
+  await page.getByRole("button", { name: "Zoom region" }).click();
+  await page.getByText("ZOOM MODE", { exact: true }).waitFor();
+  await page.mouse.move(overlayBox.x + 160, overlayBox.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 510, overlayBox.y + 270, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".classroom-stage-transform.region-zoom-active").waitFor();
+  assert.ok(Number(await page.locator(".classroom-stage-transform").getAttribute("data-region-zoom-scale")) > 1);
+  await page.getByRole("button", { name: "Zoom out" }).click();
+  assert.equal(await page.locator(".classroom-stage-transform.region-zoom-active").count(), 0, "Zoom out must restore the default view");
+
   await page.getByRole("button", { name: "Open timer" }).click();
   await page.getByRole("complementary", { name: "Classroom timer" }).waitFor();
   await page.getByRole("button", { name: "1 min" }).click();
@@ -342,15 +406,12 @@ try {
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   assert.equal(await page.locator(".classroom-timer-panel output").textContent(), "01:00");
   await page.getByRole("button", { name: "Close timer" }).click();
-  await page.getByRole("button", { name: "More classroom tools" }).click();
   await page.getByRole("button", { name: "Open scoreboard" }).click();
   await page.getByRole("complementary", { name: "Two-team scoreboard" }).waitFor();
   await page.getByRole("button", { name: "Add point to Team A" }).click();
   assert.equal(await page.getByLabel("Team A score").textContent(), "1");
   await page.getByRole("button", { name: "Close scoreboard" }).click();
-  await page.getByRole("button", { name: "More classroom tools" }).click();
   assert.equal(await page.getByRole("button", { name: "Print current view" }).isVisible(), true);
-  await page.getByRole("button", { name: "Stop active tool" }).click();
   await page.getByRole("button", { name: "Contents and exercises" }).click();
 
   await openExercises(page, 1);
@@ -360,9 +421,17 @@ try {
   await page.getByText(/Activity \d+ of 77/).waitFor();
   assert.equal(await page.locator(".teacher-offline-presentation .classroom-teaching-toolbar").count(), 1, "Activity toolbar should render");
   assert.equal(await page.locator(".teacher-offline-presentation .classroom-tools-overlay").count(), 1, "Activity overlay should render");
-  await page.getByRole("button", { name: "More classroom tools" }).click();
-  await page.getByRole("button", { name: "Magnify current view" }).click();
-  assert.equal(await page.locator(".teacher-offline-presentation-stage.classroom-magnified").count(), 1, "Activity magnify should toggle");
+  await page.waitForTimeout(10_200);
+  assert.equal(await page.locator(".teacher-offline-presentation .classroom-teaching-toolbar").isVisible(), true, "Activity toolbar must remain visible");
+  assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Activity toolbar must not use a reveal button");
+  await page.getByRole("button", { name: "Zoom region" }).click();
+  const activityOverlayBox = await page.locator(".teacher-offline-presentation .classroom-tools-overlay").boundingBox();
+  await page.mouse.move(activityOverlayBox.x + 120, activityOverlayBox.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(activityOverlayBox.x + 520, activityOverlayBox.y + 300, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".teacher-offline-presentation .classroom-stage-transform.region-zoom-active").waitFor();
+  await page.getByRole("button", { name: "Zoom out" }).click();
   const activityOpenMs = Math.round(performance.now() - activityOpenStartedAt);
   const multipleChoiceSolution = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o3"];
   const firstMultipleChoice = Object.values(multipleChoiceSolution.questions)[0];
@@ -426,6 +495,18 @@ try {
   await page.locator(".teacher-offline-media").waitFor();
   assert.equal(await page.locator(".teacher-offline-media .classroom-teaching-toolbar").count(), 1, "Media toolbar should render");
   assert.equal(await page.locator(".teacher-offline-media .classroom-tools-overlay").count(), 1, "Media overlay should render");
+  await page.waitForTimeout(10_200);
+  assert.equal(await page.locator(".teacher-offline-media .classroom-teaching-toolbar").isVisible(), true, "Media toolbar must remain visible");
+  assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Media toolbar must not use a reveal button");
+  await page.getByRole("button", { name: "Zoom region" }).click();
+  const mediaOverlayBox = await page.locator(".teacher-offline-media .classroom-tools-overlay").boundingBox();
+  await page.mouse.move(mediaOverlayBox.x + 160, mediaOverlayBox.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(mediaOverlayBox.x + 560, mediaOverlayBox.y + 320, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".teacher-offline-media .classroom-stage-transform.region-zoom-active").waitFor();
+  await page.getByRole("button", { name: "Zoom out" }).click();
+  assert.equal(await page.locator(".teacher-offline-media .classroom-stage-transform.region-zoom-active").count(), 0, "Media region zoom must reset");
   const standaloneVideo = page.locator(".teacher-offline-standalone-media");
   await standaloneVideo.waitFor();
   assert.match(await standaloneVideo.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);

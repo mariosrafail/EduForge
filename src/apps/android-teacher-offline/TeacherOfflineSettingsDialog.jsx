@@ -1,7 +1,7 @@
 import { BookOpen, Info, Palette, Volume2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { teacherMenuDelayMilliseconds, updateTeacherOfflineSettings, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { updateTeacherOfflineSettings, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 const tabs = [
   { id: "audio", label: "Audio", icon: Volume2 },
@@ -70,8 +70,6 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
 
   if (!open) return null;
   const update = (section, key, value) => updateTeacherOfflineSettings(section, { [key]: value });
-  const delaySeconds = (teacherMenuDelayMilliseconds(settings.content.menuDelay) / 1000).toFixed(1);
-
   return (
     <div className="legacy-settings-backdrop" role="presentation">
       <section ref={dialogRef} className="legacy-settings-dialog" data-settings-motion-state="ready" role="dialog" aria-modal="true" aria-labelledby="legacy-settings-title" tabIndex={-1}>
@@ -96,8 +94,6 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
               <h2>Show navbar buttons on:</h2>
               <SettingRow title="Left"><LegacyToggle label="Show left navbar buttons" checked={settings.content.showNavbarLeft} onChange={(value) => update("content", "showNavbarLeft", value)} /></SettingRow>
               <SettingRow title="Right"><LegacyToggle label="Show right navbar buttons" checked={settings.content.showNavbarRight} onChange={(value) => update("content", "showNavbarRight", value)} /></SettingRow>
-              <h2>Menu buttons:</h2>
-              <SettingRow title="Delay" description={`${delaySeconds} seconds before the classroom toolbar hides`}><LegacySlider label="Menu buttons auto-hide delay" value={settings.content.menuDelay} onChange={(value) => update("content", "menuDelay", value)} /><LegacyToggle label="Menu buttons auto-hide" checked={settings.content.menuAutoHide} onChange={(value) => update("content", "menuAutoHide", value)} /></SettingRow>
               {!settings.content.showNavbarLeft && !settings.content.showNavbarRight && <p className="legacy-settings-note">The left group remains available as a safety navigation path while both sides are off.</p>}
             </div>
           )}
@@ -121,7 +117,7 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
             <div className="legacy-settings-about" data-settings-panel="about">
               <h2>Software version info:</h2><strong>Hamilton House Interactive Classroom</strong><p>Version 0.1.0</p>
               <div className="legacy-settings-brand"><b>HAMILTON HOUSE</b><span>English Language Teaching</span></div>
-              <small>Ultimate English B2 interactive classroom content</small>
+              <small>Interactive Classroom</small>
             </div>
           )}
         </div>

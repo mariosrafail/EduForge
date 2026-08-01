@@ -1,8 +1,10 @@
+import { Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { createClassroomElementId, useClassroomTools } from "./ClassroomToolsContext.jsx";
 
-const EDITING_TOOLS = new Set(["pen", "eraser", "text", "spotlight", "cover"]);
+const CAPTURE_TOOLS = new Set(["pen", "eraser", "text", "spotlight", "cover", "zoom-region"]);
 
 function clampUnit(value) {
   return Math.max(0, Math.min(1, value));
@@ -24,10 +26,17 @@ function normalizedRect(start, end) {
 export default function ClassroomToolOverlay({ surfaceKey }) {
   const {
     activeTool,
+    setActiveTool,
     color,
     strokeWidth,
-    getHistory,
-    commit,
+    getDrawingHistory,
+    commitDrawing,
+    getOverlays,
+    addCover,
+    removeCover,
+    setSpotlight,
+    getRegionZoom,
+    setRegionZoom,
     keyboardRequest,
   } = useClassroomTools();
   const overlayRef = useRef(null);
@@ -37,9 +46,12 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   const [size, setSize] = useState({ width: 1, height: 1 });
   const [draft, setDraft] = useState(null);
   const [textDraft, setTextDraft] = useState(null);
-  const history = getHistory(surfaceKey);
-  const elements = history.present;
-  const editing = EDITING_TOOLS.has(activeTool);
+  const [selectedCoverId, setSelectedCoverId] = useState("");
+  const [selectedCoverAnchor, setSelectedCoverAnchor] = useState(null);
+  const drawing = getDrawingHistory(surfaceKey).present;
+  const { covers, spotlight } = getOverlays(surfaceKey);
+  const regionZoom = getRegionZoom(surfaceKey);
+  const capturing = CAPTURE_TOOLS.has(activeTool) && !regionZoom;
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -52,8 +64,29 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   }, []);
 
   useEffect(() => {
+    draftRef.current = null;
+    setDraft(null);
     if (activeTool !== "text") setTextDraft(null);
   }, [activeTool, surfaceKey]);
+
+  useEffect(() => { setSelectedCoverId(""); setSelectedCoverAnchor(null); }, [surfaceKey]);
+
+  useEffect(() => {
+    if (selectedCoverId && !covers.some(({ id }) => id === selectedCoverId)) {
+      setSelectedCoverId("");
+      setSelectedCoverAnchor(null);
+    }
+  }, [covers, selectedCoverId]);
+
+  useEffect(() => {
+    if (!selectedCoverId) return undefined;
+    const deselect = (event) => {
+      if (!event.target.closest(`[data-cover-id="${CSS.escape(selectedCoverId)}"]`)
+        && !event.target.closest(".classroom-cover-delete")) { setSelectedCoverId(""); setSelectedCoverAnchor(null); }
+    };
+    document.addEventListener("pointerdown", deselect);
+    return () => document.removeEventListener("pointerdown", deselect);
+  }, [selectedCoverId]);
 
   useEffect(() => {
     if (!keyboardRequest || activeTool !== "text") return;
@@ -71,7 +104,7 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   const finishText = () => {
     const value = textDraft?.value.trim();
     if (value) {
-      commit(surfaceKey, (current) => [...current, {
+      commitDrawing(surfaceKey, (current) => [...current, {
         id: createClassroomElementId(),
         type: "text",
         x: textDraft.x,
@@ -84,12 +117,14 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
     setTextDraft(null);
   };
   const onPointerDown = (event) => {
-    if (!editing || event.button > 0 || event.target.closest(".classroom-text-editor")) return;
+    if (!capturing || event.button > 0 || event.target.closest(".classroom-text-editor")) return;
+    event.preventDefault();
     event.stopPropagation();
+    setSelectedCoverId("");
     const point = pointFromEvent(event);
     if (activeTool === "eraser") {
-      const id = event.target.closest("[data-annotation-id]")?.dataset.annotationId;
-      if (id) commit(surfaceKey, (current) => current.filter((element) => element.id !== id));
+      const id = event.target.closest("[data-drawing-id]")?.dataset.drawingId;
+      if (id) commitDrawing(surfaceKey, (current) => current.filter((element) => element.id !== id));
       return;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -106,6 +141,7 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   };
   const onPointerMove = (event) => {
     if (!draftRef.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    event.preventDefault();
     event.stopPropagation();
     const point = pointFromEvent(event);
     const current = draftRef.current;
@@ -118,49 +154,35 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   const onPointerEnd = (event) => {
     const current = draftRef.current;
     if (!current) return;
+    event.preventDefault();
     event.stopPropagation();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (current.type === "stroke" && current.points.length > 1) {
-      commit(surfaceKey, (elementsNow) => [...elementsNow, { ...current, id: createClassroomElementId() }]);
-    } else if (["cover", "spotlight"].includes(current.type)) {
+      commitDrawing(surfaceKey, (elements) => [...elements, { ...current, id: createClassroomElementId() }]);
+    } else if (["cover", "spotlight", "zoom-region"].includes(current.type)) {
       const rect = normalizedRect(current.start, current.end);
       if (rect.width > 0.015 && rect.height > 0.015) {
-        commit(surfaceKey, (elementsNow) => {
-          const withoutPriorSpotlight = current.type === "spotlight"
-            ? elementsNow.filter((element) => element.type !== "spotlight")
-            : elementsNow;
-          return [...withoutPriorSpotlight, {
-            id: createClassroomElementId(),
-            type: current.type,
-            ...rect,
-            color,
-          }];
-        });
+        if (current.type === "cover") addCover(surfaceKey, { id: createClassroomElementId(), type: "cover", ...rect });
+        if (current.type === "spotlight") setSpotlight(surfaceKey, { id: createClassroomElementId(), type: "spotlight", ...rect });
+        if (current.type === "zoom-region") {
+          setRegionZoom(surfaceKey, rect);
+          setActiveTool("pointer");
+        }
       }
     }
     draftRef.current = null;
     setDraft(null);
   };
 
-  const renderElement = (element) => {
-    if (element.type === "stroke") {
-      return <path key={element.id} data-annotation-id={element.id} d={pointsToPath(element.points, size)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />;
-    }
-    if (element.type === "text") {
-      return <text key={element.id} data-annotation-id={element.id} x={element.x * size.width} y={element.y * size.height} fill={element.color} fontSize={element.fontSize} fontWeight="800" paintOrder="stroke" stroke="rgba(255,255,255,.82)" strokeWidth="3">{element.value}</text>;
-    }
-    if (element.type === "cover") {
-      return <rect key={element.id} data-annotation-id={element.id} x={element.x * size.width} y={element.y * size.height} width={element.width * size.width} height={element.height * size.height} rx="8" fill="rgba(23,30,49,.92)" stroke={element.color} strokeWidth="3" vectorEffect="non-scaling-stroke" />;
-    }
-    return null;
-  };
-  const spotlight = elements.findLast((element) => element.type === "spotlight");
   const draftRect = draft && draft.type !== "stroke" ? normalizedRect(draft.start, draft.end) : null;
+  const selectedCover = covers.find(({ id }) => id === selectedCoverId);
+  const spotlightReveal = draftRect && draft?.type === "spotlight" ? draftRect : spotlight;
 
   return (
+    <>
     <div
       ref={overlayRef}
-      className={`classroom-tools-overlay ${editing ? "is-editing" : ""} tool-${activeTool}`}
+      className={`classroom-tools-overlay ${capturing ? "is-editing" : ""} ${covers.length ? "has-covers" : ""} ${selectedCoverId ? "has-selected-cover" : ""} tool-${activeTool}`}
       data-active-classroom-tool={activeTool}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -169,41 +191,65 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
       aria-label="Classroom annotation layer"
     >
       <svg width="100%" height="100%" aria-hidden="true">
-        {elements.filter((element) => element.type !== "spotlight").map(renderElement)}
+        {drawing.map((element) => element.type === "stroke" ? (
+          <path key={element.id} data-drawing-id={element.id} d={pointsToPath(element.points, size)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        ) : (
+          <text key={element.id} data-drawing-id={element.id} x={element.x * size.width} y={element.y * size.height} fill={element.color} fontSize={element.fontSize} fontWeight="800" paintOrder="stroke" stroke="rgba(255,255,255,.82)" strokeWidth="3">{element.value}</text>
+        ))}
+        {covers.map((cover) => (
+          <rect
+            key={cover.id}
+            data-cover-id={cover.id}
+            className={cover.id === selectedCoverId ? "classroom-cover selected" : "classroom-cover"}
+            x={cover.x * size.width}
+            y={cover.y * size.height}
+            width={cover.width * size.width}
+            height={cover.height * size.height}
+            rx="8"
+            fill="rgba(23,30,49,.94)"
+            stroke={cover.id === selectedCoverId ? "#fff" : "rgba(255,255,255,.72)"}
+            strokeWidth={cover.id === selectedCoverId ? 5 : 2}
+            vectorEffect="non-scaling-stroke"
+            onPointerDown={(event) => {
+              if (activeTool === "pointer") {
+                event.stopPropagation();
+                const rect = event.currentTarget.getBoundingClientRect();
+                setSelectedCoverId(cover.id);
+                setSelectedCoverAnchor({ left: rect.right, top: rect.top });
+              }
+            }}
+          />
+        ))}
         {draft?.type === "stroke" && <path d={pointsToPath(draft.points, size)} fill="none" stroke={draft.color} strokeWidth={draft.strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />}
-        {draftRect && draft.type === "cover" && <rect x={draftRect.x * size.width} y={draftRect.y * size.height} width={draftRect.width * size.width} height={draftRect.height * size.height} rx="8" fill="rgba(23,30,49,.82)" stroke={color} strokeWidth="3" />}
-        {(spotlight || (draftRect && draft.type === "spotlight")) && (() => {
-          const reveal = draftRect && draft.type === "spotlight" ? draftRect : spotlight;
-          return (
-            <>
-              <defs><mask id={maskId}><rect width="100%" height="100%" fill="white" /><rect x={reveal.x * size.width} y={reveal.y * size.height} width={reveal.width * size.width} height={reveal.height * size.height} rx="12" fill="black" /></mask></defs>
-              <rect data-annotation-id={spotlight?.id} width="100%" height="100%" fill="rgba(3,10,27,.76)" mask={`url(#${maskId})`} />
-              <rect x={reveal.x * size.width} y={reveal.y * size.height} width={reveal.width * size.width} height={reveal.height * size.height} rx="12" fill="none" stroke="#f4e84a" strokeWidth="4" vectorEffect="non-scaling-stroke" />
-            </>
-          );
-        })()}
+        {draftRect && draft.type === "cover" && <rect x={draftRect.x * size.width} y={draftRect.y * size.height} width={draftRect.width * size.width} height={draftRect.height * size.height} rx="8" fill="rgba(23,30,49,.86)" stroke="rgba(255,255,255,.82)" strokeWidth="3" />}
+        {spotlightReveal && (
+          <>
+            <defs><mask id={maskId}><rect width="100%" height="100%" fill="white" /><rect x={spotlightReveal.x * size.width} y={spotlightReveal.y * size.height} width={spotlightReveal.width * size.width} height={spotlightReveal.height * size.height} rx="12" fill="black" /></mask></defs>
+            <rect width="100%" height="100%" fill="rgba(3,10,27,.76)" mask={`url(#${maskId})`} />
+            <rect x={spotlightReveal.x * size.width} y={spotlightReveal.y * size.height} width={spotlightReveal.width * size.width} height={spotlightReveal.height * size.height} rx="12" fill="none" stroke="#f4e84a" strokeWidth="4" vectorEffect="non-scaling-stroke" />
+          </>
+        )}
+        {draftRect && draft.type === "zoom-region" && <rect className="classroom-zoom-selection" x={draftRect.x * size.width} y={draftRect.y * size.height} width={draftRect.width * size.width} height={draftRect.height * size.height} rx="8" />}
       </svg>
       {textDraft && (
-        <form
-          className="classroom-text-editor"
-          style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }}
-          onSubmit={(event) => { event.preventDefault(); finishText(); }}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <input
-            ref={textInputRef}
-            value={textDraft.value}
-            maxLength={240}
-            enterKeyHint="done"
-            aria-label="Annotation text"
-            placeholder="Type classroom note"
-            onChange={(event) => setTextDraft((current) => ({ ...current, value: event.target.value }))}
-          />
+        <form className="classroom-text-editor" style={{ left: `${textDraft.x * 100}%`, top: `${textDraft.y * 100}%` }} onSubmit={(event) => { event.preventDefault(); finishText(); }} onPointerDown={(event) => event.stopPropagation()}>
+          <input ref={textInputRef} value={textDraft.value} maxLength={240} enterKeyHint="done" aria-label="Annotation text" placeholder="Type classroom note" onChange={(event) => setTextDraft((current) => ({ ...current, value: event.target.value }))} />
           <button type="submit">Add</button>
           <button type="button" onClick={() => setTextDraft(null)}>Cancel</button>
         </form>
       )}
-      {editing && <span className="classroom-active-tool-label">{activeTool}</span>}
     </div>
+    {selectedCover && selectedCoverAnchor && createPortal(
+      <button
+        type="button"
+        className="classroom-cover-delete"
+        style={{ left: selectedCoverAnchor.left, top: selectedCoverAnchor.top }}
+        aria-label="Delete selected cover"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={() => { removeCover(surfaceKey, selectedCover.id); setSelectedCoverId(""); setSelectedCoverAnchor(null); }}
+      ><Trash2 /></button>,
+      document.body,
+    )}
+    </>
   );
 }

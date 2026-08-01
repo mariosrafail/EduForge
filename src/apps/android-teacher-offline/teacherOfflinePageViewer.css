@@ -14,7 +14,7 @@
   padding: max(8px, env(safe-area-inset-top)) clamp(22px, 4vw, 76px) max(7px, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) 66px 58px;
+  grid-template-rows: auto minmax(0, 1fr) 66px var(--classroom-toolbar-height);
   gap: 4px;
   overflow: hidden;
   background:
@@ -279,7 +279,7 @@
 }
 
 @media (max-width: 1100px), (max-height: 650px) {
-  .teacher-offline-pages-viewer { padding: 3px 10px 4px; grid-template-rows: 42px minmax(0, 1fr) 54px 50px; gap: 2px; }
+  .teacher-offline-pages-viewer { padding: 3px 10px 4px; grid-template-rows: 42px minmax(0, 1fr) 54px var(--classroom-toolbar-height); gap: 2px; }
   .legacy-page-heading { min-height: 42px; }
   .legacy-page-heading h2 { font-size: 1.25rem; }
   .legacy-page-heading strong { margin-top: 2px; font-size: 0.76rem; }
@@ -306,5 +306,5 @@
   .legacy-page-navigation { grid-template-columns: 1fr 1fr; }
   .legacy-page-navigation > div:last-child { grid-column: 2; }
   .legacy-page-navigation > div:first-child .legacy-page-round-button:first-child { display: none; }
-  .legacy-classroom-viewer-toolbar { width: min(390px, 74vw); }
+  .legacy-classroom-viewer-toolbar { width: min(760px, 100%); }
 }

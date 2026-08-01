@@ -96,6 +96,7 @@ async function assertCleanAbout(page, label) {
   const text = await dialog.innerText();
   assert.match(text, /Hamilton House Interactive Classroom/);
   assert.match(text, /Version 0\.1\.0/);
+  assert.doesNotMatch(text, /Ultimate English B2 interactive classroom content/i, `${label} generic title`);
   assert.doesNotMatch(text, /EduForge|Made by|Made with|Developed by|Created by/i, `${label} branding`);
   await assertScreen(page, label);
 }
@@ -221,17 +222,56 @@ try {
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-1920x1080.png` });
+    await page.screenshot({ path: `${artifactRoot}/normal-toolbar-1920x1080.png` });
     await page.getByRole("button", { name: "Pen tool" }).click();
     const overlayBox = await page.locator(".classroom-tools-overlay").boundingBox();
     await page.mouse.move(overlayBox.x + 260, overlayBox.y + 210);
     await page.mouse.down();
     await page.mouse.move(overlayBox.x + 470, overlayBox.y + 300, { steps: 10 });
     await page.mouse.up();
-    await page.locator(".classroom-tools-overlay path[data-annotation-id]").waitFor();
+    await page.locator(".classroom-tools-overlay path[data-drawing-id]").waitFor();
     await page.screenshot({ path: `${artifactRoot}/classroom-tools-pen-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-classroom-tools-1920x1080.png` });
-    await page.getByRole("button", { name: "Undo annotation" }).click();
-    await page.getByRole("button", { name: "Pen tool" }).click();
+    await page.screenshot({ path: `${artifactRoot}/pen-mode-1920x1080.png` });
+    await page.getByRole("button", { name: "Text tool" }).click();
+    await page.locator(".classroom-tools-overlay").click({ position: { x: 520, y: 220 } });
+    await page.getByRole("textbox", { name: "Annotation text" }).fill("Class note");
+    await page.screenshot({ path: `${artifactRoot}/text-mode-1920x1080.png` });
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Exit pen mode" }).click();
+    await page.getByRole("button", { name: "Cover area tool" }).click();
+    await page.screenshot({ path: `${artifactRoot}/cover-mode-1920x1080.png` });
+    await page.mouse.move(overlayBox.x + 520, overlayBox.y + 160);
+    await page.mouse.down();
+    await page.mouse.move(overlayBox.x + 760, overlayBox.y + 330, { steps: 8 });
+    await page.mouse.up();
+    await page.getByRole("button", { name: "Exit cover mode" }).first().click();
+    await page.locator(".classroom-cover").click({ force: true });
+    await page.getByRole("button", { name: "Delete selected cover" }).waitFor();
+    await page.screenshot({ path: `${artifactRoot}/cover-selected-delete-1920x1080.png` });
+    await page.getByRole("button", { name: "Delete selected cover" }).click();
+    await page.getByRole("button", { name: "Spotlight reveal tool" }).click();
+    await page.mouse.move(overlayBox.x + 300, overlayBox.y + 140);
+    await page.mouse.down();
+    await page.mouse.move(overlayBox.x + 700, overlayBox.y + 380, { steps: 8 });
+    await page.mouse.up();
+    await page.screenshot({ path: `${artifactRoot}/spotlight-mode-1920x1080.png` });
+    await page.getByRole("button", { name: "Exit spotlight mode" }).first().click();
+    await page.getByRole("button", { name: "Zoom region" }).click();
+    await page.mouse.move(overlayBox.x + 280, overlayBox.y + 130);
+    await page.mouse.down();
+    await page.mouse.move(overlayBox.x + 760, overlayBox.y + 410, { steps: 8 });
+    await page.screenshot({ path: `${artifactRoot}/zoom-region-selection-1920x1080.png` });
+    await page.mouse.up();
+    await page.locator(".classroom-stage-transform.region-zoom-active").waitFor();
+    await page.screenshot({ path: `${artifactRoot}/zoom-region-active-1920x1080.png` });
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    await page.getByRole("button", { name: "Open timer" }).click();
+    await page.screenshot({ path: `${artifactRoot}/timer-1920x1080.png` });
+    await page.getByRole("button", { name: "Close timer" }).click();
+    await page.getByRole("button", { name: "Open scoreboard" }).click();
+    await page.screenshot({ path: `${artifactRoot}/scoreboard-1920x1080.png` });
+    await page.getByRole("button", { name: "Close scoreboard" }).click();
     await openActivity(page, 1, "Reading · Exercise 3");
     await assertScreen(page, "multiple-choice-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/multiple-choice-1920x1080.png` });
@@ -313,6 +353,7 @@ try {
     await assertScreen(page, "page-viewer-unit1-page5-800x360");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-800x360");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-800x360.png` });
+    await page.screenshot({ path: `${artifactRoot}/normal-toolbar-800x360.png` });
   });
 
   await capture({ width: 3840, height: 2160 }, async (page) => {
@@ -341,6 +382,7 @@ try {
     await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
+    await page.screenshot({ path: `${artifactRoot}/normal-toolbar-3840x2160.png` });
   });
 
   console.log(JSON.stringify({ status: "passed", screenshots: 46, artifactRoot }, null, 2));

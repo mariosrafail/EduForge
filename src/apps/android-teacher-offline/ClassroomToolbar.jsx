@@ -6,45 +6,33 @@ import {
   Pencil,
   Printer,
   Redo2,
-  RotateCcw,
   ScanSearch,
-  SlidersHorizontal,
   Timer,
   Trash2,
   Trophy,
   Type,
   Undo2,
+  X,
+  ZoomOut,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { CLASSROOM_COLORS, CLASSROOM_STROKES, useClassroomTools } from "./ClassroomToolsContext.jsx";
-import { teacherMenuDelayMilliseconds, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { CLASSROOM_COLORS, CLASSROOM_STROKES, DRAWING_TOOLS, useClassroomTools } from "./ClassroomToolsContext.jsx";
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
   return `${minutes}:${(seconds % 60).toString().padStart(2, "0")}`;
 }
 
-function ToolButton({ active = false, label, onClick, disabled = false, children, className = "" }) {
+function ToolButton({ active = false, label, shortLabel = label, onClick, disabled = false, children, className = "" }) {
   return (
-    <button
-      type="button"
-      className={`${active ? "selected" : ""} ${className}`.trim()}
-      aria-label={label}
-      aria-pressed={active}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
+    <button type="button" className={`${active ? "selected" : ""} ${className}`.trim()} aria-label={label} aria-pressed={active} title={label} disabled={disabled} onClick={onClick}>
+      {children}<span>{shortLabel}</span>
     </button>
   );
 }
 
-export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMagnify }) {
-  const settings = useTeacherOfflineSettings();
-  const [autoHidden, setAutoHidden] = useState(false);
-  const hideTimer = useRef(0);
+export default function ClassroomToolbar({ surfaceKey }) {
   const {
     activeTool,
     setActiveTool,
@@ -52,10 +40,16 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
     setColor,
     strokeWidth,
     setStrokeWidth,
-    getHistory,
-    commit,
-    undo,
-    redo,
+    getDrawingHistory,
+    clearDrawing,
+    undoDrawing,
+    redoDrawing,
+    getOverlays,
+    clearCovers,
+    setSpotlight,
+    clearAllMarkup,
+    getRegionZoom,
+    resetRegionZoom,
     openPanel,
     setOpenPanel,
     requestKeyboard,
@@ -68,28 +62,47 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
     setScores,
   } = useClassroomTools();
   const [manualMinutes, setManualMinutes] = useState(5);
-  const scheduleAutoHide = () => {
-    clearTimeout(hideTimer.current);
-    setAutoHidden(false);
-    if (settings.content.menuAutoHide) {
-      hideTimer.current = globalThis.setTimeout(() => setAutoHidden(true), teacherMenuDelayMilliseconds(settings.content.menuDelay));
-    }
-  };
+  const history = getDrawingHistory(surfaceKey);
+  const overlays = getOverlays(surfaceKey);
+  const regionZoom = getRegionZoom(surfaceKey);
+  const drawingMode = DRAWING_TOOLS.has(activeTool);
+  const presentationMode = ["cover", "spotlight", "zoom-region"].includes(activeTool);
+
   useEffect(() => {
-    scheduleAutoHide();
-    return () => clearTimeout(hideTimer.current);
-  }, [settings.content.menuAutoHide, settings.content.menuDelay, surfaceKey]);
-  const history = getHistory(surfaceKey);
-  const selectTool = (tool) => {
-    setActiveTool((current) => current === tool ? "pointer" : tool);
+    setActiveTool("pointer");
+    setOpenPanel("");
+    resetRegionZoom(surfaceKey);
+  }, [surfaceKey]);
+
+  const focusStage = () => setTimeout(() => {
+    document.querySelector(`[data-classroom-surface-id="${CSS.escape(surfaceKey)}"]`)?.focus({ preventScroll: true });
+  }, 0);
+  const exitMode = () => {
+    setActiveTool("pointer");
+    setOpenPanel("");
+    focusStage();
+  };
+  const enterMode = (tool) => {
+    resetRegionZoom(surfaceKey);
+    setActiveTool(tool);
     setOpenPanel("");
   };
-  const clearAnnotations = () => {
-    if (!history.present.length) return;
-    if (globalThis.confirm("Clear all annotations, covers, and spotlight for this view?")) {
-      commit(surfaceKey, []);
-      setActiveTool("pointer");
-    }
+  const clearDrawings = () => {
+    if (history.present.length && globalThis.confirm("Clear drawings and text for this view?")) clearDrawing(surfaceKey);
+  };
+  const runClearAction = (kind) => {
+    const labels = {
+      drawing: "Clear drawings and text for this view?",
+      covers: "Clear all covers for this view?",
+      spotlight: "Clear the spotlight for this view?",
+      all: "Clear all classroom markup for this view?",
+    };
+    if (!globalThis.confirm(labels[kind])) return;
+    if (kind === "drawing") clearDrawing(surfaceKey);
+    if (kind === "covers") clearCovers(surfaceKey);
+    if (kind === "spotlight") setSpotlight(surfaceKey, null);
+    if (kind === "all") clearAllMarkup(surfaceKey);
+    setOpenPanel("");
   };
   const printCurrentView = () => {
     const target = [...document.querySelectorAll("[data-classroom-surface-id]")]
@@ -103,7 +116,6 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
     globalThis.addEventListener("afterprint", cleanup, { once: true });
     try {
       globalThis.print();
-      setMessage("Print dialog requested for the current classroom view.");
     } catch {
       cleanup();
       setMessage("Printing is not available on this device.");
@@ -113,64 +125,65 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
   const resetScores = () => {
     if (globalThis.confirm("Reset both team scores?")) setScores({ a: 0, b: 0 });
   };
+  const closePanel = () => { setOpenPanel(""); focusStage(); };
+
+  const modeTitle = drawingMode ? "PEN MODE"
+    : activeTool === "cover" ? "COVER MODE"
+      : activeTool === "spotlight" ? "SPOTLIGHT MODE"
+        : activeTool === "zoom-region" ? "ZOOM MODE" : "";
 
   return (
     <>
-      <div
-        className={`legacy-classroom-viewer-toolbar classroom-teaching-toolbar ${autoHidden ? "classroom-toolbar-auto-hidden" : ""}`.trim()}
-        role="toolbar"
-        aria-label="Classroom teaching tools"
-        data-menu-auto-hide={settings.content.menuAutoHide ? "on" : "off"}
-        data-menu-delay-ms={teacherMenuDelayMilliseconds(settings.content.menuDelay)}
-        onPointerDown={scheduleAutoHide}
-        onFocus={scheduleAutoHide}
-      >
-        {autoHidden && <button type="button" className="classroom-toolbar-reveal" data-sound="none" onClick={scheduleAutoHide}>Show classroom tools</button>}
-        {viewControls}
-        <div className="classroom-tool-primary">
-          <ToolButton active={activeTool === "pen"} label="Pen tool" onClick={() => selectTool("pen")}><Pencil /></ToolButton>
-          <ToolButton active={activeTool === "eraser"} label="Eraser tool" onClick={() => selectTool("eraser")}><Eraser /></ToolButton>
-          <ToolButton active={activeTool === "text"} label="Text tool" onClick={() => selectTool("text")}><Type /></ToolButton>
-          <ToolButton label="Undo annotation" disabled={!history.past.length} onClick={() => undo(surfaceKey)}><Undo2 /></ToolButton>
-          <ToolButton label="Redo annotation" disabled={!history.future.length} onClick={() => redo(surfaceKey)}><Redo2 /></ToolButton>
-          <ToolButton active={openPanel === "more"} label="More classroom tools" onClick={() => setOpenPanel((current) => current === "more" ? "" : "more")}><SlidersHorizontal /></ToolButton>
+      {modeTitle && (
+        <div className="classroom-mode-banner" role="status">
+          <div><strong>{modeTitle}</strong>{drawingMode && <span>{activeTool === "pen" ? "Pen" : activeTool === "eraser" ? "Eraser" : "Text"}</span>}</div>
+          <button type="button" aria-label={`Exit ${modeTitle.toLowerCase()}`} title={`Exit ${modeTitle.toLowerCase()}`} onClick={exitMode}><X /></button>
         </div>
+      )}
 
-        {["pen", "text", "cover"].includes(activeTool) && (
-          <div className="classroom-tool-options" aria-label="Annotation color and size">
-            <span>Colour</span>
-            {CLASSROOM_COLORS.map((option) => (
-              <button key={option} type="button" className={color === option ? "selected" : ""} style={{ "--tool-color": option }} aria-label={`Use ${option} colour`} onClick={() => setColor(option)} />
-            ))}
-            <span>Size</span>
-            {CLASSROOM_STROKES.map((option) => (
-              <button key={option} type="button" className={strokeWidth === option ? "selected" : ""} aria-label={`Use ${option} pixel stroke`} onClick={() => setStrokeWidth(option)}><i style={{ width: option * 2, height: option * 2 }} /></button>
-            ))}
+      <div className={`legacy-classroom-viewer-toolbar classroom-teaching-toolbar ${drawingMode ? "drawing-mode" : presentationMode ? "presentation-mode" : regionZoom ? "zoom-active" : "normal-mode"}`} role="toolbar" aria-label="Classroom teaching tools">
+        {drawingMode ? (
+          <div className="classroom-tool-primary classroom-drawing-tools">
+            <ToolButton active={activeTool === "pen"} label="Pen tool" shortLabel="Pen" onClick={() => setActiveTool("pen")}><Pencil /></ToolButton>
+            <ToolButton active={activeTool === "eraser"} label="Eraser tool" shortLabel="Eraser" onClick={() => setActiveTool("eraser")}><Eraser /></ToolButton>
+            <ToolButton active={activeTool === "text"} label="Text tool" shortLabel="Text" onClick={() => setActiveTool("text")}><Type /></ToolButton>
+            <div className="classroom-tool-options" aria-label="Drawing colour and size">
+              <span>Colour</span>
+              {CLASSROOM_COLORS.map((option) => <button key={option} type="button" className={`classroom-colour-choice ${color === option ? "selected" : ""}`} style={{ "--tool-color": option }} aria-label={`Use ${option} colour`} aria-pressed={color === option} onClick={() => setColor(option)} />)}
+              <span>Size</span>
+              {CLASSROOM_STROKES.map((option) => <button key={option} type="button" className={`classroom-size-choice ${strokeWidth === option ? "selected" : ""}`} aria-label={`Use ${option} pixel stroke`} aria-pressed={strokeWidth === option} onClick={() => setStrokeWidth(option)}><i style={{ width: option * 2, height: option * 2 }} /></button>)}
+            </div>
+            <ToolButton label="Undo drawing" shortLabel="Undo" disabled={!history.past.length} onClick={() => undoDrawing(surfaceKey)}><Undo2 /></ToolButton>
+            <ToolButton label="Redo drawing" shortLabel="Redo" disabled={!history.future.length} onClick={() => redoDrawing(surfaceKey)}><Redo2 /></ToolButton>
+            <ToolButton label="Clear drawings and text" shortLabel="Clear" disabled={!history.present.length} onClick={clearDrawings}><Trash2 /></ToolButton>
+            {activeTool === "text" && <ToolButton label="Show on-screen keyboard" shortLabel="Keyboard" onClick={requestKeyboard}><Keyboard /></ToolButton>}
           </div>
-        )}
-
-        {openPanel === "more" && (
-          <div className="classroom-more-tools" aria-label="Additional classroom tools">
-            <ToolButton active={activeTool === "spotlight"} label="Spotlight reveal tool" onClick={() => selectTool("spotlight")}><Eye /></ToolButton>
-            <ToolButton active={activeTool === "cover"} label="Cover area tool" onClick={() => selectTool("cover")}><EyeOff /></ToolButton>
-            <ToolButton label="Magnify current view" onClick={() => { onMagnify?.(); setOpenPanel(""); }}><ScanSearch /></ToolButton>
-            <ToolButton label="Open timer" onClick={() => setOpenPanel("timer")}><Timer /></ToolButton>
-            <ToolButton label="Open scoreboard" onClick={() => setOpenPanel("scoreboard")}><Trophy /></ToolButton>
-            <ToolButton label="Show on-screen keyboard" disabled={activeTool !== "text"} onClick={() => { requestKeyboard(); setOpenPanel(""); }}><Keyboard /></ToolButton>
-            <ToolButton label="Print current view" onClick={printCurrentView}><Printer /></ToolButton>
-            <ToolButton label="Clear current annotations" disabled={!history.present.length} onClick={clearAnnotations}><Trash2 /></ToolButton>
-            <ToolButton label="Stop active tool" disabled={activeTool === "pointer"} onClick={() => selectTool("pointer")}><RotateCcw /></ToolButton>
+        ) : presentationMode ? (
+          <div className="classroom-mode-instruction">
+            <strong>{activeTool === "cover" ? "Drag to place a cover" : activeTool === "spotlight" ? "Drag to reveal a region" : "Drag the region to zoom"}</strong>
+            <button type="button" aria-label={`Exit ${modeTitle.toLowerCase()}`} onClick={exitMode}><X /><span>Exit</span></button>
+          </div>
+        ) : regionZoom ? (
+          <div className="classroom-zoom-active-tools"><ToolButton label="Zoom out" shortLabel="Zoom out" onClick={() => { resetRegionZoom(surfaceKey); focusStage(); }}><ZoomOut /></ToolButton></div>
+        ) : (
+          <div className="classroom-tool-primary classroom-normal-tools">
+            <ToolButton label="Pen tool" shortLabel="Pen" onClick={() => enterMode("pen")}><Pencil /></ToolButton>
+            <ToolButton label="Zoom region" shortLabel="Zoom" onClick={() => enterMode("zoom-region")}><ScanSearch /></ToolButton>
+            <ToolButton label="Cover area tool" shortLabel="Cover" onClick={() => enterMode("cover")}><EyeOff /></ToolButton>
+            <ToolButton label="Spotlight reveal tool" shortLabel="Spotlight" onClick={() => enterMode("spotlight")}><Eye /></ToolButton>
+            <ToolButton active={openPanel === "timer"} label="Open timer" shortLabel="Timer" onClick={() => setOpenPanel((current) => current === "timer" ? "" : "timer")}><Timer /></ToolButton>
+            <ToolButton active={openPanel === "scoreboard"} label="Open scoreboard" shortLabel="Score" onClick={() => setOpenPanel((current) => current === "scoreboard" ? "" : "scoreboard")}><Trophy /></ToolButton>
+            <ToolButton label="Print current view" shortLabel="Print" onClick={printCurrentView}><Printer /></ToolButton>
+            <ToolButton active={openPanel === "clear"} label="Clear classroom markup" shortLabel="Trash" onClick={() => setOpenPanel((current) => current === "clear" ? "" : "clear")}><Trash2 /></ToolButton>
           </div>
         )}
       </div>
 
       {openPanel === "timer" && (
         <aside className="classroom-floating-panel classroom-timer-panel" aria-label="Classroom timer">
-          <header><Timer /><strong>Classroom timer</strong><button type="button" aria-label="Close timer" onClick={() => setOpenPanel("")}>×</button></header>
+          <header><Timer /><strong>Classroom timer</strong><button type="button" aria-label="Close timer" onClick={closePanel}>×</button></header>
           <output aria-live="polite">{formatTime(timer.remaining)}</output>
-          <div className="classroom-timer-presets">
-            {[1, 2, 5, 10].map((minutes) => <button key={minutes} type="button" onClick={() => setTimerMinutes(minutes)}>{minutes} min</button>)}
-          </div>
+          <div className="classroom-timer-presets">{[1, 2, 5, 10].map((minutes) => <button key={minutes} type="button" onClick={() => setTimerMinutes(minutes)}>{minutes} min</button>)}</div>
           <label>Minutes <input type="number" inputMode="numeric" min="1" max="99" value={manualMinutes} onChange={(event) => setManualMinutes(event.target.value)} /></label>
           <div>
             <button type="button" onClick={() => setTimer((current) => ({ ...current, running: !current.running && current.remaining > 0 }))}>{timer.running ? "Pause" : "Start"}</button>
@@ -182,17 +195,24 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
 
       {openPanel === "scoreboard" && (
         <aside className="classroom-floating-panel classroom-scoreboard" aria-label="Two-team scoreboard">
-          <header><Trophy /><strong>Scoreboard</strong><button type="button" aria-label="Close scoreboard" onClick={() => setOpenPanel("")}>×</button></header>
+          <header><Trophy /><strong>Scoreboard</strong><button type="button" aria-label="Close scoreboard" onClick={closePanel}>×</button></header>
           {[["a", "Team A"], ["b", "Team B"]].map(([key, label]) => (
-            <section key={key}>
-              <strong>{label}</strong><output aria-label={`${label} score`}>{scores[key]}</output>
-              <div>
-                <button type="button" aria-label={`Subtract point from ${label}`} onClick={() => setScores((current) => ({ ...current, [key]: Math.max(0, current[key] - 1) }))}>−1</button>
-                <button type="button" aria-label={`Add point to ${label}`} onClick={() => setScores((current) => ({ ...current, [key]: current[key] + 1 }))}>+1</button>
-              </div>
-            </section>
+            <section key={key}><strong>{label}</strong><output aria-label={`${label} score`}>{scores[key]}</output><div>
+              <button type="button" aria-label={`Subtract point from ${label}`} onClick={() => setScores((current) => ({ ...current, [key]: Math.max(0, current[key] - 1) }))}>−1</button>
+              <button type="button" aria-label={`Add point to ${label}`} onClick={() => setScores((current) => ({ ...current, [key]: current[key] + 1 }))}>+1</button>
+            </div></section>
           ))}
           <button type="button" className="classroom-score-reset" onClick={resetScores}>Reset scoreboard</button>
+        </aside>
+      )}
+
+      {openPanel === "clear" && (
+        <aside className="classroom-floating-panel classroom-clear-panel" aria-label="Clear current view">
+          <header><Trash2 /><strong>Clear current view</strong><button type="button" aria-label="Close clear menu" onClick={closePanel}>×</button></header>
+          <button type="button" disabled={!history.present.length} onClick={() => runClearAction("drawing")}>Drawings &amp; text</button>
+          <button type="button" disabled={!overlays.covers.length} onClick={() => runClearAction("covers")}>Covers</button>
+          <button type="button" disabled={!overlays.spotlight} onClick={() => runClearAction("spotlight")}>Spotlight</button>
+          <button type="button" disabled={!history.present.length && !overlays.covers.length && !overlays.spotlight} onClick={() => runClearAction("all")}>All classroom markup</button>
         </aside>
       )}
       {message && <div className="classroom-tool-message" role="status">{message}</div>}

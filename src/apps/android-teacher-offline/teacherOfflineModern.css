@@ -333,22 +333,37 @@
   transition: opacity var(--teacher-motion-normal) ease, transform var(--teacher-motion-normal) ease;
 }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-classroom-viewer-toolbar button {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  width: auto;
+  min-width: 60px;
+  height: 52px;
+  min-height: 48px;
   border: 1px solid rgba(213, 242, 249, 0.72);
   border-radius: 11px;
   background: rgba(220, 247, 252, 0.86);
   box-shadow: none;
 }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-classroom-viewer-toolbar button.selected { background: rgba(220, 247, 252, 0.86); }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .classroom-more-tools,
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .classroom-floating-panel {
   border-width: 1px;
   border-radius: 14px;
   box-shadow: var(--teacher-panel-shadow);
 }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .classroom-toolbar-reveal { border-radius: 11px !important; }
+
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .classroom-mode-banner {
+  border-width: 1px;
+  border-radius: 16px;
+  background: rgba(31, 42, 83, .95);
+  box-shadow: var(--teacher-panel-shadow);
+}
+
+@media (max-width: 1100px), (max-height: 650px) {
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-classroom-viewer-toolbar button {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+}
 
 /* Modern settings surface; Legacy continues to use the preceding stylesheet untouched. */
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-backdrop {

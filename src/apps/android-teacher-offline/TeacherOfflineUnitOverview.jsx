@@ -1,6 +1,6 @@
 import { Grid2X2, Minimize2 } from "lucide-react";
-import { useState } from "react";
 
+import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherUnitSwitch from "./TeacherUnitSwitch.jsx";
@@ -13,7 +13,6 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
   const settings = useTeacherOfflineSettings();
   const unitNumber = Number(unit.number);
   const surfaceKey = `students-book:overview:unit-${unitNumber}`;
-  const [magnified, setMagnified] = useState(false);
   const previousUnit = unitNumber > 1 ? unitNumber - 1 : null;
   const nextUnit = unitNumber < 2 ? unitNumber + 1 : null;
 
@@ -37,7 +36,8 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
         </div>
       </header>
 
-      <div className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber} ${magnified ? "classroom-magnified" : ""}`} data-classroom-surface-id={surfaceKey}>
+      <div className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber}`} data-classroom-surface-id={surfaceKey} tabIndex={-1}>
+        <ClassroomStageTransform surfaceKey={surfaceKey}>
         <div className="teacher-unit-overview-grid">
           {entries.map((entry) => (
             <button
@@ -63,6 +63,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
           ))}
         </div>
         <ClassroomToolOverlay surfaceKey={surfaceKey} />
+        </ClassroomStageTransform>
       </div>
 
       <nav className="legacy-page-navigation legacy-overview-navigation" aria-label="Unit overview navigation">
@@ -75,7 +76,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
         {settings.content.showNavbarRight ? navigationGroup("Right") : <div data-navbar-side="right" data-navbar-hidden="true" />}
       </nav>
 
-      <ClassroomToolbar surfaceKey={surfaceKey} onMagnify={() => setMagnified((current) => !current)} />
+      <ClassroomToolbar surfaceKey={surfaceKey} />
     </section>
   );
 }

@@ -145,6 +145,21 @@ test("teacher settings v1 migration preserves existing values and adds modern mo
   assert.equal(sanitizeTeacherOfflineSettings({ graphics: { appearanceMode: "invalid", motionEnabled: "yes" } }).graphics.appearanceMode, "modern");
 });
 
+test("generic Teacher shell identity is not B2-only while book identity remains specific", async () => {
+  const [settingsDialog, entry, library, book] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
+  ]);
+  assert.match(settingsDialog, /Hamilton House Interactive Classroom/);
+  assert.match(settingsDialog, /Interactive Classroom/);
+  assert.doesNotMatch(settingsDialog, /Ultimate English B2 interactive classroom content/);
+  assert.match(entry, /Hamilton House Interactive Classroom/);
+  assert.match(library, /Ultimate English B2/);
+  assert.match(book, /Ultimate English B2/);
+});
+
 test("modern Teacher unit selectors use shared titles and touch-safe interaction CSS", async () => {
   const [component, metadata, modernCss] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherUnitSwitch.jsx", "utf8"),
@@ -268,20 +283,28 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(pages, /legacy-page-navigation/);
   assert.match(pages, /ClassroomToolOverlay/);
   assert.match(pages, /ClassroomToolbar/);
-  assert.match(pages, /requestFullscreen/);
+  assert.doesNotMatch(pages, /requestFullscreen|Fit page|Fit width|Reset zoom/);
   assert.equal((pages.match(/<img\b/g) || []).length, 1);
   assert.equal((overview.match(/<img\b/g) || []).length, 1);
   assert.doesNotMatch(pages, /<aside/);
   assert.match(presentation, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(media, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(app, /ClassroomToolsProvider/);
-  for (const label of ["Pen tool", "Eraser tool", "Text tool", "Undo annotation", "Redo annotation", "Spotlight reveal tool", "Cover area tool", "Open timer", "Open scoreboard", "Print current view", "Show on-screen keyboard"]) {
+  for (const label of ["Pen tool", "Zoom region", "Cover area tool", "Spotlight reveal tool", "Open timer", "Open scoreboard", "Print current view", "Clear classroom markup", "Eraser tool", "Text tool", "Undo drawing", "Redo drawing", "Show on-screen keyboard"]) {
     assert.match(toolbar, new RegExp(label));
   }
+  assert.doesNotMatch(toolbar, /More classroom tools|Show classroom tools|menuAutoHide|menuDelay|viewControls|Fullscreen/);
+  assert.match(toolbar, /PEN MODE/);
+  assert.match(toolbar, /COVER MODE/);
+  assert.match(toolbar, /SPOTLIGHT MODE/);
+  assert.match(toolbar, /ZOOM MODE/);
   assert.match(overlay, /setPointerCapture[\s\S]*type: "stroke"/);
-  assert.match(overlay, /type === "spotlight"[\s\S]*type === "cover"/);
+  assert.match(overlay, /addCover[\s\S]*setSpotlight[\s\S]*setRegionZoom/);
+  assert.match(overlay, /Delete selected cover/);
   assert.match(toolsContext, /interactive-classroom:annotations:v1/);
   assert.match(toolsContext, /past:[\s\S]*present:[\s\S]*future:/);
+  assert.match(toolsContext, /drawings:[\s\S]*overlays:/);
+  assert.match(toolsContext, /clearCovers[\s\S]*setSpotlight[\s\S]*clearAllMarkup/);
   assert.match(unitMetadata, /length: 8[\s\S]*number: index \+ 3/);
   assert.match(library, /\["Workbook", "Workbook content not installed"\]/);
   assert.match(library, /\["Grammar Book", "Grammar Book content not installed"\]/);

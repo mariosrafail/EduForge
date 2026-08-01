@@ -14,7 +14,7 @@
   padding: max(7px, env(safe-area-inset-top)) clamp(18px, 3vw, 58px) max(6px, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 70px minmax(0, 1fr) 66px 58px;
+  grid-template-rows: 70px minmax(0, 1fr) 66px var(--classroom-toolbar-height);
   gap: 4px;
   overflow: hidden;
   background:
@@ -114,11 +114,6 @@
   align-content: stretch;
   gap: clamp(10px, 1.2vh, 18px) clamp(8px, 0.85vw, 15px);
   overflow: visible;
-  transition: transform 160ms ease;
-}
-
-.teacher-offline-unit-overview.classroom-magnified .teacher-unit-overview-grid {
-  transform: scale(1.06);
 }
 
 .legacy-overview-unit-1 .teacher-unit-page-card[data-overview-row="1"] { grid-column: span 5; }
@@ -256,7 +251,7 @@
 @media (max-width: 1100px), (max-height: 650px) {
   .teacher-offline-unit-overview-screen {
     padding: 2px 8px;
-    grid-template-rows: 35px minmax(0, 1fr) 39px 43px;
+    grid-template-rows: 35px minmax(0, 1fr) 39px var(--classroom-toolbar-height);
     gap: 2px;
   }
   .legacy-overview-heading { width: 97vw; min-height: 35px; }

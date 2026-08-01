@@ -265,10 +265,7 @@ const viewportScenario = String.raw`
 
   const stage = document.querySelector(".teacher-offline-page-stage");
   const pageImage = document.querySelector(".teacher-offline-page-image");
-  const fitPageButton = document.querySelector('[title="Fit page"]');
-  const fitWidthButton = document.querySelector('[title="Fit width"]');
-  const zoomInButton = document.querySelector('[title="Zoom in"]');
-  const resetButton = document.querySelector('[title="Reset zoom"]');
+  const zoomRegionButton = document.querySelector('[aria-label="Zoom region"]');
   const dimensions = () => {
     const stageRect = stage.getBoundingClientRect();
     const pageRect = pageImage.getBoundingClientRect();
@@ -281,41 +278,36 @@ const viewportScenario = String.raw`
   };
 
   const defaultFit = pageImage.dataset.fitMode;
-  fitPageButton.click();
-  await sleep(100);
   const fitPage = { mode: pageImage.dataset.fitMode, ...dimensions() };
-  fitWidthButton.click();
-  await sleep(100);
-  const fitWidth = { mode: pageImage.dataset.fitMode, ...dimensions() };
-  zoomInButton.click();
-  zoomInButton.click();
-  await sleep(100);
-  const zoom = pageImage.dataset.zoom;
-  const transformBefore = pageImage.style.transform;
-  const stageRect = stage.getBoundingClientRect();
-  stage.setPointerCapture = () => {};
-  stage.dispatchEvent(new PointerEvent("pointerdown", {
+  zoomRegionButton.click();
+  await sleep(50);
+  const overlay = document.querySelector(".classroom-tools-overlay");
+  const stageRect = overlay.getBoundingClientRect();
+  overlay.setPointerCapture = () => {};
+  overlay.hasPointerCapture = () => true;
+  overlay.releasePointerCapture = () => {};
+  overlay.dispatchEvent(new PointerEvent("pointerdown", {
     bubbles: true, pointerId: 91, buttons: 1,
     pointerType: "touch", isPrimary: true,
-    clientX: stageRect.left + stageRect.width / 2, clientY: stageRect.top + stageRect.height / 2,
+    clientX: stageRect.left + stageRect.width * .2, clientY: stageRect.top + stageRect.height * .2,
   }));
   for (let step = 1; step <= 4; step += 1) {
-    stage.dispatchEvent(new PointerEvent("pointermove", {
+    overlay.dispatchEvent(new PointerEvent("pointermove", {
       bubbles: true, pointerId: 91, buttons: 1,
       pointerType: "touch", isPrimary: true,
-      clientX: stageRect.left + stageRect.width / 2 + step * 15,
-      clientY: stageRect.top + stageRect.height / 2 - step * 8,
+      clientX: stageRect.left + stageRect.width * (.2 + step * .1),
+      clientY: stageRect.top + stageRect.height * (.2 + step * .1),
     }));
     await sleep(20);
   }
-  stage.dispatchEvent(new PointerEvent("pointerup", {
+  overlay.dispatchEvent(new PointerEvent("pointerup", {
     bubbles: true, pointerId: 91,
     pointerType: "touch", isPrimary: true,
-    clientX: stageRect.left + 64, clientY: stageRect.top + stageRect.height / 2 - 30,
+    clientX: stageRect.left + stageRect.width * .6, clientY: stageRect.top + stageRect.height * .6,
   }));
   await sleep(50);
-  const transformAfter = pageImage.style.transform;
-  resetButton.click();
+  const regionScale = document.querySelector(".classroom-stage-transform")?.dataset.regionZoomScale || null;
+  document.querySelector('[aria-label="Zoom out"]')?.click();
 
   return {
     innerWidth,
@@ -327,9 +319,8 @@ const viewportScenario = String.raw`
     profile: document.documentElement.dataset.teacherViewport,
     defaultFit,
     fitPage,
-    fitWidth,
-    zoom,
-    panChanged: transformBefore !== transformAfter,
+    regionScale,
+    toolbarButtonCount: document.querySelectorAll(".classroom-teaching-toolbar.normal-mode button").length,
     hotspotCount: pageImage.querySelectorAll(".teacher-offline-page-hotspot").length,
     mountedPageImages: document.querySelectorAll(".teacher-offline-page-image img").length,
   };

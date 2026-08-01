@@ -1,26 +1,20 @@
 import {
-  ArrowLeftRight,
   BookOpen,
-  Expand,
-  Maximize2,
   Minimize2,
   MonitorPlay,
   Move,
   PlayCircle,
-  RotateCcw,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
 
-const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
 const maximumZoom = 4;
 
@@ -51,17 +45,6 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-function initialFit() {
-  let stored = null;
-  try {
-    stored = globalThis.sessionStorage?.getItem(fitStorageKey);
-  } catch {
-    // Storage can be unavailable in locked-down WebViews; use the profile default.
-  }
-  if (["fit-page", "fit-width"].includes(stored)) return stored;
-  return "fit-page";
-}
-
 export default function TeacherOfflinePages({
   unit,
   selectedPageId,
@@ -88,11 +71,10 @@ export default function TeacherOfflinePages({
   const [assetError, setAssetError] = useState("");
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [stageSize, setStageSize] = useState({ width: 0, height: 0, paddingX: 0, paddingY: 0 });
-  const [fitMode, setFitMode] = useState(initialFit);
+  const fitMode = "fit-page";
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     setAssetError("");
@@ -133,12 +115,6 @@ export default function TeacherOfflinePages({
 
   useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
 
-  useEffect(() => {
-    const update = () => setIsFullscreen(document.fullscreenElement === viewerRef.current);
-    document.addEventListener("fullscreenchange", update);
-    return () => document.removeEventListener("fullscreenchange", update);
-  }, []);
-
   const actions = useMemo(() => (page?.actions || []).filter((action) => {
     if (action.availability !== "enabled") return false;
     if (action.logicalKey) return true;
@@ -164,9 +140,7 @@ export default function TeacherOfflinePages({
   const availableWidth = Math.max(0, stageSize.width - stageSize.paddingX);
   const availableHeight = Math.max(0, stageSize.height - stageSize.paddingY);
   const pageScale = naturalSize.width && naturalSize.height
-    ? fitMode === "fit-width"
-      ? availableWidth / naturalSize.width
-      : Math.min(availableWidth / naturalSize.width, availableHeight / naturalSize.height)
+    ? Math.min(availableWidth / naturalSize.width, availableHeight / naturalSize.height)
     : 0;
   const renderedWidth = Math.round(naturalSize.width * pageScale * zoom);
   const renderedHeight = Math.round(naturalSize.height * pageScale * zoom);
@@ -195,31 +169,9 @@ export default function TeacherOfflinePages({
     }));
   }, [fitMode, naturalSize, page?.id, renderedHeight, renderedWidth, stageSize, zoom]);
 
-  const selectFitMode = (nextMode) => {
-    setFitMode(nextMode);
-    try {
-      globalThis.sessionStorage?.setItem(fitStorageKey, nextMode);
-    } catch {
-      // Fit still works when WebView storage is unavailable.
-    }
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
   const changeZoom = (nextZoom) => {
     setZoom(clamp(nextZoom, minimumZoom, maximumZoom));
     if (nextZoom <= minimumZoom && fitMode === "fit-page") setPan({ x: 0, y: 0 });
-  };
-  const resetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
-  const toggleFullscreen = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await viewerRef.current?.requestFullscreen?.();
-    } catch {
-      // Android immersive mode remains active when browser fullscreen is unavailable.
-    }
   };
   const updatePan = (next) => setPan({
     x: clamp(next.x, -maxPan.x, maxPan.x),
@@ -316,7 +268,9 @@ export default function TeacherOfflinePages({
           onPointerUp={onPointerEnd}
           onPointerCancel={onPointerEnd}
           onWheel={onWheel}
+          tabIndex={-1}
         >
+          <ClassroomStageTransform surfaceKey={classroomSurfaceKey}>
           {image && !assetError ? (
             <div
               className="teacher-offline-page-image"
@@ -366,6 +320,7 @@ export default function TeacherOfflinePages({
             <div className="teacher-offline-asset-error" role="alert">{assetError || "This required page asset is unavailable."}</div>
           )}
           <ClassroomToolOverlay surfaceKey={classroomSurfaceKey} />
+          </ClassroomStageTransform>
         </div>
 
         {actions.length > 0 && (
@@ -394,20 +349,7 @@ export default function TeacherOfflinePages({
         </div>
       </nav>
 
-      <ClassroomToolbar
-        surfaceKey={classroomSurfaceKey}
-        onMagnify={() => changeZoom(Math.min(maximumZoom, zoom + 0.25))}
-        viewControls={(
-          <div className="legacy-viewer-tools" aria-label="Page fit and zoom controls">
-            <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page" aria-label="Fit page"><Maximize2 /></button>
-            <button type="button" className={fitMode === "fit-width" ? "selected" : ""} aria-pressed={fitMode === "fit-width"} onClick={() => selectFitMode("fit-width")} title="Fit width" aria-label="Fit width"><ArrowLeftRight /></button>
-            <button type="button" disabled={zoom <= minimumZoom} onClick={() => changeZoom(zoom - 0.25)} title="Zoom out" aria-label="Zoom out"><ZoomOut /></button>
-            <button type="button" disabled={zoom >= maximumZoom} onClick={() => changeZoom(zoom + 0.25)} title="Zoom in" aria-label="Zoom in"><ZoomIn /></button>
-            <button type="button" disabled={zoom === 1 && !pan.x && !pan.y} onClick={resetView} title="Reset view" aria-label="Reset zoom"><RotateCcw /></button>
-            <button type="button" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>{isFullscreen ? <Minimize2 /> : <Expand />}</button>
-          </div>
-        )}
-      />
+      <ClassroomToolbar surfaceKey={classroomSurfaceKey} />
     </section>
   );
 }

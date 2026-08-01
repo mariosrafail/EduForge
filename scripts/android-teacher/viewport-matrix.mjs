@@ -251,31 +251,20 @@ try {
       assert.ok(layout.image.width <= layout.stage.width + 1 && layout.image.height <= layout.stage.height + 1);
     }
 
-    await page.locator('[title="Fit width"]').click();
-    const widthFit = await page.evaluate(() => {
-      const stageNode = document.querySelector(".teacher-offline-page-stage");
-      const stage = stageNode.getBoundingClientRect();
-      const style = getComputedStyle(stageNode);
-      const image = document.querySelector(".teacher-offline-page-image").getBoundingClientRect();
-      return {
-        availableWidth: stage.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
-        imageWidth: image.width,
-      };
-    });
-    assertNear(widthFit.imageWidth, widthFit.availableWidth, 2, `${target.name} fit width`);
-
-    await page.getByRole("button", { name: "Zoom in" }).click();
-    await page.getByRole("button", { name: "Zoom in" }).click();
-    const stageBox = await page.locator(".teacher-offline-page-stage").boundingBox();
-    const transformBefore = await page.locator(".teacher-offline-page-image").evaluate((node) => node.style.transform);
-    await page.mouse.move(stageBox.x + 4, stageBox.y + stageBox.height / 2);
+    const toolbarButtons = page.locator(".classroom-teaching-toolbar.normal-mode button");
+    assert.equal(await toolbarButtons.count(), 8, `${target.name} normal toolbar button count`);
+    assert.equal(await page.getByRole("button", { name: "More classroom tools" }).count(), 0);
+    await page.getByRole("button", { name: "Zoom region" }).click();
+    const overlayBox = await page.locator(".classroom-tools-overlay").boundingBox();
+    await page.mouse.move(overlayBox.x + overlayBox.width * .2, overlayBox.y + overlayBox.height * .2);
     await page.mouse.down();
-    await page.mouse.move(stageBox.x + 64, stageBox.y + stageBox.height / 2 - 40, { steps: 4 });
-    await page.waitForTimeout(25);
+    await page.mouse.move(overlayBox.x + overlayBox.width * .7, overlayBox.y + overlayBox.height * .72, { steps: 5 });
     await page.mouse.up();
-    const transformAfter = await page.locator(".teacher-offline-page-image").evaluate((node) => node.style.transform);
-    assert.notEqual(transformAfter, transformBefore, `${target.name} zoomed page should pan`);
-    await page.getByRole("button", { name: "Reset zoom" }).click();
+    const zoomLayer = page.locator(".classroom-stage-transform.region-zoom-active");
+    await zoomLayer.waitFor();
+    assert.ok(Number(await zoomLayer.getAttribute("data-region-zoom-scale")) > 1, `${target.name} region zoom scale`);
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    assert.equal(await page.locator(".classroom-stage-transform.region-zoom-active").count(), 0, `${target.name} region zoom reset`);
 
     await page.getByRole("button", { name: "Contents and exercises" }).click();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 40, `${target.name} Unit 2 contents`);
@@ -362,12 +351,6 @@ try {
         const image = document.querySelector(".teacher-offline-page-image img");
         return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;
       });
-      const screenshotFit = "fit-page";
-      await page.locator(`[title="${screenshotFit === "fit-width" ? "Fit width" : "Fit page"}"]`).click();
-      await page.waitForFunction(
-        (fit) => document.querySelector(".teacher-offline-page-image")?.dataset.fitMode === fit,
-        screenshotFit,
-      );
       await page.screenshot({ path: `${artifactRoot}/${target.name}-page.png` });
     }
 
