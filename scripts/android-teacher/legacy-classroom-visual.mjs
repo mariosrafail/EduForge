@@ -44,6 +44,15 @@ async function waitForUnitOverview(page) {
   await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
 }
 
+async function selectOverviewUnit(page, unit) {
+  await waitForUnitOverview(page);
+  const currentUnit = Number((await page.locator(".legacy-overview-heading h2").textContent()).match(/\d+/)?.[0]);
+  if (currentUnit === unit) return;
+  await page.getByRole("button", { name: unit > currentUnit ? "Next unit" : "Previous unit", exact: true }).click();
+  await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).waitFor();
+  await waitForUnitOverview(page);
+}
+
 const canonicalOverview = {
   1: ["pg 5", "pg 6-7", "pg 8-9", "pg 10-11", "pg 12", "pg 13", "pg 14-15", "pg 16", "pg 17-18"],
   2: ["pg 19", "pg 20-21", "pg 22-23", "pg 24-25", "pg 26", "pg 27", "pg 28-29", "pg 30", "pg 31-32", "pg 33-34"],
@@ -61,6 +70,26 @@ async function assertLegacyUnitOverview(page, unit, label) {
   assert.equal(await overview.getByText(/activities$/i).count(), 0, `${label} activity counts hidden`);
   assert.equal(await overview.locator("img").count(), unit === 1 ? 10 : 12, `${label} thumbnail count`);
   if (unit === 2) assert.equal(await overview.locator('[data-page-ids="reading-19"] strong').count(), 0, `${label} pg 19 heading omitted`);
+  assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, `${label} top-left unit switcher absent`);
+  assert.equal(await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).isVisible(), true, `${label} centered unit title`);
+  const visibleArrowLabel = unit === 1 ? "Next unit" : "Previous unit";
+  const hiddenArrowLabel = unit === 1 ? "Previous unit" : "Next unit";
+  assert.equal(await page.getByRole("button", { name: hiddenArrowLabel, exact: true }).count(), 0, `${label} unavailable edge hidden`);
+  const arrow = page.getByRole("button", { name: visibleArrowLabel, exact: true });
+  assert.equal(await arrow.getAttribute("data-unit-target"), unit === 1 ? "2" : "1", `${label} installed-unit target`);
+  const arrowLayout = await arrow.evaluate((button) => {
+    const arrowRect = button.getBoundingClientRect();
+    const panelRect = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
+    const entries = [...document.querySelectorAll("[data-overview-entry]")].map((entry) => entry.getBoundingClientRect());
+    return {
+      size: arrowRect.width,
+      centerDelta: Math.abs((arrowRect.top + arrowRect.height / 2) - (panelRect.top + panelRect.height / 2)),
+      overlapsEntry: entries.some((entry) => arrowRect.left < entry.right && arrowRect.right > entry.left && arrowRect.top < entry.bottom && arrowRect.bottom > entry.top),
+    };
+  });
+  assert.ok(arrowLayout.size >= 44 && arrowLayout.size <= 72, `${label} arrow touch size`);
+  assert.ok(arrowLayout.centerDelta <= 1, `${label} arrow vertical alignment`);
+  assert.equal(arrowLayout.overlapsEntry, false, `${label} arrow keeps thumbnails clear`);
   await assertScreen(page, label);
 }
 
@@ -230,15 +259,15 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit1-overview-1920x1080.png` });
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await selectOverviewUnit(page, 2);
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-1920x1080.png` });
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-1920x1080");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1920x1080");
@@ -322,7 +351,7 @@ try {
     await assertScreen(page, "legacy-home-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-home-1920x1080.png` });
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await waitForUnitOverview(page);
     await assertScreen(page, "legacy-unit1-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-unit1-overview-1920x1080.png` });
@@ -337,13 +366,13 @@ try {
     await assertLegacyLauncher(page, "home-launcher-1280x720");
     await page.screenshot({ path: `${artifactRoot}/home-launcher-1280x720.png` });
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-1280x720");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-1280x720.png` });
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await selectOverviewUnit(page, 2);
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-1280x720");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-1280x720.png` });
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-1280x720");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1280x720");
@@ -366,11 +395,11 @@ try {
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-800x360");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-800x360.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit1-overview-800x360.png` });
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await selectOverviewUnit(page, 2);
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-800x360");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-800x360.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-800x360.png` });
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-800x360");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-800x360");
@@ -391,15 +420,15 @@ try {
     await page.screenshot({ path: `${artifactRoot}/modern-about-3840x2160.png` });
     await page.getByRole("button", { name: "Close settings" }).click();
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-3840x2160.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit1-overview-3840x2160.png` });
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await selectOverviewUnit(page, 2);
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-3840x2160.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-3840x2160.png` });
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+    await selectOverviewUnit(page, 1);
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-3840x2160");

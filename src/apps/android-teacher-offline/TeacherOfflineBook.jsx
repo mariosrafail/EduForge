@@ -16,7 +16,14 @@ export default function TeacherOfflineBook({
   onBackToLibrary,
   viewportProfile,
 }) {
-  const unitNumber = [1, 2].includes(Number(location.unitNumber)) ? Number(location.unitNumber) : 1;
+  const availableUnitNumbers = (pageUnits || [])
+    .map((unit) => Number(unit.number))
+    .filter((number) => Number.isInteger(number))
+    .sort((left, right) => left - right);
+  const requestedUnitNumber = Number(location.unitNumber);
+  const unitNumber = availableUnitNumbers.includes(requestedUnitNumber)
+    ? requestedUnitNumber
+    : availableUnitNumbers[0] || 1;
   const tab = location.tab === "exercises" ? "exercises" : "pages";
   const pageViewerActive = tab === "pages" && Boolean(location.pageId);
   const unitOverviewActive = tab === "pages" && !location.pageId;
@@ -58,6 +65,7 @@ export default function TeacherOfflineBook({
           onBackToLibrary={onBackToLibrary}
           onOpenContents={() => update({ tab: "exercises" })}
           onSelectUnit={(number) => update({ unitNumber: number, tab: "pages", pageId: "" })}
+          availableUnitNumbers={availableUnitNumbers}
           viewportProfile={viewportProfile}
         />
       ) : (

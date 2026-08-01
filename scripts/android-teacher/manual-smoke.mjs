@@ -76,7 +76,9 @@ async function assertCanonicalUnitOverview(page, unit) {
 }
 
 async function openExercises(page, unitNumber) {
-  await page.getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
+  const unitTabs = page.locator(".teacher-offline-unit-tabs");
+  if (!await unitTabs.isVisible()) await page.getByRole("button", { name: "Contents and exercises" }).click();
+  await unitTabs.getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
   await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
     .every((image) => image.complete && image.naturalWidth > 0));
   await page.getByRole("button", { name: "Contents and exercises" }).click();
@@ -236,23 +238,18 @@ try {
   await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
 
-  const unitControls = page.locator(".legacy-overview-unit-switcher button");
-  assert.equal(await unitControls.count(), 2, "Overview must expose exactly two unit controls");
-  assert.deepEqual(await unitControls.evaluateAll((buttons) => buttons.map((button) => ({
-    number: button.querySelector(".teacher-unit-switch-badge")?.textContent,
-    title: button.querySelector(".teacher-unit-switch-title")?.textContent,
-    selected: button.getAttribute("aria-pressed"),
-  }))), [
-    { number: "1", title: "Lights, Camera, Action!", selected: "true" },
-    { number: "2", title: "Journeys of Discovery", selected: "false" },
-  ], "Modern unit controls must show their number, identity, and selected state");
-  const unit1Control = page.getByRole("button", { name: "Unit 1", exact: true });
-  assert.ok(await unit1Control.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) >= 0.08, "Motion ON must animate the unit control");
-  await unit1Control.hover();
-  assert.notEqual(await unit1Control.evaluate((button) => getComputedStyle(button).transform), "none", "Fine-pointer hover enhancement must be available");
+  assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, "Overview top-left unit switcher must be absent");
+  assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Unit 1 title must remain visible");
+  assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).count(), 0, "Unit 1 must not expose a previous-unit target");
+  const nextUnitControl = page.getByRole("button", { name: "Next unit", exact: true });
+  assert.equal(await nextUnitControl.count(), 1, "Unit 1 must expose one next-unit arrow");
+  assert.equal(await nextUnitControl.getAttribute("data-unit-target"), "2", "Next-unit arrow must target the installed Unit 2");
+  assert.ok(await nextUnitControl.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) >= 0.08, "Motion ON must animate the unit arrow");
+  await nextUnitControl.hover();
+  assert.notEqual(await nextUnitControl.evaluate((button) => getComputedStyle(button).transform), "none", "Fine-pointer hover enhancement must be available");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "off");
-  assert.ok(await unit1Control.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) <= 0.001, "Reduced motion must disable unit transitions");
+  assert.ok(await nextUnitControl.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) <= 0.001, "Reduced motion must disable unit transitions");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "on");
 
@@ -280,7 +277,15 @@ try {
   const navigationSoundPlays = await page.evaluate(() => globalThis.__teacherSoundPlays);
   assert.equal(navigationSoundPlays.some((play) => /page-turn/i.test(play.source) && Math.abs(play.volume - 0.37) < 0.001), true, `Navigation sounds must use navigation volume: ${JSON.stringify(navigationSoundPlays)}`);
   await page.getByRole("button", { name: "Unit overview" }).click();
-  await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+  await page.getByRole("button", { name: "Next unit", exact: true }).click();
+  assert.equal(await page.getByRole("heading", { name: "Unit 2", exact: true }).isVisible(), true, "Next-unit arrow must stay in overview mode and open Unit 2");
+  assert.equal(await page.locator(".teacher-offline-pages-viewer").count(), 0, "Unit switching must not open a page");
+  assert.equal(await page.getByRole("button", { name: "Next unit", exact: true }).count(), 0, "Unit 2 must not expose Unit 3 navigation");
+  assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).getAttribute("data-unit-target"), "1", "Previous-unit arrow must target Unit 1");
+  await assertCanonicalUnitOverview(page, 2);
+  await page.getByRole("button", { name: "Previous unit", exact: true }).click();
+  assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Previous-unit arrow must return to Unit 1 overview");
+  await page.getByRole("button", { name: "Next unit", exact: true }).click();
   await assertCanonicalUnitOverview(page, 2);
   assert.equal(await page.locator('[data-page-ids="reading-19"] .teacher-unit-page-copy strong').count(), 0, "pg 19 must visually omit Reading");
   await page.locator('[data-page-ids="reading-20-21"]').click();
@@ -297,7 +302,6 @@ try {
   assert.match(await page.locator(".legacy-page-location").textContent(), /pg 34$/);
   await page.getByRole("button", { name: "Unit overview" }).click();
   await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await page.getByRole("tab", { name: "Book pages" }).click();
   await page.getByRole("button", { name: "Unit 1", exact: true }).click();
   await assertCanonicalUnitOverview(page, 1);
 

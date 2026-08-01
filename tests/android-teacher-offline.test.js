@@ -178,6 +178,33 @@ test("modern Teacher unit selectors use shared titles and touch-safe interaction
   assert.match(modernCss, /\.teacher-unit-switch button::before[\s\S]*?border-radius: 13px/);
 });
 
+test("Unit Overview uses installed-unit side arrows instead of its top-left switcher", async () => {
+  const [book, pages, overview, overviewCss, modernCss] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineUnitOverview.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineModern.css", "utf8"),
+  ]);
+  assert.match(book, /availableUnitNumbers = \(pageUnits \|\| \[\]\)/);
+  assert.match(book, /availableUnitNumbers=\{availableUnitNumbers\}/);
+  assert.match(pages, /availableUnitNumbers=\{availableUnitNumbers\}/);
+  assert.match(overview, /orderedAvailableUnits = \[\.\.\.availableUnitNumbers\]\.sort/);
+  assert.match(overview, /aria-label="Previous unit"/);
+  assert.match(overview, /aria-label="Next unit"/);
+  assert.match(overview, /data-unit-target=\{previousUnit\}/);
+  assert.match(overview, /data-unit-target=\{nextUnit\}/);
+  assert.doesNotMatch(overview, /TeacherUnitSwitch|legacy-overview-unit-switcher/);
+  assert.doesNotMatch(overview, /LegacyClassroomIcon name="(?:previous|next)"/);
+  assert.doesNotMatch(overview, /unitNumber (?:>|<) [12]/);
+  assert.match(overview, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
+  assert.match(overviewCss, /\.teacher-unit-side-navigation[\s\S]*width: 60px;[\s\S]*height: 60px/);
+  assert.match(overviewCss, /\.teacher-unit-side-navigation \{ width: 44px; height: 44px; min-height: 44px/);
+  assert.match(overviewCss, /\.teacher-unit-side-navigation \{ width: 72px; height: 72px; min-height: 72px/);
+  assert.match(overviewCss, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*\.teacher-unit-side-navigation:hover/);
+  assert.match(modernCss, /\.teacher-unit-side-navigation[\s\S]*linear-gradient\(145deg, #16a8bd, #78338f\)/);
+});
+
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
   assert.equal(ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE, "teacher-presentation-offline");
   const capabilities = getActivityModeCapabilities(ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE);

@@ -54,6 +54,7 @@ export default function TeacherOfflinePages({
   onBackToLibrary,
   onOpenContents,
   onSelectUnit,
+  availableUnitNumbers,
 }) {
   const pages = unit?.pages || [];
   const settings = useTeacherOfflineSettings();
@@ -239,6 +240,7 @@ export default function TeacherOfflinePages({
       unit={unit}
       onSelectPage={onSelectPage}
       onSelectUnit={onSelectUnit}
+      availableUnitNumbers={availableUnitNumbers}
       onBackToLibrary={onBackToLibrary}
       onOpenContents={onOpenContents}
     />

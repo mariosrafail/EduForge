@@ -148,52 +148,51 @@ try {
     assert.ok(bookShellUnitSwitcher.every((button) => button.height >= 44 && button.contained), `${target.name} book-shell touch targets contained: ${JSON.stringify(bookShellUnitSwitcher)}`);
     assert.ok(bookShellUnitSwitcher[0].right < bookShellUnitSwitcher[1].left, `${target.name} book-shell unit controls do not overlap`);
     await page.getByRole("tab", { name: "Book pages" }).click();
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
     await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
       .every((image) => image.complete && image.naturalWidth > 0));
-    const unitSwitcher = await page.locator(".legacy-overview-unit-switcher button").evaluateAll((buttons) => buttons.map((button) => {
+    assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, `${target.name} overview top-left unit switcher absent`);
+    assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, `${target.name} Unit 1 overview title`);
+    assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).count(), 0, `${target.name} Unit 1 previous edge hidden`);
+    const readSideArrow = async (label) => page.getByRole("button", { name: label, exact: true }).evaluate((button) => {
       const rect = button.getBoundingClientRect();
-      const badge = button.querySelector(".teacher-unit-switch-badge").getBoundingClientRect();
-      const style = getComputedStyle(button);
-      const badgeStyle = getComputedStyle(button.querySelector(".teacher-unit-switch-badge"));
+      const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
+      const entries = [...document.querySelectorAll("[data-overview-entry]")].map((entry) => entry.getBoundingClientRect());
       return {
-        width: rect.width,
-        height: rect.height,
+        size: rect.width,
         left: rect.left,
         right: rect.right,
-        radius: parseFloat(style.borderTopLeftRadius),
-        selected: button.getAttribute("aria-pressed"),
-        number: button.dataset.unitNumber,
-        title: button.dataset.unitTitle,
-        visibleTitle: button.querySelector(".teacher-unit-switch-title").textContent,
-        badgeWidth: badge.width,
-        badgeHeight: badge.height,
-        badgeRadius: parseFloat(badgeStyle.borderTopLeftRadius),
-        badgeIntersectsLeftEdge: badge.left < rect.left && badge.right > rect.left,
-        transitionSeconds: parseFloat(style.transitionDuration),
+        centerDelta: Math.abs((rect.top + rect.height / 2) - (panel.top + panel.height / 2)),
+        overlapsEntry: entries.some((entry) => rect.left < entry.right && rect.right > entry.left && rect.top < entry.bottom && rect.bottom > entry.top),
+        target: button.dataset.unitTarget,
       };
-    }));
-    assert.equal(unitSwitcher.length, 2, `${target.name} unit switcher count`);
-    assert.deepEqual(unitSwitcher.map(({ number, title, visibleTitle }) => ({ number, title, visibleTitle })), [
-      { number: "1", title: "Lights, Camera, Action!", visibleTitle: "Lights, Camera, Action!" },
-      { number: "2", title: "Journeys of Discovery", visibleTitle: "Journeys of Discovery" },
-    ], `${target.name} unit identities`);
-    assert.ok(unitSwitcher.every((button) => button.height >= 44), `${target.name} unit switcher touch targets`);
-    const compactUnitGeometry = target.width <= 1100 || target.height <= 650;
-    const fourKUnitGeometry = target.width >= 2500 && target.height >= 1400;
-    const expectedWidthRange = compactUnitGeometry ? [167, 206] : fourKUnitGeometry ? [285, 291] : [274, 287];
-    assert.ok(unitSwitcher.every((button) => button.width >= expectedWidthRange[0] && button.width <= expectedWidthRange[1]), `${target.name} unit switcher width range`);
-    assert.ok(unitSwitcher.every((button) => button.radius >= 11 && button.radius <= 16 && button.radius < button.height / 2), `${target.name} unit switcher rounded rectangle`);
-    assert.ok(unitSwitcher.every((button) => Math.abs(button.badgeWidth - button.badgeHeight) <= 0.5 && button.badgeRadius >= button.badgeWidth / 2 - 1), `${target.name} circular number badges`);
-    assert.ok(unitSwitcher.every((button) => button.badgeIntersectsLeftEdge), `${target.name} badges intersect the body edge`);
-    assert.ok(unitSwitcher.every((button) => button.transitionSeconds >= 0.08), `${target.name} unit motion enabled`);
-    assert.ok(unitSwitcher[0].right < unitSwitcher[1].left, `${target.name} unit switcher no overlap`);
-    assert.deepEqual(unitSwitcher.map((button) => button.selected), ["false", "true"], `${target.name} unit selected state`);
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-    assert.deepEqual(await page.locator(".legacy-overview-unit-switcher button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["true", "false"], `${target.name} switches back to Unit 1`);
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
-    assert.deepEqual(await page.locator(".legacy-overview-unit-switcher button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["false", "true"], `${target.name} returns to Unit 2`);
+    });
+    const nextArrow = await readSideArrow("Next unit");
+    const compactArrow = target.width <= 1100 || target.height <= 650;
+    const fourKArrow = target.width >= 2500 && target.height >= 1400;
+    const expectedArrowSize = compactArrow ? 44 : fourKArrow ? 72 : 60;
+    assert.ok(Math.abs(nextArrow.size - expectedArrowSize) <= 1, `${target.name} next-unit arrow size: ${JSON.stringify(nextArrow)}`);
+    assert.ok(target.width - nextArrow.right <= (fourKArrow ? 33 : compactArrow ? 9 : 20), `${target.name} next-unit arrow near right safe edge`);
+    assert.ok(nextArrow.centerDelta <= 1, `${target.name} next-unit arrow vertically centered`);
+    assert.equal(nextArrow.overlapsEntry, false, `${target.name} next-unit arrow does not cover thumbnails`);
+    assert.equal(nextArrow.target, "2", `${target.name} next-unit target`);
+    await page.getByRole("button", { name: "Next unit", exact: true }).click();
+    await page.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
+    await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+    assert.equal(await page.getByRole("button", { name: "Next unit", exact: true }).count(), 0, `${target.name} Unit 2 next edge hidden`);
+    const previousArrow = await readSideArrow("Previous unit");
+    assert.ok(Math.abs(previousArrow.size - expectedArrowSize) <= 1, `${target.name} previous-unit arrow size: ${JSON.stringify(previousArrow)}`);
+    assert.ok(previousArrow.left <= (fourKArrow ? 33 : compactArrow ? 9 : 20), `${target.name} previous-unit arrow near left safe edge: ${JSON.stringify(previousArrow)}`);
+    assert.ok(previousArrow.centerDelta <= 1, `${target.name} previous-unit arrow vertically centered`);
+    assert.equal(previousArrow.overlapsEntry, false, `${target.name} previous-unit arrow does not cover thumbnails`);
+    assert.equal(previousArrow.target, "1", `${target.name} previous-unit target`);
+    await page.getByRole("button", { name: "Previous unit", exact: true }).click();
+    await page.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+    await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+    assert.equal(await page.locator(".teacher-offline-pages-viewer").count(), 0, `${target.name} previous-unit arrow stays in overview mode`);
+    await page.getByRole("button", { name: "Next unit", exact: true }).click();
+    await page.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
+    await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     const overviewLayout = await page.evaluate(() => {
       const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
       const entries = [...document.querySelectorAll("[data-overview-entry]")];

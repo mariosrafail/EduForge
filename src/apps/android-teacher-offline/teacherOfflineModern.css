@@ -68,7 +68,6 @@
 /* Modern selected controls share one lightweight, transform-only fill language. */
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(
   .teacher-offline-unit-tabs button,
-  .legacy-overview-unit-switcher button,
   .teacher-offline-view-tabs button,
   .legacy-settings-tabs button,
   .teacher-settings-segmented button,
@@ -82,7 +81,6 @@
 
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(
   .teacher-offline-unit-tabs button,
-  .legacy-overview-unit-switcher button,
   .teacher-offline-view-tabs button,
   .legacy-settings-tabs button,
   .teacher-settings-segmented button,
@@ -102,7 +100,6 @@
 
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(
   .teacher-offline-unit-tabs button.selected,
-  .legacy-overview-unit-switcher button.selected,
   .teacher-offline-view-tabs button.selected,
   .legacy-settings-tabs button.active,
   .teacher-settings-segmented button.selected,
@@ -269,6 +266,10 @@
     filter: brightness(1.02);
     transform: translateY(-1px);
   }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-side-navigation:hover {
+    filter: brightness(1.08);
+    transform: translateY(-50%) scale(1.035);
+  }
 }
 
 /* Book, overview and page-viewer shell controls. */
@@ -276,6 +277,15 @@
   border-width: 1px;
   background: rgba(4, 75, 111, 0.9);
   box-shadow: var(--teacher-control-shadow);
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-side-navigation {
+  border: 1px solid rgba(215, 247, 255, 0.92);
+  background: linear-gradient(145deg, #16a8bd, #78338f);
+  box-shadow: 0 5px 14px rgba(13, 39, 75, 0.28);
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-side-navigation:active {
+  filter: brightness(0.9);
+  transform: translateY(-50%) scale(0.94);
 }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-book-header button, .teacher-offline-view-tabs button, .teacher-offline-media header button, .teacher-offline-presentation header button, .teacher-offline-presentation > nav button) {
   min-height: 44px;

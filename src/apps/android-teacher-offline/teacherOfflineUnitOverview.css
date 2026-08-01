@@ -8,10 +8,11 @@
 }
 
 .teacher-offline-unit-overview-screen {
+  --overview-screen-gutter: clamp(18px, 3vw, 58px);
   width: 100%;
   height: 100%;
   min-height: 0;
-  padding: max(7px, env(safe-area-inset-top)) clamp(18px, 3vw, 58px) max(6px, env(safe-area-inset-bottom));
+  padding: max(7px, env(safe-area-inset-top)) var(--overview-screen-gutter) max(6px, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 70px minmax(0, 1fr) 66px var(--classroom-toolbar-height);
@@ -32,25 +33,43 @@
   text-shadow: 0 4px 0 #174b72, 0 0 10px rgba(0, 40, 72, 0.78);
 }
 
-.legacy-overview-unit-switcher {
-  justify-self: start;
-  display: flex;
-  gap: 7px;
+.teacher-unit-overview-stage {
+  position: relative;
+  width: calc(100% + var(--overview-screen-gutter) + var(--overview-screen-gutter));
+  height: 100%;
+  min-height: 0;
+  margin-inline: calc(0px - var(--overview-screen-gutter));
 }
 
-.legacy-overview-unit-switcher button {
-  min-height: 38px;
-  padding: 6px 14px;
-  border: 2px solid rgba(255, 255, 255, 0.88);
-  border-radius: 999px;
-  background: rgba(68, 39, 113, 0.72);
+.teacher-unit-side-navigation {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  min-height: 60px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 3px solid rgba(255, 255, 255, 0.94);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #19b7cc, #8f3ba4 64%, #642984);
+  box-shadow: 0 0 0 2px rgba(70, 31, 104, 0.78), 0 5px 0 rgba(52, 24, 79, 0.72), 0 9px 18px rgba(18, 29, 66, 0.3);
   color: #fff;
-  font-weight: 900;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: filter 120ms ease, transform 120ms ease;
+  touch-action: manipulation;
 }
 
-.legacy-overview-unit-switcher button.selected {
-  background: linear-gradient(180deg, #cffb4a, #78ca0b);
-  color: #214425;
+.teacher-unit-side-navigation.previous { left: max(18px, env(safe-area-inset-left)); }
+.teacher-unit-side-navigation.next { right: max(18px, env(safe-area-inset-right)); }
+.teacher-unit-side-navigation svg { width: 38px; height: 38px; stroke-width: 3.3; }
+.teacher-unit-side-navigation:active { filter: brightness(0.88); transform: translateY(-50%) scale(0.94); }
+.teacher-unit-side-navigation:focus-visible { outline: 4px solid #d7ff62; outline-offset: 4px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .teacher-unit-side-navigation:hover { filter: brightness(1.08); transform: translateY(-50%) scale(1.035); }
 }
 
 .teacher-offline-unit-overview-screen .teacher-offline-unit-overview {
@@ -250,6 +269,7 @@
 
 @media (max-width: 1100px), (max-height: 650px) {
   .teacher-offline-unit-overview-screen {
+    --overview-screen-gutter: 8px;
     padding: 2px 8px;
     grid-template-rows: 35px minmax(0, 1fr) 39px var(--classroom-toolbar-height);
     gap: 2px;
@@ -258,9 +278,11 @@
   .legacy-overview-heading h2 { font-size: 1.45rem; }
   .legacy-overview-heading .legacy-page-window-controls { gap: 5px; }
   .legacy-overview-heading .legacy-page-window-controls button { width: 30px; height: 30px; min-height: 30px; border-width: 2px; font-size: 1.1rem; }
-  .legacy-overview-unit-switcher { gap: 3px; }
-  .legacy-overview-unit-switcher button { min-height: 27px; padding: 3px 8px; border-width: 1px; font-size: 0.58rem; }
-  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: 97vw; padding: 5px 7px; border-width: 2px; border-radius: 18px; }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: calc(100vw - 112px); padding: 5px 7px; border-width: 2px; border-radius: 18px; }
+  .teacher-unit-side-navigation { width: 44px; height: 44px; min-height: 44px; border-width: 2px; box-shadow: 0 0 0 1px rgba(70, 31, 104, 0.78), 0 3px 0 rgba(52, 24, 79, 0.72), 0 5px 10px rgba(18, 29, 66, 0.26); }
+  .teacher-unit-side-navigation.previous { left: max(6px, env(safe-area-inset-left)); }
+  .teacher-unit-side-navigation.next { right: max(6px, env(safe-area-inset-right)); }
+  .teacher-unit-side-navigation svg { width: 30px; height: 30px; }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 3px 5px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-card { padding-inline: 1px; border-radius: 4px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 25px; padding-bottom: 2px; }
@@ -284,7 +306,10 @@
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview,
   .legacy-overview-navigation { width: min(3000px, 86vw); }
   .legacy-overview-heading h2 { font-size: 6rem; }
-  .legacy-overview-unit-switcher button { min-height: 58px; padding: 10px 24px; font-size: 1.25rem; }
+  .teacher-unit-side-navigation { width: 72px; height: 72px; min-height: 72px; border-width: 3px; }
+  .teacher-unit-side-navigation.previous { left: max(32px, env(safe-area-inset-left)); }
+  .teacher-unit-side-navigation.next { right: max(32px, env(safe-area-inset-right)); }
+  .teacher-unit-side-navigation svg { width: 48px; height: 48px; }
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { padding: 42px; border-width: 5px; border-radius: 68px; }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 28px 24px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 96px; }
