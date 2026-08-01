@@ -70,6 +70,35 @@ async function assertScreen(page, label) {
   assert.deepEqual(metrics.missingImages, [], `${label} missing images`);
 }
 
+async function assertLegacyLauncher(page, label) {
+  const metrics = await page.evaluate(() => {
+    const visible = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return Boolean(rect?.width && rect?.height);
+    };
+    return {
+      launcher: visible(".legacy-home-launcher"),
+      unitColumns: document.querySelectorAll(".legacy-home-unit-column").length,
+      units: document.querySelectorAll(".legacy-home-unit").length,
+      lockedUnits: document.querySelectorAll(".legacy-home-unit .legacy-home-lock").length,
+      books: document.querySelectorAll(".legacy-home-book-button").length,
+      lockedBooks: document.querySelectorAll(".legacy-home-book-button .legacy-home-lock").length,
+      toolbar: visible(".legacy-home-classroom-toolbar"),
+      settings: visible(".legacy-home-settings"),
+    };
+  });
+  assert.deepEqual(metrics, {
+    launcher: true,
+    unitColumns: 2,
+    units: 10,
+    lockedUnits: 8,
+    books: 4,
+    lockedBooks: 3,
+    toolbar: true,
+    settings: true,
+  }, `${label} launcher composition`);
+}
+
 async function assertLegacyPageViewer(page, label) {
   const metrics = await page.evaluate(() => {
     const panel = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
@@ -121,8 +150,9 @@ try {
   };
 
   await capture({ width: 1920, height: 1080 }, async (page) => {
-    await assertScreen(page, "library-1920x1080");
-    await page.screenshot({ path: `${artifactRoot}/library-1920x1080.png` });
+    await assertScreen(page, "home-launcher-1920x1080");
+    await assertLegacyLauncher(page, "home-launcher-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/home-launcher-1920x1080.png` });
     const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
     await soundToggle.click();
     await page.reload({ waitUntil: "networkidle" });
@@ -162,6 +192,9 @@ try {
   });
 
   await capture({ width: 1280, height: 720 }, async (page) => {
+    await assertScreen(page, "home-launcher-1280x720");
+    await assertLegacyLauncher(page, "home-launcher-1280x720");
+    await page.screenshot({ path: `${artifactRoot}/home-launcher-1280x720.png` });
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
@@ -172,8 +205,9 @@ try {
   });
 
   await capture({ width: 800, height: 360 }, async (page) => {
-    await assertScreen(page, "home-800x360");
-    await page.screenshot({ path: `${artifactRoot}/home-800x360.png` });
+    await assertScreen(page, "home-launcher-800x360");
+    await assertLegacyLauncher(page, "home-launcher-800x360");
+    await page.screenshot({ path: `${artifactRoot}/home-launcher-800x360.png` });
     await openBook(page);
     await waitForUnitOverview(page);
     await openPage(page, "pg 5");
@@ -183,6 +217,9 @@ try {
   });
 
   await capture({ width: 3840, height: 2160 }, async (page) => {
+    await assertScreen(page, "home-launcher-3840x2160");
+    await assertLegacyLauncher(page, "home-launcher-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/home-launcher-3840x2160.png` });
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
@@ -192,7 +229,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 12, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 14, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

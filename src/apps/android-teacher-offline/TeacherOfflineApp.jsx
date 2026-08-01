@@ -161,7 +161,7 @@ export default function TeacherOfflineApp() {
       {content}
       <button
         type="button"
-        className="legacy-classroom-sound-toggle"
+        className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
         aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
         aria-pressed={classroomSound.enabled}
         title={classroomSound.enabled ? "Mute interface sounds" : "Enable interface sounds"}

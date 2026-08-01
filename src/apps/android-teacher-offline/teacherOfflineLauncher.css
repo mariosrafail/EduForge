@@ -1,0 +1,258 @@
+/* Full legacy B2 home composition. Loaded last so it only refines launcher chrome. */
+.teacher-offline-library {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(238, 251, 255, 0.34), transparent 34%),
+    linear-gradient(180deg, rgba(1, 63, 99, 0.1), rgba(76, 25, 110, 0.18)),
+    var(--legacy-classroom-background) center / cover no-repeat;
+}
+
+.teacher-offline-library > .legacy-home-topbar {
+  min-height: clamp(54px, 6.5vh, 76px);
+  padding: 8px clamp(18px, 2.3vw, 44px);
+  border-bottom-width: 2px;
+  background: linear-gradient(180deg, rgba(27, 132, 173, 0.94), rgba(5, 78, 119, 0.88));
+}
+
+.legacy-home-publisher strong { font-family: Georgia, "Times New Roman", serif; }
+.legacy-home-publisher span { text-transform: none; }
+
+.legacy-home-window-controls button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #e8f8fc, #77bdd5);
+  box-shadow: 0 0 0 2px #086587, 0 3px 0 #064967;
+  color: #164c68;
+  opacity: 0.72;
+}
+
+.legacy-home-launcher {
+  width: min(1760px, 94vw);
+  height: auto;
+  min-height: 0;
+  margin: clamp(8px, 1.5vh, 18px) auto 8px;
+  padding: clamp(8px, 1.2vw, 20px);
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(310px, 0.78fr) minmax(300px, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(10px, 1.25vw, 22px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.legacy-home-unit-column {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(44px, 1fr));
+  align-content: center;
+  gap: clamp(7px, 1vh, 13px);
+}
+
+.legacy-home-unit {
+  min-height: 44px;
+  padding: 4px 12px 4px 6px;
+  grid-template-columns: clamp(38px, 3vw, 56px) minmax(0, 1fr) auto;
+  gap: clamp(7px, 0.7vw, 12px);
+  border-radius: 999px 22px 22px 999px;
+}
+
+.legacy-home-unit.locked {
+  opacity: 0.78;
+  background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b);
+  filter: saturate(0.68);
+}
+
+.legacy-home-unit.locked b { background: linear-gradient(180deg, #e4edf0, #a9bac1 56%, #788d96); color: #314854; }
+
+.legacy-home-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background: rgba(58, 29, 81, 0.78);
+  color: #fff;
+  font-size: clamp(0.62rem, 0.6vw, 0.76rem) !important;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-shadow: none;
+  text-transform: uppercase;
+}
+
+.legacy-home-identity {
+  align-self: center;
+  padding: clamp(10px, 1.5vw, 24px);
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  border-radius: 48% 52% 45% 55% / 52% 43% 57% 48%;
+  background: radial-gradient(ellipse, rgba(91, 42, 143, 0.88), rgba(91, 42, 143, 0.55) 58%, rgba(91, 42, 143, 0.05) 74%);
+  box-shadow: 0 12px 36px rgba(30, 21, 72, 0.28);
+}
+
+.legacy-home-title {
+  margin: 0;
+  gap: clamp(7px, 0.7vw, 13px);
+  line-height: 0.88;
+}
+
+.legacy-home-title span { display: flex; flex-direction: column; align-items: flex-end; }
+.legacy-home-title i,
+.legacy-home-title em { font-style: normal; }
+.legacy-home-title i { color: #ccfb43; font-size: clamp(1.25rem, 2.2vw, 2.7rem); }
+.legacy-home-title em { font-size: clamp(1rem, 1.6vw, 2rem); letter-spacing: 0.16em; }
+.legacy-home-title strong { width: clamp(48px, 4.7vw, 76px); height: clamp(48px, 4.7vw, 76px); font-size: clamp(1.3rem, 2vw, 2.25rem); }
+
+.legacy-home-identity > img {
+  height: min(23vh, 250px);
+  max-width: 52%;
+  margin-top: clamp(8px, 1vh, 14px);
+  border-width: 2px;
+}
+
+.legacy-home-identity p { margin: 7px 0 1px; color: #d8fbff; font-size: clamp(0.72rem, 0.8vw, 0.95rem); letter-spacing: 0.09em; text-transform: uppercase; }
+.legacy-home-identity > small { margin-top: 3px; font-size: clamp(0.65rem, 0.68vw, 0.82rem); }
+
+.legacy-home-book-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(8px, 1.2vw, 20px);
+}
+
+.legacy-home-book-button {
+  min-height: clamp(58px, 7vh, 82px);
+  padding: 7px clamp(9px, 1vw, 18px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 0.75vw, 12px);
+  border: 3px solid #fff;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f27fdc, #c33ab6 50%, #812185);
+  box-shadow: 0 0 0 2px #6b236f, 0 5px 0 #4b1d62, 0 9px 18px rgba(41, 20, 65, 0.28);
+  color: #fff;
+  font-size: clamp(0.85rem, 1.15vw, 1.35rem);
+  font-weight: 950;
+  text-shadow: 0 2px 0 #6e277b;
+}
+
+.legacy-home-book-button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legacy-home-book-button.available { cursor: pointer; }
+.legacy-home-book-button.available:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.legacy-home-book-button.locked { opacity: 0.78; filter: saturate(0.68); cursor: not-allowed; }
+.legacy-home-book-button.available small { color: #d7ff68; font-size: 0.7em; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.legacy-home-classroom-toolbar {
+  justify-self: center;
+  align-self: end;
+  min-height: 66px;
+  margin: 0 0 clamp(8px, 1.2vh, 14px);
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: clamp(7px, 0.65vw, 12px);
+  border: 2px solid rgba(255, 255, 255, 0.84);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(64, 50, 112, 0.92), rgba(31, 27, 77, 0.94));
+  box-shadow: 0 6px 18px rgba(22, 19, 58, 0.38);
+}
+
+.legacy-home-classroom-toolbar button {
+  width: clamp(50px, 4.3vw, 66px);
+  height: clamp(50px, 4.3vw, 66px);
+  padding: 4px;
+  display: grid;
+  grid-template-rows: 22px auto auto;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #9c7dba, #55427e);
+  color: #f8f3ff;
+  opacity: 0.8;
+}
+
+.legacy-home-classroom-toolbar span { font-size: clamp(0.48rem, 0.5vw, 0.62rem); font-weight: 850; line-height: 1; }
+.legacy-home-classroom-toolbar small { color: #e2d2ec; font-size: clamp(0.42rem, 0.43vw, 0.52rem); font-weight: 900; line-height: 1; text-transform: uppercase; }
+
+.legacy-home-settings {
+  position: fixed;
+  right: 78px;
+  bottom: 18px;
+  z-index: 4;
+  width: 58px;
+  height: 58px;
+  padding: 5px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #a58ac2, #5d487f);
+  box-shadow: 0 0 0 2px #3b3266, 0 4px 0 #29234f;
+  color: #fff;
+  opacity: 0.82;
+}
+
+.legacy-home-settings span { font-size: 0.55rem; font-weight: 950; text-transform: uppercase; }
+
+@media (max-width: 1100px), (max-height: 650px) {
+  .teacher-offline-library { grid-template-rows: 46px minmax(0, 1fr) 48px; }
+  .teacher-offline-library > .legacy-home-topbar { min-height: 46px; padding: 4px 12px; }
+  .legacy-home-publisher strong { font-size: 0.82rem; }
+  .legacy-home-publisher span { margin-top: 2px; font-size: 0.5rem; }
+  .legacy-home-topbar .teacher-offline-eyebrow { font-size: 0.62rem; }
+  .legacy-home-window-controls { gap: 6px; }
+  .legacy-home-window-controls button { width: 29px; height: 29px; }
+  .legacy-home-launcher {
+    width: calc(100vw - 14px);
+    margin: 4px auto 2px;
+    padding: 2px 5px;
+    grid-template-columns: minmax(220px, 1fr) minmax(126px, 0.56fr) minmax(220px, 1fr);
+    gap: 5px 8px;
+  }
+  .legacy-home-unit-column { gap: 3px; }
+  .legacy-home-unit { min-height: 38px; padding: 2px 6px 2px 3px; grid-template-columns: 33px minmax(0, 1fr) auto; gap: 4px; border-width: 2px; font-size: 0.65rem; }
+  .legacy-home-unit b { border-width: 1px; font-size: 0.82rem; }
+  .legacy-home-lock { padding: 2px 4px; font-size: 0.49rem !important; }
+  .legacy-home-lock svg { display: none; }
+  .legacy-home-identity { padding: 5px; border-width: 2px; }
+  .legacy-home-title i { font-size: clamp(0.82rem, 2.1vw, 1.25rem); }
+  .legacy-home-title em { font-size: clamp(0.65rem, 1.55vw, 0.95rem); }
+  .legacy-home-title strong { width: 35px; height: 35px; border-width: 2px; font-size: 0.95rem; }
+  .legacy-home-identity > img { height: min(15vh, 58px); margin-top: 3px; border-width: 1px; }
+  .legacy-home-identity p { margin: 2px 0 0; font-size: 0.46rem; }
+  .legacy-home-identity > small { margin-top: 1px; font-size: 0.44rem; }
+  .legacy-home-book-row { gap: 5px; }
+  .legacy-home-book-button { min-height: 39px; padding: 3px 6px; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 3px; border-width: 2px; border-radius: 10px; font-size: 0.64rem; }
+  .legacy-home-book-button svg { width: 16px; height: 16px; }
+  .legacy-home-classroom-toolbar { min-height: 44px; margin-bottom: 2px; padding: 2px 7px; gap: 4px; }
+  .legacy-home-classroom-toolbar button { width: 39px; height: 39px; padding: 2px; grid-template-rows: 14px auto auto; border-width: 1px; }
+  .legacy-home-classroom-toolbar button svg { width: 14px; height: 14px; }
+  .legacy-home-classroom-toolbar span { font-size: 0.39rem; }
+  .legacy-home-classroom-toolbar small { font-size: 0.34rem; }
+  .legacy-home-settings { right: 58px; bottom: 3px; width: 43px; height: 43px; border-width: 2px; }
+  .legacy-home-settings svg { width: 18px; height: 18px; }
+  .legacy-home-settings span { font-size: 0.4rem; }
+  html[data-teacher-viewport="compact-landscape"] .legacy-classroom-sound-toggle-home { right: 7px; bottom: 3px; }
+}
+
+@media (min-width: 2500px) and (min-height: 1400px) {
+  .legacy-home-launcher { width: min(2500px, 92vw); gap: 32px; padding: 30px; }
+  .legacy-home-unit-column { gap: 20px; }
+  .legacy-home-unit { min-height: 88px; font-size: 1.45rem; }
+  .legacy-home-unit small { font-size: 1rem !important; }
+  .legacy-home-identity > img { height: min(25vh, 490px); }
+  .legacy-home-book-button { min-height: 120px; font-size: 1.8rem; }
+  .legacy-home-classroom-toolbar { min-height: 98px; padding: 8px 20px; }
+  .legacy-home-classroom-toolbar button { width: 88px; height: 88px; }
+  .legacy-home-settings { right: 100px; bottom: 30px; width: 82px; height: 82px; }
+}

@@ -174,10 +174,6 @@
 .teacher-offline-presentation-stage.classroom-magnified > .ultimate-activity-runner { transform: scale(1.2); transform-origin: top center; }
 .teacher-offline-media > section.classroom-magnified > :not(.classroom-tools-overlay) { transform: scale(1.2); }
 
-.legacy-home-unit-grid { grid-template-rows: repeat(2, minmax(76px, 1fr)); align-content: center; }
-.legacy-home-feature-row { grid-template-columns: minmax(260px, 520px); justify-content: center; }
-.legacy-home-feature-row button img { width: 34px; height: 44px; object-fit: cover; border: 1px solid #fff; }
-
 @media (min-width: 2500px) {
   .classroom-tool-primary { gap: 12px; }
   .classroom-tool-options, .classroom-more-tools { bottom: 118px; padding: 14px 20px; gap: 13px; }

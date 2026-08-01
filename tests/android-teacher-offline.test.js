@@ -175,8 +175,13 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(overlay, /type === "spotlight"[\s\S]*type === "cover"/);
   assert.match(toolsContext, /interactive-classroom:annotations:v1/);
   assert.match(toolsContext, /past:[\s\S]*present:[\s\S]*future:/);
-  assert.match(library, /Workbook, content not installed/);
-  assert.doesNotMatch(library, /Grammar Book|Extras|number: 3/);
+  assert.match(library, /number: 10/);
+  assert.match(library, /\["Workbook", "Workbook content not installed"\]/);
+  assert.match(library, /\["Grammar Book", "Grammar Book content not installed"\]/);
+  assert.match(library, /\["Extras", "Extras content not installed"\]/);
+  assert.match(library, /legacy-home-lock[\s\S]*Locked/);
+  assert.match(library, /disabled=\{!unit\.available\}/);
+  assert.match(library, /onClick=\{unit\.available \?/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);
