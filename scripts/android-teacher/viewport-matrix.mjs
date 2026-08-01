@@ -67,10 +67,12 @@ try {
     });
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
+    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "modern", `${target.name} modern default`);
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
     assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
     assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
     await page.getByRole("button", { name: "Open classroom settings" }).click();
+    await page.waitForTimeout(250);
     const settingsLayout = await page.evaluate(() => {
       const dialog = document.querySelector(".legacy-settings-dialog")?.getBoundingClientRect();
       const close = document.querySelector(".legacy-settings-close")?.getBoundingClientRect();
@@ -90,6 +92,11 @@ try {
     assert.ok(settingsLayout.overflow <= 1, `${target.name} settings overflow`);
     await page.getByRole("tab", { name: "Graphics" }).click();
     await page.locator('[data-settings-panel="graphics"]').waitFor();
+    await page.getByRole("button", { name: "Legacy", exact: true }).click();
+    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy", `${target.name} live legacy theme`);
+    assert.equal(await page.getByRole("dialog", { name: "Classroom settings" }).isVisible(), true, `${target.name} legacy dialog remains open`);
+    await page.getByRole("button", { name: "Modern", exact: true }).click();
+    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "modern", `${target.name} live modern theme`);
     await page.getByRole("button", { name: "Close settings" }).click();
     await page.getByRole("button", { name: "Open Students Book" }).click();
     await page.locator(".teacher-offline-book").waitFor();
@@ -97,6 +104,17 @@ try {
     await page.locator(".teacher-offline-unit-overview").waitFor();
     await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
       .every((image) => image.complete && image.naturalWidth > 0));
+    const unitSwitcher = await page.locator(".legacy-overview-unit-switcher button").evaluateAll((buttons) => buttons.map((button) => {
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return { width: rect.width, height: rect.height, left: rect.left, right: rect.right, radius: parseFloat(style.borderTopLeftRadius), selected: button.getAttribute("aria-pressed") };
+    }));
+    assert.equal(unitSwitcher.length, 2, `${target.name} unit switcher count`);
+    assert.ok(unitSwitcher.every((button) => button.height >= 43), `${target.name} unit switcher touch targets`);
+    assert.ok(unitSwitcher.every((button) => button.width >= 79 && button.width <= 105), `${target.name} unit switcher width cap`);
+    assert.ok(unitSwitcher.every((button) => button.radius <= 13), `${target.name} unit switcher is not pill-like`);
+    assert.ok(unitSwitcher[0].right < unitSwitcher[1].left, `${target.name} unit switcher no overlap`);
+    assert.deepEqual(unitSwitcher.map((button) => button.selected), ["false", "true"], `${target.name} unit selected state`);
     const overviewLayout = await page.evaluate(() => {
       const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
       const entries = [...document.querySelectorAll("[data-overview-entry]")];
@@ -133,6 +151,7 @@ try {
           && rect.top >= imageRect.top - 1 && rect.bottom <= imageRect.bottom + 1;
       });
     });
+    await page.locator(".teacher-offline-pages-viewer").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
 
     const layout = await page.evaluate(() => {
       const root = document.documentElement;
@@ -218,6 +237,7 @@ try {
     }).first();
     await firstActivity.getByRole("button", { name: "Present" }).click();
     await page.locator(".teacher-offline-presentation").waitFor();
+    await page.waitForTimeout(220);
     const activityMetrics = await page.evaluate(() => {
       const card = document.querySelector(".teacher-presentation-activity").getBoundingClientRect();
       return {

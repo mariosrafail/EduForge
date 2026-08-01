@@ -283,6 +283,7 @@ export default function TeacherOfflinePages({
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
   if (!page) return (
     <TeacherOfflineUnitOverview
+      key={`unit-overview-${unit.number}`}
       unit={unit}
       onSelectPage={onSelectPage}
       onSelectUnit={onSelectUnit}

@@ -30,7 +30,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
       <header className="legacy-page-heading legacy-overview-heading">
         <nav className="legacy-overview-unit-switcher" aria-label="Book unit">
           {[1, 2].map((number) => (
-            <button key={number} type="button" className={unitNumber === number ? "selected" : ""} onClick={() => onSelectUnit(number)}>Unit {number}</button>
+            <button key={number} type="button" className={unitNumber === number ? "selected" : ""} aria-pressed={unitNumber === number} onClick={() => onSelectUnit(number)}>Unit {number}</button>
           ))}
         </nav>
         <div><h2>Unit {unit.number}</h2></div>

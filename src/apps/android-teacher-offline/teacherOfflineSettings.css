@@ -1,7 +1,12 @@
 .teacher-offline-settings-surface { width: 100%; height: 100%; filter: saturate(var(--teacher-colour-intensity, 1)); }
-.teacher-offline-settings-surface.teacher-effects-off *,
-.teacher-offline-settings-surface.teacher-effects-off *::before,
-.teacher-offline-settings-surface.teacher-effects-off *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+.teacher-offline-settings-surface.teacher-effects-off {
+  --teacher-control-shadow: none;
+  --teacher-panel-shadow: none;
+}
+.teacher-offline-settings-surface.teacher-effects-off :is(button, header, nav, aside, .legacy-settings-dialog, .legacy-settings-content) {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
 
 .legacy-classroom-settings-trigger {
   position: fixed;
@@ -159,6 +164,9 @@
 .legacy-settings-toggle i { position: absolute; top: 5px; width: 29px; height: 29px; border: 2px solid #fff; border-radius: 50%; background: linear-gradient(145deg, #fff, #deb9e5); box-shadow: 0 2px 4px rgba(71, 26, 77, 0.45); }
 .legacy-settings-toggle.on i { right: 5px; }
 .legacy-settings-toggle.off i { left: 5px; }
+.teacher-settings-segmented { display: grid; grid-template-columns: repeat(2, minmax(96px, 1fr)); gap: 8px; }
+.teacher-settings-segmented button { min-height: 46px; padding: 8px 18px; border: 3px solid #fff; border-radius: 15px; background: linear-gradient(180deg, #a07aad, #68456f); box-shadow: 0 0 0 2px #67316d, 0 3px 0 #512455; color: #fff; font-weight: 900; }
+.teacher-settings-segmented button.selected { background: linear-gradient(180deg, #d7fc59, #7ed10d 58%, #3d9209); color: #183e25; }
 .legacy-settings-note { margin: -4px 6px 0; color: #702d75; font-size: 0.78rem; font-weight: 750; }
 .legacy-settings-about { min-height: 430px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #5a2564; text-align: center; }
 .legacy-settings-about h2 { margin: 0 0 18px; font-size: 1.45rem; }
@@ -201,6 +209,8 @@
   .legacy-settings-toggle i { top: 7px; width: 24px; height: 24px; border-width: 1px; }
   .legacy-settings-toggle.on i { right: 4px; }
   .legacy-settings-toggle.off i { left: 4px; }
+  .teacher-settings-segmented { gap: 4px; }
+  .teacher-settings-segmented button { min-height: 44px; padding: 4px 8px; border-width: 2px; font-size: 0.64rem; }
   .legacy-settings-about { min-height: 235px; }
   .legacy-settings-about h2 { margin-bottom: 8px; font-size: 0.86rem; }
   .legacy-settings-about > strong { font-size: 1.1rem; }

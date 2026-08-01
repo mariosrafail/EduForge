@@ -18,6 +18,24 @@ function LegacyToggle({ checked, label, onChange }) {
   );
 }
 
+function SettingsSegmented({ label, value, options, onChange }) {
+  return (
+    <div className="teacher-settings-segmented" role="group" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={value === option.value ? "selected" : ""}
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+        >
+          <span>{option.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function LegacySlider({ label, value, min = 0, max = 100, suffix = "%", onChange }) {
   const percentage = ((value - min) / (max - min)) * 100;
   return (
@@ -56,7 +74,7 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
 
   return (
     <div className="legacy-settings-backdrop" role="presentation">
-      <section ref={dialogRef} className="legacy-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="legacy-settings-title" tabIndex={-1}>
+      <section ref={dialogRef} className="legacy-settings-dialog" data-settings-motion-state="ready" role="dialog" aria-modal="true" aria-labelledby="legacy-settings-title" tabIndex={-1}>
         <h1 id="legacy-settings-title" className="sr-only">Classroom settings</h1>
         <div className="legacy-settings-tabs" role="tablist" aria-label="Settings sections">
           {tabs.map(({ id, label, icon: Icon }) => (
@@ -85,9 +103,18 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
           )}
           {activeTab === "graphics" && (
             <div className="legacy-settings-panel" data-settings-panel="graphics">
+              <SettingRow title="Interface style" description="Choose the Teacher shell design language">
+                <SettingsSegmented
+                  label="Interface style"
+                  value={settings.graphics.appearanceMode}
+                  options={[{ value: "modern", label: "Modern" }, { value: "legacy", label: "Legacy" }]}
+                  onChange={(value) => update("graphics", "appearanceMode", value)}
+                />
+              </SettingRow>
+              <SettingRow title="Animations" description="Screen transitions and control animations"><LegacyToggle label="Animations" checked={settings.graphics.motionEnabled} onChange={(value) => update("graphics", "motionEnabled", value)} /></SettingRow>
               <SettingRow title="Interface size" description="Scales readable classroom text"><LegacySlider label="Interface size" min={90} max={110} value={settings.graphics.interfaceScale} onChange={(value) => update("graphics", "interfaceScale", value)} /></SettingRow>
               <SettingRow title="Colour intensity" description="Adjusts the legacy glacier shell saturation"><LegacySlider label="Colour intensity" min={40} max={100} value={settings.graphics.colourIntensity} onChange={(value) => update("graphics", "colourIntensity", value)} /></SettingRow>
-              <SettingRow title="Interface effects" description="Enables transitions and animated feedback"><LegacyToggle label="Interface effects" checked={settings.graphics.effectsEnabled} onChange={(value) => update("graphics", "effectsEnabled", value)} /></SettingRow>
+              <SettingRow title="Visual effects" description="Decorative shadows and surface treatments"><LegacyToggle label="Visual effects" checked={settings.graphics.effectsEnabled} onChange={(value) => update("graphics", "effectsEnabled", value)} /></SettingRow>
             </div>
           )}
           {activeTab === "about" && (

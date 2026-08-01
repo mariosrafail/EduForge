@@ -39,6 +39,7 @@ export default function TeacherOfflineBook({
                 key={number}
                 type="button"
                 className={unitNumber === number ? "selected" : ""}
+                aria-pressed={unitNumber === number}
                 onClick={() => update({ unitNumber: number, tab: "pages", pageId: "" })}
               >
                 Unit {number}

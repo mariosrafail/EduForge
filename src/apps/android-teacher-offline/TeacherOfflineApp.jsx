@@ -24,10 +24,25 @@ function libraryState() {
   return { teacherOffline: true, view: "library" };
 }
 
+function usePrefersReducedMotion() {
+  const query = "(prefers-reduced-motion: reduce)";
+  const [reduced, setReduced] = useState(() => globalThis.matchMedia?.(query).matches ?? false);
+  useEffect(() => {
+    const media = globalThis.matchMedia?.(query);
+    if (!media) return undefined;
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener?.("change", update);
+    return () => media.removeEventListener?.("change", update);
+  }, []);
+  return reduced;
+}
+
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
   const classroomSound = useLegacyClassroomSound();
   const settings = useTeacherOfflineSettings();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
@@ -174,31 +189,38 @@ export default function TeacherOfflineApp() {
     content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
   }
   const settingsAvailable = ["library", "book"].includes(navigation.view);
+  const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   return (
     <ClassroomToolsProvider>
       <div
         className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
+        data-teacher-theme={settings.graphics.appearanceMode}
+        data-teacher-motion={animationsActive ? "on" : "off"}
+        data-teacher-motion-preference={settings.graphics.motionEnabled ? "on" : "off"}
+        data-teacher-reduced-motion={prefersReducedMotion ? "reduce" : "no-preference"}
         style={{ "--teacher-colour-intensity": 0.7 + settings.graphics.colourIntensity * 0.003 }}
       >
-        {content}
-      </div>
-      {settingsAvailable && (
-        <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
-          <Settings />
+        <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view}>
+          {content}
+        </div>
+        {settingsAvailable && (
+          <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
+            <Settings />
+          </button>
+        )}
+        <button
+          type="button"
+          className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
+          aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
+          aria-pressed={classroomSound.enabled}
+          title={classroomSound.enabled ? "Mute interface sounds" : "Enable interface sounds"}
+          onClick={() => classroomSound.setEnabled(!classroomSound.enabled)}
+        >
+          {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
         </button>
-      )}
-      <button
-        type="button"
-        className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
-        aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
-        aria-pressed={classroomSound.enabled}
-        title={classroomSound.enabled ? "Mute interface sounds" : "Enable interface sounds"}
-        onClick={() => classroomSound.setEnabled(!classroomSound.enabled)}
-      >
-        {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
-      </button>
-      <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
-      {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
+        <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
+        {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
+      </div>
     </ClassroomToolsProvider>
   );
 }

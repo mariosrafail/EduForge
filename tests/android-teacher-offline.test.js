@@ -29,6 +29,8 @@ import {
   studentsBookOverviewLayout,
 } from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
 import {
+  DEFAULT_TEACHER_OFFLINE_SETTINGS,
+  migrateTeacherOfflineSettingsV1,
   sanitizeTeacherOfflineSettings,
   teacherMenuDelayMilliseconds,
 } from "../src/apps/android-teacher-offline/teacherOfflineSettings.js";
@@ -111,9 +113,29 @@ test("teacher settings are bounded, category-specific, and map menu delay to 1-1
     toolbarVolume: 61,
   });
   assert.deepEqual(settings.content, { showNavbarLeft: false, showNavbarRight: false, menuAutoHide: true, menuDelay: 75 });
-  assert.deepEqual(settings.graphics, { interfaceScale: 110, colourIntensity: 40, effectsEnabled: false });
+  assert.deepEqual(settings.graphics, {
+    appearanceMode: "modern",
+    motionEnabled: true,
+    interfaceScale: 110,
+    colourIntensity: 40,
+    effectsEnabled: false,
+  });
   assert.equal(teacherMenuDelayMilliseconds(0), 1000);
   assert.equal(teacherMenuDelayMilliseconds(100), 10000);
+});
+
+test("teacher settings v1 migration preserves existing values and adds modern motion defaults", () => {
+  const migrated = migrateTeacherOfflineSettingsV1({
+    audio: { buttonEnabled: false, buttonVolume: 17, navigationEnabled: false, navigationVolume: 32, toolbarEnabled: true, toolbarVolume: 49 },
+    content: { showNavbarLeft: false, showNavbarRight: true, menuAutoHide: true, menuDelay: 81 },
+    graphics: { interfaceScale: 106, colourIntensity: 72, effectsEnabled: false },
+  });
+  assert.deepEqual(migrated.audio, { buttonEnabled: false, buttonVolume: 17, navigationEnabled: false, navigationVolume: 32, toolbarEnabled: true, toolbarVolume: 49 });
+  assert.deepEqual(migrated.content, { showNavbarLeft: false, showNavbarRight: true, menuAutoHide: true, menuDelay: 81 });
+  assert.deepEqual(migrated.graphics, { appearanceMode: "modern", motionEnabled: true, interfaceScale: 106, colourIntensity: 72, effectsEnabled: false });
+  assert.equal(DEFAULT_TEACHER_OFFLINE_SETTINGS.graphics.appearanceMode, "modern");
+  assert.equal(DEFAULT_TEACHER_OFFLINE_SETTINGS.graphics.motionEnabled, true);
+  assert.equal(sanitizeTeacherOfflineSettings({ graphics: { appearanceMode: "invalid", motionEnabled: "yes" } }).graphics.appearanceMode, "modern");
 });
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {

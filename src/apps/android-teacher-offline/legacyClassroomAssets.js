@@ -20,5 +20,5 @@ export const legacyClassroomAssets = Object.freeze({
 
 export function LegacyClassroomIcon({ name, className = "", alt = "" }) {
   const source = legacyClassroomAssets.icons[name];
-  return source ? createElement("img", { className: `legacy-classroom-icon ${className}`.trim(), src: source, alt, draggable: "false" }) : null;
+  return source ? createElement("img", { className: `legacy-classroom-icon ${className}`.trim(), "data-legacy-icon": name, src: source, alt, draggable: "false" }) : null;
 }
