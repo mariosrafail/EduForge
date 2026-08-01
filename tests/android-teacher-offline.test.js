@@ -312,6 +312,13 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(library, /legacy-home-lock[\s\S]*Locked/);
   assert.match(library, /disabled=\{!unit\.available\}/);
   assert.match(library, /onClick=\{unit\.available \?/);
+  assert.doesNotMatch(library, /homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
+  assert.match(library, /legacy-home-settings-button[\s\S]*onOpenSettings/);
+  assert.match(library, /legacy-home-close-button[\s\S]*onCloseApplication/);
+  assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
+  assert.match(app, /onCloseApplication=\{closeApplication\}/);
+  assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);
+  assert.match(app, /navigation\.view === "book"[\s\S]*legacy-classroom-settings-trigger/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);

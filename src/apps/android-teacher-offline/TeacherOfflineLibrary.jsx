@@ -1,30 +1,12 @@
 import {
   BookOpen,
-  Eraser,
-  Keyboard,
   LockKeyhole,
-  Minus,
-  MonitorPlay,
-  Pencil,
-  RotateCcw,
-  Timer,
-  Trophy,
-  Type,
+  Settings,
   X,
 } from "lucide-react";
 import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import { teacherStudentsBookUnits as units } from "./teacherOfflineUnitMetadata.js";
-
-const homeTools = [
-  { label: "Pen", icon: Pencil },
-  { label: "Eraser", icon: Eraser },
-  { label: "Text", icon: Type },
-  { label: "Undo", icon: RotateCcw },
-  { label: "Timer", icon: Timer },
-  { label: "Scoreboard", icon: Trophy },
-  { label: "Keyboard", icon: Keyboard },
-];
 
 function UnitColumn({ label, items, onOpenBook }) {
   return (
@@ -47,7 +29,7 @@ function UnitColumn({ label, items, onOpenBook }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
+export default function TeacherOfflineLibrary({ pack, onOpenBook, onOpenSettings, onCloseApplication }) {
   const manifest = pack.manifest;
 
   return (
@@ -57,10 +39,9 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
           <strong>HAMILTON HOUSE</strong>
           <span>English Language Teaching</span>
         </div>
-        <span className="teacher-offline-eyebrow"><MonitorPlay size={18} /> Interactive Classroom · Offline</span>
-        <div className="legacy-home-window-controls" aria-label="Legacy window controls">
-          <button type="button" disabled aria-label="Minimize — unavailable on Android" title="Minimize is unavailable on Android"><Minus size={20} /></button>
-          <button type="button" disabled aria-label="Close — use Android Back" title="Use Android Back to close"><X size={20} /></button>
+        <div className="legacy-home-window-controls" aria-label="Launcher controls">
+          <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}><Settings size={21} /></button>
+          <button type="button" className="legacy-home-close-button" aria-label="Close application" title="Close application" onClick={onCloseApplication}><X size={22} /></button>
         </div>
       </header>
 
@@ -94,14 +75,6 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
           ))}
         </div>
       </section>
-
-      <nav className="legacy-home-classroom-toolbar" aria-label="Home classroom tools">
-        {homeTools.map(({ label, icon: Icon }) => (
-          <button key={label} type="button" disabled aria-label={`${label} — Locked`}>
-            <Icon size={22} /><span>{label}</span><small>Locked</small>
-          </button>
-        ))}
-      </nav>
 
     </main>
   );

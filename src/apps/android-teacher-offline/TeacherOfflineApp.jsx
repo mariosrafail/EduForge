@@ -99,6 +99,9 @@ export default function TeacherOfflineApp() {
     writeTeacherOfflineLocation(location);
     navigate({ view: "book", location });
   };
+  const closeApplication = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) await App.exitApp();
+  }, []);
   const updateBookLocation = (location, options) => {
     writeTeacherOfflineLocation(location);
     navigate({ view: "book", location }, { ...options, replace: true });
@@ -186,9 +189,15 @@ export default function TeacherOfflineApp() {
       />
     );
   } else {
-    content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
+    content = (
+      <TeacherOfflineLibrary
+        pack={pack}
+        onOpenBook={openBook}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onCloseApplication={closeApplication}
+      />
+    );
   }
-  const settingsAvailable = ["library", "book"].includes(navigation.view);
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   return (
     <ClassroomToolsProvider>
@@ -203,7 +212,7 @@ export default function TeacherOfflineApp() {
         <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view}>
           {content}
         </div>
-        {settingsAvailable && (
+        {navigation.view === "book" && (
           <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
             <Settings />
           </button>

@@ -71,6 +71,38 @@ try {
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
     assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
     assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
+    const launcherLayout = await page.evaluate(() => {
+      const units = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect());
+      const settings = document.querySelector(".legacy-home-settings-button");
+      const close = document.querySelector(".legacy-home-close-button");
+      const sound = document.querySelector(".legacy-classroom-sound-toggle-home");
+      const controls = [sound, settings, close].map((control) => control?.getBoundingClientRect()).filter(Boolean);
+      const overlaps = controls.some((first, index) => controls.slice(index + 1).some((second) => (
+        first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
+      )));
+      return {
+        teachingToolbars: document.querySelectorAll(".teacher-offline-library :is(.legacy-home-classroom-toolbar, .classroom-teaching-toolbar)").length,
+        settingsInHeader: Boolean(settings?.closest(".legacy-home-topbar")),
+        closeInHeader: Boolean(close?.closest(".legacy-home-topbar")),
+        headerControlsOverlap: overlaps,
+        minimizeControls: document.querySelectorAll('[aria-label^="Minimize"]').length,
+        centeredTitles: document.querySelectorAll(".legacy-home-topbar .teacher-offline-eyebrow").length,
+        bottomSettings: document.querySelectorAll(".legacy-classroom-settings-trigger").length,
+        minimumUnitHeight: Math.min(...units.map((rect) => rect.height)),
+        maximumUnitHeight: Math.max(...units.map((rect) => rect.height)),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    assert.equal(launcherLayout.teachingToolbars, 0, `${target.name} launcher tools removed`);
+    assert.equal(launcherLayout.settingsInHeader, true, `${target.name} settings in header`);
+    assert.equal(launcherLayout.closeInHeader, true, `${target.name} close in header`);
+    assert.equal(launcherLayout.headerControlsOverlap, false, `${target.name} launcher header controls do not overlap`);
+    assert.equal(launcherLayout.minimizeControls, 0, `${target.name} minimize removed`);
+    assert.equal(launcherLayout.centeredTitles, 0, `${target.name} centered title removed`);
+    assert.equal(launcherLayout.bottomSettings, 0, `${target.name} bottom settings removed`);
+    assert.ok(launcherLayout.minimumUnitHeight >= 44, `${target.name} unit touch targets: ${JSON.stringify(launcherLayout)}`);
+    assert.ok(launcherLayout.maximumUnitHeight <= 84, `${target.name} compact unit sizing: ${JSON.stringify(launcherLayout)}`);
+    assert.ok(launcherLayout.overflow <= 1, `${target.name} launcher overflow: ${JSON.stringify(launcherLayout)}`);
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.waitForTimeout(250);
     const settingsLayout = await page.evaluate(() => {

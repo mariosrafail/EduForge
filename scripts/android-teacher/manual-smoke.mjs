@@ -140,7 +140,20 @@ try {
   }
   assert.equal(await page.locator(".legacy-home-book-button .legacy-home-lock").count(), 3);
   const settingsButton = page.getByRole("button", { name: "Open classroom settings" });
-  assert.equal(await settingsButton.isVisible(), true, "Settings gear must be visible on the launcher");
+  assert.equal(await page.locator(".legacy-home-classroom-toolbar").count(), 0, "Launcher must not render its former locked teaching-tool row");
+  assert.equal(await page.locator(".teacher-offline-library .classroom-teaching-toolbar").count(), 0, "Launcher must not render the classroom teaching toolbar");
+  for (const label of ["Pen", "Eraser", "Text", "Undo", "Timer", "Scoreboard", "Keyboard"]) {
+    assert.equal(await page.getByRole("button", { name: new RegExp(`^${label}(?: — Locked)?$`) }).count(), 0, `${label} must not appear on the launcher`);
+  }
+  assert.equal(await page.getByRole("button", { name: /Minimize/i }).count(), 0, "Launcher must not expose minimize");
+  assert.equal(await page.getByRole("button", { name: "Close application" }).isVisible(), true, "Launcher close control must remain visible");
+  assert.equal(await page.locator(".legacy-home-topbar").getByText(/Interactive Classroom.*Offline/i).count(), 0, "Launcher topbar must not show the centered offline title");
+  assert.equal(await page.locator(".legacy-classroom-settings-trigger").count(), 0, "Launcher must not retain the bottom-right settings gear");
+  assert.equal(await settingsButton.isVisible(), true, "Settings must be visible on the launcher");
+  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-topbar"))), true, "Launcher settings must live inside the top chrome");
+  const launcherUnitHeights = await page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
+  assert.ok(Math.min(...launcherUnitHeights) >= 44, `Launcher units must remain touch-safe: ${launcherUnitHeights}`);
+  assert.ok(Math.max(...launcherUnitHeights) <= 84, `Launcher units must stay compact: ${launcherUnitHeights}`);
   await settingsButton.click();
   await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
   assert.equal(await page.getByRole("tab").count(), 4, "All four legacy settings tabs must render");

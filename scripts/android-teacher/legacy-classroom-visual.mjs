@@ -80,6 +80,8 @@ async function openActivity(page, unit, title) {
 }
 
 async function assertScreen(page, label) {
+  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-offline-view-transition, .teacher-offline-unit-overview-screen, .teacher-offline-pages-viewer")]
+    .every((element) => Number.parseFloat(getComputedStyle(element).opacity) >= 0.99));
   await page.waitForFunction(() => [...document.images]
     .every((image) => image.complete && image.naturalWidth > 0));
   const metrics = await page.evaluate(() => ({
@@ -107,6 +109,8 @@ async function assertLegacyLauncher(page, label) {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
       return Boolean(rect?.width && rect?.height);
     };
+    const unitHeights = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect().height);
+    const settings = document.querySelector(".legacy-home-settings-button");
     return {
       launcher: visible(".legacy-home-launcher"),
       unitColumns: document.querySelectorAll(".legacy-home-unit-column").length,
@@ -115,19 +119,37 @@ async function assertLegacyLauncher(page, label) {
       books: document.querySelectorAll(".legacy-home-book-button").length,
       lockedBooks: document.querySelectorAll(".legacy-home-book-button .legacy-home-lock").length,
       toolbar: visible(".legacy-home-classroom-toolbar"),
-      settings: visible(".legacy-classroom-settings-trigger"),
+      teachingToolbar: visible(".teacher-offline-library .classroom-teaching-toolbar"),
+      settings: visible(".legacy-home-settings-button"),
+      settingsInHeader: Boolean(settings?.closest(".legacy-home-topbar")),
+      bottomSettings: visible(".legacy-classroom-settings-trigger"),
+      close: visible(".legacy-home-close-button"),
+      minimize: document.querySelectorAll('[aria-label^="Minimize"]').length,
+      centeredTitle: document.querySelectorAll(".legacy-home-topbar .teacher-offline-eyebrow").length,
+      minimumUnitHeight: Math.min(...unitHeights),
+      maximumUnitHeight: Math.max(...unitHeights),
     };
   });
-  assert.deepEqual(metrics, {
+  assert.deepEqual({ ...metrics, minimumUnitHeight: undefined, maximumUnitHeight: undefined }, {
     launcher: true,
     unitColumns: 2,
     units: 10,
     lockedUnits: 8,
     books: 4,
     lockedBooks: 3,
-    toolbar: true,
+    toolbar: false,
+    teachingToolbar: false,
     settings: true,
+    settingsInHeader: true,
+    bottomSettings: false,
+    close: true,
+    minimize: 0,
+    centeredTitle: 0,
+    minimumUnitHeight: undefined,
+    maximumUnitHeight: undefined,
   }, `${label} launcher composition`);
+  assert.ok(metrics.minimumUnitHeight >= 44, `${label} unit touch target: ${metrics.minimumUnitHeight}`);
+  assert.ok(metrics.maximumUnitHeight <= 84, `${label} compact unit height: ${metrics.maximumUnitHeight}`);
 }
 
 async function assertLegacyPageViewer(page, label) {

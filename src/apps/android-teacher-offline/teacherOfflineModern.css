@@ -123,9 +123,13 @@
   background: rgba(224, 248, 255, 0.82);
   box-shadow: none;
 }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-window-controls .legacy-home-settings-button {
+  background: rgba(241, 221, 250, 0.94);
+  color: #63237b;
+}
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-unit {
   border: 1px solid var(--teacher-control-border);
-  border-radius: var(--teacher-control-radius);
+  border-radius: 16px;
   background: rgba(6, 91, 132, 0.84);
   box-shadow: var(--teacher-control-shadow);
   text-shadow: none;
@@ -134,7 +138,7 @@
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-unit.available:active { background: #087ca6; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-unit b {
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px 7px 7px 12px;
   background: rgba(197, 245, 255, 0.92);
   box-shadow: none;
   color: #075677;
@@ -160,19 +164,6 @@
 }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-book-button.available { background: #a4329f; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-book-button.locked { background: rgba(74, 72, 106, 0.76); }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-classroom-toolbar {
-  border: 1px solid rgba(207, 238, 248, 0.5);
-  border-radius: 16px;
-  background: rgba(29, 35, 76, 0.88);
-  box-shadow: var(--teacher-control-shadow);
-}
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-classroom-toolbar button {
-  border: 1px solid rgba(227, 244, 250, 0.58);
-  border-radius: 11px;
-  background: rgba(102, 85, 145, 0.65);
-  box-shadow: none;
-}
-
 /* Legacy keeps its compact text tabs; Modern uses the launcher-inspired badge + title geometry. */
 .teacher-unit-switch-modern-label { display: none; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch {

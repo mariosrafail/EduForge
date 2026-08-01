@@ -159,6 +159,10 @@ const scenario = String.raw`
     await sleep(150);
   }
   if (!document.querySelector(".teacher-offline-library")) throw new Error("Classroom library did not open");
+  if (document.querySelector(".teacher-offline-library :is(.legacy-home-classroom-toolbar, .classroom-teaching-toolbar)")) throw new Error("Launcher unexpectedly exposes teaching tools");
+  if (!document.querySelector(".legacy-home-topbar .legacy-home-settings-button")) throw new Error("Launcher settings control is not in the top chrome");
+  if (!document.querySelector(".legacy-home-topbar .legacy-home-close-button")) throw new Error("Launcher close control is missing");
+  if (document.querySelector('[aria-label^="Minimize"]')) throw new Error("Launcher minimize control still exists");
   timings.bookOpenMs = await (async () => {
     const started = performance.now();
     await click("Open Students Book");
