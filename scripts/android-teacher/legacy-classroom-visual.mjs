@@ -51,6 +51,7 @@ async function openPage(page, label) {
 
 async function openActivity(page, unit, title) {
   if (await page.locator(".teacher-offline-presentation").count()) await page.getByRole("button", { name: "Back to book" }).click();
+  if (await page.locator(".teacher-offline-pages-viewer").count()) await page.getByRole("button", { name: "Contents and exercises" }).click();
   await page.getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
   await page.locator(".teacher-offline-view-tabs button").nth(1).click();
   const row = page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
@@ -67,6 +68,35 @@ async function assertScreen(page, label) {
   }));
   assert.equal(metrics.overflow, 0, `${label} horizontal overflow`);
   assert.deepEqual(metrics.missingImages, [], `${label} missing images`);
+}
+
+async function assertLegacyPageViewer(page, label) {
+  const metrics = await page.evaluate(() => {
+    const panel = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
+    const image = document.querySelector(".teacher-offline-page-image")?.getBoundingClientRect();
+    const visible = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return Boolean(rect?.width && rect?.height);
+    };
+    return {
+      panelExists: visible(".teacher-offline-page-reader"),
+      headingExists: visible(".legacy-page-heading"),
+      navigationExists: visible(".legacy-page-navigation"),
+      toolsExist: visible(".legacy-classroom-viewer-toolbar"),
+      bookHeaderVisible: visible(".teacher-offline-book-header"),
+      centered: panel && image ? Math.abs((image.left + image.width / 2) - (panel.left + panel.width / 2)) < 3 : false,
+      contained: panel && image ? image.left >= panel.left - 4 && image.right <= panel.right + 4 && image.top >= panel.top - 4 && image.bottom <= panel.bottom + 4 : false,
+      panel: panel ? { left: panel.left, top: panel.top, right: panel.right, bottom: panel.bottom } : null,
+      image: image ? { left: image.left, top: image.top, right: image.right, bottom: image.bottom } : null,
+    };
+  });
+  assert.equal(metrics.panelExists, true, `${label} legacy panel`);
+  assert.equal(metrics.headingExists, true, `${label} legacy heading`);
+  assert.equal(metrics.navigationExists, true, `${label} lower navigation`);
+  assert.equal(metrics.toolsExist, true, `${label} viewer tools`);
+  assert.equal(metrics.bookHeaderVisible, false, `${label} web-style book header hidden`);
+  assert.equal(metrics.centered, true, `${label} page centered`);
+  assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
 }
 
 let browser;
@@ -98,13 +128,14 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
     await assertScreen(page, "unit-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/unit-overview-1920x1080.png` });
-    await openPage(page, "pg 20-21");
-    await assertScreen(page, "page-viewer-1920x1080");
-    await page.screenshot({ path: `${artifactRoot}/page-viewer-1920x1080.png` });
+    await openPage(page, "pg 5");
+    await assertScreen(page, "page-viewer-unit1-page5-1920x1080");
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await openActivity(page, 1, "Reading · Exercise 3");
     await assertScreen(page, "multiple-choice-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/multiple-choice-1920x1080.png` });
@@ -122,10 +153,12 @@ try {
 
   await capture({ width: 1280, height: 720 }, async (page) => {
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
-    await assertScreen(page, "unit-overview-1280x720");
-    await page.screenshot({ path: `${artifactRoot}/unit-overview-1280x720.png` });
+    await openPage(page, "pg 5");
+    await assertScreen(page, "page-viewer-unit1-page5-1280x720");
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1280x720");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1280x720.png` });
   });
 
   await capture({ width: 800, height: 360 }, async (page) => {
@@ -133,17 +166,23 @@ try {
     await page.screenshot({ path: `${artifactRoot}/home-800x360.png` });
     await openBook(page);
     await waitForUnitOverview(page);
+    await openPage(page, "pg 5");
+    await assertScreen(page, "page-viewer-unit1-page5-800x360");
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page5-800x360");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-800x360.png` });
   });
 
   await capture({ width: 3840, height: 2160 }, async (page) => {
     await openBook(page);
-    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await waitForUnitOverview(page);
-    await assertScreen(page, "unit-overview-3840x2160");
-    await page.screenshot({ path: `${artifactRoot}/unit-overview-3840x2160.png` });
+    await openPage(page, "pg 5");
+    await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page5-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 10, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 11, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

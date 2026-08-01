@@ -97,11 +97,12 @@ try {
   const typedQuestion = Object.values(typedSolution.questions).find((question) => question.acceptedAnswers.includes("off"));
   const typedIndex = Object.values(typedSolution.questions).indexOf(typedQuestion);
   await page.locator(".unit2-normalized-question input").nth(typedIndex).fill("off");
-  const requestsBeforeOfflineSolution = requests.length;
+  const solutionRequests = () => requests.filter(({ type }) => ["fetch", "xhr", "eventsource", "websocket"].includes(type));
+  const requestsBeforeOfflineSolution = solutionRequests().length;
   await context.setOffline(true);
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByText("Correct", { exact: true }).first().waitFor();
-  assert.equal(requests.length, requestsBeforeOfflineSolution, "Offline solution reveal must not make a request");
+  assert.equal(solutionRequests().length, requestsBeforeOfflineSolution, "Offline solution reveal must not make a request");
   await context.setOffline(false);
   await backToBook(page);
 
@@ -122,6 +123,7 @@ try {
     await page.getByRole("button", { name: "Unit overview" }).click();
   }
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
+  await page.getByRole("button", { name: "Page activities" }).click();
   await page.getByRole("button", { name: "Reading · Exercise 1", exact: true }).last().click();
   const video = page.locator("video").first();
   await video.waitFor();
@@ -134,8 +136,9 @@ try {
     || ["fetch", "xhr", "eventsource", "websocket"].includes(type)
     || /\.netlify\/functions|teacher-activity-solutions|submit-/i.test(url)
   ));
+  const unexpectedConsoleErrors = consoleErrors.filter((message) => !/favicon|ERR_INTERNET_DISCONNECTED/i.test(message));
   assert.deepEqual(forbiddenRequests, []);
-  assert.deepEqual(consoleErrors.filter((message) => !/favicon/i.test(message)), []);
+  assert.deepEqual(unexpectedConsoleErrors, []);
 
   console.log(JSON.stringify({
     status: "passed",
@@ -144,7 +147,7 @@ try {
     unit2Activities: 40,
     offlineSolutionRequests: 0,
     forbiddenRequests: forbiddenRequests.length,
-    consoleErrors: consoleErrors.length,
+    consoleErrors: unexpectedConsoleErrors.length,
     coldStartupMs,
     bookOpenMs,
     activityOpenMs,

@@ -83,14 +83,14 @@ try {
     const layout = await page.evaluate(() => {
       const root = document.documentElement;
       const shell = document.querySelector(".teacher-offline-book");
-      const header = document.querySelector(".teacher-offline-book-header");
+      const header = document.querySelector(".legacy-page-heading");
       const stage = document.querySelector(".teacher-offline-page-stage");
       const image = document.querySelector(".teacher-offline-page-image");
       const stageRect = stage.getBoundingClientRect();
       const imageRect = image.getBoundingClientRect();
-      const buttons = [...document.querySelectorAll(".teacher-offline-page-reader > header button")]
-        .filter((button) => getComputedStyle(button).display !== "none")
-        .map((button) => button.getBoundingClientRect());
+      const buttons = [...document.querySelectorAll(".legacy-page-navigation button, .legacy-classroom-viewer-toolbar button")]
+        .map((button) => button.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0);
       return {
         profile: root.dataset.teacherViewport,
         documentOverflow: root.scrollWidth - root.clientWidth,
@@ -124,7 +124,7 @@ try {
     assert.ok(layout.hotspotContained, `${target.name} hotspots must remain aligned to the page`);
     assert.equal(
       layout.image.fit,
-      target.profile === "compact-landscape" ? "fit-width" : "fit-page",
+      "fit-page",
       `${target.name} default fit`,
     );
     if (layout.image.fit === "fit-page") {
@@ -133,11 +133,16 @@ try {
 
     await page.locator('[title="Fit width"]').click();
     const widthFit = await page.evaluate(() => {
-      const stage = document.querySelector(".teacher-offline-page-stage").getBoundingClientRect();
+      const stageNode = document.querySelector(".teacher-offline-page-stage");
+      const stage = stageNode.getBoundingClientRect();
+      const style = getComputedStyle(stageNode);
       const image = document.querySelector(".teacher-offline-page-image").getBoundingClientRect();
-      return { stageWidth: stage.width, imageWidth: image.width };
+      return {
+        availableWidth: stage.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+        imageWidth: image.width,
+      };
     });
-    assertNear(widthFit.imageWidth, widthFit.stageWidth - 16, 2, `${target.name} fit width`);
+    assertNear(widthFit.imageWidth, widthFit.availableWidth, 2, `${target.name} fit width`);
 
     await page.getByRole("button", { name: "Zoom in" }).click();
     await page.getByRole("button", { name: "Zoom in" }).click();
@@ -152,7 +157,7 @@ try {
     assert.notEqual(transformAfter, transformBefore, `${target.name} zoomed page should pan`);
     await page.getByRole("button", { name: "Reset zoom" }).click();
 
-    await page.locator('[title="Contents and exercises"]').click();
+    await page.getByRole("button", { name: "Contents and exercises" }).click();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 40, `${target.name} Unit 2 contents`);
     const firstActivity = page.locator(".teacher-offline-lessons article").filter({
       hasText: target.name === "4k-3840x2160" ? /Reading.*Exercise 3/ : /Reading/,
@@ -235,7 +240,7 @@ try {
         const image = document.querySelector(".teacher-offline-page-image img");
         return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;
       });
-      const screenshotFit = target.profile === "compact-landscape" ? "fit-width" : "fit-page";
+      const screenshotFit = "fit-page";
       await page.locator(`[title="${screenshotFit === "fit-width" ? "Fit width" : "Fit page"}"]`).click();
       await page.waitForFunction(
         (fit) => document.querySelector(".teacher-offline-page-image")?.dataset.fitMode === fit,

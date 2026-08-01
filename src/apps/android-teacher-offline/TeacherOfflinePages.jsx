@@ -1,7 +1,10 @@
 import {
   ArrowLeftRight,
+  BookOpen,
+  Expand,
   Grid2X2,
   Maximize2,
+  Minimize2,
   MonitorPlay,
   Move,
   PlayCircle,
@@ -11,7 +14,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { TEACHER_VIEWPORT_PROFILES } from "./viewportProfiles.js";
 import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
@@ -46,7 +48,7 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
-function initialFit(profile) {
+function initialFit() {
   let stored = null;
   try {
     stored = globalThis.sessionStorage?.getItem(fitStorageKey);
@@ -54,7 +56,7 @@ function initialFit(profile) {
     // Storage can be unavailable in locked-down WebViews; use the profile default.
   }
   if (["fit-page", "fit-width"].includes(stored)) return stored;
-  return profile === TEACHER_VIEWPORT_PROFILES.COMPACT ? "fit-width" : "fit-page";
+  return "fit-page";
 }
 
 function TeacherOfflineUnitOverview({ unit, pages, onSelectPage }) {
@@ -98,23 +100,26 @@ export default function TeacherOfflinePages({
   onSelectPage,
   onOpenActivity,
   onOpenMedia,
-  viewportProfile,
+  onBackToLibrary,
+  onOpenContents,
 }) {
   const pages = unit?.pages || [];
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
   const stageRef = useRef(null);
+  const viewerRef = useRef(null);
   const pointerState = useRef(new Map());
   const gestureState = useRef(null);
   const gestureFrame = useRef(0);
   const didPan = useRef(false);
   const [assetError, setAssetError] = useState("");
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
-  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
-  const [fitMode, setFitMode] = useState(() => initialFit(viewportProfile));
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0, paddingX: 0, paddingY: 0 });
+  const [fitMode, setFitMode] = useState(initialFit);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     setAssetError("");
@@ -128,8 +133,19 @@ export default function TeacherOfflinePages({
     const stage = stageRef.current;
     if (!stage) return undefined;
     const update = () => {
-      const next = { width: stage.clientWidth, height: stage.clientHeight };
-      setStageSize((current) => current.width === next.width && current.height === next.height ? current : next);
+      const style = getComputedStyle(stage);
+      const next = {
+        width: stage.clientWidth,
+        height: stage.clientHeight,
+        paddingX: parseFloat(style.paddingLeft) + parseFloat(style.paddingRight),
+        paddingY: parseFloat(style.paddingTop) + parseFloat(style.paddingBottom),
+      };
+      setStageSize((current) => (
+        current.width === next.width
+        && current.height === next.height
+        && current.paddingX === next.paddingX
+        && current.paddingY === next.paddingY
+      ) ? current : next);
     };
     if (typeof ResizeObserver === "undefined") {
       globalThis.addEventListener("resize", update);
@@ -143,6 +159,12 @@ export default function TeacherOfflinePages({
   }, [page?.id]);
 
   useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
+
+  useEffect(() => {
+    const update = () => setIsFullscreen(document.fullscreenElement === viewerRef.current);
+    document.addEventListener("fullscreenchange", update);
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, []);
 
   const actions = useMemo(() => (page?.actions || []).filter((action) => {
     if (action.availability !== "enabled") return false;
@@ -166,8 +188,8 @@ export default function TeacherOfflinePages({
     }
   };
 
-  const availableWidth = Math.max(0, stageSize.width - 16);
-  const availableHeight = Math.max(0, stageSize.height - 16);
+  const availableWidth = Math.max(0, stageSize.width - stageSize.paddingX);
+  const availableHeight = Math.max(0, stageSize.height - stageSize.paddingY);
   const pageScale = naturalSize.width && naturalSize.height
     ? fitMode === "fit-width"
       ? availableWidth / naturalSize.width
@@ -183,7 +205,7 @@ export default function TeacherOfflinePages({
     x: clamp(pan.x, -maxPan.x, maxPan.x),
     y: clamp(pan.y, -maxPan.y, maxPan.y),
   };
-  const canPan = maxPan.x > 0 || maxPan.y > 0;
+  const canPan = maxPan.x > 2 || maxPan.y > 2;
 
   useEffect(() => {
     if (!page || !naturalSize.width || !stageSize.width) return;
@@ -217,6 +239,14 @@ export default function TeacherOfflinePages({
   const resetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
+  };
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await viewerRef.current?.requestFullscreen?.();
+    } catch {
+      // Android immersive mode remains active when browser fullscreen is unavailable.
+    }
   };
   const updatePan = (next) => setPan({
     x: clamp(next.x, -maxPan.x, maxPan.x),
@@ -281,44 +311,20 @@ export default function TeacherOfflinePages({
   if (!page) return <TeacherOfflineUnitOverview unit={unit} pages={pages} onSelectPage={onSelectPage} />;
 
   return (
-    <section className="teacher-offline-pages">
-      <div className="teacher-offline-page-reader">
-        <header>
-          <div className="teacher-page-toolbar-group">
-            <button type="button" className="teacher-unit-overview-trigger" onClick={() => onSelectPage("")} title="Unit overview">
-              <Grid2X2 size={20} /><span>Unit overview</span>
-            </button>
-            <button type="button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page">
-              <LegacyClassroomIcon name="previous" /><span className="teacher-responsive-label">Previous</span>
-            </button>
-          </div>
-          <div className="teacher-offline-page-title">
-            <span>Unit {unit.number} · {unitNames[Number(unit.number)]}</span>
-            <strong>{page.title} · {page.label || `Page ${page.pageNumber}`}</strong>
-          </div>
-          <div className="teacher-page-fit-controls" aria-label="Page fit and zoom controls">
-            <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page">
-              <Maximize2 size={19} /><span>Fit page</span>
-            </button>
-            <button type="button" className={fitMode === "fit-width" ? "selected" : ""} aria-pressed={fitMode === "fit-width"} onClick={() => selectFitMode("fit-width")} title="Fit width">
-              <ArrowLeftRight size={19} /><span>Fit width</span>
-            </button>
-            <button type="button" disabled={zoom <= minimumZoom} onClick={() => changeZoom(zoom - 0.25)} aria-label="Zoom out" title="Zoom out"><ZoomOut size={19} /></button>
-            <button type="button" disabled={zoom >= maximumZoom} onClick={() => changeZoom(zoom + 0.25)} aria-label="Zoom in" title="Zoom in"><ZoomIn size={19} /></button>
-            <button type="button" disabled={zoom === 1 && !pan.x && !pan.y} onClick={resetView} aria-label="Reset zoom" title="Reset zoom"><RotateCcw size={19} /></button>
-          </div>
-          <div className="teacher-page-toolbar-group teacher-page-next-group">
-            {actions.length > 0 && (
-              <button type="button" className="teacher-page-actions-trigger" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities">
-                <MonitorPlay size={20} /><span>Activities</span>
-              </button>
-            )}
-            <button type="button" disabled={selectedIndex === pages.length - 1} onClick={() => onSelectPage(pages[selectedIndex + 1].id)} title="Next page">
-              <span className="teacher-responsive-label">Next</span><LegacyClassroomIcon name="next" />
-            </button>
-          </div>
-        </header>
+    <section ref={viewerRef} className="teacher-offline-pages teacher-offline-pages-viewer">
+      <header className="legacy-page-heading">
+        <div aria-hidden="true" />
+        <div>
+          <h2>Unit {unit.number}</h2>
+          <strong>{unitNames[Number(unit.number)]}</strong>
+        </div>
+        <div className="legacy-page-window-controls">
+          <button type="button" disabled aria-disabled="true" title="Minimize — not available in this prototype"><Minimize2 size={20} /></button>
+          <button type="button" onClick={onBackToLibrary} title="Close book" aria-label="Close book">×</button>
+        </div>
+      </header>
 
+      <div className="teacher-offline-page-reader">
         <div
           ref={stageRef}
           className={`teacher-offline-page-stage ${canPan ? "can-pan" : ""}`}
@@ -389,6 +395,35 @@ export default function TeacherOfflinePages({
           </nav>
         )}
       </div>
+
+      <nav className="legacy-page-navigation" aria-label="Page navigation">
+        <div>
+          <button type="button" className="legacy-page-round-button" onClick={onBackToLibrary} title="Library" aria-label="Library"><LegacyClassroomIcon name="home" /></button>
+          <button type="button" className="legacy-page-round-button" onClick={() => onSelectPage("")} title="Unit overview" aria-label="Unit overview"><LegacyClassroomIcon name="back" /></button>
+          <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
+        </div>
+        <span className="legacy-page-location">{page.title} · {page.label || `Page ${page.pageNumber}`}</span>
+        <div>
+          {actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}
+          <button type="button" className="legacy-page-round-button" onClick={onOpenContents} title="Contents and exercises" aria-label="Contents and exercises"><BookOpen size={25} /></button>
+          <button type="button" className="legacy-page-round-button" disabled={selectedIndex === pages.length - 1} onClick={() => onSelectPage(pages[selectedIndex + 1].id)} title="Next page" aria-label="Next page"><LegacyClassroomIcon name="next" /></button>
+        </div>
+      </nav>
+
+      <nav className="legacy-classroom-viewer-toolbar" aria-label="Classroom viewer tools">
+        <div className="legacy-viewer-tools" aria-label="Page fit and zoom controls">
+          <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page" aria-label="Fit page"><Maximize2 /></button>
+          <button type="button" className={fitMode === "fit-width" ? "selected" : ""} aria-pressed={fitMode === "fit-width"} onClick={() => selectFitMode("fit-width")} title="Fit width" aria-label="Fit width"><ArrowLeftRight /></button>
+          <button type="button" disabled={zoom <= minimumZoom} onClick={() => changeZoom(zoom - 0.25)} title="Zoom out" aria-label="Zoom out"><ZoomOut /></button>
+          <button type="button" disabled={zoom >= maximumZoom} onClick={() => changeZoom(zoom + 0.25)} title="Zoom in" aria-label="Zoom in"><ZoomIn /></button>
+          <button type="button" disabled={zoom === 1 && !pan.x && !pan.y} onClick={resetView} title="Reset view" aria-label="Reset zoom"><RotateCcw /></button>
+          <button type="button" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>{isFullscreen ? <Minimize2 /> : <Expand />}</button>
+        </div>
+        <div className="legacy-disabled-book-tools" aria-label="Unavailable legacy book tools">
+          {["GB", "WB", "A-Z"].map((label) => <button key={label} type="button" disabled aria-disabled="true" title={`${label} — not available in this prototype`}>{label}</button>)}
+          <button type="button" disabled aria-disabled="true" title="Annotation tool — not available in this prototype">✎</button>
+        </div>
+      </nav>
     </section>
   );
 }
