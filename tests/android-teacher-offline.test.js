@@ -22,6 +22,7 @@ import { checkPresentationAnswers } from "../src/components/lms/activities/prese
 import { buildUltimateB2TeacherSolutionPayload } from "../netlify/functions/_ultimate-b2-teacher-solutions.js";
 import {
   classifyTeacherViewport,
+  getTeacherDisplayScale,
   TEACHER_VIEWPORT_PROFILES,
 } from "../src/apps/android-teacher-offline/viewportProfiles.js";
 import {
@@ -79,6 +80,32 @@ test("teacher viewport profiles use available width and height rather than devic
   assert.equal(classifyTeacherViewport({ width: 1280, height: 720 }), TEACHER_VIEWPORT_PROFILES.LARGE);
   assert.equal(classifyTeacherViewport({ width: 1920, height: 1080 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
   assert.equal(classifyTeacherViewport({ width: 3840, height: 2160 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
+});
+
+test("Teacher automatic display scale uses the 1920x1080 baseline and clamps from 1 to 2", () => {
+  assert.equal(getTeacherDisplayScale(800, 360), 1);
+  assert.equal(getTeacherDisplayScale(1280, 720), 1);
+  assert.equal(getTeacherDisplayScale(1920, 1080), 1);
+  assert.ok(Math.abs(getTeacherDisplayScale(2560, 1440) - 4 / 3) < 0.0001);
+  assert.equal(getTeacherDisplayScale(3840, 2160), 2);
+  assert.equal(getTeacherDisplayScale(7680, 4320), 2);
+  assert.equal(getTeacherDisplayScale(3840, 1080), 1);
+  assert.equal(getTeacherDisplayScale(0, 0), 1);
+});
+
+test("Teacher large-display scaling uses layout dimensions and multiplies Interface Size", async () => {
+  const [app, rootCss, scaleCss] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineRoot.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherDisplayScale.css", "utf8"),
+  ]);
+  assert.match(app, /viewport\.displayScale \* userInterfaceScale/);
+  assert.match(app, /"--teacher-display-scale": viewport\.displayScale/);
+  assert.match(app, /"--teacher-ui-scale": effectiveUiScale/);
+  assert.match(rootCss, /teacherDisplayScale\.css/);
+  assert.match(scaleCss, /\.legacy-home-launcher[\s\S]*\.teacher-offline-unit-overview-screen[\s\S]*\.teacher-offline-pages-viewer[\s\S]*\.classroom-teaching-toolbar[\s\S]*\.legacy-settings-dialog/);
+  assert.doesNotMatch(scaleCss, /\bzoom\s*:/i);
+  assert.doesNotMatch(scaleCss, /\.teacher-offline-settings-surface\s*\{[^}]*transform\s*:/i);
 });
 
 test("Students Book overview groups every real Unit 1 and Unit 2 page exactly once", () => {

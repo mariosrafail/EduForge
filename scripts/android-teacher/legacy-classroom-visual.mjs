@@ -85,9 +85,12 @@ async function assertLegacyUnitOverview(page, unit, label) {
       size: arrowRect.width,
       centerDelta: Math.abs((arrowRect.top + arrowRect.height / 2) - (panelRect.top + panelRect.height / 2)),
       overlapsEntry: entries.some((entry) => arrowRect.left < entry.right && arrowRect.right > entry.left && arrowRect.top < entry.bottom && arrowRect.bottom > entry.top),
+      displayScale: Number(document.querySelector(".teacher-offline-settings-surface").dataset.teacherDisplayScale),
+      compact: innerWidth <= 1100 || innerHeight <= 650,
     };
   });
-  assert.ok(arrowLayout.size >= 44 && arrowLayout.size <= 72, `${label} arrow touch size`);
+  const expectedArrowSize = arrowLayout.compact ? 44 : 60 * arrowLayout.displayScale;
+  assert.ok(Math.abs(arrowLayout.size - expectedArrowSize) <= 1, `${label} proportional arrow touch size: ${JSON.stringify(arrowLayout)}`);
   assert.ok(arrowLayout.centerDelta <= 1, `${label} arrow vertical alignment`);
   assert.equal(arrowLayout.overlapsEntry, false, `${label} arrow keeps thumbnails clear`);
   await assertScreen(page, label);
@@ -157,9 +160,10 @@ async function assertLegacyLauncher(page, label) {
       centeredTitle: document.querySelectorAll(".legacy-home-topbar .teacher-offline-eyebrow").length,
       minimumUnitHeight: Math.min(...unitHeights),
       maximumUnitHeight: Math.max(...unitHeights),
+      displayScale: Number(document.querySelector(".teacher-offline-settings-surface").dataset.teacherDisplayScale),
     };
   });
-  assert.deepEqual({ ...metrics, minimumUnitHeight: undefined, maximumUnitHeight: undefined }, {
+  assert.deepEqual({ ...metrics, minimumUnitHeight: undefined, maximumUnitHeight: undefined, displayScale: undefined }, {
     launcher: true,
     unitColumns: 2,
     units: 10,
@@ -176,9 +180,10 @@ async function assertLegacyLauncher(page, label) {
     centeredTitle: 0,
     minimumUnitHeight: undefined,
     maximumUnitHeight: undefined,
+    displayScale: undefined,
   }, `${label} launcher composition`);
   assert.ok(metrics.minimumUnitHeight >= 44, `${label} unit touch target: ${metrics.minimumUnitHeight}`);
-  assert.ok(metrics.maximumUnitHeight <= 84, `${label} compact unit height: ${metrics.maximumUnitHeight}`);
+  assert.ok(metrics.maximumUnitHeight <= (84 * metrics.displayScale) + 1, `${label} proportional unit height: ${metrics.maximumUnitHeight}`);
 }
 
 async function assertLegacyPageViewer(page, label) {
@@ -247,6 +252,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/settings-content-1920x1080.png` });
     await settingsDialog.getByRole("tab", { name: "Graphics" }).click();
     await settingsDialog.locator('[data-settings-panel="graphics"]').waitFor();
+    await page.waitForTimeout(220);
     await page.screenshot({ path: `${artifactRoot}/settings-graphics-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-settings-graphics-1920x1080.png` });
     await settingsDialog.getByRole("tab", { name: "About" }).click();
@@ -407,6 +413,12 @@ try {
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-800x360.png` });
   });
 
+  await capture({ width: 2560, height: 1440 }, async (page) => {
+    await assertScreen(page, "home-launcher-2560x1440");
+    await assertLegacyLauncher(page, "home-launcher-2560x1440");
+    await page.screenshot({ path: `${artifactRoot}/home-launcher-2560x1440.png` });
+  });
+
   await capture({ width: 3840, height: 2160 }, async (page) => {
     await assertScreen(page, "home-launcher-3840x2160");
     await assertLegacyLauncher(page, "home-launcher-3840x2160");
@@ -415,6 +427,10 @@ try {
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
     await page.screenshot({ path: `${artifactRoot}/settings-audio-3840x2160.png` });
+    await page.getByRole("tab", { name: "Graphics" }).click();
+    await page.locator('[data-settings-panel="graphics"]').waitFor();
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: `${artifactRoot}/settings-graphics-3840x2160.png` });
     await page.getByRole("tab", { name: "About" }).click();
     await assertCleanAbout(page, "modern-about-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/modern-about-3840x2160.png` });
@@ -433,10 +449,11 @@ try {
     await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
+    await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-3840x2160.png` });
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 46, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 49, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

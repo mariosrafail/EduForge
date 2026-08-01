@@ -199,6 +199,8 @@ export default function TeacherOfflineApp() {
     );
   }
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
+  const userInterfaceScale = settings.graphics.interfaceScale / 100;
+  const effectiveUiScale = Math.min(2.4, Math.max(0.8, viewport.displayScale * userInterfaceScale));
   return (
     <ClassroomToolsProvider>
       <div
@@ -207,7 +209,14 @@ export default function TeacherOfflineApp() {
         data-teacher-motion={animationsActive ? "on" : "off"}
         data-teacher-motion-preference={settings.graphics.motionEnabled ? "on" : "off"}
         data-teacher-reduced-motion={prefersReducedMotion ? "reduce" : "no-preference"}
-        style={{ "--teacher-colour-intensity": 0.7 + settings.graphics.colourIntensity * 0.003 }}
+        data-teacher-display-scale={String(Number(viewport.displayScale.toFixed(3)))}
+        data-teacher-display-profile={viewport.profile}
+        style={{
+          "--teacher-colour-intensity": 0.7 + settings.graphics.colourIntensity * 0.003,
+          "--teacher-display-scale": viewport.displayScale,
+          "--teacher-user-ui-scale": userInterfaceScale,
+          "--teacher-ui-scale": effectiveUiScale,
+        }}
       >
         <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view}>
           {content}

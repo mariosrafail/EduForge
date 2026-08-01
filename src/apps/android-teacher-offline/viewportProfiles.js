@@ -8,6 +8,20 @@ export const TEACHER_VIEWPORT_PROFILES = Object.freeze({
   EXTRA_LARGE: "extra-large-classroom",
 });
 
+const teacherDisplayBaseline = Object.freeze({ width: 1920, height: 1080 });
+const maximumTeacherDisplayScale = 2;
+
+export function getTeacherDisplayScale(width, height) {
+  const safeWidth = Number(width);
+  const safeHeight = Number(height);
+  if (!Number.isFinite(safeWidth) || !Number.isFinite(safeHeight) || safeWidth <= 0 || safeHeight <= 0) return 1;
+  const scale = Math.min(
+    safeWidth / teacherDisplayBaseline.width,
+    safeHeight / teacherDisplayBaseline.height,
+  );
+  return Math.min(maximumTeacherDisplayScale, Math.max(1, scale));
+}
+
 export function classifyTeacherViewport({ width, height }) {
   if (height < 480) return TEACHER_VIEWPORT_PROFILES.COMPACT;
   if (width < 840 || height < 700) return TEACHER_VIEWPORT_PROFILES.MEDIUM;
@@ -30,6 +44,7 @@ export function readTeacherViewport() {
     devicePixelRatio: Number(globalThis.devicePixelRatio || 1),
     orientation: width >= height ? "landscape" : "portrait",
     profile: classifyTeacherViewport({ width, height }),
+    displayScale: getTeacherDisplayScale(width, height),
   };
 }
 
@@ -37,7 +52,8 @@ function sameViewport(left, right) {
   return left.width === right.width
     && left.height === right.height
     && left.devicePixelRatio === right.devicePixelRatio
-    && left.profile === right.profile;
+    && left.profile === right.profile
+    && left.displayScale === right.displayScale;
 }
 
 export function useTeacherViewportProfile() {
@@ -66,8 +82,10 @@ export function useTeacherViewportProfile() {
 
   useEffect(() => {
     document.documentElement.dataset.teacherViewport = viewport.profile;
+    document.documentElement.dataset.teacherDisplayScale = String(Number(viewport.displayScale.toFixed(3)));
     document.documentElement.style.setProperty("--teacher-viewport-width", `${viewport.width}px`);
     document.documentElement.style.setProperty("--teacher-viewport-height", `${viewport.height}px`);
+    document.documentElement.style.setProperty("--teacher-display-scale", String(viewport.displayScale));
     globalThis.dispatchEvent(new CustomEvent("teacher:viewport-profile", { detail: viewport }));
   }, [viewport]);
 

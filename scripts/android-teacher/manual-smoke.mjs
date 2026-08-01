@@ -125,6 +125,8 @@ try {
   assert.deepEqual(migratedMarkup.covers.map(({ type }) => type), ["cover"], "Legacy covers must migrate outside drawing history");
   assert.equal(migratedMarkup.spotlight.type, "spotlight", "Legacy spotlight must migrate outside drawing history");
   const settingsSurface = page.locator(".teacher-offline-settings-surface");
+  assert.equal(await settingsSurface.getAttribute("data-teacher-display-scale"), "1", "1280x720 must retain the 1080p baseline scale");
+  assert.equal(Number(await settingsSurface.evaluate((surface) => getComputedStyle(surface).getPropertyValue("--teacher-ui-scale"))), 1, "1280x720 effective UI scale must remain 1");
   assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", "Modern must be the fresh-install default");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "on", "Motion must default on");
   assert.equal(await page.getByRole("button", { name: /Open Unit/ }).count(), 2, "Only Units 1 and 2 may be available");

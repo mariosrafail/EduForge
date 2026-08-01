@@ -1,0 +1,266 @@
+/* Resolution-driven Teacher chrome scaling. Uses real layout sizes so classroom
+   pointer coordinates and overlay geometry remain in the same CSS pixel space. */
+.teacher-offline-settings-surface {
+  --teacher-display-scale: 1;
+  --teacher-user-ui-scale: 1;
+  --teacher-ui-scale: 1;
+  --teacher-control-sm: max(44px, calc(44px * var(--teacher-ui-scale)));
+  --teacher-control-md: max(44px, calc(52px * var(--teacher-ui-scale)));
+  --teacher-control-lg: max(44px, calc(60px * var(--teacher-ui-scale)));
+  --teacher-icon-sm: calc(20px * var(--teacher-ui-scale));
+  --teacher-icon-md: calc(24px * var(--teacher-ui-scale));
+  --teacher-icon-lg: calc(32px * var(--teacher-ui-scale));
+  --teacher-space-xs: calc(4px * var(--teacher-ui-scale));
+  --teacher-space-sm: calc(8px * var(--teacher-ui-scale));
+  --teacher-space-md: calc(12px * var(--teacher-ui-scale));
+  --teacher-space-lg: calc(20px * var(--teacher-ui-scale));
+  --teacher-radius-md: calc(12px * var(--teacher-ui-scale));
+  --teacher-radius-lg: calc(18px * var(--teacher-ui-scale));
+}
+
+@media (min-width: 1921px) and (min-height: 1081px) {
+  /* Launcher: preserve the 1080p composition as the viewport grows. */
+  .teacher-offline-library > .legacy-home-topbar {
+    min-height: clamp(calc(54px * var(--teacher-ui-scale)), 6.5vh, calc(76px * var(--teacher-ui-scale)));
+    padding: calc(8px * var(--teacher-ui-scale)) clamp(calc(18px * var(--teacher-ui-scale)), 2.3vw, calc(44px * var(--teacher-ui-scale)));
+  }
+  .teacher-offline-settings-surface .legacy-home-publisher strong { font-size: calc(24.8px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface .legacy-home-publisher span { margin-top: calc(5px * var(--teacher-ui-scale)); font-size: calc(12px * var(--teacher-ui-scale)); }
+  .legacy-home-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
+  .legacy-home-window-controls button,
+  .legacy-classroom-sound-toggle-home {
+    width: calc(46px * var(--teacher-ui-scale));
+    height: calc(46px * var(--teacher-ui-scale));
+    min-height: calc(46px * var(--teacher-ui-scale));
+  }
+  .legacy-home-window-controls button svg,
+  .legacy-classroom-sound-toggle-home svg { width: var(--teacher-icon-md); height: var(--teacher-icon-md); }
+  .legacy-classroom-sound-toggle-home {
+    top: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-top));
+    right: calc(env(safe-area-inset-right) + (186px * var(--teacher-ui-scale)));
+  }
+  .legacy-home-launcher {
+    width: min(calc(1760px * var(--teacher-ui-scale)), 94vw);
+    margin: clamp(calc(8px * var(--teacher-ui-scale)), 1.5vh, calc(18px * var(--teacher-ui-scale))) auto max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
+    padding: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))) clamp(calc(14px * var(--teacher-ui-scale)), 2.4vw, calc(46px * var(--teacher-ui-scale)));
+    grid-template-columns: minmax(calc(260px * var(--teacher-ui-scale)), calc(440px * var(--teacher-ui-scale))) minmax(calc(280px * var(--teacher-ui-scale)), 1fr) minmax(calc(260px * var(--teacher-ui-scale)), calc(440px * var(--teacher-ui-scale)));
+    gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.25vw, calc(22px * var(--teacher-ui-scale))) clamp(calc(18px * var(--teacher-ui-scale)), 2.4vw, calc(46px * var(--teacher-ui-scale)));
+  }
+  .legacy-home-unit-column {
+    grid-template-rows: repeat(5, clamp(calc(48px * var(--teacher-ui-scale)), 6vh, calc(72px * var(--teacher-ui-scale))));
+    gap: clamp(calc(7px * var(--teacher-ui-scale)), 1vh, calc(13px * var(--teacher-ui-scale)));
+  }
+  .legacy-home-unit {
+    min-height: calc(44px * var(--teacher-ui-scale));
+    padding: calc(4px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)) calc(4px * var(--teacher-ui-scale)) calc(5px * var(--teacher-ui-scale));
+    grid-template-columns: clamp(calc(40px * var(--teacher-ui-scale)), 2.8vw, calc(50px * var(--teacher-ui-scale))) minmax(0, 1fr) auto;
+    gap: clamp(calc(7px * var(--teacher-ui-scale)), .7vw, calc(12px * var(--teacher-ui-scale)));
+    border-radius: 999px calc(18px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)) 999px;
+    font-size: calc(1rem * var(--teacher-display-scale));
+  }
+  .legacy-home-unit b { font-size: calc(27.84px * var(--teacher-ui-scale)); }
+  .legacy-home-unit span { font-size: calc(16px * var(--teacher-ui-scale)); }
+  .legacy-home-lock {
+    padding: calc(3px * var(--teacher-ui-scale)) calc(7px * var(--teacher-ui-scale));
+    font-size: clamp(calc(.62rem * var(--teacher-display-scale)), .6vw, calc(.76rem * var(--teacher-display-scale))) !important;
+  }
+  .legacy-home-lock svg { width: var(--teacher-icon-sm); height: var(--teacher-icon-sm); }
+  .legacy-home-identity {
+    padding: clamp(calc(10px * var(--teacher-ui-scale)), 1.5vw, calc(24px * var(--teacher-ui-scale)));
+    border-width: calc(3px * var(--teacher-ui-scale));
+  }
+  .legacy-home-title { gap: clamp(calc(7px * var(--teacher-ui-scale)), .7vw, calc(13px * var(--teacher-ui-scale))); }
+  .teacher-offline-settings-surface .legacy-home-title i { font-size: calc(42.24px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface .legacy-home-title em { font-size: calc(30.72px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface .legacy-home-title strong {
+    width: clamp(calc(48px * var(--teacher-ui-scale)), 4.7vw, calc(76px * var(--teacher-ui-scale)));
+    height: clamp(calc(48px * var(--teacher-ui-scale)), 4.7vw, calc(76px * var(--teacher-ui-scale)));
+    font-size: calc(36px * var(--teacher-ui-scale));
+  }
+  .legacy-home-identity > img {
+    height: min(23vh, calc(250px * var(--teacher-ui-scale)));
+    max-width: 52%;
+    margin-top: clamp(calc(8px * var(--teacher-ui-scale)), 1vh, calc(14px * var(--teacher-ui-scale)));
+  }
+  .teacher-offline-settings-surface .legacy-home-identity p { margin: calc(7px * var(--teacher-ui-scale)) 0 calc(1px * var(--teacher-ui-scale)); font-size: calc(15.2px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface .legacy-home-identity > small { margin-top: calc(3px * var(--teacher-ui-scale)); font-size: calc(13.12px * var(--teacher-ui-scale)); }
+  .legacy-home-book-row { gap: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))); }
+  .teacher-offline-settings-surface .legacy-home-book-button {
+    min-height: clamp(calc(58px * var(--teacher-ui-scale)), 7vh, calc(82px * var(--teacher-ui-scale)));
+    padding: calc(7px * var(--teacher-ui-scale)) clamp(calc(9px * var(--teacher-ui-scale)), 1vw, calc(18px * var(--teacher-ui-scale)));
+    gap: clamp(calc(6px * var(--teacher-ui-scale)), .75vw, calc(12px * var(--teacher-ui-scale)));
+    border-radius: calc(18px * var(--teacher-ui-scale));
+    font-size: calc(16px * var(--teacher-ui-scale));
+  }
+  .legacy-home-book-button svg { width: var(--teacher-icon-lg); height: var(--teacher-icon-lg); }
+
+  /* Shared book header controls used by contents/activity shells. */
+  .teacher-offline-book-header,
+  .teacher-offline-media > header,
+  .teacher-offline-presentation > header {
+    min-height: calc(58px * var(--teacher-ui-scale));
+    padding: max(calc(5px * var(--teacher-ui-scale)), env(safe-area-inset-top)) calc(22px * var(--teacher-ui-scale)) calc(5px * var(--teacher-ui-scale));
+    gap: calc(12px * var(--teacher-ui-scale));
+  }
+  .teacher-offline-book-header button,
+  .teacher-offline-view-tabs button,
+  .teacher-offline-media header button,
+  .teacher-offline-presentation header button,
+  .teacher-offline-presentation > nav button {
+    min-height: calc(48px * var(--teacher-ui-scale));
+    max-height: calc(52px * var(--teacher-ui-scale));
+    padding: calc(7px * var(--teacher-ui-scale)) calc(11px * var(--teacher-ui-scale));
+    border-radius: 999px;
+    font-size: calc(1rem * var(--teacher-display-scale));
+  }
+  .teacher-offline-book-header .legacy-classroom-icon,
+  .teacher-offline-presentation .legacy-classroom-icon,
+  .teacher-offline-media .legacy-classroom-icon { width: calc(38px * var(--teacher-ui-scale)); height: calc(38px * var(--teacher-ui-scale)); flex-basis: calc(38px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch { gap: calc(10px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button {
+    width: clamp(calc(275px * var(--teacher-ui-scale)), 15vw, calc(286px * var(--teacher-ui-scale)));
+    min-width: calc(275px * var(--teacher-ui-scale));
+    max-width: calc(286px * var(--teacher-ui-scale));
+    height: calc(54px * var(--teacher-ui-scale));
+    min-height: calc(54px * var(--teacher-ui-scale));
+    border-radius: calc(14px * var(--teacher-ui-scale));
+  }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-modern-label { padding: 0 calc(14px * var(--teacher-ui-scale)) 0 calc(62px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-badge { left: calc(-4px * var(--teacher-ui-scale)); width: calc(54px * var(--teacher-ui-scale)); height: calc(54px * var(--teacher-ui-scale)); font-size: calc(1.45rem * var(--teacher-display-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-title { font-size: clamp(calc(.86rem * var(--teacher-display-scale)), .9vw, calc(1.04rem * var(--teacher-display-scale))); }
+
+  /* Unit overview and page-viewer chrome. */
+  .teacher-offline-unit-overview-screen {
+    --overview-screen-gutter: clamp(calc(18px * var(--teacher-ui-scale)), 3vw, calc(58px * var(--teacher-ui-scale)));
+    grid-template-rows: calc(70px * var(--teacher-ui-scale)) minmax(0, 1fr) calc(66px * var(--teacher-ui-scale)) var(--classroom-toolbar-height);
+    gap: calc(4px * var(--teacher-ui-scale));
+  }
+  .legacy-overview-heading,
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview,
+  .legacy-overview-navigation { width: min(calc(1680px * var(--teacher-ui-scale)), 90vw); }
+  .teacher-offline-settings-surface .legacy-overview-heading h2 { font-size: calc(63.36px * var(--teacher-ui-scale)); }
+  .teacher-unit-side-navigation { width: calc(60px * var(--teacher-ui-scale)); height: calc(60px * var(--teacher-ui-scale)); min-height: calc(60px * var(--teacher-ui-scale)); }
+  .teacher-unit-side-navigation.previous { left: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-left)); }
+  .teacher-unit-side-navigation.next { right: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-right)); }
+  .teacher-unit-side-navigation svg { width: calc(38px * var(--teacher-ui-scale)); height: calc(38px * var(--teacher-ui-scale)); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { padding: clamp(calc(18px * var(--teacher-ui-scale)), 1.7vw, calc(32px * var(--teacher-ui-scale))); border-radius: calc(42px * var(--teacher-ui-scale)); }
+  .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.2vh, calc(18px * var(--teacher-ui-scale))) clamp(calc(8px * var(--teacher-ui-scale)), .85vw, calc(15px * var(--teacher-ui-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: clamp(calc(44px * var(--teacher-ui-scale)), 5.5vh, calc(62px * var(--teacher-ui-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(.9rem * var(--teacher-display-scale)), 1.15vw, calc(1.38rem * var(--teacher-display-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(calc(.8rem * var(--teacher-display-scale)), .92vw, calc(1.08rem * var(--teacher-display-scale))); }
+  .legacy-overview-book-links button { width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
+  .legacy-overview-book-links button span { font-size: calc(1rem * var(--teacher-display-scale)); }
+  .legacy-overview-book-links button small { font-size: calc(.48rem * var(--teacher-display-scale)); }
+  .teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar { width: min(calc(1320px * var(--teacher-ui-scale)), 78vw); }
+
+  .teacher-offline-pages-viewer {
+    padding: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-top)) clamp(calc(22px * var(--teacher-ui-scale)), 4vw, calc(76px * var(--teacher-ui-scale))) max(calc(7px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
+    grid-template-rows: auto minmax(0, 1fr) calc(66px * var(--teacher-ui-scale)) var(--classroom-toolbar-height);
+    gap: calc(4px * var(--teacher-ui-scale));
+  }
+  .legacy-page-heading { min-height: calc(72px * var(--teacher-ui-scale)); }
+  .legacy-page-heading h2 { font-size: clamp(calc(1.8rem * var(--teacher-display-scale)), 2.25vw, calc(2.75rem * var(--teacher-display-scale))); }
+  .legacy-page-heading strong { margin-top: calc(7px * var(--teacher-ui-scale)); font-size: clamp(calc(1rem * var(--teacher-display-scale)), 1.25vw, calc(1.45rem * var(--teacher-display-scale))); }
+  .legacy-page-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
+  .legacy-page-window-controls button { width: calc(46px * var(--teacher-ui-scale)); height: calc(46px * var(--teacher-ui-scale)); min-height: calc(46px * var(--teacher-ui-scale)); font-size: calc(1.75rem * var(--teacher-display-scale)); }
+  .teacher-offline-pages-viewer .teacher-offline-page-reader,
+  .legacy-page-navigation { width: min(calc(1540px * var(--teacher-ui-scale)), 88vw); }
+  .teacher-offline-pages-viewer .teacher-offline-page-reader { border-radius: calc(38px * var(--teacher-ui-scale)); }
+  .teacher-offline-pages-viewer .teacher-offline-page-stage { padding: clamp(calc(20px * var(--teacher-ui-scale)), 2.1vh, calc(32px * var(--teacher-ui-scale))) clamp(calc(26px * var(--teacher-ui-scale)), 2.2vw, calc(42px * var(--teacher-ui-scale))); }
+  .legacy-page-navigation { margin-top: calc(-9px * var(--teacher-ui-scale)); gap: calc(18px * var(--teacher-ui-scale)); }
+  .legacy-page-navigation > div { gap: calc(9px * var(--teacher-ui-scale)); }
+  .legacy-page-round-button { width: calc(62px * var(--teacher-ui-scale)); height: calc(62px * var(--teacher-ui-scale)); min-height: calc(62px * var(--teacher-ui-scale)); }
+  .legacy-page-round-button .legacy-classroom-icon { width: calc(60px * var(--teacher-ui-scale)); height: calc(60px * var(--teacher-ui-scale)); flex-basis: calc(60px * var(--teacher-ui-scale)); }
+  .legacy-page-location { padding: calc(7px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); font-size: calc(.86rem * var(--teacher-display-scale)); }
+  .legacy-classroom-viewer-toolbar { width: min(calc(1320px * var(--teacher-ui-scale)), 78vw); min-height: calc(54px * var(--teacher-ui-scale)); padding: calc(4px * var(--teacher-ui-scale)) calc(13px * var(--teacher-ui-scale)); gap: calc(22px * var(--teacher-ui-scale)); }
+  .legacy-classroom-viewer-toolbar button { width: calc(46px * var(--teacher-ui-scale)); height: calc(46px * var(--teacher-ui-scale)); min-height: calc(46px * var(--teacher-ui-scale)); font-size: calc(.72rem * var(--teacher-display-scale)); }
+  .legacy-classroom-viewer-toolbar svg { width: calc(21px * var(--teacher-ui-scale)); height: calc(21px * var(--teacher-ui-scale)); }
+
+  /* Permanent toolbar and contextual tool chrome. */
+  .teacher-offline-unit-overview-screen,
+  .teacher-offline-pages-viewer,
+  .teacher-offline-presentation.has-classroom-tools,
+  .teacher-offline-media.has-classroom-tools { --classroom-toolbar-height: calc(64px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface .classroom-teaching-toolbar .classroom-tool-primary > button,
+  .teacher-offline-settings-surface .classroom-teaching-toolbar .classroom-mode-instruction > button,
+  .teacher-offline-settings-surface .classroom-teaching-toolbar .classroom-zoom-active-tools button {
+    min-width: calc(60px * var(--teacher-ui-scale));
+    height: calc(52px * var(--teacher-ui-scale));
+    min-height: calc(48px * var(--teacher-ui-scale));
+    padding: calc(4px * var(--teacher-ui-scale)) calc(8px * var(--teacher-ui-scale));
+    border-radius: calc(13px * var(--teacher-ui-scale));
+  }
+  .classroom-teaching-toolbar button > span { font-size: calc(.64rem * var(--teacher-display-scale)); }
+  .classroom-tool-primary { gap: clamp(calc(3px * var(--teacher-ui-scale)), .45vw, calc(9px * var(--teacher-ui-scale))); }
+  .classroom-tool-options { gap: calc(4px * var(--teacher-ui-scale)); padding-inline: calc(4px * var(--teacher-ui-scale)); font-size: calc(.62rem * var(--teacher-display-scale)); }
+  .classroom-tool-options button { width: calc(44px * var(--teacher-ui-scale)) !important; min-width: calc(44px * var(--teacher-ui-scale)) !important; height: calc(44px * var(--teacher-ui-scale)) !important; min-height: calc(44px * var(--teacher-ui-scale)) !important; }
+  .classroom-cover-delete { width: calc(48px * var(--teacher-ui-scale)); height: calc(48px * var(--teacher-ui-scale)); min-height: calc(48px * var(--teacher-ui-scale)); border-radius: calc(12px * var(--teacher-ui-scale)); }
+  .classroom-text-editor { width: min(calc(440px * var(--teacher-ui-scale)), 65vw); padding: calc(8px * var(--teacher-ui-scale)); gap: calc(6px * var(--teacher-ui-scale)); border-radius: calc(14px * var(--teacher-ui-scale)); }
+  .classroom-text-editor input,
+  .classroom-text-editor button { min-height: calc(48px * var(--teacher-ui-scale)); border-radius: calc(10px * var(--teacher-ui-scale)); font-size: calc(1rem * var(--teacher-display-scale)); }
+  .classroom-mode-banner { min-width: min(calc(360px * var(--teacher-ui-scale)), calc(100vw - 24px)); min-height: calc(62px * var(--teacher-ui-scale)); padding: calc(7px * var(--teacher-ui-scale)) calc(8px * var(--teacher-ui-scale)) calc(7px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); gap: calc(18px * var(--teacher-ui-scale)); border-radius: calc(18px * var(--teacher-ui-scale)); }
+  .classroom-mode-banner strong { font-size: clamp(calc(1.35rem * var(--teacher-display-scale)), 2vw, calc(2rem * var(--teacher-display-scale))); }
+  .classroom-mode-banner span { font-size: calc(.85rem * var(--teacher-display-scale)); }
+  .classroom-mode-banner button { width: calc(52px * var(--teacher-ui-scale)); height: calc(52px * var(--teacher-ui-scale)); min-height: calc(52px * var(--teacher-ui-scale)); border-radius: calc(14px * var(--teacher-ui-scale)); }
+  .classroom-floating-panel { right: max(calc(20px * var(--teacher-ui-scale)), env(safe-area-inset-right)); bottom: max(calc(78px * var(--teacher-ui-scale)), calc(env(safe-area-inset-bottom) + (70px * var(--teacher-ui-scale)))); width: min(calc(430px * var(--teacher-ui-scale)), calc(100vw - 28px)); padding: calc(14px * var(--teacher-ui-scale)); border-radius: calc(24px * var(--teacher-ui-scale)); transform: none; }
+  .classroom-floating-panel header { min-height: calc(48px * var(--teacher-ui-scale)); gap: calc(10px * var(--teacher-ui-scale)); }
+  .classroom-floating-panel header button,
+  .classroom-floating-panel > div button,
+  .classroom-floating-panel section button,
+  .classroom-floating-panel > button,
+  .classroom-timer-presets button,
+  .classroom-score-reset { min-height: calc(48px * var(--teacher-ui-scale)); padding: calc(7px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)); border-radius: calc(12px * var(--teacher-ui-scale)); font-size: calc(1rem * var(--teacher-display-scale)); }
+  .classroom-floating-panel header button { width: calc(48px * var(--teacher-ui-scale)); font-size: calc(1.6rem * var(--teacher-display-scale)); }
+  .classroom-timer-panel > output { font-size: clamp(calc(3rem * var(--teacher-display-scale)), 6vw, calc(5.5rem * var(--teacher-display-scale))); }
+  .classroom-timer-panel label input { width: calc(86px * var(--teacher-ui-scale)); min-height: calc(48px * var(--teacher-ui-scale)); font-size: calc(1.1rem * var(--teacher-display-scale)); }
+  .classroom-scoreboard { width: min(calc(560px * var(--teacher-ui-scale)), calc(100vw - 28px)); gap: calc(12px * var(--teacher-ui-scale)); }
+  .classroom-scoreboard section > strong { font-size: calc(1.25rem * var(--teacher-display-scale)); }
+  .classroom-scoreboard section output { font-size: clamp(calc(3.4rem * var(--teacher-display-scale)), 7vw, calc(6rem * var(--teacher-display-scale))); }
+  .classroom-tool-message { max-width: min(calc(620px * var(--teacher-ui-scale)), 90vw); padding: calc(12px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); font-size: calc(1rem * var(--teacher-display-scale)); }
+
+  /* Settings remains a modal but scales to classroom-reading proportions. */
+  .legacy-classroom-settings-trigger { right: calc(78px * var(--teacher-ui-scale)); bottom: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-bottom)); width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
+  .legacy-classroom-settings-trigger svg { width: calc(27px * var(--teacher-ui-scale)); height: calc(27px * var(--teacher-ui-scale)); }
+  .legacy-settings-backdrop { padding: calc(24px * var(--teacher-ui-scale)); }
+  .legacy-settings-dialog { width: min(calc(1040px * var(--teacher-ui-scale)), 88vw); min-height: min(calc(660px * var(--teacher-ui-scale)), 78vh); max-height: 94vh; padding: calc(84px * var(--teacher-ui-scale)) calc(30px * var(--teacher-ui-scale)) calc(30px * var(--teacher-ui-scale)); border-radius: calc(34px * var(--teacher-ui-scale)); }
+  .legacy-settings-tabs { top: calc(-5px * var(--teacher-ui-scale)); left: calc(30px * var(--teacher-ui-scale)); right: calc(94px * var(--teacher-ui-scale)); height: calc(82px * var(--teacher-ui-scale)); gap: calc(8px * var(--teacher-ui-scale)); }
+  .legacy-settings-tabs button { min-height: calc(62px * var(--teacher-ui-scale)); padding: calc(10px * var(--teacher-ui-scale)) calc(14px * var(--teacher-ui-scale)); gap: calc(9px * var(--teacher-ui-scale)); border-radius: calc(22px * var(--teacher-ui-scale)) calc(22px * var(--teacher-ui-scale)) calc(8px * var(--teacher-ui-scale)) calc(8px * var(--teacher-ui-scale)); font-size: calc(1.16rem * var(--teacher-display-scale)); }
+  .legacy-settings-tabs button.active { min-height: calc(72px * var(--teacher-ui-scale)); }
+  .legacy-settings-tabs svg { width: calc(23px * var(--teacher-ui-scale)); height: calc(23px * var(--teacher-ui-scale)); }
+  .legacy-settings-close { top: calc(13px * var(--teacher-ui-scale)); right: calc(18px * var(--teacher-ui-scale)); width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
+  .legacy-settings-close svg { width: calc(28px * var(--teacher-ui-scale)); height: calc(28px * var(--teacher-ui-scale)); }
+  .legacy-settings-content { min-height: min(calc(540px * var(--teacher-ui-scale)), 63vh); max-height: calc(94vh - (100px * var(--teacher-ui-scale))); padding: clamp(calc(25px * var(--teacher-ui-scale)), 3vw, calc(46px * var(--teacher-ui-scale))); border-radius: calc(22px * var(--teacher-ui-scale)); overflow-y: auto; }
+  .legacy-settings-panel { gap: calc(18px * var(--teacher-ui-scale)); }
+  .legacy-settings-panel > h2 { font-size: calc(1.35rem * var(--teacher-display-scale)); }
+  .legacy-settings-row { min-height: calc(105px * var(--teacher-ui-scale)); padding: calc(15px * var(--teacher-ui-scale)) calc(20px * var(--teacher-ui-scale)); grid-template-columns: minmax(calc(180px * var(--teacher-ui-scale)), .85fr) minmax(calc(340px * var(--teacher-ui-scale)), 1.4fr); gap: calc(26px * var(--teacher-ui-scale)); border-radius: calc(18px * var(--teacher-ui-scale)); }
+  .legacy-settings-row strong { font-size: calc(1.1rem * var(--teacher-display-scale)); }
+  .legacy-settings-row small { font-size: calc(.78rem * var(--teacher-display-scale)); }
+  .legacy-settings-slider input { min-width: calc(160px * var(--teacher-ui-scale)); height: calc(44px * var(--teacher-ui-scale)); }
+  .legacy-settings-slider input::-webkit-slider-runnable-track { height: calc(16px * var(--teacher-ui-scale)); }
+  .legacy-settings-slider input::-webkit-slider-thumb { width: calc(32px * var(--teacher-ui-scale)); height: calc(32px * var(--teacher-ui-scale)); margin-top: calc(-10px * var(--teacher-ui-scale)); }
+  .legacy-settings-slider output { width: calc(54px * var(--teacher-ui-scale)); font-size: calc(.95rem * var(--teacher-display-scale)); }
+  .legacy-settings-toggle { width: calc(104px * var(--teacher-ui-scale)); height: calc(46px * var(--teacher-ui-scale)); min-height: calc(46px * var(--teacher-ui-scale)); font-size: calc(.8rem * var(--teacher-display-scale)); }
+  .legacy-settings-toggle i { top: calc(5px * var(--teacher-ui-scale)); width: calc(29px * var(--teacher-ui-scale)); height: calc(29px * var(--teacher-ui-scale)); }
+  .teacher-settings-segmented button { min-height: calc(46px * var(--teacher-ui-scale)); padding: calc(8px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); font-size: calc(1rem * var(--teacher-display-scale)); }
+  .legacy-settings-note { font-size: calc(.78rem * var(--teacher-display-scale)); }
+  .legacy-settings-about { min-height: calc(430px * var(--teacher-ui-scale)); }
+  .legacy-settings-about h2 { font-size: calc(1.45rem * var(--teacher-display-scale)); }
+  .legacy-settings-about > strong { font-size: calc(1.8rem * var(--teacher-display-scale)); }
+  .legacy-settings-brand { min-width: calc(380px * var(--teacher-ui-scale)); padding: calc(22px * var(--teacher-ui-scale)) calc(32px * var(--teacher-ui-scale)); border-radius: calc(20px * var(--teacher-ui-scale)); }
+  .legacy-settings-brand b { font-size: calc(1.75rem * var(--teacher-display-scale)); }
+  .legacy-settings-brand span { font-size: calc(.9rem * var(--teacher-display-scale)); }
+
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-dialog { width: min(calc(920px * var(--teacher-ui-scale)), 90vw); min-height: min(calc(650px * var(--teacher-ui-scale)), 82vh); padding: calc(76px * var(--teacher-ui-scale)) calc(24px * var(--teacher-ui-scale)) calc(24px * var(--teacher-ui-scale)); border-radius: calc(18px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-tabs { top: calc(14px * var(--teacher-ui-scale)); left: calc(24px * var(--teacher-ui-scale)); right: calc(82px * var(--teacher-ui-scale)); height: calc(48px * var(--teacher-ui-scale)); gap: calc(7px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-tabs button { min-height: calc(46px * var(--teacher-ui-scale)); padding: calc(8px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)); border-radius: calc(11px * var(--teacher-ui-scale)); font-size: calc(.94rem * var(--teacher-display-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-tabs button.active { min-height: calc(46px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-close { top: calc(14px * var(--teacher-ui-scale)); right: calc(22px * var(--teacher-ui-scale)); width: calc(48px * var(--teacher-ui-scale)); height: calc(48px * var(--teacher-ui-scale)); min-height: calc(48px * var(--teacher-ui-scale)); border-radius: calc(12px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-content { min-height: min(calc(530px * var(--teacher-ui-scale)), 66vh); max-height: calc(94vh - (100px * var(--teacher-ui-scale))); padding: clamp(calc(18px * var(--teacher-ui-scale)), 2.4vw, calc(32px * var(--teacher-ui-scale))); border-radius: calc(14px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-panel { gap: calc(10px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-row { min-height: calc(82px * var(--teacher-ui-scale)); padding: calc(12px * var(--teacher-ui-scale)) calc(16px * var(--teacher-ui-scale)); border-radius: calc(12px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-slider input::-webkit-slider-runnable-track { height: calc(8px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-slider input::-webkit-slider-thumb { width: calc(24px * var(--teacher-ui-scale)); height: calc(24px * var(--teacher-ui-scale)); margin-top: calc(-8px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-toggle { width: calc(94px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-settings-segmented { padding: calc(3px * var(--teacher-ui-scale)); border-radius: calc(13px * var(--teacher-ui-scale)); }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-settings-segmented button { min-height: calc(44px * var(--teacher-ui-scale)); border-radius: calc(10px * var(--teacher-ui-scale)); }
+}
