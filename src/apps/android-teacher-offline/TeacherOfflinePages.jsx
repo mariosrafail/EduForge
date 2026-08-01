@@ -17,6 +17,7 @@ import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAss
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
+import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
@@ -72,6 +73,9 @@ export default function TeacherOfflinePages({
   onSelectUnit,
 }) {
   const pages = unit?.pages || [];
+  const settings = useTeacherOfflineSettings();
+  const showLeftNavigation = settings.content.showNavbarLeft || (!settings.content.showNavbarLeft && !settings.content.showNavbarRight);
+  const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
   const classroomSurfaceKey = page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -291,10 +295,10 @@ export default function TeacherOfflinePages({
     <section ref={viewerRef} className="teacher-offline-pages teacher-offline-pages-viewer">
       <header className="legacy-page-heading">
         <div aria-hidden="true" />
-        <div>
+        {showLeftNavigation ? <div data-navbar-side="left">
           <h2>Unit {unit.number}</h2>
           <strong>{unitNames[Number(unit.number)]}</strong>
-        </div>
+        </div> : <div data-navbar-side="left" data-navbar-hidden="true" />}
         <div className="legacy-page-window-controls">
           <button type="button" disabled aria-disabled="true" title="Minimize — not available in this prototype"><Minimize2 size={20} /></button>
           <button type="button" onClick={onBackToLibrary} title="Close book" aria-label="Close book">×</button>
@@ -376,11 +380,11 @@ export default function TeacherOfflinePages({
       </div>
 
       <nav className="legacy-page-navigation" aria-label="Page navigation">
-        <div>
+        {showRightNavigation ? <div data-navbar-side="right">
           <button type="button" className="legacy-page-round-button" onClick={onBackToLibrary} title="Library" aria-label="Library"><LegacyClassroomIcon name="home" /></button>
           <button type="button" className="legacy-page-round-button" onClick={() => onSelectPage("")} title="Unit overview" aria-label="Unit overview"><LegacyClassroomIcon name="back" /></button>
           <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
-        </div>
+        </div> : <div data-navbar-side="right" data-navbar-hidden="true" />}
         <span className="legacy-page-location">{page.title} · {page.label || `Page ${page.pageNumber}`}</span>
         <div>
           {actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}

@@ -70,6 +70,27 @@ try {
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
     assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
     assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
+    await page.getByRole("button", { name: "Open classroom settings" }).click();
+    const settingsLayout = await page.evaluate(() => {
+      const dialog = document.querySelector(".legacy-settings-dialog")?.getBoundingClientRect();
+      const close = document.querySelector(".legacy-settings-close")?.getBoundingClientRect();
+      const tabs = [...document.querySelectorAll(".legacy-settings-tabs button")].map((button) => button.getBoundingClientRect());
+      return {
+        dialogContained: Boolean(dialog && dialog.left >= -1 && dialog.right <= innerWidth + 1 && dialog.top >= -1 && dialog.bottom <= innerHeight + 1),
+        closeVisible: Boolean(close?.width && close?.height && close.right <= innerWidth + 1 && close.top >= -1),
+        tabCount: tabs.length,
+        minimumTabHeight: Math.min(...tabs.map((rect) => rect.height)),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    assert.equal(settingsLayout.dialogContained, true, `${target.name} settings dialog contained`);
+    assert.equal(settingsLayout.closeVisible, true, `${target.name} settings close visible`);
+    assert.equal(settingsLayout.tabCount, 4, `${target.name} settings tabs`);
+    assert.ok(settingsLayout.minimumTabHeight >= 43, `${target.name} settings tab touch targets`);
+    assert.ok(settingsLayout.overflow <= 1, `${target.name} settings overflow`);
+    await page.getByRole("tab", { name: "Graphics" }).click();
+    await page.locator('[data-settings-panel="graphics"]').waitFor();
+    await page.getByRole("button", { name: "Close settings" }).click();
     await page.getByRole("button", { name: "Open Students Book" }).click();
     await page.locator(".teacher-offline-book").waitFor();
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();

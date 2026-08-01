@@ -15,9 +15,10 @@ import {
   Type,
   Undo2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CLASSROOM_COLORS, CLASSROOM_STROKES, useClassroomTools } from "./ClassroomToolsContext.jsx";
+import { teacherMenuDelayMilliseconds, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -41,6 +42,9 @@ function ToolButton({ active = false, label, onClick, disabled = false, children
 }
 
 export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMagnify }) {
+  const settings = useTeacherOfflineSettings();
+  const [autoHidden, setAutoHidden] = useState(false);
+  const hideTimer = useRef(0);
   const {
     activeTool,
     setActiveTool,
@@ -64,6 +68,17 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
     setScores,
   } = useClassroomTools();
   const [manualMinutes, setManualMinutes] = useState(5);
+  const scheduleAutoHide = () => {
+    clearTimeout(hideTimer.current);
+    setAutoHidden(false);
+    if (settings.content.menuAutoHide) {
+      hideTimer.current = globalThis.setTimeout(() => setAutoHidden(true), teacherMenuDelayMilliseconds(settings.content.menuDelay));
+    }
+  };
+  useEffect(() => {
+    scheduleAutoHide();
+    return () => clearTimeout(hideTimer.current);
+  }, [settings.content.menuAutoHide, settings.content.menuDelay, surfaceKey]);
   const history = getHistory(surfaceKey);
   const selectTool = (tool) => {
     setActiveTool((current) => current === tool ? "pointer" : tool);
@@ -101,7 +116,16 @@ export default function ClassroomToolbar({ surfaceKey, viewControls = null, onMa
 
   return (
     <>
-      <div className="legacy-classroom-viewer-toolbar classroom-teaching-toolbar" role="toolbar" aria-label="Classroom teaching tools">
+      <div
+        className={`legacy-classroom-viewer-toolbar classroom-teaching-toolbar ${autoHidden ? "classroom-toolbar-auto-hidden" : ""}`.trim()}
+        role="toolbar"
+        aria-label="Classroom teaching tools"
+        data-menu-auto-hide={settings.content.menuAutoHide ? "on" : "off"}
+        data-menu-delay-ms={teacherMenuDelayMilliseconds(settings.content.menuDelay)}
+        onPointerDown={scheduleAutoHide}
+        onFocus={scheduleAutoHide}
+      >
+        {autoHidden && <button type="button" className="classroom-toolbar-reveal" data-sound="none" onClick={scheduleAutoHide}>Show classroom tools</button>}
         {viewControls}
         <div className="classroom-tool-primary">
           <ToolButton active={activeTool === "pen"} label="Pen tool" onClick={() => selectTool("pen")}><Pencil /></ToolButton>

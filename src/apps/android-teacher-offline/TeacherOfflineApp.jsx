@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
-import { Volume2, VolumeX } from "lucide-react";
+import { Settings, Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
 import { teacherContentPackProvider } from "./generatedPackProvider.js";
@@ -15,6 +15,8 @@ import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
 import { useTeacherViewportProfile } from "./viewportProfiles.js";
 import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
+import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
+import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -25,10 +27,21 @@ function libraryState() {
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
   const classroomSound = useLegacyClassroomSound();
+  const settings = useTeacherOfflineSettings();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
+  const settingsOpenRef = useRef(settingsOpen);
   navigationRef.current = navigation;
+  settingsOpenRef.current = settingsOpen;
+
+  useEffect(() => {
+    const previous = document.documentElement.style.fontSize;
+    document.documentElement.style.fontSize = `${16 * settings.graphics.interfaceScale / 100}px`;
+    return () => { document.documentElement.style.fontSize = previous; };
+  }, [settings.graphics.interfaceScale]);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +95,10 @@ export default function TeacherOfflineApp() {
     let backHandle;
     const register = async () => {
       backHandle = await App.addListener("backButton", async () => {
+        if (settingsOpenRef.current) {
+          setSettingsOpen(false);
+          return;
+        }
         if (document.fullscreenElement) {
           await document.exitFullscreen().catch(() => {});
           return;
@@ -156,9 +173,20 @@ export default function TeacherOfflineApp() {
   } else {
     content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
   }
+  const settingsAvailable = ["library", "book"].includes(navigation.view);
   return (
     <ClassroomToolsProvider>
-      {content}
+      <div
+        className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
+        style={{ "--teacher-colour-intensity": 0.7 + settings.graphics.colourIntensity * 0.003 }}
+      >
+        {content}
+      </div>
+      {settingsAvailable && (
+        <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
+          <Settings />
+        </button>
+      )}
       <button
         type="button"
         className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
@@ -169,6 +197,7 @@ export default function TeacherOfflineApp() {
       >
         {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
       </button>
+      <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
       {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
     </ClassroomToolsProvider>
   );

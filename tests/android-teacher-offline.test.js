@@ -28,6 +28,10 @@ import {
   buildStudentsBookOverviewEntries,
   studentsBookOverviewLayout,
 } from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
+import {
+  sanitizeTeacherOfflineSettings,
+  teacherMenuDelayMilliseconds,
+} from "../src/apps/android-teacher-offline/teacherOfflineSettings.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -90,6 +94,26 @@ test("Students Book overview groups every real Unit 1 and Unit 2 page exactly on
     () => buildStudentsBookOverviewEntries({ ...unit1, pages: unit1.pages.slice(1) }),
     /Invalid Unit 1 overview layout/,
   );
+});
+
+test("teacher settings are bounded, category-specific, and map menu delay to 1-10 seconds", () => {
+  const settings = sanitizeTeacherOfflineSettings({
+    audio: { buttonEnabled: false, buttonVolume: 140, navigationVolume: -8, toolbarVolume: 61 },
+    content: { showNavbarLeft: false, showNavbarRight: false, menuAutoHide: true, menuDelay: 75 },
+    graphics: { interfaceScale: 150, colourIntensity: 5, effectsEnabled: false },
+  });
+  assert.deepEqual(settings.audio, {
+    buttonEnabled: false,
+    buttonVolume: 100,
+    navigationEnabled: true,
+    navigationVolume: 0,
+    toolbarEnabled: true,
+    toolbarVolume: 61,
+  });
+  assert.deepEqual(settings.content, { showNavbarLeft: false, showNavbarRight: false, menuAutoHide: true, menuDelay: 75 });
+  assert.deepEqual(settings.graphics, { interfaceScale: 110, colourIntensity: 40, effectsEnabled: false });
+  assert.equal(teacherMenuDelayMilliseconds(0), 1000);
+  assert.equal(teacherMenuDelayMilliseconds(100), 10000);
 });
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {

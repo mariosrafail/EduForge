@@ -104,7 +104,7 @@ async function assertLegacyLauncher(page, label) {
       books: document.querySelectorAll(".legacy-home-book-button").length,
       lockedBooks: document.querySelectorAll(".legacy-home-book-button .legacy-home-lock").length,
       toolbar: visible(".legacy-home-classroom-toolbar"),
-      settings: visible(".legacy-home-settings"),
+      settings: visible(".legacy-classroom-settings-trigger"),
     };
   });
   assert.deepEqual(metrics, {
@@ -173,6 +173,22 @@ try {
     await assertScreen(page, "home-launcher-1920x1080");
     await assertLegacyLauncher(page, "home-launcher-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/home-launcher-1920x1080.png` });
+    await page.getByRole("button", { name: "Open classroom settings" }).click();
+    const settingsDialog = page.getByRole("dialog", { name: "Classroom settings" });
+    await settingsDialog.waitFor();
+    assert.equal(await settingsDialog.getByRole("tab").count(), 4, "Settings tab count");
+    await assertScreen(page, "settings-audio-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/settings-audio-1920x1080.png` });
+    await settingsDialog.getByRole("tab", { name: "Content" }).click();
+    await settingsDialog.locator('[data-settings-panel="content"]').waitFor();
+    await page.screenshot({ path: `${artifactRoot}/settings-content-1920x1080.png` });
+    await settingsDialog.getByRole("tab", { name: "Graphics" }).click();
+    await settingsDialog.locator('[data-settings-panel="graphics"]').waitFor();
+    await page.screenshot({ path: `${artifactRoot}/settings-graphics-1920x1080.png` });
+    await settingsDialog.getByRole("tab", { name: "About" }).click();
+    await settingsDialog.getByText("Version 0.1.0", { exact: true }).waitFor();
+    await page.screenshot({ path: `${artifactRoot}/settings-about-1920x1080.png` });
+    await settingsDialog.getByRole("button", { name: "Close settings" }).click();
     const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
     await soundToggle.click();
     await page.reload({ waitUntil: "networkidle" });
@@ -236,6 +252,10 @@ try {
     await assertScreen(page, "home-launcher-800x360");
     await assertLegacyLauncher(page, "home-launcher-800x360");
     await page.screenshot({ path: `${artifactRoot}/home-launcher-800x360.png` });
+    await page.getByRole("button", { name: "Open classroom settings" }).click();
+    await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
+    await page.screenshot({ path: `${artifactRoot}/settings-audio-800x360.png` });
+    await page.getByRole("button", { name: "Close settings" }).click();
     await openBook(page);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-800x360");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-800x360.png` });
@@ -253,6 +273,10 @@ try {
     await assertScreen(page, "home-launcher-3840x2160");
     await assertLegacyLauncher(page, "home-launcher-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/home-launcher-3840x2160.png` });
+    await page.getByRole("button", { name: "Open classroom settings" }).click();
+    await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
+    await page.screenshot({ path: `${artifactRoot}/settings-audio-3840x2160.png` });
+    await page.getByRole("button", { name: "Close settings" }).click();
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-3840x2160");
@@ -267,7 +291,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 21, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 27, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

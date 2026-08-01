@@ -7,7 +7,6 @@ import {
   MonitorPlay,
   Pencil,
   RotateCcw,
-  Settings,
   Timer,
   Trophy,
   Type,
@@ -116,9 +115,6 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
         ))}
       </nav>
 
-      <button type="button" className="legacy-home-settings" disabled aria-label="Settings — Locked">
-        <Settings size={25} /><span>Locked</span>
-      </button>
     </main>
   );
 }
