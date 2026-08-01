@@ -172,7 +172,7 @@ const scenario = String.raw`
     const unit = index % 2 + 1;
     await click("Unit " + unit);
     if (!document.querySelector(".teacher-offline-pages")) await click("Book pages");
-    const pages = [...document.querySelectorAll(".teacher-offline-pages aside button")];
+    const pages = [...document.querySelectorAll(".teacher-unit-page-card")];
     const started = performance.now();
     pages[index % pages.length].click();
     await waitFor(() => {
@@ -254,11 +254,11 @@ const viewportScenario = String.raw`
   }
   button("Unit 2")?.click();
   await waitFor(
-    () => [...document.querySelectorAll(".teacher-offline-pages aside button")]
+    () => [...document.querySelectorAll(".teacher-unit-page-card")]
       .some((candidate) => candidate.textContent.includes("pg 20-21")),
     "Unit 2 pages",
   );
-  const targetPage = [...document.querySelectorAll(".teacher-offline-pages aside button")]
+  const targetPage = [...document.querySelectorAll(".teacher-unit-page-card")]
     .find((candidate) => candidate.textContent.includes("pg 20-21"));
   targetPage?.click();
   await waitFor(() => document.querySelector(".teacher-offline-page-image img")?.naturalWidth > 0, "hotspot page");

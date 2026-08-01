@@ -1,6 +1,6 @@
 import {
   ArrowLeftRight,
-  List,
+  Grid2X2,
   Maximize2,
   MonitorPlay,
   Move,
@@ -17,6 +17,7 @@ import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAss
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
 const maximumZoom = 4;
+const unitNames = { 1: "Lights, Camera, Action!", 2: "Journeys of Discovery" };
 
 function enabledActivities(page) {
   return (page?.activities || []).filter((activity) => activity.availability === "enabled");
@@ -56,6 +57,41 @@ function initialFit(profile) {
   return profile === TEACHER_VIEWPORT_PROFILES.COMPACT ? "fit-width" : "fit-page";
 }
 
+function TeacherOfflineUnitOverview({ unit, pages, onSelectPage }) {
+  return (
+    <section className="teacher-offline-unit-overview" aria-label={`${unit.title} page overview`}>
+      <header>
+        <div>
+          <span>Ultimate English B2 · Students Book</span>
+          <h2>Unit {unit.number}</h2>
+          <strong>{unitNames[Number(unit.number)]}</strong>
+        </div>
+        <p>Select a section to open the printed page and its classroom activities.</p>
+      </header>
+      <div className="teacher-unit-overview-grid">
+        {pages.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            className="teacher-unit-page-card"
+            onClick={() => onSelectPage(candidate.id)}
+            aria-label={`Open ${candidate.title}, ${candidate.label || `page ${candidate.pageNumber}`}`}
+          >
+            <span className="teacher-unit-page-thumb">
+              <img src={candidate.images?.[0]} alt="" loading="eager" decoding="async" draggable="false" />
+              <b>{candidate.label || `Page ${candidate.pageNumber}`}</b>
+            </span>
+            <span className="teacher-unit-page-copy">
+              <strong>{candidate.title}</strong>
+              <small>{candidate.activities?.filter((activity) => activity.availability === "enabled").length || 0} activities</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function TeacherOfflinePages({
   unit,
   selectedPageId,
@@ -65,8 +101,8 @@ export default function TeacherOfflinePages({
   viewportProfile,
 }) {
   const pages = unit?.pages || [];
-  const selectedIndex = Math.max(0, pages.findIndex((page) => page.id === selectedPageId));
-  const page = pages[selectedIndex] || null;
+  const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
+  const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
   const stageRef = useRef(null);
   const pointerState = useRef(new Map());
   const gestureState = useRef(null);
@@ -78,7 +114,6 @@ export default function TeacherOfflinePages({
   const [fitMode, setFitMode] = useState(() => initialFit(viewportProfile));
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [pageListOpen, setPageListOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
@@ -86,9 +121,7 @@ export default function TeacherOfflinePages({
     setNaturalSize({ width: 0, height: 0 });
     setZoom(1);
     setPan({ x: 0, y: 0 });
-    setPageListOpen(false);
     setActionsOpen(false);
-    if (page && page.id !== selectedPageId) onSelectPage(page.id, { replace: true });
   }, [page?.id, selectedPageId]);
 
   useEffect(() => {
@@ -244,45 +277,24 @@ export default function TeacherOfflinePages({
     changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
   };
 
-  if (!page) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
+  if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
+  if (!page) return <TeacherOfflineUnitOverview unit={unit} pages={pages} onSelectPage={onSelectPage} />;
 
   return (
     <section className="teacher-offline-pages">
-      <aside className={pageListOpen ? "open" : ""} aria-label={`${unit.title} pages`}>
-        <div className="teacher-offline-page-list-heading">
-          <strong>{unit.title} pages</strong>
-          <button type="button" onClick={() => setPageListOpen(false)} aria-label="Close page list">{"\u00d7"}</button>
-        </div>
-        <div>
-          {pages.map((candidate) => (
-            <button
-              key={candidate.id}
-              type="button"
-              className={candidate.id === page.id ? "selected" : ""}
-              onClick={() => {
-                onSelectPage(candidate.id);
-                setPageListOpen(false);
-              }}
-            >
-              {candidate.label || `Page ${candidate.pageNumber}`}
-            </button>
-          ))}
-        </div>
-      </aside>
-
       <div className="teacher-offline-page-reader">
         <header>
           <div className="teacher-page-toolbar-group">
-            <button type="button" className="teacher-page-list-trigger" aria-expanded={pageListOpen} onClick={() => setPageListOpen((open) => !open)} title="Choose page">
-              <List size={20} /><span>Pages</span>
+            <button type="button" className="teacher-unit-overview-trigger" onClick={() => onSelectPage("")} title="Unit overview">
+              <Grid2X2 size={20} /><span>Unit overview</span>
             </button>
             <button type="button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page">
               <LegacyClassroomIcon name="previous" /><span className="teacher-responsive-label">Previous</span>
             </button>
           </div>
           <div className="teacher-offline-page-title">
-            <span>{page.title}</span>
-            <strong>{page.label || `Page ${page.pageNumber}`}</strong>
+            <span>Unit {unit.number} · {unitNames[Number(unit.number)]}</span>
+            <strong>{page.title} · {page.label || `Page ${page.pageNumber}`}</strong>
           </div>
           <div className="teacher-page-fit-controls" aria-label="Page fit and zoom controls">
             <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page">

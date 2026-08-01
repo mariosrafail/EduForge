@@ -151,7 +151,10 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(presentation, /TEACHER_PRESENTATION_OFFLINE/);
   assert.match(presentation, /NormalizedStudentsBookActivity/);
   assert.match(pages, /<img[\s\S]*key=\{page\.id\}/);
-  assert.equal((pages.match(/<img\b/g) || []).length, 1);
+  assert.match(pages, /teacher-unit-page-card/);
+  assert.match(pages, /onSelectPage\(""\)/);
+  assert.equal((pages.match(/<img\b/g) || []).length, 2);
+  assert.doesNotMatch(pages, /<aside/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);

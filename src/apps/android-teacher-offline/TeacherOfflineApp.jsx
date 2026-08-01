@@ -62,8 +62,12 @@ export default function TeacherOfflineApp() {
     const method = replace ? "replaceState" : "pushState";
     window.history[method](next, "", `#${next.view}`);
   };
-  const openBook = () => {
-    const location = readTeacherOfflineLocation() || defaultLocation;
+  const openBook = (unitNumber = null) => {
+    const storedLocation = readTeacherOfflineLocation() || defaultLocation;
+    const location = unitNumber
+      ? { ...storedLocation, unitNumber, tab: "pages", pageId: "" }
+      : storedLocation;
+    writeTeacherOfflineLocation(location);
     navigate({ view: "book", location });
   };
   const updateBookLocation = (location, options) => {

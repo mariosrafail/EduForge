@@ -2,7 +2,9 @@ import { BookOpen, ListChecks } from "lucide-react";
 
 import TeacherOfflineActivityList from "./TeacherOfflineActivityList.jsx";
 import TeacherOfflinePages from "./TeacherOfflinePages.jsx";
-import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
+import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
+
+const unitNames = { 1: "Lights, Camera, Action!", 2: "Journeys of Discovery" };
 
 export default function TeacherOfflineBook({
   pack,
@@ -19,14 +21,14 @@ export default function TeacherOfflineBook({
   const update = (patch, options) => onLocationChange({ ...location, ...patch }, options);
 
   return (
-    <main className="teacher-offline-book">
+    <main className="teacher-offline-book" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
       <header className="teacher-offline-book-header">
         <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
           <LegacyClassroomIcon name="home" /><span>Library</span>
         </button>
         <div className="teacher-offline-book-title">
-          <span className="teacher-offline-eyebrow">Teacher presentation · Offline</span>
-          <h1>Ultimate B2 Students Book</h1>
+          <span className="teacher-offline-eyebrow">Ultimate English B2 · Students Book</span>
+          <h1>Unit {unitNumber} · {unitNames[unitNumber]}</h1>
         </div>
         <div className="teacher-offline-book-controls">
           <nav className="teacher-offline-unit-tabs" aria-label="Book unit">
@@ -35,7 +37,7 @@ export default function TeacherOfflineBook({
                 key={number}
                 type="button"
                 className={unitNumber === number ? "selected" : ""}
-                onClick={() => update({ unitNumber: number, pageId: "" })}
+                onClick={() => update({ unitNumber: number, tab: "pages", pageId: "" })}
               >
                 Unit {number}
               </button>

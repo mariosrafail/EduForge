@@ -35,12 +35,14 @@ function exerciseRow(page, title) {
 
 async function openExercises(page, unitNumber) {
   await page.getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
+  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
+    .every((image) => image.complete && image.naturalWidth > 0));
   await page.getByRole("tab", { name: "Contents / Exercises" }).click();
 }
 
 async function backToBook(page) {
   await page.getByRole("button", { name: "Back to book" }).click();
-  await page.getByRole("heading", { name: "Ultimate B2 Students Book" }).waitFor();
+  await page.locator(".teacher-offline-book").waitFor();
 }
 
 let browser;
@@ -58,11 +60,11 @@ try {
 
   const startupStartedAt = performance.now();
   await page.goto(baseURL, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Hamilton House Interactive Classroom" }).waitFor();
+  await page.locator(".legacy-home-launcher").waitFor();
   const coldStartupMs = Math.round(performance.now() - startupStartedAt);
   const bookOpenStartedAt = performance.now();
   await page.getByRole("button", { name: "Open Students Book" }).click();
-  await page.getByRole("heading", { name: "Ultimate B2 Students Book" }).waitFor();
+  await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
 
   await openExercises(page, 1);
@@ -116,13 +118,16 @@ try {
   await backToBook(page);
 
   await page.getByRole("tab", { name: "Book pages" }).click();
-  await page.getByRole("button", { name: "pg 6-7" }).click();
+  if (!await page.locator(".teacher-offline-unit-overview").count()) {
+    await page.getByRole("button", { name: "Unit overview" }).click();
+  }
+  await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
   await page.getByRole("button", { name: "Reading · Exercise 1", exact: true }).last().click();
   const video = page.locator("video").first();
   await video.waitFor();
   assert.match(await video.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);
   await page.goBack();
-  await page.getByRole("heading", { name: "Ultimate B2 Students Book" }).waitFor();
+  await page.locator(".teacher-offline-book").waitFor();
 
   const forbiddenRequests = requests.filter(({ url, type }) => (
     !url.startsWith(baseURL)

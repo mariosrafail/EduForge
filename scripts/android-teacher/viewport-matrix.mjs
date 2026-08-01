@@ -68,11 +68,13 @@ try {
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
-    assert.equal(await page.locator(".teacher-offline-book-card").count(), 1, `${target.name} book card`);
+    assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
+    assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
     await page.getByRole("button", { name: "Open Students Book" }).click();
     await page.locator(".teacher-offline-book").waitFor();
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
-    await page.locator(".teacher-offline-pages aside button").filter({ hasText: "pg 20-21" }).evaluate((button) => button.click());
+    await page.locator(".teacher-offline-unit-overview").waitFor();
+    await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
     await page.waitForFunction(() => {
       const image = document.querySelector(".teacher-offline-page-image img");
       return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;
@@ -199,6 +201,7 @@ try {
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
       await page.getByRole("button", { name: "Back to book" }).click();
       await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+      await page.locator('[title="Contents and exercises"]').click();
       const matchingActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 1/ }).first();
       await matchingActivity.getByRole("button", { name: "Present" }).click();
       assert.ok(await page.locator(".teacher-offline-presentation select").count() > 0, "Normalized matching activity must render choices");
@@ -224,7 +227,10 @@ try {
 
     await page.locator('[title="Book pages"]').click();
     if (target.screenshot) {
-      await page.locator(".teacher-offline-pages aside button").filter({ hasText: "pg 20-21" }).evaluate((button) => button.click());
+      if (!await page.locator(".teacher-offline-unit-overview").count()) {
+        await page.getByRole("button", { name: "Unit overview" }).click();
+      }
+      await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
       await page.waitForFunction(() => {
         const image = document.querySelector(".teacher-offline-page-image img");
         return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;

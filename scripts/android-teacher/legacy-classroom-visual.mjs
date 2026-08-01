@@ -37,6 +37,18 @@ async function waitForPageImage(page) {
   });
 }
 
+async function waitForUnitOverview(page) {
+  await page.locator(".teacher-offline-unit-overview").waitFor();
+  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
+    .every((image) => image.complete && image.naturalWidth > 0));
+  await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
+}
+
+async function openPage(page, label) {
+  await page.locator(".teacher-unit-page-card").filter({ hasText: label }).first().click();
+  await waitForPageImage(page);
+}
+
 async function openActivity(page, unit, title) {
   if (await page.locator(".teacher-offline-presentation").count()) await page.getByRole("button", { name: "Back to book" }).click();
   await page.getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
@@ -47,6 +59,8 @@ async function openActivity(page, unit, title) {
 }
 
 async function assertScreen(page, label) {
+  await page.waitForFunction(() => [...document.images]
+    .every((image) => image.complete && image.naturalWidth > 0));
   const metrics = await page.evaluate(() => ({
     overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
     missingImages: [...document.images].filter((image) => !image.complete || !image.naturalWidth).map((image) => image.src),
@@ -85,8 +99,10 @@ try {
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
-    await page.locator(".teacher-offline-pages aside button").filter({ hasText: "pg 20-21" }).evaluate((button) => button.click());
-    await waitForPageImage(page);
+    await waitForUnitOverview(page);
+    await assertScreen(page, "unit-overview-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/unit-overview-1920x1080.png` });
+    await openPage(page, "pg 20-21");
     await assertScreen(page, "page-viewer-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-1920x1080.png` });
     await openActivity(page, 1, "Reading · Exercise 3");
@@ -107,27 +123,27 @@ try {
   await capture({ width: 1280, height: 720 }, async (page) => {
     await openBook(page);
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
-    await page.locator(".teacher-offline-pages aside button").filter({ hasText: "pg 20-21" }).evaluate((button) => button.click());
-    await waitForPageImage(page);
-    await assertScreen(page, "page-viewer-1280x720");
-    await page.screenshot({ path: `${artifactRoot}/page-viewer-1280x720.png` });
+    await waitForUnitOverview(page);
+    await assertScreen(page, "unit-overview-1280x720");
+    await page.screenshot({ path: `${artifactRoot}/unit-overview-1280x720.png` });
   });
 
   await capture({ width: 800, height: 360 }, async (page) => {
+    await assertScreen(page, "home-800x360");
+    await page.screenshot({ path: `${artifactRoot}/home-800x360.png` });
     await openBook(page);
-    await openActivity(page, 1, "Reading · Exercise 3");
-    await assertScreen(page, "activity-800x360");
-    await page.screenshot({ path: `${artifactRoot}/activity-800x360.png` });
+    await waitForUnitOverview(page);
   });
 
   await capture({ width: 3840, height: 2160 }, async (page) => {
     await openBook(page);
-    await openActivity(page, 2, "Vocabulary in Use · Exercise 4");
-    await assertScreen(page, "activity-3840x2160");
-    await page.screenshot({ path: `${artifactRoot}/activity-3840x2160.png` });
+    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await waitForUnitOverview(page);
+    await assertScreen(page, "unit-overview-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/unit-overview-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 9, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 10, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

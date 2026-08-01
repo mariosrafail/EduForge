@@ -1,36 +1,72 @@
-import { BookOpen, MonitorPlay } from "lucide-react";
+import { BookOpen, Minus, MonitorPlay, X } from "lucide-react";
 import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
   const manifest = pack.manifest;
+  const units = [
+    { number: 1, title: "Lights, Camera, Action!", available: true },
+    { number: 2, title: "Journeys of Discovery", available: true },
+    { number: 3, title: "Respect Our Planet" },
+    { number: 4, title: "Fit for Life" },
+    { number: 5, title: "Law and Order" },
+    { number: 6, title: "You're Hired!" },
+    { number: 7, title: "Add to Cart" },
+    { number: 8, title: "Making the Grade" },
+    { number: 9, title: "Better Together" },
+    { number: 10, title: "It's Just Science!" },
+  ];
   return (
     <main className="teacher-offline-library" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
-      <header>
-        <div>
-          <span className="teacher-offline-eyebrow"><MonitorPlay size={18} /> Teacher presentation · Offline</span>
-          <h1>Hamilton House Interactive Classroom</h1>
+      <header className="legacy-home-topbar">
+        <div className="legacy-home-publisher">
+          <strong>HAMILTON HOUSE</strong>
+          <span>Interactive classroom</span>
         </div>
-        <strong>No internet required</strong>
+        <span className="teacher-offline-eyebrow"><MonitorPlay size={18} /> Teacher presentation · Offline</span>
+        <div className="legacy-home-window-controls" aria-label="Android fullscreen window controls">
+          <span aria-hidden="true"><Minus size={20} /></span>
+          <span aria-hidden="true"><X size={20} /></span>
+        </div>
       </header>
-      <section className="teacher-offline-library-grid" aria-label="Installed classroom books">
-        <article className="teacher-offline-book-card">
-          <img src={studentsBookCover} alt="Ultimate B2 Students Book cover" decoding="async" />
-          <div>
-            <div className="legacy-classroom-title-badge" aria-label="Ultimate English B2">ULTIMATE <b>B2</b></div>
-            <span className="teacher-offline-eyebrow">Installed classroom content</span>
-            <h2>{manifest.bookTitle}</h2>
-            <p>Units 1 and 2 · pages, media, interactive activities, and verified teacher solutions.</p>
-            <ul>
-              <li>{manifest.enabledActivityCount} enabled activities</li>
-              <li>{manifest.pageCount} page spreads</li>
-              <li>Pack {manifest.contentVersion}</li>
-            </ul>
-            <button type="button" className="teacher-primary-button" onClick={onOpenBook}>
-              <BookOpen size={24} /> Open Students Book
+      <section className="legacy-home-launcher" aria-label="Ultimate B2 classroom launcher">
+        <div className="legacy-home-unit-grid" aria-label="Book units">
+          {units.map((unit) => (
+            <button
+              key={unit.number}
+              type="button"
+              className={`legacy-home-unit ${unit.available ? "available" : "unavailable"}`}
+              disabled={!unit.available}
+              aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title}, unavailable`}
+              onClick={() => onOpenBook(unit.number)}
+            >
+              <b>{unit.number}</b>
+              <span>{unit.title}</span>
+              {!unit.available && <small>Unavailable</small>}
             </button>
+          ))}
+        </div>
+
+        <div className="legacy-home-identity">
+          <img src={studentsBookCover} alt="Ultimate B2 Students Book cover" decoding="async" />
+          <div className="legacy-home-title" aria-label="Ultimate English B2">
+            <span>ULTIMATE ENGLISH</span>
+            <strong>B2</strong>
           </div>
-        </article>
+          <p>Students Book · Units 1–2 installed</p>
+          <button type="button" className="teacher-primary-button legacy-home-open-book" onClick={() => onOpenBook()}>
+            <BookOpen size={24} /> Open Students Book
+          </button>
+          <small>{manifest.enabledActivityCount} activities · {manifest.pageCount} page spreads · offline</small>
+        </div>
+
+        <div className="legacy-home-feature-row" aria-label="Unavailable book sections">
+          {["Workbook", "Grammar Book", "Extras"].map((label) => (
+            <button key={label} type="button" disabled aria-label={`${label}, unavailable`}>
+              <span>{label}</span><small>Unavailable</small>
+            </button>
+          ))}
+        </div>
       </section>
     </main>
   );
