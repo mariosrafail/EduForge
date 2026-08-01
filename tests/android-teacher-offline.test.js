@@ -138,10 +138,15 @@ test("previous and next traverse exactly the 77 enabled activities", () => {
 });
 
 test("teacher app uses bounded page/media state and no student persistence path", async () => {
-  const [app, pages, presentation, renderer, provider, storage, entry, networkGuard] = await Promise.all([
+  const [app, pages, presentation, media, library, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePresentation.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineMedia.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/ClassroomToolbar.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/ClassroomToolOverlay.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/ClassroomToolsContext.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/generatedPackProvider.js", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineStorage.js", "utf8"),
@@ -155,11 +160,23 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(pages, /onSelectPage\(""\)/);
   assert.match(pages, /legacy-page-heading/);
   assert.match(pages, /legacy-page-navigation/);
-  assert.match(pages, /legacy-classroom-viewer-toolbar/);
+  assert.match(pages, /ClassroomToolOverlay/);
+  assert.match(pages, /ClassroomToolbar/);
   assert.match(pages, /requestFullscreen/);
-  assert.match(pages, /\["GB", "WB", "A-Z"\]/);
   assert.equal((pages.match(/<img\b/g) || []).length, 2);
   assert.doesNotMatch(pages, /<aside/);
+  assert.match(presentation, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
+  assert.match(media, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
+  assert.match(app, /ClassroomToolsProvider/);
+  for (const label of ["Pen tool", "Eraser tool", "Text tool", "Undo annotation", "Redo annotation", "Spotlight reveal tool", "Cover area tool", "Open timer", "Open scoreboard", "Print current view", "Show on-screen keyboard"]) {
+    assert.match(toolbar, new RegExp(label));
+  }
+  assert.match(overlay, /setPointerCapture[\s\S]*type: "stroke"/);
+  assert.match(overlay, /type === "spotlight"[\s\S]*type === "cover"/);
+  assert.match(toolsContext, /interactive-classroom:annotations:v1/);
+  assert.match(toolsContext, /past:[\s\S]*present:[\s\S]*future:/);
+  assert.match(library, /Workbook, content not installed/);
+  assert.doesNotMatch(library, /Grammar Book|Extras|number: 3/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);

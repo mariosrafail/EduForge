@@ -136,6 +136,16 @@ try {
     await assertScreen(page, "page-viewer-unit1-page5-1920x1080");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
+    await page.getByRole("button", { name: "Pen tool" }).click();
+    const overlayBox = await page.locator(".classroom-tools-overlay").boundingBox();
+    await page.mouse.move(overlayBox.x + 260, overlayBox.y + 210);
+    await page.mouse.down();
+    await page.mouse.move(overlayBox.x + 470, overlayBox.y + 300, { steps: 10 });
+    await page.mouse.up();
+    await page.locator(".classroom-tools-overlay path[data-annotation-id]").waitFor();
+    await page.screenshot({ path: `${artifactRoot}/classroom-tools-pen-1920x1080.png` });
+    await page.getByRole("button", { name: "Undo annotation" }).click();
+    await page.getByRole("button", { name: "Pen tool" }).click();
     await openActivity(page, 1, "Reading · Exercise 3");
     await assertScreen(page, "multiple-choice-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/multiple-choice-1920x1080.png` });
@@ -182,7 +192,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 11, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 12, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

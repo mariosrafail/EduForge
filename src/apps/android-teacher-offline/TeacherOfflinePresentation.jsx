@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
 import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
+import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
+import ClassroomToolbar from "./ClassroomToolbar.jsx";
 
 export default function TeacherOfflinePresentation({
   activityId,
@@ -13,6 +15,7 @@ export default function TeacherOfflinePresentation({
 }) {
   const stageRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMagnified, setIsMagnified] = useState(false);
   const index = activities.findIndex((activity) => activity.stableActivityId === activityId);
   const activity = activities[index] || null;
   const previous = index > 0 ? activities[index - 1] : null;
@@ -44,7 +47,7 @@ export default function TeacherOfflinePresentation({
   }
 
   return (
-    <main ref={stageRef} className="teacher-offline-presentation">
+    <main ref={stageRef} className="teacher-offline-presentation has-classroom-tools">
       <header>
         <button type="button" onClick={onBack}><LegacyClassroomIcon name="back" /> Back to book</button>
         <div>
@@ -57,13 +60,15 @@ export default function TeacherOfflinePresentation({
           {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         </button>
       </header>
-      <section className="teacher-offline-presentation-stage">
+      <section className={`teacher-offline-presentation-stage ${isMagnified ? "classroom-magnified" : ""}`} data-classroom-surface-id={`students-book:activity:${activityId}`}>
         <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           mode={ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE}
         />
+        <ClassroomToolOverlay surfaceKey={`students-book:activity:${activityId}`} />
       </section>
+      <ClassroomToolbar surfaceKey={`students-book:activity:${activityId}`} onMagnify={() => setIsMagnified((value) => !value)} />
       <nav aria-label="Enabled Students Book activities">
         <button type="button" disabled={!previous} onClick={() => onNavigate(previous.stableActivityId)}>
           <LegacyClassroomIcon name="previous" /> Previous

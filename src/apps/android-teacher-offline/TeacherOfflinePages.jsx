@@ -15,6 +15,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
+import ClassroomToolbar from "./ClassroomToolbar.jsx";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
@@ -106,6 +108,7 @@ export default function TeacherOfflinePages({
   const pages = unit?.pages || [];
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
+  const classroomSurfaceKey = page ? `students-book:page:${page.id}` : "students-book:overview";
   const stageRef = useRef(null);
   const viewerRef = useRef(null);
   const pointerState = useRef(new Map());
@@ -328,6 +331,7 @@ export default function TeacherOfflinePages({
         <div
           ref={stageRef}
           className={`teacher-offline-page-stage ${canPan ? "can-pan" : ""}`}
+          data-classroom-surface-id={classroomSurfaceKey}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerEnd}
@@ -382,6 +386,7 @@ export default function TeacherOfflinePages({
           ) : (
             <div className="teacher-offline-asset-error" role="alert">{assetError || "This required page asset is unavailable."}</div>
           )}
+          <ClassroomToolOverlay surfaceKey={classroomSurfaceKey} />
         </div>
 
         {actions.length > 0 && (
@@ -410,20 +415,20 @@ export default function TeacherOfflinePages({
         </div>
       </nav>
 
-      <nav className="legacy-classroom-viewer-toolbar" aria-label="Classroom viewer tools">
-        <div className="legacy-viewer-tools" aria-label="Page fit and zoom controls">
-          <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page" aria-label="Fit page"><Maximize2 /></button>
-          <button type="button" className={fitMode === "fit-width" ? "selected" : ""} aria-pressed={fitMode === "fit-width"} onClick={() => selectFitMode("fit-width")} title="Fit width" aria-label="Fit width"><ArrowLeftRight /></button>
-          <button type="button" disabled={zoom <= minimumZoom} onClick={() => changeZoom(zoom - 0.25)} title="Zoom out" aria-label="Zoom out"><ZoomOut /></button>
-          <button type="button" disabled={zoom >= maximumZoom} onClick={() => changeZoom(zoom + 0.25)} title="Zoom in" aria-label="Zoom in"><ZoomIn /></button>
-          <button type="button" disabled={zoom === 1 && !pan.x && !pan.y} onClick={resetView} title="Reset view" aria-label="Reset zoom"><RotateCcw /></button>
-          <button type="button" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>{isFullscreen ? <Minimize2 /> : <Expand />}</button>
-        </div>
-        <div className="legacy-disabled-book-tools" aria-label="Unavailable legacy book tools">
-          {["GB", "WB", "A-Z"].map((label) => <button key={label} type="button" disabled aria-disabled="true" title={`${label} — not available in this prototype`}>{label}</button>)}
-          <button type="button" disabled aria-disabled="true" title="Annotation tool — not available in this prototype">✎</button>
-        </div>
-      </nav>
+      <ClassroomToolbar
+        surfaceKey={classroomSurfaceKey}
+        onMagnify={() => changeZoom(Math.min(maximumZoom, zoom + 0.25))}
+        viewControls={(
+          <div className="legacy-viewer-tools" aria-label="Page fit and zoom controls">
+            <button type="button" className={fitMode === "fit-page" ? "selected" : ""} aria-pressed={fitMode === "fit-page"} onClick={() => selectFitMode("fit-page")} title="Fit page" aria-label="Fit page"><Maximize2 /></button>
+            <button type="button" className={fitMode === "fit-width" ? "selected" : ""} aria-pressed={fitMode === "fit-width"} onClick={() => selectFitMode("fit-width")} title="Fit width" aria-label="Fit width"><ArrowLeftRight /></button>
+            <button type="button" disabled={zoom <= minimumZoom} onClick={() => changeZoom(zoom - 0.25)} title="Zoom out" aria-label="Zoom out"><ZoomOut /></button>
+            <button type="button" disabled={zoom >= maximumZoom} onClick={() => changeZoom(zoom + 0.25)} title="Zoom in" aria-label="Zoom in"><ZoomIn /></button>
+            <button type="button" disabled={zoom === 1 && !pan.x && !pan.y} onClick={resetView} title="Reset view" aria-label="Reset zoom"><RotateCcw /></button>
+            <button type="button" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>{isFullscreen ? <Minimize2 /> : <Expand />}</button>
+          </div>
+        )}
+      />
     </section>
   );
 }

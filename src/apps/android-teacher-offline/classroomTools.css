@@ -1,0 +1,214 @@
+/* Shared touch-first classroom tools for Teacher-only presentation surfaces. */
+[data-classroom-surface-id] {
+  position: relative;
+}
+
+.classroom-tools-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  overflow: hidden;
+  pointer-events: none;
+  touch-action: auto;
+  user-select: none;
+}
+
+.classroom-tools-overlay.is-editing {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.classroom-tools-overlay.tool-eraser { cursor: cell; }
+.classroom-tools-overlay svg { display: block; overflow: visible; }
+.classroom-tools-overlay.tool-eraser [data-annotation-id] { pointer-events: all; }
+
+.classroom-active-tool-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: rgba(57, 28, 93, 0.86);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.classroom-text-editor {
+  position: absolute;
+  z-index: 4;
+  width: min(440px, 65vw);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto auto;
+  gap: 6px;
+  border: 3px solid #fff;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #dff8ff, #7fc7df);
+  box-shadow: 0 0 0 2px #087398, 0 8px 24px rgba(8, 31, 61, 0.36);
+  transform: translate(-8px, 8px);
+  pointer-events: auto;
+}
+
+.classroom-text-editor input,
+.classroom-text-editor button {
+  min-height: 48px;
+  border: 2px solid #0a759c;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.classroom-text-editor input { min-width: 0; padding: 8px 10px; }
+.classroom-text-editor button { padding: 5px 12px; background: #fff; color: #17445d; }
+
+.classroom-teaching-toolbar {
+  position: relative;
+  z-index: 25;
+}
+
+.classroom-tool-primary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.classroom-tool-options,
+.classroom-more-tools {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(212, 244, 252, 0.98), rgba(83, 173, 205, 0.98));
+  box-shadow: 0 0 0 2px #08698c, 0 8px 25px rgba(10, 39, 75, 0.38);
+  transform: translateX(-50%);
+}
+
+.classroom-tool-options { bottom: max(144px, calc(env(safe-area-inset-bottom) + 136px)); color: #143f58; font-size: 0.72rem; font-weight: 950; text-transform: uppercase; }
+.classroom-tool-options button { width: 42px; height: 42px; min-height: 42px; padding: 0; }
+.classroom-tool-options button[style] { background: var(--tool-color); }
+.classroom-tool-options button i { display: block; border-radius: 50%; background: #163e55; }
+
+.classroom-floating-panel {
+  position: fixed;
+  z-index: 80;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(78px, calc(env(safe-area-inset-bottom) + 70px));
+  width: min(430px, calc(100vw - 28px));
+  padding: 14px;
+  border: 4px solid #fff;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(111, 39, 155, 0.98), rgba(190, 61, 184, 0.98));
+  box-shadow: 0 0 0 3px #56277e, 0 16px 42px rgba(17, 15, 56, 0.48);
+  color: #fff;
+}
+
+.classroom-floating-panel header {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.classroom-floating-panel header button,
+.classroom-floating-panel > div button,
+.classroom-floating-panel section button,
+.classroom-timer-presets button,
+.classroom-score-reset {
+  min-height: 48px;
+  padding: 7px 12px;
+  border: 2px solid #fff;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #dff8ff, #71bdd8);
+  color: #173f58;
+  font-weight: 900;
+}
+
+.classroom-floating-panel header button { width: 48px; padding: 0; font-size: 1.6rem; }
+.classroom-timer-panel > output { display: block; margin: 8px 0; font-size: clamp(3rem, 6vw, 5.5rem); font-weight: 950; line-height: 1; text-align: center; text-shadow: 0 3px 0 #54236f; }
+.classroom-timer-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.classroom-timer-panel label { margin: 10px 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; }
+.classroom-timer-panel label input { width: 86px; min-height: 48px; padding: 6px; border: 2px solid #fff; border-radius: 10px; font-size: 1.1rem; font-weight: 900; text-align: center; }
+.classroom-timer-panel > div:last-child { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.classroom-scoreboard { width: min(560px, calc(100vw - 28px)); }
+.classroom-scoreboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.classroom-scoreboard header, .classroom-score-reset { grid-column: 1 / -1; }
+.classroom-scoreboard section { padding: 10px; border: 2px solid rgba(255,255,255,.72); border-radius: 16px; background: rgba(54, 24, 95, 0.34); text-align: center; }
+.classroom-scoreboard section > strong { display: block; font-size: 1.25rem; }
+.classroom-scoreboard section output { display: block; font-size: clamp(3.4rem, 7vw, 6rem); font-weight: 950; line-height: 1; }
+.classroom-scoreboard section > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.classroom-tool-message {
+  position: fixed;
+  z-index: 90;
+  top: 18px;
+  left: 50%;
+  max-width: min(620px, 90vw);
+  padding: 12px 18px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: #173f58;
+  box-shadow: 0 5px 18px rgba(0,0,0,.28);
+  color: #fff;
+  font-weight: 900;
+  transform: translateX(-50%);
+}
+
+.teacher-offline-presentation.has-classroom-tools { grid-template-rows: auto minmax(0, 1fr) 62px auto; }
+.teacher-offline-media.has-classroom-tools { grid-template-rows: auto minmax(0, 1fr) 62px; }
+.teacher-offline-presentation.has-classroom-tools > .classroom-teaching-toolbar,
+.teacher-offline-media.has-classroom-tools > .classroom-teaching-toolbar { align-self: center; width: min(1040px, 86vw); min-height: 54px; margin: 3px auto; }
+.teacher-offline-presentation-stage.classroom-magnified > .ultimate-activity-runner { transform: scale(1.2); transform-origin: top center; }
+.teacher-offline-media > section.classroom-magnified > :not(.classroom-tools-overlay) { transform: scale(1.2); }
+
+.legacy-home-unit-grid { grid-template-rows: repeat(2, minmax(76px, 1fr)); align-content: center; }
+.legacy-home-feature-row { grid-template-columns: minmax(260px, 520px); justify-content: center; }
+.legacy-home-feature-row button img { width: 34px; height: 44px; object-fit: cover; border: 1px solid #fff; }
+
+@media (min-width: 2500px) {
+  .classroom-tool-primary { gap: 12px; }
+  .classroom-tool-options, .classroom-more-tools { bottom: 118px; padding: 14px 20px; gap: 13px; }
+  .classroom-tool-options { bottom: 224px; }
+  .classroom-floating-panel { bottom: 120px; transform: scale(1.25); transform-origin: right bottom; }
+}
+
+@media (max-width: 1100px), (max-height: 650px) {
+  .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar { width: min(760px, 94vw); }
+  .classroom-tool-primary { gap: 3px; }
+  .classroom-teaching-toolbar .classroom-tool-primary button:nth-child(4),
+  .classroom-teaching-toolbar .classroom-tool-primary button:nth-child(5) { display: none; }
+  .classroom-tool-options, .classroom-more-tools { bottom: 58px; max-width: 94vw; padding: 5px 8px; gap: 4px; }
+  .classroom-tool-options { bottom: 110px; }
+  .classroom-more-tools button { width: 44px; height: 44px; min-height: 44px; }
+  .classroom-floating-panel { right: 8px; bottom: 58px; max-height: calc(100dvh - 66px); overflow: auto; padding: 8px; }
+  .classroom-timer-panel > output { font-size: 2.7rem; }
+  .teacher-offline-presentation.has-classroom-tools { grid-template-rows: auto minmax(0, 1fr) 50px auto; }
+  .teacher-offline-media.has-classroom-tools { grid-template-rows: auto minmax(0, 1fr) 50px; }
+}
+
+@media (max-width: 720px) {
+  .classroom-text-editor { right: 4px; left: 4px !important; width: auto; transform: translateY(4px); }
+  .classroom-scoreboard section output { font-size: 2.6rem; }
+}
+
+@media print {
+  body * { visibility: hidden !important; }
+  .classroom-stage-print-target,
+  .classroom-stage-print-target * { visibility: visible !important; }
+  .classroom-stage-print-target { position: absolute !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important; background: #fff !important; }
+  .classroom-active-tool-label,
+  .classroom-text-editor { display: none !important; }
+}

@@ -1,5 +1,6 @@
 import { BookOpen, Minus, MonitorPlay, X } from "lucide-react";
 import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
+import workbookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
@@ -7,14 +8,6 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
   const units = [
     { number: 1, title: "Lights, Camera, Action!", available: true },
     { number: 2, title: "Journeys of Discovery", available: true },
-    { number: 3, title: "Respect Our Planet" },
-    { number: 4, title: "Fit for Life" },
-    { number: 5, title: "Law and Order" },
-    { number: 6, title: "You're Hired!" },
-    { number: 7, title: "Add to Cart" },
-    { number: 8, title: "Making the Grade" },
-    { number: 9, title: "Better Together" },
-    { number: 10, title: "It's Just Science!" },
   ];
   return (
     <main className="teacher-offline-library" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
@@ -60,12 +53,11 @@ export default function TeacherOfflineLibrary({ pack, onOpenBook }) {
           <small>{manifest.enabledActivityCount} activities · {manifest.pageCount} page spreads · offline</small>
         </div>
 
-        <div className="legacy-home-feature-row" aria-label="Unavailable book sections">
-          {["Workbook", "Grammar Book", "Extras"].map((label) => (
-            <button key={label} type="button" disabled aria-label={`${label}, unavailable`}>
-              <span>{label}</span><small>Unavailable</small>
-            </button>
-          ))}
+        <div className="legacy-home-feature-row" aria-label="Available book editions">
+          <button type="button" disabled aria-label="Workbook, content not installed">
+            <img src={workbookCover} alt="" aria-hidden="true" />
+            <span>Workbook</span><small>Content not installed</small>
+          </button>
         </div>
       </section>
     </main>

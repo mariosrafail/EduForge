@@ -14,6 +14,7 @@ import TeacherViewportDiagnostics from "./TeacherViewportDiagnostics.jsx";
 import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
 import { useTeacherViewportProfile } from "./viewportProfiles.js";
 import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
+import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -156,7 +157,7 @@ export default function TeacherOfflineApp() {
     content = <TeacherOfflineLibrary pack={pack} onOpenBook={openBook} />;
   }
   return (
-    <>
+    <ClassroomToolsProvider>
       {content}
       <button
         type="button"
@@ -169,6 +170,6 @@ export default function TeacherOfflineApp() {
         {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
       </button>
       {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
-    </>
+    </ClassroomToolsProvider>
   );
 }
