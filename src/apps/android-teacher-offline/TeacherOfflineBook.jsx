@@ -19,10 +19,11 @@ export default function TeacherOfflineBook({
   const unitNumber = [1, 2].includes(Number(location.unitNumber)) ? Number(location.unitNumber) : 1;
   const tab = location.tab === "exercises" ? "exercises" : "pages";
   const pageViewerActive = tab === "pages" && Boolean(location.pageId);
+  const unitOverviewActive = tab === "pages" && !location.pageId;
   const update = (patch, options) => onLocationChange({ ...location, ...patch }, options);
 
   return (
-    <main className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""}`} style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
+    <main className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""}`.trim()} style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
       <header className="teacher-offline-book-header">
         <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
           <LegacyClassroomIcon name="home" /><span>Library</span>
@@ -63,6 +64,7 @@ export default function TeacherOfflineBook({
           onOpenMedia={onOpenMedia}
           onBackToLibrary={onBackToLibrary}
           onOpenContents={() => update({ tab: "exercises" })}
+          onSelectUnit={(number) => update({ unitNumber: number, tab: "pages", pageId: "" })}
           viewportProfile={viewportProfile}
         />
       ) : (

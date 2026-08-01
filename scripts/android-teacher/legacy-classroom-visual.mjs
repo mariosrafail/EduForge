@@ -44,6 +44,26 @@ async function waitForUnitOverview(page) {
   await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
 }
 
+const canonicalOverview = {
+  1: ["pg 5", "pg 6-7", "pg 8-9", "pg 10-11", "pg 12", "pg 13", "pg 14-15", "pg 16", "pg 17-18"],
+  2: ["pg 19", "pg 20-21", "pg 22-23", "pg 24-25", "pg 26", "pg 27", "pg 28-29", "pg 30", "pg 31-32", "pg 33-34"],
+};
+
+async function assertLegacyUnitOverview(page, unit, label) {
+  await waitForUnitOverview(page);
+  const overview = page.locator(".teacher-offline-unit-overview");
+  const entries = overview.locator("[data-overview-entry]");
+  assert.equal(await entries.count(), canonicalOverview[unit].length, `${label} entry count`);
+  assert.deepEqual(await entries.locator(".teacher-unit-page-copy b").allTextContents(), canonicalOverview[unit], `${label} page labels`);
+  const pageIds = await entries.evaluateAll((nodes) => nodes.flatMap((node) => node.dataset.pageIds.split(",")));
+  assert.equal(pageIds.length, unit === 1 ? 10 : 12, `${label} real page count`);
+  assert.equal(new Set(pageIds).size, pageIds.length, `${label} unique real pages`);
+  assert.equal(await overview.getByText(/activities$/i).count(), 0, `${label} activity counts hidden`);
+  assert.equal(await overview.locator("img").count(), unit === 1 ? 10 : 12, `${label} thumbnail count`);
+  if (unit === 2) assert.equal(await overview.locator('[data-page-ids="reading-19"] strong').count(), 0, `${label} pg 19 heading omitted`);
+  await assertScreen(page, label);
+}
+
 async function openPage(page, label) {
   await page.locator(".teacher-unit-page-card").filter({ hasText: label }).first().click();
   await waitForPageImage(page);
@@ -53,7 +73,7 @@ async function openActivity(page, unit, title) {
   if (await page.locator(".teacher-offline-presentation").count()) await page.getByRole("button", { name: "Back to book" }).click();
   if (await page.locator(".teacher-offline-pages-viewer").count()) await page.getByRole("button", { name: "Contents and exercises" }).click();
   await page.getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
-  await page.locator(".teacher-offline-view-tabs button").nth(1).click();
+  await page.getByRole("button", { name: "Contents and exercises" }).click();
   const row = page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
   await row.getByRole("button", { name: "Present" }).click();
   await page.locator(".teacher-offline-presentation").waitFor();
@@ -159,9 +179,12 @@ try {
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-    await waitForUnitOverview(page);
-    await assertScreen(page, "unit-overview-1920x1080");
-    await page.screenshot({ path: `${artifactRoot}/unit-overview-1920x1080.png` });
+    await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-1920x1080.png` });
+    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-1920x1080.png` });
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-1920x1080");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1920x1080");
@@ -197,7 +220,12 @@ try {
     await page.screenshot({ path: `${artifactRoot}/home-launcher-1280x720.png` });
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-    await waitForUnitOverview(page);
+    await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-1280x720");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-1280x720.png` });
+    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-1280x720");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-1280x720.png` });
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-1280x720");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1280x720");
@@ -209,7 +237,12 @@ try {
     await assertLegacyLauncher(page, "home-launcher-800x360");
     await page.screenshot({ path: `${artifactRoot}/home-launcher-800x360.png` });
     await openBook(page);
-    await waitForUnitOverview(page);
+    await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-800x360");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-800x360.png` });
+    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-800x360");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-800x360.png` });
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-800x360");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-800x360");
@@ -222,14 +255,19 @@ try {
     await page.screenshot({ path: `${artifactRoot}/home-launcher-3840x2160.png` });
     await openBook(page);
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-    await waitForUnitOverview(page);
+    await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-3840x2160.png` });
+    await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+    await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-3840x2160");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-3840x2160.png` });
+    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 14, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 21, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

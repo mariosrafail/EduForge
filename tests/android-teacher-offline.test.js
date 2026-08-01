@@ -6,6 +6,7 @@ import manifest from "../android-content-packs/ultimate-b2-students-book/manifes
 import catalog from "../android-content-packs/ultimate-b2-students-book/catalog.json" with { type: "json" };
 import activities from "../android-content-packs/ultimate-b2-students-book/activities.json" with { type: "json" };
 import assetsManifest from "../android-content-packs/ultimate-b2-students-book/assets-manifest.json" with { type: "json" };
+import studentsBookRuntime from "../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
 import {
   ACTIVITY_MODES,
   canOpenActivityInMode,
@@ -23,6 +24,10 @@ import {
   classifyTeacherViewport,
   TEACHER_VIEWPORT_PROFILES,
 } from "../src/apps/android-teacher-offline/viewportProfiles.js";
+import {
+  buildStudentsBookOverviewEntries,
+  studentsBookOverviewLayout,
+} from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -61,6 +66,30 @@ test("teacher viewport profiles use available width and height rather than devic
   assert.equal(classifyTeacherViewport({ width: 1280, height: 720 }), TEACHER_VIEWPORT_PROFILES.LARGE);
   assert.equal(classifyTeacherViewport({ width: 1920, height: 1080 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
   assert.equal(classifyTeacherViewport({ width: 3840, height: 2160 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
+});
+
+test("Students Book overview groups every real Unit 1 and Unit 2 page exactly once", () => {
+  const unit1 = studentsBookRuntime.units.find((unit) => unit.number === 1);
+  const unit2 = studentsBookRuntime.units.find((unit) => unit.number === 2);
+  const unit1Entries = buildStudentsBookOverviewEntries(unit1);
+  const unit2Entries = buildStudentsBookOverviewEntries(unit2);
+
+  assert.equal(unit1.pages.length, 10);
+  assert.equal(unit1Entries.length, 9);
+  assert.deepEqual(unit1Entries.flatMap((entry) => entry.pageIds), unit1.pages.map((page) => page.id));
+  assert.deepEqual(unit1Entries.find((entry) => entry.label === "Practice 1").pageIds, ["ub2-sb-unit-1-part-9", "ub2-sb-unit-1-part-10"]);
+
+  assert.equal(unit2.pages.length, 12);
+  assert.equal(unit2Entries.length, 10);
+  assert.deepEqual(unit2Entries.flatMap((entry) => entry.pageIds), unit2.pages.map((page) => page.id));
+  assert.deepEqual(unit2Entries.find((entry) => entry.label === "Practice 2").pageIds, ["practice-31", "practice-32"]);
+  assert.deepEqual(unit2Entries.find((entry) => entry.label === "Progress check 1").pageIds, ["progress-check-33", "progress-check-34"]);
+  assert.deepEqual(studentsBookOverviewLayout[2][0], { label: null, pageLabel: "pg 19", pageIds: ["reading-19"], row: 1 });
+
+  assert.throws(
+    () => buildStudentsBookOverviewEntries({ ...unit1, pages: unit1.pages.slice(1) }),
+    /Invalid Unit 1 overview layout/,
+  );
 });
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
@@ -138,9 +167,10 @@ test("previous and next traverse exactly the 77 enabled activities", () => {
 });
 
 test("teacher app uses bounded page/media state and no student persistence path", async () => {
-  const [app, pages, presentation, media, library, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
+  const [app, pages, overview, presentation, media, library, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePresentation.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineMedia.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
@@ -156,14 +186,19 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(presentation, /TEACHER_PRESENTATION_OFFLINE/);
   assert.match(presentation, /NormalizedStudentsBookActivity/);
   assert.match(pages, /<img[\s\S]*key=\{page\.id\}/);
-  assert.match(pages, /teacher-unit-page-card/);
+  assert.match(pages, /TeacherOfflineUnitOverview/);
+  assert.match(overview, /teacher-unit-page-card/);
+  assert.match(overview, /buildStudentsBookOverviewEntries/);
+  assert.match(overview, /onClick=\{\(\) => onSelectPage\(entry\.pageIds\[0\]\)\}/);
+  assert.doesNotMatch(overview, /activities<\/small>/);
   assert.match(pages, /onSelectPage\(""\)/);
   assert.match(pages, /legacy-page-heading/);
   assert.match(pages, /legacy-page-navigation/);
   assert.match(pages, /ClassroomToolOverlay/);
   assert.match(pages, /ClassroomToolbar/);
   assert.match(pages, /requestFullscreen/);
-  assert.equal((pages.match(/<img\b/g) || []).length, 2);
+  assert.equal((pages.match(/<img\b/g) || []).length, 1);
+  assert.equal((overview.match(/<img\b/g) || []).length, 1);
   assert.doesNotMatch(pages, /<aside/);
   assert.match(presentation, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(media, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);

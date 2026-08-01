@@ -33,11 +33,53 @@ function exerciseRow(page, title) {
   return page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
 }
 
+const canonicalOverview = {
+  1: [
+    ["pg 5", "ub2-sb-unit-1-part-1"],
+    ["pg 6-7", "ub2-sb-unit-1-part-2"],
+    ["pg 8-9", "ub2-sb-unit-1-part-3"],
+    ["pg 10-11", "ub2-sb-unit-1-part-4"],
+    ["pg 12", "ub2-sb-unit-1-part-5"],
+    ["pg 13", "ub2-sb-unit-1-part-6"],
+    ["pg 14-15", "ub2-sb-unit-1-part-7"],
+    ["pg 16", "ub2-sb-unit-1-part-8"],
+    ["pg 17-18", "ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"],
+  ],
+  2: [
+    ["pg 19", "reading-19"],
+    ["pg 20-21", "reading-20-21"],
+    ["pg 22-23", "vocabulary-22-23"],
+    ["pg 24-25", "grammar-24-25"],
+    ["pg 26", "listening-26"],
+    ["pg 27", "speaking-27"],
+    ["pg 28-29", "writing-28-29"],
+    ["pg 30", "review-30"],
+    ["pg 31-32", "practice-31,practice-32"],
+    ["pg 33-34", "progress-check-33,progress-check-34"],
+  ],
+};
+
+async function assertCanonicalUnitOverview(page, unit) {
+  const overview = page.locator(".teacher-offline-unit-overview");
+  await overview.waitFor();
+  const entries = overview.locator("[data-overview-entry]");
+  assert.equal(await entries.count(), canonicalOverview[unit].length);
+  assert.deepEqual(await entries.evaluateAll((nodes) => nodes.map((node) => [
+    node.querySelector(".teacher-unit-page-copy b")?.textContent,
+    node.dataset.pageIds,
+  ])), canonicalOverview[unit]);
+  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
+    .every((image) => image.complete && image.naturalWidth > 0));
+  assert.equal(await overview.getByText(/activities$/i).count(), 0);
+  const representedIds = (await entries.evaluateAll((nodes) => nodes.flatMap((node) => node.dataset.pageIds.split(","))));
+  assert.equal(new Set(representedIds).size, representedIds.length);
+}
+
 async function openExercises(page, unitNumber) {
   await page.getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
   await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
     .every((image) => image.complete && image.naturalWidth > 0));
-  await page.getByRole("tab", { name: "Contents / Exercises" }).click();
+  await page.getByRole("button", { name: "Contents and exercises" }).click();
 }
 
 async function backToBook(page) {
@@ -85,6 +127,34 @@ try {
   await page.getByRole("button", { name: "Open Students Book" }).click();
   await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
+
+  await assertCanonicalUnitOverview(page, 1);
+  await page.locator('[data-page-ids="ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"]').click();
+  await page.locator(".teacher-offline-pages-viewer").waitFor();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 17$/);
+  await page.getByRole("button", { name: "Next page" }).click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 18$/);
+  await page.getByRole("button", { name: "Unit overview" }).click();
+  await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+  await assertCanonicalUnitOverview(page, 2);
+  assert.equal(await page.locator('[data-page-ids="reading-19"] .teacher-unit-page-copy strong').count(), 0, "pg 19 must visually omit Reading");
+  await page.locator('[data-page-ids="reading-20-21"]').click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 20-21$/);
+  await page.getByRole("button", { name: "Unit overview" }).click();
+  await page.locator('[data-page-ids="practice-31,practice-32"]').click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 31$/);
+  await page.getByRole("button", { name: "Next page" }).click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 32$/);
+  await page.getByRole("button", { name: "Unit overview" }).click();
+  await page.locator('[data-page-ids="progress-check-33,progress-check-34"]').click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 33$/);
+  await page.getByRole("button", { name: "Next page" }).click();
+  assert.match(await page.locator(".legacy-page-location").textContent(), /pg 34$/);
+  await page.getByRole("button", { name: "Unit overview" }).click();
+  await page.getByRole("button", { name: "Contents and exercises" }).click();
+  await page.getByRole("tab", { name: "Book pages" }).click();
+  await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+  await assertCanonicalUnitOverview(page, 1);
 
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 5" }).first().click();
   const overlay = page.locator(".classroom-tools-overlay");

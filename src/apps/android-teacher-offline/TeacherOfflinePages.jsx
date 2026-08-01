@@ -2,7 +2,6 @@ import {
   ArrowLeftRight,
   BookOpen,
   Expand,
-  Grid2X2,
   Maximize2,
   Minimize2,
   MonitorPlay,
@@ -17,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
@@ -61,41 +61,6 @@ function initialFit() {
   return "fit-page";
 }
 
-function TeacherOfflineUnitOverview({ unit, pages, onSelectPage }) {
-  return (
-    <section className="teacher-offline-unit-overview" aria-label={`${unit.title} page overview`}>
-      <header>
-        <div>
-          <span>Ultimate English B2 · Students Book</span>
-          <h2>Unit {unit.number}</h2>
-          <strong>{unitNames[Number(unit.number)]}</strong>
-        </div>
-        <p>Select a section to open the printed page and its classroom activities.</p>
-      </header>
-      <div className="teacher-unit-overview-grid">
-        {pages.map((candidate) => (
-          <button
-            key={candidate.id}
-            type="button"
-            className="teacher-unit-page-card"
-            onClick={() => onSelectPage(candidate.id)}
-            aria-label={`Open ${candidate.title}, ${candidate.label || `page ${candidate.pageNumber}`}`}
-          >
-            <span className="teacher-unit-page-thumb">
-              <img src={candidate.images?.[0]} alt="" loading="eager" decoding="async" draggable="false" />
-              <b>{candidate.label || `Page ${candidate.pageNumber}`}</b>
-            </span>
-            <span className="teacher-unit-page-copy">
-              <strong>{candidate.title}</strong>
-              <small>{candidate.activities?.filter((activity) => activity.availability === "enabled").length || 0} activities</small>
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default function TeacherOfflinePages({
   unit,
   selectedPageId,
@@ -104,6 +69,7 @@ export default function TeacherOfflinePages({
   onOpenMedia,
   onBackToLibrary,
   onOpenContents,
+  onSelectUnit,
 }) {
   const pages = unit?.pages || [];
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
@@ -311,7 +277,15 @@ export default function TeacherOfflinePages({
   };
 
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
-  if (!page) return <TeacherOfflineUnitOverview unit={unit} pages={pages} onSelectPage={onSelectPage} />;
+  if (!page) return (
+    <TeacherOfflineUnitOverview
+      unit={unit}
+      onSelectPage={onSelectPage}
+      onSelectUnit={onSelectUnit}
+      onBackToLibrary={onBackToLibrary}
+      onOpenContents={onOpenContents}
+    />
+  );
 
   return (
     <section ref={viewerRef} className="teacher-offline-pages teacher-offline-pages-viewer">

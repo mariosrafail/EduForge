@@ -1,0 +1,304 @@
+/* Canonical legacy Students Book Unit 1/2 overview composition. */
+.teacher-offline-book.unit-overview-active {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.teacher-offline-book.unit-overview-active > .teacher-offline-book-header {
+  display: none;
+}
+
+.teacher-offline-unit-overview-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: max(7px, env(safe-area-inset-top)) clamp(18px, 3vw, 58px) max(6px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 70px minmax(0, 1fr) 66px 58px;
+  gap: 4px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(2, 89, 132, 0.06), rgba(88, 35, 127, 0.1)),
+    var(--legacy-classroom-background) center / cover no-repeat;
+}
+
+.legacy-overview-heading {
+  width: min(1680px, 90vw);
+  margin: 0 auto;
+}
+
+.legacy-overview-heading h2 {
+  font-size: clamp(2.4rem, 3.3vw, 4rem);
+  text-shadow: 0 4px 0 #174b72, 0 0 10px rgba(0, 40, 72, 0.78);
+}
+
+.legacy-overview-unit-switcher {
+  justify-self: start;
+  display: flex;
+  gap: 7px;
+}
+
+.legacy-overview-unit-switcher button {
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  background: rgba(68, 39, 113, 0.72);
+  color: #fff;
+  font-weight: 900;
+}
+
+.legacy-overview-unit-switcher button.selected {
+  background: linear-gradient(180deg, #cffb4a, #78ca0b);
+  color: #214425;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview {
+  position: relative;
+  width: min(1680px, 90vw);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(18px, 1.7vw, 32px);
+  display: block;
+  overflow: hidden;
+  border: 3px solid rgba(229, 250, 255, 0.96);
+  border-radius: 42px;
+  background:
+    radial-gradient(circle at 12% 22%, rgba(255, 229, 252, 0.22) 0 7%, transparent 7.4%),
+    radial-gradient(circle at 78% 74%, rgba(220, 238, 255, 0.13) 0 13%, transparent 13.5%),
+    repeating-linear-gradient(132deg, transparent 0 44px, rgba(255, 255, 255, 0.055) 45px 50px, transparent 51px 67px),
+    linear-gradient(145deg, rgba(224, 119, 214, 0.88), rgba(179, 69, 188, 0.86) 48%, rgba(119, 48, 157, 0.9));
+  box-shadow:
+    inset 0 0 0 3px rgba(105, 212, 236, 0.42),
+    inset 0 15px 36px rgba(255, 255, 255, 0.19),
+    0 0 0 3px rgba(56, 34, 112, 0.56),
+    0 16px 38px rgba(20, 24, 69, 0.36);
+  color: #fff;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview::before,
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border: 2px solid rgba(244, 236, 255, 0.16);
+  border-radius: 50%;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview::before {
+  width: 34%;
+  aspect-ratio: 1;
+  left: -12%;
+  bottom: -36%;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview::after {
+  width: 27%;
+  aspect-ratio: 1;
+  right: -8%;
+  top: -24%;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-overview-grid {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(20, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-content: stretch;
+  gap: clamp(10px, 1.2vh, 18px) clamp(8px, 0.85vw, 15px);
+  overflow: visible;
+  transition: transform 160ms ease;
+}
+
+.teacher-offline-unit-overview.classroom-magnified .teacher-unit-overview-grid {
+  transform: scale(1.06);
+}
+
+.legacy-overview-unit-1 .teacher-unit-page-card[data-overview-row="1"] { grid-column: span 5; }
+.legacy-overview-unit-1 .teacher-unit-page-card[data-overview-row="2"] { grid-column: span 4; }
+.legacy-overview-unit-2 .teacher-unit-page-card { grid-column: span 4; }
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 0 clamp(2px, 0.3vw, 6px) 2px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 3px 0 rgba(69, 24, 93, 0.78), 0 0 6px rgba(42, 14, 68, 0.58);
+  cursor: pointer;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-card:hover,
+.teacher-offline-unit-overview-screen .teacher-unit-page-card:focus-visible {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-card:focus-visible {
+  outline: 3px solid #d7ff62;
+  outline-offset: 2px;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-copy {
+  min-height: clamp(44px, 5.5vh, 62px);
+  padding: 0 2px clamp(4px, 0.6vh, 7px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-copy strong {
+  max-width: 100%;
+  overflow: visible;
+  font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  font-size: clamp(0.9rem, 1.15vw, 1.38rem);
+  font-stretch: condensed;
+  font-weight: 950;
+  line-height: 1;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-copy b {
+  font-size: clamp(0.8rem, 0.92vw, 1.08rem);
+  line-height: 1.05;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-thumb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: visible;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(2px, 0.25vw, 5px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-thumb img {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+  object-fit: contain;
+  object-position: top center;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 1px;
+  box-shadow: 0 7px 15px rgba(51, 18, 72, 0.34);
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-thumb.grouped img {
+  max-width: calc(50% - 2px);
+}
+
+.teacher-offline-unit-overview-screen .classroom-tools-overlay {
+  z-index: 3;
+  border-radius: 38px;
+}
+
+.legacy-overview-navigation {
+  width: min(1680px, 90vw);
+  margin-top: -7px;
+}
+
+.legacy-overview-navigation > div:last-child { justify-content: flex-end; }
+
+.legacy-overview-book-links {
+  justify-content: center;
+  gap: 8px !important;
+}
+
+.legacy-overview-book-links button {
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099);
+  box-shadow: 0 0 0 2px #59277f, 0 4px 0 #43205f;
+  color: #fff;
+  font-weight: 950;
+}
+
+.legacy-overview-book-links button:disabled { opacity: 0.56; }
+.legacy-overview-book-links button span { font-size: 1rem; line-height: 1; }
+.legacy-overview-book-links button small { font-size: 0.48rem; line-height: 1; text-transform: uppercase; }
+
+.teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar {
+  width: min(1320px, 78vw);
+}
+
+@media (max-width: 1100px), (max-height: 650px) {
+  .teacher-offline-unit-overview-screen {
+    padding: 2px 8px;
+    grid-template-rows: 35px minmax(0, 1fr) 39px 43px;
+    gap: 2px;
+  }
+  .legacy-overview-heading { width: 97vw; min-height: 35px; }
+  .legacy-overview-heading h2 { font-size: 1.45rem; }
+  .legacy-overview-heading .legacy-page-window-controls { gap: 5px; }
+  .legacy-overview-heading .legacy-page-window-controls button { width: 30px; height: 30px; min-height: 30px; border-width: 2px; font-size: 1.1rem; }
+  .legacy-overview-unit-switcher { gap: 3px; }
+  .legacy-overview-unit-switcher button { min-height: 27px; padding: 3px 8px; border-width: 1px; font-size: 0.58rem; }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: 97vw; padding: 5px 7px; border-width: 2px; border-radius: 18px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 3px 5px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-card { padding-inline: 1px; border-radius: 4px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 25px; padding-bottom: 2px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(0.48rem, 1.25vw, 0.68rem); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(0.46rem, 1.15vw, 0.62rem); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-thumb { gap: 1px; }
+  .legacy-overview-navigation { width: 97vw; min-height: 39px; margin-top: -3px; gap: 5px; }
+  .legacy-overview-navigation > div { gap: 2px; }
+  .legacy-overview-navigation .legacy-page-round-button,
+  .legacy-overview-book-links button { width: 36px; height: 36px; min-height: 36px; border-width: 1px; }
+  .legacy-overview-navigation .legacy-page-round-button .legacy-classroom-icon { width: 35px; height: 35px; flex-basis: 35px; }
+  .legacy-overview-book-links button span { font-size: 0.65rem; }
+  .legacy-overview-book-links button small { font-size: 0.31rem; }
+  .legacy-overview-book-links button svg { width: 15px; height: 15px; }
+  .teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar { width: min(660px, 82vw); min-height: 41px; }
+}
+
+@media (min-width: 2500px) and (min-height: 1400px) {
+  .teacher-offline-unit-overview-screen { grid-template-rows: 118px minmax(0, 1fr) 98px 88px; gap: 8px; }
+  .legacy-overview-heading,
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview,
+  .legacy-overview-navigation { width: min(3000px, 86vw); }
+  .legacy-overview-heading h2 { font-size: 6rem; }
+  .legacy-overview-unit-switcher button { min-height: 58px; padding: 10px 24px; font-size: 1.25rem; }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { padding: 42px; border-width: 5px; border-radius: 68px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 28px 24px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 96px; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: 2.35rem; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: 1.8rem; }
+  .legacy-overview-navigation .legacy-page-round-button,
+  .legacy-overview-book-links button { width: 88px; height: 88px; min-height: 88px; }
+  .legacy-overview-navigation .legacy-page-round-button .legacy-classroom-icon { width: 86px; height: 86px; flex-basis: 86px; }
+  .legacy-overview-book-links button span { font-size: 1.45rem; }
+  .legacy-overview-book-links button small { font-size: 0.72rem; }
+  .teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar { width: min(2200px, 70vw); min-height: 84px; }
+}

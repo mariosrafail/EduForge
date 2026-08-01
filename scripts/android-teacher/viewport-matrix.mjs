@@ -74,10 +74,43 @@ try {
     await page.locator(".teacher-offline-book").waitFor();
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
+    await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
+      .every((image) => image.complete && image.naturalWidth > 0));
+    const overviewLayout = await page.evaluate(() => {
+      const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
+      const entries = [...document.querySelectorAll("[data-overview-entry]")];
+      const images = [...document.querySelectorAll(".teacher-unit-page-thumb img")];
+      return {
+        documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        entries: entries.length,
+        images: images.length,
+        minimumEntryHeight: Math.min(...entries.map((entry) => entry.getBoundingClientRect().height)),
+        entriesContained: entries.every((entry) => {
+          const rect = entry.getBoundingClientRect();
+          return rect.left >= panel.left - 2 && rect.right <= panel.right + 2 && rect.top >= panel.top - 2 && rect.bottom <= panel.bottom + 2;
+        }),
+      };
+    });
+    assert.ok(overviewLayout.documentOverflow <= 1, `${target.name} overview document overflow`);
+    assert.equal(overviewLayout.entries, 10, `${target.name} Unit 2 overview entries`);
+    assert.equal(overviewLayout.images, 12, `${target.name} Unit 2 real thumbnails`);
+    assert.ok(overviewLayout.minimumEntryHeight >= 44, `${target.name} overview touch targets`);
+    assert.equal(overviewLayout.entriesContained, true, `${target.name} overview entries contained`);
     await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
     await page.waitForFunction(() => {
       const image = document.querySelector(".teacher-offline-page-image img");
       return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;
+    });
+    await page.waitForFunction(() => {
+      const image = document.querySelector(".teacher-offline-page-image");
+      if (!image) return false;
+      const imageRect = image.getBoundingClientRect();
+      const hotspots = [...image.querySelectorAll(".teacher-offline-page-hotspot")];
+      return hotspots.length > 0 && hotspots.every((hotspot) => {
+        const rect = hotspot.getBoundingClientRect();
+        return rect.left >= imageRect.left - 1 && rect.right <= imageRect.right + 1
+          && rect.top >= imageRect.top - 1 && rect.bottom <= imageRect.bottom + 1;
+      });
     });
 
     const layout = await page.evaluate(() => {
@@ -206,7 +239,7 @@ try {
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
       await page.getByRole("button", { name: "Back to book" }).click();
       await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-      await page.locator('[title="Contents and exercises"]').click();
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       const matchingActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 1/ }).first();
       await matchingActivity.getByRole("button", { name: "Present" }).click();
       assert.ok(await page.locator(".teacher-offline-presentation select").count() > 0, "Normalized matching activity must render choices");
@@ -230,7 +263,8 @@ try {
       await page.getByRole("button", { name: "Back to book" }).click();
     }
 
-    await page.locator('[title="Book pages"]').click();
+    const bookPagesTab = page.locator('[title="Book pages"]');
+    if (await bookPagesTab.isVisible()) await bookPagesTab.click();
     if (target.screenshot) {
       if (!await page.locator(".teacher-offline-unit-overview").count()) {
         await page.getByRole("button", { name: "Unit overview" }).click();
