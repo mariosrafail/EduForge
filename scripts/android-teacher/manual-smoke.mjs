@@ -211,6 +211,26 @@ try {
   await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
 
+  const unitControls = page.locator(".legacy-overview-unit-switcher button");
+  assert.equal(await unitControls.count(), 2, "Overview must expose exactly two unit controls");
+  assert.deepEqual(await unitControls.evaluateAll((buttons) => buttons.map((button) => ({
+    number: button.querySelector(".teacher-unit-switch-badge")?.textContent,
+    title: button.querySelector(".teacher-unit-switch-title")?.textContent,
+    selected: button.getAttribute("aria-pressed"),
+  }))), [
+    { number: "1", title: "Lights, Camera, Action!", selected: "true" },
+    { number: "2", title: "Journeys of Discovery", selected: "false" },
+  ], "Modern unit controls must show their number, identity, and selected state");
+  const unit1Control = page.getByRole("button", { name: "Unit 1", exact: true });
+  assert.ok(await unit1Control.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) >= 0.08, "Motion ON must animate the unit control");
+  await unit1Control.hover();
+  assert.notEqual(await unit1Control.evaluate((button) => getComputedStyle(button).transform), "none", "Fine-pointer hover enhancement must be available");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "off");
+  assert.ok(await unit1Control.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) <= 0.001, "Reduced motion must disable unit transitions");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "on");
+
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: "Show classroom tools" }).waitFor();
   await page.getByRole("button", { name: "Show classroom tools" }).click();

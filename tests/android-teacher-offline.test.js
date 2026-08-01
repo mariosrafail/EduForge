@@ -138,6 +138,24 @@ test("teacher settings v1 migration preserves existing values and adds modern mo
   assert.equal(sanitizeTeacherOfflineSettings({ graphics: { appearanceMode: "invalid", motionEnabled: "yes" } }).graphics.appearanceMode, "modern");
 });
 
+test("modern Teacher unit selectors use shared titles and touch-safe interaction CSS", async () => {
+  const [component, metadata, modernCss] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherUnitSwitch.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineUnitMetadata.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineModern.css", "utf8"),
+  ]);
+  assert.match(component, /teacherAvailableStudentsBookUnits\.map/);
+  assert.match(component, /teacher-unit-switch-badge/);
+  assert.match(component, /teacher-unit-switch-title/);
+  assert.match(component, /aria-pressed=\{selected\}/);
+  assert.match(metadata, /Lights, Camera, Action!/);
+  assert.match(metadata, /Journeys of Discovery/);
+  assert.match(modernCss, /\.teacher-unit-switch button:not\(:disabled\):active/);
+  assert.match(modernCss, /@media \(hover: hover\) and \(pointer: fine\) \{[\s\S]*?\.teacher-unit-switch button:not\(:disabled\):hover/);
+  assert.doesNotMatch(modernCss.replace(/@media \(hover: hover\) and \(pointer: fine\) \{[\s\S]*?\n\}/, ""), /\.teacher-unit-switch[^\n]*:hover/);
+  assert.match(modernCss, /\.teacher-unit-switch button::before[\s\S]*?border-radius: 13px/);
+});
+
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
   assert.equal(ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE, "teacher-presentation-offline");
   const capabilities = getActivityModeCapabilities(ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE);
@@ -213,13 +231,14 @@ test("previous and next traverse exactly the 77 enabled activities", () => {
 });
 
 test("teacher app uses bounded page/media state and no student persistence path", async () => {
-  const [app, pages, overview, presentation, media, library, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
+  const [app, pages, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePresentation.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineMedia.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineUnitMetadata.js", "utf8"),
     readFile("src/apps/android-teacher-offline/ClassroomToolbar.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/ClassroomToolOverlay.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/ClassroomToolsContext.jsx", "utf8"),
@@ -256,7 +275,7 @@ test("teacher app uses bounded page/media state and no student persistence path"
   assert.match(overlay, /type === "spotlight"[\s\S]*type === "cover"/);
   assert.match(toolsContext, /interactive-classroom:annotations:v1/);
   assert.match(toolsContext, /past:[\s\S]*present:[\s\S]*future:/);
-  assert.match(library, /number: 10/);
+  assert.match(unitMetadata, /length: 8[\s\S]*number: index \+ 3/);
   assert.match(library, /\["Workbook", "Workbook content not installed"\]/);
   assert.match(library, /\["Grammar Book", "Grammar Book content not installed"\]/);
   assert.match(library, /\["Extras", "Extras content not installed"\]/);

@@ -14,19 +14,7 @@ import {
 } from "lucide-react";
 import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
-
-const units = [
-  { number: 1, title: "Lights, Camera, Action!", available: true },
-  { number: 2, title: "Journeys of Discovery", available: true },
-  { number: 3, title: "Unit 3", available: false },
-  { number: 4, title: "Unit 4", available: false },
-  { number: 5, title: "Unit 5", available: false },
-  { number: 6, title: "Unit 6", available: false },
-  { number: 7, title: "Unit 7", available: false },
-  { number: 8, title: "Unit 8", available: false },
-  { number: 9, title: "Unit 9", available: false },
-  { number: 10, title: "Unit 10", available: false },
-];
+import { teacherStudentsBookUnits as units } from "./teacherOfflineUnitMetadata.js";
 
 const homeTools = [
   { label: "Pen", icon: Pencil },

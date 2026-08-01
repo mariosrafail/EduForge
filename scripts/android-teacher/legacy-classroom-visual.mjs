@@ -283,9 +283,11 @@ try {
     await openBook(page);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-800x360");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-800x360.png` });
+    await page.screenshot({ path: `${artifactRoot}/modern-unit1-overview-800x360.png` });
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-800x360");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-800x360.png` });
+    await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-800x360.png` });
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-800x360");
@@ -306,9 +308,11 @@ try {
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit1-overview-3840x2160.png` });
+    await page.screenshot({ path: `${artifactRoot}/modern-unit1-overview-3840x2160.png` });
     await page.getByRole("button", { name: "Unit 2", exact: true }).click();
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-3840x2160");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-3840x2160.png` });
+    await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-3840x2160.png` });
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-3840x2160");
@@ -316,7 +320,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 39, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 43, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

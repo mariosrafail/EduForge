@@ -18,11 +18,11 @@ import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
 
 const fitStorageKey = "teacher-offline:ultimate-b2:page-fit";
 const minimumZoom = 1;
 const maximumZoom = 4;
-const unitNames = { 1: "Lights, Camera, Action!", 2: "Journeys of Discovery" };
 
 function enabledActivities(page) {
   return (page?.activities || []).filter((activity) => activity.availability === "enabled");
@@ -298,7 +298,7 @@ export default function TeacherOfflinePages({
         <div aria-hidden="true" />
         {showLeftNavigation ? <div data-navbar-side="left">
           <h2>Unit {unit.number}</h2>
-          <strong>{unitNames[Number(unit.number)]}</strong>
+          <strong>{teacherStudentsBookUnitTitle(unit.number)}</strong>
         </div> : <div data-navbar-side="left" data-navbar-hidden="true" />}
         <div className="legacy-page-window-controls">
           <button type="button" disabled aria-disabled="true" title="Minimize — not available in this prototype"><Minimize2 size={20} /></button>

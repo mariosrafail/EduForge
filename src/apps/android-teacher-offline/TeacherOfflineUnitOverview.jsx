@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import TeacherUnitSwitch from "./TeacherUnitSwitch.jsx";
 import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
@@ -28,11 +29,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onSelec
   return (
     <section className="teacher-offline-pages teacher-offline-unit-overview-screen" aria-label={`Unit ${unit.number} page overview`}>
       <header className="legacy-page-heading legacy-overview-heading">
-        <nav className="legacy-overview-unit-switcher" aria-label="Book unit">
-          {[1, 2].map((number) => (
-            <button key={number} type="button" className={unitNumber === number ? "selected" : ""} aria-pressed={unitNumber === number} onClick={() => onSelectUnit(number)}>Unit {number}</button>
-          ))}
-        </nav>
+        <TeacherUnitSwitch className="legacy-overview-unit-switcher" selectedUnit={unitNumber} onSelectUnit={onSelectUnit} />
         <div><h2>Unit {unit.number}</h2></div>
         <div className="legacy-page-window-controls">
           <button type="button" disabled aria-disabled="true" title="Minimize — unavailable on Android"><Minimize2 size={20} /></button>

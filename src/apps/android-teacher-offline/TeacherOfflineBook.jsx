@@ -2,9 +2,9 @@ import { BookOpen, ListChecks } from "lucide-react";
 
 import TeacherOfflineActivityList from "./TeacherOfflineActivityList.jsx";
 import TeacherOfflinePages from "./TeacherOfflinePages.jsx";
+import TeacherUnitSwitch from "./TeacherUnitSwitch.jsx";
 import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
-
-const unitNames = { 1: "Lights, Camera, Action!", 2: "Journeys of Discovery" };
+import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
 
 export default function TeacherOfflineBook({
   pack,
@@ -30,22 +30,14 @@ export default function TeacherOfflineBook({
         </button>
         <div className="teacher-offline-book-title">
           <span className="teacher-offline-eyebrow">Ultimate English B2 · Students Book</span>
-          <h1>Unit {unitNumber} · {unitNames[unitNumber]}</h1>
+          <h1>Unit {unitNumber} · {teacherStudentsBookUnitTitle(unitNumber)}</h1>
         </div>
         <div className="teacher-offline-book-controls">
-          <nav className="teacher-offline-unit-tabs" aria-label="Book unit">
-            {[1, 2].map((number) => (
-              <button
-                key={number}
-                type="button"
-                className={unitNumber === number ? "selected" : ""}
-                aria-pressed={unitNumber === number}
-                onClick={() => update({ unitNumber: number, tab: "pages", pageId: "" })}
-              >
-                Unit {number}
-              </button>
-            ))}
-          </nav>
+          <TeacherUnitSwitch
+            className="teacher-offline-unit-tabs"
+            selectedUnit={unitNumber}
+            onSelectUnit={(number) => update({ unitNumber: number, tab: "pages", pageId: "" })}
+          />
           <div className="teacher-offline-view-tabs" role="tablist" aria-label="Book view">
             <button type="button" title="Book pages" role="tab" aria-selected={tab === "pages"} className={tab === "pages" ? "selected" : ""} onClick={() => update({ tab: "pages" })}>
               <BookOpen size={20} /><span>Book pages</span>

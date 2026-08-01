@@ -173,24 +173,112 @@
   box-shadow: none;
 }
 
-/* Unit switchers are capped classroom chips, never capsules. */
-.teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-unit-tabs, .legacy-overview-unit-switcher) { gap: 8px; }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-unit-tabs, .legacy-overview-unit-switcher) button {
-  width: clamp(80px, 5.2vw, 104px);
-  min-width: 80px;
-  max-width: 104px;
-  height: 46px;
-  min-height: 46px;
-  padding: 0 12px;
-  border: 1px solid var(--teacher-control-border);
-  border-radius: 12px;
-  background: rgba(8, 72, 111, 0.72);
-  box-shadow: none;
-  color: #fff;
-  font-weight: 750;
-  text-shadow: none;
+/* Legacy keeps its compact text tabs; Modern uses the launcher-inspired badge + title geometry. */
+.teacher-unit-switch-modern-label { display: none; }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch {
+  gap: 10px;
 }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-unit-tabs, .legacy-overview-unit-switcher) button.selected { background: rgba(8, 72, 111, 0.72); color: var(--teacher-control-text-active); }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button {
+  width: clamp(275px, 15vw, 286px);
+  min-width: 275px;
+  max-width: 286px;
+  height: 54px;
+  min-height: 54px;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid rgba(174, 231, 246, 0.86);
+  border-radius: 14px;
+  background: rgba(7, 83, 122, 0.82);
+  box-shadow: 0 3px 9px rgba(5, 39, 67, 0.22);
+  color: #f8fdff;
+  text-align: left;
+  text-shadow: none;
+  transition:
+    color var(--teacher-motion-fast) ease,
+    border-color var(--teacher-motion-fast) ease,
+    transform 100ms ease,
+    background-color var(--teacher-motion-fast) ease,
+    filter 100ms ease;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button::before {
+  inset: 0;
+  border-radius: 13px;
+  background: rgba(13, 132, 174, 0.72);
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button.selected {
+  border: 2px solid rgba(210, 251, 107, 0.94);
+  background: rgba(6, 92, 132, 0.9);
+  box-shadow: 0 3px 9px rgba(5, 39, 67, 0.22), inset 0 0 0 1px rgba(220, 255, 137, 0.2);
+  color: #fff;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-legacy-label { display: none; }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-modern-label {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 14px 0 62px;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-badge {
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(217, 249, 255, 0.92);
+  border-radius: 50%;
+  background: #16a8bd;
+  box-shadow: 0 3px 8px rgba(4, 44, 69, 0.28);
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-50%);
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button.selected .teacher-unit-switch-badge {
+  border-color: #efffbd;
+  background: #a8de35;
+  color: #173d25;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-title {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: clamp(0.86rem, 0.9vw, 1.04rem);
+  font-weight: 800;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button:not(:disabled):active {
+  filter: brightness(0.92);
+  transform: scale(0.985);
+}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button:disabled {
+  opacity: 0.5;
+  transform: none;
+}
+
+@media (max-width: 1500px) {
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-unit-tabs button {
+    width: 210px;
+    min-width: 210px;
+    max-width: 210px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button:not(:disabled):hover {
+    border-color: rgba(216, 249, 255, 0.96);
+    filter: brightness(1.02);
+    transform: translateY(-1px);
+  }
+}
 
 /* Book, overview and page-viewer shell controls. */
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-book-header, .legacy-page-heading) {
@@ -363,13 +451,31 @@
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-brand { border-width: 1px; border-radius: 14px; background: #087aa0; box-shadow: none; }
 
 @media (max-width: 1100px), (max-height: 650px) {
-  .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-unit-tabs, .legacy-overview-unit-switcher) button {
-    width: 80px;
-    min-width: 80px;
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-unit-overview-screen {
+    grid-template-rows: 48px minmax(0, 1fr) 39px 43px;
+  }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-overview-heading {
+    min-height: 48px;
+  }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch { gap: 6px; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button {
+    width: clamp(168px, 21.5vw, 205px);
+    min-width: 168px;
+    max-width: 205px;
     height: 44px;
     min-height: 44px;
-    border-radius: 10px;
-    font-size: 0.68rem;
+    border-radius: 12px;
+  }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button::before { border-radius: 11px; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-modern-label { padding: 0 8px 0 50px; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-badge {
+    left: -3px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.12rem;
+  }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-title {
+    font-size: clamp(0.68rem, 1.5vw, 0.82rem);
   }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-overview-navigation .legacy-page-round-button,
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-overview-book-links button { width: 44px; height: 44px; min-height: 44px; border-radius: 10px; }
@@ -384,15 +490,18 @@
 }
 
 @media (min-width: 2500px) and (min-height: 1400px) {
-  .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-unit-tabs, .legacy-overview-unit-switcher) button {
-    width: 104px;
-    min-width: 104px;
-    max-width: 104px;
-    height: 48px;
-    min-height: 48px;
-    border-radius: 13px;
-    font-size: 1rem;
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button {
+    width: 286px;
+    min-width: 286px;
+    max-width: 286px;
+    height: 58px;
+    min-height: 58px;
+    border-radius: 15px;
   }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button::before { border-radius: 14px; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-modern-label { padding-left: 68px; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-badge { width: 58px; height: 58px; font-size: 1.6rem; }
+  .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch-title { font-size: 1.08rem; }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-dialog { width: min(1180px, 72vw); min-height: 820px; padding: 92px 34px 34px; }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-tabs { left: 34px; right: 108px; height: 58px; }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-settings-tabs button { min-height: 58px; font-size: 1.2rem; }
