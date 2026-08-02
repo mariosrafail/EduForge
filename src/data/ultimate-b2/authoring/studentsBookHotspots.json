@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "packageSlug": "ultimate-b2",
+  "componentSlug": "students-book",
+  "pages": {
+    "ub2-sb-unit-1-part-1": [
+      {
+        "id": "hotspot-u1-page5-unit-opener-ex1",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-1",
+        "pageNumber": 5,
+        "left": 35.5,
+        "top": 9.6,
+        "width": 37.5,
+        "height": 7.4,
+        "label": "Unit opener · Exercise 1",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p1-o1"
+      }
+    ]
+  }
+}

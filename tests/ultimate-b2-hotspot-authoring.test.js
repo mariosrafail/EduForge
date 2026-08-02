@@ -1,0 +1,149 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { access, readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+import test from "node:test";
+
+import manifest from "../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
+import {
+  getUltimateB2StudentsBookHotspotActions,
+  getUltimateB2StudentsBookHotspots,
+  ultimateB2StudentsBookHotspotToAction,
+} from "../src/data/ultimate-b2/studentsBookHotspots.js";
+import {
+  ultimateB2StudentsBookAuthoringActivities,
+  ultimateB2StudentsBookAuthoringPages,
+} from "../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { validateAndNormalizeUltimateB2HotspotManifest } from "../scripts/ultimate-b2/hotspot-manifest.mjs";
+import openerAssets from "../src/data/ultimate-b2/unit1Part1LegacyOpenerAssetManifest.json" with { type: "json" };
+import { isUltimateB2Unit1LegacyOpener } from "../src/data/ultimate-b2/unit1Part1LegacyOpener.js";
+import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
+import { buildUltimateB2TeacherSolutionPayload } from "../netlify/functions/_ultimate-b2-teacher-solutions.js";
+
+const repositoryRoot = path.resolve(import.meta.dirname, "..");
+const openerId = "ultimate-b2-sb-u1-p1-o1";
+
+async function sha256(file) {
+  return createHash("sha256").update(await readFile(file)).digest("hex");
+}
+
+test("authored hotspot manifest is canonical and limited to Ultimate B2 Students Book Units 1 and 2", () => {
+  assert.deepEqual(validateAndNormalizeUltimateB2HotspotManifest(manifest), manifest);
+  assert.equal(manifest.packageSlug, "ultimate-b2");
+  assert.equal(manifest.componentSlug, "students-book");
+  const validPageIds = new Set(ultimateB2StudentsBookAuthoringPages.map((page) => page.id));
+  for (const [pageId, hotspots] of Object.entries(manifest.pages)) {
+    assert.ok(validPageIds.has(pageId));
+    for (const hotspot of hotspots) {
+      assert.ok([1, 2].includes(hotspot.unitNumber));
+      assert.ok(Number.isFinite(hotspot.left) && Number.isFinite(hotspot.top));
+      assert.ok(hotspot.width > 0 && hotspot.height > 0);
+      assert.ok(hotspot.left >= 0 && hotspot.top >= 0);
+      assert.ok(hotspot.left + hotspot.width <= 100);
+      assert.ok(hotspot.top + hotspot.height <= 100);
+    }
+  }
+});
+
+test("the authoring activity dropdown is derived from all 77 enabled normalized activities", () => {
+  assert.equal(ultimateB2StudentsBookAuthoringActivities.filter((activity) => activity.unitNumber === 1).length, 37);
+  assert.equal(ultimateB2StudentsBookAuthoringActivities.filter((activity) => activity.unitNumber === 2).length, 40);
+  assert.equal(ultimateB2StudentsBookAuthoringActivities.length, 77);
+  assert.equal(new Set(ultimateB2StudentsBookAuthoringActivities.map((activity) => activity.activityKey)).size, 77);
+  for (const activity of ultimateB2StudentsBookAuthoringActivities) {
+    assert.equal(activity.availability, "enabled");
+    assert.notEqual(activity.implementationMode, "unsupported-disabled");
+    assert.match(activity.activityKey, /^ultimate-b2-sb-u[12]-p\d+-o\d+$/);
+  }
+});
+
+test("manifest validation rejects cross-package data, invalid geometry, unavailable activity keys, and duplicate ids", () => {
+  assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest({ ...manifest, packageSlug: "another-book" }), /Only ultimate-b2/);
+  assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest({ ...manifest, componentSlug: "workbook" }), /Only students-book/);
+  const invalidGeometry = structuredClone(manifest);
+  invalidGeometry.pages["ub2-sb-unit-1-part-1"][0].width = 80;
+  assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest(invalidGeometry), /coordinates must stay within/);
+  const invalidActivity = structuredClone(manifest);
+  invalidActivity.pages["ub2-sb-unit-1-part-1"][0].activityKey = "ultimate-b2-sb-u1-p99-o99";
+  assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest(invalidActivity), /unavailable activityKey/);
+  const duplicate = structuredClone(manifest);
+  duplicate.pages["ub2-sb-unit-1-part-1"].push(structuredClone(duplicate.pages["ub2-sb-unit-1-part-1"][0]));
+  assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest(duplicate), /Duplicate hotspot id/);
+});
+
+test("runtime lookup and action conversion preserve the normalized activity key", () => {
+  const hotspots = getUltimateB2StudentsBookHotspots({ pageId: "ub2-sb-unit-1-part-1", pageNumber: 5, unitNumber: 1 });
+  assert.equal(hotspots.length, 1);
+  assert.equal(hotspots[0].activityKey, openerId);
+  const action = ultimateB2StudentsBookHotspotToAction(hotspots[0]);
+  assert.equal(action.activityKey, openerId);
+  assert.equal(action.target, "normalized-activity");
+  assert.equal(action.left, "35.5%");
+  assert.deepEqual(getUltimateB2StudentsBookHotspotActions({ pageId: "missing" }), []);
+});
+
+test("web, Android student, and Android teacher viewers consume the tracked manifest without hotspot APIs", async () => {
+  const [viewer, androidViewer, teacherViewer, stubs] = await Promise.all([
+    readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageViewer.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/apps/android-offline/AndroidBookViewer.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/TeacherOfflinePages.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/apps/android-offline/androidOfflineServiceStubs.js"), "utf8"),
+  ]);
+  assert.match(viewer, /getUltimateB2StudentsBookHotspotActions/);
+  assert.match(androidViewer, /BookPackageBrowser/);
+  assert.match(teacherViewer, /getUltimateB2StudentsBookHotspotActions/);
+  assert.doesNotMatch(viewer.match(/authoredHotspotActions[\s\S]*?selectedDraftHotspot/)?.[0] || "", /listBookPageHotspots/);
+  assert.match(stubs, /listBookPageHotspots/);
+});
+
+test("Unit 1 opener special renderer activates only for its exact stable activity identity", async () => {
+  const opener = findStudentsBookImplementation(openerId);
+  assert.equal(isUltimateB2Unit1LegacyOpener(opener), true);
+  assert.equal(isUltimateB2Unit1LegacyOpener(findStudentsBookImplementation("ultimate-b2-sb-u1-p2-o1")), false);
+  assert.equal(isUltimateB2Unit1LegacyOpener({ ...opener, partNumber: 2 }), false);
+  const [normalizedRenderer, openerRenderer, activityStyles] = await Promise.all([
+    readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/styles/activities.css"), "utf8"),
+  ]);
+  assert.match(normalizedRenderer, /isUltimateB2Unit1LegacyOpener\(activity\)/);
+  assert.match(normalizedRenderer, /isUltimateB2Unit1Part2LegacyPilot\(activity\)/);
+  assert.match(openerRenderer, /data-legacy-unit-opener-activity/);
+  assert.match(openerRenderer, /capabilities\.canRevealSolutions/);
+  assert.match(openerRenderer, /revealQuestion\(question\.id\)/);
+  assert.match(openerRenderer, /capabilities\.canEditAnswers[\s\S]*textarea/);
+  assert.doesNotMatch(openerRenderer, /many artistic processes|every theatre moment is unique/);
+  assert.match(activityStyles, /\.legacy-unit-opener-layout/);
+  assert.match(activityStyles, /\.legacy-unit-opener-answer-lines\.revealed[\s\S]*#e40759/);
+});
+
+test("opener publisher assets preserve original bytes and exact scoped provenance", async (t) => {
+  assert.deepEqual(openerAssets.scope.activityIds, [openerId]);
+  assert.equal(openerAssets.copiedAssets.length, 2);
+  const trackedDirectory = path.join(repositoryRoot, "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1");
+  const actualFiles = (await readdir(trackedDirectory)).sort();
+  assert.deepEqual(actualFiles, ["image_1.png", "image_2.png"]);
+  for (const asset of openerAssets.copiedAssets) {
+    const tracked = path.join(repositoryRoot, ...asset.trackedPath.split("/"));
+    assert.equal(await sha256(tracked), asset.sha256);
+    assert.equal((await readFile(tracked)).length, asset.bytes);
+  }
+  const publisherRoot = path.join(repositoryRoot, "Ultimate English B2.app");
+  try { await access(publisherRoot); } catch { t.diagnostic("Publisher source unavailable; tracked hashes still verified."); return; }
+  for (const asset of [...openerAssets.copiedAssets, ...openerAssets.modelAnswerEvidence]) {
+    assert.equal(await sha256(path.join(publisherRoot, ...asset.sourceRelativePath.split("/"))), asset.sha256);
+  }
+});
+
+test("exact publisher model responses remain teacher-only and do not change scoring identity", async () => {
+  const activity = findStudentsBookImplementation(openerId);
+  assert.equal(activity.implementationMode, "teacher-reviewed");
+  assert.equal(activity.scoringMode, "pending-teacher-review");
+  const solution = buildUltimateB2TeacherSolutionPayload(openerId);
+  assert.equal(solution.solutionAvailability, "model-response");
+  assert.match(solution.questions[`${openerId}-q1`].acceptedAnswers[0], /^Films are an art form which involve many artistic processes/);
+  assert.match(solution.questions[`${openerId}-q2`].acceptedAnswers[0], /every theatre moment is unique\.$/);
+  assert.match(solution.questions[`${openerId}-q3`].acceptedAnswers[0], /everything else is organised around it\.$/);
+  const browserRuntime = await readFile(path.join(repositoryRoot, "src/data/ultimate-b2/generated/unit-01.runtime.json"), "utf8");
+  assert.doesNotMatch(browserRuntime, /Films are an art form which involve many artistic processes/);
+});

@@ -131,11 +131,13 @@ test("solution payloads use stable IDs, correct option IDs, and all verified typ
   assert.equal(checkPresentationAnswers({ [typedQuestion.questionId]: " OFF. " }, typed)[typedQuestion.questionId], "correct");
 });
 
-test("open-response and missing evidence states are represented truthfully", () => {
+test("publisher model responses and missing evidence states are represented truthfully", () => {
   const openResponse = buildUltimateB2TeacherSolutionPayload(openResponseId);
   const missing = buildUltimateB2TeacherSolutionPayload(missingSolutionId);
-  assert.equal(openResponse.solutionAvailability, "open-response");
-  assert.deepEqual(openResponse.questions, {});
+  assert.equal(openResponse.solutionAvailability, "model-response");
+  assert.equal(openResponse.solutionType, "publisher-model-answer");
+  assert.equal(Object.keys(openResponse.questions).length, 3);
+  assert.match(openResponse.questions[`${openResponseId}-q1`].acceptedAnswers[0], /many artistic processes/);
   assert.equal(missing.solutionAvailability, "missing");
   assert.deepEqual(missing.questions, {});
 });

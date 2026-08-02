@@ -269,7 +269,7 @@ test("offline teacher pack has exact enabled/disabled counts and enabled-only na
   assert.equal(canOpenActivityInMode(findStudentsBookImplementation(disabledId), ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE), false);
 });
 
-test("offline teacher solutions preserve verified, open-response, and missing-evidence states", () => {
+test("offline teacher solutions preserve verified, model-response, and missing-evidence states", () => {
   const multipleChoice = teacherSolutions.solutions[multipleChoiceId];
   const multipleQuestion = multipleChoice.questions[`${multipleChoiceId}-q1`];
   assert.deepEqual(multipleQuestion.correctOptionIds, [`${multipleChoiceId}-q1-o2`]);
@@ -278,7 +278,8 @@ test("offline teacher solutions preserve verified, open-response, and missing-ev
   const typedQuestion = typed.questions[`${typedId}-q8`];
   assert.deepEqual(typedQuestion.acceptedAnswers, ["out/off", "out", "off"]);
   assert.equal(checkPresentationAnswers({ [typedQuestion.questionId]: " off. " }, typed)[typedQuestion.questionId], "correct");
-  assert.equal(teacherSolutions.solutions[openResponseId].solutionAvailability, "open-response");
+  assert.equal(teacherSolutions.solutions[openResponseId].solutionAvailability, "model-response");
+  assert.equal(Object.keys(teacherSolutions.solutions[openResponseId].questions).length, 3);
   assert.equal(teacherSolutions.solutions[missingSolutionId].solutionAvailability, "missing");
 });
 

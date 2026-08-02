@@ -1,0 +1,5 @@
+export const ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS = Object.freeze({
+  "ultimate-b2-sb-u1-p1-o1-q1": "Films are an art form which involve many artistic processes; for example, the script, the sets, the acting, photography, etc. are all creative forms of expression. When they come together, it is art.",
+  "ultimate-b2-sb-u1-p1-o1-q2": "Theatre is life because good actors do more than deliver their lines. They react to the other actors and the audience around them, so they never give the same performance twice. As in real life, every theatre moment is unique.",
+  "ultimate-b2-sb-u1-p1-o1-q3": "No, because watching TV is not just something you do passively. TV entertains and informs viewers so it does more than take up space in a room. / Yes, because in most homes it is the focal point of a room and everything else is organised around it.",
+});

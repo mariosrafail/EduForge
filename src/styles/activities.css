@@ -2631,6 +2631,147 @@
 .unit2-normalized-question.wrong { border-color: #fda29b; background: #fef3f2; }
 
 /* Publisher-faithful pilot: Ultimate B2 Students Book, Unit 1, Part 2 only. */
+.ultimate-b2-legacy-unit-opener {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 1280px);
+  margin: 0 auto;
+}
+
+.authored-book-page-hotspots .reading-spread-hotspot {
+  padding: 0;
+  color: transparent;
+  background: rgba(23, 92, 211, 0.045);
+  border: 1px solid rgba(23, 92, 211, 0.22);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+
+.authored-book-page-hotspots .reading-spread-hotspot span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.authored-book-page-hotspots .reading-spread-hotspot:hover,
+.authored-book-page-hotspots .reading-spread-hotspot:focus-visible {
+  background: rgba(23, 92, 211, 0.14);
+  border-color: rgba(23, 92, 211, 0.7);
+  box-shadow: 0 0 0 4px rgba(23, 92, 211, 0.14);
+}
+
+.legacy-unit-opener-paper {
+  overflow: hidden;
+  padding: clamp(18px, 2vw, 30px);
+  background: #fff;
+  border: 1px solid #d9dde5;
+  border-radius: 10px;
+  box-shadow: 0 24px 58px rgba(16, 24, 40, 0.18);
+}
+
+.legacy-unit-opener-instruction {
+  display: block;
+  width: min(66%, 720px);
+  height: auto;
+  margin: 0 0 clamp(10px, 1.4vw, 18px);
+  object-fit: contain;
+}
+
+.legacy-unit-opener-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.15fr) minmax(240px, 0.9fr);
+  gap: clamp(12px, 2vw, 28px);
+  align-items: stretch;
+}
+
+.legacy-unit-opener-questions {
+  display: grid;
+  grid-template-rows: 0.9fr 1fr 1.08fr;
+  min-height: clamp(430px, 47vw, 610px);
+}
+
+.legacy-unit-opener-question {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.legacy-unit-opener-question h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  margin: 0;
+  color: #121826;
+  font-family: "Fira Sans", Arial, sans-serif;
+  font-size: clamp(18px, 1.65vw, 25px);
+  line-height: 1.25;
+}
+
+.legacy-unit-opener-question h3 span {
+  flex: none;
+  font-weight: 900;
+}
+
+.legacy-unit-opener-answer-lines,
+.legacy-unit-opener-question textarea {
+  display: block;
+  width: calc(100% - 20px);
+  height: 100%;
+  min-height: 86px;
+  margin-left: 20px;
+  padding: 5px 8px;
+  color: #111827;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 30px, #202020 31px, transparent 32px);
+  border: 0;
+  border-radius: 0;
+  font-family: Georgia, serif;
+  font-size: clamp(16px, 1.4vw, 21px);
+  line-height: 31px;
+  text-align: left;
+  resize: none;
+}
+
+button.legacy-unit-opener-answer-lines {
+  cursor: pointer;
+}
+
+button.legacy-unit-opener-answer-lines:hover,
+button.legacy-unit-opener-answer-lines:focus-visible {
+  background-color: rgba(250, 176, 5, 0.08);
+  outline: 3px solid rgba(224, 32, 96, 0.2);
+  outline-offset: 2px;
+}
+
+.legacy-unit-opener-answer-lines > span {
+  display: block;
+  min-height: 100%;
+}
+
+.legacy-unit-opener-answer-lines.revealed > span {
+  color: #e40759;
+  font-weight: 700;
+}
+
+.legacy-unit-opener-quote-art {
+  align-self: end;
+  justify-self: end;
+  width: 100%;
+  max-width: 350px;
+  max-height: 610px;
+  object-fit: contain;
+  object-position: right bottom;
+}
+
+@media (max-width: 900px) {
+  .legacy-unit-opener-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+  .legacy-unit-opener-questions { min-height: 440px; }
+}
+
 .ultimate-b2-legacy-pilot {
   --legacy-aqua: #00a9b5;
   --legacy-aqua-dark: #006e80;

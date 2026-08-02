@@ -14,6 +14,7 @@ import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
+import { getUltimateB2StudentsBookHotspotActions } from "../../data/ultimate-b2/studentsBookHotspots.js";
 
 const minimumZoom = 1;
 const maximumZoom = 4;
@@ -116,11 +117,18 @@ export default function TeacherOfflinePages({
 
   useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
 
-  const actions = useMemo(() => (page?.actions || []).filter((action) => {
+  const actions = useMemo(() => [
+    ...(page?.actions || []),
+    ...getUltimateB2StudentsBookHotspotActions({
+      pageId: page?.id,
+      pageNumber: page?.pageNumber,
+      unitNumber: unit?.number,
+    }),
+  ].filter((action) => {
     if (action.availability !== "enabled") return false;
     if (action.logicalKey) return true;
     return Boolean(activityIdForAction(page, action));
-  }), [page]);
+  }), [page, unit?.number]);
 
   const image = page?.images?.[0] || null;
   const openAction = (action) => {

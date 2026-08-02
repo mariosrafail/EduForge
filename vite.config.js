@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { legacyFlashProofPlugin } from "./scripts/ultimate-b2/legacy-flash-vite-plugin.mjs";
 import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
+import { ultimateB2HotspotBuilderPlugin } from "./scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -63,7 +64,7 @@ export default defineConfig(({ mode }) => {
         input: isAndroidOffline ? path.resolve(process.cwd(), "index.html") : webInputs,
       },
     },
-    plugins: [react(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
+    plugins: [react(), ultimateB2HotspotBuilderPlugin(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
     resolve: {
       alias: [
         {

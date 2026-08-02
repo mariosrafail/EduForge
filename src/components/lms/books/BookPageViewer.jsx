@@ -13,6 +13,7 @@ import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bo
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
 import { requestBookAssetAccess } from "virtual:book-assets-service";
+import { getUltimateB2StudentsBookHotspotActions } from "../../../data/ultimate-b2/studentsBookHotspots.js";
 
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
@@ -574,6 +575,13 @@ export function BookPagesView({
     const currentCustomHotspots = enableBookHotspotEditor
       ? (hotspotEditingActive ? draftHotspots : customHotspotsByPage[pageHotspotKey] || [])
       : [];
+    const authoredHotspotActions = packageSlug === "ultimate-b2" && componentSlug === "students-book"
+      ? getUltimateB2StudentsBookHotspotActions({
+        pageId: selectedSection.pageId,
+        pageNumber: selectedSection.pageNumber,
+        unitNumber: selectedSection.unitNumber,
+      })
+      : [];
     const selectedDraftHotspot = hotspotEditingActive ? draftHotspots.find((area) => area.id === selectedHotspotId) : null;
     const goToUnitSection = (nextUnitIndex, options) => {
       const nextSection = unitSections[nextUnitIndex];
@@ -707,7 +715,10 @@ export function BookPagesView({
                 exit="exit"
                 transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
               >
-                <div className={`book-page-image-layer ${spreadClass}`}>
+                <div
+                  className={`book-page-image-layer ${spreadClass}`}
+                  style={{ transform: fitToScreen ? undefined : `scale(${zoom})`, transformOrigin: "center top" }}
+                >
                   {selectedImages.length ? selectedImages.map((image, index) => (
                     <motion.img
                       key={`${selectedSection.id}-${index}`}
@@ -717,7 +728,6 @@ export function BookPagesView({
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
-                      style={{ scale: fitToScreen ? 1 : zoom }}
                     />
                   )) : pageAssetLoading ? (
                     <div className="book-page-missing" role="status">Loading protected page...</div>
@@ -727,6 +737,7 @@ export function BookPagesView({
                     <div className="book-page-missing">Page asset is not available for online delivery.</div>
                   )}
                   <BookPageHotspots actions={selectedSection.actions} onAction={setActiveAction} />
+                  <BookPageHotspots actions={authoredHotspotActions} onAction={setActiveAction} className="authored-book-page-hotspots" />
                   {enableBookHotspotEditor && (
                     <EditableHotspotLayer
                       pageId={pageHotspotKey}

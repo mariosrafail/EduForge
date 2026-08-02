@@ -1,5 +1,6 @@
 import unit1Matrix from "../../books/ultimate-b2/generated/editorial/unit-01.implementation-matrix.json" with { type: "json" };
 import unit2Matrix from "../../books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json" with { type: "json" };
+import { ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS } from "./_ultimate-b2-unit1-opener-model-answers.js";
 
 const activities = [...(unit1Matrix.activities || []), ...(unit2Matrix.activities || [])];
 const activitiesById = new Map(activities.map((activity) => [activity.stableNormalizedId, activity]));
@@ -52,6 +53,23 @@ export function getUltimateB2TeacherSolutionRecord(activityId) {
 export function buildUltimateB2TeacherSolutionPayload(activityId) {
   const activity = getUltimateB2TeacherSolutionRecord(activityId);
   if (!activity) return null;
+
+  const modelAnswerQuestions = activity.stableNormalizedId === "ultimate-b2-sb-u1-p1-o1"
+    ? Object.fromEntries(Object.entries(ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS).map(([questionId, answer]) => [questionId, {
+      questionId,
+      acceptedAnswers: [answer],
+      correctOptionIds: [],
+      answerRole: "publisher-model-response",
+    }]))
+    : null;
+  if (modelAnswerQuestions) {
+    return {
+      activityId: activity.stableNormalizedId,
+      solutionAvailability: "model-response",
+      solutionType: "publisher-model-answer",
+      questions: modelAnswerQuestions,
+    };
+  }
 
   const questions = (activity.runtime?.questions || []).map(solutionQuestion);
   const verifiedQuestions = questions.filter((question) => question.acceptedAnswers.length > 0);

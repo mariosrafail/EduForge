@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "scope": {
+    "book": "ultimate-b2",
+    "component": "students-book",
+    "unit": 1,
+    "part": 1,
+    "activityIds": [
+      "ultimate-b2-sb-u1-p1-o1"
+    ]
+  },
+  "sourcePolicy": {
+    "publisherRoot": "Ultimate English B2.app",
+    "sourceReadOnly": true,
+    "publisherCodeExecuted": false
+  },
+  "copiedAssets": [
+    {
+      "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-1.obj1.image-1",
+      "activityId": "ultimate-b2-sb-u1-p1-o1",
+      "classification": "quote and film artwork",
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj1/image_1.png",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_1.png",
+      "fileType": "png",
+      "bytes": 194980,
+      "sha256": "3e24e7e908b41637127095445438cf4acf7ff206bc5589b1115b1e42099e531f",
+      "width": 317,
+      "height": 507,
+      "aspectRatio": 0.625247,
+      "hasAlphaChannel": true,
+      "requiredByPilot": true,
+      "preserveOriginalBytes": true
+    },
+    {
+      "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-1.obj1.image-2",
+      "activityId": "ultimate-b2-sb-u1-p1-o1",
+      "classification": "instruction panel",
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj1/image_2.png",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_2.png",
+      "fileType": "png",
+      "bytes": 8538,
+      "sha256": "887988b23db4d47361a76bb0c0808ce471b4e99af60e92d155941b8009ed8489",
+      "width": 606,
+      "height": 34,
+      "aspectRatio": 17.823529,
+      "hasAlphaChannel": true,
+      "requiredByPilot": true,
+      "preserveOriginalBytes": true
+    }
+  ],
+  "modelAnswerEvidence": [
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb",
+      "bytes": 9496,
+      "sha256": "452e816f0107d07e2d50784d8cf44f936545a76db1abf33d70b2154b943f0fd6",
+      "classification": "teacher model-answer configuration",
+      "copied": false
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj1/ebook_obj_params.iwb",
+      "bytes": 9620,
+      "sha256": "40ca958d010ec12c3690fb4b306dd7525ddfe68d064b14161f4d6ea3f5339408",
+      "classification": "ebook teacher model-answer configuration",
+      "copied": false
+    }
+  ]
+}

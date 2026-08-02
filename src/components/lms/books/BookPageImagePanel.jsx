@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-export function BookPageHotspots({ actions = [], onAction }) {
+export function BookPageHotspots({ actions = [], onAction, className = "" }) {
   if (!actions.length) return null;
   return (
-    <div className="reading-spread-hotspots" aria-label="Book page shortcuts">
+    <div className={`reading-spread-hotspots ${className}`.trim()} aria-label="Book page shortcuts">
       {actions.map((action, index) => (
         <motion.button
           key={action.id || action.target || action.label}
@@ -46,6 +46,7 @@ export function EditableHotspotLayer({
   onSelectArea,
   onChangeAreas,
   onActivateArea,
+  createArea,
 }) {
   const [dragState, setDragState] = useState(null);
   const [draftArea, setDraftArea] = useState(null);
@@ -136,13 +137,16 @@ export function EditableHotspotLayer({
       const minWidth = (20 / Math.max(dragState.rect.width, 1)) * 100;
       const minHeight = (20 / Math.max(dragState.rect.height, 1)) * 100;
       if (draftArea.width >= minWidth && draftArea.height >= minHeight) {
-        const nextArea = {
-          id: `area-${Date.now()}`,
-          pageId,
+        const geometry = {
           left: draftArea.left,
           top: draftArea.top,
           width: draftArea.width,
           height: draftArea.height,
+        };
+        const nextArea = createArea?.(geometry) || {
+          id: `area-${Date.now()}`,
+          pageId,
+          ...geometry,
           label: "Clickable area",
           actionType: "none",
           actionTargetId: null,
