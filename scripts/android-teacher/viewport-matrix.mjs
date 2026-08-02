@@ -382,18 +382,33 @@ try {
       hasText: target.name === "4k-3840x2160" ? /Reading.*Exercise 3/ : /Reading/,
     }).first();
     await firstActivity.getByRole("button", { name: "Present" }).click();
-    await page.locator(".teacher-offline-presentation").waitFor();
+    await page.locator(".teacher-offline-embedded-activity").waitFor();
     await page.waitForTimeout(220);
     const activityMetrics = await page.evaluate(() => {
-      const card = document.querySelector(".teacher-presentation-activity").getBoundingClientRect();
+      const reader = document.querySelector(".teacher-offline-page-reader").getBoundingClientRect();
+      const embedded = document.querySelector(".teacher-offline-embedded-activity-content").getBoundingClientRect();
       return {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        cardWidth: card.width,
-        inViewport: card.left >= -1 && card.right <= innerWidth + 1,
+        inViewport: embedded.left >= reader.left - 1 && embedded.right <= reader.right + 1
+          && embedded.top >= reader.top - 1 && embedded.bottom <= reader.bottom + 1,
+        fitScale: Number(document.querySelector(".teacher-offline-embedded-activity").dataset.fitScale),
+        heading: Boolean(document.querySelector(".legacy-page-heading")),
+        navigation: Boolean(document.querySelector(".legacy-page-navigation")),
+        reader: Boolean(document.querySelector(".teacher-offline-page-reader")),
+        pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
+        toolbars: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
+        standalonePresentation: document.querySelectorAll(".teacher-offline-presentation").length,
       };
     });
     assert.ok(activityMetrics.overflow <= 1, `${target.name} activity overflow`);
     assert.ok(activityMetrics.inViewport, `${target.name} activity card must remain in viewport`);
+    assert.ok(activityMetrics.fitScale > 0 && activityMetrics.fitScale <= 1, `${target.name} activity fit scale`);
+    assert.equal(activityMetrics.heading, true, `${target.name} activity keeps unit heading`);
+    assert.equal(activityMetrics.navigation, true, `${target.name} activity keeps page navigation`);
+    assert.equal(activityMetrics.reader, true, `${target.name} activity stays in purple reader`);
+    assert.equal(activityMetrics.pageImages, 0, `${target.name} activity replaces page image`);
+    assert.equal(activityMetrics.toolbars, 1, `${target.name} activity keeps exactly one toolbar`);
+    assert.equal(activityMetrics.standalonePresentation, 0, `${target.name} standalone presentation chrome removed`);
     assert.equal(await page.locator(".unit2-normalized-activity").count(), 1, `${target.name} active renderer count`);
 
     if (target.name === "full-hd-1920x1080") {
@@ -408,46 +423,48 @@ try {
       await page.getByText("Publisher answer", { exact: true }).first().waitFor();
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
     }
-    await page.getByRole("button", { name: "Back to book" }).click();
+    await page.getByRole("button", { name: "Back to page" }).click();
+    await page.locator(".teacher-offline-page-image").waitFor();
 
     if (target.name === "tablet-1280x800") {
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       const typedActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 4/ }).first();
       await typedActivity.getByRole("button", { name: "Present" }).click();
-      await page.locator(".teacher-offline-presentation input").first().fill("test");
-      assert.equal(await page.locator(".teacher-offline-presentation input").first().inputValue(), "test");
-      await page.getByRole("button", { name: "Back to book" }).click();
+      await page.locator(".teacher-offline-embedded-activity input").first().fill("test");
+      assert.equal(await page.locator(".teacher-offline-embedded-activity input").first().inputValue(), "test");
+      await page.getByRole("button", { name: "Back to page" }).click();
     }
 
     if (target.name === "full-hd-1920x1080") {
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       const answerActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Reading.*Exercise 3/ }).first();
       await answerActivity.getByRole("button", { name: "Present" }).click();
       await page.getByRole("button", { name: "Show all answers" }).click();
       await page.getByText("Publisher answer", { exact: true }).first().waitFor();
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
-      await page.getByRole("button", { name: "Back to book" }).click();
+      await page.getByRole("button", { name: "Back to page" }).click();
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       await page.getByRole("button", { name: "Unit 1", exact: true }).click();
       await page.getByRole("button", { name: "Contents and exercises" }).click();
       const matchingActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 1/ }).first();
       await matchingActivity.getByRole("button", { name: "Present" }).click();
-      assert.ok(await page.locator(".teacher-offline-presentation select").count() > 0, "Normalized matching activity must render choices");
-      const activityLabel = page.locator(".teacher-offline-presentation > header small");
-      const beforeNext = await activityLabel.textContent();
-      await page.getByRole("button", { name: "Next" }).click();
-      assert.notEqual(await activityLabel.textContent(), beforeNext, "Presentation Next must navigate");
-      await page.getByRole("button", { name: "Previous" }).click();
-      assert.equal(await page.locator(".unit2-normalized-activity").count(), 1, "Presentation must retain one renderer");
-      await page.getByRole("button", { name: "Back to book" }).click();
+      assert.ok(await page.locator(".teacher-offline-embedded-activity select").count() > 0, "Normalized matching activity must render choices");
+      await page.getByRole("button", { name: "Next page" }).click();
+      await page.locator(".teacher-offline-page-image").waitFor();
+      assert.equal(await page.locator(".teacher-offline-embedded-activity").count(), 0, "Next page closes the old activity");
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       await page.getByRole("button", { name: "Unit 2", exact: true }).click();
     }
 
     if (target.name === "qhd-2560x1440") {
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
       const audioActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Reading.*Exercise 2/ }).first();
       await audioActivity.getByRole("button", { name: "Present" }).click();
       const audio = page.locator("audio");
       await audio.waitFor();
       assert.equal(await audio.getAttribute("preload"), "metadata");
       assert.match(await audio.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4179)?\/assets\//);
-      await page.getByRole("button", { name: "Back to book" }).click();
+      await page.getByRole("button", { name: "Back to page" }).click();
     }
 
     const bookPagesTab = page.locator('[title="Book pages"]');

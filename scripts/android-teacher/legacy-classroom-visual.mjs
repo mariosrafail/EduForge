@@ -102,13 +102,46 @@ async function openPage(page, label) {
 }
 
 async function openActivity(page, unit, title) {
-  if (await page.locator(".teacher-offline-presentation").count()) await page.getByRole("button", { name: "Back to book" }).click();
+  if (await page.locator(".teacher-offline-embedded-activity").count()) await page.getByRole("button", { name: "Back to page" }).click();
   if (await page.locator(".teacher-offline-pages-viewer").count()) await page.getByRole("button", { name: "Contents and exercises" }).click();
   await page.getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
   await page.getByRole("button", { name: "Contents and exercises" }).click();
   const row = page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
   await row.getByRole("button", { name: "Present" }).click();
-  await page.locator(".teacher-offline-presentation").waitFor();
+  await page.locator(".teacher-offline-embedded-activity").waitFor();
+  await assertEmbeddedActivity(page, `${title} embedded`);
+}
+
+async function assertEmbeddedActivity(page, label) {
+  const metrics = await page.evaluate(() => {
+    const visible = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return Boolean(rect?.width && rect?.height);
+    };
+    const reader = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
+    const content = document.querySelector(".teacher-offline-embedded-activity-content")?.getBoundingClientRect();
+    return {
+      heading: visible(".legacy-page-heading"),
+      reader: visible(".teacher-offline-page-reader"),
+      navigation: visible(".legacy-page-navigation"),
+      toolbarCount: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
+      standaloneChrome: document.querySelectorAll(".teacher-offline-presentation").length,
+      pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
+      fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
+      contained: reader && content
+        ? content.left >= reader.left - 1 && content.right <= reader.right + 1
+          && content.top >= reader.top - 1 && content.bottom <= reader.bottom + 1
+        : false,
+    };
+  });
+  assert.equal(metrics.heading, true, `${label} keeps unit heading`);
+  assert.equal(metrics.reader, true, `${label} keeps purple reader`);
+  assert.equal(metrics.navigation, true, `${label} keeps legacy navigation`);
+  assert.equal(metrics.toolbarCount, 1, `${label} has one toolbar`);
+  assert.equal(metrics.standaloneChrome, 0, `${label} removes standalone presentation chrome`);
+  assert.equal(metrics.pageImages, 0, `${label} replaces page image`);
+  assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
+  assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
 
 async function assertScreen(page, label) {
@@ -383,6 +416,30 @@ try {
     await assertScreen(page, "page-viewer-unit1-page5-1280x720");
     await assertLegacyPageViewer(page, "page-viewer-unit1-page5-1280x720");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1280x720.png` });
+  });
+
+  await capture({ width: 1366, height: 768 }, async (page) => {
+    await openBook(page);
+    await selectOverviewUnit(page, 1);
+    await openPage(page, "pg 5");
+    await page
+      .locator('.teacher-offline-page-hotspot[aria-label="Unit opener · Exercise 1"]')
+      .click();
+    await page.locator(".teacher-offline-embedded-activity").waitFor();
+    await assertEmbeddedActivity(page, "unit-opener-1366x768");
+    for (const question of [1, 2, 3]) {
+      await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
+    }
+    await page.getByRole("button", { name: "Publisher model answer for question 3" }).waitFor();
+    await page.screenshot({ path: `${artifactRoot}/embedded-unit-opener-1366x768.png` });
+    await page.getByRole("button", { name: "Back to page" }).click();
+    await waitForPageImage(page);
+    await page
+      .locator('.teacher-offline-page-hotspot[aria-label="Unit opener · Exercise 1"]')
+      .click();
+    await page.locator(".teacher-offline-embedded-activity").waitFor();
+    await page.goBack();
+    await waitForPageImage(page);
   });
 
   await capture({ width: 800, height: 360 }, async (page) => {

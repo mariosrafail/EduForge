@@ -9,7 +9,6 @@ import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teach
 import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
 import TeacherOfflineMedia from "./TeacherOfflineMedia.jsx";
-import TeacherOfflinePresentation from "./TeacherOfflinePresentation.jsx";
 import TeacherViewportDiagnostics from "./TeacherViewportDiagnostics.jsx";
 import { recordTeacherOfflineNavigation } from "./teacherOfflineDiagnostics.js";
 import { useTeacherViewportProfile } from "./viewportProfiles.js";
@@ -17,6 +16,10 @@ import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import {
+  isTeacherOfflinePageLocation,
+  resolveTeacherOfflineActivityLocation,
+} from "./teacherOfflineActivityLocation.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
@@ -126,6 +129,10 @@ export default function TeacherOfflineApp() {
           await App.exitApp();
           return;
         }
+        if (current.view === "book" && current.activityId) {
+          window.history.back();
+          return;
+        }
         if (current.view === "book") {
           const next = libraryState();
           window.history.replaceState(next, "", "#library");
@@ -156,19 +163,26 @@ export default function TeacherOfflineApp() {
   }
 
   const pack = packState.pack;
+  const openBookActivity = (activityId, originLocation = null) => {
+    const resolved = resolveTeacherOfflineActivityLocation({
+      activityId,
+      activities: pack.activities.activities,
+      pageUnits,
+      originLocation,
+    });
+    if (!resolved) return;
+    const pageState = { teacherOffline: true, view: "book", location: resolved.location };
+    writeTeacherOfflineLocation(resolved.location);
+    if (navigationRef.current.view !== "book"
+      || !isTeacherOfflinePageLocation(navigationRef.current.location, resolved.location)) {
+      window.history.pushState(pageState, "", "#book");
+    }
+    const activityState = { ...pageState, activityId };
+    setNavigation(activityState);
+    window.history.pushState(activityState, "", `#book/activity/${encodeURIComponent(activityId)}`);
+  };
   let content;
-  if (navigation.view === "activity") {
-    content = (
-      <TeacherOfflinePresentation
-        key={navigation.activityId}
-        activityId={navigation.activityId}
-        activities={pack.activities.activities}
-        onBack={() => window.history.back()}
-        onNavigate={(activityId) => navigate({ ...navigation, activityId }, { replace: true })}
-        viewportProfile={viewport.profile}
-      />
-    );
-  } else if (navigation.view === "media") {
+  if (navigation.view === "media") {
     content = (
       <TeacherOfflineMedia
         media={navigation.media}
@@ -181,8 +195,10 @@ export default function TeacherOfflineApp() {
         pack={pack}
         pageUnits={pageUnits}
         location={navigation.location || defaultLocation}
+        activityId={navigation.activityId || ""}
         onLocationChange={updateBookLocation}
-        onOpenActivity={(activityId) => navigate({ view: "activity", activityId, location: navigation.location || defaultLocation })}
+        onOpenActivity={openBookActivity}
+        onCloseActivity={() => window.history.back()}
         onOpenMedia={(media) => navigate({ view: "media", media, location: navigation.location || defaultLocation })}
         onBackToLibrary={() => navigate(libraryState(), { replace: true })}
         viewportProfile={viewport.profile}
@@ -218,7 +234,7 @@ export default function TeacherOfflineApp() {
           "--teacher-ui-scale": effectiveUiScale,
         }}
       >
-        <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view}>
+        <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
         {navigation.view === "book" && (

@@ -85,8 +85,8 @@ async function openExercises(page, unitNumber) {
 }
 
 async function backToBook(page) {
-  await page.getByRole("button", { name: "Back to book" }).click();
-  await page.locator(".teacher-offline-book").waitFor();
+  await page.getByRole("button", { name: "Back to page" }).click();
+  await page.locator(".teacher-offline-page-image").waitFor();
 }
 
 let browser;
@@ -437,19 +437,20 @@ try {
   assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38);
   const activityOpenStartedAt = performance.now();
   await exerciseRow(page, "Reading · Exercise 3").getByRole("button", { name: "Present" }).click();
-  await page.getByText(/Activity \d+ of 78/).waitFor();
-  assert.equal(await page.locator(".teacher-offline-presentation .classroom-teaching-toolbar").count(), 1, "Activity toolbar should render");
-  assert.equal(await page.locator(".teacher-offline-presentation .classroom-tools-overlay").count(), 1, "Activity overlay should render");
+  await page.locator(".teacher-offline-embedded-activity").waitFor();
+  assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-teaching-toolbar").count(), 1, "Activity toolbar should render exactly once");
+  assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-tools-overlay").count(), 1, "Activity overlay should render");
+  assert.equal(await page.locator(".teacher-offline-presentation").count(), 0, "Standalone activity chrome should not render");
   await page.waitForTimeout(10_200);
-  assert.equal(await page.locator(".teacher-offline-presentation .classroom-teaching-toolbar").isVisible(), true, "Activity toolbar must remain visible");
+  assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-teaching-toolbar").isVisible(), true, "Activity toolbar must remain visible");
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Activity toolbar must not use a reveal button");
   await page.getByRole("button", { name: "Zoom region" }).click();
-  const activityOverlayBox = await page.locator(".teacher-offline-presentation .classroom-tools-overlay").boundingBox();
+  const activityOverlayBox = await page.locator(".teacher-offline-pages-viewer .classroom-tools-overlay").boundingBox();
   await page.mouse.move(activityOverlayBox.x + 120, activityOverlayBox.y + 80);
   await page.mouse.down();
   await page.mouse.move(activityOverlayBox.x + 520, activityOverlayBox.y + 300, { steps: 6 });
   await page.mouse.up();
-  await page.locator(".teacher-offline-presentation .classroom-stage-transform.region-zoom-active").waitFor();
+  await page.locator(".teacher-offline-pages-viewer .classroom-stage-transform.region-zoom-active").waitFor();
   await page.getByRole("button", { name: "Zoom out" }).click();
   const activityOpenMs = Math.round(performance.now() - activityOpenStartedAt);
   const multipleChoiceSolution = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o3"];
@@ -487,8 +488,8 @@ try {
 
   await openExercises(page, 1);
   await exerciseRow(page, "Unit opener · Exercise 1").getByRole("button", { name: "Present" }).click();
-  await page.getByRole("button", { name: "Check", exact: true }).click();
-  await page.getByText("Open response — no single correct answer.").waitFor();
+  await page.getByRole("button", { name: "Show publisher model answer for question 1" }).click();
+  await page.getByRole("button", { name: "Publisher model answer for question 1" }).waitFor();
   await backToBook(page);
 
   await openExercises(page, 1);
@@ -497,7 +498,8 @@ try {
   await page.getByText("No verified answer is available for this activity.").waitFor();
   await backToBook(page);
 
-  await page.getByRole("tab", { name: "Book pages" }).click();
+  const bookPagesTab = page.getByRole("tab", { name: "Book pages" });
+  if (await bookPagesTab.count()) await bookPagesTab.click();
   if (!await page.locator(".teacher-offline-unit-overview").count()) {
     await page.getByRole("button", { name: "Unit overview" }).click();
   }

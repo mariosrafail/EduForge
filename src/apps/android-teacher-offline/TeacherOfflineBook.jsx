@@ -10,8 +10,10 @@ export default function TeacherOfflineBook({
   pack,
   pageUnits,
   location,
+  activityId,
   onLocationChange,
   onOpenActivity,
+  onCloseActivity,
   onOpenMedia,
   onBackToLibrary,
   viewportProfile,
@@ -27,6 +29,7 @@ export default function TeacherOfflineBook({
   const tab = location.tab === "exercises" ? "exercises" : "pages";
   const pageViewerActive = tab === "pages" && Boolean(location.pageId);
   const unitOverviewActive = tab === "pages" && !location.pageId;
+  const activeActivity = pack.activities.activities.find((activity) => activity.stableActivityId === activityId) || null;
   const update = (patch, options) => onLocationChange({ ...location, ...patch }, options);
 
   return (
@@ -60,7 +63,10 @@ export default function TeacherOfflineBook({
           unit={pageUnits.find((candidate) => Number(candidate.number) === unitNumber)}
           selectedPageId={location.pageId}
           onSelectPage={(pageId, options) => update({ pageId }, options)}
-          onOpenActivity={onOpenActivity}
+          activeActivity={activeActivity}
+          activeActivityId={activityId}
+          onOpenActivity={(nextActivityId) => onOpenActivity(nextActivityId, { unitNumber, tab: "pages", pageId: location.pageId })}
+          onCloseActivity={onCloseActivity}
           onOpenMedia={onOpenMedia}
           onBackToLibrary={onBackToLibrary}
           onOpenContents={() => update({ tab: "exercises" })}

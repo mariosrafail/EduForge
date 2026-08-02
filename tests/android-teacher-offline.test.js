@@ -35,6 +35,11 @@ import {
   sanitizeTeacherOfflineSettings,
   teacherMenuDelayMilliseconds,
 } from "../src/apps/android-teacher-offline/teacherOfflineSettings.js";
+import {
+  isTeacherOfflinePageLocation,
+  resolveTeacherOfflineActivityLocation,
+} from "../src/apps/android-teacher-offline/teacherOfflineActivityLocation.js";
+import { calculateEmbeddedActivityScale } from "../src/apps/android-teacher-offline/embeddedActivityFit.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -269,6 +274,41 @@ test("offline teacher pack has exact enabled/disabled counts and enabled-only na
   assert.equal(canOpenActivityInMode(findStudentsBookImplementation(disabledId), ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE), false);
 });
 
+test("every enabled Contents activity resolves to its real Students Book runtime page", () => {
+  const pageUnits = studentsBookRuntime.units.map((unit) => ({ number: unit.number, pages: unit.pages }));
+  for (const activity of activities.activities) {
+    const resolved = resolveTeacherOfflineActivityLocation({
+      activityId: activity.stableActivityId,
+      activities: activities.activities,
+      pageUnits,
+    });
+    assert.ok(resolved, `${activity.stableActivityId} resolves`);
+    assert.equal(resolved.location.unitNumber, activity.unitNumber);
+    const page = pageUnits
+      .find((unit) => Number(unit.number) === Number(activity.unitNumber))
+      .pages.find((candidate) => candidate.id === resolved.location.pageId);
+    assert.ok(page.activities.some((candidate) => candidate.id === activity.stableActivityId));
+  }
+});
+
+test("page hotspot origins remain exact while Contents uses runtime metadata", () => {
+  const pageUnits = studentsBookRuntime.units.map((unit) => ({ number: unit.number, pages: unit.pages }));
+  const activityId = "ultimate-b2-sb-u1-p2-o3";
+  const nominal = resolveTeacherOfflineActivityLocation({ activityId, activities: activities.activities, pageUnits });
+  assert.equal(nominal.location.pageId, "ub2-sb-unit-1-part-2");
+  const hotspotOrigin = { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" };
+  const authored = resolveTeacherOfflineActivityLocation({ activityId, activities: activities.activities, pageUnits, originLocation: hotspotOrigin });
+  assert.deepEqual(authored.location, hotspotOrigin);
+  assert.equal(isTeacherOfflinePageLocation(authored.location, hotspotOrigin), true);
+  assert.equal(isTeacherOfflinePageLocation({ ...authored.location, pageId: "other" }, hotspotOrigin), false);
+});
+
+test("embedded activity fit scales down uniformly and never enlarges natural content", () => {
+  assert.equal(calculateEmbeddedActivityScale({ availableWidth: 1200, availableHeight: 700, contentWidth: 1000, contentHeight: 600 }), 1);
+  assert.equal(calculateEmbeddedActivityScale({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 0.5);
+  assert.equal(calculateEmbeddedActivityScale({ availableWidth: 0, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 1);
+});
+
 test("offline teacher solutions preserve verified, model-response, and missing-evidence states", () => {
   const multipleChoice = teacherSolutions.solutions[multipleChoiceId];
   const multipleQuestion = multipleChoice.questions[`${multipleChoiceId}-q1`];
@@ -307,10 +347,13 @@ test("previous and next traverse exactly the 78 enabled activities", () => {
   }
 });
 
-test("teacher app uses bounded page/media state and no student persistence path", async () => {
-  const [app, pages, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard] = await Promise.all([
+test("teacher app embeds book activities in the mounted page shell with one classroom toolbar", async () => {
+  const [app, book, pages, embedded, activityLocation, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard, pageViewerStyles] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineActivityLocation.js", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePresentation.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineMedia.jsx", "utf8"),
@@ -324,9 +367,27 @@ test("teacher app uses bounded page/media state and no student persistence path"
     readFile("src/apps/android-teacher-offline/teacherOfflineStorage.js", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineNetworkGuard.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflinePageViewer.css", "utf8"),
   ]);
-  assert.match(presentation, /TEACHER_PRESENTATION_OFFLINE/);
-  assert.match(presentation, /NormalizedStudentsBookActivity/);
+  assert.doesNotMatch(app, /TeacherOfflinePresentation|navigation\.view === "activity"/);
+  assert.match(app, /current\.view === "book" && current\.activityId[\s\S]*window\.history\.back\(\)/);
+  assert.match(app, /window\.history\.pushState\(pageState[\s\S]*window\.history\.pushState\(activityState/);
+  assert.match(app, /activityId=\{navigation\.activityId \|\| ""\}/);
+  assert.match(book, /activeActivity=\{activeActivity\}/);
+  assert.match(pages, /TeacherOfflineEmbeddedActivity/);
+  assert.match(pages, /students-book:activity:\$\{embeddedActivityId\}/);
+  assert.match(pages, /activityActive \? \{\} : \{[\s\S]*onPointerDown/);
+  assert.match(pages, /event\.target\.closest\?\.\("\.teacher-offline-page-hotspot"\)/);
+  assert.match(pages, /activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)/);
+  assert.equal((pages.match(/<ClassroomToolbar\b/g) || []).length, 1);
+  assert.match(embedded, /TEACHER_PRESENTATION_OFFLINE/);
+  assert.match(embedded, /NormalizedStudentsBookActivity/);
+  assert.match(embedded, /ResizeObserver/);
+  assert.match(activityLocation, /pageContainsActivity[\s\S]*pageNumbers[\s\S]*printedPage/);
+  assert.match(pageViewerStyles, /\.teacher-offline-embedded-activity[\s\S]*align-items: center[\s\S]*justify-content: center[\s\S]*overflow: hidden/);
+  assert.match(pageViewerStyles, /transform: scale\(var\(--embedded-activity-scale, 1\)\)/);
+  assert.doesNotMatch(embedded, /Back to book|Activity \{index|ClassroomToolbar|teacher-offline-presentation/);
+  assert.match(presentation, /TeacherOfflinePresentation/);
   assert.match(pages, /<img[\s\S]*key=\{page\.id\}/);
   assert.match(pages, /TeacherOfflineUnitOverview/);
   assert.match(overview, /teacher-unit-page-card/);

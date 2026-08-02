@@ -11,6 +11,7 @@ import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAss
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import TeacherOfflineEmbeddedActivity from "./TeacherOfflineEmbeddedActivity.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
@@ -55,7 +56,10 @@ export default function TeacherOfflinePages({
   unit,
   selectedPageId,
   onSelectPage,
+  activeActivity,
+  activeActivityId,
   onOpenActivity,
+  onCloseActivity,
   onOpenMedia,
   onBackToLibrary,
   onOpenContents,
@@ -68,7 +72,11 @@ export default function TeacherOfflinePages({
   const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
-  const classroomSurfaceKey = page ? `students-book:page:${page.id}` : "students-book:overview";
+  const embeddedActivityId = activeActivity?.stableActivityId || activeActivityId || "";
+  const activityActive = Boolean(embeddedActivityId);
+  const classroomSurfaceKey = activityActive
+    ? `students-book:activity:${embeddedActivityId}`
+    : page ? `students-book:page:${page.id}` : "students-book:overview";
   const stageRef = useRef(null);
   const viewerRef = useRef(null);
   const pointerState = useRef(new Map());
@@ -89,7 +97,7 @@ export default function TeacherOfflinePages({
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setActionsOpen(false);
-  }, [page?.id, selectedPageId]);
+  }, [activityActive, embeddedActivityId, page?.id, selectedPageId]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -118,7 +126,7 @@ export default function TeacherOfflinePages({
     observer.observe(stage);
     update();
     return () => observer.disconnect();
-  }, [page?.id]);
+  }, [activityActive, embeddedActivityId, page?.id]);
 
   useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
 
@@ -139,6 +147,7 @@ export default function TeacherOfflinePages({
   const openAction = (action) => {
     const activityId = activityIdForAction(page, action);
     if (activityId) {
+      setActionsOpen(false);
       onOpenActivity(activityId);
       return;
     }
@@ -193,6 +202,7 @@ export default function TeacherOfflinePages({
   });
 
   const onPointerDown = (event) => {
+    if (event.target.closest?.(".teacher-offline-page-hotspot")) return;
     didPan.current = false;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     pointerState.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -245,6 +255,13 @@ export default function TeacherOfflinePages({
     event.preventDefault();
     changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
   };
+  const pageGestureHandlers = activityActive ? {} : {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: onPointerEnd,
+    onPointerCancel: onPointerEnd,
+    onWheel,
+  };
 
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
   if (!page) return (
@@ -276,17 +293,16 @@ export default function TeacherOfflinePages({
       <div className="teacher-offline-page-reader">
         <div
           ref={stageRef}
-          className={`teacher-offline-page-stage ${canPan ? "can-pan" : ""}`}
+          className={`teacher-offline-page-stage ${!activityActive && canPan ? "can-pan" : ""} ${activityActive ? "has-embedded-activity" : ""}`.trim()}
           data-classroom-surface-id={classroomSurfaceKey}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
-          onWheel={onWheel}
+          data-active-activity-id={embeddedActivityId || undefined}
+          {...pageGestureHandlers}
           tabIndex={-1}
         >
           <ClassroomStageTransform surfaceKey={classroomSurfaceKey}>
-          {image && !assetError ? (
+          {activityActive ? (
+            <TeacherOfflineEmbeddedActivity activityId={embeddedActivityId} title={activeActivity?.title} />
+          ) : image && !assetError ? (
             <div
               className="teacher-offline-page-image"
               data-fit-mode={fitMode}
@@ -338,7 +354,7 @@ export default function TeacherOfflinePages({
           </ClassroomStageTransform>
         </div>
 
-        {actions.length > 0 && (
+        {!activityActive && actions.length > 0 && (
           <nav className={`teacher-offline-page-actions ${actionsOpen ? "open" : ""}`} aria-label="Page activities and media">
             {actions.map((action) => (
               <button key={action.id} type="button" onClick={() => openAction(action)}>
@@ -353,12 +369,12 @@ export default function TeacherOfflinePages({
       <nav className="legacy-page-navigation" aria-label="Page navigation">
         {showRightNavigation ? <div data-navbar-side="right">
           <button type="button" className="legacy-page-round-button" onClick={onBackToLibrary} title="Library" aria-label="Library"><LegacyClassroomIcon name="home" /></button>
-          <button type="button" className="legacy-page-round-button" onClick={() => onSelectPage("")} title="Unit overview" aria-label="Unit overview"><LegacyClassroomIcon name="back" /></button>
+          <button type="button" className="legacy-page-round-button" onClick={activityActive ? onCloseActivity : () => onSelectPage("")} title={activityActive ? "Back to page" : "Unit overview"} aria-label={activityActive ? "Back to page" : "Unit overview"}><LegacyClassroomIcon name="back" /></button>
           <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
         </div> : <div data-navbar-side="right" data-navbar-hidden="true" />}
-        <span className="legacy-page-location">{page.title} · {page.label || `Page ${page.pageNumber}`}</span>
+        <span className="legacy-page-location">{activityActive ? activeActivity?.title || "Students Book activity" : `${page.title} · ${page.label || `Page ${page.pageNumber}`}`}</span>
         <div>
-          {actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}
+          {!activityActive && actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}
           <button type="button" className="legacy-page-round-button" onClick={onOpenContents} title="Contents and exercises" aria-label="Contents and exercises"><BookOpen size={25} /></button>
           <button type="button" className="legacy-page-round-button" disabled={selectedIndex === pages.length - 1} onClick={() => onSelectPage(pages[selectedIndex + 1].id)} title="Next page" aria-label="Next page"><LegacyClassroomIcon name="next" /></button>
         </div>

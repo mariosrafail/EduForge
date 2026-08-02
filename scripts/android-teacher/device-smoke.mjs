@@ -89,12 +89,15 @@ const scenario = String.raw`
     const articles = [...document.querySelectorAll(".teacher-offline-lessons article")];
     if (!articles[index]) throw new Error("Activity article not found: " + index);
     articles[index].querySelector("button").click();
-    await waitFor(() => document.querySelector(".teacher-offline-presentation"), "activity presentation");
+    await waitFor(() => document.querySelector(".teacher-offline-embedded-activity"), "embedded activity");
     if (document.querySelectorAll(".unit2-normalized-activity, .ultimate-b2-legacy-pilot").length !== 1) {
       throw new Error("Expected exactly one active activity renderer");
     }
-    await click("Back to book");
-    await waitFor(() => document.querySelector(".teacher-offline-book"), "book after activity");
+    if (document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length !== 1) {
+      throw new Error("Expected exactly one activity toolbar");
+    }
+    await click("Back to page");
+    await waitFor(() => document.querySelector(".teacher-offline-page-image"), "page after activity");
     if (!document.querySelector(".teacher-offline-lessons article")) {
       await click("Contents / Exercises");
       await waitFor(() => document.querySelector(".teacher-offline-lessons article"), "activity contents after return");
@@ -128,7 +131,7 @@ const scenario = String.raw`
     media.currentTime = seekTarget;
     await sleep(200);
     const seekedTo = media.currentTime;
-    const backButton = button("Back to book");
+    const backButton = button("Back to page");
     if (backButton) {
       backButton.click();
       await sleep(75);
@@ -148,12 +151,12 @@ const scenario = String.raw`
 
   const timings = {};
   await waitFor(
-    () => document.querySelector(".teacher-offline-library, .teacher-offline-book, .teacher-offline-presentation"),
+    () => document.querySelector(".teacher-offline-library, .teacher-offline-book"),
     "initial teacher view",
     30000,
   );
   for (let attempts = 0; !document.querySelector(".teacher-offline-library") && attempts < 3; attempts += 1) {
-    if (button("Back to book")) await click("Back to book");
+    if (button("Back to page")) await click("Back to page");
     else if (button("Library")) await click("Library");
     else throw new Error("Could not return to the classroom library");
     await sleep(150);
@@ -245,7 +248,7 @@ const viewportScenario = String.raw`
     .find((candidate) => candidate.textContent.replace(/\s+/g, " ").trim().includes(label));
   await waitFor(() => innerWidth > innerHeight, "landscape viewport", 30000);
   while (!document.querySelector(".teacher-offline-library")) {
-    const back = button("Back to book") || button("Library");
+    const back = button("Back to page") || button("Library");
     if (!back) break;
     back.click();
     await sleep(100);
