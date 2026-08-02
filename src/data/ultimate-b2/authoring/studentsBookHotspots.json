@@ -9,13 +9,26 @@
         "unitNumber": 1,
         "pageId": "ub2-sb-unit-1-part-1",
         "pageNumber": 5,
-        "left": 35.5,
-        "top": 9.6,
-        "width": 37.5,
-        "height": 7.4,
+        "left": 3.8554,
+        "top": 8.7941,
+        "width": 90.099,
+        "height": 55.8635,
         "label": "Unit opener · Exercise 1",
         "actionType": "normalized_activity",
         "activityKey": "ultimate-b2-sb-u1-p1-o1"
+      },
+      {
+        "id": "hotspot-a9659479-766a-4e5f-8dc5-c5396ef344a0",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-1",
+        "pageNumber": 5,
+        "left": 9.4836,
+        "top": 75.3904,
+        "width": 26.1618,
+        "height": 19.6474,
+        "label": "Reading · Exercise 1",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p2-o1"
       }
     ]
   }

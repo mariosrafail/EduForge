@@ -14,7 +14,10 @@ import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
-import { getUltimateB2StudentsBookHotspotActions } from "../../data/ultimate-b2/studentsBookHotspots.js";
+import {
+  getUltimateB2AuthoredHotspotActivityKey,
+  getUltimateB2StudentsBookHotspotActions,
+} from "../../data/ultimate-b2/studentsBookHotspots.js";
 
 const minimumZoom = 1;
 const maximumZoom = 4;
@@ -24,6 +27,8 @@ function enabledActivities(page) {
 }
 
 function activityIdForAction(page, action) {
+  const authoredActivityKey = getUltimateB2AuthoredHotspotActivityKey(action);
+  if (authoredActivityKey) return authoredActivityKey;
   const activities = enabledActivities(page);
   const direct = activities.find((activity) => (
     activity.id === action.activityKey || activity.activityKey === action.activityKey

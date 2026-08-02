@@ -6,6 +6,7 @@ import test from "node:test";
 
 import manifest from "../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import {
+  getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
   getUltimateB2StudentsBookHotspots,
   ultimateB2StudentsBookHotspotToAction,
@@ -61,7 +62,7 @@ test("manifest validation rejects cross-package data, invalid geometry, unavaila
   assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest({ ...manifest, packageSlug: "another-book" }), /Only ultimate-b2/);
   assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest({ ...manifest, componentSlug: "workbook" }), /Only students-book/);
   const invalidGeometry = structuredClone(manifest);
-  invalidGeometry.pages["ub2-sb-unit-1-part-1"][0].width = 80;
+  invalidGeometry.pages["ub2-sb-unit-1-part-1"][0].width = 101;
   assert.throws(() => validateAndNormalizeUltimateB2HotspotManifest(invalidGeometry), /coordinates must stay within/);
   const invalidActivity = structuredClone(manifest);
   invalidActivity.pages["ub2-sb-unit-1-part-1"][0].activityKey = "ultimate-b2-sb-u1-p99-o99";
@@ -73,12 +74,16 @@ test("manifest validation rejects cross-package data, invalid geometry, unavaila
 
 test("runtime lookup and action conversion preserve the normalized activity key", () => {
   const hotspots = getUltimateB2StudentsBookHotspots({ pageId: "ub2-sb-unit-1-part-1", pageNumber: 5, unitNumber: 1 });
-  assert.equal(hotspots.length, 1);
-  assert.equal(hotspots[0].activityKey, openerId);
-  const action = ultimateB2StudentsBookHotspotToAction(hotspots[0]);
+  assert.equal(hotspots.length, manifest.pages["ub2-sb-unit-1-part-1"].length);
+  const openerHotspot = hotspots.find((hotspot) => hotspot.activityKey === openerId);
+  assert.ok(openerHotspot);
+  const action = ultimateB2StudentsBookHotspotToAction(openerHotspot);
   assert.equal(action.activityKey, openerId);
   assert.equal(action.target, "normalized-activity");
-  assert.equal(action.left, "35.5%");
+  assert.equal(action.left, `${openerHotspot.left}%`);
+  assert.equal(action.authoredHotspot, true);
+  assert.equal(getUltimateB2AuthoredHotspotActivityKey(action), openerId);
+  assert.equal(getUltimateB2AuthoredHotspotActivityKey({ ...action, authoredHotspot: false }), null);
   assert.deepEqual(getUltimateB2StudentsBookHotspotActions({ pageId: "missing" }), []);
 });
 

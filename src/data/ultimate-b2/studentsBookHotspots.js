@@ -20,11 +20,17 @@ export function ultimateB2StudentsBookHotspotToAction(hotspot) {
     classification: "activity",
     availability: "enabled",
     activityKey: hotspot.activityKey,
+    authoredHotspot: true,
     top: `${hotspot.top}%`,
     left: `${hotspot.left}%`,
     width: `${hotspot.width}%`,
     height: `${hotspot.height}%`,
   };
+}
+
+export function getUltimateB2AuthoredHotspotActivityKey(action) {
+  if (!action?.authoredHotspot || action.target !== "normalized-activity" || !action.activityKey) return null;
+  return String(action.activityKey);
 }
 
 export function getUltimateB2StudentsBookHotspotActions(identity = {}) {
