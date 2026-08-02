@@ -74,7 +74,7 @@ const enabled = [...unit1.activities, ...unit2.activities]
     || left.part - right.part
     || left.activityId.localeCompare(right.activityId));
 
-if (enabled.length !== 77) throw new Error(`Expected 77 enabled activities, found ${enabled.length}`);
+if (enabled.length !== 78) throw new Error(`Expected 78 enabled activities, found ${enabled.length}`);
 if (new Set(enabled.map(({ activityId }) => activityId)).size !== enabled.length) {
   throw new Error("Enabled activity IDs are not unique");
 }

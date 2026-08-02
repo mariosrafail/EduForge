@@ -434,10 +434,10 @@ try {
   await page.getByRole("button", { name: "Contents and exercises" }).click();
 
   await openExercises(page, 1);
-  assert.equal(await page.locator(".teacher-offline-lessons article").count(), 37);
+  assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38);
   const activityOpenStartedAt = performance.now();
   await exerciseRow(page, "Reading · Exercise 3").getByRole("button", { name: "Present" }).click();
-  await page.getByText(/Activity \d+ of 77/).waitFor();
+  await page.getByText(/Activity \d+ of 78/).waitFor();
   assert.equal(await page.locator(".teacher-offline-presentation .classroom-teaching-toolbar").count(), 1, "Activity toolbar should render");
   assert.equal(await page.locator(".teacher-offline-presentation .classroom-tools-overlay").count(), 1, "Activity overlay should render");
   await page.waitForTimeout(10_200);
@@ -544,7 +544,7 @@ try {
   console.log(JSON.stringify({
     status: "passed",
     viewport: "1280x720",
-    unit1Activities: 37,
+    unit1Activities: 38,
     unit2Activities: 40,
     offlineSolutionRequests: 0,
     forbiddenRequests: forbiddenRequests.length,

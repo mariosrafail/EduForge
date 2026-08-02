@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { decodeIwbXml } from "./iwb-inspector.mjs";
 import { writeDeterministicJson } from "./students-book-scanner.mjs";
+import { withUnit1Exercise2ImageDisplayActivity } from "./unit1-image-display.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDirectory, "../..");
@@ -26,7 +27,7 @@ const sectionByPart = new Map([
 ]);
 
 const exerciseById = {
-  "p1-o1": "1",
+  "p1-o1": "1", "p1-o2": "2",
   "p2-o1": "1", "p2-o2": "2", "p2-o3": "3", "p2-o4": "4", "p2-o5": "Debate club",
   "p3-o1": "1", "p3-o2": "2", "p3-o3": "3", "p3-o4": "4", "p3-o5": "5", "p3-o6": "6", "p3-o7": "7",
   "p4-o1": "1", "p4-o3": "3", "p4-o4": "4", "p4-o6": "6", "p4-o7": "7", "p4-o8": "8",
@@ -39,6 +40,7 @@ const exerciseById = {
 
 const instructionsById = {
   "p1-o1": "Read the quote and discuss these questions with a partner.",
+  "p1-o2": "How do you feel about film, theatre and TV? Discuss these ideas in small groups.",
   "p2-o1": "Watch the video and answer the questions.",
   "p2-o2": "Listen and read the text. Then answer the questions.",
   "p2-o3": "Read the text again. For questions 1–6, choose the answer (A, B, C or D) which you think fits best according to the text.",
@@ -76,6 +78,7 @@ function setModes(ids, mode) { ids.split(/\s+/).filter(Boolean).forEach((id) => 
 setModes("p2-o3 p2-o4 p3-o1 p3-o2 p3-o3 p3-o4 p3-o5 p3-o6 p3-o7 p4-o3 p4-o4 p4-o6 p4-o7 p4-o8 p5-o3 p5-o4 p6-o2 p7-o9 p8-o1 p8-o2 p9-o1 p10-o1", "auto-scored");
 setModes("p1-o1 p2-o1 p2-o2 p2-o5 p4-o1 p6-o6 p7-o2 p7-o4 p7-o8 p7-o10", "teacher-reviewed");
 setModes("p5-o2 p5-o5 p7-o3 p7-o5 p7-o6", "unscored-practice");
+setModes("p1-o2", "reading-content");
 setModes("p8-o3 p8-o4", "unsupported-disabled");
 
 const manualPromptsById = {
@@ -372,6 +375,7 @@ function explicitEvidenceStatus(shortId, mode, evidenceRecords) {
 
 export async function buildUnit01ImplementationMatrix({ activities, source = sourceRoot } = {}) {
   if (!activities) activities = JSON.parse(await readFile(path.join(generatedRoot, "activities/unit-01.activities.json"), "utf8")).activities;
+  activities = withUnit1Exercise2ImageDisplayActivity(activities);
   const records = [];
   for (const activity of activities) {
     const shortId = compactId(activity);
@@ -399,6 +403,7 @@ export async function buildUnit01ImplementationMatrix({ activities, source = sou
     records.push({
       stableNormalizedId: activity.id, publisherSourceActivityId: activity.publisherSourceActivityId, publisherObjectId: `part${activity.partNumber}/obj${activity.activityOrder}`,
       book: "ultimate-b2", component: "students-book", unitNumber: 1, partNumber: activity.partNumber, printedPage: activity.physicalPageNumber, printedSpread: activity.spread,
+      activityType: activity.activityType,
       sourceInteractionType: activity.publisherInteractionTypes, visibleSectionName: sectionByPart.get(activity.partNumber), visibleExerciseNumber: exercise,
       title: implementationTitle(activity, exercise), visibleInstructionText: instructionsById[shortId] || null,
       questionPromptText: questions.map((question) => question.prompt), optionText: questions.map((question) => question.options.map((option) => option.text)),
@@ -418,11 +423,11 @@ export async function buildUnit01ImplementationMatrix({ activities, source = sou
   }
   const summary = Object.fromEntries([...allowedModes].map((mode) => [mode, records.filter((record) => record.implementationMode === mode).length]));
   const relevantImages = new Set(records.flatMap((record) => record.imageDependencies.map((dependency) => dependency.sourceRelativePath)));
-  return { schemaVersion: "1.0", book: "ultimate-b2", component: "students-book", unitNumber: 1, printedPageRange: "5-18", spreadCount: 10, definitePublisherObjectCount: 39, mediaOnlyObjectCount: 16, nonExerciseDisplayObjectCount: 14, sourceAssetSummary: { hdPageImages: 10, sdPageImages: 10, audioFiles: 35, primaryPlayableAudioMappings: 6, publisherHighlightAudioSegments: 29, videoFiles: 5, playableVideoMappings: 5, objectImageFiles: 140, relevantImageDependencies: relevantImages.size }, deterministicOrder: "partNumber, publisher object order", automaticPublication: false, feedbackPolicy: "Publisher feedback is not exposed. All UI status labels are application-generated neutral feedback.", activities: records, summary: { ...summary, active: records.filter((record) => record.availability === "enabled").length, disabled: records.filter((record) => record.availability === "disabled").length, explicitAnswerObjects: records.filter((record) => record.explicitAnswerEvidenceStatus !== "none").length, missingAnswerObjects: records.filter((record) => record.explicitAnswerEvidenceStatus === "none").length } };
+  return { schemaVersion: "1.0", book: "ultimate-b2", component: "students-book", unitNumber: 1, printedPageRange: "5-18", spreadCount: 10, definitePublisherObjectCount: 39, curatedDisplayObjectCount: 1, activityRecordCount: records.length, mediaOnlyObjectCount: 16, nonExerciseDisplayObjectCount: 14, sourceAssetSummary: { hdPageImages: 10, sdPageImages: 10, audioFiles: 35, primaryPlayableAudioMappings: 6, publisherHighlightAudioSegments: 29, videoFiles: 5, playableVideoMappings: 5, objectImageFiles: 140, relevantImageDependencies: relevantImages.size }, deterministicOrder: "partNumber, publisher object order", automaticPublication: false, feedbackPolicy: "Publisher feedback is not exposed. All UI status labels are application-generated neutral feedback.", activities: records, summary: { ...summary, active: records.filter((record) => record.availability === "enabled").length, disabled: records.filter((record) => record.availability === "disabled").length, explicitAnswerObjects: records.filter((record) => record.explicitAnswerEvidenceStatus !== "none").length, missingAnswerObjects: records.filter((record) => record.explicitAnswerEvidenceStatus === "none").length } };
 }
 
 function implementationReport(matrix) {
-  const lines = ["# Ultimate B2 Students Book Unit 1 implementation report", "", `The matrix classifies all ${matrix.definitePublisherObjectCount} definite publisher activity objects exactly once across printed pages ${matrix.printedPageRange}. ${matrix.summary.active} are safely enabled and ${matrix.summary.disabled} remain disabled rather than guessed.`, "", "## Summary", "", "| Mode | Count |", "| --- | ---: |", ...[...allowedModes].map((mode) => `| ${mode} | ${matrix.summary[mode]} |`), `| active | ${matrix.summary.active} |`, `| disabled | ${matrix.summary.disabled} |`, `| explicit answer evidence | ${matrix.summary.explicitAnswerObjects} |`, `| missing explicit answer evidence | ${matrix.summary.missingAnswerObjects} |`, "", "## Deterministic activity classification", "", "| Stable ID | Page / spread | Exercise | Source interaction | Mode | Status |", "| --- | --- | --- | --- | --- | --- |", ...matrix.activities.map((activity) => `| ${activity.stableNormalizedId} | ${activity.printedPage} / ${activity.printedSpread} | ${activity.visibleExerciseNumber ?? "—"} | ${activity.sourceInteractionType.join(", ")} | ${activity.implementationMode} | ${activity.implementationStatus} |`), "", "Auto-scored records pair manually verified visible prompts/options with explicit decoded publisher answer fields. Teacher-reviewed records store a null automatic score and await same-school teacher review. Unscored practice records never fabricate a grade. Unsupported legacy games are hidden from students.", ""];
+  const lines = ["# Ultimate B2 Students Book Unit 1 implementation report", "", `The matrix covers all ${matrix.definitePublisherObjectCount} definite publisher activity objects plus ${matrix.curatedDisplayObjectCount} recovered static display object across printed pages ${matrix.printedPageRange}. ${matrix.summary.active} are safely enabled and ${matrix.summary.disabled} remain disabled rather than guessed.`, "", "## Summary", "", "| Mode | Count |", "| --- | ---: |", ...[...allowedModes].map((mode) => `| ${mode} | ${matrix.summary[mode]} |`), `| active | ${matrix.summary.active} |`, `| disabled | ${matrix.summary.disabled} |`, `| explicit answer evidence | ${matrix.summary.explicitAnswerObjects} |`, `| missing explicit answer evidence | ${matrix.summary.missingAnswerObjects} |`, "", "## Deterministic activity classification", "", "| Stable ID | Page / spread | Exercise | Source interaction | Mode | Status |", "| --- | --- | --- | --- | --- | --- |", ...matrix.activities.map((activity) => `| ${activity.stableNormalizedId} | ${activity.printedPage} / ${activity.printedSpread} | ${activity.visibleExerciseNumber ?? "—"} | ${activity.sourceInteractionType.join(", ")} | ${activity.implementationMode} | ${activity.implementationStatus} |`), "", "Auto-scored records pair manually verified visible prompts/options with explicit decoded publisher answer fields. Teacher-reviewed records store a null automatic score and await same-school teacher review. Static publisher display records are unscored. Unsupported legacy games are hidden from students.", ""];
   return lines.join("\n");
 }
 
@@ -449,7 +454,7 @@ export async function writeUnit01ImplementationOutputs(matrix, { root = outputRo
   await mkdir(root, { recursive: true });
   await writeDeterministicJson(path.join(root, "unit-01.implementation-matrix.json"), matrix);
   await writeFile(path.join(root, "unit-01.implementation-report.md"), implementationReport(matrix), "utf8");
-  await writeDeterministicJson(frontendOutput, { schemaVersion: matrix.schemaVersion, book: matrix.book, component: matrix.component, unitNumber: matrix.unitNumber, activities: matrix.activities.map((activity) => ({ stableNormalizedId: activity.stableNormalizedId, unitNumber: activity.unitNumber, partNumber: activity.partNumber, printedPage: activity.printedPage, title: activity.title, visibleInstructionText: activity.visibleInstructionText, implementationMode: activity.implementationMode, scoringMode: activity.scoringMode, availability: activity.availability, implementationStatus: activity.implementationStatus, mediaDependencies: activity.mediaDependencies.filter((dependency) => dependency.logicalKey).map(({ sourceRelativePath: _sourceRelativePath, sourceExistsAtGeneration: _sourceExistsAtGeneration, ...dependency }) => dependency), imageIdentities: activity.imageDependencies.map((dependency) => dependency.id), readiness: { interaction: activity.availability === "enabled", media: activity.mediaDependencies.every((dependency) => dependency.sourceExistsAtGeneration) }, runtime: { questions: activity.runtime.questions.map((question) => ({ id: question.id, number: question.number, prompt: question.prompt, options: question.options, sourceType: question.sourceType })) } })) });
+  await writeDeterministicJson(frontendOutput, { schemaVersion: matrix.schemaVersion, book: matrix.book, component: matrix.component, unitNumber: matrix.unitNumber, activities: matrix.activities.map((activity) => ({ stableNormalizedId: activity.stableNormalizedId, unitNumber: activity.unitNumber, partNumber: activity.partNumber, printedPage: activity.printedPage, title: activity.title, visibleInstructionText: activity.visibleInstructionText, activityType: activity.activityType, implementationMode: activity.implementationMode, scoringMode: activity.scoringMode, availability: activity.availability, implementationStatus: activity.implementationStatus, mediaDependencies: activity.mediaDependencies.filter((dependency) => dependency.logicalKey).map(({ sourceRelativePath: _sourceRelativePath, sourceExistsAtGeneration: _sourceExistsAtGeneration, ...dependency }) => dependency), imageIdentities: activity.imageDependencies.map((dependency) => dependency.id), readiness: { interaction: activity.availability === "enabled", media: activity.mediaDependencies.every((dependency) => dependency.sourceExistsAtGeneration) }, runtime: { questions: activity.runtime.questions.map((question) => ({ id: question.id, number: question.number, prompt: question.prompt, options: question.options, sourceType: question.sourceType })) } })) });
   await writeFile(migrationOutput, migrationSql(matrix), "utf8");
 }
 

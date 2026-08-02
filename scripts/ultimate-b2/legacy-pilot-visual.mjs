@@ -121,7 +121,7 @@ try {
     await page.getByRole("button", { name: "Open Students Book" }).click();
     await page.getByRole("button", { name: "Unit 1", exact: true }).click();
     await page.locator('[title="Contents and exercises"]').click();
-    assert.equal(await page.locator(".teacher-offline-lessons article").count(), 37, `${target.name} Unit 1 count`);
+    assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38, `${target.name} Unit 1 count`);
 
     for (const [index, activity] of activities.entries()) {
       const objectNumber = index + 1;

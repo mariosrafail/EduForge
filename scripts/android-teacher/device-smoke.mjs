@@ -189,7 +189,7 @@ const scenario = String.raw`
 
   await click("Unit 1");
   await click("Contents / Exercises");
-  await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length === 37, "Unit 1 contents");
+  await waitFor(() => document.querySelectorAll(".teacher-offline-lessons article").length === 38, "Unit 1 contents");
   const unit1Count = document.querySelectorAll(".teacher-offline-lessons article").length;
   for (let index = 0; index < 10; index += 1) await openArticle(index);
   await click("Unit 2");
@@ -406,9 +406,9 @@ try {
       pausedAfterUnlock,
     };
   }
-  assert.equal(result.unit1Count, 37);
+  assert.equal(result.unit1Count, 38);
   assert.equal(result.unit2Count, 40);
-  assert.equal(result.enabled, 77);
+  assert.equal(result.enabled, 78);
   assert.equal(result.maximumMountedPages, 1);
   assert.ok(result.smallestVisibleTouchTargetPx >= 48, "A visible teacher control is smaller than 48px");
   const forbiddenRequests = networkUrls.filter((url) => (

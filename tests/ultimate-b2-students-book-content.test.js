@@ -84,8 +84,8 @@ test("student visibility excludes incomplete activities while teachers retain di
   const pages = flattenStudentsBookPages(catalog);
   const studentActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "student"));
   const teacherActivities = pages.flatMap((page) => visibleStudentsBookActivitiesForMode(page, "teacher"));
-  assert.equal(studentActivities.length, 77);
-  assert.equal(teacherActivities.length, 433);
+  assert.equal(studentActivities.length, 78);
+  assert.equal(teacherActivities.length, 434);
   assert.equal(teacherActivities.filter((activity) => activity.availability === "disabled").length, 356);
   assert.ok(studentActivities.every((activity) => activity.editorialStatus === "reviewed-evidence-backed"));
 });
@@ -95,7 +95,7 @@ test("page, activity, reading, media, and illustration relationships remain expl
   const pages = flattenStudentsBookPages(catalog);
   const objects = pages.flatMap((page) => page.contentObjects);
   assert.equal(objects.filter((object) => object.classification === "page-image").length, 110);
-  assert.equal(objects.filter((object) => object.classification === "activity").length + objects.filter((object) => object.classification === "unsupported").length, 433);
+  assert.equal(objects.filter((object) => object.classification === "activity").length + objects.filter((object) => object.classification === "unsupported").length, 434);
   assert.equal(objects.filter((object) => object.classification === "audio").length, catalog.summary.audioObjectCount);
   assert.equal(objects.filter((object) => object.classification === "video").length, catalog.summary.videoObjectCount);
   assert.ok(catalog.summary.readingTextObjectCount > 0);

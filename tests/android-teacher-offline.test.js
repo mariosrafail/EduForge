@@ -255,12 +255,12 @@ test("teacher-presentation-offline is a distinct centralized non-submitting mode
 
 test("offline teacher pack has exact enabled/disabled counts and enabled-only navigation", () => {
   const sequence = enabledStudentsBookActivitySequence();
-  assert.equal(manifest.activityCountsByUnit["1"], 37);
+  assert.equal(manifest.activityCountsByUnit["1"], 38);
   assert.equal(manifest.activityCountsByUnit["2"], 40);
-  assert.equal(manifest.enabledActivityCount, 77);
+  assert.equal(manifest.enabledActivityCount, 78);
   assert.equal(manifest.disabledActivityCount, 12);
-  assert.equal(sequence.length, 77);
-  assert.equal(new Set(sequence.map((activity) => activity.stableActivityId)).size, 77);
+  assert.equal(sequence.length, 78);
+  assert.equal(new Set(sequence.map((activity) => activity.stableActivityId)).size, 78);
   assert.deepEqual(
     activities.activities.map((activity) => activity.stableActivityId),
     sequence.map((activity) => activity.stableActivityId),
@@ -292,7 +292,7 @@ test("pack runtime validation rejects corrupted semantic checksums safely", asyn
   assert.match(result.reason, /Integrity check failed/);
 });
 
-test("previous and next traverse exactly the 77 enabled activities", () => {
+test("previous and next traverse exactly the 78 enabled activities", () => {
   const sequence = enabledStudentsBookActivitySequence();
   for (let index = 0; index < sequence.length; index += 1) {
     const current = sequence[index];

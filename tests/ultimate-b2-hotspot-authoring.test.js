@@ -46,11 +46,11 @@ test("authored hotspot manifest is canonical and limited to Ultimate B2 Students
   }
 });
 
-test("the authoring activity dropdown is derived from all 77 enabled normalized activities", () => {
-  assert.equal(ultimateB2StudentsBookAuthoringActivities.filter((activity) => activity.unitNumber === 1).length, 37);
+test("the authoring activity dropdown is derived from all 78 enabled normalized activities", () => {
+  assert.equal(ultimateB2StudentsBookAuthoringActivities.filter((activity) => activity.unitNumber === 1).length, 38);
   assert.equal(ultimateB2StudentsBookAuthoringActivities.filter((activity) => activity.unitNumber === 2).length, 40);
-  assert.equal(ultimateB2StudentsBookAuthoringActivities.length, 77);
-  assert.equal(new Set(ultimateB2StudentsBookAuthoringActivities.map((activity) => activity.activityKey)).size, 77);
+  assert.equal(ultimateB2StudentsBookAuthoringActivities.length, 78);
+  assert.equal(new Set(ultimateB2StudentsBookAuthoringActivities.map((activity) => activity.activityKey)).size, 78);
   for (const activity of ultimateB2StudentsBookAuthoringActivities) {
     assert.equal(activity.availability, "enabled");
     assert.notEqual(activity.implementationMode, "unsupported-disabled");

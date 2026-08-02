@@ -111,12 +111,12 @@ test("activity identities, classifications, question counts, and enabled counts 
     "auto-scored",
     "teacher-reviewed",
   ]);
-  assert.equal(unit1.activities.filter((activity) => activity.availability === "enabled").length, 37);
+  assert.equal(unit1.activities.filter((activity) => activity.availability === "enabled").length, 38);
   assert.equal(unit2.activities.filter((activity) => activity.implementationMode !== "unsupported-disabled").length, 40);
   assert.equal(
     unit1.activities.filter((activity) => activity.availability === "enabled").length
       + unit2.activities.filter((activity) => activity.implementationMode !== "unsupported-disabled").length,
-    77,
+    78,
   );
   assert.equal(
     unit1.activities.filter((activity) => activity.availability !== "enabled").length

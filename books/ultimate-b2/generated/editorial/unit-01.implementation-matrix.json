@@ -6,6 +6,8 @@
   "printedPageRange": "5-18",
   "spreadCount": 10,
   "definitePublisherObjectCount": 39,
+  "curatedDisplayObjectCount": 1,
+  "activityRecordCount": 40,
   "mediaOnlyObjectCount": 16,
   "nonExerciseDisplayObjectCount": 14,
   "sourceAssetSummary": {
@@ -17,7 +19,7 @@
     "videoFiles": 5,
     "playableVideoMappings": 5,
     "objectImageFiles": 140,
-    "relevantImageDependencies": 115
+    "relevantImageDependencies": 116
   },
   "deterministicOrder": "partNumber, publisher object order",
   "automaticPublication": false,
@@ -33,6 +35,7 @@
       "partNumber": 1,
       "printedPage": 5,
       "printedSpread": "5",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -133,6 +136,71 @@
       }
     },
     {
+      "stableNormalizedId": "ultimate-b2-sb-u1-p1-o2",
+      "publisherSourceActivityId": "ultimate-b2-sb-u1-p1-o2",
+      "publisherObjectId": "part1/obj2",
+      "book": "ultimate-b2",
+      "component": "students-book",
+      "unitNumber": 1,
+      "partNumber": 1,
+      "printedPage": 5,
+      "printedSpread": "5",
+      "activityType": "publisher-image-display",
+      "sourceInteractionType": [
+        "display"
+      ],
+      "visibleSectionName": "Unit opener",
+      "visibleExerciseNumber": "2",
+      "title": "Unit opener · Exercise 2",
+      "visibleInstructionText": "How do you feel about film, theatre and TV? Discuss these ideas in small groups.",
+      "questionPromptText": [],
+      "optionText": [],
+      "explicitAnswerEvidenceStatus": "none",
+      "normalizedAnswerRecords": [],
+      "mediaDependencies": [],
+      "imageDependencies": [
+        {
+          "id": "b922245ff2396511e430caaa071013a856048fbdec7d0e930d29d708f2b1ce38",
+          "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png"
+        }
+      ],
+      "requiredLearnerInteraction": "none",
+      "implementationMode": "reading-content",
+      "scoringMode": "unscored",
+      "availability": "enabled",
+      "implementationStatus": "implemented-normalized-react",
+      "editorialStatus": "reviewed-evidence-backed",
+      "sourceProvenance": [
+        "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png",
+        "Contents/Resources/assets/books/book1/unit/1/part1/obj2/obj_params.iwb",
+        "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png"
+      ],
+      "extractionWarnings": [],
+      "manuallyVerifiedSourceFields": [
+        "visibleSectionName",
+        "visibleExerciseNumber",
+        "title",
+        "visibleInstructionText",
+        "questionPromptText",
+        "optionText",
+        "printedPage",
+        "printedSpread"
+      ],
+      "unknownFields": [],
+      "fieldProvenance": {
+        "visibleSectionName": "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png",
+        "visibleExerciseNumber": "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png",
+        "title": "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png",
+        "visibleInstructionText": "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png",
+        "questionPromptText": [],
+        "optionText": [],
+        "normalizedAnswerRecords": []
+      },
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
       "stableNormalizedId": "ultimate-b2-sb-u1-p2-o1",
       "publisherSourceActivityId": "ultimate-b2-sb-u1-p2-o1",
       "publisherObjectId": "part2/obj1",
@@ -142,6 +210,7 @@
       "partNumber": 2,
       "printedPage": 6,
       "printedSpread": "6-7",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "print",
         "write"
@@ -248,6 +317,7 @@
       "partNumber": 2,
       "printedPage": 6,
       "printedSpread": "6-7",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "karaokeScroll",
         "write"
@@ -370,6 +440,7 @@
       "partNumber": 2,
       "printedPage": 6,
       "printedSpread": "6-7",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -729,6 +800,7 @@
       "partNumber": 2,
       "printedPage": 6,
       "printedSpread": "6-7",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -995,6 +1067,7 @@
       "partNumber": 2,
       "printedPage": 6,
       "printedSpread": "6-7",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -1096,6 +1169,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "drag-and-drop-matching",
       "sourceInteractionType": [
         "dnd"
       ],
@@ -1934,6 +2008,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "drag-and-drop-matching",
       "sourceInteractionType": [
         "dnd"
       ],
@@ -2536,6 +2611,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -2898,6 +2974,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -3144,6 +3221,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -3386,6 +3464,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -3632,6 +3711,7 @@
       "partNumber": 3,
       "printedPage": 8,
       "printedSpread": "8-9",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -4082,6 +4162,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "print",
         "write"
@@ -4204,6 +4285,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -4642,6 +4724,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -4884,6 +4967,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -5126,6 +5210,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -5492,6 +5577,7 @@
       "partNumber": 4,
       "printedPage": 10,
       "printedSpread": "10-11",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -5766,6 +5852,7 @@
       "partNumber": 5,
       "printedPage": 12,
       "printedSpread": "12",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "circle"
       ],
@@ -5872,6 +5959,7 @@
       "partNumber": 5,
       "printedPage": 12,
       "printedSpread": "12",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc",
         "write"
@@ -6004,6 +6092,7 @@
       "partNumber": 5,
       "printedPage": 12,
       "printedSpread": "12",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "circle",
         "mc"
@@ -6346,6 +6435,7 @@
       "partNumber": 5,
       "printedPage": 12,
       "printedSpread": "12",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -6442,6 +6532,7 @@
       "partNumber": 6,
       "printedPage": 13,
       "printedSpread": "13",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -6748,6 +6839,7 @@
       "partNumber": 6,
       "printedPage": 13,
       "printedSpread": "13",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -6845,6 +6937,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -6966,6 +7059,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "circle"
       ],
@@ -7263,6 +7357,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "drag-and-drop-matching",
       "sourceInteractionType": [
         "dnd",
         "write"
@@ -7408,6 +7503,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "drag-and-drop-matching",
       "sourceInteractionType": [
         "circle",
         "dnd"
@@ -8022,6 +8118,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "circle"
       ],
@@ -8139,6 +8236,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -8260,6 +8358,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -8478,6 +8577,7 @@
       "partNumber": 7,
       "printedPage": 14,
       "printedSpread": "14-15",
+      "activityType": "typed-short-answer",
       "sourceInteractionType": [
         "write"
       ],
@@ -8571,6 +8671,7 @@
       "partNumber": 8,
       "printedPage": 16,
       "printedSpread": "16",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -9109,6 +9210,7 @@
       "partNumber": 8,
       "printedPage": 16,
       "printedSpread": "16",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -9647,6 +9749,7 @@
       "partNumber": 8,
       "printedPage": 16,
       "printedSpread": "16",
+      "activityType": "unsupported-publisher-interaction",
       "sourceInteractionType": [
         "spinningWheel"
       ],
@@ -9938,6 +10041,7 @@
       "partNumber": 8,
       "printedPage": 16,
       "printedSpread": "16",
+      "activityType": "unsupported-publisher-interaction",
       "sourceInteractionType": [
         "score4"
       ],
@@ -10229,6 +10333,7 @@
       "partNumber": 9,
       "printedPage": 17,
       "printedSpread": "17",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -10592,6 +10697,7 @@
       "partNumber": 10,
       "printedPage": 18,
       "printedSpread": "18",
+      "activityType": "multiple-choice",
       "sourceInteractionType": [
         "mc"
       ],
@@ -11009,11 +11115,11 @@
     "auto-scored": 22,
     "teacher-reviewed": 10,
     "unscored-practice": 5,
-    "reading-content": 0,
+    "reading-content": 1,
     "unsupported-disabled": 2,
-    "active": 37,
+    "active": 38,
     "disabled": 2,
     "explicitAnswerObjects": 26,
-    "missingAnswerObjects": 13
+    "missingAnswerObjects": 14
   }
 }

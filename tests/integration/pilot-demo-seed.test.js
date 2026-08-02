@@ -81,7 +81,7 @@ test("local pilot demo seed is deterministic and complete", {
     from activities
     where slug like 'ultimate-b2-sb-u1-%'
       and is_assignable = true
-  `), 37);
+  `), 38);
   assert.equal(await scalar(`
     select count(*)::int
     from activities

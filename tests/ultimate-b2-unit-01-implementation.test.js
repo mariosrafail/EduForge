@@ -17,24 +17,26 @@ test("Unit 1 matrix covers every definite publisher object exactly once", async 
   const [matrix, source] = await Promise.all([readJson(matrixPath), readJson(activityPath)]);
   assert.equal(matrix.printedPageRange, "5-18");
   assert.equal(matrix.spreadCount, 10);
-  assert.equal(matrix.activities.length, 39);
+  assert.equal(matrix.activities.length, 40);
+  assert.equal(matrix.curatedDisplayObjectCount, 1);
+  assert.equal(matrix.activityRecordCount, 40);
   assert.equal(matrix.mediaOnlyObjectCount, 16);
   assert.equal(matrix.nonExerciseDisplayObjectCount, 14);
-  assert.deepEqual(matrix.sourceAssetSummary, { hdPageImages: 10, sdPageImages: 10, audioFiles: 35, primaryPlayableAudioMappings: 6, publisherHighlightAudioSegments: 29, videoFiles: 5, playableVideoMappings: 5, objectImageFiles: 140, relevantImageDependencies: 115 });
+  assert.deepEqual(matrix.sourceAssetSummary, { hdPageImages: 10, sdPageImages: 10, audioFiles: 35, primaryPlayableAudioMappings: 6, publisherHighlightAudioSegments: 29, videoFiles: 5, playableVideoMappings: 5, objectImageFiles: 140, relevantImageDependencies: 116 });
   assert.deepEqual(matrix.summary, {
     "auto-scored": 22,
     "teacher-reviewed": 10,
     "unscored-practice": 5,
-    "reading-content": 0,
+    "reading-content": 1,
     "unsupported-disabled": 2,
-    active: 37,
+    active: 38,
     disabled: 2,
     explicitAnswerObjects: 26,
-    missingAnswerObjects: 13,
+    missingAnswerObjects: 14,
   });
   const ids = matrix.activities.map((activity) => activity.stableNormalizedId);
-  assert.equal(new Set(ids).size, 39);
-  assert.deepEqual(ids.sort(), source.activities.map((activity) => activity.id).sort());
+  assert.equal(new Set(ids).size, 40);
+  assert.deepEqual(ids.sort(), [...source.activities.map((activity) => activity.id), "ultimate-b2-sb-u1-p1-o2"].sort());
   assert.ok(matrix.activities.every((activity) => activity.book === "ultimate-b2" && activity.component === "students-book" && activity.unitNumber === 1));
   assert.ok(matrix.activities.every((activity) => activity.sourceProvenance.every((sourcePath) => !path.isAbsolute(sourcePath))));
 });
@@ -45,8 +47,8 @@ test("Unit 1 page and spread ordering is exact", async () => {
   assert.equal(unit.printedPageRange, "5-18");
   assert.deepEqual(unit.pages.map((page) => page.spreadNumber), ["5", "6-7", "8-9", "10-11", "12", "13", "14-15", "16", "17", "18"]);
   assert.deepEqual(unit.pages.flatMap((page) => page.pageNumbers), [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
-  assert.equal(unit.pages.reduce((sum, page) => sum + page.activities.length, 0), 39);
-  assert.equal(unit.pages.reduce((sum, page) => sum + page.activities.filter((activity) => activity.availability === "enabled").length, 0), 37);
+  assert.equal(unit.pages.reduce((sum, page) => sum + page.activities.length, 0), 40);
+  assert.equal(unit.pages.reduce((sum, page) => sum + page.activities.filter((activity) => activity.availability === "enabled").length, 0), 38);
   assert.equal(unit.pages.find((page) => page.spreadNumber === "16").activities.filter((activity) => activity.availability === "disabled").length, 2);
 });
 
@@ -101,7 +103,7 @@ test("Unit 1 browser catalogs contain no answers, source paths, or decoder mater
   assert.doesNotMatch(raw, /acceptedAnswers|publisherAnswerValue|decodedPublisherValue|normalizedAnswerRecords|explicitAnswerEvidence/);
   assert.doesNotMatch(raw, /Contents[\\/]Resources|[A-Za-z]:[\\/]|EA3DC7D7-6954-471A-8399-E217B522F5F2|IWB_XOR_KEY|decodeIwbXml/);
   const runtime = await readJson(runtimePath);
-  assert.equal(runtime.activities.length, 39);
+  assert.equal(runtime.activities.length, 40);
   assert.ok(runtime.activities.every((activity) => activity.runtime.questions.every((question) => !("acceptedAnswers" in question))));
 });
 

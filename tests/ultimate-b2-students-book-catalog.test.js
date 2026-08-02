@@ -18,26 +18,26 @@ function exercisesForUnit(catalog, unitNumber) {
   return exercises({ units: catalog.units.filter((unit) => unit.unitNumber === unitNumber) });
 }
 
-test("Students Book catalog exposes exactly Units 1 and 2 with 37 and 40 active activities", () => {
+test("Students Book catalog exposes exactly Units 1 and 2 with 38 and 40 active activities", () => {
   assert.deepEqual(ultimateB2StudentsBookCatalog.units.map((unit) => unit.unitNumber), [1, 2]);
-  assert.equal(exercisesForUnit(ultimateB2StudentsBookCatalog, 1).length, 37);
+  assert.equal(exercisesForUnit(ultimateB2StudentsBookCatalog, 1).length, 38);
   assert.equal(exercisesForUnit(ultimateB2StudentsBookCatalog, 2).length, 40);
   assert.deepEqual(ultimateB2StudentsBookCatalog.stats, {
     unitCount: 2,
-    activityCount: 77,
+    activityCount: 78,
     disabledActivityCount: 0,
-    uniqueActivityCount: 77,
+    uniqueActivityCount: 78,
   });
 });
 
-test("student catalog contains 77 unique stable IDs and excludes all 12 disabled records", () => {
+test("student catalog contains 78 unique stable IDs and excludes all 12 disabled records", () => {
   const studentExercises = exercises(ultimateB2StudentsBookCatalog);
   const teacherExercises = exercises(ultimateB2StudentsBookTeacherCatalog);
   const stableIds = studentExercises.map((exercise) => exercise.stableActivityId);
   const disabled = teacherExercises.filter((exercise) => exercise.availability === "disabled");
 
-  assert.equal(stableIds.length, 77);
-  assert.equal(new Set(stableIds).size, 77);
+  assert.equal(stableIds.length, 78);
+  assert.equal(new Set(stableIds).size, 78);
   assert.equal(disabled.length, 12);
   assert.ok(studentExercises.every((exercise) => exercise.availability === "enabled"));
   assert.ok(disabled.every((exercise) => exercise.assignable === false));

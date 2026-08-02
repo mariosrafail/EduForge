@@ -50,11 +50,11 @@ export async function validateTeacherContentPack(pack) {
 
     const activityIds = (activities?.activities || []).map((activity) => activity.stableActivityId);
     if (
-      activityIds.length !== 77
-      || new Set(activityIds).size !== 77
+      activityIds.length !== 78
+      || new Set(activityIds).size !== 78
       || exerciseIds(catalog).join("|") !== activityIds.join("|")
       || Object.keys(teacherSolutions?.solutions || {}).join("|") !== activityIds.join("|")
-      || manifest.activityCountsByUnit?.["1"] !== 37
+      || manifest.activityCountsByUnit?.["1"] !== 38
       || manifest.activityCountsByUnit?.["2"] !== 40
       || manifest.disabledActivityCount !== 12
     ) {

@@ -16,8 +16,8 @@
     "readingTextObjectCount": 6,
     "audioObjectCount": 329,
     "videoObjectCount": 46,
-    "activityCount": 433,
-    "enabledActivityCount": 77,
+    "activityCount": 434,
+    "enabledActivityCount": 78,
     "disabledActivityCount": 356
   },
   "units": [
@@ -63,6 +63,22 @@
               "implementationStatus": "implemented-normalized-react",
               "questionCount": 3,
               "optionCount": 0
+            },
+            {
+              "id": "ultimate-b2-sb-u1-p1-o2",
+              "classification": "activity",
+              "title": "Unit opener · Exercise 2",
+              "titleSource": "unit-01-implementation-matrix",
+              "instructions": "How do you feel about film, theatre and TV? Discuss these ideas in small groups.",
+              "activityType": "publisher-image-display",
+              "activityKey": "ultimate-b2-sb-u1-p1-o2",
+              "availability": "enabled",
+              "scoring": "unscored",
+              "implementationMode": "reading-content",
+              "editorialStatus": "reviewed-evidence-backed",
+              "implementationStatus": "implemented-normalized-react",
+              "questionCount": 0,
+              "optionCount": 0
             }
           ],
           "media": [],
@@ -74,6 +90,14 @@
               "availability": "enabled",
               "target": "normalized-activity",
               "activityKey": "ultimate-b2-sb-u1-p1-o1"
+            },
+            {
+              "id": "ultimate-b2-sb-u1-p1-o2-action",
+              "label": "Unit opener · Exercise 2",
+              "classification": "activity",
+              "availability": "enabled",
+              "target": "normalized-activity",
+              "activityKey": "ultimate-b2-sb-u1-p1-o2"
             }
           ],
           "editorialStatus": "implemented-slice-available"

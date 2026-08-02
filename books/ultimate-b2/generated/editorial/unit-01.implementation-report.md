@@ -1,6 +1,6 @@
 # Ultimate B2 Students Book Unit 1 implementation report
 
-The matrix classifies all 39 definite publisher activity objects exactly once across printed pages 5-18. 37 are safely enabled and 2 remain disabled rather than guessed.
+The matrix covers all 39 definite publisher activity objects plus 1 recovered static display object across printed pages 5-18. 38 are safely enabled and 2 remain disabled rather than guessed.
 
 ## Summary
 
@@ -9,18 +9,19 @@ The matrix classifies all 39 definite publisher activity objects exactly once ac
 | auto-scored | 22 |
 | teacher-reviewed | 10 |
 | unscored-practice | 5 |
-| reading-content | 0 |
+| reading-content | 1 |
 | unsupported-disabled | 2 |
-| active | 37 |
+| active | 38 |
 | disabled | 2 |
 | explicit answer evidence | 26 |
-| missing explicit answer evidence | 13 |
+| missing explicit answer evidence | 14 |
 
 ## Deterministic activity classification
 
 | Stable ID | Page / spread | Exercise | Source interaction | Mode | Status |
 | --- | --- | --- | --- | --- | --- |
 | ultimate-b2-sb-u1-p1-o1 | 5 / 5 | 1 | write | teacher-reviewed | implemented-normalized-react |
+| ultimate-b2-sb-u1-p1-o2 | 5 / 5 | 2 | display | reading-content | implemented-normalized-react |
 | ultimate-b2-sb-u1-p2-o1 | 6 / 6-7 | 1 | print, write | teacher-reviewed | implemented-normalized-react |
 | ultimate-b2-sb-u1-p2-o2 | 6 / 6-7 | 2 | karaokeScroll, write | teacher-reviewed | implemented-normalized-react |
 | ultimate-b2-sb-u1-p2-o3 | 6 / 6-7 | 3 | mc | auto-scored | implemented-normalized-react |
@@ -60,4 +61,4 @@ The matrix classifies all 39 definite publisher activity objects exactly once ac
 | ultimate-b2-sb-u1-p9-o1 | 17 / 17 | 1 | mc | auto-scored | implemented-normalized-react |
 | ultimate-b2-sb-u1-p10-o1 | 18 / 18 | 2 | mc | auto-scored | implemented-normalized-react |
 
-Auto-scored records pair manually verified visible prompts/options with explicit decoded publisher answer fields. Teacher-reviewed records store a null automatic score and await same-school teacher review. Unscored practice records never fabricate a grade. Unsupported legacy games are hidden from students.
+Auto-scored records pair manually verified visible prompts/options with explicit decoded publisher answer fields. Teacher-reviewed records store a null automatic score and await same-school teacher review. Static publisher display records are unscored. Unsupported legacy games are hidden from students.

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "scope": {
+    "book": "ultimate-b2",
+    "component": "students-book",
+    "unit": 1,
+    "part": 1,
+    "activityIds": [
+      "ultimate-b2-sb-u1-p1-o2"
+    ]
+  },
+  "sourcePolicy": {
+    "publisherRoot": "Ultimate English B2.app",
+    "readOnly": true,
+    "runtimeDependency": false
+  },
+  "copiedAssets": [
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj2/image_2.png",
+      "classification": "publisher display heading and instruction",
+      "bytes": 25307,
+      "sha256": "b922245ff2396511e430caaa071013a856048fbdec7d0e930d29d708f2b1ce38",
+      "width": 807,
+      "height": 114,
+      "preserveOriginalBytes": true
+    }
+  ],
+  "sourceMetadata": [
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/unit/1/part1/obj2/obj_params.iwb",
+      "bytes": 5516,
+      "sha256": "4cdfaf458ddb6f156ffb6bd60e2af967c0ec2442743e592388a5e3bbd51fd405",
+      "decodedExerciseType": "display"
+    }
+  ]
+}

@@ -22,6 +22,8 @@ import { isUltimateB2Unit1Part2LegacyPilot } from "../../../../data/ultimate-b2/
 import { UltimateB2LegacyPilotActivity } from "./UltimateB2LegacyPilotActivity.jsx";
 import { isUltimateB2Unit1LegacyOpener } from "../../../../data/ultimate-b2/unit1Part1LegacyOpener.js";
 import { UltimateB2LegacyUnitOpenerActivity } from "./UltimateB2LegacyUnitOpenerActivity.jsx";
+import { isUltimateB2PublisherImageDisplay } from "../../../../data/ultimate-b2/unit1Part1Exercise2Display.js";
+import { UltimateB2PublisherImageDisplayActivity } from "./UltimateB2PublisherImageDisplayActivity.jsx";
 
 export function findUnit2Implementation(id) {
   const activity = findStudentsBookImplementation(id);
@@ -157,6 +159,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
 
   const questions = activity.runtime?.questions || [];
   const legacyUnitOpener = isUltimateB2Unit1LegacyOpener(activity);
+  const publisherImageDisplay = isUltimateB2PublisherImageDisplay(activity);
   const media = (activity.mediaDependencies || []).filter((dependency) => dependency.logicalKey);
   const frozen = submitted || completed || !capabilities.canEditAnswers;
   const updateAnswer = (questionId, value) => {
@@ -304,7 +307,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
       {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
       {submitError && <div className="inline-status error">{submitError}</div>}
-      {capabilities.isPresentation && !legacyUnitOpener && (
+      {capabilities.isPresentation && !legacyUnitOpener && !publisherImageDisplay && (
         <div className="teacher-presentation-answer-controls" aria-label="Presentation answer controls">
           <button className="primary-action" type="button" onClick={checkAnswers} disabled={solutionsLoading || Boolean(solutions && solutions.solutionAvailability !== "explicit")}>
             {solutionsLoading ? "Loading solutions…" : "Check"}
@@ -340,6 +343,10 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         actions={activityActions}
       />
     );
+  }
+
+  if (publisherImageDisplay) {
+    return <UltimateB2PublisherImageDisplayActivity activity={activity} />;
   }
 
   if (isUltimateB2Unit1Part2LegacyPilot(activity)) {

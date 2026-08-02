@@ -40,6 +40,22 @@
       }
     },
     {
+      "stableActivityId": "ultimate-b2-sb-u1-p1-o2",
+      "unitNumber": 1,
+      "partNumber": 1,
+      "printedPage": 5,
+      "sectionTitle": "Unit opener",
+      "title": "Unit opener · Exercise 2",
+      "visibleInstructionText": "How do you feel about film, theatre and TV? Discuss these ideas in small groups.",
+      "activityType": "publisher-image-display",
+      "implementationMode": "reading-content",
+      "scoringMode": "unscored",
+      "mediaDependencies": [],
+      "runtime": {
+        "questions": []
+      }
+    },
+    {
       "stableActivityId": "ultimate-b2-sb-u1-p2-o1",
       "unitNumber": 1,
       "partNumber": 2,

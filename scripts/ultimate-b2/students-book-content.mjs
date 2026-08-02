@@ -1,3 +1,5 @@
+import { withUnit1Exercise2ImageDisplayActivity } from "./unit1-image-display.mjs";
+
 const unit2PageIds = new Map([
   [1, "reading-19"],
   [2, "reading-20-21"],
@@ -297,7 +299,12 @@ export function validateStudentsBookContentCatalog(catalog) {
 }
 
 export function buildStudentsBookContentCatalog({ structure, activityCatalogs, implementationMatrices = [] }) {
-  const activitiesByUnit = new Map(activityCatalogs.map((catalog) => [catalog.unitNumber, catalog.activities || []]));
+  const activitiesByUnit = new Map(activityCatalogs.map((catalog) => [
+    catalog.unitNumber,
+    Number(catalog.unitNumber) === 1
+      ? withUnit1Exercise2ImageDisplayActivity(catalog.activities || [])
+      : catalog.activities || [],
+  ]));
   const implementationById = new Map(implementationMatrices.flatMap((matrix) => matrix?.activities || []).map((activity) => [activity.stableNormalizedId, activity]));
   const units = structure.units.map((unit) => {
     const pages = unit.pages.map((page) => buildPage(unit, page, activitiesByUnit.get(unit.number) || [], implementationById));

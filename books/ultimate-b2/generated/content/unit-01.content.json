@@ -33,7 +33,8 @@
         "readingTextRelationships": [],
         "instructionRelationships": [],
         "activityIds": [
-          "ultimate-b2-sb-u1-p1-o1"
+          "ultimate-b2-sb-u1-p1-o1",
+          "ultimate-b2-sb-u1-p1-o2"
         ],
         "activities": [
           {
@@ -57,12 +58,35 @@
               "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb",
               "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png"
             ]
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p1-o2",
+            "publisherSourceActivityId": "ultimate-b2-sb-u1-p1-o2",
+            "classification": "activity",
+            "title": "Unit opener · Exercise 2",
+            "titleSource": "unit-01-implementation-matrix",
+            "instructions": "How do you feel about film, theatre and TV? Discuss these ideas in small groups.",
+            "activityType": "publisher-image-display",
+            "activityKey": "ultimate-b2-sb-u1-p1-o2",
+            "availability": "enabled",
+            "scoring": "unscored",
+            "implementationMode": "reading-content",
+            "editorialStatus": "reviewed-evidence-backed",
+            "implementationStatus": "implemented-normalized-react",
+            "questionCount": 0,
+            "optionCount": 0,
+            "sourceProvenance": [
+              "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png",
+              "Contents/Resources/assets/books/book1/unit/1/part1/obj2/obj_params.iwb",
+              "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png"
+            ]
           }
         ],
         "media": [],
         "illustrationRelationships": [
           "Contents/Resources/assets/books/book1/unit/1/part1/obj1/image_1.png",
-          "Contents/Resources/assets/books/book1/unit/1/part1/obj1/image_2.png"
+          "Contents/Resources/assets/books/book1/unit/1/part1/obj1/image_2.png",
+          "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png"
         ],
         "actions": [
           {
@@ -72,6 +96,14 @@
             "availability": "enabled",
             "target": "normalized-activity",
             "activityKey": "ultimate-b2-sb-u1-p1-o1"
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p1-o2-action",
+            "label": "Unit opener · Exercise 2",
+            "classification": "activity",
+            "availability": "enabled",
+            "target": "normalized-activity",
+            "activityKey": "ultimate-b2-sb-u1-p1-o2"
           }
         ],
         "contentObjects": [
@@ -138,12 +170,23 @@
             "sourceProvenance": [
               "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb"
             ]
+          },
+          {
+            "id": "ultimate-b2-sb-u1-p1-o2-activity",
+            "classification": "activity",
+            "activityId": "ultimate-b2-sb-u1-p1-o2",
+            "sourceProvenance": [
+              "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png",
+              "Contents/Resources/assets/books/book1/unit/1/part1/obj2/obj_params.iwb"
+            ]
           }
         ],
         "editorialStatus": "implemented-slice-available",
         "sourceProvenance": [
           "Contents/Resources/assets/books/book1/unit/1/part1/obj1/ebook_obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb",
+          "Contents/Resources/assets/books/book1/unit/1/part1/obj2/image_2.png",
+          "Contents/Resources/assets/books/book1/unit/1/part1/obj2/obj_params.iwb",
           "Contents/Resources/assets/books/book1/unit/1/parts/HD/parts_part_1.png",
           "Contents/Resources/assets/books/book1/unit/1/parts/SD/parts_part_1.png",
           "Contents/Resources/assets/books/book1/unit/1/unit_params.iwb"

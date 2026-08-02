@@ -10,10 +10,10 @@
     1,
     2
   ],
-  "enabledActivityCount": 77,
+  "enabledActivityCount": 78,
   "disabledActivityCount": 12,
   "activityCountsByUnit": {
-    "1": 37,
+    "1": 38,
     "2": 40
   },
   "pageCount": 22,
@@ -26,24 +26,24 @@
     "font": 0
   },
   "assetCount": 41,
-  "totalContentSizeBytes": 448995673,
+  "totalContentSizeBytes": 448997073,
   "totalAssetBytes": 448515130,
-  "totalMetadataBytes": 480543,
+  "totalMetadataBytes": 481943,
   "files": {
     "catalog.json": {
-      "sizeBytes": 59124,
-      "sha256": "73e23aceb0eee253feae80ed785ad25cb495f9bd8e0590557199d97862532bb3",
-      "semanticSha256": "b4a62d35e6e7db82197ca318bb5d86bf1d19d29e7ffb5c4ca9145915922fb354"
+      "sizeBytes": 59766,
+      "sha256": "3b211d93bef2cfb901584301f957b70554eea24d08544a26a99c093f4ce74db2",
+      "semanticSha256": "97ab065b7c96f4e887e4b91537b62b182af09f934720c678a58ceb761c4ee35a"
     },
     "activities.json": {
-      "sizeBytes": 298721,
-      "sha256": "97c493b3e6a83efc0ada7a82f10fcaba5a81dac95694529cbb6be7416eacd120",
-      "semanticSha256": "e950472057c6c627d1bdf97a949531c338602eb5de9192bc79a115d069e32d05"
+      "sizeBytes": 299265,
+      "sha256": "e1113d07e850a8af8c48e3c290fec1e17892d0d33a4990fd1ba754ee3c914dad",
+      "semanticSha256": "9e1433ecf12e5ee4b2040bac00ce474050c8e10d9bc6946eab3510d69ef2abeb"
     },
     "teacher-solutions.json": {
-      "sizeBytes": 109684,
-      "sha256": "b946ece6c1b7e27754c792439ec61eea1b8b72e48c05654fbf40a06351c447ac",
-      "semanticSha256": "5ce9f3c96c1ea41a514c666d855511b4edca57a52eb9d880890a938b4e6261f2"
+      "sizeBytes": 109898,
+      "sha256": "f05de91ae59eea1dd39193e2427d4ec12fc6489df7daf9b5f2ea52edec92ec80",
+      "semanticSha256": "23c1adcdb272690ff7c5622127b9a08a66b519d91ed942b3dfc4c70c3b0bc2aa"
     },
     "assets-manifest.json": {
       "sizeBytes": 13014,

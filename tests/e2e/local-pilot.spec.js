@@ -65,7 +65,7 @@ test.describe("isolated local Ultimate B2 pilot", () => {
       .flatMap((lesson) => lesson.exercises);
     const unit1 = exercises.filter((activity) => activity.slug.startsWith("ultimate-b2-sb-u1-"));
     const unit2 = exercises.filter((activity) => activity.slug.startsWith("ultimate-b2-sb-u2-"));
-    expect(unit1).toHaveLength(37);
+    expect(unit1).toHaveLength(38);
     expect(unit2).toHaveLength(40);
     const autoActivity = exercises.find((activity) => activity.contentJson?.implementationMode === "auto-scored");
     const reviewActivity = exercises.find((activity) => activity.contentJson?.implementationMode === "teacher-reviewed");

@@ -159,12 +159,12 @@ test("reveal, hide, check, and reset preserve temporary classroom answers correc
   assert.deepEqual(verifiedSolutionQuestionIds(solution), Object.keys(solution.questions));
 });
 
-test("enabled presentation navigation contains exactly 37 + 40 activities and skips disabled rows", () => {
+test("enabled presentation navigation contains exactly 38 + 40 activities and skips disabled rows", () => {
   const sequence = enabledStudentsBookActivitySequence();
-  assert.equal(sequence.filter((item) => item.unitNumber === 1).length, 37);
+  assert.equal(sequence.filter((item) => item.unitNumber === 1).length, 38);
   assert.equal(sequence.filter((item) => item.unitNumber === 2).length, 40);
-  assert.equal(sequence.length, 77);
-  assert.equal(new Set(sequence.map((item) => item.stableActivityId)).size, 77);
+  assert.equal(sequence.length, 78);
+  assert.equal(new Set(sequence.map((item) => item.stableActivityId)).size, 78);
   assert.equal(sequence.some((item) => item.stableActivityId === disabledActivityId), false);
 
   const beforeDisabledGap = sequence.find((item) => item.stableActivityId === "ultimate-b2-sb-u1-p7-o10");

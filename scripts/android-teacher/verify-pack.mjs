@@ -57,16 +57,16 @@ async function main() {
   assert.equal(manifest.packageId, "ultimate-b2-students-book");
   assert.equal(manifest.minimumSupportedAppVersion, "0.1.0");
   assert.deepEqual(manifest.includedUnits, [1, 2]);
-  assert.equal(manifest.enabledActivityCount, 77);
-  assert.equal(manifest.activityCountsByUnit["1"], 37);
+  assert.equal(manifest.enabledActivityCount, 78);
+  assert.equal(manifest.activityCountsByUnit["1"], 38);
   assert.equal(manifest.activityCountsByUnit["2"], 40);
   assert.equal(manifest.disabledActivityCount, 12);
   assert.equal(ultimateB2StudentsBookTeacherCatalog.stats.disabledActivityCount, 12);
-  assert.equal(sequence.length, 77);
-  assert.equal(new Set(enabledIds).size, 77, "Enabled stable activity IDs must be unique");
+  assert.equal(sequence.length, 78);
+  assert.equal(new Set(enabledIds).size, 78, "Enabled stable activity IDs must be unique");
   assert.deepEqual(packIds, enabledIds, "Pack activity order must match enabled navigation order");
-  assert.equal(catalogExercises.length, 77);
-  assert.equal(new Set(catalogExercises.map((exercise) => exercise.stableActivityId)).size, 77);
+  assert.equal(catalogExercises.length, 78);
+  assert.equal(new Set(catalogExercises.map((exercise) => exercise.stableActivityId)).size, 78);
 
   for (const activity of activities) {
     const implementation = findStudentsBookImplementation(activity.stableActivityId);
