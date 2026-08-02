@@ -29,6 +29,32 @@
         "label": "Unit opener · Exercise 2",
         "actionType": "normalized_activity",
         "activityKey": "ultimate-b2-sb-u1-p1-o2"
+      },
+      {
+        "id": "hotspot-01f76dee-d003-40ee-a602-17fdf3f068f4",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-1",
+        "pageNumber": 5,
+        "left": 56.988,
+        "top": 71.5617,
+        "width": 18.5886,
+        "height": 12.8967,
+        "label": "δσφδσφδσφδσ",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p2-o5"
+      },
+      {
+        "id": "hotspot-372740e0-e5a4-4998-9fe7-546229ddf18d",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-1",
+        "pageNumber": 5,
+        "left": 57.9002,
+        "top": 3.602,
+        "width": 25.3356,
+        "height": 3.9295,
+        "label": "Vocabulary in Use · Exercise 6",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p3-o6"
       }
     ]
   }
