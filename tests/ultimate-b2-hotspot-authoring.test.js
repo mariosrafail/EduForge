@@ -88,10 +88,11 @@ test("runtime lookup and action conversion preserve the normalized activity key"
 });
 
 test("web, Android student, and Android teacher viewers consume the tracked manifest without hotspot APIs", async () => {
-  const [viewer, androidViewer, teacherViewer, stubs] = await Promise.all([
+  const [viewer, androidViewer, teacherViewer, teacherViewerStyles, stubs] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/AndroidBookViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/TeacherOfflinePages.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/teacherOfflinePageViewer.css"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/androidOfflineServiceStubs.js"), "utf8"),
   ]);
   assert.match(viewer, /getUltimateB2StudentsBookHotspotActions/);
@@ -99,6 +100,9 @@ test("web, Android student, and Android teacher viewers consume the tracked mani
   assert.match(teacherViewer, /getUltimateB2StudentsBookHotspotActions/);
   assert.doesNotMatch(viewer.match(/authoredHotspotActions[\s\S]*?selectedDraftHotspot/)?.[0] || "", /listBookPageHotspots/);
   assert.match(stubs, /listBookPageHotspots/);
+  assert.match(teacherViewerStyles, /\.teacher-offline-pages-viewer \.teacher-offline-page-hotspot[\s\S]*border: 2px solid rgba\(255, 214, 0, 0\.82\)/);
+  assert.match(teacherViewerStyles, /background-color: rgba\(255, 221, 0, 0\.16\)/);
+  assert.match(teacherViewerStyles, /\.teacher-offline-page-hotspot:active[\s\S]*background-color: rgba\(255, 221, 0, 0\.3\)/);
 });
 
 test("Unit 1 opener special renderer activates only for its exact stable activity identity", async () => {
