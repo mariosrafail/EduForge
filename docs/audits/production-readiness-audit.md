@@ -1,4 +1,4 @@
-# EduForge Production Readiness Audit
+# Hamilton House LMS Production Readiness Audit
 
 ## Audit metadata
 
@@ -19,7 +19,7 @@
 
 ## Executive summary
 
-EduForge is **Not ready** for a controlled publisher/customer delivery in its current configuration.
+Hamilton House LMS is **Not ready** for a controlled publisher/customer delivery in its current configuration.
 
 - P0 issues: **0**
 - P1 issues: **6**
@@ -438,6 +438,6 @@ Before general production release:
 
 The exact classification is **Not ready**.
 
-EduForge may advance to a controlled publisher/customer delivery only after PR-001 through PR-006 are remediated and verified, and after PR-008 is resolved by evidence of an enforced migrate/check/deploy gate or by adding that gate. No P0 flaw was confirmed: the tested tenant boundaries, server authorization, session separation, solution protection, CSV neutralization, and bundle safety are credible foundations.
+Hamilton House LMS may advance to a controlled publisher/customer delivery only after PR-001 through PR-006 are remediated and verified, and after PR-008 is resolved by evidence of an enforced migrate/check/deploy gate or by adding that gate. No P0 flaw was confirmed: the tested tenant boundaries, server authorization, session separation, solution protection, CSV neutralization, and bundle safety are credible foundations.
 
 The recommended first remediation batch is **PR-001 only: ordinary login abuse protection**. It is a single security boundary, is independently testable, and reduces an exposed authentication risk without coupling it to onboarding, UI, or deployment work. PR-002 should follow as a separate privileged-auth commit because its correct thresholds and recovery behavior differ.

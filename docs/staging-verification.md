@@ -53,9 +53,9 @@ The integrity command must report zero rows in `tenant_integrity_issues`, zero r
 
 The seed creates School A and School B, each with one admin, two teachers, two students, one paused student, two classes, book access, official and custom content, assignments, submissions, and a hotspot. Emails are deterministic:
 
-- `qa.a.admin@eduforge.invalid`, `qa.a.teacher1@eduforge.invalid`, `qa.a.teacher2@eduforge.invalid`, `qa.a.student1@eduforge.invalid`, `qa.a.student2@eduforge.invalid`
+- `qa.a.admin@hhplms.invalid`, `qa.a.teacher1@hhplms.invalid`, `qa.a.teacher2@hhplms.invalid`, `qa.a.student1@hhplms.invalid`, `qa.a.student2@hhplms.invalid`
 - the same pattern with `qa.b.*`
-- paused accounts: `qa.a.paused@eduforge.invalid` and `qa.b.paused@eduforge.invalid`
+- paused accounts: `qa.a.paused@hhplms.invalid` and `qa.b.paused@hhplms.invalid`
 
 All disposable fictional QA accounts use `password123`, supplied through `HHPLMS_STAGING_QA_PASSWORD`. The legacy environment-variable name remains a temporary compatibility alias, but conflicting values fail closed. Passwords are bcrypt-hashed before storage.
 

@@ -3,6 +3,7 @@ import { mkdir, rm } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 
+import { FORBIDDEN_BRAND_PATTERN, FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../_branding-audit.mjs";
 import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
 const baseURL = "http://127.0.0.1:4180";
@@ -155,16 +156,16 @@ async function assertScreen(page, label) {
   }));
   assert.equal(metrics.overflow, 0, `${label} horizontal overflow`);
   assert.deepEqual(metrics.missingImages, [], `${label} missing images`);
-  assert.doesNotMatch(await page.locator("body").innerText(), /EduForge/i, `${label} visible branding`);
+  assert.doesNotMatch(await page.locator("body").innerText(), FORBIDDEN_BRAND_PATTERN, `${label} visible branding`);
 }
 
 async function assertCleanAbout(page, label) {
   const dialog = page.getByRole("dialog", { name: "Classroom settings" });
   const text = await dialog.innerText();
-  assert.match(text, /Hamilton House Interactive Classroom/);
+  assert.match(text, /Hamilton House LMS/);
   assert.match(text, /Version 0\.1\.0/);
   assert.doesNotMatch(text, /Ultimate English B2 interactive classroom content/i, `${label} generic title`);
-  assert.doesNotMatch(text, /EduForge|Made by|Made with|Developed by|Created by/i, `${label} branding`);
+  assert.doesNotMatch(text, FORBIDDEN_VISIBLE_BRANDING_PATTERN, `${label} branding`);
   await assertScreen(page, label);
 }
 

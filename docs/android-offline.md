@@ -1,6 +1,6 @@
 # Android Offline Book App
 
-EduForge has a dedicated Android offline app mode inside the existing React/Vite codebase. It is not a separate React project and it does not run the web LMS shell.
+Hamilton House LMS has a dedicated Android offline app mode inside the existing React/Vite codebase. It is not a separate React project and it does not run the web LMS shell.
 
 ## App Modes
 

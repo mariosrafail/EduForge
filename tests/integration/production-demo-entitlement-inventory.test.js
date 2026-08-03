@@ -31,7 +31,7 @@ function productionEnvironment() {
     PRODUCTION_ENVIRONMENT_CONFIRMATION: "hosted-production",
     PRODUCTION_DATABASE_CONFIRMATION: "read-only-production-preflight",
     PRODUCTION_DEMO_ENTITLEMENT_INVENTORY_CONFIRMATION: DEMO_ENTITLEMENT_INVENTORY_CONFIRMATION,
-    PRODUCTION_APP_URL: "https://app.eduforge.example",
+    PRODUCTION_APP_URL: "https://app.hhplms.example",
   };
 }
 
@@ -39,7 +39,7 @@ test("production demo entitlement inventory is exact, read-only, and history-gat
   skip: !enabled,
   timeout: 180_000,
 }, async (t) => {
-  const schema = `eduforge_test_${randomBytes(6).toString("hex")}`;
+  const schema = `hhplms_test_${randomBytes(6).toString("hex")}`;
   const admin = new Pool({ connectionString: databaseUrl });
   await admin.query(`create schema "${schema}"`);
   const scopedUrl = scoped(databaseUrl, schema);

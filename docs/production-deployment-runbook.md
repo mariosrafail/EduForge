@@ -2,7 +2,7 @@
 
 ## 1. Purpose and safety boundary
 
-This runbook governs a production release of EduForge. The repository production preflight is read-only: it validates the ordered migration manifest, recorded checksums, critical schema objects, and tenant-integrity counts inside a `BEGIN READ ONLY` transaction that always ends with `ROLLBACK`.
+This runbook governs a production release of Hamilton House LMS. The repository production preflight is read-only: it validates the ordered migration manifest, recorded checksums, critical schema objects, and tenant-integrity counts inside a `BEGIN READ ONLY` transaction that always ends with `ROLLBACK`.
 
 The Netlify build does not apply migrations. Production credentials are not used by ordinary CI, deploy previews, branch deploys, or local `npm run build`. Migrations are the sole schema authority: normal authentication requests perform the read-only contract in `docs/runtime-database-role.md` and return `SCHEMA_NOT_READY` rather than repairing an incomplete schema.
 

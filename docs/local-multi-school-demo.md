@@ -27,9 +27,9 @@ These credentials are created only by the explicitly confirmed local demo setup 
 
 The browser deliberately exposes no school or user deletion. Use only fictional records in this local environment.
 
-`npm run demo:multi-school:reset` drops only the dedicated `eduforge_multi_school_demo` database and its marker. This removes the fictional Platform Admin, its sessions and audit records together with the registered demo schools, while retaining the local PostgreSQL container.
+`npm run demo:multi-school:reset` drops only the dedicated `hhplms_multi_school_demo` database and its marker. This removes the fictional Platform Admin, its sessions and audit records together with the registered demo schools, while retaining the local PostgreSQL container.
 
-This environment is a development-only, fictional EduForge walkthrough for the Phase 1 Ultimate English catalog. It runs the real Netlify Functions and PostgreSQL-backed role flows at `http://127.0.0.1:8888`; it never connects to staging or production.
+This environment is a development-only, fictional Hamilton House LMS walkthrough for the Phase 1 Ultimate English catalog. It runs the real Netlify Functions and PostgreSQL-backed role flows at `http://127.0.0.1:8888`; it never connects to staging or production.
 
 ## Prerequisites and one-command lifecycle
 
@@ -49,9 +49,9 @@ npm run test:e2e
 npm run demo:multi-school:reset
 ```
 
-`setup` creates/starts the dedicated `eduforge-multi-school-postgres` container on `127.0.0.1:55433`, creates only `eduforge_multi_school_demo`, applies production migrations without the generic demo-password migration, and loads the deterministic multi-school seed. It is safe to run repeatedly. `reset` drops only that exact database and keeps the container and any unrelated local databases.
+`setup` creates/starts the dedicated `hhplms-multi-school-postgres` container on `127.0.0.1:55433`, creates only `hhplms_multi_school_demo`, applies production migrations without the generic demo-password migration, and loads the deterministic multi-school seed. It is safe to run repeatedly. `reset` drops only that exact database and keeps the container and any unrelated local databases.
 
-The commands reject production mode, non-loopback hosts, a missing internal confirmation, any database name other than `eduforge_multi_school_demo`, and generic/hosted/staging database variables. They do not read `.env` or require copying hosted credentials.
+The commands reject production mode, non-loopback hosts, a missing internal confirmation, any database name other than `hhplms_multi_school_demo`, and generic/hosted/staging database variables. They do not read `.env` or require copying hosted credentials.
 
 Use `127.0.0.1` consistently. Cookies are host-scoped, so a login made at `127.0.0.1` is not available at `localhost`, and vice versa; opening the other hostname correctly shows a fresh login page. If port `8888` is already occupied, first try the existing `http://127.0.0.1:8888`. Terminate that listener only if it is stale, then start the demo again.
 

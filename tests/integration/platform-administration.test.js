@@ -90,7 +90,7 @@ async function call(handler, { method = "GET", query = {}, body = {}, cookie = "
       host: "localhost:8888",
       cookie,
       "x-nf-client-connection-ip": ip,
-      "user-agent": "EduForge isolated integration",
+      "user-agent": "Hamilton House LMS isolated integration",
       ...(origin ? { origin: "http://localhost:8888" } : {}),
     },
     queryStringParameters: query,
@@ -337,7 +337,7 @@ test("dedicated Platform Administration enforces cross-tenant capability without
   process.env.ACCOUNT_EMAIL_MODE = "smtp";
   Object.assign(process.env, {
     SMTP_HOST: "smtp.invalid", SMTP_PORT: "587", SMTP_SECURE: "false",
-    SMTP_USER: "isolated", SMTP_PASS: "isolated", SMTP_FROM: "EduForge <noreply@example.test>",
+    SMTP_USER: "isolated", SMTP_PASS: "isolated", SMTP_FROM: "Hamilton House LMS <noreply@example.test>",
   });
   setEmailTransportForTests({ sendMail: async () => { throw new Error("isolated delivery failure"); } });
   const deliveryFailure = await call(platformApi, {

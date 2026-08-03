@@ -29,7 +29,7 @@ test("gateway host guard accepts loopback hosts only", () => {
   assert.equal(isLocalRequestHost("localhost:8888"), true);
   assert.equal(isLocalRequestHost("127.0.0.1:8888"), true);
   assert.equal(isLocalRequestHost("[::1]:8888"), true);
-  assert.equal(isLocalRequestHost("eduforge.example"), false);
+  assert.equal(isLocalRequestHost("hhplms.example"), false);
 });
 
 test("scoped source tokens reject tampering and expiry", () => {
@@ -52,7 +52,7 @@ test("publisher source allowlist permits startup and Unit 2 only", () => {
 });
 
 test("source resolution rejects a symlink that escapes the publisher root", (t) => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "eduforge-legacy-proof-"));
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hhplms-legacy-proof-"));
   t.after(() => fs.rmSync(temporaryRoot, { force: true, recursive: true }));
   const sourceRoot = path.join(temporaryRoot, "source");
   const allowedDirectory = path.join(sourceRoot, "Contents/Resources/assets/home");
@@ -89,5 +89,5 @@ test("proof code and reports do not leak an absolute publisher path", () => {
   ];
   const combined = files.map((file) => fs.readFileSync(path.resolve(file), "utf8")).join("\n");
   assert.doesNotMatch(combined, /[A-Za-z]:\\Users\\/);
-  assert.doesNotMatch(combined, /Nextcloud[\\/]EduForge[\\/]Ultimate English B2\.app/);
+  assert.doesNotMatch(combined, /Nextcloud[\\/]hhplms[\\/]Ultimate English B2\.app/);
 });

@@ -23,7 +23,7 @@ export const QA_INVITE_TEST_IPS = [
 ];
 
 export function qaInviteFingerprint(ip) {
-  const salt = process.env.INVITE_RATE_LIMIT_SALT || "isolated-eduforge-invite-rate-limit";
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || "isolated-hhplms-invite-rate-limit";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 
@@ -32,21 +32,21 @@ export function qaInviteFingerprints() {
 }
 
 export const QA = {
-  publisher: { id: "e0f10000-0000-4000-8000-000000001000", name: "EduForge QA Publisher", slug: "eduforge-qa-publisher" },
-  package: { id: "e0f10000-0000-4000-8000-000000001001", title: "EduForge QA Book", slug: "eduforge-qa-book" },
+  publisher: { id: "e0f10000-0000-4000-8000-000000001000", name: "Hamilton House LMS QA Publisher", slug: "hhplms-qa-publisher" },
+  package: { id: "e0f10000-0000-4000-8000-000000001001", title: "Hamilton House LMS QA Book", slug: "hhplms-qa-book" },
   component: { id: "e0f10000-0000-4000-8000-000000001002", slug: "qa-students-book" },
   unit: { id: "e0f10000-0000-4000-8000-000000001003", slug: "qa-unit-1" },
   bookLesson: { id: "e0f10000-0000-4000-8000-000000001004", slug: "qa-book-lesson" },
   schools: [
     {
-      key: "a", id: "e0f1a000-0000-4000-8000-000000000001", name: "EduForge QA School A",
+      key: "a", id: "e0f1a000-0000-4000-8000-000000000001", name: "Hamilton House LMS QA School A",
       users: {
-        admin: { id: "e0f1a001-0000-4000-8000-000000000001", email: "qa.a.admin@eduforge.invalid", name: "QA A Admin", role: "admin", status: "active" },
-        teacher1: { id: "e0f1a002-0000-4000-8000-000000000001", email: "qa.a.teacher1@eduforge.invalid", name: "QA A Teacher One", role: "teacher", status: "active" },
-        teacher2: { id: "e0f1a003-0000-4000-8000-000000000001", email: "qa.a.teacher2@eduforge.invalid", name: "QA A Teacher Two", role: "teacher", status: "active" },
-        student1: { id: "e0f1a004-0000-4000-8000-000000000001", email: "qa.a.student1@eduforge.invalid", name: "QA A Student One", role: "student", status: "active" },
-        student2: { id: "e0f1a005-0000-4000-8000-000000000001", email: "qa.a.student2@eduforge.invalid", name: "QA A Student Two", role: "student", status: "active" },
-        paused: { id: "e0f1a006-0000-4000-8000-000000000001", email: "qa.a.paused@eduforge.invalid", name: "QA A Paused", role: "student", status: "paused" },
+        admin: { id: "e0f1a001-0000-4000-8000-000000000001", email: "qa.a.admin@hhplms.invalid", name: "QA A Admin", role: "admin", status: "active" },
+        teacher1: { id: "e0f1a002-0000-4000-8000-000000000001", email: "qa.a.teacher1@hhplms.invalid", name: "QA A Teacher One", role: "teacher", status: "active" },
+        teacher2: { id: "e0f1a003-0000-4000-8000-000000000001", email: "qa.a.teacher2@hhplms.invalid", name: "QA A Teacher Two", role: "teacher", status: "active" },
+        student1: { id: "e0f1a004-0000-4000-8000-000000000001", email: "qa.a.student1@hhplms.invalid", name: "QA A Student One", role: "student", status: "active" },
+        student2: { id: "e0f1a005-0000-4000-8000-000000000001", email: "qa.a.student2@hhplms.invalid", name: "QA A Student Two", role: "student", status: "active" },
+        paused: { id: "e0f1a006-0000-4000-8000-000000000001", email: "qa.a.paused@hhplms.invalid", name: "QA A Paused", role: "student", status: "paused" },
       },
       classes: [
         { id: "e0f1a101-0000-4000-8000-000000000001", name: "QA A Class One", slug: "qa-a-class-one", invite: "QASCHA01", teacher: "teacher1" },
@@ -67,14 +67,14 @@ export const QA = {
       hotspotId: "e0f1a601-0000-4000-8000-000000000001",
     },
     {
-      key: "b", id: "e0f1b000-0000-4000-8000-000000000001", name: "EduForge QA School B",
+      key: "b", id: "e0f1b000-0000-4000-8000-000000000001", name: "Hamilton House LMS QA School B",
       users: {
-        admin: { id: "e0f1b001-0000-4000-8000-000000000001", email: "qa.b.admin@eduforge.invalid", name: "QA B Admin", role: "admin", status: "active" },
-        teacher1: { id: "e0f1b002-0000-4000-8000-000000000001", email: "qa.b.teacher1@eduforge.invalid", name: "QA B Teacher One", role: "teacher", status: "active" },
-        teacher2: { id: "e0f1b003-0000-4000-8000-000000000001", email: "qa.b.teacher2@eduforge.invalid", name: "QA B Teacher Two", role: "teacher", status: "active" },
-        student1: { id: "e0f1b004-0000-4000-8000-000000000001", email: "qa.b.student1@eduforge.invalid", name: "QA B Student One", role: "student", status: "active" },
-        student2: { id: "e0f1b005-0000-4000-8000-000000000001", email: "qa.b.student2@eduforge.invalid", name: "QA B Student Two", role: "student", status: "active" },
-        paused: { id: "e0f1b006-0000-4000-8000-000000000001", email: "qa.b.paused@eduforge.invalid", name: "QA B Paused", role: "student", status: "paused" },
+        admin: { id: "e0f1b001-0000-4000-8000-000000000001", email: "qa.b.admin@hhplms.invalid", name: "QA B Admin", role: "admin", status: "active" },
+        teacher1: { id: "e0f1b002-0000-4000-8000-000000000001", email: "qa.b.teacher1@hhplms.invalid", name: "QA B Teacher One", role: "teacher", status: "active" },
+        teacher2: { id: "e0f1b003-0000-4000-8000-000000000001", email: "qa.b.teacher2@hhplms.invalid", name: "QA B Teacher Two", role: "teacher", status: "active" },
+        student1: { id: "e0f1b004-0000-4000-8000-000000000001", email: "qa.b.student1@hhplms.invalid", name: "QA B Student One", role: "student", status: "active" },
+        student2: { id: "e0f1b005-0000-4000-8000-000000000001", email: "qa.b.student2@hhplms.invalid", name: "QA B Student Two", role: "student", status: "active" },
+        paused: { id: "e0f1b006-0000-4000-8000-000000000001", email: "qa.b.paused@hhplms.invalid", name: "QA B Paused", role: "student", status: "paused" },
       },
       classes: [
         { id: "e0f1b101-0000-4000-8000-000000000001", name: "QA B Class One", slug: "qa-b-class-one", invite: "QASCHB01", teacher: "teacher1" },

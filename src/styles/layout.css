@@ -1,11 +1,11 @@
-.eduforge-app {
+.hhplms-app {
   position: relative;
   min-height: 100vh;
   color: #101828;
   isolation: isolate;
 }
 
-.eduforge-app::before {
+.hhplms-app::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -17,7 +17,7 @@
     linear-gradient(135deg, #fbfcff 0%, #eef3fa 52%, #f7fafc 100%);
 }
 
-.eduforge-app::after {
+.hhplms-app::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -30,7 +30,7 @@
   background-position: 32px 28px;
 }
 
-.eduforge-app > * {
+.hhplms-app > * {
   position: relative;
   z-index: 1;
 }

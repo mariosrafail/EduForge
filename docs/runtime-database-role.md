@@ -2,7 +2,7 @@
 
 ## Safety boundary
 
-Production migrations are the only authority for creating or changing the EduForge schema. Normal Netlify Function requests do not apply migrations, create extensions, alter tables, normalize schema data, or repair missing objects.
+Production migrations are the only authority for creating or changing the Hamilton House LMS schema. Normal Netlify Function requests do not apply migrations, create extensions, alter tables, normalize schema data, or repair missing objects.
 
 Before ordinary authentication data is read or mutated, the runtime performs a bounded read-only readiness check. A schema that is missing canonical migration history, an expected migration/checksum, or a required authentication table/column receives:
 

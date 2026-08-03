@@ -67,7 +67,7 @@ Both seed and cleanup reject `NODE_ENV=production`, require all explicit confirm
 For an isolated local PostgreSQL database:
 
 ```powershell
-$env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@localhost/eduforge_test"
+$env:TEST_DATABASE_URL = "postgresql://USER:PASSWORD@localhost/hhplms_test"
 $env:TEST_DATABASE_CONFIRMATION = "isolated-test-database"
 npm run test:integration
 npm run test:tenant-isolation

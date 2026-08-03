@@ -70,7 +70,7 @@ body.is-book-pages-view:not(.is-app-loading):not(.mobile-nav-open) {
   overflow-y: auto;
 }
 
-body.is-book-pages-view .eduforge-app,
+body.is-book-pages-view .hhplms-app,
 body.is-book-pages-view .workspace,
 body.is-book-pages-view .portal-shell,
 body.is-book-pages-view .portal-main,

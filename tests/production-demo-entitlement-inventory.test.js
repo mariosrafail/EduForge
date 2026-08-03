@@ -10,14 +10,14 @@ import {
 import { loadProductionMigrationManifest } from "../scripts/_migration-readiness.mjs";
 import { productionDatabaseFingerprint } from "../scripts/_production-preflight.mjs";
 
-function productionEnvironment(databaseUrl = "postgresql://runtime:private-value@db.provider.net/eduforge") {
+function productionEnvironment(databaseUrl = "postgresql://runtime:private-value@db.provider.net/hhplms") {
   return {
     DATABASE_URL: databaseUrl,
     PRODUCTION_DATABASE_FINGERPRINT: productionDatabaseFingerprint(databaseUrl),
     PRODUCTION_ENVIRONMENT_CONFIRMATION: "hosted-production",
     PRODUCTION_DATABASE_CONFIRMATION: "read-only-production-preflight",
     PRODUCTION_DEMO_ENTITLEMENT_INVENTORY_CONFIRMATION: DEMO_ENTITLEMENT_INVENTORY_CONFIRMATION,
-    PRODUCTION_APP_URL: "https://app.eduforge.example",
+    PRODUCTION_APP_URL: "https://app.hhplms.example",
   };
 }
 
@@ -96,16 +96,16 @@ test("inventory requires the existing production environment variables", () => {
 });
 
 test("inventory rejects loopback and non-production-looking targets", () => {
-  const loopback = "postgresql://runtime:private-value@127.0.0.1/eduforge";
+  const loopback = "postgresql://runtime:private-value@127.0.0.1/hhplms";
   assert.throws(
     () => validateDemoEntitlementInventoryEnvironment(productionEnvironment(loopback)),
     /loopback/,
   );
   for (const unsafe of [
-    "postgresql://runtime:private-value@staging.db.provider.net/eduforge",
-    "postgresql://runtime:private-value@db.provider.net/eduforge_test",
-    "postgresql://runtime:private-value@preview.db.provider.net/eduforge",
-    "postgresql://runtime:private-value@qa.db.provider.net/eduforge",
+    "postgresql://runtime:private-value@staging.db.provider.net/hhplms",
+    "postgresql://runtime:private-value@db.provider.net/hhplms_test",
+    "postgresql://runtime:private-value@preview.db.provider.net/hhplms",
+    "postgresql://runtime:private-value@qa.db.provider.net/hhplms",
   ]) {
     assert.throws(
       () => validateDemoEntitlementInventoryEnvironment(productionEnvironment(unsafe)),
@@ -122,7 +122,7 @@ test("inventory rejects fingerprint mismatch and placeholder values", () => {
     }),
     /does not match/,
   );
-  const placeholder = "postgresql://changeme:secret123@db.provider.net/eduforge";
+  const placeholder = "postgresql://changeme:secret123@db.provider.net/hhplms";
   assert.throws(
     () => validateDemoEntitlementInventoryEnvironment(productionEnvironment(placeholder)),
     /placeholder/,
@@ -130,7 +130,7 @@ test("inventory rejects fingerprint mismatch and placeholder values", () => {
 });
 
 test("inventory errors redact credentials and raw target values", async () => {
-  const raw = "postgresql://runtime:private-value@db.provider.net/eduforge?sslmode=require";
+  const raw = "postgresql://runtime:private-value@db.provider.net/hhplms?sslmode=require";
   await assert.rejects(
     inventoryProductionDemoEntitlements({
       environment: productionEnvironment(raw),

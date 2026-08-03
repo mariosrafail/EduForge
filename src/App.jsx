@@ -152,7 +152,7 @@ export default function App() {
 
   const signOut = async () => {
     await auth.signOut();
-    if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
+    if (typeof window !== "undefined") window.sessionStorage.removeItem("hhplmsDemoRole");
     courseData.resetCourse();
     navigateTo("home");
   };
@@ -176,7 +176,7 @@ export default function App() {
   };
 
   return (
-    <div className="eduforge-app" style={cssVars}>
+    <div className="hhplms-app" style={cssVars}>
       <AppIntro />
       {isRoleView && !isTeacherPresentation && !authenticatedPortalVisible && (
         <>
@@ -207,7 +207,7 @@ export default function App() {
             createStudentAccount={auth.createStudentAccount}
             signOut={async () => {
               await auth.signOut();
-              if (typeof window !== "undefined") window.sessionStorage.removeItem("eduforgeDemoRole");
+              if (typeof window !== "undefined") window.sessionStorage.removeItem("hhplmsDemoRole");
               courseData.resetCourse();
               navigateTo("home");
             }}

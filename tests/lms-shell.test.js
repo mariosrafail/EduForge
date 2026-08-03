@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../scripts/_branding-audit.mjs";
 
 const read = (path) => readFile(path, "utf8");
 
@@ -20,7 +21,7 @@ test("user-facing LMS and Platform Admin branding contains no developer identity
   const sources = await Promise.all(paths.map(read));
   const visibleSource = sources.join("\n");
   assert.match(visibleSource, /Hamilton House/);
-  assert.doesNotMatch(visibleSource, /EduForge|Made by|Made with|Developed by|Created by/i);
+  assert.doesNotMatch(visibleSource, FORBIDDEN_VISIBLE_BRANDING_PATTERN);
   assert.match(sources[0], /<title>Hamilton House LMS<\/title>/);
   assert.match(sources[1], /<title>Platform Administration · Hamilton House<\/title>/);
 });

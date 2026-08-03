@@ -14,7 +14,7 @@ function postgresTemplate(pool) { return async (strings, ...values) => { let tex
 
 test("book asset relationships, version constraints, and entitlement delivery are enforced", { skip: !integrationEnabled, timeout: 120_000 }, async (t) => {
   assert.notEqual(testDatabaseUrl, process.env.DATABASE_URL);
-  const schema = `eduforge_assets_${randomBytes(6).toString("hex")}`;
+  const schema = `hhplms_assets_${randomBytes(6).toString("hex")}`;
   const adminPool = new Pool({ connectionString: testDatabaseUrl });
   await adminPool.query(`create schema "${schema}"`);
   const pool = new Pool({ connectionString: scopedDatabaseUrl(testDatabaseUrl, schema) });

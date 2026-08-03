@@ -115,7 +115,7 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
           )}
           {activeTab === "about" && (
             <div className="legacy-settings-about" data-settings-panel="about">
-              <h2>Software version info:</h2><strong>Hamilton House Interactive Classroom</strong><p>Version 0.1.0</p>
+              <h2>Software version info:</h2><strong>Hamilton House LMS</strong><p>Version 0.1.0</p>
               <div className="legacy-settings-brand"><b>HAMILTON HOUSE</b><span>English Language Teaching</span></div>
               <small>Interactive Classroom</small>
             </div>

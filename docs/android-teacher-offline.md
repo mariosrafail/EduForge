@@ -10,7 +10,7 @@ The dedicated teacher build is a separate Vite application entry. It does not co
 | Existing Android offline | `android-offline` | `android-offline` | `src/apps/android-offline/offlineEntry.jsx` |
 | Teacher classroom Android | `android-teacher-offline` | `teacher-presentation-offline` | `src/apps/android-teacher-offline/teacherOfflineEntry.jsx` |
 
-The environment-aware `capacitor.config.ts` and the native teacher build both declare `Hamilton House Interactive Classroom` when `CAPACITOR_BUILD_MODE=teacher`. The MVP deliberately keeps the existing native application ID, `com.eduforge.offlinebooks`, because this repository has one Android module. The Gradle `teacherPresentation` property changes only the generated native label; the ordinary `assembleDebug` label remains `Offline Interactive Books`. A separate installable application ID/flavor was not created, so the teacher and existing offline builds cannot be installed side-by-side.
+The environment-aware `capacitor.config.ts` and the native teacher build both declare `Hamilton House LMS` when `CAPACITOR_BUILD_MODE=teacher`. The MVP deliberately keeps the existing native application ID, `com.eduforge.offlinebooks`, because this repository has one Android module. The Gradle `teacherPresentation` property changes only the generated native label; the ordinary `assembleDebug` label remains `Hamilton House LMS`. A separate installable application ID/flavor was not created, so the teacher and existing offline builds cannot be installed side-by-side.
 
 ## Build and verify
 
@@ -140,7 +140,7 @@ The final debug APK inspection reported:
 - path `android/app/build/outputs/apk/debug/app-debug.apk`
 - 460,773,237 bytes (439.43 MiB)
 - application ID `com.eduforge.offlinebooks`
-- label `Hamilton House Interactive Classroom`
+- label `Hamilton House LMS`
 - version code/name `1` / `1.0`
 - minimum/target SDK `24` / `36`
 - no Android Internet permission

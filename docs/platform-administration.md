@@ -1,4 +1,4 @@
-# EduForge Platform Administration
+# Hamilton House LMS Platform Administration
 
 ## Security boundary
 
@@ -23,9 +23,9 @@ Login uses generic invalid-credential errors, bcrypt password verification, requ
 
 Missing, malformed, expired, revoked, or paused Platform Admin sessions return `401 Unauthorized`, regardless of whether an ordinary LMS cookie is also present. A `403 Forbidden` is reserved for an authenticated privileged request that fails a security check such as mutation Origin validation. On any control-plane `401`, the browser cancels parallel privileged requests, clears the Platform Admin identity and all loaded school/user/class/access/audit data, replaces the route with `/platform-admin/`, and shows the dedicated login with an expiry notice. A genuine `403` remains visible as an error and does not destroy the valid Platform Admin session.
 
-Browser cookies are host-scoped. Use `http://127.0.0.1:8888/platform-admin/` as the canonical local URL and keep using that hostname throughout a session. Opening `localhost` after logging in on `127.0.0.1` (or the reverse) is a separate unauthenticated visit and requires its own login; EduForge does not weaken cookie scope with a cross-host `Domain` workaround.
+Browser cookies are host-scoped. Use `http://127.0.0.1:8888/platform-admin/` as the canonical local URL and keep using that hostname throughout a session. Opening `localhost` after logging in on `127.0.0.1` (or the reverse) is a separate unauthenticated visit and requires its own login; Hamilton House LMS does not weaken cookie scope with a cross-host `Domain` workaround.
 
-The dedicated application uses the normal EduForge typography, card radius, border, shadow, input, and button conventions with white/off-white surfaces and the EduForge orange accent. It remains a separate bundle and does not import ordinary LMS routing or expose a normal-LMS navigation entry.
+The dedicated application uses the normal Hamilton House LMS typography, card radius, border, shadow, input, and button conventions with white/off-white surfaces and the Hamilton House LMS orange accent. It remains a separate bundle and does not import ordinary LMS routing or expose a normal-LMS navigation entry.
 
 ## Creating a production account
 
@@ -41,7 +41,7 @@ npm run platform-admin:create -- --confirm=create-platform-admin --email=operato
 
 For a deliberate password rotation, add `--rotate`. The CLI never accepts the password as a command argument and never prints it. Remove the password environment variable after use.
 
-Production must integrate real provider-backed MFA before general operator use. EduForge does not simulate MFA.
+Production must integrate real provider-backed MFA before general operator use. Hamilton House LMS does not simulate MFA.
 
 ## Capabilities
 

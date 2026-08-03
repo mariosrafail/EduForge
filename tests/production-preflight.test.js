@@ -6,13 +6,13 @@ import {
   validateProductionEnvironment,
 } from "../scripts/_production-preflight.mjs";
 
-function productionEnvironment(databaseUrl = "postgresql://runtime:private-value@db.provider.net/eduforge") {
+function productionEnvironment(databaseUrl = "postgresql://runtime:private-value@db.provider.net/hhplms") {
   return {
     DATABASE_URL: databaseUrl,
     PRODUCTION_DATABASE_FINGERPRINT: productionDatabaseFingerprint(databaseUrl),
     PRODUCTION_ENVIRONMENT_CONFIRMATION: "hosted-production",
     PRODUCTION_DATABASE_CONFIRMATION: "read-only-production-preflight",
-    PRODUCTION_APP_URL: "https://app.eduforge.example",
+    PRODUCTION_APP_URL: "https://app.hhplms.example",
   };
 }
 
@@ -30,7 +30,7 @@ test("production environment requires exact confirmations and safe URLs", () => 
     () => validateProductionEnvironment({ ...productionEnvironment(), DATABASE_URL: "not-a-url" }),
     /valid URL/,
   );
-  const loopback = "postgresql://user:password@127.0.0.1/eduforge";
+  const loopback = "postgresql://user:password@127.0.0.1/hhplms";
   assert.throws(
     () => validateProductionEnvironment({
       ...productionEnvironment(loopback),
@@ -39,13 +39,13 @@ test("production environment requires exact confirmations and safe URLs", () => 
     /loopback/,
   );
   for (const unsafe of [
-    "postgresql://user:password@staging.db.provider.net/eduforge",
-    "postgresql://user:password@db.provider.net/eduforge_test",
+    "postgresql://user:password@staging.db.provider.net/hhplms",
+    "postgresql://user:password@db.provider.net/hhplms_test",
   ]) {
     assert.throws(() => validateProductionEnvironment(productionEnvironment(unsafe)), /non-production/);
   }
   assert.throws(
-    () => validateProductionEnvironment({ ...productionEnvironment(), PRODUCTION_APP_URL: "http://app.eduforge.example" }),
+    () => validateProductionEnvironment({ ...productionEnvironment(), PRODUCTION_APP_URL: "http://app.hhplms.example" }),
     /unsupported protocol/,
   );
   assert.throws(

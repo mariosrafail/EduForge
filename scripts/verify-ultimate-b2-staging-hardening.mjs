@@ -64,7 +64,7 @@ try {
   const accounts = (await pool.query(
     `select id,school_id,email,role from app_users
      where email = any($1::text[]) order by role`,
-    [["admin.staging@eduforge.invalid", "teacher.staging@eduforge.invalid", "student.staging@eduforge.invalid"]],
+    [["admin.staging@hhplms.invalid", "teacher.staging@hhplms.invalid", "student.staging@hhplms.invalid"]],
   )).rows;
   assert.deepEqual(accounts.map((account) => account.role).sort(), ["admin", "student", "teacher"]);
   assert.equal(new Set(accounts.map((account) => account.school_id)).size, 1);

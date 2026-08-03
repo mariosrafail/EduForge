@@ -123,7 +123,7 @@ try {
   });
 
   await check("admin creates and removes an account only in the authenticated school", async () => {
-    const email = `qa.transient.${randomUUID()}@eduforge.invalid`;
+    const email = `qa.transient.${randomUUID()}@hhplms.invalid`;
     artifacts.accountEmails.push(email);
     const created = await callHandler(users, { method: "POST", cookie: sessions["a-admin"], body: {
       full_name: "QA Transient Teacher", email, role: "teacher", status: "active", password: "Transient!2026",
@@ -139,7 +139,7 @@ try {
     process.env.APP_PUBLIC_URL ||= "https://staging.local";
     process.env.ACCOUNT_EMAIL_MODE = "capture";
     clearCapturedEmailsForTests();
-    const email = `qa.lifecycle.${randomUUID()}@eduforge.invalid`;
+    const email = `qa.lifecycle.${randomUUID()}@hhplms.invalid`;
     const inviteIp = "127.76.0.1";
     lifecycleFingerprints.push(requestFingerprint({ headers: { "x-nf-client-connection-ip": inviteIp } }));
     const invited = await callHandler(accountInvite, { method: "POST", cookie: sessions["a-admin"], ip: inviteIp, body: {
@@ -358,10 +358,10 @@ try {
     const base = await count("select count(*) from app_users");
     const membershipBase = await count("select count(*) from class_students");
     const failureCases = [
-      { email: `qa.signup.slug.${randomUUID()}@eduforge.invalid`, classCode: schoolA.classes[0].slug, classSlug: schoolA.classes[0].slug },
-      { email: `qa.signup.uuid.${randomUUID()}@eduforge.invalid`, classCode: schoolA.classes[0].id, classId: schoolA.classes[0].id },
-      { email: `qa.signup.invalid.${randomUUID()}@eduforge.invalid`, classCode: "NOCLASS9" },
-      { email: `qa.signup.inactive.${randomUUID()}@eduforge.invalid`, classCode: "QAINAC01" },
+      { email: `qa.signup.slug.${randomUUID()}@hhplms.invalid`, classCode: schoolA.classes[0].slug, classSlug: schoolA.classes[0].slug },
+      { email: `qa.signup.uuid.${randomUUID()}@hhplms.invalid`, classCode: schoolA.classes[0].id, classId: schoolA.classes[0].id },
+      { email: `qa.signup.invalid.${randomUUID()}@hhplms.invalid`, classCode: "NOCLASS9" },
+      { email: `qa.signup.inactive.${randomUUID()}@hhplms.invalid`, classCode: "QAINAC01" },
     ];
     for (const [index, failure] of failureCases.entries()) {
       const ip = `127.78.0.${index + 1}`;
@@ -375,7 +375,7 @@ try {
       assert.equal(await count("select count(*) from class_students"), membershipBase);
     }
 
-    const email = `qa.signup.valid.${randomUUID()}@eduforge.invalid`;
+    const email = `qa.signup.valid.${randomUUID()}@hhplms.invalid`;
     const signupIp = "127.78.0.10";
     artifacts.inviteFingerprints.push(fingerprint(signupIp));
     const signup = await callHandler(studentSignup, { method: "POST", ip: signupIp, body: {
@@ -416,7 +416,7 @@ try {
     const throttleFingerprint = fingerprint(throttleIp);
     artifacts.inviteFingerprints.push(throttleFingerprint);
     await pool.query("delete from class_invite_attempts where request_fingerprint = $1", [throttleFingerprint]);
-    const throttleEmail = `qa.signup.throttle.${randomUUID()}@eduforge.invalid`;
+    const throttleEmail = `qa.signup.throttle.${randomUUID()}@hhplms.invalid`;
     const throttleUsersBefore = await count("select count(*) from app_users where email = $1", [throttleEmail]);
     for (let index = 0; index < 20; index += 1) {
       assert.equal((await callHandler(studentSignup, { method: "POST", ip: throttleIp, body: {
@@ -468,7 +468,7 @@ try {
     await pool.query("update class_invite_attempts set attempted_at = now() - interval '16 minutes' where request_fingerprint = $1", [fp]);
     assert.equal((await callHandler(bookContent, { query: { action: "class-by-invite", inviteCode: "ZZZZZZ99" }, ip })).status, 404);
   });
-  if (process.env.EDUFORGE_STAGING_SMOKE_FORCE_FAILURE === "after-transient-artifacts") {
+  if (process.env.HHPLMS_STAGING_SMOKE_FORCE_FAILURE === "after-transient-artifacts") {
     await check("forced partial-failure cleanup regression", async () => {
       throw new Error("Intentional smoke failure requested for cleanup verification");
     });

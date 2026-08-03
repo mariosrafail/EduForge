@@ -15,7 +15,7 @@ function fixtureManifest() {
 }
 
 test("checksum calculation is deterministic", () => {
-  assert.equal(sha256(Buffer.from("EduForge")), "a651137abd6996d7e29f8aa94d2bc3344f5125b3c3b384199fcbeb4194a4e833");
+  assert.equal(sha256(Buffer.from("Hamilton House LMS")), "5aa8ae03221ea7d38c9317377ce83de56ddf353c3eb13cbfaae27aba385f5cc6");
 });
 
 test("MIME detection uses file signatures rather than extensions alone", () => {

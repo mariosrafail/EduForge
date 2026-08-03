@@ -7,7 +7,7 @@ import test from "node:test";
 import { scanWebBundle } from "../scripts/verify-web-bundle-safety.mjs";
 
 test("standard web safety scanner accepts learner-only assets and rejects answer and provenance leaks", async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "eduforge-web-bundle-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "hhplms-web-bundle-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(path.join(root, "safe.js"), "const prompt = 'Choose an option';", "utf8");
   assert.equal((await scanWebBundle(root)).matchCount, 0);

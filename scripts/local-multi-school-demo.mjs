@@ -41,11 +41,11 @@ if (action === "setup") {
   } finally {
     await pool.end();
   }
-  console.log("EduForge multi-school demo: http://127.0.0.1:8888");
+  console.log("Hamilton House LMS multi-school demo: http://127.0.0.1:8888");
   const child = spawnInherited("node", ["scripts/run-netlify-dev.mjs"], localDemoEnvironment({
     DATABASE_URL: localMultiSchoolDatabaseUrl(),
     LOCAL_DATABASE_CONFIRMATION: "isolated-local-pilot",
-    EDUFORGE_NETLIFY_LOOPBACK: "true",
+    HHPLMS_NETLIFY_LOOPBACK: "true",
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
     ACCOUNT_EMAIL_MODE: "preview",
     ACCOUNT_RATE_LIMIT_SALT: "local-multi-school-account-lifecycle-only",

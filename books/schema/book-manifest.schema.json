@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eduforge.invalid/schemas/book-manifest-1.0.json",
-  "title": "EduForge Book Manifest 1.0",
+  "$id": "https://hhplms.invalid/schemas/book-manifest-1.0.json",
+  "title": "Hamilton House LMS Book Manifest 1.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "publisher", "book", "edition", "components", "assets"],

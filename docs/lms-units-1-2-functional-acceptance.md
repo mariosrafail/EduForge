@@ -1,4 +1,4 @@
-# EduForge LMS / Ultimate B2 Units 1–2 functional acceptance
+# Hamilton House LMS / Ultimate B2 Units 1–2 functional acceptance
 
 ## Acceptance decision
 

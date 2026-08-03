@@ -54,7 +54,7 @@ export function inviteRequestFingerprint(event = {}) {
   const address = headers["x-nf-client-connection-ip"] || headers["x-forwarded-for"]?.split(",")[0] || "unknown";
   const isolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database"
     || process.env.STAGING_DATABASE_CONFIRMATION === "isolated-staging-database";
-  const salt = process.env.INVITE_RATE_LIMIT_SALT || (isolated ? "isolated-eduforge-invite-rate-limit" : "");
+  const salt = process.env.INVITE_RATE_LIMIT_SALT || (isolated ? "isolated-hhplms-invite-rate-limit" : "");
   if (!salt) throw new Error("INVITE_RATE_LIMIT_SALT is required");
   return createHash("sha256").update(`${salt}:${String(address).trim()}`).digest("hex");
 }

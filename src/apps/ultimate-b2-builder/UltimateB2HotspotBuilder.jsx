@@ -7,7 +7,7 @@ import {
 } from "../../data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { getUltimateB2UnitPartAsset } from "../../data/ultimate-b2/ultimateB2PageAssets.offline.js";
 
-const endpoint = "/__eduforge/ultimate-b2-hotspots";
+const endpoint = "/__hhplms/ultimate-b2-hotspots";
 const emptyManifest = {
   schemaVersion: "1.0",
   packageSlug: "ultimate-b2",

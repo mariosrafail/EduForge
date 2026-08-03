@@ -1,4 +1,4 @@
-# EduForge Release Candidate staging acceptance
+# Hamilton House LMS Release Candidate staging acceptance
 
 ## Decision
 
@@ -44,7 +44,7 @@ The repository-authoritative preflight is `npm run staging:preflight`. It failed
 
 Missing preflight variables:
 
-`STAGING_DATABASE_URL`, `STAGING_DATABASE_CONFIRMATION`, `STAGING_ENVIRONMENT_CONFIRMATION`, `APP_PUBLIC_URL`, `STAGING_PRODUCTION_APP_URL`, `PRODUCTION_DATABASE_FINGERPRINT`, `ACCOUNT_RATE_LIMIT_SALT`, `INVITE_RATE_LIMIT_SALT`, `ACCOUNT_EMAIL_DISPATCH_SECRET`, `OPERATIONAL_MONITORING_SECRET`, `ACCOUNT_EMAIL_MODE`, and `EDUFORGE_STAGING_QA_PASSWORD`.
+`STAGING_DATABASE_URL`, `STAGING_DATABASE_CONFIRMATION`, `STAGING_ENVIRONMENT_CONFIRMATION`, `APP_PUBLIC_URL`, `STAGING_PRODUCTION_APP_URL`, `PRODUCTION_DATABASE_FINGERPRINT`, `ACCOUNT_RATE_LIMIT_SALT`, `INVITE_RATE_LIMIT_SALT`, `ACCOUNT_EMAIL_DISPATCH_SECRET`, `OPERATIONAL_MONITORING_SECRET`, `ACCOUNT_EMAIL_MODE`, and `HHPLMS_STAGING_QA_PASSWORD`.
 
 Missing hosted browser/licensing variables:
 
@@ -54,7 +54,7 @@ No staging site was deployed or inspected. No hosted database hostname/name, sto
 
 ## Clean local reconstruction
 
-A new database named `eduforge_rc_test` was created inside the loopback-only disposable PostgreSQL container on `127.0.0.1:55432`. It was separate from the earlier developer/demo database and was empty before reconstruction.
+A new database named `hhplms_rc_test` was created inside the loopback-only disposable PostgreSQL container on `127.0.0.1:55432`. It was separate from the earlier developer/demo database and was empty before reconstruction.
 
 Results:
 
@@ -71,7 +71,7 @@ Results:
 - One Ultimate B2 student entitlement.
 - Two deterministic representative assignments.
 - Canonical assignable rows: Unit 1 = 37; Unit 2 = 40.
-- Integration cleanup targeted only `127.0.0.1/eduforge_rc_test` and found zero leftover temporary schemas.
+- Integration cleanup targeted only `127.0.0.1/hhplms_rc_test` and found zero leftover temporary schemas.
 
 The clean reconstruction did not use the pre-existing developer database as evidence.
 
@@ -237,7 +237,7 @@ Dedicated hosted staging configuration is absent. Consequently deployment verifi
 
 - Hosted staging cleanup: not required and not run, because preflight blocked all hosted migration/seed/deployment activity and no QA records were created.
 - Local integration cleanup: passed and confirmed the exact isolated target.
-- The temporary local RC database `eduforge_rc_test` was removed after verification; a catalog check confirmed zero remaining databases with that exact name.
+- The temporary local RC database `hhplms_rc_test` was removed after verification; a catalog check confirmed zero remaining databases with that exact name.
 - The APK remains only in ignored Android build output and is not committed.
 
 ## Commands executed

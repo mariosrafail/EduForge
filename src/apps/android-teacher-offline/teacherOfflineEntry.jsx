@@ -39,7 +39,7 @@ function pauseActiveMedia() {
 export function renderApp(root) {
   installTeacherOfflineNetworkGuard();
   installTeacherOfflineDiagnostics();
-  document.title = "Hamilton House Interactive Classroom";
+  document.title = "Hamilton House LMS";
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) pauseActiveMedia();

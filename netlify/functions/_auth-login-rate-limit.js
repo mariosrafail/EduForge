@@ -12,7 +12,7 @@ export const authLoginRetentionDays = 7;
 export const authLoginRateLimitMessage = "Too many login attempts. Try again later.";
 export const authLoginDummyPasswordHash = "$2b$12$TbcfsTmq6FFDE.aOFgkBuelsJsvqk.140AXzYhTFlta7idf64o.c6";
 
-const isolatedSalt = "isolated-eduforge-ordinary-auth-rate-limit-v1";
+const isolatedSalt = "isolated-hhplms-ordinary-auth-rate-limit-v1";
 const validOutcomes = new Set(["invalid_credentials", "authenticated", "inactive_account"]);
 
 function headerValue(headers, name) {

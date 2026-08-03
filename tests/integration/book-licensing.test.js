@@ -48,7 +48,7 @@ async function insertCode(pool, { packageId, schoolId, adminId, status = "unused
 
 test("one-time book licensing is atomic, role-scoped, and tenant-isolated", { skip: !integrationEnabled, timeout: 120_000 }, async (t) => {
   assert.notEqual(testDatabaseUrl, process.env.DATABASE_URL);
-  const schema = `eduforge_test_${randomBytes(6).toString("hex")}`;
+  const schema = `hhplms_test_${randomBytes(6).toString("hex")}`;
   const adminPool = new Pool({ connectionString: testDatabaseUrl });
   await adminPool.query(`create schema "${schema}"`);
   const scopedUrl = scopedDatabaseUrl(testDatabaseUrl, schema);

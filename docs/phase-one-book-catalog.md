@@ -1,6 +1,6 @@
 # Phase 1 book catalog
 
-EduForge Phase 1 exposes three active Hamilton House packages in this exact order:
+Hamilton House LMS Phase 1 exposes three active Hamilton House packages in this exact order:
 
 1. Ultimate English B1 (`ultimate-b1`, level B1)
 2. Ultimate English B1+ (`ultimate-b1-plus`, level B1+)

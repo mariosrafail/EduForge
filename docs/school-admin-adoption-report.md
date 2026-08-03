@@ -1,6 +1,6 @@
 # School Admin adoption report
 
-EduForge provides a live, School Admin-only adoption report for the authenticated school. School Admin branding persistence, CSV invitation import, and adoption CSV export are implemented; the three PR-006 workflows are fully remediated.
+Hamilton House LMS provides a live, School Admin-only adoption report for the authenticated school. School Admin branding persistence, CSV invitation import, and adoption CSV export are implemented; the three PR-006 workflows are fully remediated.
 
 The summary and export aggregate current database records by active book package. A package is included only when the school has a package-specific activation code, active Student or Teacher entitlement, assignment, or submission. The report never accepts a school identifier from the browser.
 

@@ -1,6 +1,6 @@
-# Hamilton House Publishers LMS Demo
+# Hamilton House LMS
 
-Client-facing Hamilton House Publishers LMS demo for ELT publishers, schools, teachers, and students. The codebase may still use internal names in files or components, but the visible product branding for the current demo is Hamilton House Publishers LMS.
+Hamilton House LMS is the Hamilton House Publishers platform for schools, teachers, and students.
 
 ## Brand Assets
 

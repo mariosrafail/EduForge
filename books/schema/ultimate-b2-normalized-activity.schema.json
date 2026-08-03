@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eduforge.invalid/schemas/ultimate-b2-normalized-activity-1.0.json",
+  "$id": "https://hhplms.invalid/schemas/ultimate-b2-normalized-activity-1.0.json",
   "title": "Ultimate B2 normalized publisher activity",
   "type": "object",
   "additionalProperties": false,

@@ -1,4 +1,4 @@
-.eduforge-app {
+.hhplms-app {
   background:
     radial-gradient(circle at 8% 2%, color-mix(in srgb, var(--brand-secondary) 10%, transparent), transparent 26rem),
     #f7f9fc;
@@ -161,21 +161,21 @@
   letter-spacing: -0.035em;
 }
 
-.eduforge-app .primary-action,
-.eduforge-app .secondary-action,
-.eduforge-app .danger-action,
-.eduforge-app .warning-action,
-.eduforge-app .ghost-action,
-.eduforge-app .link-action {
+.hhplms-app .primary-action,
+.hhplms-app .secondary-action,
+.hhplms-app .danger-action,
+.hhplms-app .warning-action,
+.hhplms-app .ghost-action,
+.hhplms-app .link-action {
   position: relative;
   min-width: 0;
   border-radius: 9px;
   transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-.eduforge-app .ghost-action,
-.eduforge-app .link-action,
-.eduforge-app .warning-action {
+.hhplms-app .ghost-action,
+.hhplms-app .link-action,
+.hhplms-app .warning-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,46 +185,46 @@
   font-weight: 850;
 }
 
-.eduforge-app .ghost-action { color: #344054; background: transparent; border: 1px solid transparent; }
-.eduforge-app .link-action { min-height: 36px; padding: 6px 8px; color: var(--brand-primary); background: transparent; text-decoration: underline; text-underline-offset: 3px; }
-.eduforge-app .warning-action { color: #93370d; background: #fffaeb; border: 1px solid #fedf89; }
+.hhplms-app .ghost-action { color: #344054; background: transparent; border: 1px solid transparent; }
+.hhplms-app .link-action { min-height: 36px; padding: 6px 8px; color: var(--brand-primary); background: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.hhplms-app .warning-action { color: #93370d; background: #fffaeb; border: 1px solid #fedf89; }
 
-.eduforge-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action, .link-action):focus-visible {
+.hhplms-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action, .link-action):focus-visible {
   outline: 3px solid color-mix(in srgb, var(--brand-primary) 28%, transparent);
   outline-offset: 2px;
 }
 
-.eduforge-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action):active {
+.hhplms-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action):active {
   transform: translateY(1px);
 }
 
-.eduforge-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action, .link-action):disabled {
+.hhplms-app :is(.primary-action, .secondary-action, .danger-action, .warning-action, .ghost-action, .link-action):disabled {
   cursor: not-allowed;
   opacity: 0.58;
   transform: none;
   box-shadow: none;
 }
 
-.eduforge-app .panel,
-.eduforge-app .metric-card {
+.hhplms-app .panel,
+.hhplms-app .metric-card {
   border-radius: 12px;
 }
 
-.eduforge-app .data-table {
+.hhplms-app .data-table {
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: thin;
 }
 
-.eduforge-app .inline-status {
+.hhplms-app .inline-status {
   border-radius: 9px;
 }
 
-.eduforge-app .brand-lockup strong {
+.hhplms-app .brand-lockup strong {
   letter-spacing: -0.02em;
 }
 
-.eduforge-app .public-header-actions button:focus-visible {
+.hhplms-app .public-header-actions button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--brand-primary) 28%, transparent);
   outline-offset: 2px;
 }

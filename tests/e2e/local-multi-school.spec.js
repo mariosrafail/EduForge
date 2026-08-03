@@ -380,7 +380,7 @@ test("School Admin branding saves, survives refresh, remains tenant-scoped, and 
   await page.getByRole("button", { name: "Save school profile", exact: true }).click();
   await expect(page.getByText("School profile saved.", { exact: true })).toBeVisible();
   await expect(page.locator(".app-chrome-brand-copy small")).toHaveText(temporaryAthensBrandName);
-  await expect(page.locator(".eduforge-app")).toHaveCSS("--brand-primary", "#166534");
+  await expect(page.locator(".hhplms-app")).toHaveCSS("--brand-primary", "#166534");
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(schoolName).toHaveValue(temporaryAthensBrandName);

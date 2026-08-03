@@ -43,5 +43,5 @@ test("disabled and non-local function requests fail closed before authentication
   delete process.env.VITE_ENABLE_LEGACY_FLASH_PLAYER;
   assert.equal((await handler({ headers: { host: "localhost:8888" }, httpMethod: "GET" })).statusCode, 404);
   process.env.VITE_ENABLE_LEGACY_FLASH_PLAYER = "true";
-  assert.equal((await handler({ headers: { host: "eduforge.example" }, httpMethod: "GET" })).statusCode, 404);
+  assert.equal((await handler({ headers: { host: "hhplms.example" }, httpMethod: "GET" })).statusCode, 404);
 });

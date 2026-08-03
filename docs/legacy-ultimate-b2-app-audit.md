@@ -38,7 +38,7 @@ The likely runtime set includes the native launchers in `Contents/MacOS/` and `C
 
 Loose visual evidence is strong. The home/menu family uses a high-resolution blue glacier photograph, glossy ice-blue/cyan panels, lime active accents, and purple-to-magenta circular navigation buttons with white keylines and dark drop shadows. Book-unit plates use condensed, high-contrast display lettering; normal reading text remains better served by live system text. Toolbar and navigation atlases explicitly name active, disabled, and pressed states for back/home/previous/next/check/reload/show-all/video controls. The legacy audio player repeats the purple/magenta circular-control language. Correct feedback is associated with lime green; incorrect feedback with magenta/pink. Density is compact, but controls are visually prominent for classroom use.
 
-The audio group contains clearly named `button.mp3`, `pageTurn.mp3`, `correct.mp3`, and `wrong.mp3` cues. These four short, non-verbal MP3 files were selected. Content narration/music, alphabet sounds, game duplicates, and ambiguous effects were rejected. Existing EduForge textbook audio and video remain authoritative, so no legacy content media was copied. No font file was detected; typography is therefore reproduced with a condensed system-font stack rather than a new bundled font.
+The audio group contains clearly named `button.mp3`, `pageTurn.mp3`, `correct.mp3`, and `wrong.mp3` cues. These four short, non-verbal MP3 files were selected. Content narration/music, alphabet sounds, game duplicates, and ambiguous effects were rejected. Existing Hamilton House LMS textbook audio and video remain authoritative, so no legacy content media was copied. No font file was detected; typography is therefore reproduced with a condensed system-font stack rather than a new bundled font.
 
 ## Curated selection
 
@@ -49,7 +49,7 @@ The tracked subset contains **11 assets / 2,815,404 bytes** under `src/assets/bo
 - 5 losslessly cropped icons (36,257 bytes)
 - 4 UI sounds (81,255 bytes)
 
-The glacier menu background and activity marker were copied byte-for-byte. Five 60×60 active-state icons were statically cropped from the loose `naviBar/HD/naviBar.png` atlas using its accompanying XML coordinates and the already-installed Sharp package; no code or runtime container was involved. There were **0 reused-existing manifest entries**, because none of these selected UI files matched an existing EduForge Ultimate B2 asset by SHA-256. Whole atlases, blank transparent placeholder plates, SD duplicates, book pages, content media, and unused decoration were rejected.
+The glacier menu background and activity marker were copied byte-for-byte. Five 60×60 active-state icons were statically cropped from the loose `naviBar/HD/naviBar.png` atlas using its accompanying XML coordinates and the already-installed Sharp package; no code or runtime container was involved. There were **0 reused-existing manifest entries**, because none of these selected UI files matched an existing Hamilton House LMS Ultimate B2 asset by SHA-256. Whole atlases, blank transparent placeholder plates, SD duplicates, book pages, content media, and unused decoration were rejected.
 
 ## SWF and inspection limitations
 

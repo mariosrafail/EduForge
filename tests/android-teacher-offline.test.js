@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../scripts/_branding-audit.mjs";
 
 import manifest from "../android-content-packs/ultimate-b2-students-book/manifest.json" with { type: "json" };
 import catalog from "../android-content-packs/ultimate-b2-students-book/catalog.json" with { type: "json" };
@@ -64,9 +65,9 @@ const pack = { manifest, catalog, activities, teacherSolutions, assetsManifest }
 
 test("Android Teacher user-facing branding is publisher-owned in both themes", async () => {
   const source = await readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8");
-  assert.match(source, /Hamilton House Interactive Classroom/);
+  assert.match(source, /Hamilton House LMS/);
   assert.match(source, /Version 0\.1\.0/);
-  assert.doesNotMatch(source, /EduForge|Made by|Made with|Developed by|Created by/i);
+  assert.doesNotMatch(source, FORBIDDEN_VISIBLE_BRANDING_PATTERN);
 });
 
 test("CI builds the teacher pack before its internal verification", async () => {
@@ -188,10 +189,10 @@ test("generic Teacher shell identity is not B2-only while book identity remains 
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
   ]);
-  assert.match(settingsDialog, /Hamilton House Interactive Classroom/);
+  assert.match(settingsDialog, /Hamilton House LMS/);
   assert.match(settingsDialog, /Interactive Classroom/);
   assert.doesNotMatch(settingsDialog, /Ultimate English B2 interactive classroom content/);
-  assert.match(entry, /Hamilton House Interactive Classroom/);
+  assert.match(entry, /Hamilton House LMS/);
   assert.match(library, /Ultimate English B2/);
   assert.match(book, /Ultimate English B2/);
 });
@@ -483,7 +484,7 @@ test("teacher Android shell is landscape, immersive, offline-only, and safely la
   assert.match(activity, /BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE/);
   assert.match(activity, /onPause\(\)[\s\S]*pauseWebMedia/);
   assert.doesNotMatch(activity, /FLAG_LAYOUT_NO_LIMITS/);
-  assert.match(gradle, /teacherPresentation[\s\S]*Hamilton House Interactive Classroom/);
+  assert.match(gradle, /teacherPresentation[\s\S]*Hamilton House LMS/);
   assert.match(buildScript, /build:android-teacher-offline[\s\S]*cap[\s\S]*run-gradle\.mjs[\s\S]*verify:android-teacher-apk/);
   assert.match(apkVerifier, /applicationId[\s\S]*applicationLabel[\s\S]*minSdk[\s\S]*targetSdk/);
 });

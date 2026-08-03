@@ -25,17 +25,17 @@ test("staging database guard fails closed", () => {
     assert.throws(() => requireSafeDatabase("staging"), /STAGING_DATABASE_URL is required/);
   });
   withEnvironment({
-    STAGING_DATABASE_URL: "postgresql://user:secret@localhost/eduforge_staging",
+    STAGING_DATABASE_URL: "postgresql://user:secret@localhost/hhplms_staging",
     STAGING_DATABASE_CONFIRMATION: undefined,
     DATABASE_URL: undefined,
   }, () => assert.throws(() => requireSafeDatabase("staging"), /STAGING_DATABASE_CONFIRMATION/));
   withEnvironment({
-    STAGING_DATABASE_URL: "postgresql://staging:secret@db.example/eduforge_staging",
+    STAGING_DATABASE_URL: "postgresql://staging:secret@db.example/hhplms_staging",
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
-    DATABASE_URL: "postgresql://runtime:different@db.example/eduforge_staging",
+    DATABASE_URL: "postgresql://runtime:different@db.example/hhplms_staging",
   }, () => assert.throws(() => requireSafeDatabase("staging"), /same database/));
   withEnvironment({
-    STAGING_DATABASE_URL: "postgresql://user:secret@production.example/eduforge_staging",
+    STAGING_DATABASE_URL: "postgresql://user:secret@production.example/hhplms_staging",
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
     DATABASE_URL: undefined,
   }, () => assert.throws(() => requireSafeDatabase("staging"), /appears to identify a production/));
@@ -48,12 +48,12 @@ test("staging database guard fails closed", () => {
 
 test("staging database guard accepts a visibly isolated confirmed target without exposing credentials", () => {
   withEnvironment({
-    STAGING_DATABASE_URL: "postgresql://user:top-secret@localhost/eduforge_staging",
+    STAGING_DATABASE_URL: "postgresql://user:top-secret@localhost/hhplms_staging",
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
     DATABASE_URL: undefined,
   }, () => {
     const target = requireSafeDatabase("staging");
-    assert.equal(target.safeLabel, "localhost/eduforge_staging");
+    assert.equal(target.safeLabel, "localhost/hhplms_staging");
     assert.equal(target.safeLabel.includes("top-secret"), false);
   });
 });

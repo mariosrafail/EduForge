@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../scripts/_branding-audit.mjs";
 import {
   MULTI_SCHOOL_DEMO_PASSWORD,
   MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
@@ -49,7 +50,7 @@ test("Greek LMS user guides contain no credentials, internal URLs, or placeholde
   assert.doesNotMatch(combined, /@multi-school|\.dev\.invalid|127\.0\.0\.1|localhost|https?:\/\//i);
   assert.doesNotMatch(combined, /\b(?:TODO|TBD|placeholder)\b/i);
   assert.doesNotMatch(combined, /platform-admin|Platform Admin|Platform Administration/i);
-  assert.doesNotMatch(combined, /EduForge|Made by|Made with|Developed by|Created by/i);
+  assert.doesNotMatch(combined, FORBIDDEN_VISIBLE_BRANDING_PATTERN);
 });
 
 test("role guides do not document privileged or unsupported controls", async () => {

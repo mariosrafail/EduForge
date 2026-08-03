@@ -71,7 +71,7 @@ universal viewing-distance standard. Page/activity content and feedback need
 classroom-readable capped typography; teacher controls must not grow
 proportionally with panel pixels.
 
-## EduForge viewport profiles
+## Hamilton House LMS viewport profiles
 
 `src/apps/android-teacher-offline/viewportProfiles.js` is the single runtime
 classifier. CSS is selected with `html[data-teacher-viewport]`.

@@ -20,7 +20,7 @@ const cases = [
   ["password_changed", ""],
 ];
 for (const [templateType, rawToken] of cases) {
-  const result = await deliverAccountEmail({ recipient, templateType, rawToken, outboxId: randomUUID(), name: "EduForge Staging QA" });
+  const result = await deliverAccountEmail({ recipient, templateType, rawToken, outboxId: randomUUID(), name: "Hamilton House LMS Staging QA" });
   if (result.state !== "sent") throw new Error(`${templateType} delivery failed with a sanitized status`);
   console.log(`PASS ${templateType}: accepted by dedicated staging SMTP.`);
 }

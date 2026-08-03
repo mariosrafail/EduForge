@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "./hotspot-manifest.mjs";
 
-const endpoint = "/__eduforge/ultimate-b2-hotspots";
+const endpoint = "/__hhplms/ultimate-b2-hotspots";
 const manifestPath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json");
 const maximumBodyBytes = 2 * 1024 * 1024;
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -31,7 +31,7 @@ async function readRequestBody(request) {
 
 export function ultimateB2HotspotBuilderPlugin() {
   return {
-    name: "eduforge-ultimate-b2-hotspot-builder",
+    name: "hhplms-ultimate-b2-hotspot-builder",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {

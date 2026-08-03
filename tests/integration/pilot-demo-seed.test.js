@@ -21,7 +21,7 @@ test("local pilot demo seed is deterministic and complete", {
   timeout: 120_000,
 }, async (t) => {
   assert.notEqual(testDatabaseUrl, process.env.DATABASE_URL);
-  const schema = `eduforge_demo_${randomBytes(6).toString("hex")}`;
+  const schema = `hhplms_demo_${randomBytes(6).toString("hex")}`;
   const adminPool = new pg.Pool({ connectionString: testDatabaseUrl });
   await adminPool.query(`create schema "${schema}"`);
   const pool = new pg.Pool({ connectionString: scopedDatabaseUrl(testDatabaseUrl, schema) });

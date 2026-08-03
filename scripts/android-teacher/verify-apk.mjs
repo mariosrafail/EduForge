@@ -46,7 +46,7 @@ async function main() {
   const targetSdk = Number(attribute(mergedManifest.content, "uses-sdk", "targetSdkVersion"));
 
   assert.equal(applicationId, "com.eduforge.offlinebooks");
-  assert.equal(applicationLabel, "Hamilton House Interactive Classroom");
+  assert.equal(applicationLabel, "Hamilton House LMS");
   assert.equal(versionCode, 1);
   assert.equal(versionName, "1.0");
   assert.equal(minSdk, 24);

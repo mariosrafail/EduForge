@@ -61,7 +61,7 @@ export function accountActionUrl(action, rawToken) {
 export function requestFingerprint(event) {
   let salt = process.env.ACCOUNT_RATE_LIMIT_SALT;
   const isolated = process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database" || process.env.STAGING_DATABASE_CONFIRMATION === "isolated-staging-database";
-  if (!salt && isolated) salt = "isolated-eduforge-account-lifecycle";
+  if (!salt && isolated) salt = "isolated-hhplms-account-lifecycle";
   if (!salt) throw new Error("ACCOUNT_RATE_LIMIT_SALT is required");
   const headers = event.headers || {};
   const ip = headers["x-nf-client-connection-ip"] || headers["x-forwarded-for"] || "unknown";

@@ -10,12 +10,12 @@ import {
 
 export const LOCAL_MULTI_SCHOOL = Object.freeze({
   confirmation: "isolated-local-multi-school-demo",
-  databaseName: "eduforge_multi_school_demo",
-  containerName: "eduforge-multi-school-postgres",
+  databaseName: "hhplms_multi_school_demo",
+  containerName: "hhplms-multi-school-postgres",
   host: "127.0.0.1",
   port: 55433,
   user: "postgres",
-  password: "eduforge_multi_school_dev_only",
+  password: "hhplms_multi_school_dev_only",
   markerPath: ".codex/local-multi-school-demo.json",
 });
 

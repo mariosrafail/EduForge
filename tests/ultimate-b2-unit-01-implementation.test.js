@@ -188,8 +188,8 @@ test("media entitlement query is role-aware and school-scoped", async () => {
 });
 
 test("media source resolution rejects traversal and symlink escapes", async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "eduforge-unit1-media-root-"));
-  const outside = await mkdtemp(path.join(os.tmpdir(), "eduforge-unit1-media-outside-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "hhplms-unit1-media-root-"));
+  const outside = await mkdtemp(path.join(os.tmpdir(), "hhplms-unit1-media-outside-"));
   t.after(async () => { await rm(root, { recursive: true, force: true }); await rm(outside, { recursive: true, force: true }); });
   await mkdir(path.join(root, "safe"));
   await writeFile(path.join(root, "safe", "audio.mp3"), "safe");

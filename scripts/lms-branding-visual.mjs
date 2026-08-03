@@ -3,6 +3,7 @@ import { mkdir, rm } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 
+import { FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "./_branding-audit.mjs";
 import { localPlaywrightLaunchOptions } from "./android-teacher/playwright-launch-options.mjs";
 
 const baseURL = "http://127.0.0.1:4181";
@@ -28,7 +29,7 @@ async function waitForPreview() {
 async function assertCleanBranding(page, expectedTitle, label) {
   const visibleText = await page.locator("body").innerText();
   assert.equal(await page.title(), expectedTitle, `${label} document title`);
-  assert.doesNotMatch(visibleText, /EduForge|Made by|Made with|Developed by|Created by/i, `${label} visible branding`);
+  assert.doesNotMatch(visibleText, FORBIDDEN_VISIBLE_BRANDING_PATTERN, `${label} visible branding`);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false, `${label} horizontal overflow`);
 }
 

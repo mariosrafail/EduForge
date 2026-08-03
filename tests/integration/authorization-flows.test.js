@@ -74,7 +74,7 @@ async function insertUser(pool, { schoolId, name, email, role, status = "active"
 
 test("handler-level authorization flows preserve tenant and resource state", { skip: !integrationEnabled, timeout: 120_000 }, async (t) => {
   assert.notEqual(testDatabaseUrl, process.env.DATABASE_URL, "TEST_DATABASE_URL must not equal DATABASE_URL");
-  const schema = `eduforge_test_${randomBytes(6).toString("hex")}`;
+  const schema = `hhplms_test_${randomBytes(6).toString("hex")}`;
   const adminPool = new Pool({ connectionString: testDatabaseUrl });
   await adminPool.query(`create schema "${schema}"`);
   const scopedUrl = scopedDatabaseUrl(testDatabaseUrl, schema);

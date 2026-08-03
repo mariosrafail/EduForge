@@ -39,15 +39,15 @@ test("public dispatcher rejects unauthenticated calls and workers declare intern
 
 test("staging preflight rejects unsafe inboxes and accepts non-secret hosted metadata", async () => {
   assert.throws(() => validateDedicatedStagingRecipient("person@gmail.com", "dedicated-nonproduction-inbox"), /personal mailbox/);
-  const db = "postgresql://qa:runtime-value@db.staging.test/eduforge_staging";
+  const db = "postgresql://qa:runtime-value@db.staging.test/hhplms_staging";
   const environment = {
     STAGING_DATABASE_URL: db,
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
     STAGING_ENVIRONMENT_CONFIRMATION: "hosted-nonproduction-staging",
     DATABASE_URL: db,
-    APP_PUBLIC_URL: "https://eduforge-staging.example.test",
+    APP_PUBLIC_URL: "https://hhplms-staging.example.test",
     STAGING_PRODUCTION_APP_URL: "https://app.example.test",
-    PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/eduforge_production"),
+    PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/hhplms_production"),
     AUTH_RATE_LIMIT_SALT: "e".repeat(40),
     PLATFORM_ADMIN_RATE_LIMIT_SALT: "f".repeat(40),
     ACCOUNT_RATE_LIMIT_SALT: "a".repeat(40),

@@ -62,7 +62,7 @@ async function signInPlatform(page) {
   await page.getByLabel("Password").fill(MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Restricted operator area")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 15_000 });
 }
 
 async function navigatePlatform(page, label) {

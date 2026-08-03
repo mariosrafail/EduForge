@@ -17,7 +17,7 @@ export function isProtectedUnit2SourcePath(url = "") {
 export function unit2ProtectedMediaPlugin({ androidOffline = false } = {}) {
   if (androidOffline) return null;
   return {
-    name: "eduforge-unit2-protected-media",
+    name: "hhplms-unit2-protected-media",
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
         if (!isProtectedUnit2SourcePath(request.url || "")) return next();

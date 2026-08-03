@@ -11,13 +11,13 @@ test("local multi-school target requires explicit confirmation", () => {
 test("local multi-school target rejects production and non-loopback databases", () => {
   assert.throws(() => requireLocalMultiSchoolTarget({ NODE_ENV: "production" }, confirmation), /production/i);
   assert.throws(() => requireLocalMultiSchoolTarget({
-    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@db.example.com/eduforge_multi_school_demo",
+    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@db.example.com/hhplms_multi_school_demo",
   }, confirmation), /loopback/i);
 });
 
 test("local multi-school target rejects ambiguous database names and generic database variables", () => {
   assert.throws(() => requireLocalMultiSchoolTarget({
-    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@127.0.0.1/eduforge",
+    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@127.0.0.1/hhplms",
   }, confirmation), /exactly/i);
   assert.throws(() => requireLocalMultiSchoolTarget({
     MULTI_SCHOOL_LOCAL_DATABASE_URL: localMultiSchoolDatabaseUrl(),
@@ -27,10 +27,10 @@ test("local multi-school target rejects ambiguous database names and generic dat
 
 test("local multi-school target permits a separate loopback port only for the exact demo database", () => {
   const target = requireLocalMultiSchoolTarget({
-    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@127.0.0.1:55434/eduforge_multi_school_demo",
+    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@127.0.0.1:55434/hhplms_multi_school_demo",
   }, confirmation);
   const url = new URL(target.connectionString);
   assert.equal(url.hostname, "127.0.0.1");
   assert.equal(url.port, "55434");
-  assert.equal(url.pathname, "/eduforge_multi_school_demo");
+  assert.equal(url.pathname, "/hhplms_multi_school_demo");
 });
