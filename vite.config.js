@@ -15,6 +15,13 @@ export default defineConfig(({ mode }) => {
     platformAdmin: path.resolve(process.cwd(), "platform-admin/index.html"),
   };
   const androidOfflineServiceStub = path.resolve(process.cwd(), "src/apps/android-offline/androidOfflineServiceStubs.js");
+  const offlineDisabledBookTools = path.resolve(process.cwd(), "src/apps/android-offline/OfflineDisabledBookTools.jsx");
+  const bookAuthoringTools = path.resolve(process.cwd(), "src/components/lms/books/BookAuthoringTools.jsx");
+  const teacherAnswerUi = path.resolve(process.cwd(), isAndroidTeacherOffline
+    ? "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx"
+    : isAndroidOffline
+      ? "src/apps/android-offline/NoTeacherAnswerUi.jsx"
+      : "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx");
   const offlineSolutionProvider = path.resolve(
     process.cwd(),
     isAndroidTeacherOffline
@@ -114,6 +121,14 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:book-content-service",
           replacement: bookContentService,
+        },
+        {
+          find: "virtual:book-authoring-tools",
+          replacement: isAndroidOffline ? offlineDisabledBookTools : bookAuthoringTools,
+        },
+        {
+          find: "virtual:teacher-answer-ui",
+          replacement: teacherAnswerUi,
         },
         ...(isAndroidOffline
           ? [

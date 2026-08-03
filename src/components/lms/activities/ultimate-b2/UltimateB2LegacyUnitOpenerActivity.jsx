@@ -1,4 +1,5 @@
 import { ultimateB2Unit1LegacyOpenerImages } from "../../../../data/ultimate-b2/unit1Part1LegacyOpenerAssets.js";
+import { TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
 
 export function UltimateB2LegacyUnitOpenerActivity({
   activity,
@@ -34,15 +35,7 @@ export function UltimateB2LegacyUnitOpenerActivity({
                       onChange={(event) => updateAnswer(question.id, event.target.value)}
                     />
                   ) : capabilities.canRevealSolutions ? (
-                    <button
-                      type="button"
-                      className={`legacy-unit-opener-answer-lines ${revealed ? "revealed" : ""}`}
-                      aria-label={revealed ? `Publisher model answer for question ${index + 1}` : `Show publisher model answer for question ${index + 1}`}
-                      disabled={solutionsLoading}
-                      onClick={() => revealQuestion(question.id)}
-                    >
-                      {revealed ? <span>{modelAnswer}</span> : <span aria-hidden="true" />}
-                    </button>
+                    <TeacherLegacyUnitOpenerAnswer index={index} revealed={revealed} modelAnswer={modelAnswer} solutionsLoading={solutionsLoading} revealQuestion={revealQuestion} questionId={question.id} />
                   ) : (
                     <div className="legacy-unit-opener-answer-lines" aria-hidden="true"><span /></div>
                   )}

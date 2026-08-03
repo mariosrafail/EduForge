@@ -6,9 +6,7 @@ import { ReadingTextAudioScreen, StudentsBookMediaPlayer, UltimateB2ActivityRunn
 import { BookPageImageLayer } from "./BookPageImagePanel.jsx";
 import { BookPageGrid } from "./BookPageGrid.jsx";
 import { copyHashLink } from "./bookBrowserUtils.js";
-import { BookActivityBuilderModal } from "./activity-builder/BookActivityBuilderModal.jsx";
-import { BookActivityRunner } from "./activity-runner/BookActivityRunner.jsx";
-import { PageHotspotSettingsPanel } from "./hotspots/PageHotspotSettingsPanel.jsx";
+import { BookActivityBuilderModal, BookActivityRunner, PageHotspotSettingsPanel } from "virtual:book-authoring-tools";
 import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bookPageHotspotsApi.js";
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
@@ -211,6 +209,7 @@ export function BookPagesView({
   selectedPageNumber = null,
   onSelectPage,
   onClearSelectedPage,
+  highlightedActivityKey = null,
 }) {
   const sections = useMemo(() => normalizeBookPageSections(component), [component]);
   const [navigationDirection, setNavigationDirection] = useState(1);
@@ -728,6 +727,7 @@ export function BookPagesView({
                   selectedSection={selectedSection}
                   spreadClass={spreadClass}
                   zoom={zoom}
+                  highlightedActivityKey={highlightedActivityKey}
                 />
               </motion.div>
             </AnimatePresence>

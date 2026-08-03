@@ -7,8 +7,8 @@ android {
         applicationId "com.eduforge.offlinebooks"
         manifestPlaceholders = [
             appLabel: project.hasProperty("teacherPresentation")
-                ? "Hamilton House LMS"
-                : "Hamilton House LMS"
+                ? "Hamilton House LMS Teacher"
+                : "Hamilton House LMS Student"
         ]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion

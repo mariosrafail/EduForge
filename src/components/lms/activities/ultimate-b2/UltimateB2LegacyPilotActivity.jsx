@@ -8,6 +8,7 @@ import {
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2-legacy-pilot-audio";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
+import { TeacherLegacyQuestionFeedback } from "virtual:teacher-answer-ui";
 
 function LegacyInstruction({ src, alt }) {
   return <img className="legacy-pilot-instruction" src={src} alt={alt} draggable="false" />;
@@ -112,41 +113,6 @@ function LegacyReadingSupport({ activityId, image, initialVisible = false }) {
   );
 }
 
-function LegacyQuestionFeedback({
-  capabilities,
-  question,
-  checkResult,
-  revealed,
-  solutions,
-  solutionsLoading,
-  revealQuestion,
-}) {
-  if (!capabilities.canRevealSolutions) return null;
-  return (
-    <div className="legacy-pilot-question-feedback">
-      <button
-        className="legacy-pilot-small-button"
-        type="button"
-        disabled={solutionsLoading || Boolean(solutions && !solutions.questions?.[question.id])}
-        onClick={() => revealQuestion(question.id)}
-      >
-        Show answer
-      </button>
-      {checkResult && (
-        <b className={`legacy-pilot-result legacy-pilot-result--${checkResult}`}>
-          {checkResult === "correct" ? "Correct" : checkResult === "incorrect" ? "Try again" : "No answer"}
-        </b>
-      )}
-      {revealed && solutions?.questions?.[question.id] && (
-        <div className="legacy-pilot-revealed-answer">
-          <small>Publisher answer</small>
-          <strong>{solutions.questions[question.id].acceptedAnswers.join(" / ")}</strong>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function LegacyQuestion({
   activity,
   question,
@@ -164,7 +130,7 @@ function LegacyQuestion({
   const value = answers[question.id] || "";
   const result = checkResults[question.id] || "";
   const commonFeedback = (
-    <LegacyQuestionFeedback
+      <TeacherLegacyQuestionFeedback
       capabilities={capabilities}
       question={question}
       checkResult={result}

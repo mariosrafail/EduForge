@@ -7,7 +7,7 @@ import { TeacherBookUnitList } from "./BookExerciseList.jsx";
 import { LockedExerciseRow, LockedUnitRow } from "./LockedRows.jsx";
 import { BookPagesView } from "./BookPageViewer.jsx";
 import { getActiveExercises, isExerciseActive } from "./bookBrowserUtils.js";
-import { BookActivityRunner } from "./activity-runner/BookActivityRunner.jsx";
+import { BookActivityRunner } from "virtual:book-authoring-tools";
 import { listBookActivities } from "../../../services/bookActivitiesApi.js";
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
@@ -60,7 +60,7 @@ function CustomBookActivitySection({ activities, loading, error, mode, onOpenAct
   );
 }
 
-export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview }) {
+export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview, highlightedActivityKey = null }) {
   const activeCount = getActiveExercises(component).length;
   const recoveredStudentsBook = component.catalogKind === "recovered-students-book";
   const visibleUnitCount = component.units.filter((unit) => unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive))).length;
@@ -171,6 +171,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
           selectedPageNumber={selectedPageNumber}
           onSelectPage={(pageUnitId, pageId, pageNumber) => onSelectBookPage?.(canonicalBookId, pageUnitId, pageId, pageNumber)}
           onClearSelectedPage={() => onSelectSubview?.(canonicalBookId, "pages")}
+          highlightedActivityKey={highlightedActivityKey}
         />
       ) : mode === "teacher" ? (
         <>

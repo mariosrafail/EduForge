@@ -5,8 +5,8 @@ const teacherPresentation = process.env.CAPACITOR_BUILD_MODE === "teacher";
 const config: CapacitorConfig = {
   appId: "com.eduforge.offlinebooks",
   appName: teacherPresentation
-    ? "Hamilton House LMS"
-    : "Hamilton House LMS",
+    ? "Hamilton House LMS Teacher"
+    : "Hamilton House LMS Student",
   webDir: "dist",
   plugins: {
     StatusBar: {

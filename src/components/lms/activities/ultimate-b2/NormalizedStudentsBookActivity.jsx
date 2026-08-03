@@ -24,6 +24,9 @@ import { isUltimateB2Unit1LegacyOpener } from "../../../../data/ultimate-b2/unit
 import { UltimateB2LegacyUnitOpenerActivity } from "./UltimateB2LegacyUnitOpenerActivity.jsx";
 import { isUltimateB2PublisherImageDisplay } from "../../../../data/ultimate-b2/unit1Part1Exercise2Display.js";
 import { UltimateB2PublisherImageDisplayActivity } from "./UltimateB2PublisherImageDisplayActivity.jsx";
+import { TeacherPresentationControls, TeacherQuestionFeedback } from "virtual:teacher-answer-ui";
+
+const studentAndroidBuild = import.meta.env.VITE_APP_MODE === "android-offline";
 
 export function findUnit2Implementation(id) {
   const activity = findStudentsBookImplementation(id);
@@ -309,23 +312,10 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
       {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
       {submitError && <div className="inline-status error">{submitError}</div>}
-      {capabilities.isPresentation && !legacyUnitOpener && !publisherImageDisplay && (
-        <div className="teacher-presentation-answer-controls" aria-label="Presentation answer controls">
-          <button className="primary-action" type="button" onClick={checkAnswers} disabled={solutionsLoading || Boolean(solutions && solutions.solutionAvailability !== "explicit")}>
-            {solutionsLoading ? "Loading solutions…" : "Check"}
-          </button>
-          <button className="secondary-action" type="button" onClick={reset}>Reset</button>
-          <button className="secondary-action" type="button" onClick={revealAll} disabled={solutionsLoading || solutions?.solutionAvailability !== undefined && solutions.solutionAvailability !== "explicit"}>
-            Show all answers
-          </button>
-          <button className="secondary-action" type="button" onClick={() => setRevealedQuestionIds(hidePresentationAnswers())} disabled={!revealedQuestionIds.length}>
-            Hide answers
-          </button>
-        </div>
-      )}
-      {solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
-      {solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
-      {solutionError && <div className="inline-status error">{solutionError}</div>}
+      {capabilities.isPresentation && !legacyUnitOpener && !publisherImageDisplay && <TeacherPresentationControls solutionsLoading={solutionsLoading} solutions={solutions} revealedCount={revealedQuestionIds.length} onCheck={checkAnswers} onReset={reset} onRevealAll={revealAll} onHide={() => setRevealedQuestionIds(hidePresentationAnswers())} />}
+      {!studentAndroidBuild && solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
+      {!studentAndroidBuild && solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
+      {!studentAndroidBuild && solutionError && <div className="inline-status error">{solutionError}</div>}
       {(submitted || completed) && capabilities.canSubmitStudentWork && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
     </>
   );
@@ -401,25 +391,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
               ) : (
                 <input type="text" value={answers[question.id] || ""} disabled={frozen} onChange={(event) => updateAnswer(question.id, event.target.value)} />
               )}
-              {capabilities.canRevealSolutions && (
-                <span className="presentation-question-actions">
-                  <button
-                    className="secondary-action compact-action"
-                    type="button"
-                    disabled={solutionsLoading || Boolean(solutions && !solutions.questions?.[question.id])}
-                    onClick={() => revealQuestion(question.id)}
-                  >
-                    Show answer
-                  </button>
-                  {checkResults[question.id] && <b className={`presentation-check-result ${checkResults[question.id]}`}>{checkResults[question.id] === "correct" ? "Correct" : checkResults[question.id] === "incorrect" ? "Try again" : "No answer"}</b>}
-                </span>
-              )}
-              {revealedQuestionIds.includes(question.id) && solutions?.questions?.[question.id] && (
-                <span className="presentation-revealed-answer">
-                  <small>Publisher answer</small>
-                  <strong>{solutions.questions[question.id].acceptedAnswers.join(" / ")}</strong>
-                </span>
-              )}
+              <TeacherQuestionFeedback capabilities={capabilities} question={question} checkResult={checkResults[question.id]} revealed={revealedQuestionIds.includes(question.id)} solutions={solutions} solutionsLoading={solutionsLoading} revealQuestion={revealQuestion} />
             </label>
           ))}
         </div>

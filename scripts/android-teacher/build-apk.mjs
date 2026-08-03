@@ -28,6 +28,7 @@ async function main() {
   await run(npmCommand, ["run", "build:android-teacher-offline"]);
   await run(npxCommand, ["cap", "sync", "android"], { CAPACITOR_BUILD_MODE: "teacher" });
   await run(process.execPath, ["scripts/android/run-gradle.mjs", "--teacher", "assembleDebug"]);
+  await run(process.execPath, ["scripts/android/archive-apk.mjs", "teacher"]);
   await run(npmCommand, ["run", "verify:android-teacher-apk"]);
 }
 
