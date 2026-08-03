@@ -25,6 +25,7 @@ export function BookPackageBrowser({
   onSelectBookPage,
   onSelectSubview,
   onBackToBooks,
+  highlightedActivityKey = null,
 }) {
   const activePackage = bookPackage || ultimateB2Package;
   const [uncontrolledSelectedComponentId, setUncontrolledSelectedComponentId] = useState(initialSelectedComponentId);
@@ -76,6 +77,7 @@ export function BookPackageBrowser({
           selectedPageNumber={selectedPageNumber}
           onSelectBookPage={onSelectBookPage}
           onSelectSubview={onSelectSubview}
+          highlightedActivityKey={highlightedActivityKey}
         />
       ) : (
         <BookPackageComponentGrid

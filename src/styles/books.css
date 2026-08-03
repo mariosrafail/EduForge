@@ -1777,23 +1777,23 @@
   min-width: 0;
   min-height: 0;
   padding: 6px;
-  color: #07326d;
+  color: transparent;
   text-align: left;
-  background: rgba(23, 92, 211, 0.17);
-  border: 2px solid rgba(23, 92, 211, 0.72);
+  background: transparent;
+  border: 2px solid transparent;
   border-radius: 9px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 12px 28px rgba(16, 24, 40, 0.12);
+  box-shadow: none;
   cursor: pointer;
   pointer-events: auto;
 }
-
 .editable-hotspot-layer.editing .editable-hotspot-box {
-  cursor: move;
+  cursor: move; color: #07326d; background: rgba(23, 92, 211, 0.17); border-color: rgba(23, 92, 211, 0.72); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 12px 28px rgba(16, 24, 40, 0.12);
 }
 
 .editable-hotspot-box:hover,
 .editable-hotspot-box:focus-visible,
-.editable-hotspot-box.selected {
+.editable-hotspot-box.selected,
+.editable-hotspot-layer:not(.editing) .editable-hotspot-box:active {
   border-color: #0b4ea2;
   background: rgba(23, 92, 211, 0.24);
   box-shadow: 0 0 0 4px rgba(23, 92, 211, 0.16), 0 16px 34px rgba(16, 24, 40, 0.18);

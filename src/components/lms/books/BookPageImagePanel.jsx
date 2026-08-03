@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { getUltimateB2StudentsBookHotspotActions } from "../../../data/ultimate-b2/studentsBookHotspots.js";
 
-export function BookPageHotspots({ actions = [], onAction, className = "" }) {
+export function BookPageHotspots({ actions = [], onAction, className = "", highlightedActivityKey = null }) {
   if (!actions.length) return null;
   return (
     <div className={`reading-spread-hotspots ${className}`.trim()} aria-label="Book page shortcuts">
@@ -10,7 +10,7 @@ export function BookPageHotspots({ actions = [], onAction, className = "" }) {
         <motion.button
           key={action.id || action.target || action.label}
           type="button"
-          className="reading-spread-hotspot"
+          className={`reading-spread-hotspot ${highlightedActivityKey && action.activityKey === highlightedActivityKey ? "assigned" : ""}`.trim()}
           style={{ top: action.top, left: action.left, width: action.width, height: action.height }}
           aria-label={action.ariaLabel || action.label}
           onClick={() => onAction?.(action)}
@@ -49,6 +49,7 @@ export function BookPageImageLayer({
   selectedSection,
   spreadClass,
   zoom,
+  highlightedActivityKey = null,
 }) {
   const authoredHotspotActions = packageSlug === "ultimate-b2" && componentSlug === "students-book"
     ? getUltimateB2StudentsBookHotspotActions({
@@ -80,8 +81,8 @@ export function BookPageImageLayer({
       ) : (
         <div className="book-page-missing">Page asset is not available for online delivery.</div>
       )}
-      <BookPageHotspots actions={selectedSection.actions} onAction={onAction} />
-      <BookPageHotspots actions={authoredHotspotActions} onAction={onAction} className="authored-book-page-hotspots" />
+      <BookPageHotspots actions={selectedSection.actions} onAction={onAction} highlightedActivityKey={highlightedActivityKey} />
+      <BookPageHotspots actions={authoredHotspotActions} onAction={onAction} className="authored-book-page-hotspots" highlightedActivityKey={highlightedActivityKey} />
       {enableHotspotEditor && (
         <EditableHotspotLayer
           pageId={pageHotspotKey}

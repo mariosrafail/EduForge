@@ -102,8 +102,8 @@ test("web, Android student, and Android teacher viewers consume the tracked mani
   assert.match(teacherViewer, /getUltimateB2StudentsBookHotspotActions/);
   assert.doesNotMatch(pageImagePanel, /listBookPageHotspots/);
   assert.match(stubs, /listBookPageHotspots/);
-  assert.match(teacherViewerStyles, /\.teacher-offline-pages-viewer \.teacher-offline-page-hotspot[\s\S]*border: 2px solid rgba\(255, 214, 0, 0\.82\)/);
-  assert.match(teacherViewerStyles, /background-color: rgba\(255, 221, 0, 0\.16\)/);
+  assert.match(teacherViewerStyles, /\.teacher-offline-pages-viewer \.teacher-offline-page-hotspot[\s\S]*border: 2px solid transparent/);
+  assert.match(teacherViewerStyles, /background-color: transparent/);
   assert.match(teacherViewerStyles, /\.teacher-offline-page-hotspot:active[\s\S]*background-color: rgba\(255, 221, 0, 0\.3\)/);
 });
 
@@ -112,9 +112,10 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.equal(isUltimateB2Unit1LegacyOpener(opener), true);
   assert.equal(isUltimateB2Unit1LegacyOpener(findStudentsBookImplementation("ultimate-b2-sb-u1-p2-o1")), false);
   assert.equal(isUltimateB2Unit1LegacyOpener({ ...opener, partNumber: 2 }), false);
-  const [normalizedRenderer, openerRenderer, activityStyles, recoveredActivityStyles] = await Promise.all([
+  const [normalizedRenderer, openerRenderer, teacherAnswerUi, activityStyles, recoveredActivityStyles] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/styles/activities.css"), "utf8"),
     readFile(path.join(repositoryRoot, "src/styles/ultimate-b2-recovered-activities.css"), "utf8"),
   ]);
@@ -122,7 +123,8 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.match(normalizedRenderer, /isUltimateB2Unit1Part2LegacyPilot\(activity\)/);
   assert.match(openerRenderer, /data-legacy-unit-opener-activity/);
   assert.match(openerRenderer, /capabilities\.canRevealSolutions/);
-  assert.match(openerRenderer, /revealQuestion\(question\.id\)/);
+  assert.match(openerRenderer, /TeacherLegacyUnitOpenerAnswer/);
+  assert.match(teacherAnswerUi, /revealQuestion\(questionId\)/);
   assert.match(openerRenderer, /capabilities\.canEditAnswers[\s\S]*textarea/);
   assert.doesNotMatch(openerRenderer, /many artistic processes|every theatre moment is unique/);
   assert.match(activityStyles, /@import "\.\/ultimate-b2-recovered-activities\.css"/);
