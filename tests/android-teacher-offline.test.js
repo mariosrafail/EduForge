@@ -39,7 +39,11 @@ import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
 } from "../src/apps/android-teacher-offline/teacherOfflineActivityLocation.js";
-import { calculateEmbeddedActivityScale } from "../src/apps/android-teacher-offline/embeddedActivityFit.js";
+import {
+  calculateEmbeddedActivityScale,
+  EMBEDDED_ACTIVITY_MIN_TARGET_SIZE,
+  resolveEmbeddedActivityFit,
+} from "../src/apps/android-teacher-offline/embeddedActivityFit.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -303,10 +307,19 @@ test("page hotspot origins remain exact while Contents uses runtime metadata", (
   assert.equal(isTeacherOfflinePageLocation({ ...authored.location, pageId: "other" }, hotspotOrigin), false);
 });
 
-test("embedded activity fit scales down uniformly and never enlarges natural content", () => {
+test("embedded activity fit preserves the 38px target gate when scaling would make controls unsafe", () => {
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 1200, availableHeight: 700, contentWidth: 1000, contentHeight: 600 }), 1);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 0.5);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 0, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 1);
+  assert.equal(EMBEDDED_ACTIVITY_MIN_TARGET_SIZE, 38);
+  assert.deepEqual(
+    resolveEmbeddedActivityFit({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900, minimumTargetSize: 80 }),
+    { mode: "scale", scale: 0.5 },
+  );
+  assert.deepEqual(
+    resolveEmbeddedActivityFit({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900, minimumTargetSize: 48 }),
+    { mode: "scroll", scale: 1 },
+  );
 });
 
 test("offline teacher solutions preserve verified, model-response, and missing-evidence states", () => {
@@ -348,7 +361,7 @@ test("previous and next traverse exactly the 78 enabled activities", () => {
 });
 
 test("teacher app embeds book activities in the mounted page shell with one classroom toolbar", async () => {
-  const [app, book, pages, embedded, activityLocation, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard, pageViewerStyles] = await Promise.all([
+  const [app, book, pages, embedded, activityLocation, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard, pageViewerStyles, classroomToolStyles] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
@@ -368,6 +381,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
     readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineNetworkGuard.js", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflinePageViewer.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/classroomTools.css", "utf8"),
   ]);
   assert.doesNotMatch(app, /TeacherOfflinePresentation|navigation\.view === "activity"/);
   assert.match(app, /current\.view === "book" && current\.activityId[\s\S]*window\.history\.back\(\)/);
@@ -386,6 +400,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(activityLocation, /pageContainsActivity[\s\S]*pageNumbers[\s\S]*printedPage/);
   assert.match(pageViewerStyles, /\.teacher-offline-embedded-activity[\s\S]*align-items: center[\s\S]*justify-content: center[\s\S]*overflow: hidden/);
   assert.match(pageViewerStyles, /transform: scale\(var\(--embedded-activity-scale, 1\)\)/);
+  assert.match(pageViewerStyles, /\[data-fit-mode="scroll"\][\s\S]*transform: none;[\s\S]*overflow: auto;[\s\S]*scroll-padding: 8px;/);
+  assert.match(pageViewerStyles, /\[data-fit-mode="scroll"\] \.ultimate-b2-legacy-pilot \.legacy-pilot-actions\s*\{[\s\S]*?position: static;/);
+  assert.match(classroomToolStyles, /\.teacher-offline-page-stage\.has-embedded-activity > \.classroom-stage-transform\s*\{[\s\S]*?min-height: 0;/);
   assert.doesNotMatch(embedded, /Back to book|Activity \{index|ClassroomToolbar|teacher-offline-presentation/);
   assert.match(presentation, /TeacherOfflinePresentation/);
   assert.match(pages, /<img[\s\S]*key=\{page\.id\}/);

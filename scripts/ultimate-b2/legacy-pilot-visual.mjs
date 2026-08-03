@@ -46,6 +46,16 @@ async function screenshot(page, target, objectNumber, state) {
 }
 
 async function assertPilotLayout(page, target, id) {
+  await page.waitForFunction((activityId) => {
+    const root = document.querySelector(`[data-legacy-pilot-activity="${activityId}"]`);
+    if (!root) return false;
+    return [...root.querySelectorAll("img")]
+      .filter((image) => {
+        const imageRect = image.getBoundingClientRect();
+        return imageRect.width > 0 && imageRect.height > 0;
+      })
+      .every((image) => image.complete);
+  }, id);
   const metrics = await page.locator(".ultimate-b2-legacy-pilot").evaluate((root) => {
     const rect = root.getBoundingClientRect();
     const images = [...root.querySelectorAll("img")].filter((image) => {
@@ -59,8 +69,24 @@ async function assertPilotLayout(page, target, id) {
           && style.visibility !== "hidden"
           && !element.matches('input[type="radio"], input[type="checkbox"]');
       })
-      .map((element) => element.getBoundingClientRect())
+      .map((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          selector: `${element.tagName.toLowerCase()}${element.className ? `.${String(element.className).trim().split(/\s+/).join(".")}` : ""}`,
+          role: element.getAttribute("role") || element.tagName.toLowerCase(),
+          name: element.getAttribute("aria-label") || element.textContent?.trim() || "",
+          width: bounds.width,
+          height: bounds.height,
+        };
+      })
       .filter((control) => control.width && control.height);
+    const smallestControl = controls.reduce((smallest, control) => (
+      Math.min(control.width, control.height) < Math.min(smallest.width, smallest.height) ? control : smallest
+    ));
+    const fitViewport = root.closest(".teacher-offline-embedded-activity");
+    const fitContent = root.closest(".teacher-offline-embedded-activity-content");
+    const fitStyle = fitContent ? getComputedStyle(fitContent) : null;
+    const viewportStyle = fitViewport ? getComputedStyle(fitViewport) : null;
     return {
       activityId: root.dataset.legacyPilotActivity,
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -68,7 +94,25 @@ async function assertPilotLayout(page, target, id) {
       rootWidth: rect.width,
       rootInViewport: rect.left >= -1 && rect.right <= innerWidth + 1,
       brokenImages: images.filter((image) => !image.complete || image.naturalWidth === 0).length,
-      minimumTarget: Math.min(...controls.map((control) => Math.min(control.width, control.height))),
+      brokenImageSources: images
+        .filter((image) => !image.complete || image.naturalWidth === 0)
+        .map((image) => ({ source: image.currentSrc || image.src, complete: image.complete, naturalWidth: image.naturalWidth })),
+      minimumTarget: Math.min(smallestControl.width, smallestControl.height),
+      smallestControl,
+      fitScale: fitViewport?.dataset.fitScale || null,
+      fitTransform: fitStyle?.transform || null,
+      fitContentSize: fitContent ? {
+        clientWidth: fitContent.clientWidth,
+        clientHeight: fitContent.clientHeight,
+        scrollWidth: fitContent.scrollWidth,
+        scrollHeight: fitContent.scrollHeight,
+      } : null,
+      fitViewportSize: fitViewport ? {
+        clientWidth: fitViewport.clientWidth,
+        clientHeight: fitViewport.clientHeight,
+        padding: viewportStyle?.padding,
+        overflow: viewportStyle?.overflow,
+      } : null,
       rasterUpscale: images.map((image) => ({
         source: image.currentSrc.split("/").at(-1),
         scale: Number((image.getBoundingClientRect().width / image.naturalWidth).toFixed(3)),
@@ -79,8 +123,8 @@ async function assertPilotLayout(page, target, id) {
   assert.ok(metrics.documentOverflow <= 1, `${target.name} document overflow ${metrics.documentOverflow}px`);
   assert.ok(metrics.rootOverflow <= 1, `${target.name} pilot overflow ${metrics.rootOverflow}px`);
   assert.ok(metrics.rootInViewport, `${target.name} pilot root must remain in viewport`);
-  assert.equal(metrics.brokenImages, 0, `${target.name} publisher images`);
-  assert.ok(metrics.minimumTarget >= 38, `${target.name} minimum target ${metrics.minimumTarget}px`);
+  assert.equal(metrics.brokenImages, 0, `${target.name} publisher images: ${JSON.stringify(metrics.brokenImageSources)}`);
+  assert.ok(metrics.minimumTarget >= 38, `${target.name} minimum target ${metrics.minimumTarget}px: ${JSON.stringify(metrics)}`);
   assert.ok(
     metrics.rasterUpscale.every((image) => image.scale <= 1.05),
     `${target.name} must not enlarge publisher rasters: ${JSON.stringify(metrics.rasterUpscale)}`,
@@ -119,8 +163,7 @@ try {
     await page.goto(baseURL, { waitUntil: "networkidle" });
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} requires teacher offline build`);
     await page.getByRole("button", { name: "Open Students Book" }).click();
-    await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-    await page.locator('[title="Contents and exercises"]').click();
+    await page.getByRole("button", { name: "Contents and exercises" }).click();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38, `${target.name} Unit 1 count`);
 
     for (const [index, activity] of activities.entries()) {
@@ -200,7 +243,7 @@ try {
         maximumRasterScale: Math.max(...initial.rasterUpscale.map((image) => image.scale)),
         overflow: Math.max(initial.documentOverflow, initial.rootOverflow),
       });
-      await page.getByRole("button", { name: "Back to book" }).click();
+      await page.getByRole("button", { name: "Contents and exercises" }).click();
     }
 
     assert.deepEqual(consoleErrors, [], `${target.name} console errors`);
