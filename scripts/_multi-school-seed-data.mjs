@@ -25,6 +25,13 @@ const studentProfiles = [
   ["Iris Reading", "standard"], ["Kostas Writing", "expired-code"],
 ];
 
+const assignmentProfiles = [
+  { kind: "auto", seedsSubmissions: true },
+  { kind: "review", seedsSubmissions: true },
+  { kind: "expired", seedsSubmissions: true },
+  { kind: "future", seedsSubmissions: false },
+];
+
 export const MULTI_SCHOOL = definitions.map(([key, name], schoolOffset) => {
   const school = schoolOffset + 1;
   const users = [
@@ -55,9 +62,29 @@ export const MULTI_SCHOOL = definitions.map(([key, name], schoolOffset) => {
       value: `DEV-${key.toUpperCase()}-B2-${status.toUpperCase()}-2026`,
       redeemedBy: status === "redeemed" ? users.find((user) => user.profile === "redeemed").id : null,
     })),
-    assignments: [0, 1, 2, 3].map((index) => ({ id: uuid(0x50, school, index + 1) })),
+    assignments: assignmentProfiles.map((profile, index) => ({
+      ...profile,
+      id: uuid(0x50, school, index + 1),
+    })),
   };
 });
+
+export function multiSchoolSeedSubmissionId(schoolIndex, scenarioIndex, memberIndex) {
+  const item = schoolIndex * 10000 + scenarioIndex * 100 + memberIndex + 1;
+  return `d1700000-0060-4000-8000-${item.toString(16).padStart(12, "0")}`;
+}
+
+export function multiSchoolSeedSubmissionIds() {
+  return MULTI_SCHOOL.flatMap((school, schoolIndex) => school.assignments.flatMap((assignment, scenarioIndex) => {
+    if (!assignment.seedsSubmissions) return [];
+    return school.classes[0].studentIds.flatMap((studentId, memberIndex) => {
+      const student = school.users.find((user) => user.id === studentId);
+      return student.profile === "missing"
+        ? []
+        : [multiSchoolSeedSubmissionId(schoolIndex, scenarioIndex, memberIndex)];
+    });
+  }));
+}
 
 export function multiSchoolRegistryEntries() {
   return [

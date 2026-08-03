@@ -1,13 +1,12 @@
-import pg from "pg";
 import { readFile } from "node:fs/promises";
 import {
   MULTI_SCHOOL,
-  MULTI_SCHOOL_DEMO_PASSWORD,
   MULTI_SCHOOL_PLATFORM_ADMIN,
+  multiSchoolSeedSubmissionIds,
 } from "./_multi-school-seed-data.mjs";
-import { localMultiSchoolDatabaseUrl } from "./_local-multi-school.mjs";
+import { createMultiSchoolPool } from "./_multi-school-db.mjs";
 
-const pool = new pg.Pool({ connectionString: localMultiSchoolDatabaseUrl() });
+const { pool } = createMultiSchoolPool();
 const failures = [];
 const expectEqual = (label, actual, expected) => {
   if (Number(actual) !== Number(expected)) failures.push(`${label}: expected ${expected}, got ${actual}`);
@@ -17,6 +16,15 @@ const expectTrue = (label, value) => {
 };
 
 try {
+  const [unit1, unit2] = await Promise.all([
+    readFile("books/ultimate-b2/generated/editorial/unit-01.implementation-matrix.json", "utf8").then(JSON.parse),
+    readFile("books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json", "utf8").then(JSON.parse),
+  ]);
+  const pilotActivities = [...unit1.activities, ...unit2.activities];
+  const enabledActivities = pilotActivities.filter((activity) => activity.implementationMode !== "unsupported-disabled");
+  const disabledActivities = pilotActivities.filter((activity) => activity.implementationMode === "unsupported-disabled");
+  const expectedModeCounts = Object.groupBy(enabledActivities, (activity) => activity.implementationMode);
+  const expectedSubmissionIds = multiSchoolSeedSubmissionIds();
   const counts = (await pool.query(`
     select
       (select count(*) from schools where id=any($1::uuid[])) schools,
@@ -30,7 +38,12 @@ try {
   expectEqual("users", counts.users, 33);
   expectEqual("classes", counts.classes, 9);
   expectEqual("assignments", counts.assignments, 12);
-  expectEqual("submissions", counts.submissions, 27);
+  expectEqual("submissions", counts.submissions, expectedSubmissionIds.length);
+  const seededSubmissionCount = (await pool.query(
+    "select count(*)::int count from activity_submissions where id=any($1::uuid[])",
+    [expectedSubmissionIds],
+  )).rows[0].count;
+  expectEqual("deterministic seeded submissions", seededSubmissionCount, expectedSubmissionIds.length);
   expectEqual("activation codes", counts.codes, 12);
   const platformAdmins = (await pool.query(`
     select id,email,status from platform_admins where id=$1
@@ -169,19 +182,18 @@ try {
     join book_components bc on bc.id=u.book_component_id join book_packages bp on bp.id=bc.book_package_id
     where bp.slug='ultimate-b2'
   `)).rows[0];
-  expectEqual("database auto-scored activities", databaseModes.auto_scored, 50);
-  expectEqual("database teacher-reviewed activities", databaseModes.teacher_reviewed, 19);
-  expectEqual("database unscored activities", databaseModes.unscored, 7);
-  expectEqual("database reading activities", databaseModes.reading, 1);
-  const [unit1, unit2] = await Promise.all([
-    readFile("books/ultimate-b2/generated/editorial/unit-01.implementation-matrix.json", "utf8").then(JSON.parse),
-    readFile("books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json", "utf8").then(JSON.parse),
-  ]);
-  const pilotActivities = [...unit1.activities, ...unit2.activities];
-  const enabledActivities = pilotActivities.filter((activity) => activity.implementationMode !== "unsupported-disabled").length;
-  const disabledActivities = pilotActivities.filter((activity) => activity.implementationMode === "unsupported-disabled").length;
-  expectEqual("Ultimate B2 pilot enabled activities", enabledActivities, 77);
-  expectEqual("Ultimate B2 pilot disabled activities", disabledActivities, 12);
+  const modeChecks = [
+    ["auto-scored", "auto_scored"],
+    ["teacher-reviewed", "teacher_reviewed"],
+    ["unscored-practice", "unscored"],
+    ["reading-content", "reading"],
+  ];
+  for (const [mode, databaseKey] of modeChecks) {
+    expectEqual(`database ${mode} activities`, databaseModes[databaseKey], expectedModeCounts[mode]?.length || 0);
+  }
+  const databaseEnabledActivities = Object.values(databaseModes).reduce((total, count) => total + Number(count), 0);
+  expectEqual("Ultimate B2 pilot enabled activities", databaseEnabledActivities, enabledActivities.length);
+  expectEqual("Ultimate B2 pilot disabled activities", disabledActivities.length, 12);
 
   const unsafeAnswers = Number((await pool.query(`
     select count(*)::int count from activity_submissions
@@ -193,9 +205,8 @@ try {
 
   if (failures.length) throw new Error(`Local multi-school verification failed:\n- ${failures.join("\n- ")}`);
   console.table(perSchool);
-  console.table([{ ...counts, ...states, enabled_activities: enabledActivities, disabled_activities: disabledActivities }]);
+  console.table([{ ...counts, ...states, enabled_activities: enabledActivities.length, disabled_activities: disabledActivities.length }]);
   console.log(`Verified deterministic fictional data, preserved four-component B2 storage, tenant scope, workflows, licensing lifecycle, and answer-key safety.`);
-  console.log(`Demo password: ${MULTI_SCHOOL_DEMO_PASSWORD} (development-only)`);
 } finally {
   await pool.end();
 }

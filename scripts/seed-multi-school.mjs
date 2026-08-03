@@ -9,6 +9,7 @@ import {
   MULTI_SCHOOL_PLATFORM_ADMIN,
   MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
   MULTI_SCHOOL_SEED_KEY,
+  multiSchoolSeedSubmissionId,
 } from "./_multi-school-seed-data.mjs";
 
 if (process.env.NODE_ENV === "production") throw new Error("Multi-school demo seed is forbidden when NODE_ENV=production");
@@ -138,10 +139,10 @@ try {
         }
         const scenarioClass = school.classes[0];
         const scenarios = [
-          { id: school.assignments[0].id, activity: autoActivity, title: "Auto-scored benchmark — high, low, missing", dueDays: 7, kind: "auto" },
-          { id: school.assignments[1].id, activity: reviewActivity, title: "Teacher review — pending and reviewed", dueDays: 5, kind: "review" },
-          { id: school.assignments[2].id, activity: autoActivity, title: "Expired deadline — late and blocked", dueDays: -2, kind: "expired" },
-          { id: school.assignments[3].id, activity: autoActivity, title: "Future assignment — not started", dueDays: 14, kind: "future" },
+          { ...school.assignments[0], activity: autoActivity, title: "Auto-scored benchmark — high, low, missing", dueDays: 7 },
+          { ...school.assignments[1], activity: reviewActivity, title: "Teacher review — pending and reviewed", dueDays: 5 },
+          { ...school.assignments[2], activity: autoActivity, title: "Expired deadline — late and blocked", dueDays: -2 },
+          { ...school.assignments[3], activity: autoActivity, title: "Future assignment — not started", dueDays: 14 },
         ];
         for (const [scenarioIndex, scenario] of scenarios.entries()) {
           await client.query(`
@@ -149,7 +150,7 @@ try {
             values($1,$2,$3,$4,$5,null,now()+($6 || ' days')::interval,'assigned',$7,'Fictional multi-school demo state',$8)
             on conflict(id) do update set activity_id=excluded.activity_id,due_at=excluded.due_at,status='assigned',title=excluded.title,teacher_notes=excluded.teacher_notes
           `, [scenario.id, school.id, scenario.activity.id, scenarioClass.teacherId, scenarioClass.id, scenario.dueDays, scenario.title, `multi-school-${school.key}-${scenario.kind}`]);
-          if (scenario.kind === "future") continue;
+          if (!scenario.seedsSubmissions) continue;
           for (const [memberIndex, studentId] of scenarioClass.studentIds.entries()) {
             const student = school.users.find((user) => user.id === studentId);
             if (student.profile === "missing") continue;
@@ -171,7 +172,7 @@ try {
                 reviewedBy = scenarioClass.teacherId;
               }
             }
-            const submissionId = `d1700000-0060-4000-8000-${(MULTI_SCHOOL.indexOf(school) * 10000 + scenarioIndex * 100 + memberIndex + 1).toString(16).padStart(12, "0")}`;
+            const submissionId = multiSchoolSeedSubmissionId(MULTI_SCHOOL.indexOf(school), scenarioIndex, memberIndex);
             await client.query(`
               insert into activity_submissions(id,school_id,activity_id,activity_assignment_id,student_id,answers,score,score_percent,correct_count,total_count,status,teacher_feedback,reviewed_at,reviewed_by,submission_slot,submitted_at)
               values($1,$2,$3,$4,$5,'{"demoResponse":"Fictional learner response"}',$6,$6,$7,$8,$9,$10,$11,$12,1,case when $13 then now()-interval '1 day' else now() end)

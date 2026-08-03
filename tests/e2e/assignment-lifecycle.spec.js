@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import pg from "pg";
 import { MULTI_SCHOOL, MULTI_SCHOOL_DEMO_PASSWORD } from "../../scripts/_multi-school-seed-data.mjs";
 import { readLocalMultiSchoolMarker } from "../../scripts/_local-multi-school.mjs";
+import { removeAssignmentLifecycleRecords } from "./_assignment-lifecycle-cleanup.mjs";
 
 const marker = readLocalMultiSchoolMarker();
 const athens = MULTI_SCHOOL.find((school) => school.key === "athens");
@@ -11,15 +12,18 @@ const student = athens.users.find((user) => user.id === targetClass.studentIds[0
 const autoTitle = "Assignment lifecycle auto score";
 const reviewTitle = "Assignment lifecycle teacher review";
 const testTitles = [autoTitle, reviewTitle];
+const lifecycleSubmissionIds = new Set();
 
 async function removeLifecycleRecords() {
   if (!marker) return;
   const pool = new pg.Pool({ connectionString: marker.databaseUrl });
   try {
-    await pool.query(
-      "delete from activity_assignments where teacher_id=$1 and title=any($2::text[])",
-      [teacher.id, testTitles],
-    );
+    await removeAssignmentLifecycleRecords(pool, {
+      teacherId: teacher.id,
+      titles: testTitles,
+      submissionIds: [...lifecycleSubmissionIds],
+    });
+    lifecycleSubmissionIds.clear();
   } finally {
     await pool.end();
   }
@@ -144,7 +148,9 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await page.getByRole("button", { name: "Submit", exact: true }).click();
     const reviewSubmissionResponse = await reviewSubmitResponse;
     expect(reviewSubmissionResponse.ok()).toBeTruthy();
-    expect((await reviewSubmissionResponse.json()).submission.status).toBe("awaiting_review");
+    const reviewSubmission = (await reviewSubmissionResponse.json()).submission;
+    lifecycleSubmissionIds.add(reviewSubmission.id);
+    expect(reviewSubmission.status).toBe("awaiting_review");
     await expect(page.getByText(/Submitted · Awaiting teacher review/)).toBeVisible();
 
     await page.getByRole("button", { name: "Assignments", exact: true }).click();
@@ -160,6 +166,7 @@ test("teacher creates assignments, student submits, and teacher results and revi
     const autoResponse = await autoSubmitResponse;
     expect(autoResponse.ok()).toBeTruthy();
     const autoSubmission = (await autoResponse.json()).submission;
+    lifecycleSubmissionIds.add(autoSubmission.id);
     expect(Number.isFinite(autoSubmission.scorePercent)).toBeTruthy();
     await expect(page.getByText(new RegExp(`${autoSubmission.correctCount}/${autoSubmission.totalCount} correct.*${autoSubmission.scorePercent}%`))).toBeVisible();
 

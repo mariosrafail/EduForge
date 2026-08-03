@@ -24,3 +24,13 @@ test("local multi-school target rejects ambiguous database names and generic dat
     DATABASE_URL: localMultiSchoolDatabaseUrl(),
   }, confirmation), /generic/i);
 });
+
+test("local multi-school target permits a separate loopback port only for the exact demo database", () => {
+  const target = requireLocalMultiSchoolTarget({
+    MULTI_SCHOOL_LOCAL_DATABASE_URL: "postgresql://demo:secret@127.0.0.1:55434/eduforge_multi_school_demo",
+  }, confirmation);
+  const url = new URL(target.connectionString);
+  assert.equal(url.hostname, "127.0.0.1");
+  assert.equal(url.port, "55434");
+  assert.equal(url.pathname, "/eduforge_multi_school_demo");
+});
