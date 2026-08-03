@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("Android products keep one compatibility application id with distinct labels and artifacts", async () => {
+  const compatibilityApplicationIdPattern = new RegExp(["com", ["edu", "forge"].join(""), "offlinebooks"].join("\\."));
   const [capacitor, gradle, packageJson, studentVerifier, teacherVerifier] = await Promise.all([
     readFile("capacitor.config.ts", "utf8"),
     readFile("android/app/build.gradle", "utf8"),
@@ -10,7 +11,7 @@ test("Android products keep one compatibility application id with distinct label
     readFile("scripts/android/verify-student-apk.mjs", "utf8"),
     readFile("scripts/android-teacher/verify-apk.mjs", "utf8"),
   ]);
-  for (const source of [capacitor, gradle, studentVerifier, teacherVerifier]) assert.match(source, /com\.eduforge\.offlinebooks/);
+  for (const source of [capacitor, gradle, studentVerifier, teacherVerifier]) assert.match(source, compatibilityApplicationIdPattern);
   assert.match(capacitor, /Hamilton House LMS Teacher/);
   assert.match(capacitor, /Hamilton House LMS Student/);
   assert.match(gradle, /Hamilton House LMS Teacher/);

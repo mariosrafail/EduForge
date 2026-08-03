@@ -46,6 +46,7 @@ export const BRANDING_COMPATIBILITY_EXCEPTIONS = Object.freeze([
       "docs/release-candidate-staging-acceptance.md",
       "scripts/android-teacher/device-smoke.mjs",
       "scripts/android-teacher/verify-apk.mjs",
+      "scripts/android/verify-student-apk.mjs",
       "tests/android-teacher-offline.test.js",
     ],
   },
