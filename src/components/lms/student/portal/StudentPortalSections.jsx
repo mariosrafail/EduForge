@@ -4,6 +4,7 @@ import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { listStudentAssignments, listStudentGrades, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
 import { redeemBookLicense } from "../../../../services/licensingApi.js";
 import { buildCourseComponentsHash, buildCourseComponentSubviewHash } from "../../../../utils/hashRoutes.js";
+import { deriveStudentAssignmentPresentation } from "./studentAssignmentPresentation.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
@@ -228,7 +229,7 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
               data-sound-click="tab"
             >
               <span>{assignment.title}</span>
-              <small>{assignment.dueStatus}</small>
+              <small>{deriveStudentAssignmentPresentation(assignment).label} · {assignment.dueStatus}</small>
             </button>
           ))}
         </aside>
@@ -237,6 +238,10 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
           {submitMessage && <div className="inline-status success">{submitMessage}</div>}
           {selectedAssignment ? (
             <>
+              {(() => {
+                const presentation = deriveStudentAssignmentPresentation(selectedAssignment);
+                return <Tag tone={presentation.tone}>{presentation.label}</Tag>;
+              })()}
               <span className="eyebrow"><ClipboardList size={15} /> Assignment details</span>
               <h2>{selectedAssignment.title}</h2>
               <div className="student-detail-grid">
@@ -246,6 +251,7 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
                 <div><strong>Estimated time</strong><span>{selectedAssignment.estimatedTime}</span></div>
                 <div><strong>Completion</strong><span>{selectedAssignment.completionStatus}</span></div>
                 {selectedAssignment.score !== null && selectedAssignment.score !== undefined && <div><strong>Score</strong><span>{selectedAssignment.score}%</span></div>}
+                {selectedAssignment.submittedAt && <div><strong>Submitted</strong><span>{new Date(selectedAssignment.submittedAt).toLocaleString()}</span></div>}
               </div>
               {selectedAssignment.teacherNotes && <p>{selectedAssignment.teacherNotes}</p>}
               {selectedAssignment.worksheetLinks?.length > 0 && (
@@ -253,8 +259,9 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
                   {selectedAssignment.worksheetLinks.map((link) => <div key={link}><strong>Worksheet</strong><a href={link} target="_blank" rel="noreferrer">{link}</a></div>)}
                 </div>
               )}
+              {selectedAssignment.teacherFeedback && <div className="inline-status"><strong>Teacher feedback:</strong> {selectedAssignment.teacherFeedback}</div>}
               <button className="primary-action" type="button" onClick={() => openActivity(selectedAssignment, "assignments")} data-sound-click="submit">
-                <Play size={17} /> Start exercise
+                <Play size={17} /> {deriveStudentAssignmentPresentation(selectedAssignment).action}
               </button>
             </>
           ) : (

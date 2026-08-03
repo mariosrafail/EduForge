@@ -306,6 +306,14 @@ export function buildActivityHash(activityKey, mode = "student") {
   return `activity-${activityKey}`;
 }
 
+export function buildStudentAssignmentHash(assignmentId = "") {
+  return `/student/assignments/${encodeURIComponent(String(assignmentId || ""))}`;
+}
+
+export function buildTeacherAssignmentReviewHash(assignmentId = "") {
+  return `/teacher/assignments/${encodeURIComponent(String(assignmentId || ""))}/review`;
+}
+
 export function buildTeacherPresentationHash(activityKey, packageSlug = "ultimate-b2", componentSlug = "students-book") {
   return `/teacher/books/${slugifyRoute(packageSlug)}/components/${slugifyRoute(componentSlug)}/activities/${slugifyRoute(activityKey)}/presentation`;
 }
@@ -424,6 +432,19 @@ function parseCourseRoute(hashView) {
   return null;
 }
 
+function parseStudentRoute(hashView) {
+  const parts = hashView.split("/").filter(Boolean);
+  if (parts[0] !== "student") return null;
+  if (parts[1] !== "assignments" || parts.length < 3) return null;
+  if (parts.length !== 3 || !parts[2]) return null;
+  return baseRoute(hashView, {
+    view: "student-assignment",
+    role: "student",
+    section: "assignment",
+    selectedAssignmentId: parts[2],
+  });
+}
+
 function parseTeacherRoute(hashView) {
   const parts = hashView.split("/").filter(Boolean);
   if (parts[0] !== "teacher") return null;
@@ -436,7 +457,7 @@ function parseTeacherRoute(hashView) {
       role: "teacher",
       section: "assignments",
       selectedAssignmentId: parts[2] || null,
-      routeAction: parts[2] === "new" ? "new" : null,
+      routeAction: parts[2] === "new" ? "new" : parts[3] === "review" ? "review" : null,
     });
   }
 
@@ -550,6 +571,9 @@ export function parseHashRoute(hash = "") {
 
   const courseRoute = parseCourseRoute(hashView);
   if (courseRoute) return courseRoute;
+
+  const studentRoute = parseStudentRoute(hashView);
+  if (studentRoute) return studentRoute;
 
   const teacherRoute = parseTeacherRoute(hashView);
   if (teacherRoute) return teacherRoute;

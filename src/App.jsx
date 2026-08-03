@@ -33,6 +33,7 @@ const studentSectionByView = {
   student: "dashboard",
   "student-books": "books",
   "student-assignments": "assignments",
+  "student-assignment": "assignment",
   "student-grades": "grades",
   "student-activity": "activity",
 };
@@ -277,6 +278,7 @@ export default function App() {
               initialSelectedPageUnitId={selectedPageUnitId}
               initialSelectedPageId={selectedPageId}
               initialSelectedPageNumber={selectedPageNumber}
+              initialSelectedAssignmentId={selectedAssignmentId}
               course={courseData.course}
               onSubmission={addCourseSubmission}
               navigateTo={navigateTo}

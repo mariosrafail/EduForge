@@ -11,11 +11,13 @@ import {
   buildCourseHash,
   buildCoursePageHash,
   buildStudentSectionHash,
+  buildStudentAssignmentHash,
   getExerciseRouteSlug,
 } from "../../../../utils/hashRoutes.js";
 import { PortalShell } from "../../shared/PortalShell.jsx";
 import { studentNavItems } from "./studentPortalConfig.js";
 import { StudentActivitySection, StudentAssignments, StudentBooks, StudentDashboard, StudentGrades } from "./StudentPortalSections.jsx";
+import { StudentAssignmentWorkspace } from "./StudentAssignmentWorkspace.jsx";
 
 export function StudentPortal({
   initialSection = "dashboard",
@@ -26,6 +28,7 @@ export function StudentPortal({
   initialSelectedPageUnitId = null,
   initialSelectedPageId = null,
   initialSelectedPageNumber = null,
+  initialSelectedAssignmentId = null,
   course,
   onSubmission,
   navigateTo,
@@ -140,7 +143,7 @@ export function StudentPortal({
     setActiveExercise(exercise);
     setPreviousSection(sourceSection);
     if (sourceSection === "assignments" && exercise.assignmentId) {
-      setActiveSection("activity");
+      navigateTo?.(buildStudentAssignmentHash(exercise.assignmentId));
       return;
     }
     if (navigateTo && (exercise.demoActivityKey || exercise.id)) {
@@ -239,6 +242,15 @@ export function StudentPortal({
             currentUser={currentUser}
             refreshKey={assignmentRefreshKey}
             submitMessage={assignmentSubmitMessage}
+          />
+        )}
+        {activeSection === "assignment" && (
+          <StudentAssignmentWorkspace
+            assignmentId={initialSelectedAssignmentId}
+            currentUser={currentUser}
+            bookPackages={bookPackages}
+            navigateTo={navigateTo}
+            onAssignmentSubmitted={() => setAssignmentRefreshKey((current) => current + 1)}
           />
         )}
         {activeSection === "grades" && <StudentGrades currentUser={currentUser} refreshKey={assignmentRefreshKey} metricsState={metricsState} />}

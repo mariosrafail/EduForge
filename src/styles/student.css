@@ -646,3 +646,52 @@
   width: 100%;
   padding: 0;
 }
+
+.student-assignment-workspace { display: grid; gap: 16px; }
+
+.student-assignment-back { justify-self: start; }
+
+.student-assignment-workspace-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 20px; }
+
+.student-assignment-workspace-header h1 { margin: 5px 0 4px; font-size: clamp(24px, 3vw, 36px); }
+
+.student-assignment-workspace-header p { margin: 0; color: #475467; }
+
+.student-assignment-workspace-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 10px 20px; color: #344054; }
+
+.student-assignment-workspace-meta span { display: inline-flex; align-items: center; gap: 7px; }
+
+.student-assignment-instructions { grid-column: 1 / -1; padding: 13px 15px; background: #f8fafc; border-left: 3px solid var(--brand-primary); }
+
+.student-assignment-instructions p { margin-top: 4px; }
+
+.student-assignment-book-panel,
+.student-assignment-activity-panel { min-width: 0; }
+
+.student-assignment-panel-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+
+.student-assignment-panel-label strong { color: #101828; font-size: 17px; }
+
+.student-assignment-panel-label span { color: #667085; font-size: 13px; }
+
+.student-assignment-book-panel .book-detail-view { margin: 0; }
+
+.student-assignment-result-panel { display: grid; gap: 12px; }
+
+.student-assignment-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+
+.student-assignment-result-heading h3,
+.student-assignment-result-heading p,
+.student-assignment-feedback p { margin: 0; }
+
+.student-assignment-result-heading > strong { color: var(--brand-primary); font-size: clamp(30px, 5vw, 48px); }
+
+.student-assignment-feedback { display: flex; align-items: flex-start; gap: 10px; padding: 13px; background: #f4f8ff; border: 1px solid #d6e4ff; }
+
+.student-assignment-unavailable { max-width: 720px; }
+
+@media (max-width: 720px) {
+  .student-assignment-workspace-header { grid-template-columns: 1fr; }
+  .student-assignment-workspace-header .tag { justify-self: start; }
+  .student-assignment-panel-label { align-items: flex-start; flex-direction: column; }
+}

@@ -77,6 +77,11 @@ export function assignmentRowToUi(row = {}) {
     averageScore,
     latestSubmittedAt: row.latest_submitted_at || null,
     completionPercent: total ? Math.round((submitted / total) * 100) : 0,
+    awaitingReviewCount: Number(row.awaiting_review_count || 0),
+    reviewedCount: Number(row.reviewed_count || 0),
+    autoScoredCount: Number(row.auto_scored_count || 0),
+    completedCount: Number(row.completed_count || 0),
+    implementationMode: row.implementation_mode || null,
   };
 }
 
@@ -238,7 +243,11 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
     select aa.id, aa.activity_id, aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.title as activity_title, a.slug as activity_slug, a.activity_type,
-           l.title as lesson_title, u.title as unit_title, bc.title as component_title, bp.title as package_title,
+           a.content_json->>'implementationMode' as implementation_mode,
+           l.id as lesson_id, l.slug as lesson_slug, l.title as lesson_title,
+           u.id as unit_id, u.slug as unit_slug, u.title as unit_title,
+           bc.id as component_id, bc.slug as component_slug, bc.title as component_title,
+           bp.id as package_id, bp.slug as package_slug, bp.title as package_title,
            c.name as class_name, teacher.full_name as teacher_name,
            case
              when aa.class_id is not null then (
@@ -250,6 +259,10 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
              else 0
            end as total_students,
            count(distinct s.student_id)::int as submitted_count,
+           (count(distinct s.student_id) filter (where s.status = 'awaiting_review'))::int as awaiting_review_count,
+           (count(distinct s.student_id) filter (where s.status = 'reviewed'))::int as reviewed_count,
+           (count(distinct s.student_id) filter (where s.status = 'submitted'))::int as auto_scored_count,
+           (count(distinct s.student_id) filter (where s.status = 'completed'))::int as completed_count,
            avg(s.score_percent) as average_score,
            max(s.submitted_at) as latest_submitted_at
     from activity_assignments aa
@@ -263,7 +276,8 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
     left join activity_submissions s on s.activity_assignment_id = aa.id
     where (${teacherId || null}::uuid is null or aa.teacher_id = ${teacherId || null})
       and aa.school_id = ${currentUser.school_id}
-    group by aa.id, a.id, l.title, u.title, bc.title, bp.title, c.name, teacher.full_name
+    group by aa.id, a.id, l.id, l.slug, l.title, u.id, u.slug, u.title,
+             bc.id, bc.slug, bc.title, bp.id, bp.slug, bp.title, c.name, teacher.full_name
     order by aa.assigned_at desc
   `;
 
@@ -277,9 +291,13 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.id as activity_id, a.title as activity_title, a.slug as activity_slug, a.activity_type,
            a.content_json, a.timer_seconds, a.estimated_minutes,
-           l.title as lesson_title, u.title as unit_title, bc.title as component_title, bp.title as package_title,
+           l.id as lesson_id, l.slug as lesson_slug, l.title as lesson_title,
+           u.id as unit_id, u.slug as unit_slug, u.title as unit_title,
+           bc.id as component_id, bc.slug as component_slug, bc.title as component_title,
+           bp.id as package_id, bp.slug as package_slug, bp.title as package_title,
            c.name as class_name, teacher.full_name as teacher_name,
-           latest.id as submission_id, latest.score_percent, latest.correct_count, latest.total_count, latest.status as submission_status, latest.submitted_at
+           latest.id as submission_id, latest.score_percent, latest.correct_count, latest.total_count, latest.status as submission_status,
+           latest.submitted_at, latest.teacher_feedback, latest.reviewed_at
     from activity_assignments aa
     join activities a on a.id = aa.activity_id
     left join lessons l on l.id = a.lesson_id
@@ -332,6 +350,10 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
         ? "Late"
         : "Assigned",
     submittedAt: row.submitted_at || null,
+    submissionId: row.submission_id || null,
+    submissionStatus: row.submission_status || null,
+    teacherFeedback: row.teacher_feedback || "",
+    reviewedAt: row.reviewed_at || null,
     scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
@@ -348,8 +370,16 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
       questions: [],
     },
     lessonTitle: row.lesson_title,
+    lessonId: row.lesson_id,
+    lessonSlug: row.lesson_slug,
     unitTitle: row.unit_title,
+    unitId: row.unit_id,
+    unitSlug: row.unit_slug,
     componentTitle: row.component_title,
+    componentId: row.component_id,
+    componentSlug: row.component_slug,
     packageTitle: row.package_title,
+    packageId: row.package_id,
+    packageSlug: row.package_slug,
   }));
 }
