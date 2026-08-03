@@ -32,8 +32,37 @@ export function TeacherCourseEditor({
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [activitySaved, setActivitySaved] = useState(false);
-  const selectedActivity = course.lesson.activities[selectedActivityIndex] || course.lesson.activities[0];
   const overlayLabel = saving || addingActivity ? "Saving..." : courseLoading ? "Loading..." : "";
+
+  if (!course?.lesson || !Array.isArray(course.lesson.activities)) {
+    return (
+      <div className="workspace editor-workspace">
+        {overlayLabel && <LoadingOverlay label={overlayLabel} />}
+        <SectionTitle
+          eyebrow="Teacher course editor"
+          title={courseLoading ? "Loading course content." : "Course content is unavailable."}
+          text={courseLoading
+            ? "The editable course and activity data is loading from the server."
+            : "This school does not currently have an editable course available for custom assignment authoring."}
+        />
+        <Card className="course-editor-card priority-panel">
+          {courseLoading ? (
+            <div className="teacher-loading-state">Loading course content...</div>
+          ) : (
+            <div className="activity-empty-editor">
+              <strong>Custom assignment authoring is unavailable</strong>
+              <p>{courseError || "No editable course or activity data was returned for this school."}</p>
+              <button className="secondary-action" type="button" onClick={() => reloadCourse?.()}>
+                Try again
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  const selectedActivity = course.lesson.activities[selectedActivityIndex] || course.lesson.activities[0];
 
   const moveActivity = (index, direction) => {
     const nextIndex = index + direction;
