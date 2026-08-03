@@ -133,6 +133,7 @@ test("Unit 1 teacher review persists an explicit score while unscored work remai
     Promise.all([
       readFile("src/components/lms/teacher/sections/TeacherAssignmentsSection.jsx", "utf8"),
       readFile("src/components/lms/teacher/components/TeacherResultsModal.jsx", "utf8"),
+      readFile("src/components/lms/teacher/components/TeacherAssignmentReviewWorkspace.jsx", "utf8"),
     ]).then((parts) => parts.join("\n")),
   ]);
   assert.match(server, /requiresTeacherReview \|\| unscoredPractice \? null/);

@@ -37,15 +37,19 @@ test("teacher domain modules retain navigation and workflow contracts", async ()
   assert.match(sources.TeacherStudents, /listTeacherStudents/);
   assert.match(sources.TeacherAssignments, /listTeacherAssignments/);
   assert.match(sources.TeacherAssignments, /createAssignment/);
-  assert.match(sources.TeacherAssignments, /getAssignmentResults/);
   assert.match(sources.TeacherAssignments, /exportAssignmentResultsCsv/);
+  assert.match(sources.TeacherAssignments, /TeacherAssignmentReviewWorkspace/);
   assert.match(sources.TeacherCustomAssignment, /TeacherCourseEditor/);
 });
 
-test("teacher results modal retains refresh, review, and close behavior", async () => {
-  const modal = await readFile("src/components/lms/teacher/components/TeacherResultsModal.jsx", "utf8");
-  assert.match(modal, /getAssignmentResults/);
-  assert.match(modal, /reviewSubmission/);
-  assert.match(modal, /onReviewSaved/);
-  assert.match(modal, /onClose/);
+test("teacher assignment results use a full-page review workspace", async () => {
+  const [section, workspace] = await Promise.all([
+    readFile("src/components/lms/teacher/sections/TeacherAssignmentsSection.jsx", "utf8"),
+    readFile("src/components/lms/teacher/components/TeacherAssignmentReviewWorkspace.jsx", "utf8"),
+  ]);
+  assert.doesNotMatch(section, /ResultsModal/);
+  assert.match(workspace, /getAssignmentResults/);
+  assert.match(workspace, /reviewSubmission/);
+  assert.match(workspace, /downloadAssignmentResultsCsv/);
+  assert.match(workspace, /Back to assignments/);
 });

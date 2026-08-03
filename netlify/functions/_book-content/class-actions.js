@@ -115,16 +115,23 @@ export async function reviewSubmission(sql, body, currentUser = null) {
   }
 
   const existingRows = await sql`
-    select status, score_percent
-    from activity_submissions
-    where id = ${submissionId}
-      and school_id = ${currentUser.school_id}
+    select s.status, s.score_percent, coalesce(a.content_json->>'implementationMode', 'auto-scored') as implementation_mode
+    from activity_submissions s
+    join activity_assignments aa on aa.id = s.activity_assignment_id
+    join activities a on a.id = aa.activity_id
+    where s.id = ${submissionId}
+      and s.school_id = ${currentUser.school_id}
+      and aa.school_id = ${currentUser.school_id}
+      and (${isAdmin(currentUser)} or aa.teacher_id = ${currentUser.id})
     limit 1
   `;
   const existing = existingRows[0];
   if (!existing) return json(404, { error: "Submission not found" });
   if (existing.status === "awaiting_review" && scorePercent === null) {
     return badRequest("scorePercent is required to complete teacher review");
+  }
+  if (existing.implementation_mode !== "teacher-reviewed" && scorePercent !== null) {
+    return badRequest("scorePercent can only be set for teacher-reviewed activities");
   }
 
   const rows = await sql`

@@ -164,6 +164,7 @@ export async function getAssignmentResults(sql, assignmentId) {
     select aa.id, aa.activity_id, aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.title as activity_title, a.slug as activity_slug, a.activity_type,
+           a.content_json->>'implementationMode' as implementation_mode,
            bc.title as component_title, bp.title as package_title, c.name as class_name
     from activity_assignments aa
     join activities a on a.id = aa.activity_id
@@ -244,6 +245,7 @@ export async function getAssignmentResults(sql, assignmentId) {
     reviewedBy: row.reviewed_by || null,
     dueAt: assignment.due_at,
     submissionId: row.submission_id,
+    implementationMode: assignment.implementation_mode || "auto-scored",
   }));
   const submitted = resultRows.filter((row) => row.submissionId).length;
   const scoredRows = resultRows.filter((row) => row.scorePercent !== null);
@@ -258,6 +260,7 @@ export async function getAssignmentResults(sql, assignmentId) {
       submitted_count: submitted,
       average_score: averageScore,
       latest_submitted_at: resultRows.map((row) => row.submittedAt).filter(Boolean).sort().slice(-1)[0] || null,
+      implementation_mode: assignment.implementation_mode,
     }),
     summary: {
       totalStudents: resultRows.length,
@@ -265,6 +268,10 @@ export async function getAssignmentResults(sql, assignmentId) {
       missingCount: Math.max(resultRows.length - submitted, 0),
       averageScore,
       latestSubmittedAt: resultRows.map((row) => row.submittedAt).filter(Boolean).sort().slice(-1)[0] || null,
+      awaitingReviewCount: resultRows.filter((row) => row.submissionStatus === "awaiting_review").length,
+      reviewedCount: resultRows.filter((row) => row.submissionStatus === "reviewed").length,
+      autoScoredCount: resultRows.filter((row) => row.submissionStatus === "submitted").length,
+      completedCount: resultRows.filter((row) => row.submissionStatus === "completed").length,
     },
     rows: resultRows,
   });

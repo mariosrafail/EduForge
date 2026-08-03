@@ -75,6 +75,9 @@ async function openStudentAssignment(page, title) {
   await page.getByRole("button", { name: new RegExp(`^${title}`) }).click();
   await expect(page.locator(".student-assignment-detail").getByRole("heading", { name: title, exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Start exercise", exact: true }).click();
+  await expect(page).toHaveURL(/#\/student\/assignments\//);
+  await expect(page.locator(".student-assignment-workspace-header").getByRole("heading", { name: title, exact: true })).toBeVisible();
+  await expect(page.locator(".student-assignment-book-panel")).toBeVisible();
 }
 
 test.beforeEach(removeLifecycleRecords);
@@ -139,6 +142,10 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await expect(page.getByText(reviewTitle, { exact: true }).first()).toBeVisible();
 
     await openStudentAssignment(page, reviewTitle);
+    const reviewWorkspaceUrl = page.url();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page).toHaveURL(reviewWorkspaceUrl);
+    await expect(page.locator(".student-assignment-workspace-header")).toContainText(reviewTitle);
     const reviewInputs = page.getByRole("textbox", { name: /Answer question/ });
     await expect(reviewInputs).toHaveCount(3);
     for (let index = 0; index < await reviewInputs.count(); index += 1) {
@@ -151,7 +158,8 @@ test("teacher creates assignments, student submits, and teacher results and revi
     const reviewSubmission = (await reviewSubmissionResponse.json()).submission;
     lifecycleSubmissionIds.add(reviewSubmission.id);
     expect(reviewSubmission.status).toBe("awaiting_review");
-    await expect(page.getByText(/Submitted · Awaiting teacher review/)).toBeVisible();
+    await expect(page.locator(".student-assignment-workspace-header")).toContainText("Awaiting teacher review");
+    await expect(page.locator(".student-assignment-result-panel")).toContainText("Awaiting teacher review");
 
     await page.getByRole("button", { name: "Assignments", exact: true }).click();
     await expect(page.getByText(autoTitle, { exact: true }).first()).toBeVisible();
@@ -168,7 +176,8 @@ test("teacher creates assignments, student submits, and teacher results and revi
     const autoSubmission = (await autoResponse.json()).submission;
     lifecycleSubmissionIds.add(autoSubmission.id);
     expect(Number.isFinite(autoSubmission.scorePercent)).toBeTruthy();
-    await expect(page.getByText(new RegExp(`${autoSubmission.correctCount}/${autoSubmission.totalCount} correct.*${autoSubmission.scorePercent}%`))).toBeVisible();
+    await expect(page.locator(".student-assignment-workspace-header")).toContainText("Automatically graded");
+    await expect(page.locator(".student-assignment-result-panel")).toContainText(`${autoSubmission.scorePercent}%`);
 
     await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -182,30 +191,33 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
     const autoRow = page.locator(".teacher-assignment-table article").filter({ hasText: autoTitle });
     await autoRow.getByRole("button", { name: "View results", exact: true }).click();
-    const autoResultRow = page.locator(".results-modal-list article").filter({ hasText: student.name });
-    await expect(autoResultRow).toContainText(`${autoSubmission.scorePercent}%`);
-    await page.getByRole("button", { name: "Close results", exact: true }).click();
+    await expect(page.locator(".teacher-review-workspace")).toBeVisible();
+    await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
+    await expect(page.locator(".teacher-review-submission").getByLabel("Server score")).toHaveValue(String(autoSubmission.scorePercent));
+    await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
 
     const reviewRow = page.locator(".teacher-assignment-table article").filter({ hasText: reviewTitle });
-    await reviewRow.getByRole("button", { name: "View results", exact: true }).click();
-    const reviewResultRow = page.locator(".results-modal-list article").filter({ hasText: student.name });
+    await reviewRow.getByRole("button", { name: "Review submissions", exact: true }).click();
+    await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
+    const reviewResultRow = page.locator(".teacher-review-submission");
     await expect(reviewResultRow).toContainText("Awaiting teacher review");
-    await reviewResultRow.getByLabel("Score (0-100)").fill("84");
-    await reviewResultRow.getByLabel("Teacher feedback").fill("Clear response with relevant support.");
+    await reviewResultRow.getByLabel("Teacher score (0–100)").fill("84");
+    await reviewResultRow.getByLabel("Student-visible feedback").fill("Clear response with relevant support.");
     const reviewSaveResponse = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("action=review-submission"));
-    await reviewResultRow.getByRole("button", { name: "Save feedback", exact: true }).click();
+    await reviewResultRow.getByRole("button", { name: "Save review", exact: true }).click();
     expect((await reviewSaveResponse).ok()).toBeTruthy();
     await expect(reviewResultRow).toContainText("Reviewed");
-    await expect(reviewResultRow.getByLabel("Teacher feedback")).toHaveValue("Clear response with relevant support.");
+    await expect(reviewResultRow.getByLabel("Student-visible feedback")).toHaveValue("Clear response with relevant support.");
 
-    await page.getByRole("button", { name: "Close results", exact: true }).click();
+    await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".teacher-assignment-table article").filter({ hasText: reviewTitle }).getByRole("button", { name: "View results", exact: true }).click();
-    const persistedReviewRow = page.locator(".results-modal-list article").filter({ hasText: student.name });
+    await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
+    const persistedReviewRow = page.locator(".teacher-review-submission");
     await expect(persistedReviewRow).toContainText("Reviewed");
-    await expect(persistedReviewRow.getByLabel("Score (0-100)")).toHaveValue("84");
-    await expect(persistedReviewRow.getByLabel("Teacher feedback")).toHaveValue("Clear response with relevant support.");
-    await page.getByRole("button", { name: "Close results", exact: true }).click();
+    await expect(persistedReviewRow.getByLabel("Teacher score (0–100)")).toHaveValue("84");
+    await expect(persistedReviewRow.getByLabel("Student-visible feedback")).toHaveValue("Clear response with relevant support.");
+    await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
     await signOut(page);
     await context.clearCookies();
 

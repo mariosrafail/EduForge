@@ -1,29 +1,16 @@
-import { BookOpen, CheckCircle2, ListChecks, Search, Users, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { dedupeBookPackages, demoBookPackages, normalizeBookPackageKey } from "../../../../data/bookPackages.js";
-import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
+import { BookOpen, ListChecks } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
 import {
   createAssignment,
   exportAssignmentResultsCsv,
-  getAssignmentResults,
-  listClassStudents,
   listTeacherAssignments,
-  listTeacherStudents,
-  reviewSubmission,
 } from "../../../../services/assignmentsApi.js";
-import { createTeacherClass } from "../../../../services/classApi.js";
-import { buildActivityHash, buildBookHash, buildTeacherPresentationHash, buildTeacherSectionHash, slugifyRoute } from "../../../../utils/hashRoutes.js";
-import { teacherBooksPresentation } from "../teacherBooksState.js";
-import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
-import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
-import { Card, Progress, SectionTitle, Tag } from "../../Shared.jsx";
-import { TeacherCourseEditor } from "../TeacherCourseEditor.jsx";
-import { ClassInviteLink } from "../ClassInviteLink.jsx";
-import { classBookOptions, classLevelOptions, teacherSections } from "../teacherPortalConfig.js";
+import { buildTeacherAssignmentReviewHash } from "../../../../utils/hashRoutes.js";
+import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
-
-import { ResultsModal } from "../components/TeacherResultsModal.jsx";
+import { assignmentReviewAction } from "../assignmentReviewPresentation.js";
+import { TeacherAssignmentReviewWorkspace } from "../components/TeacherAssignmentReviewWorkspace.jsx";
 
 export function TeacherAssignments({ currentUser = null, classes = [], classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
   const [assignments, setAssignments] = useState([]);
@@ -38,8 +25,6 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
   const [worksheetLinks, setWorksheetLinks] = useState("");
   const [assigned, setAssigned] = useState("");
   const [savingAssignment, setSavingAssignment] = useState(false);
-  const [selectedAssignmentResult, setSelectedAssignmentResult] = useState(null);
-  const [selectedAssignmentLiveResults, setSelectedAssignmentLiveResults] = useState(null);
   const visibleAssignments = assignments;
 
   const loadAssignments = async () => {
@@ -98,20 +83,6 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedAssignmentId || selectedAssignmentId === "new") {
-      setSelectedAssignmentResult(null);
-      setSelectedAssignmentLiveResults(null);
-      return;
-    }
-    const match = visibleAssignments.find((assignment) => (
-      slugifyRoute(`${assignment.title}-${assignment.className}`) === slugifyRoute(selectedAssignmentId) ||
-      slugifyRoute(assignment.title) === slugifyRoute(selectedAssignmentId)
-    ));
-    setSelectedAssignmentResult(match || null);
-    setSelectedAssignmentLiveResults(null);
-  }, [selectedAssignmentId, visibleAssignments]);
-
   const toggleListItem = (value, list, setter) => {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
     setAssigned("");
@@ -168,18 +139,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     }
   };
 
-  const openResults = async (assignment) => {
-    setSelectedAssignmentResult(assignment);
-    setSelectedAssignmentLiveResults(null);
-    navigateTo?.(buildTeacherSectionHash("assignments", `${assignment.title}-${assignment.className}`));
-    if (!assignment.id) return;
-    try {
-      const results = await getAssignmentResults(assignment.id);
-      setSelectedAssignmentLiveResults(results);
-    } catch (error) {
-      setAssignmentError(error.message || "Assignment results could not be loaded.");
-    }
-  };
+  const openResults = (assignment) => navigateTo?.(buildTeacherAssignmentReviewHash(assignment.id));
 
   const exportResults = async (assignment) => {
     if (!assignment.id) {
@@ -192,6 +152,10 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
       setAssignmentError(error.message || "CSV export failed.");
     }
   };
+
+  if (routeAction === "review" && selectedAssignmentId) {
+    return <TeacherAssignmentReviewWorkspace assignmentId={selectedAssignmentId} currentUser={currentUser} navigateTo={navigateTo} />;
+  }
 
   return (
     <section className="teacher-section-stack">
@@ -224,6 +188,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
                 {dueDateLabel(assignment.dueDate || assignment.dueAt)}
               </Tag>
               <span>{assignment.submitted}/{assignment.total} submitted</span>
+              <span>{assignment.awaitingReviewCount} awaiting · {assignment.reviewedCount} reviewed · {assignment.missingCount} missing</span>
               <span>{assignment.averageScore == null ? "Unscored" : `${assignment.averageScore}% average`}</span>
               <button
                 className="secondary-action compact-action"
@@ -231,28 +196,13 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
                 onClick={() => openResults(assignment)}
                 data-sound-click="tab"
               >
-                View results
+                {assignmentReviewAction(assignment)}
               </button>
               <button className="secondary-action compact-action" type="button" onClick={() => exportResults(assignment)} data-sound-click="submit">Export CSV</button>
             </article>
           ))}
         </div>
       </Card>
-      <ResultsModal
-        assignment={selectedAssignmentResult}
-        liveResults={selectedAssignmentLiveResults}
-        currentUser={currentUser}
-        label="Assignment results"
-        onReviewSaved={() => {
-          if (selectedAssignmentResult) openResults(selectedAssignmentResult);
-        }}
-        onClose={() => {
-          setSelectedAssignmentResult(null);
-          setSelectedAssignmentLiveResults(null);
-          navigateTo?.(buildTeacherSectionHash("assignments"));
-        }}
-      />
-
       <Card className="teacher-book-assign-panel">
         <form onSubmit={createLiveAssignment}>
         <div className="card-heading">

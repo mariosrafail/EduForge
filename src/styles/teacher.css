@@ -288,3 +288,76 @@
 }
 
 .teacher-assignment-table article { grid-template-columns: minmax(260px, 1fr) auto minmax(130px, 0.45fr) minmax(110px, 0.4fr) auto; }
+
+.teacher-review-workspace { display: grid; gap: 16px; }
+
+.teacher-review-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+
+.teacher-review-header h1 { margin: 5px 0; font-size: clamp(25px, 3vw, 38px); }
+
+.teacher-review-header p { margin: 0; color: #475467; }
+
+.teacher-review-metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+
+.teacher-review-metrics .panel { display: grid; gap: 4px; padding: 14px; }
+
+.teacher-review-metrics strong { color: #101828; font-size: 23px; }
+
+.teacher-review-metrics span { color: #667085; font-size: 12px; font-weight: 800; }
+
+.teacher-review-filter-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.teacher-review-filter-row button { min-height: 38px; padding: 8px 12px; color: #344054; background: #fff; border: 1px solid #d0d5dd; border-radius: 6px; font-weight: 850; cursor: pointer; }
+
+.teacher-review-filter-row button.selected { color: #fff; background: var(--brand-primary); border-color: var(--brand-primary); }
+
+.teacher-review-layout { display: grid; grid-template-columns: minmax(240px, 0.34fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+
+.teacher-review-queue { display: grid; gap: 8px; }
+
+.teacher-review-queue > button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; padding: 10px; text-align: left; background: #fff; border: 1px solid #e4e7ec; border-radius: 6px; cursor: pointer; }
+
+.teacher-review-queue > button.selected { background: #f4f8ff; border-color: var(--brand-primary); }
+
+.teacher-review-queue > button > span:first-child { display: grid; min-width: 0; }
+
+.teacher-review-queue small { overflow: hidden; color: #667085; text-overflow: ellipsis; }
+
+.teacher-review-submission { display: grid; gap: 16px; min-width: 0; }
+
+.teacher-review-student-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+
+.teacher-review-student-heading h2,
+.teacher-review-student-heading p { margin: 4px 0 0; }
+
+.teacher-review-responses { display: grid; gap: 9px; }
+
+.teacher-review-responses article { padding: 11px 13px; background: #f8fafc; border: 1px solid #e4e7ec; }
+
+.teacher-review-responses article span { color: #475467; font-size: 12px; font-weight: 850; }
+
+.teacher-review-responses article p { margin: 5px 0 0; white-space: pre-wrap; }
+
+.teacher-review-editor { display: grid; grid-template-columns: minmax(150px, 0.28fr) minmax(260px, 1fr); gap: 12px; align-items: end; }
+
+.teacher-review-editor label { display: grid; gap: 6px; color: #344054; font-weight: 850; }
+
+.teacher-review-editor label span { display: flex; align-items: center; gap: 6px; }
+
+.teacher-review-editor .primary-action { justify-self: start; }
+
+.teacher-review-editor .inline-status { grid-column: 1 / -1; }
+
+.teacher-review-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid #e4e7ec; }
+
+@media (max-width: 1000px) {
+  .teacher-review-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .teacher-review-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 650px) {
+  .teacher-review-header,
+  .teacher-review-student-heading { flex-direction: column; }
+  .teacher-review-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .teacher-review-editor { grid-template-columns: 1fr; }
+}
