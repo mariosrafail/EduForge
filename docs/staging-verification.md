@@ -9,7 +9,7 @@ In a fresh PowerShell window, set the variables without saving credentials in th
 ```powershell
 $env:STAGING_DATABASE_URL = "postgresql://USER:PASSWORD@STAGING_HOST/STAGING_DATABASE?sslmode=require"
 $env:STAGING_DATABASE_CONFIRMATION = "isolated-staging-database"
-$env:EDUFORGE_STAGING_QA_PASSWORD = Read-Host "Temporary QA password"
+$env:HHPLMS_STAGING_QA_PASSWORD = "password123"
 $env:APP_PUBLIC_URL = "https://your-isolated-preview.example"
 $env:ACCOUNT_EMAIL_MODE = "preview"
 ```
@@ -39,7 +39,7 @@ For the optional production-oriented licensing and three-school isolation datase
 ```powershell
 $env:ALLOW_DEMO_SEED = "true"
 $env:MULTI_SCHOOL_SEED_CONFIRMATION = "fictional-multi-school-development-data"
-$env:MULTI_SCHOOL_DEMO_PASSWORD = Read-Host "Temporary fictional account password"
+$env:MULTI_SCHOOL_DEMO_PASSWORD = "password123"
 npm run staging:seed:multi-school
 npm run staging:integrity
 npm run staging:cleanup:multi-school
@@ -57,7 +57,9 @@ The seed creates School A and School B, each with one admin, two teachers, two s
 - the same pattern with `qa.b.*`
 - paused accounts: `qa.a.paused@eduforge.invalid` and `qa.b.paused@eduforge.invalid`
 
-All accounts use the required runtime value of `EDUFORGE_STAGING_QA_PASSWORD`. There is no shared fallback password; preflight and seed fail closed when it is missing, too short, or uses the retired shared value.
+All disposable fictional QA accounts use `password123`, supplied through `HHPLMS_STAGING_QA_PASSWORD`. The legacy environment-variable name remains a temporary compatibility alias, but conflicting values fail closed. Passwords are bcrypt-hashed before storage.
+
+> **Disposable QA only:** never point this seed at production, never apply deterministic demo-password migrations to production, and never reuse `password123` for real users.
 
 Start the UI and functions with the staging database supplied only to that process:
 

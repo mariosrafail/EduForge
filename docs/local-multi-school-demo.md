@@ -7,9 +7,11 @@ The separate operator control plane is available at `http://127.0.0.1:8888/platf
 Fictional local Platform Admin:
 
 - email: `platform.admin@multi-school.dev.invalid`
-- development-only password: `EduForge-Platform-Dev-Only-2026!`
+- development-only password: `password123`
 
-These credentials are created only by the explicitly confirmed local demo setup and must never be used for staging or production.
+These credentials are created only by the explicitly confirmed local demo setup and must never be used for production or real users. The database stores a bcrypt hash, never this plaintext value.
+
+> **Demo/development only:** never apply deterministic demo-password migrations to production and never reuse `password123` for a real account.
 
 ## Five-minute Platform Admin walkthrough
 
@@ -55,7 +57,7 @@ Use `127.0.0.1` consistently. Cookies are host-scoped, so a login made at `127.0
 
 ## Demo accounts
 
-Every account uses the development-only password `EduForge-Dev-Only-2026!`. All addresses use the reserved `.dev.invalid` domain and cannot receive mail.
+Every account uses the development-only password `password123`. All addresses use the reserved `.dev.invalid` domain and cannot receive mail.
 
 | Walkthrough | Email | Expected state |
 |---|---|---|

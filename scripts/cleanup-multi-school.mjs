@@ -4,7 +4,7 @@ import {
   MULTI_SCHOOL,
   MULTI_SCHOOL_CONFIRMATION,
   MULTI_SCHOOL_PLATFORM_ADMIN,
-  MULTI_SCHOOL_SEED_KEY,
+  MULTI_SCHOOL_SEED_KEYS,
   multiSchoolRegistryEntries,
 } from "./_multi-school-seed-data.mjs";
 
@@ -21,7 +21,10 @@ try {
     try {
       const exists = (await client.query("select to_regclass('public.multi_school_seed_registry') is not null exists")).rows[0].exists;
       if (!exists) throw new Error("multi_school_seed_registry is missing; refusing unscoped cleanup");
-      const actual = (await client.query("select entity_type,entity_id from multi_school_seed_registry where seed_key=$1 order by entity_type,entity_id", [MULTI_SCHOOL_SEED_KEY])).rows.map((row) => `${row.entity_type}:${row.entity_id}`);
+      const actual = [...new Set((await client.query(
+        "select entity_type,entity_id from multi_school_seed_registry where seed_key=any($1::text[]) order by entity_type,entity_id",
+        [MULTI_SCHOOL_SEED_KEYS],
+      )).rows.map((row) => `${row.entity_type}:${row.entity_id}`))];
       const expected = multiSchoolRegistryEntries().map(([type, id]) => `${type}:${id}`).sort();
       const rootCount = Number((await client.query("select count(*)::int count from schools where id=any($1::uuid[])", [MULTI_SCHOOL.map((school) => school.id)])).rows[0].count);
       if (!actual.length && rootCount === 0) { await client.query("commit"); return; }
@@ -34,7 +37,7 @@ try {
       await client.query("delete from schools where id=any($1::uuid[])", [MULTI_SCHOOL.map((school) => school.id)]);
       await client.query("delete from platform_admin_audit_log where platform_admin_id=$1", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
       await client.query("delete from platform_admins where id=$1", [MULTI_SCHOOL_PLATFORM_ADMIN.id]);
-      await client.query("delete from multi_school_seed_registry where seed_key=$1", [MULTI_SCHOOL_SEED_KEY]);
+      await client.query("delete from multi_school_seed_registry where seed_key=any($1::text[])", [MULTI_SCHOOL_SEED_KEYS]);
       await client.query("commit");
     } catch (error) { await client.query("rollback"); throw error; }
   });

@@ -72,9 +72,9 @@ The control plane does not implement impersonation, password viewing, visible pa
 The explicitly confirmed multi-school demo creates one fictional Platform Admin:
 
 - email: `platform.admin@multi-school.dev.invalid`
-- development-only password: `EduForge-Platform-Dev-Only-2026!`
+- development-only password: `password123`
 
-This account is created by the isolated demo seed only; it is not present in migration 028. Demo reset removes the dedicated local database, including Platform Admin sessions and audit records.
+This account is created by the isolated demo seed only; it is not present in migration 028. Its password is bcrypt-hashed in PostgreSQL. Demo reset removes the dedicated local database, including Platform Admin sessions and audit records. Never reuse `password123` for a real user or run deterministic demo-password tooling against production.
 
 Local demos use deterministic seeded identities or the same Platform Admin provisioning workflow. The multi-school demo starts its existing isolated invitation-preview mode so the full password-establishment lifecycle can be exercised without production email.
 

@@ -1,13 +1,19 @@
-export const MULTI_SCHOOL_SEED_KEY = "eduforge-fictional-multi-school-v1";
+import { DEMO_ACCOUNT_PASSWORD } from "./_demo-credentials.mjs";
+
+export { DEMO_ACCOUNT_PASSWORD } from "./_demo-credentials.mjs";
+
+export const MULTI_SCHOOL_SEED_KEY = "hhplms-fictional-multi-school-v1";
+export const MULTI_SCHOOL_LEGACY_SEED_KEYS = Object.freeze(["eduforge-fictional-multi-school-v1"]);
+export const MULTI_SCHOOL_SEED_KEYS = Object.freeze([MULTI_SCHOOL_SEED_KEY, ...MULTI_SCHOOL_LEGACY_SEED_KEYS]);
 export const MULTI_SCHOOL_CONFIRMATION = "fictional-multi-school-development-data";
 export const MULTI_SCHOOL_EMAIL_DOMAIN = "multi-school.dev.invalid";
-export const MULTI_SCHOOL_DEMO_PASSWORD = "EduForge-Dev-Only-2026!";
+export const MULTI_SCHOOL_DEMO_PASSWORD = DEMO_ACCOUNT_PASSWORD;
 export const MULTI_SCHOOL_PLATFORM_ADMIN = Object.freeze({
   id: "d1700000-00f0-4000-8000-000000000001",
   fullName: "LMS Platform Demo Operator",
   email: "platform.admin@multi-school.dev.invalid",
 });
-export const MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD = "EduForge-Platform-Dev-Only-2026!";
+export const MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD = DEMO_ACCOUNT_PASSWORD;
 
 function uuid(type, school, item = 0) {
   return `d1700000-${type.toString(16).padStart(4, "0")}-4000-8000-${(school * 100 + item).toString(16).padStart(12, "0")}`;

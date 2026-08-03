@@ -5,7 +5,9 @@ import { createMultiSchoolPool } from "./_multi-school-db.mjs";
 import {
   MULTI_SCHOOL,
   MULTI_SCHOOL_CONFIRMATION,
+  DEMO_ACCOUNT_PASSWORD,
   MULTI_SCHOOL_DEMO_PASSWORD,
+  MULTI_SCHOOL_LEGACY_SEED_KEYS,
   MULTI_SCHOOL_PLATFORM_ADMIN,
   MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
   MULTI_SCHOOL_SEED_KEY,
@@ -28,6 +30,25 @@ try {
     await client.query("begin");
     try {
       await client.query(`create table if not exists multi_school_seed_registry(seed_key text not null,entity_type text not null,entity_id uuid not null,created_at timestamptz not null default now(),primary key(seed_key,entity_type,entity_id))`);
+      const expectedRegistry = new Set([
+        ...MULTI_SCHOOL.map((school) => `school:${school.id}`),
+        `platform_admin:${MULTI_SCHOOL_PLATFORM_ADMIN.id}`,
+      ]);
+      for (const legacyKey of MULTI_SCHOOL_LEGACY_SEED_KEYS) {
+        const legacyRows = (await client.query(
+          "select entity_type,entity_id from multi_school_seed_registry where seed_key=$1",
+          [legacyKey],
+        )).rows;
+        if (legacyRows.some((row) => !expectedRegistry.has(`${row.entity_type}:${row.entity_id}`))) {
+          throw new Error(`Legacy multi-school registry ${legacyKey} contains unexpected ownership rows`);
+        }
+        await client.query(`
+          insert into multi_school_seed_registry(seed_key,entity_type,entity_id)
+          select $1,entity_type,entity_id from multi_school_seed_registry where seed_key=$2
+          on conflict do nothing
+        `, [MULTI_SCHOOL_SEED_KEY, legacyKey]);
+        await client.query("delete from multi_school_seed_registry where seed_key=$1", [legacyKey]);
+      }
       for (const school of MULTI_SCHOOL) {
         const owned = (await client.query(`select exists(select 1 from multi_school_seed_registry where seed_key=$1 and entity_type='school' and entity_id=$2) owned`, [MULTI_SCHOOL_SEED_KEY, school.id])).rows[0].owned;
         const existing = (await client.query("select name from schools where id=$1", [school.id])).rows[0];
@@ -52,11 +73,16 @@ try {
       const autoActivity = activityRows.find((row) => row.implementation_mode === "auto-scored");
       const reviewActivity = activityRows.find((row) => row.implementation_mode === "teacher-reviewed");
       if (!autoActivity || !reviewActivity) throw new Error("Assignable auto-scored and teacher-reviewed Ultimate B2 activities are required");
-      const passwordHash = await bcrypt.hash(process.env.MULTI_SCHOOL_DEMO_PASSWORD || MULTI_SCHOOL_DEMO_PASSWORD, 12);
-      const platformAdminPasswordHash = await bcrypt.hash(
-        process.env.MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD || MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
-        12,
-      );
+      for (const [name, value] of Object.entries({
+        MULTI_SCHOOL_DEMO_PASSWORD: process.env.MULTI_SCHOOL_DEMO_PASSWORD,
+        MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD: process.env.MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD,
+      })) {
+        if (value !== undefined && value !== DEMO_ACCOUNT_PASSWORD) {
+          throw new Error(`${name} must equal the canonical fictional demo password`);
+        }
+      }
+      const passwordHash = await bcrypt.hash(MULTI_SCHOOL_DEMO_PASSWORD, 12);
+      const platformAdminPasswordHash = await bcrypt.hash(MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD, 12);
       const existingPlatformAdmin = (await client.query(
         "select email from platform_admins where id=$1",
         [MULTI_SCHOOL_PLATFORM_ADMIN.id],
@@ -186,6 +212,6 @@ try {
     } catch (error) { await client.query("rollback"); throw error; }
   });
   console.table(MULTI_SCHOOL.flatMap((school) => school.users.map((user) => ({ school: school.name, role: user.role, name: user.name, email: user.email, classes: school.classes.filter((item) => item.teacherId === user.id || item.studentIds.includes(user.id)).map((item) => item.name).join(", ") }))));
-  console.log("Development password is runtime MULTI_SCHOOL_DEMO_PASSWORD or the documented development-only default.");
+  console.log("All fictional accounts use the documented development-only demo password.");
   console.log("Seeded development codes:", MULTI_SCHOOL.flatMap((school) => school.codes.map((code) => `${school.key}:${code.status}:${code.value}`)).join(" | "));
 } finally { client.release(); await pool.end(); }

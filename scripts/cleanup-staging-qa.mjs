@@ -1,5 +1,5 @@
 import { createSafePool, withAdvisoryLock } from "./_staging-db.mjs";
-import { QA, QA_SEED_KEY, qaEntityIds, qaInviteFingerprints } from "./_staging-qa-data.mjs";
+import { QA, QA_SEED_KEYS, qaEntityIds, qaInviteFingerprints } from "./_staging-qa-data.mjs";
 import { classifyQaCleanupState } from "./_staging-cleanup-safety.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
@@ -16,8 +16,8 @@ try {
       const registryExists = (await client.query("select to_regclass('public.staging_qa_registry') is not null as exists")).rows[0].exists;
       if (!registryExists) throw new Error("staging_qa_registry does not exist; refusing unscoped cleanup");
       const registered = await client.query(
-        "select entity_type, entity_id from staging_qa_registry where seed_key = $1 order by entity_type, entity_id",
-        [QA_SEED_KEY],
+        "select entity_type, entity_id from staging_qa_registry where seed_key = any($1::text[]) order by entity_type, entity_id",
+        [QA_SEED_KEYS],
       );
       const expectedRegistry = new Set(qaEntityIds().map(([type, id]) => `${type}:${id}`));
       const actualRegistry = new Set(registered.rows.map((row) => `${row.entity_type}:${row.entity_id}`));
@@ -44,7 +44,7 @@ try {
       await client.query("delete from lesson_assignments where school_id = any($1::uuid[])", [schoolIds]);
       await client.query("delete from schools where id = any($1::uuid[])", [schoolIds]);
       await client.query("delete from publishers where id = $1", [QA.publisher.id]);
-      await client.query("delete from staging_qa_registry where seed_key = $1", [QA_SEED_KEY]);
+      await client.query("delete from staging_qa_registry where seed_key = any($1::text[])", [QA_SEED_KEYS]);
       await client.query("commit");
     } catch (error) {
       await client.query("rollback");

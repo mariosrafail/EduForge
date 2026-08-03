@@ -44,7 +44,9 @@ Accounts use these patterns:
 - teachers: `teacher1.<school>@multi-school.dev.invalid` and `teacher2.<school>@multi-school.dev.invalid`
 - students: `student1.<school>@multi-school.dev.invalid` through `student8.<school>@multi-school.dev.invalid`
 
-The development-only default password is `EduForge-Dev-Only-2026!`; set `MULTI_SCHOOL_DEMO_PASSWORD` to override it. The seed prints the complete account/class summary and fictional code inventory when run. These credentials and codes must never be reused in production.
+Every fictional seeded identity uses the development-only password `password123`. If `MULTI_SCHOOL_DEMO_PASSWORD` is supplied, it must match that canonical value. The seed hashes it with bcrypt before database storage and prints the complete account/class summary and fictional code inventory when run.
+
+> **Demo/development only:** never run deterministic demo-password migrations against production, never reuse `password123` for a real user, and never copy these fictional credentials into a shared account.
 
 Use only a separately provisioned staging/test database whose hostname or database name visibly identifies it as non-production:
 

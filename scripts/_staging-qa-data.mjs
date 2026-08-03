@@ -1,10 +1,19 @@
 import { createHash } from "node:crypto";
+import { DEMO_ACCOUNT_PASSWORD } from "./_demo-credentials.mjs";
 
-export const QA_SEED_KEY = "eduforge-staging-qa-v1";
+export const QA_SEED_KEY = "hhplms-staging-qa-v1";
+export const QA_LEGACY_SEED_KEYS = Object.freeze(["eduforge-staging-qa-v1"]);
+export const QA_SEED_KEYS = Object.freeze([QA_SEED_KEY, ...QA_LEGACY_SEED_KEYS]);
 export function requireQaPassword(environment = process.env) {
-  const password = String(environment.EDUFORGE_STAGING_QA_PASSWORD || "");
-  if (password.length < 16) throw new Error("EDUFORGE_STAGING_QA_PASSWORD must be set to at least 16 characters");
-  if (password === "StagingOnly!2026") throw new Error("EDUFORGE_STAGING_QA_PASSWORD must not use the retired shared staging password");
+  const current = String(environment.HHPLMS_STAGING_QA_PASSWORD || "");
+  const legacy = String(environment.EDUFORGE_STAGING_QA_PASSWORD || "");
+  if (current && legacy && current !== legacy) {
+    throw new Error("HHPLMS_STAGING_QA_PASSWORD conflicts with its legacy compatibility alias");
+  }
+  const password = current || legacy;
+  if (password !== DEMO_ACCOUNT_PASSWORD) {
+    throw new Error("HHPLMS_STAGING_QA_PASSWORD must equal the canonical password for disposable fictional QA accounts");
+  }
   return password;
 }
 export const QA_INVITE_TEST_IPS = [

@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { createSafePool, withAdvisoryLock } from "./_staging-db.mjs";
-import { QA, QA_SEED_KEY, qaEntityIds, requireQaPassword } from "./_staging-qa-data.mjs";
+import { QA, QA_LEGACY_SEED_KEYS, QA_SEED_KEY, qaEntityIds, requireQaPassword } from "./_staging-qa-data.mjs";
 
 const { pool, safeLabel } = createSafePool("staging");
 const QA_PASSWORD = requireQaPassword();
@@ -20,6 +20,23 @@ try {
           primary key (seed_key, entity_type, entity_id)
         )
       `);
+
+      const expectedRegistry = new Set(qaEntityIds().map(([type, id]) => `${type}:${id}`));
+      for (const legacyKey of QA_LEGACY_SEED_KEYS) {
+        const legacyRows = (await client.query(
+          "select entity_type,entity_id from staging_qa_registry where seed_key=$1",
+          [legacyKey],
+        )).rows;
+        if (legacyRows.some((row) => !expectedRegistry.has(`${row.entity_type}:${row.entity_id}`))) {
+          throw new Error(`Legacy staging QA registry ${legacyKey} contains unexpected ownership rows`);
+        }
+        await client.query(`
+          insert into staging_qa_registry(seed_key,entity_type,entity_id)
+          select $1,entity_type,entity_id from staging_qa_registry where seed_key=$2
+          on conflict do nothing
+        `, [QA_SEED_KEY, legacyKey]);
+        await client.query("delete from staging_qa_registry where seed_key=$1", [legacyKey]);
+      }
 
       for (const school of QA.schools) {
         const conflict = await client.query("select id from schools where (id = $1 or name = $2) and id <> $1", [school.id, school.name]);

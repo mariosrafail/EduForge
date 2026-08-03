@@ -55,10 +55,10 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     ACCOUNT_EMAIL_DISPATCH_SECRET: "c".repeat(40),
     OPERATIONAL_MONITORING_SECRET: "d".repeat(40),
     ACCOUNT_EMAIL_MODE: "preview",
-    EDUFORGE_STAGING_QA_PASSWORD: "Unique-QA-Password-2026",
+    HHPLMS_STAGING_QA_PASSWORD: "password123",
   };
   const result = await checkStagingDeployment(environment);
   assert.equal(result.latest_migration, "030_platform_admin_login_rate_limit.sql");
   await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
-  await assert.rejects(checkStagingDeployment({ ...environment, EDUFORGE_STAGING_QA_PASSWORD: "StagingOnly!2026" }), /retired shared staging password/);
+  await assert.rejects(checkStagingDeployment({ ...environment, HHPLMS_STAGING_QA_PASSWORD: "not-canonical" }), /canonical password/);
 });

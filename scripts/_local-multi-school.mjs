@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 import pg from "pg";
+import { DEMO_ACCOUNT_PASSWORD } from "./_demo-credentials.mjs";
 import {
   loadProductionMigrationManifest,
   migrationChecksumMatches,
@@ -254,8 +255,8 @@ export function localDemoEnvironment(extra = {}) {
     NODE_ENV: "development",
     ALLOW_DEMO_SEED: "true",
     MULTI_SCHOOL_SEED_CONFIRMATION: "fictional-multi-school-development-data",
-    MULTI_SCHOOL_DEMO_PASSWORD: "EduForge-Dev-Only-2026!",
-    MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD: "EduForge-Platform-Dev-Only-2026!",
+    MULTI_SCHOOL_DEMO_PASSWORD: DEMO_ACCOUNT_PASSWORD,
+    MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD: DEMO_ACCOUNT_PASSWORD,
     AUTH_RATE_LIMIT_SALT: "local-multi-school-ordinary-auth-rate-limit-only",
     PLATFORM_ADMIN_RATE_LIMIT_SALT: "local-multi-school-platform-admin-rate-limit-only",
     MULTI_SCHOOL_LOCAL_CONFIRMATION: LOCAL_MULTI_SCHOOL.confirmation,

@@ -8,7 +8,6 @@ const requiredNames = [
   "DATABASE_URL", "APP_PUBLIC_URL", "STAGING_PRODUCTION_APP_URL", "PRODUCTION_DATABASE_FINGERPRINT",
   "AUTH_RATE_LIMIT_SALT", "PLATFORM_ADMIN_RATE_LIMIT_SALT", "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET",
   "OPERATIONAL_MONITORING_SECRET", "ACCOUNT_EMAIL_MODE",
-  "EDUFORGE_STAGING_QA_PASSWORD",
 ];
 const placeholderPattern = /(replace|placeholder|example\.invalid|changeme|change-me|your[_-]|dummy|secret123)/i;
 const commonMailboxDomains = new Set(["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"]);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createSafePool, callHandler, postgresTemplate } from "./_staging-db.mjs";
-import { QA, QA_SEED_KEY, qaInviteFingerprint, requireQaPassword } from "./_staging-qa-data.mjs";
+import { QA, QA_SEED_KEYS, qaInviteFingerprint, requireQaPassword } from "./_staging-qa-data.mjs";
 import { hashToken, sessionCookieName, setSqlForVerification } from "../netlify/functions/_auth-utils.js";
 import { handler as signIn } from "../netlify/functions/auth-signin.js";
 import { handler as studentSignup } from "../netlify/functions/auth-student-signup.js";
@@ -64,7 +64,7 @@ async function count(sql, values = []) {
 
 try {
   console.log(`Running handler-level smoke tests against isolated staging target: ${safeLabel}`);
-  assert.equal(await count("select count(*) from staging_qa_registry where seed_key = $1", [QA_SEED_KEY]) > 0, true,
+  assert.equal(await count("select count(*) from staging_qa_registry where seed_key = any($1::text[])", [QA_SEED_KEYS]) > 0, true,
     "Run npm run staging:seed before smoke tests");
 
   await check("operational health reports a ready migrated database", async () => {
