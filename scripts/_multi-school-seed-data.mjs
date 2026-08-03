@@ -4,7 +4,7 @@ export const MULTI_SCHOOL_EMAIL_DOMAIN = "multi-school.dev.invalid";
 export const MULTI_SCHOOL_DEMO_PASSWORD = "EduForge-Dev-Only-2026!";
 export const MULTI_SCHOOL_PLATFORM_ADMIN = Object.freeze({
   id: "d1700000-00f0-4000-8000-000000000001",
-  fullName: "EduForge Platform Demo Operator",
+  fullName: "LMS Platform Demo Operator",
   email: "platform.admin@multi-school.dev.invalid",
 });
 export const MULTI_SCHOOL_PLATFORM_ADMIN_PASSWORD = "EduForge-Platform-Dev-Only-2026!";
