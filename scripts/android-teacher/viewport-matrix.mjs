@@ -46,6 +46,35 @@ function expectedDisplayScale({ width, height }) {
   return Math.min(2, Math.max(1, Math.min(width / 1920, height / 1080)));
 }
 
+async function waitForEmbeddedActivityFit(page) {
+  await page.evaluate(async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+  });
+  try {
+    await page.waitForFunction(() => {
+      const reader = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
+      const viewport = document.querySelector(".teacher-offline-embedded-activity");
+      const content = document.querySelector(".teacher-offline-embedded-activity-content");
+      if (!reader || !viewport || !content) return false;
+      const style = getComputedStyle(viewport);
+      const availableWidth = viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const availableHeight = viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      const expectedScale = viewport.dataset.fitMode === "scroll"
+        ? 1
+        : Math.min(1, availableWidth / content.scrollWidth, availableHeight / content.scrollHeight);
+      const appliedScale = Number(viewport.dataset.fitScale);
+      const embedded = content.getBoundingClientRect();
+      const contained = embedded.left >= reader.left - 1 && embedded.right <= reader.right + 1
+        && embedded.top >= reader.top - 1 && embedded.bottom <= reader.bottom + 1;
+      return contained && Number.isFinite(expectedScale) && Number.isFinite(appliedScale)
+        && Math.abs(appliedScale - expectedScale) < 0.001;
+    }, undefined, { polling: "raf" });
+  } catch (error) {
+    if (error?.name !== "TimeoutError") throw error;
+  }
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
 let browser;
 try {
   await rm(artifactRoot, { recursive: true, force: true });
@@ -383,25 +412,40 @@ try {
     }).first();
     await firstActivity.getByRole("button", { name: "Present" }).click();
     await page.locator(".teacher-offline-embedded-activity").waitFor();
-    await page.waitForTimeout(220);
+    await waitForEmbeddedActivityFit(page);
     const activityMetrics = await page.evaluate(() => {
       const reader = document.querySelector(".teacher-offline-page-reader").getBoundingClientRect();
-      const embedded = document.querySelector(".teacher-offline-embedded-activity-content").getBoundingClientRect();
+      const stage = document.querySelector(".teacher-offline-page-stage");
+      const transform = document.querySelector(".classroom-stage-transform");
+      const viewport = document.querySelector(".teacher-offline-embedded-activity");
+      const content = document.querySelector(".teacher-offline-embedded-activity-content");
+      const embedded = content.getBoundingClientRect();
       return {
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         inViewport: embedded.left >= reader.left - 1 && embedded.right <= reader.right + 1
           && embedded.top >= reader.top - 1 && embedded.bottom <= reader.bottom + 1,
         fitScale: Number(document.querySelector(".teacher-offline-embedded-activity").dataset.fitScale),
+        fitMode: document.querySelector(".teacher-offline-embedded-activity").dataset.fitMode,
         heading: Boolean(document.querySelector(".legacy-page-heading")),
         navigation: Boolean(document.querySelector(".legacy-page-navigation")),
         reader: Boolean(document.querySelector(".teacher-offline-page-reader")),
         pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
         toolbars: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
         standalonePresentation: document.querySelectorAll(".teacher-offline-presentation").length,
+        readerBounds: { left: reader.left, right: reader.right, top: reader.top, bottom: reader.bottom },
+        embeddedBounds: { left: embedded.left, right: embedded.right, top: embedded.top, bottom: embedded.bottom },
+        layoutSizes: Object.fromEntries(Object.entries({ stage, transform, viewport, content }).map(([name, element]) => [name, {
+          clientWidth: element.clientWidth,
+          clientHeight: element.clientHeight,
+          offsetWidth: element.offsetWidth,
+          offsetHeight: element.offsetHeight,
+          scrollWidth: element.scrollWidth,
+          scrollHeight: element.scrollHeight,
+        }])),
       };
     });
     assert.ok(activityMetrics.overflow <= 1, `${target.name} activity overflow`);
-    assert.ok(activityMetrics.inViewport, `${target.name} activity card must remain in viewport`);
+    assert.ok(activityMetrics.inViewport, `${target.name} activity card must remain in viewport: ${JSON.stringify(activityMetrics)}`);
     assert.ok(activityMetrics.fitScale > 0 && activityMetrics.fitScale <= 1, `${target.name} activity fit scale`);
     assert.equal(activityMetrics.heading, true, `${target.name} activity keeps unit heading`);
     assert.equal(activityMetrics.navigation, true, `${target.name} activity keeps page navigation`);

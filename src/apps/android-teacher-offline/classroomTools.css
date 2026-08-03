@@ -22,6 +22,10 @@
   place-items: center;
 }
 
+.teacher-offline-page-stage.has-embedded-activity > .classroom-stage-transform {
+  min-height: 0;
+}
+
 .teacher-offline-unit-overview > .classroom-stage-transform { display: block; }
 .teacher-offline-presentation-stage > .classroom-stage-transform { min-height: 100%; }
 
