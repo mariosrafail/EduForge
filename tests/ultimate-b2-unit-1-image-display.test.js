@@ -38,10 +38,11 @@ test("the recovered publisher display is enabled as an unscored image activity",
 });
 
 test("the image display renderer uses the tracked image and exact recovered publisher lines", async () => {
-  const [displaySource, rendererSource, normalizedSource] = await Promise.all([
+  const [displaySource, rendererSource, normalizedSource, recoveredActivityStyles] = await Promise.all([
     readFile("src/data/ultimate-b2/unit1Part1Exercise2Display.js", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2PublisherImageDisplayActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
+    readFile("src/styles/ultimate-b2-recovered-activities.css", "utf8"),
   ]);
   assert.match(displaySource, /obj2\/image_2\.png/);
   assert.match(displaySource, /your favourite form of entertainment/);
@@ -51,6 +52,7 @@ test("the image display renderer uses the tracked image and exact recovered publ
   assert.match(rendererSource, /<img src=\{display\.image\}/);
   assert.match(normalizedSource, /isUltimateB2PublisherImageDisplay\(activity\)/);
   assert.match(normalizedSource, /UltimateB2PublisherImageDisplayActivity/);
+  assert.match(recoveredActivityStyles, /\.ultimate-b2-publisher-image-display-sheet/);
 });
 
 test("the second authored Page 5 hotspot opens the recovered display activity", () => {

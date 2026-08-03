@@ -88,17 +88,19 @@ test("runtime lookup and action conversion preserve the normalized activity key"
 });
 
 test("web, Android student, and Android teacher viewers consume the tracked manifest without hotspot APIs", async () => {
-  const [viewer, androidViewer, teacherViewer, teacherViewerStyles, stubs] = await Promise.all([
+  const [viewer, pageImagePanel, androidViewer, teacherViewer, teacherViewerStyles, stubs] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageViewer.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageImagePanel.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/AndroidBookViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/TeacherOfflinePages.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/teacherOfflinePageViewer.css"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/androidOfflineServiceStubs.js"), "utf8"),
   ]);
-  assert.match(viewer, /getUltimateB2StudentsBookHotspotActions/);
+  assert.match(viewer, /BookPageImageLayer/);
+  assert.match(pageImagePanel, /getUltimateB2StudentsBookHotspotActions/);
   assert.match(androidViewer, /BookPackageBrowser/);
   assert.match(teacherViewer, /getUltimateB2StudentsBookHotspotActions/);
-  assert.doesNotMatch(viewer.match(/authoredHotspotActions[\s\S]*?selectedDraftHotspot/)?.[0] || "", /listBookPageHotspots/);
+  assert.doesNotMatch(pageImagePanel, /listBookPageHotspots/);
   assert.match(stubs, /listBookPageHotspots/);
   assert.match(teacherViewerStyles, /\.teacher-offline-pages-viewer \.teacher-offline-page-hotspot[\s\S]*border: 2px solid rgba\(255, 214, 0, 0\.82\)/);
   assert.match(teacherViewerStyles, /background-color: rgba\(255, 221, 0, 0\.16\)/);
@@ -110,10 +112,11 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.equal(isUltimateB2Unit1LegacyOpener(opener), true);
   assert.equal(isUltimateB2Unit1LegacyOpener(findStudentsBookImplementation("ultimate-b2-sb-u1-p2-o1")), false);
   assert.equal(isUltimateB2Unit1LegacyOpener({ ...opener, partNumber: 2 }), false);
-  const [normalizedRenderer, openerRenderer, activityStyles] = await Promise.all([
+  const [normalizedRenderer, openerRenderer, activityStyles, recoveredActivityStyles] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/styles/activities.css"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/styles/ultimate-b2-recovered-activities.css"), "utf8"),
   ]);
   assert.match(normalizedRenderer, /isUltimateB2Unit1LegacyOpener\(activity\)/);
   assert.match(normalizedRenderer, /isUltimateB2Unit1Part2LegacyPilot\(activity\)/);
@@ -122,8 +125,9 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.match(openerRenderer, /revealQuestion\(question\.id\)/);
   assert.match(openerRenderer, /capabilities\.canEditAnswers[\s\S]*textarea/);
   assert.doesNotMatch(openerRenderer, /many artistic processes|every theatre moment is unique/);
-  assert.match(activityStyles, /\.legacy-unit-opener-layout/);
-  assert.match(activityStyles, /\.legacy-unit-opener-answer-lines\.revealed[\s\S]*#e40759/);
+  assert.match(activityStyles, /@import "\.\/ultimate-b2-recovered-activities\.css"/);
+  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-layout/);
+  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-answer-lines\.revealed[\s\S]*#e40759/);
 });
 
 test("opener publisher assets preserve original bytes and exact scoped provenance", async (t) => {

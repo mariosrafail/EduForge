@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { getUltimateB2StudentsBookHotspotActions } from "../../../data/ultimate-b2/studentsBookHotspots.js";
 
 export function BookPageHotspots({ actions = [], onAction, className = "" }) {
   if (!actions.length) return null;
@@ -23,6 +24,75 @@ export function BookPageHotspots({ actions = [], onAction, className = "" }) {
           <span>{action.label}</span>
         </motion.button>
       ))}
+    </div>
+  );
+}
+
+export function BookPageImageLayer({
+  componentTitle,
+  componentSlug,
+  currentCustomHotspots,
+  enableHotspotEditor,
+  fitToScreen,
+  hotspotEditingActive,
+  onActivateArea,
+  onAction,
+  onChangeAreas,
+  onRetry,
+  onSelectArea,
+  packageSlug,
+  pageAssetError,
+  pageAssetLoading,
+  pageHotspotKey,
+  selectedHotspotId,
+  selectedImages,
+  selectedSection,
+  spreadClass,
+  zoom,
+}) {
+  const authoredHotspotActions = packageSlug === "ultimate-b2" && componentSlug === "students-book"
+    ? getUltimateB2StudentsBookHotspotActions({
+      pageId: selectedSection.pageId,
+      pageNumber: selectedSection.pageNumber,
+      unitNumber: selectedSection.unitNumber,
+    })
+    : [];
+
+  return (
+    <div
+      className={`book-page-image-layer ${spreadClass}`}
+      style={{ transform: fitToScreen ? undefined : `scale(${zoom})`, transformOrigin: "center top" }}
+    >
+      {selectedImages.length ? selectedImages.map((image, index) => (
+        <motion.img
+          key={`${selectedSection.id}-${index}`}
+          className="book-page-spread-image"
+          src={image}
+          alt={`${componentTitle} ${selectedSection.title} ${selectedSection.pages}${selectedImages.length > 1 ? ` page ${index + 1}` : ""}`}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.06, duration: 0.32, ease: "easeOut" }}
+        />
+      )) : pageAssetLoading ? (
+        <div className="book-page-missing" role="status">Loading protected page...</div>
+      ) : pageAssetError ? (
+        <div className="book-page-missing" role="alert">Page unavailable. <button type="button" className="secondary-action compact-action" onClick={onRetry}>Retry</button></div>
+      ) : (
+        <div className="book-page-missing">Page asset is not available for online delivery.</div>
+      )}
+      <BookPageHotspots actions={selectedSection.actions} onAction={onAction} />
+      <BookPageHotspots actions={authoredHotspotActions} onAction={onAction} className="authored-book-page-hotspots" />
+      {enableHotspotEditor && (
+        <EditableHotspotLayer
+          pageId={pageHotspotKey}
+          areas={currentCustomHotspots}
+          editing={hotspotEditingActive}
+          selectedAreaId={selectedHotspotId}
+          onSelectArea={onSelectArea}
+          onChangeAreas={onChangeAreas}
+          onActivateArea={onActivateArea}
+        />
+      )}
     </div>
   );
 }
