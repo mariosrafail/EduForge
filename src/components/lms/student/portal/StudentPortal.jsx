@@ -68,7 +68,6 @@ export function StudentPortal({
 
   useEffect(() => {
     if (!initialActivityKey) return;
-
     const match = findUltimateB2Exercise(initialActivityKey);
     setActiveExercise(match?.exercise || { title: initialActivityKey, demoActivityKey: initialActivityKey });
     if (match?.component?.id) {
@@ -130,16 +129,20 @@ export function StudentPortal({
       setSelectedBookId(null);
       setSelectedBookSubview(null);
     }
+    setActiveSection(section);
     if (navigateTo) {
       navigateTo(section === "books" ? buildCourseHash() : buildStudentSectionHash(section));
       return;
     }
-    setActiveSection(section);
   };
 
   const openActivity = (exercise, sourceSection = "books") => {
     setActiveExercise(exercise);
     setPreviousSection(sourceSection);
+    if (sourceSection === "assignments" && exercise.assignmentId) {
+      setActiveSection("activity");
+      return;
+    }
     if (navigateTo && (exercise.demoActivityKey || exercise.id)) {
       if (sourceSection === "books" && selectedPackageSlug && selectedBookId) {
         navigateTo(buildCourseExerciseHash(selectedPackageSlug, selectedBookId, getExerciseRouteSlug(exercise)));

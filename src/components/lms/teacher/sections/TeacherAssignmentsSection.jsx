@@ -32,6 +32,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
   const [activityOptions, setActivityOptions] = useState([]);
   const [selectedActivityId, setSelectedActivityId] = useState("");
   const [selectedClasses, setSelectedClasses] = useState([]);
+  const [assignmentTitle, setAssignmentTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [teacherNotes, setTeacherNotes] = useState("");
   const [worksheetLinks, setWorksheetLinks] = useState("");
@@ -149,13 +150,14 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
         teacherId: currentUser.id,
         classIds,
         dueAt: dueDate ? `${dueDate}T23:59:00` : null,
-        title: selectedActivity?.title || "",
+        title: assignmentTitle.trim() || selectedActivity?.title || "",
         teacherNotes,
         worksheetLinks,
         attachedFiles: [],
         status: "assigned",
       });
       setAssigned(`Assignment created for ${selectedClasses.join(", ")}.`);
+      setAssignmentTitle("");
       setTeacherNotes("");
       setWorksheetLinks("");
       await loadAssignments();
@@ -275,6 +277,10 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
             Due date
             <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setAssigned(""); }} />
           </label>
+          <label>
+            Assignment title
+            <input type="text" maxLength={240} value={assignmentTitle} placeholder="Use the activity title" onChange={(event) => { setAssignmentTitle(event.target.value); setAssigned(""); }} />
+          </label>
           <div className="teacher-checkbox-panel">
             <strong>Classes</strong>
             {classOptions.map((className) => (
@@ -286,7 +292,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
             {!classOptions.length && <small>No live classes yet. Create a class first.</small>}
           </div>
           <label>
-            Teacher notes
+            Instructions / teacher notes
             <textarea value={teacherNotes} rows={4} placeholder="Focus on text evidence and submit by Friday." onChange={(event) => setTeacherNotes(event.target.value)} />
           </label>
           <label>

@@ -141,7 +141,8 @@ test("normalized scoring generates assignment-compatible results", () => {
   assert.equal(result.activityId, "ultimate-b2-sb-u2-p2-o4");
   assert.equal(result.answers["1"], "air space");
   assert.equal(result.answers["8"], "route");
-  assert.equal(result.answers[activity.questions[0].id], answers[activity.questions[0].id]);
+  assert.equal(result.answers[activity.questions[0].id], undefined);
+  assert.deepEqual(Object.keys(result.answers), activity.questions.map((question, index) => String(question.number ?? index + 1)));
 });
 
 test("database migration replaces obsolete demo scoring with normalized Unit 2 evidence", async () => {

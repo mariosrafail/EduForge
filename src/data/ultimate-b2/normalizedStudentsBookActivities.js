@@ -32,10 +32,10 @@ export function scoreNormalizedStudentsBookActivity() {
 }
 
 export function buildNormalizedSubmissionAnswers(activity, answers = {}) {
-  const submission = { ...answers };
+  const submission = {};
   (activity?.questions || []).forEach((question, index) => {
     const selected = Array.isArray(answers[question.id]) ? answers[question.id][0] : answers[question.id];
-    submission[String(index + 1)] = question.options.find((option) => option.id === selected)?.value || "";
+    submission[String(question.number ?? index + 1)] = question.options.find((option) => option.id === selected)?.value || "";
   });
   return submission;
 }

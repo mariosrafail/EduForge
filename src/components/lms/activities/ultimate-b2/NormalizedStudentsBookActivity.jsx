@@ -105,8 +105,10 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
 }
 
 function responsePayload(activity, answers) {
-  const payload = { ...answers };
-  activity.runtime.questions.forEach((question, index) => { payload[String(index + 1)] = answers[question.id] || ""; });
+  const payload = {};
+  activity.runtime.questions.forEach((question, index) => {
+    payload[String(question.number ?? index + 1)] = answers[question.id] || "";
+  });
   return payload;
 }
 
