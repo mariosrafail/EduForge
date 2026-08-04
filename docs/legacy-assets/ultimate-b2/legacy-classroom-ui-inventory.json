@@ -1,7 +1,590 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "sourceBundle": "Ultimate English B2.app",
-  "assets": [
+  "method": "Read-only static inspection",
+  "generatedFromTrackedScript": "scripts/ultimate-b2/legacy-ui-catalog.mjs",
+  "summary": {
+    "focusedSourceFiles": 41,
+    "catalogAssets": 285,
+    "existingAssets": 11,
+    "addedAssets": 274,
+    "exactAliases": 17
+  },
+  "existingAssetVerification": [
+    {
+      "id": "classroom-glacier-background",
+      "outputPath": "backgrounds/classroom-glacier.png",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    },
+    {
+      "id": "activity-hotspot",
+      "outputPath": "controls/activity-hotspot.png",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    },
+    {
+      "id": "navigation-back",
+      "outputPath": "icons/back.png",
+      "status": "verified pixel-equivalent",
+      "details": "Decoded RGBA pixels compared with a fresh metadata-coordinate atlas crop"
+    },
+    {
+      "id": "answer-check",
+      "outputPath": "icons/check.png",
+      "status": "verified pixel-equivalent",
+      "details": "Decoded RGBA pixels compared with a fresh metadata-coordinate atlas crop"
+    },
+    {
+      "id": "navigation-home",
+      "outputPath": "icons/home.png",
+      "status": "verified pixel-equivalent",
+      "details": "Decoded RGBA pixels compared with a fresh metadata-coordinate atlas crop"
+    },
+    {
+      "id": "navigation-next",
+      "outputPath": "icons/next.png",
+      "status": "verified pixel-equivalent",
+      "details": "Decoded RGBA pixels compared with a fresh metadata-coordinate atlas crop"
+    },
+    {
+      "id": "navigation-previous",
+      "outputPath": "icons/previous.png",
+      "status": "verified pixel-equivalent",
+      "details": "Decoded RGBA pixels compared with a fresh metadata-coordinate atlas crop"
+    },
+    {
+      "id": "ui-button-sound",
+      "outputPath": "audio/ui/button.mp3",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    },
+    {
+      "id": "ui-correct-sound",
+      "outputPath": "audio/ui/correct.mp3",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    },
+    {
+      "id": "ui-incorrect-sound",
+      "outputPath": "audio/ui/incorrect.mp3",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    },
+    {
+      "id": "ui-page-turn-sound",
+      "outputPath": "audio/ui/page-turn.mp3",
+      "status": "verified exact",
+      "details": "Tracked bytes equal standalone publisher source"
+    }
+  ],
+  "sources": [
+    {
+      "sourceRelativePath": "Contents/Info.plist",
+      "fileName": "Info.plist",
+      "extension": ".plist",
+      "sizeBytes": 1125,
+      "sha256": "80f1e82a7adec3957ba53417736ca81253c012126ab2b3f69f234856e126d95f"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/META-INF/AIR/application.xml",
+      "fileName": "application.xml",
+      "extension": ".xml",
+      "sizeBytes": 12813,
+      "sha256": "5fa135d2e2878366cae14164125eca5e0fdf921d78662f26a3d462571d164e58"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/UltimateB2.swf",
+      "fileName": "UltimateB2.swf",
+      "extension": ".swf",
+      "sizeBytes": 18003009,
+      "sha256": "c2c0c78bb6aa09934698a2784ab0133a032cdccacb69852a46ecf74e59df3850",
+      "format": "SWF",
+      "signature": "ZWS",
+      "swfVersion": 34,
+      "declaredUncompressedSizeBytes": 37244122,
+      "frameRate": 24,
+      "frameCount": 1
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/audioPlayer/HD/AudioPlayer.png",
+      "fileName": "AudioPlayer.png",
+      "extension": ".png",
+      "sizeBytes": 99468,
+      "sha256": "0750c458b1e65e8f48a906d6ddee22a011f74182648f240e4b3e90607b9c1568",
+      "format": "png",
+      "width": 509,
+      "height": 228,
+      "hasAlpha": true,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/audioPlayer/HD/AudioPlayer.xml",
+      "fileName": "AudioPlayer.xml",
+      "extension": ".xml",
+      "sizeBytes": 2094,
+      "sha256": "39a911ae52cd664e5ecb4c66eea526e31b17c7c94c993a3340e7e9be4a8a8f9f"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/exButtons/exButton.png",
+      "fileName": "exButton.png",
+      "extension": ".png",
+      "sizeBytes": 2131,
+      "sha256": "675f4d14ddc054ab6290a16f724f7fd3571e3b38896228d5899cdc21b0385d95",
+      "format": "png",
+      "width": 41,
+      "height": 41,
+      "hasAlpha": true,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/book1/exButtons/exButton2.png",
+      "fileName": "exButton2.png",
+      "extension": ".png",
+      "sizeBytes": 1645,
+      "sha256": "07d27c8d5ca825a246b89e3d7d349e14397c7153aaaf8611faa93f45360781f2",
+      "format": "png",
+      "width": 80,
+      "height": 40,
+      "hasAlpha": true,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/intro.xml",
+      "fileName": "intro.xml",
+      "extension": ".xml",
+      "sizeBytes": 332,
+      "sha256": "06b2bb2e7ff72ec6261369976b6c3e78360b3561b8785753457bbe61c4538e2e"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/button.mp3",
+      "fileName": "button.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 2924,
+      "sha256": "6c765ec221573c6eb10da4b4c9a4d6843ecfb2f22cb03594dfb9f960bc77a682",
+      "format": "MP3",
+      "durationSeconds": 0.183,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 7
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/correct.mp3",
+      "fileName": "correct.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 21490,
+      "sha256": "b004a9d41c0b67f67c3bee5bd455829e693d1345294902ceea6be708564c1bd4",
+      "format": "MP3",
+      "durationSeconds": 1.332,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 51
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/drip.mp3",
+      "fileName": "drip.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 12055,
+      "sha256": "916564636a99cbf6a66d51d5b78ddb3a1efa3902c60567738f7d4381afc1faa1",
+      "format": "MP3",
+      "durationSeconds": 0.496,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 19
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/pageTurn.mp3",
+      "fileName": "pageTurn.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 48024,
+      "sha256": "ee4c27e4aa2efb64b7081d8e361b26c5acae6a7854dc55a7e5929729113b54b7",
+      "format": "MP3",
+      "durationSeconds": 1.202,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 46
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/pageTurn2.mp3",
+      "fileName": "pageTurn2.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 38498,
+      "sha256": "90d449e5064e6601108c97a43b3b1542a0f8c8350550b422449c132960c99f08",
+      "format": "MP3",
+      "durationSeconds": 1.2,
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 50
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/pencil.mp3",
+      "fileName": "pencil.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 15881,
+      "sha256": "a5bfc4f046adf8aca91c3f537d2385424185dc2d2a3f7f3a2f9e30bd22e66964",
+      "format": "MP3",
+      "durationSeconds": 0.993,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 38
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/pop.mp3",
+      "fileName": "pop.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 1992,
+      "sha256": "abd654a8166d2b6f943fc64404eea5eb58cceffe8bcded73560b243c28532f16",
+      "format": "MP3",
+      "durationSeconds": 0.288,
+      "sampleRateHz": 48000,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 12
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/writing.mp3",
+      "fileName": "writing.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 44302,
+      "sha256": "b7f9c591fd0ca53ca3a71ac305f7a77f3b823a2d5bf8dc036078982b6d0cdd71",
+      "format": "MP3",
+      "durationSeconds": 2.769,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 106
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/wrong.mp3",
+      "fileName": "wrong.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 8817,
+      "sha256": "3eb641113f49374c8d5381649d0158c5bc171db3b942bc570be08c32bad2ba06",
+      "format": "MP3",
+      "durationSeconds": 0.549,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 21
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/wideMenus/mainMenu_HD.png",
+      "fileName": "mainMenu_HD.png",
+      "extension": ".png",
+      "sizeBytes": 2695761,
+      "sha256": "9e1de723dfec16d13826402d2049e10a9c673fda0b0d4b28384737a170dc30eb",
+      "format": "png",
+      "width": 2624,
+      "height": 1098,
+      "hasAlpha": false,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/naviBar/HD/naviBar.png",
+      "fileName": "naviBar.png",
+      "extension": ".png",
+      "sizeBytes": 431568,
+      "sha256": "bac0077be9b30e8eee180b302c73e04192f70af88e4039617933d421fe0f9db0",
+      "format": "png",
+      "width": 250,
+      "height": 1081,
+      "hasAlpha": true,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/naviBar/HD/naviBar.xml",
+      "fileName": "naviBar.xml",
+      "extension": ".xml",
+      "sizeBytes": 5997,
+      "sha256": "34b8bd1ffeba372d99d141e55f3d0f74eff04f20bb5b8b753597966a5ba19d48"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Annotations.mp3",
+      "fileName": "audio_Annotations.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 25076,
+      "sha256": "632c1b3c43d378dd0d317e2ca8b2660115dc9a1c3312b13c33816396850ea217",
+      "format": "MP3",
+      "durationSeconds": 1.567,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 60
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_ClearScreen.mp3",
+      "fileName": "audio_ClearScreen.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 22986,
+      "sha256": "aa0885350ef67e2900c420e62d666785e2a3189fa62d3d2a43853f16b8916190",
+      "format": "MP3",
+      "durationSeconds": 1.437,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 55
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Eraser.mp3",
+      "fileName": "audio_Eraser.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 15881,
+      "sha256": "417c8e09c49dd4d3f63415d660175888de70838a00a5c815caf690e85138c175",
+      "format": "MP3",
+      "durationSeconds": 0.993,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 38
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Hide.mp3",
+      "fileName": "audio_Hide.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 20897,
+      "sha256": "372e6720b238644a530a229f2e146184617a59383704a820aacec9572dd58a84",
+      "format": "MP3",
+      "durationSeconds": 1.306,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 50
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Keyboard.mp3",
+      "fileName": "audio_Keyboard.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 20479,
+      "sha256": "d8ba735a6000371be01ebb71bbd627cf92db56751720d9a5d01b9efb82a21c4e",
+      "format": "MP3",
+      "durationSeconds": 1.28,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 49
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Load.mp3",
+      "fileName": "audio_Load.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 12955,
+      "sha256": "d56f4c009f84ebb49fd9cd6cac583217625be4580f537b35c61a1416d794ee9d",
+      "format": "MP3",
+      "durationSeconds": 0.81,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 31
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Marker.mp3",
+      "fileName": "audio_Marker.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 14627,
+      "sha256": "2e1d7dbd67640681bdbd5e35a63db9eba1cbfbd060caa9fb7612f9d8b163ac58",
+      "format": "MP3",
+      "durationSeconds": 0.914,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 35
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Mouse.mp3",
+      "fileName": "audio_Mouse.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 16299,
+      "sha256": "f36e80b61f3fed9ec866b52e9f381ae85e5a9d39955a9b437125127cea9b9a3e",
+      "format": "MP3",
+      "durationSeconds": 1.019,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 39
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Pencil.mp3",
+      "fileName": "audio_Pencil.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 16299,
+      "sha256": "58aabbcac1fd5ff64b535a14b9b807519e045b8acd022c91577923ff6753abd8",
+      "format": "MP3",
+      "durationSeconds": 1.019,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 39
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Redo.mp3",
+      "fileName": "audio_Redo.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 16717,
+      "sha256": "9fa2102416772ebe7f2fe3d722479f6c2b30eeaa139d0be08fe1af541394d6dd",
+      "format": "MP3",
+      "durationSeconds": 1.045,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 40
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Save.mp3",
+      "fileName": "audio_Save.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 14209,
+      "sha256": "cefe99b88c8222e7e2bd9b982e785e1a62b37f5453b275a586d5f7bc83145f81",
+      "format": "MP3",
+      "durationSeconds": 0.888,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 34
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Score.mp3",
+      "fileName": "audio_Score.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 17135,
+      "sha256": "cdb7b4ff619c2b638270bd46e7aa3dc1ee0e28ac45a13c47ae1f8d22dfb219f3",
+      "format": "MP3",
+      "durationSeconds": 1.071,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 41
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Show.mp3",
+      "fileName": "audio_Show.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 22568,
+      "sha256": "4ea15f01a22f5caad7469d338720df2e408d6b7d49f66cf2207ab208d342f8ab",
+      "format": "MP3",
+      "durationSeconds": 1.411,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 54
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Text.mp3",
+      "fileName": "audio_Text.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 17553,
+      "sha256": "6336d0bcd62179ec66e9c28598d8967102b188099fc3df6567f3cd1e70863616",
+      "format": "MP3",
+      "durationSeconds": 1.097,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 42
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Timer.mp3",
+      "fileName": "audio_Timer.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 14627,
+      "sha256": "276328deb26e0b0e69201217b5084cc9c7135a60c8727fc2a9f090fac56c7a59",
+      "format": "MP3",
+      "durationSeconds": 0.914,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 35
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Undo.mp3",
+      "fileName": "audio_Undo.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 15881,
+      "sha256": "91190cead2c19338d4f4ae2a0a85c09f85c2085dcf3000b9d3335290fec562c9",
+      "format": "MP3",
+      "durationSeconds": 0.993,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 38
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Url.mp3",
+      "fileName": "audio_Url.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 19643,
+      "sha256": "0bcdc845d30082a46aef896a32bb2bd8792ff14840020f40a4cc0adcb26218b4",
+      "format": "MP3",
+      "durationSeconds": 1.228,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 47
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/toolbar/sounds/audio_Zoom.mp3",
+      "fileName": "audio_Zoom.mp3",
+      "extension": ".mp3",
+      "sizeBytes": 16717,
+      "sha256": "76c46c3dfeb635a80aa4585f69960fb56148a2321669113da746e6a7bb4922db",
+      "format": "MP3",
+      "durationSeconds": 1.045,
+      "sampleRateHz": 44100,
+      "channels": 2,
+      "codec": "MPEG-1 Layer III",
+      "frameCount": 40
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/topbar/HD/topBar_buttons.png",
+      "fileName": "topBar_buttons.png",
+      "extension": ".png",
+      "sizeBytes": 10777,
+      "sha256": "8b456d045859b56432a03a02c0fff21b59d616d34169b0e2010fca4f058fa8c0",
+      "format": "png",
+      "width": 126,
+      "height": 64,
+      "hasAlpha": true,
+      "colorSpace": "srgb"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/topbar/HD/topBar_buttons.xml",
+      "fileName": "topBar_buttons.xml",
+      "extension": ".xml",
+      "sizeBytes": 504,
+      "sha256": "f8f8f46c5b3052e9311faa27f7c1d3819f8f8a61986a7e4b5d00bd8bdc5e7b76"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/videos/intro.flv",
+      "fileName": "intro.flv",
+      "extension": ".flv",
+      "sizeBytes": 455030,
+      "sha256": "8aacc2a90f2f19e529b39e09debad3af9c5c495e35a21ccf4a7c40898435655f",
+      "format": "FLV",
+      "duration": 5.84,
+      "totalduration": 5.84,
+      "width": 1024,
+      "height": 768,
+      "videodatarate": 16000,
+      "framerate": 25,
+      "audiodatarate": 128,
+      "audiosamplerate": 44100,
+      "audiosamplesize": 16,
+      "maxTimestampMs": 5804,
+      "videoTags": 146,
+      "audioTags": 250,
+      "videoCodecIds": [
+        2
+      ],
+      "soundFormatIds": [
+        10
+      ]
+    }
+  ],
+  "candidates": [
     {
       "id": "classroom-glacier-background",
       "category": "backgrounds",
@@ -11045,7 +11628,6 @@
       "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
     }
   ],
-  "schemaNotes": "Version 2 adds optional forensic provenance, state, audience, evidence, extraction details, and exact-alias metadata while preserving every version-1 entry and ID.",
   "assetAliases": [
     {
       "id": "navigation-navibar-coursebook-active",
@@ -11500,5 +12082,41 @@
       },
       "reason": "Exact byte duplicate; represented by the canonical tracked file instead of a second output"
     }
-  ]
+  ],
+  "rejectedAliases": [
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/exit.mp3",
+      "reason": "Byte-identical duplicate of books/sounds/button.mp3",
+      "sha256": "6c765ec221573c6eb10da4b4c9a4d6843ecfb2f22cb03594dfb9f960bc77a682",
+      "recommendedAction": "Do not duplicate; retain alias provenance in inventory"
+    },
+    {
+      "sourceRelativePath": "Contents/Resources/assets/books/sounds/select.mp3",
+      "reason": "Byte-identical duplicate of books/sounds/button.mp3",
+      "sha256": "6c765ec221573c6eb10da4b4c9a4d6843ecfb2f22cb03594dfb9f960bc77a682",
+      "recommendedAction": "Do not duplicate; retain alias provenance in inventory"
+    }
+  ],
+  "intro": {
+    "sourceRelativePath": "Contents/Resources/assets/videos/intro.flv",
+    "sha256": "8aacc2a90f2f19e529b39e09debad3af9c5c495e35a21ccf4a7c40898435655f",
+    "duration": 5.84,
+    "totalduration": 5.84,
+    "width": 1024,
+    "height": 768,
+    "videodatarate": 16000,
+    "framerate": 25,
+    "audiodatarate": 128,
+    "audiosamplerate": 44100,
+    "audiosamplesize": 16,
+    "maxTimestampMs": 5804,
+    "videoTags": 146,
+    "audioTags": 250,
+    "videoCodecIds": [
+      2
+    ],
+    "soundFormatIds": [
+      10
+    ]
+  }
 }
