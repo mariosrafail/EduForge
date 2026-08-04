@@ -90,7 +90,10 @@ test("legacy classroom manifest schema, files, hashes, dimensions, audio, and ba
     assert.equal(alias.sha256, canonical.sha256, `${alias.id} alias hash`);
     assert.match(alias.sourceRelativePath, /^Contents\//); assert.match(alias.reason, /Exact byte duplicate/);
   }
-  assert.deepEqual(manifest.assets.slice(0, baseline.length).map((asset) => [asset.id, asset.outputPath, asset.sha256, asset.sizeBytes]), baseline, "original manifest entries changed");
+  assert.deepEqual(baseline.map(([id]) => {
+    const asset = manifest.assets.find((candidate) => candidate.id === id);
+    return [asset.id, asset.outputPath, asset.sha256, asset.sizeBytes];
+  }), baseline, "original manifest entries changed");
   const actualAssets = (await filesBelow(assetRoot)).map((absolute) => path.relative(assetRoot, absolute)).filter((relative) => !["README.md", "asset-manifest.json"].includes(relative));
   assert.deepEqual(new Set(actualAssets), declaredPaths);
 });
@@ -101,6 +104,8 @@ test("source-present validation reproduces exact copies and every atlas crop", a
   const temporary = await mkdtemp(path.join(os.tmpdir(), "ultimate-b2-swf-static-")); t.after(() => rm(temporary, { recursive: true, force: true }));
   execFileSync("python", ["scripts/ultimate-b2/legacy-swf-static-extract.py", path.join(sourceRoot, "Contents/Resources/UltimateB2.swf"), "--output", temporary, "--write"], { stdio: "ignore" });
   const embedded = JSON.parse(await readFile(path.join(temporary, "index.json"), "utf8"));
+  const menuBranding = JSON.parse(execFileSync("node", ["scripts/ultimate-b2/recover-menu-branding.mjs", sourceRoot], { encoding: "utf8" }));
+  const menuBrandingEntries = new Map(menuBranding.entries.map((entry) => [entry.source, entry]));
   const embeddedById = new Map(embedded.resources.map((resource) => [resource.characterId, resource]));
   const canonicalById = new Map(manifest.assets.map((asset) => [asset.id, asset]));
   for (const asset of manifest.assets) {
@@ -120,6 +125,14 @@ test("source-present validation reproduces exact copies and every atlas crop", a
     if (asset.sourceKind === "embedded-preview") {
       const resource = embeddedById.get(asset.extractionDetails.characterId); assert.ok(resource, `${asset.id} embedded character`);
       assert.ok(tracked.equals(await readFile(path.join(temporary, resource.fileName))), `${asset.id} embedded payload`);
+    }
+    if (asset.sourceKind === "archive-entry") {
+      const entry = menuBrandingEntries.get(asset.sourceArchiveEntry);
+      assert.ok(entry, `${asset.id} archive entry`);
+      assert.equal(entry.sha256, asset.sha256, `${asset.id} archive-entry hash`);
+      assert.equal(entry.sizeBytes, asset.sizeBytes, `${asset.id} archive-entry size`);
+      assert.equal(menuBranding.sourceArchive, asset.sourceRelativePath, `${asset.id} source archive`);
+      assert.equal(menuBranding.sourceArchiveSha256, asset.sourceSha256, `${asset.id} source archive hash`);
     }
   }
   for (const alias of manifest.assetAliases) {
@@ -142,7 +155,7 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const registryPath = path.resolve("src/apps/android-teacher-offline/legacyClassroomAssets.js");
   const registry = await readFile(registryPath, "utf8");
-  const importedOutputs = [...registry.matchAll(/legacy-classroom-ui\/([^"']+)/g)].map((match) => path.normalize(match[1]));
+  const importedOutputs = [...registry.matchAll(/legacy-classroom-ui\/([^"']+)/g)].map((match) => path.normalize(match[1].split("?")[0]));
   const inUse = manifest.assets.filter((asset) => asset.usedBy?.length).map((asset) => path.normalize(asset.outputPath));
   assert.deepEqual(new Set(importedOutputs), new Set(inUse));
   const sourceFiles = await filesBelow(path.resolve("src"));
@@ -164,7 +177,14 @@ test("UI audio does not duplicate educational media and Teacher build emits file
 });
 
 test("static extractors are explicit, dry by default, and reject writes into the app", async () => {
-  const [catalog, swf] = await Promise.all([readFile("scripts/ultimate-b2/legacy-ui-catalog.mjs", "utf8"), readFile("scripts/ultimate-b2/legacy-swf-static-extract.py", "utf8")]);
+  const [catalog, swf, menuBranding] = await Promise.all([
+    readFile("scripts/ultimate-b2/legacy-ui-catalog.mjs", "utf8"),
+    readFile("scripts/ultimate-b2/legacy-swf-static-extract.py", "utf8"),
+    readFile("scripts/ultimate-b2/recover-menu-branding.mjs", "utf8"),
+  ]);
   assert.match(catalog, /if \(!sourceArg\)/); assert.match(catalog, /const write = args\.includes\("--write"\)/); assert.match(catalog, /Refusing to write inside source bundle/);
+  assert.match(menuBranding, /const write = args\.includes\("--write"\)/);
+  assert.match(menuBranding, /Refusing to write inside source bundle/);
+  assert.doesNotMatch(menuBranding, /C:\\Users\\/);
   assert.match(swf, /requires both an explicit source SWF and --write/); assert.match(swf, /Refusing to write inside the source application bundle/); assert.doesNotMatch(catalog, /C:\\Users\\/);
 });

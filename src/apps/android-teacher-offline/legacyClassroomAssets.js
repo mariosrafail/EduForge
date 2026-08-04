@@ -1,4 +1,10 @@
 import classroomGlacier from "../../assets/books/ultimate-b2/legacy-classroom-ui/backgrounds/classroom-glacier.png";
+import hamiltonHouseLogo from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/hamilton-house-logo.png";
+import menuTitleGaf from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo.gaf?url";
+import menuTitleAtlasSd1 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_SD.png";
+import menuTitleAtlasHd1 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_HD.png";
+import menuTitleAtlasSd2 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_SD_2.png";
+import menuTitleAtlasHd2 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_HD_2.png";
 import activityHotspot from "../../assets/books/ultimate-b2/legacy-classroom-ui/controls/activity-hotspot.png";
 import backIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/back.png";
 import checkIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/check.png";
@@ -13,6 +19,14 @@ import { createElement } from "react";
 
 export const legacyClassroomAssets = Object.freeze({
   backgrounds: Object.freeze({ classroomGlacier }),
+  branding: Object.freeze({
+    hamiltonHouseLogo,
+    menuTitle: Object.freeze({
+      gaf: menuTitleGaf,
+      sd: Object.freeze([menuTitleAtlasSd1, menuTitleAtlasSd2]),
+      hd: Object.freeze([menuTitleAtlasHd1, menuTitleAtlasHd2]),
+    }),
+  }),
   controls: Object.freeze({ activityHotspot }),
   icons: Object.freeze({ back: backIcon, check: checkIcon, home: homeIcon, next: nextIcon, previous: previousIcon }),
   sounds: Object.freeze({ button: buttonSound, correct: correctSound, incorrect: incorrectSound, pageTurn: pageTurnSound }),
