@@ -11383,7 +11383,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_01a; decoded book1_params.iwb declares button_01a, button_01b, button_01b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11424,7 +11426,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_01b; decoded book1_params.iwb declares button_01a, button_01b, button_01b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11465,7 +11469,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_02a; decoded book1_params.iwb declares button_02a, button_02b, button_02b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11506,7 +11512,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_02b; decoded book1_params.iwb declares button_02a, button_02b, button_02b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11547,7 +11555,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_03a; decoded book1_params.iwb declares button_03a, button_03b, button_03b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11588,7 +11598,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_03b; decoded book1_params.iwb declares button_03a, button_03b, button_03b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11629,7 +11641,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_04a; decoded book1_params.iwb declares button_04a, button_04b, button_04b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11670,7 +11684,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_04b; decoded book1_params.iwb declares button_04a, button_04b, button_04b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11711,7 +11727,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_05a; decoded book1_params.iwb declares button_05a, button_05b, button_05b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11752,7 +11770,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_05b; decoded book1_params.iwb declares button_05a, button_05b, button_05b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11793,7 +11813,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_06a; decoded book1_params.iwb declares button_06a, button_06b, button_06b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11834,7 +11856,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_06b; decoded book1_params.iwb declares button_06a, button_06b, button_06b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11875,7 +11899,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_07a; decoded book1_params.iwb declares button_07a, button_07b, button_07b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11916,7 +11942,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_07b; decoded book1_params.iwb declares button_07a, button_07b, button_07b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11957,7 +11985,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_08a; decoded book1_params.iwb declares button_08a, button_08b, button_08b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -11998,7 +12028,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_08b; decoded book1_params.iwb declares button_08a, button_08b, button_08b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12039,7 +12071,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_09a; decoded book1_params.iwb declares button_09a, button_09b, button_09b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12080,7 +12114,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_09b; decoded book1_params.iwb declares button_09a, button_09b, button_09b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12121,7 +12157,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_10a; decoded book1_params.iwb declares button_10a, button_10b, button_10b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12162,7 +12200,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_10b; decoded book1_params.iwb declares button_10a, button_10b, button_10b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12203,7 +12243,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_12a; decoded book1_params.iwb declares button_12a, button_12b, button_12b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12244,7 +12286,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_12b; decoded book1_params.iwb declares button_12a, button_12b, button_12b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12285,7 +12329,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_13a; decoded book1_params.iwb declares button_13a, button_13b, button_13b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12326,7 +12372,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_13b; decoded book1_params.iwb declares button_13a, button_13b, button_13b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12367,7 +12415,9 @@
       "state": "normal",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_14a; decoded book1_params.iwb declares button_14a, button_14b, button_14b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -12408,7 +12458,9 @@
       "state": "hover-pressed",
       "audience": "shared",
       "intendedConsumer": "Teacher book-menu skin; recovered asset remains benign shared artwork",
-      "usedBy": [],
+      "usedBy": [
+        "TeacherOfflineLibrary"
+      ],
       "evidence": "Machine-readable atlas region button_14b; decoded book1_params.iwb declares button_14a, button_14b, button_14b as normal, hover, and pressed textures",
       "confidence": "high",
       "sourceKind": "atlas-crop",

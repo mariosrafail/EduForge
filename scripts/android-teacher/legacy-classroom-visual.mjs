@@ -217,7 +217,7 @@ async function assertLegacyLauncher(page, label) {
     displayScale: undefined,
   }, `${label} launcher composition`);
   assert.ok(metrics.minimumUnitHeight >= 44, `${label} unit touch target: ${metrics.minimumUnitHeight}`);
-  assert.ok(metrics.maximumUnitHeight <= (84 * metrics.displayScale) + 1, `${label} proportional unit height: ${metrics.maximumUnitHeight}`);
+  assert.ok(metrics.maximumUnitHeight <= (94 * metrics.displayScale) + 1, `${label} proportional unit height: ${metrics.maximumUnitHeight}`);
 }
 
 async function assertLegacyPageViewer(page, label) {

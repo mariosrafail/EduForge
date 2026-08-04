@@ -5,6 +5,32 @@ import menuTitleAtlasSd1 from "../../assets/books/ultimate-b2/legacy-classroom-u
 import menuTitleAtlasHd1 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_HD.png";
 import menuTitleAtlasSd2 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_SD_2.png";
 import menuTitleAtlasHd2 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_HD_2.png";
+import unit01Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-01-normal.png";
+import unit01HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-01-hover-pressed.png";
+import unit02Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-02-normal.png";
+import unit02HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-02-hover-pressed.png";
+import unit03Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-03-normal.png";
+import unit03HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-03-hover-pressed.png";
+import unit04Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-04-normal.png";
+import unit04HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-04-hover-pressed.png";
+import unit05Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-05-normal.png";
+import unit05HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-05-hover-pressed.png";
+import unit06Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-06-normal.png";
+import unit06HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-06-hover-pressed.png";
+import unit07Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-07-normal.png";
+import unit07HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-07-hover-pressed.png";
+import unit08Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-08-normal.png";
+import unit08HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-08-hover-pressed.png";
+import unit09Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-09-normal.png";
+import unit09HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-09-hover-pressed.png";
+import unit10Normal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-10-normal.png";
+import unit10HoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/units/unit-10-hover-pressed.png";
+import workbookNormal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/workbook-normal.png";
+import workbookHoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/workbook-hover-pressed.png";
+import grammarBookNormal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/grammar-book-normal.png";
+import grammarBookHoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/grammar-book-hover-pressed.png";
+import extrasNormal from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/extras-normal.png";
+import extrasHoverPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/book-menu/editions/extras-hover-pressed.png";
 import activityHotspot from "../../assets/books/ultimate-b2/legacy-classroom-ui/controls/activity-hotspot.png";
 import backIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/back.png";
 import checkIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/check.png";
@@ -53,6 +79,25 @@ export const legacyClassroomAssets = Object.freeze({
       gaf: menuTitleGaf,
       sd: Object.freeze([menuTitleAtlasSd1, menuTitleAtlasSd2]),
       hd: Object.freeze([menuTitleAtlasHd1, menuTitleAtlasHd2]),
+    }),
+    bookMenu: Object.freeze({
+      units: Object.freeze([
+        Object.freeze({ normal: unit01Normal, hoverPressed: unit01HoverPressed }),
+        Object.freeze({ normal: unit02Normal, hoverPressed: unit02HoverPressed }),
+        Object.freeze({ normal: unit03Normal, hoverPressed: unit03HoverPressed }),
+        Object.freeze({ normal: unit04Normal, hoverPressed: unit04HoverPressed }),
+        Object.freeze({ normal: unit05Normal, hoverPressed: unit05HoverPressed }),
+        Object.freeze({ normal: unit06Normal, hoverPressed: unit06HoverPressed }),
+        Object.freeze({ normal: unit07Normal, hoverPressed: unit07HoverPressed }),
+        Object.freeze({ normal: unit08Normal, hoverPressed: unit08HoverPressed }),
+        Object.freeze({ normal: unit09Normal, hoverPressed: unit09HoverPressed }),
+        Object.freeze({ normal: unit10Normal, hoverPressed: unit10HoverPressed }),
+      ]),
+      editions: Object.freeze({
+        workbook: Object.freeze({ normal: workbookNormal, hoverPressed: workbookHoverPressed }),
+        grammarBook: Object.freeze({ normal: grammarBookNormal, hoverPressed: grammarBookHoverPressed }),
+        extras: Object.freeze({ normal: extrasNormal, hoverPressed: extrasHoverPressed }),
+      }),
     }),
   }),
   controls: Object.freeze({ activityHotspot }),

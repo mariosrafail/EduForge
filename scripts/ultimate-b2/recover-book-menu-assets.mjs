@@ -86,7 +86,7 @@ for (const selection of selectedRegions) {
     width: region.width, height: region.height, hasAlpha: true, format: "PNG",
     functionalRole: selection.role, state: selection.state, audience: "shared",
     intendedConsumer: "Teacher book-menu skin; recovered asset remains benign shared artwork",
-    usedBy: [],
+    usedBy: ["TeacherOfflineLibrary"],
     evidence: `Machine-readable atlas region ${selection.name}; decoded book1_params.iwb declares ${baseName}a, ${baseName}b, ${baseName}b as normal, hover, and pressed textures`,
     confidence: "high", sourceKind: "atlas-crop",
     extractionDetails: {
@@ -107,7 +107,12 @@ if (write) {
   const existingById = new Map(manifest.assets.map((asset) => [asset.id, asset]));
   const mergedEntries = entries.map((entry) => {
     const existing = existingById.get(entry.id);
-    return existing ? { ...entry, intendedConsumer: existing.intendedConsumer, usedBy: existing.usedBy, recommendedAction: existing.recommendedAction } : entry;
+    return existing ? {
+      ...entry,
+      intendedConsumer: existing.intendedConsumer,
+      usedBy: existing.usedBy?.length ? existing.usedBy : entry.usedBy,
+      recommendedAction: existing.recommendedAction,
+    } : entry;
   });
   manifest.assets = [...manifest.assets.filter((asset) => !generatedIds.has(asset.id)), ...mergedEntries];
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

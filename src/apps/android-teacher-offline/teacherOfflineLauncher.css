@@ -74,46 +74,42 @@
 .legacy-home-unit-column {
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(5, clamp(48px, 6vh, 72px));
+  grid-template-rows: repeat(5, minmax(44px, 93px));
   align-content: center;
   gap: clamp(7px, 1vh, 13px);
 }
 
 .legacy-home-unit {
-  min-height: 48px;
-  padding: 4px 12px 4px 5px;
-  display: grid;
-  grid-template-columns: clamp(40px, 2.8vw, 50px) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: clamp(7px, 0.7vw, 12px);
-  border: 3px solid #fff;
-  border-radius: 999px 18px 18px 999px;
-  background: linear-gradient(180deg, #82def3, #1fa1ca 48%, #117aa9 52%, #075d85);
-  box-shadow: 0 0 0 2px #08749b, 0 5px 0 #075879, 0 9px 18px rgba(15, 54, 83, 0.25);
-  color: #fff;
-  font-weight: 950;
-  text-align: left;
-  text-shadow: 0 2px 0 #07577b;
+  position: relative;
+  width: min(100%, 360px);
+  min-height: 44px;
+  aspect-ratio: 360 / 93;
+  padding: 0;
+  border: 0;
+  border-radius: 19px;
+  background: transparent;
+  box-shadow: none;
 }
 
-.legacy-home-unit b {
-  width: 100%;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #efff78, #a7dc19 58%, #5eaa0d);
-  color: #184f26;
-  text-shadow: none;
-}
-
-.legacy-home-unit span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legacy-home-unit.available { cursor: pointer; }
-.legacy-home-unit.locked { opacity: 0.78; background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b); filter: saturate(0.68); cursor: not-allowed; }
-.legacy-home-unit.locked b { background: linear-gradient(180deg, #e4edf0, #a9bac1 56%, #788d96); color: #314854; }
+.legacy-home-unit.locked { opacity: 0.72; filter: saturate(0.72); cursor: not-allowed; }
+
+.legacy-menu-button-art { position: absolute; inset: 0; display: block; }
+.legacy-menu-button-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.legacy-menu-button-art .hover-pressed { opacity: 0; }
+.legacy-home-unit.available:hover .legacy-menu-button-art .normal,
+.legacy-home-unit.available:active .legacy-menu-button-art .normal,
+.legacy-home-unit.available:focus-visible .legacy-menu-button-art .normal { opacity: 0; }
+.legacy-home-unit.available:hover .legacy-menu-button-art .hover-pressed,
+.legacy-home-unit.available:active .legacy-menu-button-art .hover-pressed,
+.legacy-home-unit.available:focus-visible .legacy-menu-button-art .hover-pressed { opacity: 1; }
+.legacy-home-unit:focus-visible { outline: 4px solid #fff600; outline-offset: 3px; }
 
 .legacy-home-lock {
+  position: absolute;
+  right: 10px;
+  bottom: 7px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -130,6 +126,8 @@
   text-shadow: none;
   text-transform: uppercase;
 }
+
+.legacy-home-unit-column:last-child .legacy-home-lock { right: auto; left: 10px; }
 
 .legacy-menu-title-animation {
   align-self: center;
@@ -154,24 +152,19 @@
 }
 
 .legacy-home-book-button {
-  min-height: clamp(54px, 6.5vh, 76px);
-  padding: 7px clamp(9px, 1vw, 18px);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: clamp(6px, 0.75vw, 12px);
-  border: 3px solid #fff;
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  aspect-ratio: 301 / 99;
+  padding: 0;
+  border: 0;
   border-radius: 18px;
-  background: linear-gradient(180deg, #f27fdc, #c33ab6 50%, #812185);
-  box-shadow: 0 0 0 2px #6b236f, 0 5px 0 #4b1d62, 0 9px 18px rgba(41, 20, 65, 0.28);
-  color: #fff;
-  font-size: clamp(0.85rem, 1.15vw, 1.35rem);
-  font-weight: 950;
-  text-shadow: 0 2px 0 #6e277b;
+  background: transparent;
+  box-shadow: none;
 }
 
-.legacy-home-book-button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.legacy-home-book-button.locked { opacity: 0.78; filter: saturate(0.68); cursor: not-allowed; }
+.legacy-home-book-button.locked { opacity: 0.76; filter: saturate(0.78); cursor: not-allowed; }
+.legacy-home-book-button .legacy-home-lock { right: 12px; bottom: 9px; }
 
 .teacher-offline-library > .classroom-teaching-toolbar {
   align-self: center;
@@ -180,41 +173,16 @@
 }
 
 /* The recovered launcher keeps its authored legacy palette in either app theme. */
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit {
-  border: 3px solid #fff;
-  border-radius: 999px 18px 18px 999px;
-  background: linear-gradient(180deg, #82def3, #1fa1ca 48%, #117aa9 52%, #075d85);
-  box-shadow: 0 0 0 2px #08749b, 0 5px 0 #075879, 0 9px 18px rgba(15, 54, 83, 0.25);
-  color: #fff;
-  text-shadow: 0 2px 0 #07577b;
-}
-
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit b {
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #efff78, #a7dc19 58%, #5eaa0d);
-  color: #184f26;
-}
-
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked {
-  opacity: 0.78;
-  background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b);
-}
-
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked b {
-  background: linear-gradient(180deg, #e4edf0, #a9bac1 56%, #788d96);
-  color: #314854;
-}
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit { border: 0; background: transparent; box-shadow: none; }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked { opacity: 0.72; background: transparent; }
 
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button,
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button.locked {
-  opacity: 0.82;
-  border: 3px solid #fff;
+  opacity: 0.76;
+  border: 0;
   border-radius: 18px;
-  background: linear-gradient(180deg, #f27fdc, #c33ab6 50%, #812185);
-  box-shadow: 0 0 0 2px #6b236f, 0 5px 0 #4b1d62, 0 9px 18px rgba(41, 20, 65, 0.28);
-  color: #fff;
-  text-shadow: 0 2px 0 #6e277b;
+  background: transparent;
+  box-shadow: none;
 }
 
 .legacy-teacher-tool-icon { width: 42px; height: 42px; flex: none; object-fit: contain; }
@@ -233,17 +201,17 @@
     width: calc(100vw - 14px);
     padding: 2px 5px;
     grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) minmax(220px, 1fr);
-    gap: 4px 8px;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0 8px;
   }
-  .legacy-home-unit-column { grid-template-rows: repeat(5, 44px); gap: 3px; }
-  .legacy-home-unit { min-height: 44px; padding: 2px 6px 2px 3px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 4px; border-width: 2px; font-size: 0.65rem; }
-  .legacy-home-unit b { border-width: 1px; font-size: 0.82rem; }
+  .legacy-home-unit-column { grid-template-rows: repeat(5, minmax(44px, 1fr)); gap: 3px; }
+  .legacy-home-unit { justify-self: center; width: auto; max-width: 100%; height: 100%; max-height: 93px; min-height: 44px; padding: 0; border-width: 0; }
   .legacy-home-lock { padding: 2px 4px; font-size: 0.49rem !important; }
   .legacy-home-lock svg { display: none; }
-  .legacy-menu-title-animation { width: min(100%, 270px); }
-  .legacy-home-book-row { width: min(600px, 70vw); gap: 5px; }
-  .legacy-home-book-button { min-height: 44px; padding: 3px 6px; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 3px; border-width: 2px; border-radius: 10px; font-size: 0.64rem; }
-  .legacy-home-book-button svg { width: 16px; height: 16px; }
+  .legacy-menu-title-animation { grid-column: 2; grid-row: 1; align-self: start; width: min(100%, 135px); }
+  .legacy-home-book-row { grid-column: 2; grid-row: 1; align-self: end; width: 100%; grid-template-columns: 1fr; gap: 1px; }
+  .legacy-home-book-button { height: 44px; min-height: 44px; aspect-ratio: auto; padding: 0; border-width: 0; border-radius: 10px; }
+  .legacy-home-book-button .legacy-home-lock { right: 5px; bottom: 4px; padding: 1px 3px; }
   .legacy-home-settings-button { width: 46px; height: 46px; min-height: 46px; }
   .legacy-teacher-tool-icon { width: 40px; height: 40px; }
 }

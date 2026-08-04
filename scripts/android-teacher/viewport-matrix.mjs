@@ -133,9 +133,9 @@ try {
         minimumUnitHeight: Math.min(...units.map((rect) => rect.height)),
         maximumUnitHeight: Math.max(...units.map((rect) => rect.height)),
         topbarHeight: document.querySelector(".legacy-home-topbar").getBoundingClientRect().height,
-        unitTitleFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-unit span")).fontSize),
+        unitArtWidth: document.querySelector(".legacy-home-unit .legacy-menu-button-art img").getBoundingClientRect().width,
         bookButtonHeight: document.querySelector(".legacy-home-book-button").getBoundingClientRect().height,
-        bookButtonFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-book-button")).fontSize),
+        bookArtWidth: document.querySelector(".legacy-home-book-button .legacy-menu-button-art img").getBoundingClientRect().width,
         publisherLogoWidth: document.querySelector(".legacy-home-publisher-logo").getBoundingClientRect().width,
         identityTitleWidth: document.querySelector(".legacy-menu-title-animation").getBoundingClientRect().width,
         settingsButtonWidth: settings.getBoundingClientRect().width,
@@ -152,7 +152,7 @@ try {
     assert.equal(launcherLayout.centeredTitles, 0, `${target.name} centered title removed`);
     assert.equal(launcherLayout.bottomSettings, 0, `${target.name} bottom settings removed`);
     assert.ok(launcherLayout.minimumUnitHeight >= 44, `${target.name} unit touch targets: ${JSON.stringify(launcherLayout)}`);
-    assert.ok(launcherLayout.maximumUnitHeight <= (84 * displayScale) + 1, `${target.name} proportional unit sizing: ${JSON.stringify(launcherLayout)}`);
+    assert.ok(launcherLayout.maximumUnitHeight <= (94 * displayScale) + 1, `${target.name} proportional unit sizing: ${JSON.stringify(launcherLayout)}`);
     assert.ok(launcherLayout.overflow <= 1, `${target.name} launcher overflow: ${JSON.stringify(launcherLayout)}`);
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.waitForTimeout(250);
@@ -551,10 +551,10 @@ try {
     const large = results.find((result) => result.viewport.startsWith(prefix));
     for (const [label, read] of [
       ["launcher unit height", (result) => result.launcher.maximumUnitHeight],
-      ["launcher unit font", (result) => result.launcher.unitTitleFontSize],
+      ["launcher unit artwork", (result) => result.launcher.unitArtWidth],
       ["launcher top chrome", (result) => result.launcher.topbarHeight],
       ["launcher book button", (result) => result.launcher.bookButtonHeight],
-      ["launcher book button font", (result) => result.launcher.bookButtonFontSize],
+      ["launcher book artwork", (result) => result.launcher.bookArtWidth],
       ["launcher publisher logo", (result) => result.launcher.publisherLogoWidth],
       ["launcher identity title", (result) => result.launcher.identityTitleWidth],
       ["launcher settings control", (result) => result.launcher.settingsButtonWidth],

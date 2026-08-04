@@ -7,6 +7,15 @@ import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import LegacyMenuTitleAnimation from "./LegacyMenuTitleAnimation.jsx";
 import { teacherStudentsBookUnits as units } from "./teacherOfflineUnitMetadata.js";
 
+function LegacyMenuArtwork({ artwork }) {
+  return (
+    <span className="legacy-menu-button-art" aria-hidden="true">
+      <img className="normal" src={artwork.normal} alt="" draggable="false" />
+      <img className="hover-pressed" src={artwork.hoverPressed} alt="" draggable="false" />
+    </span>
+  );
+}
+
 function UnitColumn({ label, items, onOpenBook }) {
   return (
     <div className="legacy-home-unit-column" aria-label={label}>
@@ -19,8 +28,7 @@ function UnitColumn({ label, items, onOpenBook }) {
           aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title} — Locked`}
           onClick={unit.available ? () => onOpenBook(unit.number) : undefined}
         >
-          <b>{unit.number}</b>
-          <span>{unit.title}</span>
+          <LegacyMenuArtwork artwork={legacyClassroomAssets.branding.bookMenu.units[unit.number - 1]} />
           {!unit.available && <small className="legacy-home-lock"><LockKeyhole size={13} /> Locked</small>}
         </button>
       ))}
@@ -51,12 +59,13 @@ export default function TeacherOfflineLibrary({ onOpenBook, onOpenSettings, onCl
 
             <div className="legacy-home-book-row" aria-label="Additional book editions">
               {[
-                ["Workbook", "Workbook content not installed"],
-                ["Grammar Book", "Grammar Book content not installed"],
-                ["Extras", "Extras content not installed"],
-              ].map(([label, title]) => (
+                ["Workbook", "workbook", "Workbook content not installed"],
+                ["Grammar Book", "grammarBook", "Grammar Book content not installed"],
+                ["Extras", "extras", "Extras content not installed"],
+              ].map(([label, assetKey, title]) => (
                 <button key={label} type="button" className="legacy-home-book-button locked" disabled aria-label={`${label} — Locked`} title={title}>
-                  <LockKeyhole size={25} /><span>{label}</span><small className="legacy-home-lock">Locked</small>
+                  <LegacyMenuArtwork artwork={legacyClassroomAssets.branding.bookMenu.editions[assetKey]} />
+                  <small className="legacy-home-lock"><LockKeyhole size={13} /> Locked</small>
                 </button>
               ))}
             </div>

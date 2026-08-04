@@ -49,19 +49,15 @@
     gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.25vw, calc(22px * var(--teacher-ui-scale))) clamp(calc(18px * var(--teacher-ui-scale)), 2.4vw, calc(46px * var(--teacher-ui-scale)));
   }
   .legacy-home-unit-column {
-    grid-template-rows: repeat(5, clamp(calc(48px * var(--teacher-ui-scale)), 6vh, calc(72px * var(--teacher-ui-scale))));
+    grid-template-rows: repeat(5, calc(93px * var(--teacher-ui-scale)));
     gap: clamp(calc(7px * var(--teacher-ui-scale)), 1vh, calc(13px * var(--teacher-ui-scale)));
   }
   .legacy-home-unit {
+    width: min(100%, calc(360px * var(--teacher-ui-scale)));
     min-height: calc(44px * var(--teacher-ui-scale));
-    padding: calc(4px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)) calc(4px * var(--teacher-ui-scale)) calc(5px * var(--teacher-ui-scale));
-    grid-template-columns: clamp(calc(40px * var(--teacher-ui-scale)), 2.8vw, calc(50px * var(--teacher-ui-scale))) minmax(0, 1fr) auto;
-    gap: clamp(calc(7px * var(--teacher-ui-scale)), .7vw, calc(12px * var(--teacher-ui-scale)));
-    border-radius: 999px calc(18px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)) 999px;
-    font-size: calc(1rem * var(--teacher-display-scale));
+    padding: 0;
+    border-radius: calc(19px * var(--teacher-ui-scale));
   }
-  .legacy-home-unit b { font-size: calc(27.84px * var(--teacher-ui-scale)); }
-  .legacy-home-unit span { font-size: calc(16px * var(--teacher-ui-scale)); }
   .legacy-home-lock {
     padding: calc(3px * var(--teacher-ui-scale)) calc(7px * var(--teacher-ui-scale));
     font-size: clamp(calc(.62rem * var(--teacher-display-scale)), .6vw, calc(.76rem * var(--teacher-display-scale))) !important;
@@ -89,11 +85,9 @@
   .teacher-offline-settings-surface .legacy-home-identity > small { margin-top: calc(3px * var(--teacher-ui-scale)); font-size: calc(13.12px * var(--teacher-ui-scale)); }
   .legacy-home-book-row { width: min(calc(920px * var(--teacher-ui-scale)), 70vw); gap: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))); }
   .teacher-offline-settings-surface .legacy-home-book-button {
-    min-height: clamp(calc(58px * var(--teacher-ui-scale)), 6.5vh, calc(82px * var(--teacher-ui-scale)));
-    padding: calc(7px * var(--teacher-ui-scale)) clamp(calc(9px * var(--teacher-ui-scale)), 1vw, calc(18px * var(--teacher-ui-scale)));
-    gap: clamp(calc(6px * var(--teacher-ui-scale)), .75vw, calc(12px * var(--teacher-ui-scale)));
+    min-height: calc(44px * var(--teacher-ui-scale));
+    padding: 0;
     border-radius: calc(18px * var(--teacher-ui-scale));
-    font-size: calc(16px * var(--teacher-ui-scale));
   }
   .legacy-home-book-button svg { width: var(--teacher-icon-lg); height: var(--teacher-icon-lg); }
   .legacy-teacher-tool-icon { width: calc(42px * var(--teacher-ui-scale)); height: calc(42px * var(--teacher-ui-scale)); }

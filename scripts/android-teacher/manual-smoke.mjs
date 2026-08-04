@@ -158,7 +158,7 @@ try {
   assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-topbar"))), false, "Launcher settings must occupy the bottom-right position");
   const launcherUnitHeights = await page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
   assert.ok(Math.min(...launcherUnitHeights) >= 44, `Launcher units must remain touch-safe: ${launcherUnitHeights}`);
-  assert.ok(Math.max(...launcherUnitHeights) <= 84, `Launcher units must stay compact: ${launcherUnitHeights}`);
+  assert.ok(Math.max(...launcherUnitHeights) <= 94, `Launcher units must stay compact: ${launcherUnitHeights}`);
   await settingsButton.click();
   await page.getByRole("dialog", { name: "Classroom settings" }).waitFor();
   assert.equal(await page.getByRole("tab").count(), 4, "All four legacy settings tabs must render");
