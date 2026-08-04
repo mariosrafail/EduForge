@@ -1,0 +1,52 @@
+.teacher-startup-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #020711;
+  color: #fff;
+}
+
+.teacher-startup-intro video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #020711;
+}
+
+.teacher-startup-intro-loading,
+.teacher-startup-intro-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.teacher-startup-intro-loading { margin: 0; font-weight: 800; letter-spacing: .04em; }
+.teacher-startup-intro-play,
+.teacher-startup-intro-skip {
+  min-width: 112px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 2px solid rgba(255, 255, 255, .9);
+  border-radius: 999px;
+  background: rgba(4, 31, 55, .82);
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .32);
+}
+
+.teacher-startup-intro-skip {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+}
+
+.teacher-startup-intro button:focus-visible { outline: 4px solid #fff600; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .teacher-startup-intro { display: none; }
+}

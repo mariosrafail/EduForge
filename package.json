@@ -77,6 +77,7 @@
     "ultimate-b2:build:unit-02": "node scripts/ultimate-b2/build-unit-02-implementation.mjs",
     "ultimate-b2:build:content": "node scripts/ultimate-b2/build-students-book-content.mjs",
     "ultimate-b2:audit:legacy-flash": "node scripts/ultimate-b2/legacy-flash-audit.mjs",
+    "ultimate-b2:recover:startup-intro": "node scripts/ultimate-b2/recover-startup-intro.mjs",
     "ultimate-b2:test:legacy-flash": "node scripts/ultimate-b2/run-legacy-flash-proof.mjs"
   },
   "dependencies": {

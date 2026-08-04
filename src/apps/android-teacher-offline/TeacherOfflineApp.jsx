@@ -15,6 +15,7 @@ import { useTeacherViewportProfile } from "./viewportProfiles.js";
 import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
+import TeacherStartupIntro from "./TeacherStartupIntro.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
@@ -49,14 +50,22 @@ export default function TeacherOfflineApp() {
   const classroomSound = useLegacyClassroomSound();
   const settings = useTeacherOfflineSettings();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
+  const [startupIntroPending, setStartupIntroPending] = useState(animationsActive);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
   const settingsOpenRef = useRef(settingsOpen);
+  const startupIntroPendingRef = useRef(startupIntroPending);
   navigationRef.current = navigation;
   settingsOpenRef.current = settingsOpen;
+  startupIntroPendingRef.current = startupIntroPending;
+
+  useEffect(() => {
+    if (!animationsActive) setStartupIntroPending(false);
+  }, [animationsActive]);
 
   useEffect(() => {
     const previous = document.documentElement.style.fontSize;
@@ -119,6 +128,10 @@ export default function TeacherOfflineApp() {
     let backHandle;
     const register = async () => {
       backHandle = await App.addListener("backButton", async () => {
+        if (startupIntroPendingRef.current) {
+          setStartupIntroPending(false);
+          return;
+        }
         if (settingsOpenRef.current) {
           setSettingsOpen(false);
           return;
@@ -168,7 +181,6 @@ export default function TeacherOfflineApp() {
   const pack = packState.pack;
   const selectedMenuSkinId = selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId);
   const menuSkin = resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId);
-  const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const openBookActivity = (activityId, originLocation = null) => {
     const resolved = resolveTeacherOfflineActivityLocation({
       activityId,
@@ -188,7 +200,9 @@ export default function TeacherOfflineApp() {
     window.history.pushState(activityState, "", `#book/activity/${encodeURIComponent(activityId)}`);
   };
   let content;
-  if (navigation.view === "media") {
+  if (startupIntroPending) {
+    content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
+  } else if (navigation.view === "media") {
     content = (
       <TeacherOfflineMedia
         media={navigation.media}
@@ -240,15 +254,15 @@ export default function TeacherOfflineApp() {
           "--teacher-ui-scale": effectiveUiScale,
         }}
       >
-        <div key={navigation.view} className="teacher-offline-view-transition" data-teacher-view={navigation.view} data-book-activity={navigation.activityId || undefined}>
+        <div key={startupIntroPending ? "intro" : navigation.view} className="teacher-offline-view-transition" data-teacher-view={startupIntroPending ? "intro" : navigation.view} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
-        {navigation.view === "book" && (
+        {!startupIntroPending && navigation.view === "book" && (
           <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
             <Settings />
           </button>
         )}
-        <button
+        {!startupIntroPending && <button
           type="button"
           className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
           aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
@@ -257,7 +271,7 @@ export default function TeacherOfflineApp() {
           onClick={() => classroomSound.setEnabled(!classroomSound.enabled)}
         >
           {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
-        </button>
+        </button>}
         <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
         {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
       </div>
