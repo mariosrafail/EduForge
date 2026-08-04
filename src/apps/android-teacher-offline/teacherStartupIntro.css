@@ -15,11 +15,13 @@
   display: block;
   object-fit: contain;
   background: #020711;
+  pointer-events: none;
 }
 
 .teacher-startup-intro-loading,
 .teacher-startup-intro-play {
   position: absolute;
+  z-index: 1;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
@@ -41,6 +43,7 @@
 
 .teacher-startup-intro-skip {
   position: absolute;
+  z-index: 1;
   top: max(12px, env(safe-area-inset-top));
   right: max(12px, env(safe-area-inset-right));
 }

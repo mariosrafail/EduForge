@@ -77,18 +77,26 @@ try {
   const blockedContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   await blockedContext.addInitScript(() => {
     globalThis.__introPlayAttempts = 0;
+    globalThis.__allowIntroPlayback = false;
     HTMLMediaElement.prototype.play = function play() {
       globalThis.__introPlayAttempts += 1;
-      return globalThis.__introPlayAttempts === 1
-        ? Promise.reject(new DOMException("Autoplay blocked", "NotAllowedError"))
-        : Promise.resolve();
+      return globalThis.__allowIntroPlayback
+        ? Promise.resolve()
+        : Promise.reject(new DOMException("Autoplay blocked", "NotAllowedError"));
     };
   });
   const blockedPage = await blockedContext.newPage();
   await blockedPage.goto(baseURL, { waitUntil: "networkidle" });
   const playIntro = blockedPage.getByRole("button", { name: "Play intro" });
   await playIntro.waitFor();
-  await playIntro.click();
+  assert.equal(await playIntro.evaluate((button) => {
+    const bounds = button.getBoundingClientRect();
+    return document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2) === button;
+  }), true, "Play intro must be the topmost pointer target.");
+  await playIntro.evaluate((button) => {
+    globalThis.__allowIntroPlayback = true;
+    button.click();
+  });
   await playIntro.waitFor({ state: "hidden" });
   assert.ok(await blockedPage.evaluate(() => globalThis.__introPlayAttempts >= 2));
   await blockedPage.getByRole("button", { name: "Skip intro" }).click();
