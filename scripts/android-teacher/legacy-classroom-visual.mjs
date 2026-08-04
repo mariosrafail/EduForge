@@ -169,6 +169,12 @@ async function assertCleanAbout(page, label) {
   await assertScreen(page, label);
 }
 
+async function skipStartupIntro(page) {
+  const skip = page.getByRole("button", { name: "Skip intro" });
+  if (await skip.count()) await skip.click();
+  await page.locator(".legacy-home-launcher").waitFor();
+}
+
 async function assertLegacyLauncher(page, label) {
   const metrics = await page.evaluate(() => {
     const visible = (selector) => {
@@ -187,11 +193,15 @@ async function assertLegacyLauncher(page, label) {
       toolbar: visible(".legacy-home-classroom-toolbar"),
       teachingToolbar: visible(".teacher-offline-library .classroom-teaching-toolbar"),
       settings: visible(".legacy-home-settings-button"),
-      settingsInHeader: Boolean(settings?.closest(".legacy-home-topbar")),
+      settingsInFloatingChrome: Boolean(settings?.closest(".legacy-home-floating-chrome")),
       bottomSettings: visible(".legacy-classroom-settings-trigger"),
       close: visible(".legacy-home-close-button"),
       minimize: document.querySelectorAll('[aria-label^="Minimize"]').length,
-      centeredTitle: document.querySelectorAll(".legacy-home-topbar .teacher-offline-eyebrow").length,
+      horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
+      floatingChromeBackground: getComputedStyle(document.querySelector(".legacy-home-floating-chrome")).backgroundColor,
+      launcherBackground: getComputedStyle(document.querySelector(".legacy-home-launcher")).backgroundImage,
+      launcherBorder: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopWidth,
+      launcherRadius: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopLeftRadius,
       minimumUnitHeight: Math.min(...unitHeights),
       maximumUnitHeight: Math.max(...unitHeights),
       displayScale: Number(document.querySelector(".teacher-offline-settings-surface").dataset.teacherDisplayScale),
@@ -207,11 +217,15 @@ async function assertLegacyLauncher(page, label) {
     toolbar: false,
     teachingToolbar: true,
     settings: true,
-    settingsInHeader: false,
+    settingsInFloatingChrome: true,
     bottomSettings: false,
     close: true,
     minimize: 0,
-    centeredTitle: 0,
+    horizontalTopbars: 0,
+    floatingChromeBackground: "rgba(0, 0, 0, 0)",
+    launcherBackground: "none",
+    launcherBorder: "0px",
+    launcherRadius: "0px",
     minimumUnitHeight: undefined,
     maximumUnitHeight: undefined,
     displayScale: undefined,
@@ -264,6 +278,7 @@ try {
     page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
     page.on("request", (request) => { if (!request.url().startsWith(baseURL)) forbiddenRequests.push(request.url()); });
     await page.goto(baseURL, { waitUntil: "networkidle" });
+    await skipStartupIntro(page);
     await run(page);
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(forbiddenRequests, []);
@@ -297,6 +312,7 @@ try {
     const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
     await soundToggle.click();
     await page.reload({ waitUntil: "networkidle" });
+    await skipStartupIntro(page);
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
     await selectOverviewUnit(page, 1);

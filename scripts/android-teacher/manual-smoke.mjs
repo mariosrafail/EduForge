@@ -119,6 +119,11 @@ try {
 
   const startupStartedAt = performance.now();
   await page.goto(baseURL, { waitUntil: "networkidle" });
+  const startupIntro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
+  await startupIntro.waitFor();
+  assert.equal(await startupIntro.getByRole("button", { name: "Skip intro" }).isVisible(), true, "Cold startup must expose an explicit intro skip control");
+  assert.match(await startupIntro.locator("video").getAttribute("src"), /ultimate-b2-startup-intro-.*\.mp4$/, "Teacher startup must use the recovered MP4 intro");
+  await startupIntro.getByRole("button", { name: "Skip intro" }).click();
   await page.locator(".legacy-home-launcher").waitFor();
   const migratedMarkup = await page.evaluate(() => JSON.parse(localStorage.getItem("interactive-classroom:annotations:v1"))["migration-probe"]);
   assert.deepEqual(migratedMarkup.drawing.map(({ type }) => type), ["stroke", "text"], "Legacy drawing elements must migrate into drawing history");
@@ -152,10 +157,32 @@ try {
   assert.equal(await page.locator(".legacy-menu-title-animation canvas").evaluate((canvas) => canvas.width > 0 && canvas.height > 0), true, "Recovered menu title timeline must render");
   assert.equal(await page.getByRole("button", { name: /Minimize/i }).count(), 0, "Launcher must not expose minimize");
   assert.equal(await page.getByRole("button", { name: "Close application" }).isVisible(), true, "Launcher close control must remain visible");
-  assert.equal(await page.locator(".legacy-home-topbar").getByText(/Interactive Classroom.*Offline/i).count(), 0, "Launcher topbar must not show the centered offline title");
+  assert.equal(await page.locator(".legacy-home-topbar").count(), 0, "Launcher must not render a horizontal top bar");
   assert.equal(await page.locator(".legacy-classroom-settings-trigger").count(), 0, "Launcher must not retain the bottom-right settings gear");
   assert.equal(await settingsButton.isVisible(), true, "Settings must be visible on the launcher");
-  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-topbar"))), false, "Launcher settings must occupy the bottom-right position");
+  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-floating-chrome"))), true, "Launcher settings must float at the top-right");
+  const launcherChrome = await page.evaluate(() => {
+    const launcher = getComputedStyle(document.querySelector(".legacy-home-launcher"));
+    const chrome = getComputedStyle(document.querySelector(".legacy-home-floating-chrome"));
+    return {
+      launcherBackground: launcher.backgroundImage,
+      launcherBorder: launcher.borderTopWidth,
+      launcherRadius: launcher.borderTopLeftRadius,
+      launcherShadow: launcher.boxShadow,
+      chromeBackground: chrome.backgroundColor,
+      chromeBorder: chrome.borderBottomWidth,
+      chromeShadow: chrome.boxShadow,
+    };
+  });
+  assert.deepEqual(launcherChrome, {
+    launcherBackground: "none",
+    launcherBorder: "0px",
+    launcherRadius: "0px",
+    launcherShadow: "none",
+    chromeBackground: "rgba(0, 0, 0, 0)",
+    chromeBorder: "0px",
+    chromeShadow: "none",
+  }, "Launcher artwork must float directly on the recovered background");
   const launcherUnitHeights = await page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
   assert.ok(Math.min(...launcherUnitHeights) >= 44, `Launcher units must remain touch-safe: ${launcherUnitHeights}`);
   assert.ok(Math.max(...launcherUnitHeights) <= 94, `Launcher units must stay compact: ${launcherUnitHeights}`);

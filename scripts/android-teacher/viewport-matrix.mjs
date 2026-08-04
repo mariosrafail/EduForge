@@ -46,6 +46,12 @@ function expectedDisplayScale({ width, height }) {
   return Math.min(2, Math.max(1, Math.min(width / 1920, height / 1080)));
 }
 
+async function skipStartupIntro(page) {
+  const skip = page.getByRole("button", { name: "Skip intro" });
+  if (await skip.count()) await skip.click();
+  await page.locator(".legacy-home-launcher").waitFor();
+}
+
 async function waitForEmbeddedActivityFit(page) {
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
@@ -100,6 +106,7 @@ try {
     });
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
+    await skipStartupIntro(page);
     const settingsSurface = page.locator(".teacher-offline-settings-surface");
     const displayScale = expectedDisplayScale(target);
     assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", `${target.name} modern default`);
@@ -124,15 +131,18 @@ try {
       )));
       return {
         teachingToolbars: document.querySelectorAll(".teacher-offline-library :is(.legacy-home-classroom-toolbar, .classroom-teaching-toolbar)").length,
-        settingsInHeader: Boolean(settings?.closest(".legacy-home-topbar")),
-        closeInHeader: Boolean(close?.closest(".legacy-home-topbar")),
+        settingsInFloatingChrome: Boolean(settings?.closest(".legacy-home-floating-chrome")),
+        closeInFloatingChrome: Boolean(close?.closest(".legacy-home-floating-chrome")),
         headerControlsOverlap: overlaps,
         minimizeControls: document.querySelectorAll('[aria-label^="Minimize"]').length,
-        centeredTitles: document.querySelectorAll(".legacy-home-topbar .teacher-offline-eyebrow").length,
+        horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
         bottomSettings: document.querySelectorAll(".legacy-classroom-settings-trigger").length,
         minimumUnitHeight: Math.min(...units.map((rect) => rect.height)),
         maximumUnitHeight: Math.max(...units.map((rect) => rect.height)),
-        topbarHeight: document.querySelector(".legacy-home-topbar").getBoundingClientRect().height,
+        floatingChromeBackground: getComputedStyle(document.querySelector(".legacy-home-floating-chrome")).backgroundColor,
+        launcherBackground: getComputedStyle(document.querySelector(".legacy-home-launcher")).backgroundImage,
+        launcherBorder: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopWidth,
+        launcherRadius: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopLeftRadius,
         unitArtWidth: document.querySelector(".legacy-home-unit .legacy-menu-button-art img").getBoundingClientRect().width,
         bookButtonHeight: document.querySelector(".legacy-home-book-button").getBoundingClientRect().height,
         bookArtWidth: document.querySelector(".legacy-home-book-button .legacy-menu-button-art img").getBoundingClientRect().width,
@@ -145,12 +155,16 @@ try {
       };
     });
     assert.equal(launcherLayout.teachingToolbars, 1, `${target.name} launcher toolbar`);
-    assert.equal(launcherLayout.settingsInHeader, false, `${target.name} settings is bottom-right`);
-    assert.equal(launcherLayout.closeInHeader, true, `${target.name} close in header`);
+    assert.equal(launcherLayout.settingsInFloatingChrome, true, `${target.name} settings floats at top-right`);
+    assert.equal(launcherLayout.closeInFloatingChrome, true, `${target.name} close floats at top-right`);
     assert.equal(launcherLayout.headerControlsOverlap, false, `${target.name} launcher header controls do not overlap`);
     assert.equal(launcherLayout.minimizeControls, 0, `${target.name} minimize removed`);
-    assert.equal(launcherLayout.centeredTitles, 0, `${target.name} centered title removed`);
+    assert.equal(launcherLayout.horizontalTopbars, 0, `${target.name} horizontal top bar removed`);
     assert.equal(launcherLayout.bottomSettings, 0, `${target.name} bottom settings removed`);
+    assert.equal(launcherLayout.floatingChromeBackground, "rgba(0, 0, 0, 0)", `${target.name} floating chrome is transparent`);
+    assert.equal(launcherLayout.launcherBackground, "none", `${target.name} central panel background removed`);
+    assert.equal(launcherLayout.launcherBorder, "0px", `${target.name} central panel border removed`);
+    assert.equal(launcherLayout.launcherRadius, "0px", `${target.name} central panel radius removed`);
     assert.ok(launcherLayout.minimumUnitHeight >= 44, `${target.name} unit touch targets: ${JSON.stringify(launcherLayout)}`);
     assert.ok(launcherLayout.maximumUnitHeight <= (94 * displayScale) + 1, `${target.name} proportional unit sizing: ${JSON.stringify(launcherLayout)}`);
     assert.ok(launcherLayout.overflow <= 1, `${target.name} launcher overflow: ${JSON.stringify(launcherLayout)}`);
@@ -552,7 +566,6 @@ try {
     for (const [label, read] of [
       ["launcher unit height", (result) => result.launcher.maximumUnitHeight],
       ["launcher unit artwork", (result) => result.launcher.unitArtWidth],
-      ["launcher top chrome", (result) => result.launcher.topbarHeight],
       ["launcher book button", (result) => result.launcher.bookButtonHeight],
       ["launcher book artwork", (result) => result.launcher.bookArtWidth],
       ["launcher publisher logo", (result) => result.launcher.publisherLogoWidth],

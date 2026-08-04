@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../scripts/_branding-audit.mjs";
@@ -508,6 +509,36 @@ test("teacher media mappings are checkout-local and never use raw publisher appl
   assert.doesNotMatch(runtimeAssets, /Ultimate English B2\.app|Contents[\\/]Resources/);
   assert.match(sources, /teacher-offline-media/);
   assert.match(runtimeAssets, /teacher-offline-media/);
+});
+
+test("Teacher startup intro is a reproducible, session-scoped, WebView-safe asset", async () => {
+  const [introBytes, recovery, introComponent, app, library, launcherStyles] = await Promise.all([
+    readFile("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"),
+    readFile("scripts/ultimate-b2/recover-startup-intro.mjs", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherStartupIntro.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflineLauncher.css", "utf8"),
+  ]);
+  assert.equal(createHash("sha256").update(introBytes).digest("hex"), "07c988a41eb5347c3f9e910f9fb0cc15b0b4de85056e1c08fcb3a71016f0948f");
+  assert.equal(introBytes.toString("ascii", 4, 8), "ftyp");
+  assert.ok(introBytes.includes(Buffer.from("avc1", "ascii")));
+  assert.ok(introBytes.includes(Buffer.from("mp4a", "ascii")));
+  assert.match(recovery, /8aacc2a90f2f19e529b39e09debad3af9c5c495e35a21ccf4a7c40898435655f/);
+  assert.match(recovery, /Contents\/Resources\/assets\/videos\/intro\.flv/);
+  assert.match(recovery, /libx264[\s\S]*yuv420p[\s\S]*25[\s\S]*aac[\s\S]*44100/);
+  assert.match(introComponent, /autoPlay[\s\S]*playsInline[\s\S]*preload="auto"/);
+  assert.match(introComponent, /onEnded=\{\(\) => finish\("ended"\)\}/);
+  assert.match(introComponent, /onError=\{\(\) => finish\("error"\)\}/);
+  assert.match(introComponent, /videoRef\.current[\s\S]*await video\.play\(\)/);
+  assert.match(introComponent, /Skip intro/);
+  assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
+  assert.match(app, /if \(!animationsActive\) setStartupIntroPending\(false\)/);
+  assert.match(app, /startupIntroPendingRef\.current[\s\S]*setStartupIntroPending\(false\)/);
+  assert.match(library, /legacy-home-floating-chrome/);
+  assert.doesNotMatch(library, /legacy-home-topbar/);
+  assert.match(launcherStyles, /\.teacher-offline-library\.has-classroom-tools::after\s*\{\s*display: none/);
+  assert.match(launcherStyles, /\.legacy-home-launcher\s*\{[\s\S]*border: 0;[\s\S]*border-radius: 0;[\s\S]*background: transparent;[\s\S]*box-shadow: none;/);
 });
 
 test("web and student build aliases cannot import the offline solution file", async () => {
