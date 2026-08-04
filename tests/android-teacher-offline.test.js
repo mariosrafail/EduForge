@@ -183,17 +183,19 @@ test("teacher settings v1 migration preserves existing values and adds modern mo
 });
 
 test("generic Teacher shell identity is not B2-only while book identity remains specific", async () => {
-  const [settingsDialog, entry, library, book] = await Promise.all([
+  const [settingsDialog, entry, library, menuSkins, book] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherBookMenuSkins.js", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
   ]);
   assert.match(settingsDialog, /Hamilton House LMS/);
   assert.match(settingsDialog, /Interactive Classroom/);
   assert.doesNotMatch(settingsDialog, /Ultimate English B2 interactive classroom content/);
   assert.match(entry, /Hamilton House LMS/);
-  assert.match(library, /Ultimate English B2/);
+  assert.match(library, /menuSkin\.title\.accessibleLabel/);
+  assert.match(menuSkins, /Ultimate English B2/);
   assert.match(book, /Ultimate English B2/);
 });
 
@@ -446,9 +448,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /legacy-home-lock[\s\S]*Locked/);
   assert.match(library, /disabled=\{!unit\.available\}/);
   assert.match(library, /onClick=\{unit\.available \?/);
-  assert.match(library, /legacyClassroomAssets\.branding\.hamiltonHouseLogo/);
-  assert.match(library, /legacyClassroomAssets\.branding\.bookMenu\.units/);
-  assert.match(library, /legacyClassroomAssets\.branding\.bookMenu\.editions/);
+  assert.match(library, /menuSkin\.publisherLogo/);
+  assert.match(library, /menuSkin\.units/);
+  assert.match(library, /menuSkin\.editions/);
   assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\}/);
   assert.match(library, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);

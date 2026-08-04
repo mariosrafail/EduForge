@@ -16,6 +16,7 @@ import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
@@ -163,6 +164,7 @@ export default function TeacherOfflineApp() {
   }
 
   const pack = packState.pack;
+  const menuSkin = resolveTeacherBookMenuSkin(pack.manifest.packageId);
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const openBookActivity = (activityId, originLocation = null) => {
     const resolved = resolveTeacherOfflineActivityLocation({
@@ -208,7 +210,7 @@ export default function TeacherOfflineApp() {
   } else {
     content = (
       <TeacherOfflineLibrary
-        pack={pack}
+        menuSkin={menuSkin}
         onOpenBook={openBook}
         onOpenSettings={() => setSettingsOpen(true)}
         onCloseApplication={closeApplication}
