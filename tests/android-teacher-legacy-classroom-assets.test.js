@@ -168,6 +168,22 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
   assert.equal(execFileSync("git", ["ls-files", "--", "Ultimate English B2.app/**"], { encoding: "utf8" }).trim(), "");
 });
 
+test("recovered Ultimate B2 book-menu controls preserve every required HD atlas region", async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const controls = manifest.assets.filter((asset) => asset.id.startsWith("book-menu-button-"));
+  assert.equal(controls.length, 26);
+  assert.deepEqual(new Set(controls.map((asset) => asset.state)), new Set(["normal", "hover-pressed"]));
+  assert.equal(controls.filter((asset) => asset.category === "book-menu/units").length, 20);
+  assert.equal(controls.filter((asset) => asset.category === "book-menu/editions").length, 6);
+  for (const asset of controls) {
+    assert.equal(asset.extractionDetails.atlasMetadataPath, "Contents/Resources/assets/books/book1/book_menu/HD/book_atlas.xml");
+    assert.equal(asset.extractionDetails.atlasImageSha256, "1f776a9c6b452ab677e5afb4c1dbb2084f44a7e27121b59e5fa23dd297744ed7");
+    assert.match(asset.extractionDetails.regionName, /^button_(?:0[1-9]|10|1[234])[ab]$/);
+    assert.equal(asset.width, asset.category.endsWith("units") ? 360 : 301);
+    assert.equal(asset.height, asset.category.endsWith("units") ? 93 : 99);
+  }
+});
+
 test("recovered central menu GAF is parseable as the exact authored timeline", async () => {
   const bytes = await readFile(path.join(assetRoot, "branding/menu-title-animation/logo.gaf"));
   const config = await parseGaf(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
@@ -192,14 +208,18 @@ test("UI audio does not duplicate educational media and Teacher build emits file
 });
 
 test("static extractors are explicit, dry by default, and reject writes into the app", async () => {
-  const [catalog, swf, menuBranding] = await Promise.all([
+  const [catalog, swf, menuBranding, bookMenu] = await Promise.all([
     readFile("scripts/ultimate-b2/legacy-ui-catalog.mjs", "utf8"),
     readFile("scripts/ultimate-b2/legacy-swf-static-extract.py", "utf8"),
     readFile("scripts/ultimate-b2/recover-menu-branding.mjs", "utf8"),
+    readFile("scripts/ultimate-b2/recover-book-menu-assets.mjs", "utf8"),
   ]);
   assert.match(catalog, /if \(!sourceArg\)/); assert.match(catalog, /const write = args\.includes\("--write"\)/); assert.match(catalog, /Refusing to write inside source bundle/);
   assert.match(menuBranding, /const write = args\.includes\("--write"\)/);
   assert.match(menuBranding, /Refusing to write inside source bundle/);
   assert.doesNotMatch(menuBranding, /C:\\Users\\/);
+  assert.match(bookMenu, /const write = args\.includes\("--write"\)/);
+  assert.match(bookMenu, /Refusing to write inside source bundle/);
+  assert.doesNotMatch(bookMenu, /C:\\Users\\/);
   assert.match(swf, /requires both an explicit source SWF and --write/); assert.match(swf, /Refusing to write inside the source application bundle/); assert.doesNotMatch(catalog, /C:\\Users\\/);
 });

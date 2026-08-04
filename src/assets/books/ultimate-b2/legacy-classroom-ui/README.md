@@ -2,7 +2,7 @@
 
 This directory is a curated, evidence-backed recovery from the client-supplied `Ultimate English B2.app`. The application bundle is ignored, immutable, and not a build or runtime dependency.
 
-The catalog contains 291 unique assets: the original 11-asset Teacher runtime subset, six exact menu-branding files recovered in this phase, and 274 earlier review additions. Seventeen byte-identical legacy names/regions resolve to canonical files through `assetAliases` instead of creating duplicate outputs. The catalog covers every machine-described HD sprite in the loose navigation, audio-player, and top-bar atlases; the complete embedded HD teacher-toolbar atlas and its controls; embedded cursors, toggles, alerts, settings, activity controls, and 24 loading-frame identities; standalone interface/activity audio; spoken teacher-toolbar labels; and four safely extracted SWF `DefineSound` MP3 payloads. The menu-branding set retains both authored SD and HD GAF atlases because both are declared dependencies of the exact animation config.
+The catalog contains 317 unique assets: the original 11-asset Teacher runtime subset, six exact menu-branding files, 26 exact HD book-menu button crops, and 274 earlier review additions. Seventeen byte-identical legacy names/regions resolve to canonical files through `assetAliases` instead of creating duplicate outputs. The catalog covers every machine-described HD sprite in the loose navigation, audio-player, top-bar, and selected book-menu atlas regions; the complete embedded HD teacher-toolbar atlas and its controls; embedded cursors, toggles, alerts, settings, activity controls, and 24 loading-frame identities; standalone interface/activity audio; spoken teacher-toolbar labels; and four safely extracted SWF `DefineSound` MP3 payloads. The menu-branding set retains both authored SD and HD GAF atlases because both are declared dependencies of the exact animation config.
 
 The original flat paths remain unchanged because the Android Teacher application imports them explicitly through `src/apps/android-teacher-offline/legacyClassroomAssets.js`. The Teacher home now uses the recovered menu branding, top-bar controls, and corresponding legacy teacher-toolbar states; review-only assets remain unimported. Teacher-only answer/reveal and presentation-tool art is not imported into the Student source tree or deterministic content pack.
 
@@ -15,6 +15,8 @@ node scripts/ultimate-b2/legacy-ui-catalog.mjs "Ultimate English B2.app"
 node scripts/ultimate-b2/legacy-ui-catalog.mjs "Ultimate English B2.app" --write
 node scripts/ultimate-b2/recover-menu-branding.mjs "Ultimate English B2.app"
 node scripts/ultimate-b2/recover-menu-branding.mjs "Ultimate English B2.app" --write
+node scripts/ultimate-b2/recover-book-menu-assets.mjs "Ultimate English B2.app"
+node scripts/ultimate-b2/recover-book-menu-assets.mjs "Ultimate English B2.app" --write
 ```
 
 The first command is a dry run. The second writes tracked assets plus ignored review material under `.codex/legacy-assets/ultimate-b2/`. The Python helper only decompresses and parses SWF tags; it never executes ActionScript and refuses to write inside the source bundle.
