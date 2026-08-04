@@ -18,16 +18,18 @@ import {
 import { useEffect, useState } from "react";
 
 import { CLASSROOM_COLORS, CLASSROOM_STROKES, DRAWING_TOOLS, useClassroomTools } from "./ClassroomToolsContext.jsx";
+import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
   return `${minutes}:${(seconds % 60).toString().padStart(2, "0")}`;
 }
 
-function ToolButton({ active = false, label, shortLabel = label, onClick, disabled = false, children, className = "" }) {
+function ToolButton({ active = false, label, shortLabel = label, onClick, disabled = false, legacyIcon, children, className = "" }) {
+  const icon = legacyIcon ? legacyClassroomAssets.icons.teacherTools[legacyIcon] : null;
   return (
     <button type="button" className={`${active ? "selected" : ""} ${className}`.trim()} aria-label={label} aria-pressed={active} title={label} disabled={disabled} onClick={onClick}>
-      {children}<span>{shortLabel}</span>
+      {icon ? <img className="legacy-teacher-tool-icon" src={active ? icon.active : icon.normal} alt="" draggable="false" /> : children}<span>{shortLabel}</span>
     </button>
   );
 }
@@ -144,19 +146,19 @@ export default function ClassroomToolbar({ surfaceKey }) {
       <div className={`legacy-classroom-viewer-toolbar classroom-teaching-toolbar ${drawingMode ? "drawing-mode" : presentationMode ? "presentation-mode" : regionZoom ? "zoom-active" : "normal-mode"}`} role="toolbar" aria-label="Classroom teaching tools">
         {drawingMode ? (
           <div className="classroom-tool-primary classroom-drawing-tools">
-            <ToolButton active={activeTool === "pen"} label="Pen tool" shortLabel="Pen" onClick={() => setActiveTool("pen")}><Pencil /></ToolButton>
-            <ToolButton active={activeTool === "eraser"} label="Eraser tool" shortLabel="Eraser" onClick={() => setActiveTool("eraser")}><Eraser /></ToolButton>
-            <ToolButton active={activeTool === "text"} label="Text tool" shortLabel="Text" onClick={() => setActiveTool("text")}><Type /></ToolButton>
+            <ToolButton legacyIcon="pencil" active={activeTool === "pen"} label="Pen tool" shortLabel="Pen" onClick={() => setActiveTool("pen")}><Pencil /></ToolButton>
+            <ToolButton legacyIcon="eraser" active={activeTool === "eraser"} label="Eraser tool" shortLabel="Eraser" onClick={() => setActiveTool("eraser")}><Eraser /></ToolButton>
+            <ToolButton legacyIcon="text" active={activeTool === "text"} label="Text tool" shortLabel="Text" onClick={() => setActiveTool("text")}><Type /></ToolButton>
             <div className="classroom-tool-options" aria-label="Drawing colour and size">
               <span>Colour</span>
               {CLASSROOM_COLORS.map((option) => <button key={option} type="button" className={`classroom-colour-choice ${color === option ? "selected" : ""}`} style={{ "--tool-color": option }} aria-label={`Use ${option} colour`} aria-pressed={color === option} onClick={() => setColor(option)} />)}
               <span>Size</span>
               {CLASSROOM_STROKES.map((option) => <button key={option} type="button" className={`classroom-size-choice ${strokeWidth === option ? "selected" : ""}`} aria-label={`Use ${option} pixel stroke`} aria-pressed={strokeWidth === option} onClick={() => setStrokeWidth(option)}><i style={{ width: option * 2, height: option * 2 }} /></button>)}
             </div>
-            <ToolButton label="Undo drawing" shortLabel="Undo" disabled={!history.past.length} onClick={() => undoDrawing(surfaceKey)}><Undo2 /></ToolButton>
-            <ToolButton label="Redo drawing" shortLabel="Redo" disabled={!history.future.length} onClick={() => redoDrawing(surfaceKey)}><Redo2 /></ToolButton>
-            <ToolButton label="Clear drawings and text" shortLabel="Clear" disabled={!history.present.length} onClick={clearDrawings}><Trash2 /></ToolButton>
-            {activeTool === "text" && <ToolButton label="Show on-screen keyboard" shortLabel="Keyboard" onClick={requestKeyboard}><Keyboard /></ToolButton>}
+            <ToolButton legacyIcon="undo" label="Undo drawing" shortLabel="Undo" disabled={!history.past.length} onClick={() => undoDrawing(surfaceKey)}><Undo2 /></ToolButton>
+            <ToolButton legacyIcon="redo" label="Redo drawing" shortLabel="Redo" disabled={!history.future.length} onClick={() => redoDrawing(surfaceKey)}><Redo2 /></ToolButton>
+            <ToolButton legacyIcon="clear" label="Clear drawings and text" shortLabel="Clear" disabled={!history.present.length} onClick={clearDrawings}><Trash2 /></ToolButton>
+            {activeTool === "text" && <ToolButton legacyIcon="keyboard" label="Show on-screen keyboard" shortLabel="Keyboard" onClick={requestKeyboard}><Keyboard /></ToolButton>}
           </div>
         ) : presentationMode ? (
           <div className="classroom-mode-instruction">
@@ -164,17 +166,17 @@ export default function ClassroomToolbar({ surfaceKey }) {
             <button type="button" aria-label={`Exit ${modeTitle.toLowerCase()}`} onClick={exitMode}><X /><span>Exit</span></button>
           </div>
         ) : regionZoom ? (
-          <div className="classroom-zoom-active-tools"><ToolButton label="Zoom out" shortLabel="Zoom out" onClick={() => { resetRegionZoom(surfaceKey); focusStage(); }}><ZoomOut /></ToolButton></div>
+          <div className="classroom-zoom-active-tools"><ToolButton legacyIcon="zoom" active label="Zoom out" shortLabel="Zoom out" onClick={() => { resetRegionZoom(surfaceKey); focusStage(); }}><ZoomOut /></ToolButton></div>
         ) : (
           <div className="classroom-tool-primary classroom-normal-tools">
-            <ToolButton label="Pen tool" shortLabel="Pen" onClick={() => enterMode("pen")}><Pencil /></ToolButton>
-            <ToolButton label="Zoom region" shortLabel="Zoom" onClick={() => enterMode("zoom-region")}><ScanSearch /></ToolButton>
-            <ToolButton label="Cover area tool" shortLabel="Cover" onClick={() => enterMode("cover")}><EyeOff /></ToolButton>
-            <ToolButton label="Spotlight reveal tool" shortLabel="Spotlight" onClick={() => enterMode("spotlight")}><Eye /></ToolButton>
-            <ToolButton active={openPanel === "timer"} label="Open timer" shortLabel="Timer" onClick={() => setOpenPanel((current) => current === "timer" ? "" : "timer")}><Timer /></ToolButton>
-            <ToolButton active={openPanel === "scoreboard"} label="Open scoreboard" shortLabel="Score" onClick={() => setOpenPanel((current) => current === "scoreboard" ? "" : "scoreboard")}><Trophy /></ToolButton>
-            <ToolButton label="Print current view" shortLabel="Print" onClick={printCurrentView}><Printer /></ToolButton>
-            <ToolButton active={openPanel === "clear"} label="Clear classroom markup" shortLabel="Trash" onClick={() => setOpenPanel((current) => current === "clear" ? "" : "clear")}><Trash2 /></ToolButton>
+            <ToolButton legacyIcon="pencil" label="Pen tool" shortLabel="Pen" onClick={() => enterMode("pen")}><Pencil /></ToolButton>
+            <ToolButton legacyIcon="zoom" label="Zoom region" shortLabel="Zoom" onClick={() => enterMode("zoom-region")}><ScanSearch /></ToolButton>
+            <ToolButton legacyIcon="hide" label="Cover area tool" shortLabel="Cover" onClick={() => enterMode("cover")}><EyeOff /></ToolButton>
+            <ToolButton legacyIcon="show" label="Spotlight reveal tool" shortLabel="Spotlight" onClick={() => enterMode("spotlight")}><Eye /></ToolButton>
+            <ToolButton legacyIcon="timer" active={openPanel === "timer"} label="Open timer" shortLabel="Timer" onClick={() => setOpenPanel((current) => current === "timer" ? "" : "timer")}><Timer /></ToolButton>
+            <ToolButton legacyIcon="score" active={openPanel === "scoreboard"} label="Open scoreboard" shortLabel="Score" onClick={() => setOpenPanel((current) => current === "scoreboard" ? "" : "scoreboard")}><Trophy /></ToolButton>
+            <ToolButton legacyIcon="print" label="Print current view" shortLabel="Print" onClick={printCurrentView}><Printer /></ToolButton>
+            <ToolButton legacyIcon="clear" active={openPanel === "clear"} label="Clear classroom markup" shortLabel="Trash" onClick={() => setOpenPanel((current) => current === "clear" ? "" : "clear")}><Trash2 /></ToolButton>
           </div>
         )}
       </div>

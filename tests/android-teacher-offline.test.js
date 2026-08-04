@@ -446,9 +446,15 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /legacy-home-lock[\s\S]*Locked/);
   assert.match(library, /disabled=\{!unit\.available\}/);
   assert.match(library, /onClick=\{unit\.available \?/);
-  assert.doesNotMatch(library, /homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
+  assert.match(library, /legacyClassroomAssets\.branding\.hamiltonHouseLogo/);
+  assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\}/);
+  assert.match(library, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
+  assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
   assert.match(library, /legacy-home-settings-button[\s\S]*onOpenSettings/);
   assert.match(library, /legacy-home-close-button[\s\S]*onCloseApplication/);
+  assert.match(toolbar, /legacyIcon="pencil"/);
+  assert.match(toolbar, /legacyIcon="timer"/);
+  assert.match(toolbar, /legacyIcon="score"/);
   assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
   assert.match(app, /onCloseApplication=\{closeApplication\}/);
   assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);

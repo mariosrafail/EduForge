@@ -2,7 +2,7 @@
 
 ## Identification
 
-The exact opening is a standalone FLV video, not a SWF timeline animation or the static cover currently shown by `TeacherOfflineLibrary`.
+The exact opening is a standalone FLV video, not a SWF timeline animation and not the separate GAF title now rendered by `TeacherOfflineLibrary`.
 
 | Resource | SHA-256 | Evidence |
 | --- | --- | --- |
@@ -40,4 +40,4 @@ Direct reuse is not recommended. Modern Chromium/WebView video elements do not p
 
 For a later integration task, prefer an approved, deterministic video conversion from the archived FLV to an Android WebView/browser-supported codec while retaining 1024×768 framing, 25 fps cadence, 5.840-second duration, and synchronized audio. Record both source and derived hashes and visually compare representative frames before approval. An HTML tween recreation would be less faithful because the source is already a rendered video.
 
-The archival FLV adds exactly 455,030 bytes. A future compatible derivative's size must be measured rather than estimated. Reusing the full AIR/Ruffle bootstrap would add substantially more code and compatibility risk than the existing native `<video>` path, while the LMS already ships media playback components. No animation was integrated in this task.
+The archival FLV adds exactly 455,030 bytes. A future compatible derivative's size must be measured rather than estimated. Reusing the full AIR/Ruffle bootstrap would add substantially more code and compatibility risk than the existing native `<video>` path, while the LMS already ships media playback components. The startup intro was not integrated in this task; this decision is independent of the exact on-menu GAF animation now used by the Teacher launcher.

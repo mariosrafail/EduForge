@@ -33,6 +33,8 @@ The decrypted `Contents/Resources/assets/home/common/home_params.iwb` provides t
 
 Static parsing with the official GAF tag model identifies a 1024×768 stage at 24 fps and one linked timeline named `rootTimeline`. Its authored bounds are x=345.15, y=94.15, width=432.075, height=295.6. It contains 334 frames and 79 texture objects, divided into named sequences `Break` (frames 1–167) and `Logo1` (frames 168–334). Thus the menu title is an animated, layered raster composite described by a standalone GAF timeline. All five archive entries are exactly extractable and are now tracked under `branding/menu-title-animation/`.
 
+The Android Teacher launcher renders that tracked GAF timeline directly on a canvas with its two SD atlases. This keeps the runtime teacher-only and avoids substituting a cover or reconstructed text treatment; the graphics animation setting and reduced-motion preference pause it on an authored frame.
+
 Run `node scripts/ultimate-b2/recover-menu-branding.mjs "Ultimate English B2.app"` for a read-only verification report, or add `--write` to reproduce the tracked extraction. The script parses ZIP and GAF metadata only and refuses writes inside the source `.app`.
 
 ## Separate startup intro

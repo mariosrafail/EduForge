@@ -136,16 +136,16 @@ try {
         unitTitleFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-unit span")).fontSize),
         bookButtonHeight: document.querySelector(".legacy-home-book-button").getBoundingClientRect().height,
         bookButtonFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-book-button")).fontSize),
-        publisherFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-publisher strong")).fontSize),
-        identityTitleFontSize: Number.parseFloat(getComputedStyle(document.querySelector(".legacy-home-title i")).fontSize),
+        publisherLogoWidth: document.querySelector(".legacy-home-publisher-logo").getBoundingClientRect().width,
+        identityTitleWidth: document.querySelector(".legacy-menu-title-animation").getBoundingClientRect().width,
         settingsButtonWidth: settings.getBoundingClientRect().width,
         launcherWidth: document.querySelector(".legacy-home-launcher").getBoundingClientRect().width,
         bookRowWidth: document.querySelector(".legacy-home-book-row").getBoundingClientRect().width,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    assert.equal(launcherLayout.teachingToolbars, 0, `${target.name} launcher tools removed`);
-    assert.equal(launcherLayout.settingsInHeader, true, `${target.name} settings in header`);
+    assert.equal(launcherLayout.teachingToolbars, 1, `${target.name} launcher toolbar`);
+    assert.equal(launcherLayout.settingsInHeader, false, `${target.name} settings is bottom-right`);
     assert.equal(launcherLayout.closeInHeader, true, `${target.name} close in header`);
     assert.equal(launcherLayout.headerControlsOverlap, false, `${target.name} launcher header controls do not overlap`);
     assert.equal(launcherLayout.minimizeControls, 0, `${target.name} minimize removed`);
@@ -188,7 +188,7 @@ try {
     await page.getByRole("button", { name: "Modern", exact: true }).click();
     assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "modern", `${target.name} live modern theme`);
     await page.getByRole("button", { name: "Close settings" }).click();
-    await page.getByRole("button", { name: "Open Students Book" }).click();
+    await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
     await page.locator(".teacher-offline-book").waitFor();
     await page.getByRole("button", { name: "Contents and exercises" }).click();
     const bookShellUnitSwitcher = await page.locator(".teacher-offline-unit-tabs button").evaluateAll((buttons) => buttons.map((button) => {
@@ -555,8 +555,8 @@ try {
       ["launcher top chrome", (result) => result.launcher.topbarHeight],
       ["launcher book button", (result) => result.launcher.bookButtonHeight],
       ["launcher book button font", (result) => result.launcher.bookButtonFontSize],
-      ["launcher publisher font", (result) => result.launcher.publisherFontSize],
-      ["launcher identity title", (result) => result.launcher.identityTitleFontSize],
+      ["launcher publisher logo", (result) => result.launcher.publisherLogoWidth],
+      ["launcher identity title", (result) => result.launcher.identityTitleWidth],
       ["launcher settings control", (result) => result.launcher.settingsButtonWidth],
       ["settings tab", (result) => result.settingsTabHeight],
       ["overview title", (result) => result.overviewTitleFontSize],
@@ -569,7 +569,7 @@ try {
     const baselineLauncherShare = baseline.launcher.launcherWidth / 1920;
     const baselineBookRowShare = baseline.launcher.bookRowWidth / 1920;
     assert.ok(large.launcher.launcherWidth / viewportWidth >= .78, `${prefix} launcher uses substantial viewport width`);
-    assert.ok(large.launcher.bookRowWidth / viewportWidth >= .65, `${prefix} book row uses substantial viewport width`);
+    assert.ok(large.launcher.bookRowWidth / viewportWidth >= .4, `${prefix} book row uses substantial viewport width`);
     assertNear(large.launcher.launcherWidth / viewportWidth, baselineLauncherShare, .09, `${prefix} launcher relative width`);
     assertNear(large.launcher.bookRowWidth / viewportWidth, baselineBookRowShare, .09, `${prefix} book row relative width`);
   }

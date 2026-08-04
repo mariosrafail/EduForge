@@ -24,20 +24,22 @@
     min-height: clamp(calc(54px * var(--teacher-ui-scale)), 6.5vh, calc(76px * var(--teacher-ui-scale)));
     padding: calc(8px * var(--teacher-ui-scale)) clamp(calc(18px * var(--teacher-ui-scale)), 2.3vw, calc(44px * var(--teacher-ui-scale)));
   }
-  .teacher-offline-settings-surface .legacy-home-publisher strong { font-size: calc(24.8px * var(--teacher-ui-scale)); }
-  .teacher-offline-settings-surface .legacy-home-publisher span { margin-top: calc(5px * var(--teacher-ui-scale)); font-size: calc(12px * var(--teacher-ui-scale)); }
+  .legacy-home-publisher-logo { width: calc(272px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls button,
+  .legacy-home-settings-button,
   .legacy-classroom-sound-toggle-home {
-    width: calc(46px * var(--teacher-ui-scale));
-    height: calc(46px * var(--teacher-ui-scale));
-    min-height: calc(46px * var(--teacher-ui-scale));
+    width: calc(52px * var(--teacher-ui-scale));
+    height: calc(52px * var(--teacher-ui-scale));
+    min-height: calc(52px * var(--teacher-ui-scale));
   }
   .legacy-home-window-controls button svg,
   .legacy-classroom-sound-toggle-home svg { width: var(--teacher-icon-md); height: var(--teacher-icon-md); }
   .legacy-classroom-sound-toggle-home {
-    top: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-top));
-    right: calc(env(safe-area-inset-right) + (186px * var(--teacher-ui-scale)));
+    top: auto;
+    right: auto;
+    bottom: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
+    left: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-left));
   }
   .legacy-home-launcher {
     width: min(calc(1760px * var(--teacher-ui-scale)), 94vw);
@@ -65,6 +67,7 @@
     font-size: clamp(calc(.62rem * var(--teacher-display-scale)), .6vw, calc(.76rem * var(--teacher-display-scale))) !important;
   }
   .legacy-home-lock svg { width: var(--teacher-icon-sm); height: var(--teacher-icon-sm); }
+  .legacy-menu-title-animation { width: min(100%, calc(500px * var(--teacher-ui-scale))); }
   .legacy-home-identity {
     padding: clamp(calc(10px * var(--teacher-ui-scale)), 1.5vw, calc(24px * var(--teacher-ui-scale)));
     border-width: calc(3px * var(--teacher-ui-scale));
@@ -84,15 +87,16 @@
   }
   .teacher-offline-settings-surface .legacy-home-identity p { margin: calc(7px * var(--teacher-ui-scale)) 0 calc(1px * var(--teacher-ui-scale)); font-size: calc(15.2px * var(--teacher-ui-scale)); }
   .teacher-offline-settings-surface .legacy-home-identity > small { margin-top: calc(3px * var(--teacher-ui-scale)); font-size: calc(13.12px * var(--teacher-ui-scale)); }
-  .legacy-home-book-row { gap: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))); }
+  .legacy-home-book-row { width: min(calc(920px * var(--teacher-ui-scale)), 70vw); gap: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))); }
   .teacher-offline-settings-surface .legacy-home-book-button {
-    min-height: clamp(calc(58px * var(--teacher-ui-scale)), 7vh, calc(82px * var(--teacher-ui-scale)));
+    min-height: clamp(calc(58px * var(--teacher-ui-scale)), 6.5vh, calc(82px * var(--teacher-ui-scale)));
     padding: calc(7px * var(--teacher-ui-scale)) clamp(calc(9px * var(--teacher-ui-scale)), 1vw, calc(18px * var(--teacher-ui-scale)));
     gap: clamp(calc(6px * var(--teacher-ui-scale)), .75vw, calc(12px * var(--teacher-ui-scale)));
     border-radius: calc(18px * var(--teacher-ui-scale));
     font-size: calc(16px * var(--teacher-ui-scale));
   }
   .legacy-home-book-button svg { width: var(--teacher-icon-lg); height: var(--teacher-icon-lg); }
+  .legacy-teacher-tool-icon { width: calc(42px * var(--teacher-ui-scale)); height: calc(42px * var(--teacher-ui-scale)); }
 
   /* Shared book header controls used by contents/activity shells. */
   .teacher-offline-book-header,

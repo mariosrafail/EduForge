@@ -163,6 +163,7 @@ export default function TeacherOfflineApp() {
   }
 
   const pack = packState.pack;
+  const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const openBookActivity = (activityId, originLocation = null) => {
     const resolved = resolveTeacherOfflineActivityLocation({
       activityId,
@@ -211,10 +212,10 @@ export default function TeacherOfflineApp() {
         onOpenBook={openBook}
         onOpenSettings={() => setSettingsOpen(true)}
         onCloseApplication={closeApplication}
+        animationsActive={animationsActive}
       />
     );
   }
-  const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const userInterfaceScale = settings.graphics.interfaceScale / 100;
   const effectiveUiScale = Math.min(2.4, Math.max(0.8, viewport.displayScale * userInterfaceScale));
   return (

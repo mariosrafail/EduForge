@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import sharp from "sharp";
+import { parseGaf } from "../src/apps/android-teacher-offline/legacyGaf.js";
 
 const assetRoot = path.resolve("src/assets/books/ultimate-b2/legacy-classroom-ui");
 const manifestPath = path.join(assetRoot, "asset-manifest.json");
@@ -165,6 +166,20 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
     assert.doesNotMatch(await readFile(sourceFile, "utf8"), /legacyClassroomAssets|legacy-classroom-ui/);
   }
   assert.equal(execFileSync("git", ["ls-files", "--", "Ultimate English B2.app/**"], { encoding: "utf8" }).trim(), "");
+});
+
+test("recovered central menu GAF is parseable as the exact authored timeline", async () => {
+  const bytes = await readFile(path.join(assetRoot, "branding/menu-title-animation/logo.gaf"));
+  const config = await parseGaf(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  assert.equal(config.version, "5.8");
+  assert.deepEqual(config.stage, { fps: 24, color: -1, width: 1024, height: 768 });
+  assert.equal(config.timeline.linkage, "rootTimeline");
+  assert.equal(config.timeline.frameCount, 334);
+  assert.equal(config.frames.length, 334);
+  assert.equal(config.objects.size, 79);
+  assert.equal(config.atlas.elements.size, 79);
+  assert.equal(config.timeline.bounds.width, 432.07501220703125);
+  assert.equal(config.timeline.bounds.height, 295.6000061035156);
 });
 
 test("UI audio does not duplicate educational media and Teacher build emits files", async () => {

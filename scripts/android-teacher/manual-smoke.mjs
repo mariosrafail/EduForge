@@ -138,23 +138,24 @@ try {
     assert.equal(await lockedUnit.isDisabled(), true, `Unit ${unit} must be locked`);
   }
   assert.equal(await page.locator(".legacy-home-unit .legacy-home-lock").count(), 8);
-  assert.equal(await page.getByRole("button", { name: "Open Students Book" }).isEnabled(), true);
   for (const book of ["Workbook", "Grammar Book", "Extras"]) {
     assert.equal(await page.getByRole("button", { name: `${book} — Locked` }).isDisabled(), true, `${book} must be locked`);
   }
   assert.equal(await page.locator(".legacy-home-book-button .legacy-home-lock").count(), 3);
   const settingsButton = page.getByRole("button", { name: "Open classroom settings" });
   assert.equal(await page.locator(".legacy-home-classroom-toolbar").count(), 0, "Launcher must not render its former locked teaching-tool row");
-  assert.equal(await page.locator(".teacher-offline-library .classroom-teaching-toolbar").count(), 0, "Launcher must not render the classroom teaching toolbar");
-  for (const label of ["Pen", "Eraser", "Text", "Undo", "Timer", "Scoreboard", "Keyboard"]) {
-    assert.equal(await page.getByRole("button", { name: new RegExp(`^${label}(?: — Locked)?$`) }).count(), 0, `${label} must not appear on the launcher`);
-  }
+  assert.equal(await page.locator(".teacher-offline-library .classroom-teaching-toolbar").count(), 1, "Launcher must retain the functional classroom toolbar");
+  for (const label of ["Pen tool", "Zoom region", "Cover area tool", "Spotlight reveal tool", "Open timer", "Open scoreboard", "Print current view", "Clear classroom markup"]) assert.equal(await page.getByRole("button", { name: label }).isEnabled(), true, `${label} must work on the launcher`);
+  await page.locator(".legacy-home-publisher-logo").waitFor();
+  assert.equal(await page.locator(".legacy-home-publisher-logo").evaluate((image) => image.complete && image.naturalWidth === 272 && image.naturalHeight === 40), true, "Exact Hamilton House logo must render");
+  await page.waitForFunction(() => document.querySelector(".legacy-menu-title-animation canvas")?.dataset.animationState === "playing");
+  assert.equal(await page.locator(".legacy-menu-title-animation canvas").evaluate((canvas) => canvas.width > 0 && canvas.height > 0), true, "Recovered menu title timeline must render");
   assert.equal(await page.getByRole("button", { name: /Minimize/i }).count(), 0, "Launcher must not expose minimize");
   assert.equal(await page.getByRole("button", { name: "Close application" }).isVisible(), true, "Launcher close control must remain visible");
   assert.equal(await page.locator(".legacy-home-topbar").getByText(/Interactive Classroom.*Offline/i).count(), 0, "Launcher topbar must not show the centered offline title");
   assert.equal(await page.locator(".legacy-classroom-settings-trigger").count(), 0, "Launcher must not retain the bottom-right settings gear");
   assert.equal(await settingsButton.isVisible(), true, "Settings must be visible on the launcher");
-  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-topbar"))), true, "Launcher settings must live inside the top chrome");
+  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-topbar"))), false, "Launcher settings must occupy the bottom-right position");
   const launcherUnitHeights = await page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height));
   assert.ok(Math.min(...launcherUnitHeights) >= 44, `Launcher units must remain touch-safe: ${launcherUnitHeights}`);
   assert.ok(Math.max(...launcherUnitHeights) <= 84, `Launcher units must stay compact: ${launcherUnitHeights}`);
@@ -236,7 +237,7 @@ try {
   assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
   const coldStartupMs = Math.round(performance.now() - startupStartedAt);
   const bookOpenStartedAt = performance.now();
-  await page.getByRole("button", { name: "Open Students Book" }).click();
+  await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
 
@@ -536,7 +537,7 @@ try {
 
   const forbiddenRequests = requests.filter(({ url, type }) => (
     !url.startsWith(baseURL)
-    || ["fetch", "xhr", "eventsource", "websocket"].includes(type)
+    || (["fetch", "xhr", "eventsource", "websocket"].includes(type) && !/^http:\/\/127\.0\.0\.1:4178\/assets\/logo-[\w-]+\.gaf$/.test(url))
     || /\.netlify\/functions|teacher-activity-solutions|submit-/i.test(url)
   ));
   const unexpectedConsoleErrors = consoleErrors.filter((message) => !/favicon|ERR_INTERNET_DISCONNECTED/i.test(message));

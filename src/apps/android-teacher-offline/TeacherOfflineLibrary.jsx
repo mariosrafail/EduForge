@@ -1,11 +1,10 @@
-import {
-  BookOpen,
-  LockKeyhole,
-  Settings,
-  X,
-} from "lucide-react";
-import studentsBookCover from "../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg";
+import { LockKeyhole } from "lucide-react";
+
+import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
+import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
+import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import LegacyMenuTitleAnimation from "./LegacyMenuTitleAnimation.jsx";
 import { teacherStudentsBookUnits as units } from "./teacherOfflineUnitMetadata.js";
 
 function UnitColumn({ label, items, onOpenBook }) {
@@ -29,53 +28,47 @@ function UnitColumn({ label, items, onOpenBook }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ pack, onOpenBook, onOpenSettings, onCloseApplication }) {
-  const manifest = pack.manifest;
+export default function TeacherOfflineLibrary({ onOpenBook, onOpenSettings, onCloseApplication, animationsActive }) {
+  const surfaceKey = "ultimate-b2:home";
 
   return (
-    <main className="teacher-offline-library" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
+    <main className="teacher-offline-library has-classroom-tools" style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
       <header className="legacy-home-topbar">
-        <div className="legacy-home-publisher">
-          <strong>HAMILTON HOUSE</strong>
-          <span>English Language Teaching</span>
-        </div>
+        <img className="legacy-home-publisher-logo" src={legacyClassroomAssets.branding.hamiltonHouseLogo} alt="Hamilton House — English Language Teaching" />
         <div className="legacy-home-window-controls" aria-label="Launcher controls">
-          <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}><Settings size={21} /></button>
-          <button type="button" className="legacy-home-close-button" aria-label="Close application" title="Close application" onClick={onCloseApplication}><X size={22} /></button>
+          <button type="button" className="legacy-home-close-button" aria-label="Close application" title="Close application" onClick={onCloseApplication}>
+            <img src={legacyClassroomAssets.icons.close} alt="" draggable="false" />
+          </button>
         </div>
       </header>
 
-      <section className="legacy-home-launcher" aria-label="Ultimate B2 classroom launcher">
-        <UnitColumn label="Units 1 to 5" items={units.slice(0, 5)} onOpenBook={onOpenBook} />
+      <section className="legacy-home-classroom-surface" data-classroom-surface-id={surfaceKey} tabIndex={-1} aria-label="Ultimate English B2 classroom launcher">
+        <ClassroomStageTransform surfaceKey={surfaceKey}>
+          <div className="legacy-home-launcher">
+            <UnitColumn label="Units 1 to 5" items={units.slice(0, 5)} onOpenBook={onOpenBook} />
+            <LegacyMenuTitleAnimation animate={animationsActive} />
+            <UnitColumn label="Units 6 to 10" items={units.slice(5)} onOpenBook={onOpenBook} />
 
-        <div className="legacy-home-identity">
-          <div className="legacy-home-title" aria-label="Ultimate English B2">
-            <span><i>ULTIMATE</i><em>ENGLISH</em></span>
-            <strong>B2</strong>
+            <div className="legacy-home-book-row" aria-label="Additional book editions">
+              {[
+                ["Workbook", "Workbook content not installed"],
+                ["Grammar Book", "Grammar Book content not installed"],
+                ["Extras", "Extras content not installed"],
+              ].map(([label, title]) => (
+                <button key={label} type="button" className="legacy-home-book-button locked" disabled aria-label={`${label} — Locked`} title={title}>
+                  <LockKeyhole size={25} /><span>{label}</span><small className="legacy-home-lock">Locked</small>
+                </button>
+              ))}
+            </div>
           </div>
-          <img src={studentsBookCover} alt="Ultimate B2 Students Book cover" decoding="async" />
-          <p>Interactive classroom</p>
-          <small>{manifest.enabledActivityCount} activities · {manifest.pageCount} page spreads · offline</small>
-        </div>
-
-        <UnitColumn label="Units 6 to 10" items={units.slice(5)} onOpenBook={onOpenBook} />
-
-        <div className="legacy-home-book-row" aria-label="Book editions">
-          <button type="button" className="legacy-home-book-button available" aria-label="Open Students Book" onClick={() => onOpenBook()}>
-            <BookOpen size={28} /><span>Students Book</span><small>Open</small>
-          </button>
-          {[
-            ["Workbook", "Workbook content not installed"],
-            ["Grammar Book", "Grammar Book content not installed"],
-            ["Extras", "Extras content not installed"],
-          ].map(([label, title]) => (
-            <button key={label} type="button" className="legacy-home-book-button locked" disabled aria-label={`${label} — Locked`} title={title}>
-              <LockKeyhole size={25} /><span>{label}</span><small className="legacy-home-lock">Locked</small>
-            </button>
-          ))}
-        </div>
+          <ClassroomToolOverlay surfaceKey={surfaceKey} />
+        </ClassroomStageTransform>
       </section>
 
+      <ClassroomToolbar surfaceKey={surfaceKey} />
+      <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}>
+        <img src={legacyClassroomAssets.icons.settings} alt="" draggable="false" />
+      </button>
     </main>
   );
 }

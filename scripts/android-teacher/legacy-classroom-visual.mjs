@@ -27,7 +27,7 @@ async function waitForPreview() {
 }
 
 async function openBook(page) {
-  await page.getByRole("button", { name: "Open Students Book" }).click();
+  await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await page.locator(".teacher-offline-book").waitFor();
 }
 
@@ -202,12 +202,12 @@ async function assertLegacyLauncher(page, label) {
     unitColumns: 2,
     units: 10,
     lockedUnits: 8,
-    books: 4,
+    books: 3,
     lockedBooks: 3,
     toolbar: false,
-    teachingToolbar: false,
+    teachingToolbar: true,
     settings: true,
-    settingsInHeader: true,
+    settingsInHeader: false,
     bottomSettings: false,
     close: true,
     minimize: 0,

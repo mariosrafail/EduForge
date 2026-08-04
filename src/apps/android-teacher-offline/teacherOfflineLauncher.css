@@ -1,67 +1,74 @@
-/* Full legacy B2 home composition. Loaded last so it only refines launcher chrome. */
-.teacher-offline-library {
-  grid-template-rows: auto minmax(0, 1fr);
+/* Faithful Ultimate B2 home composition, using the recovered menu artwork. */
+.teacher-offline-library.has-classroom-tools {
+  position: relative;
+  grid-template-rows: auto minmax(0, 1fr) var(--classroom-toolbar-height);
   background:
-    radial-gradient(circle at 50% 44%, rgba(238, 251, 255, 0.34), transparent 34%),
-    linear-gradient(180deg, rgba(1, 63, 99, 0.1), rgba(76, 25, 110, 0.18)),
+    radial-gradient(circle at 50% 44%, rgba(238, 251, 255, 0.22), transparent 34%),
     var(--legacy-classroom-background) center / cover no-repeat;
 }
 
 .teacher-offline-library > .legacy-home-topbar {
   min-height: clamp(54px, 6.5vh, 76px);
-  padding: 8px clamp(18px, 2.3vw, 44px);
-  grid-template-columns: minmax(0, 1fr) auto;
-  border-bottom-width: 2px;
+  padding: 6px max(18px, env(safe-area-inset-left)) 6px max(18px, env(safe-area-inset-right));
+  border-bottom: 2px solid rgba(226, 250, 255, 0.88);
   background: linear-gradient(180deg, rgba(27, 132, 173, 0.94), rgba(5, 78, 119, 0.88));
 }
 
-.legacy-home-publisher strong { font-family: Georgia, "Times New Roman", serif; }
-.legacy-home-publisher span { text-transform: none; }
+.legacy-home-publisher-logo {
+  width: clamp(190px, 18vw, 272px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 1px rgba(0, 45, 70, 0.35));
+}
 
-.legacy-home-window-controls button {
-  width: 46px;
-  height: 46px;
-  min-height: 46px;
+.legacy-home-window-controls { display: flex; align-items: center; gap: 8px; }
+
+.legacy-home-window-controls button,
+.legacy-home-settings-button {
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
   padding: 0;
   display: grid;
   place-items: center;
-  border: 2px solid rgba(255, 255, 255, 0.88);
+  border: 0;
   border-radius: 50%;
-  background: linear-gradient(180deg, #e8f8fc, #77bdd5);
-  box-shadow: 0 0 0 2px #086587, 0 3px 0 #064967;
-  color: #164c68;
-  opacity: 1;
+  background: transparent;
+  box-shadow: none;
 }
 
-.legacy-home-window-controls .legacy-home-settings-button {
-  background: linear-gradient(180deg, #f5dcff, #a96cc7);
-  color: #54206f;
-}
+.legacy-home-window-controls img,
+.legacy-home-settings-button img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-.legacy-home-window-controls .legacy-home-close-button {
-  background: linear-gradient(180deg, #e8f8fc, #77bdd5);
+.legacy-home-settings-button {
+  position: fixed;
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(7px, env(safe-area-inset-bottom));
+  z-index: 31;
 }
 
 .legacy-classroom-sound-toggle-home {
-  top: max(8px, env(safe-area-inset-top));
-  right: calc(env(safe-area-inset-right) + 186px);
-  bottom: auto;
+  top: auto;
+  right: auto;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 31;
 }
+
+.legacy-home-classroom-surface { min-height: 0; outline-offset: -4px; }
+.legacy-home-classroom-surface > .classroom-stage-transform { display: grid; place-items: stretch; }
 
 .legacy-home-launcher {
   width: min(1760px, 94vw);
-  height: auto;
+  height: 100%;
   min-height: 0;
-  margin: clamp(8px, 1.5vh, 18px) auto max(8px, env(safe-area-inset-bottom));
-  padding: clamp(8px, 1.2vw, 20px) clamp(14px, 2.4vw, 46px);
+  margin: 0 auto;
+  padding: clamp(8px, 1.1vw, 20px) clamp(14px, 2.4vw, 46px);
   display: grid;
   grid-template-columns: minmax(260px, 440px) minmax(280px, 1fr) minmax(260px, 440px);
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: clamp(10px, 1.25vw, 22px) clamp(18px, 2.4vw, 46px);
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  gap: clamp(8px, 1vw, 18px) clamp(18px, 2.4vw, 46px);
+  align-items: center;
 }
 
 .legacy-home-unit-column {
@@ -73,19 +80,37 @@
 }
 
 .legacy-home-unit {
-  min-height: 44px;
+  min-height: 48px;
   padding: 4px 12px 4px 5px;
+  display: grid;
   grid-template-columns: clamp(40px, 2.8vw, 50px) minmax(0, 1fr) auto;
+  align-items: center;
   gap: clamp(7px, 0.7vw, 12px);
+  border: 3px solid #fff;
   border-radius: 999px 18px 18px 999px;
+  background: linear-gradient(180deg, #82def3, #1fa1ca 48%, #117aa9 52%, #075d85);
+  box-shadow: 0 0 0 2px #08749b, 0 5px 0 #075879, 0 9px 18px rgba(15, 54, 83, 0.25);
+  color: #fff;
+  font-weight: 950;
+  text-align: left;
+  text-shadow: 0 2px 0 #07577b;
 }
 
-.legacy-home-unit.locked {
-  opacity: 0.78;
-  background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b);
-  filter: saturate(0.68);
+.legacy-home-unit b {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #efff78, #a7dc19 58%, #5eaa0d);
+  color: #184f26;
+  text-shadow: none;
 }
 
+.legacy-home-unit span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legacy-home-unit.available { cursor: pointer; }
+.legacy-home-unit.locked { opacity: 0.78; background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b); filter: saturate(0.68); cursor: not-allowed; }
 .legacy-home-unit.locked b { background: linear-gradient(180deg, #e4edf0, #a9bac1 56%, #788d96); color: #314854; }
 
 .legacy-home-lock {
@@ -99,7 +124,6 @@
   background: rgba(58, 29, 81, 0.78);
   color: #fff;
   font-size: clamp(0.62rem, 0.6vw, 0.76rem) !important;
-  font-style: normal;
   font-weight: 950;
   letter-spacing: 0.05em;
   line-height: 1;
@@ -107,47 +131,30 @@
   text-transform: uppercase;
 }
 
-.legacy-home-identity {
+.legacy-menu-title-animation {
   align-self: center;
-  padding: clamp(10px, 1.5vw, 24px);
-  border: 3px solid rgba(255, 255, 255, 0.82);
-  border-radius: 48% 52% 45% 55% / 52% 43% 57% 48%;
-  background: radial-gradient(ellipse, rgba(91, 42, 143, 0.88), rgba(91, 42, 143, 0.55) 58%, rgba(91, 42, 143, 0.05) 74%);
-  box-shadow: 0 12px 36px rgba(30, 21, 72, 0.28);
+  justify-self: center;
+  width: min(100%, 500px);
+  aspect-ratio: 432.075 / 295.6;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 10px 14px rgba(31, 26, 75, 0.3));
 }
 
-.legacy-home-title {
-  margin: 0;
-  gap: clamp(7px, 0.7vw, 13px);
-  line-height: 0.88;
-}
-
-.legacy-home-title span { display: flex; flex-direction: column; align-items: flex-end; }
-.legacy-home-title i,
-.legacy-home-title em { font-style: normal; }
-.legacy-home-title i { color: #ccfb43; font-size: clamp(1.25rem, 2.2vw, 2.7rem); }
-.legacy-home-title em { font-size: clamp(1rem, 1.6vw, 2rem); letter-spacing: 0.16em; }
-.legacy-home-title strong { width: clamp(48px, 4.7vw, 76px); height: clamp(48px, 4.7vw, 76px); font-size: clamp(1.3rem, 2vw, 2.25rem); }
-
-.legacy-home-identity > img {
-  height: min(23vh, 250px);
-  max-width: 52%;
-  margin-top: clamp(8px, 1vh, 14px);
-  border-width: 2px;
-}
-
-.legacy-home-identity p { margin: 7px 0 1px; color: #d8fbff; font-size: clamp(0.72rem, 0.8vw, 0.95rem); letter-spacing: 0.09em; text-transform: uppercase; }
-.legacy-home-identity > small { margin-top: 3px; font-size: clamp(0.65rem, 0.68vw, 0.82rem); }
+.legacy-menu-title-animation canvas { width: 100%; height: 100%; display: block; }
+.legacy-menu-title-fallback { color: #fff; font-size: clamp(1.5rem, 3vw, 3.5rem); font-weight: 950; text-align: center; text-shadow: 0 3px 0 #56277e; }
 
 .legacy-home-book-row {
   grid-column: 1 / -1;
+  width: min(920px, 70vw);
+  justify-self: center;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(8px, 1.2vw, 20px);
 }
 
 .legacy-home-book-button {
-  min-height: clamp(58px, 7vh, 82px);
+  min-height: clamp(54px, 6.5vh, 76px);
   padding: 7px clamp(9px, 1vw, 18px);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -164,56 +171,89 @@
 }
 
 .legacy-home-book-button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.legacy-home-book-button.available { cursor: pointer; }
-.legacy-home-unit.available:hover,
-.legacy-home-book-button.available:hover { filter: none; transform: none; }
 .legacy-home-book-button.locked { opacity: 0.78; filter: saturate(0.68); cursor: not-allowed; }
-.legacy-home-book-button.available small { color: #d7ff68; font-size: 0.7em; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.teacher-offline-library > .classroom-teaching-toolbar {
+  align-self: center;
+  width: min(1040px, calc(100vw - 144px));
+  margin: 0 auto;
+}
+
+/* The recovered launcher keeps its authored legacy palette in either app theme. */
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit {
+  border: 3px solid #fff;
+  border-radius: 999px 18px 18px 999px;
+  background: linear-gradient(180deg, #82def3, #1fa1ca 48%, #117aa9 52%, #075d85);
+  box-shadow: 0 0 0 2px #08749b, 0 5px 0 #075879, 0 9px 18px rgba(15, 54, 83, 0.25);
+  color: #fff;
+  text-shadow: 0 2px 0 #07577b;
+}
+
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit b {
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #efff78, #a7dc19 58%, #5eaa0d);
+  color: #184f26;
+}
+
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked {
+  opacity: 0.78;
+  background: linear-gradient(180deg, #bfdeea, #6aa8bf 48%, #477e99 52%, #315f7b);
+}
+
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked b {
+  background: linear-gradient(180deg, #e4edf0, #a9bac1 56%, #788d96);
+  color: #314854;
+}
+
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button,
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button.locked {
+  opacity: 0.82;
+  border: 3px solid #fff;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f27fdc, #c33ab6 50%, #812185);
+  box-shadow: 0 0 0 2px #6b236f, 0 5px 0 #4b1d62, 0 9px 18px rgba(41, 20, 65, 0.28);
+  color: #fff;
+  text-shadow: 0 2px 0 #6e277b;
+}
+
+.legacy-teacher-tool-icon { width: 42px; height: 42px; flex: none; object-fit: contain; }
+.classroom-teaching-toolbar button.selected .legacy-teacher-tool-icon { filter: none; }
 
 @media (hover: hover) and (pointer: fine) {
-  .legacy-home-unit.available:hover,
-  .legacy-home-book-button.available:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .legacy-home-unit.available:hover { filter: brightness(1.08); transform: translateY(-1px); }
 }
 
 @media (max-width: 1100px), (max-height: 650px) {
-  .teacher-offline-library { grid-template-rows: 54px minmax(0, 1fr); }
-  .teacher-offline-library > .legacy-home-topbar { min-height: 54px; padding: 4px 12px; }
-  .legacy-home-publisher strong { font-size: 0.82rem; }
-  .legacy-home-publisher span { margin-top: 2px; font-size: 0.5rem; }
-  .legacy-home-topbar .teacher-offline-eyebrow { font-size: 0.62rem; }
-  .legacy-home-window-controls { gap: 6px; }
-  .legacy-home-window-controls button { width: 44px; height: 44px; min-height: 44px; border-width: 1px; box-shadow: none; }
+  .teacher-offline-library.has-classroom-tools { grid-template-rows: 54px minmax(0, 1fr) var(--classroom-toolbar-height); }
+  .teacher-offline-library > .legacy-home-topbar { min-height: 54px; padding-block: 3px; }
+  .legacy-home-publisher-logo { width: 190px; }
+  .legacy-home-window-controls button { width: 46px; height: 46px; min-height: 46px; }
   .legacy-home-launcher {
     width: calc(100vw - 14px);
-    margin: 4px auto 2px;
     padding: 2px 5px;
-    grid-template-columns: minmax(220px, 1fr) minmax(126px, 0.56fr) minmax(220px, 1fr);
-    gap: 5px 8px;
+    grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) minmax(220px, 1fr);
+    gap: 4px 8px;
   }
   .legacy-home-unit-column { grid-template-rows: repeat(5, 44px); gap: 3px; }
   .legacy-home-unit { min-height: 44px; padding: 2px 6px 2px 3px; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 4px; border-width: 2px; font-size: 0.65rem; }
   .legacy-home-unit b { border-width: 1px; font-size: 0.82rem; }
   .legacy-home-lock { padding: 2px 4px; font-size: 0.49rem !important; }
   .legacy-home-lock svg { display: none; }
-  .legacy-home-identity { padding: 5px; border-width: 2px; }
-  .legacy-home-title i { font-size: clamp(0.82rem, 2.1vw, 1.25rem); }
-  .legacy-home-title em { font-size: clamp(0.65rem, 1.55vw, 0.95rem); }
-  .legacy-home-title strong { width: 35px; height: 35px; border-width: 2px; font-size: 0.95rem; }
-  .legacy-home-identity > img { height: min(15vh, 58px); margin-top: 3px; border-width: 1px; }
-  .legacy-home-identity p { margin: 2px 0 0; font-size: 0.46rem; }
-  .legacy-home-identity > small { margin-top: 1px; font-size: 0.44rem; }
-  .legacy-home-book-row { gap: 5px; }
+  .legacy-menu-title-animation { width: min(100%, 270px); }
+  .legacy-home-book-row { width: min(600px, 70vw); gap: 5px; }
   .legacy-home-book-button { min-height: 44px; padding: 3px 6px; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 3px; border-width: 2px; border-radius: 10px; font-size: 0.64rem; }
   .legacy-home-book-button svg { width: 16px; height: 16px; }
-  html[data-teacher-viewport="compact-landscape"] .legacy-classroom-sound-toggle-home { top: max(5px, env(safe-area-inset-top)); right: calc(env(safe-area-inset-right) + 112px); bottom: auto; }
+  .legacy-home-settings-button { width: 46px; height: 46px; min-height: 46px; }
+  .legacy-teacher-tool-icon { width: 40px; height: 40px; }
 }
 
 @media (min-width: 2500px) and (min-height: 1400px) {
-  .legacy-home-launcher { width: min(2500px, 92vw); grid-template-columns: minmax(420px, 620px) minmax(500px, 1fr) minmax(420px, 620px); gap: 38px 72px; padding: 36px 64px; }
+  .legacy-home-launcher { width: min(2500px, 92vw); grid-template-columns: minmax(420px, 620px) minmax(500px, 1fr) minmax(420px, 620px); gap: 30px 72px; padding: 28px 64px; }
   .legacy-home-unit-column { grid-template-rows: repeat(5, 84px); gap: 18px; }
   .legacy-home-unit { min-height: 84px; font-size: 1.15rem; }
   .legacy-home-unit small { font-size: 0.78rem !important; }
-  .legacy-home-identity > img { height: min(22vh, 390px); }
+  .legacy-menu-title-animation { width: min(100%, 760px); }
   .legacy-home-book-button { min-height: 90px; font-size: 1.35rem; }
   .legacy-home-window-controls button { width: 60px; height: 60px; min-height: 60px; }
 }

@@ -162,13 +162,13 @@ const scenario = String.raw`
     await sleep(150);
   }
   if (!document.querySelector(".teacher-offline-library")) throw new Error("Classroom library did not open");
-  if (document.querySelector(".teacher-offline-library :is(.legacy-home-classroom-toolbar, .classroom-teaching-toolbar)")) throw new Error("Launcher unexpectedly exposes teaching tools");
-  if (!document.querySelector(".legacy-home-topbar .legacy-home-settings-button")) throw new Error("Launcher settings control is not in the top chrome");
+  if (!document.querySelector(".teacher-offline-library .classroom-teaching-toolbar")) throw new Error("Launcher classroom toolbar is missing");
+  if (!document.querySelector(".teacher-offline-library > .legacy-home-settings-button")) throw new Error("Launcher bottom-right settings control is missing");
   if (!document.querySelector(".legacy-home-topbar .legacy-home-close-button")) throw new Error("Launcher close control is missing");
   if (document.querySelector('[aria-label^="Minimize"]')) throw new Error("Launcher minimize control still exists");
   timings.bookOpenMs = await (async () => {
     const started = performance.now();
-    await click("Open Students Book");
+    await click("Lights, Camera, Action!");
     await waitFor(() => document.querySelector(".teacher-offline-book"), "book");
     return Math.round(performance.now() - started);
   })();
@@ -253,7 +253,7 @@ const viewportScenario = String.raw`
     back.click();
     await sleep(100);
   }
-  button("Open Students Book")?.click();
+  [...document.querySelectorAll("button")].find((candidate) => candidate.getAttribute("aria-label")?.startsWith("Open Unit 1:"))?.click();
   await waitFor(() => document.querySelector(".teacher-offline-book"), "book");
   if (!document.querySelector(".teacher-offline-pages")) {
     button("Book pages")?.click();

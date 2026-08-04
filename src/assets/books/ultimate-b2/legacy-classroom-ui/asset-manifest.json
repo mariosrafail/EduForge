@@ -74,8 +74,16 @@
         "height": 295.6000061035156
       },
       "sequences": [
-        { "id": "Break", "start": 1, "end": 167 },
-        { "id": "Logo1", "start": 168, "end": 334 }
+        {
+          "id": "Break",
+          "start": 1,
+          "end": 167
+        },
+        {
+          "id": "Logo1",
+          "start": 168,
+          "end": 334
+        }
       ],
       "functionalRole": "Central animated ULTIMATE / B2 / English home-menu title timeline",
       "state": "animated",
@@ -94,7 +102,10 @@
         "entryPath": "logo/logo.gaf",
         "extraction": "byte-exact archive entry"
       },
-      "duplicateStatus": { "type": "unique-by-byte-hash", "matches": [] },
+      "duplicateStatus": {
+        "type": "unique-by-byte-hash",
+        "matches": []
+      },
       "nearDuplicateStatus": "No equivalent standalone still or SWF symbol exists; the four companion atlases provide two authored content-scale factors.",
       "recommendedAction": "Play with the exact companion atlases in a Teacher-side accessible canvas wrapper; pause on reduced-motion preference."
     },
@@ -115,12 +126,23 @@
       "state": "animation-atlas",
       "audience": "shared",
       "intendedConsumer": "LegacyMenuTitleAnimation",
-      "usedBy": ["LegacyMenuTitleAnimation"],
+      "usedBy": [
+        "LegacyMenuTitleAnimation"
+      ],
       "evidence": "GAF ATLAS2 source for atlas ID 1 and csf=1.",
       "confidence": "high",
       "sourceKind": "archive-entry",
-      "extractionDetails": { "container": "ZIP entry", "archivePath": "Contents/Resources/assets/home/common/logo_1.zip", "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6", "entryPath": "logo/logo_SD.png", "extraction": "byte-exact archive entry" },
-      "duplicateStatus": { "type": "unique-by-byte-hash", "matches": [] },
+      "extractionDetails": {
+        "container": "ZIP entry",
+        "archivePath": "Contents/Resources/assets/home/common/logo_1.zip",
+        "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6",
+        "entryPath": "logo/logo_SD.png",
+        "extraction": "byte-exact archive entry"
+      },
+      "duplicateStatus": {
+        "type": "unique-by-byte-hash",
+        "matches": []
+      },
       "nearDuplicateStatus": "Authored 1x counterpart of menu-title-animation-atlas-hd-1.",
       "recommendedAction": "Use on lower-density displays through the exact GAF timeline."
     },
@@ -141,12 +163,23 @@
       "state": "animation-atlas",
       "audience": "shared",
       "intendedConsumer": "LegacyMenuTitleAnimation",
-      "usedBy": ["LegacyMenuTitleAnimation"],
+      "usedBy": [
+        "LegacyMenuTitleAnimation"
+      ],
       "evidence": "GAF ATLAS2 source for atlas ID 1 and csf=2.",
       "confidence": "high",
       "sourceKind": "archive-entry",
-      "extractionDetails": { "container": "ZIP entry", "archivePath": "Contents/Resources/assets/home/common/logo_1.zip", "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6", "entryPath": "logo/logo_HD.png", "extraction": "byte-exact archive entry" },
-      "duplicateStatus": { "type": "unique-by-byte-hash", "matches": [] },
+      "extractionDetails": {
+        "container": "ZIP entry",
+        "archivePath": "Contents/Resources/assets/home/common/logo_1.zip",
+        "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6",
+        "entryPath": "logo/logo_HD.png",
+        "extraction": "byte-exact archive entry"
+      },
+      "duplicateStatus": {
+        "type": "unique-by-byte-hash",
+        "matches": []
+      },
       "nearDuplicateStatus": "Authored 2x counterpart of menu-title-animation-atlas-sd-1.",
       "recommendedAction": "Use on high-density displays through the exact GAF timeline."
     },
@@ -167,12 +200,23 @@
       "state": "animation-atlas",
       "audience": "shared",
       "intendedConsumer": "LegacyMenuTitleAnimation",
-      "usedBy": ["LegacyMenuTitleAnimation"],
+      "usedBy": [
+        "LegacyMenuTitleAnimation"
+      ],
       "evidence": "GAF ATLAS2 source for atlas ID 2 and csf=1.",
       "confidence": "high",
       "sourceKind": "archive-entry",
-      "extractionDetails": { "container": "ZIP entry", "archivePath": "Contents/Resources/assets/home/common/logo_1.zip", "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6", "entryPath": "logo/logo_SD_2.png", "extraction": "byte-exact archive entry" },
-      "duplicateStatus": { "type": "unique-by-byte-hash", "matches": [] },
+      "extractionDetails": {
+        "container": "ZIP entry",
+        "archivePath": "Contents/Resources/assets/home/common/logo_1.zip",
+        "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6",
+        "entryPath": "logo/logo_SD_2.png",
+        "extraction": "byte-exact archive entry"
+      },
+      "duplicateStatus": {
+        "type": "unique-by-byte-hash",
+        "matches": []
+      },
       "nearDuplicateStatus": "Authored 1x counterpart of menu-title-animation-atlas-hd-2.",
       "recommendedAction": "Use on lower-density displays through the exact GAF timeline."
     },
@@ -193,12 +237,23 @@
       "state": "animation-atlas",
       "audience": "shared",
       "intendedConsumer": "LegacyMenuTitleAnimation",
-      "usedBy": ["LegacyMenuTitleAnimation"],
+      "usedBy": [
+        "LegacyMenuTitleAnimation"
+      ],
       "evidence": "GAF ATLAS2 source for atlas ID 2 and csf=2.",
       "confidence": "high",
       "sourceKind": "archive-entry",
-      "extractionDetails": { "container": "ZIP entry", "archivePath": "Contents/Resources/assets/home/common/logo_1.zip", "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6", "entryPath": "logo/logo_HD_2.png", "extraction": "byte-exact archive entry" },
-      "duplicateStatus": { "type": "unique-by-byte-hash", "matches": [] },
+      "extractionDetails": {
+        "container": "ZIP entry",
+        "archivePath": "Contents/Resources/assets/home/common/logo_1.zip",
+        "archiveSha256": "3a2dbdb21ef14d0e00eb110cbd7357388c405a33ca2ec80a31c359ddc12c5bb6",
+        "entryPath": "logo/logo_HD_2.png",
+        "extraction": "byte-exact archive entry"
+      },
+      "duplicateStatus": {
+        "type": "unique-by-byte-hash",
+        "matches": []
+      },
       "nearDuplicateStatus": "Authored 2x counterpart of menu-title-animation-atlas-sd-2.",
       "recommendedAction": "Use on high-density displays through the exact GAF timeline."
     },
@@ -1537,8 +1592,11 @@
       "functionalRole": "navigation: navibar settings active",
       "state": "active",
       "audience": "shared",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region navibar_settings_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -1558,7 +1616,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "navigation-navibar-settings-disabled",
@@ -3057,8 +3115,11 @@
       "functionalRole": "topbar: exit btn enabled",
       "state": "enabled",
       "audience": "shared",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region exit_btn_enabled",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3078,7 +3139,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "topbar-minimize-btn-enabled",
@@ -3133,8 +3194,11 @@
       "functionalRole": "teacher-toolbar: button clear",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_clear",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3158,7 +3222,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-clear-active",
@@ -3175,8 +3239,11 @@
       "functionalRole": "teacher-toolbar: button clear active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_clear_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3200,7 +3267,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-custom-page",
@@ -3301,8 +3368,11 @@
       "functionalRole": "teacher-toolbar: button eraser",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_eraser",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3326,7 +3396,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-eraser-active",
@@ -3343,8 +3413,11 @@
       "functionalRole": "teacher-toolbar: button eraser active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_eraser_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3368,7 +3441,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-hide",
@@ -3385,8 +3458,11 @@
       "functionalRole": "teacher-toolbar: button hide",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_hide",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3410,7 +3486,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-hide-active",
@@ -3427,8 +3503,11 @@
       "functionalRole": "teacher-toolbar: button hide active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_hide_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3452,7 +3531,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-keyboard",
@@ -3469,8 +3548,11 @@
       "functionalRole": "teacher-toolbar: button keyboard",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_keyboard",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3494,7 +3576,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-keyboard-active",
@@ -3511,8 +3593,11 @@
       "functionalRole": "teacher-toolbar: button keyboard active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_keyboard_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3536,7 +3621,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-marker",
@@ -3889,8 +3974,11 @@
       "functionalRole": "teacher-toolbar: button pencil",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_pencil",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3914,7 +4002,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-pencil-active",
@@ -3931,8 +4019,11 @@
       "functionalRole": "teacher-toolbar: button pencil active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_pencil_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3956,7 +4047,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-print",
@@ -3973,8 +4064,11 @@
       "functionalRole": "teacher-toolbar: button print",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_print",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3998,7 +4092,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-print-active",
@@ -4015,8 +4109,11 @@
       "functionalRole": "teacher-toolbar: button print active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_print_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4040,7 +4137,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-redo",
@@ -4057,8 +4154,11 @@
       "functionalRole": "teacher-toolbar: button redo",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_redo",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4082,7 +4182,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-redo-active",
@@ -4099,8 +4199,11 @@
       "functionalRole": "teacher-toolbar: button redo active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_redo_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4124,7 +4227,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-save",
@@ -4225,8 +4328,11 @@
       "functionalRole": "teacher-toolbar: button score",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_score",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4250,7 +4356,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-score-active",
@@ -4267,8 +4373,11 @@
       "functionalRole": "teacher-toolbar: button score active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_score_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4292,7 +4401,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-show",
@@ -4309,8 +4418,11 @@
       "functionalRole": "teacher-toolbar: button show",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_show",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4334,7 +4446,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-show-active",
@@ -4351,8 +4463,11 @@
       "functionalRole": "teacher-toolbar: button show active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_show_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4376,7 +4491,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-text",
@@ -4393,8 +4508,11 @@
       "functionalRole": "teacher-toolbar: button text",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_text",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4418,7 +4536,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-text-active",
@@ -4435,8 +4553,11 @@
       "functionalRole": "teacher-toolbar: button text active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_text_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4460,7 +4581,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-timer",
@@ -4477,8 +4598,11 @@
       "functionalRole": "teacher-toolbar: button timer",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_timer",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4502,7 +4626,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-timer-active",
@@ -4519,8 +4643,11 @@
       "functionalRole": "teacher-toolbar: button timer active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_timer_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4544,7 +4671,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-undo",
@@ -4561,8 +4688,11 @@
       "functionalRole": "teacher-toolbar: button undo",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_undo",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4586,7 +4716,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-undo-active",
@@ -4603,8 +4733,11 @@
       "functionalRole": "teacher-toolbar: button undo active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_undo_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4628,7 +4761,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-url",
@@ -4729,8 +4862,11 @@
       "functionalRole": "teacher-toolbar: button zoom",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_zoom",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4754,7 +4890,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-zoom-active",
@@ -4771,8 +4907,11 @@
       "functionalRole": "teacher-toolbar: button zoom active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_zoom_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4796,7 +4935,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-support-annotation-container-low",
