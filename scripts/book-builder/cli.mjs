@@ -1,0 +1,64 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { AppRootResolutionError } from "../../lib/book-builder/app-root-resolver.js";
+import { defaultBookBuilderWorkspace } from "../../lib/book-builder/source-binding.js";
+import { createProjectFromSource, inspectProject, rescanProject } from "../../lib/book-builder/scanner-service.js";
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+function parseArgs(argv) {
+  const firstIsOption = argv[0]?.startsWith("--");
+  const result = { command: firstIsOption ? "help" : (argv[0] || "help") };
+  for (let index = firstIsOption ? 0 : 1; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (!argument.startsWith("--")) throw new Error(`Unexpected argument: ${argument}`);
+    const [rawKey, inline] = argument.slice(2).split("=", 2);
+    const key = rawKey.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    if (inline !== undefined) result[key] = inline;
+    else if (argv[index + 1] && !argv[index + 1].startsWith("--")) result[key] = argv[++index];
+    else result[key] = true;
+  }
+  return result;
+}
+
+function help() {
+  return `Hamilton House Book Builder Milestone 1
+
+Usage:
+  book-builder scan --source <folder> [--workspace <folder>] [--project-id <id>]
+  book-builder rescan --project <project-directory>
+  book-builder inspect --project <project-directory>
+  book-builder --help
+`;
+}
+
+function print(value) { process.stdout.write(`${JSON.stringify(value, null, 2)}\n`); }
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help || args.command === "help") { process.stdout.write(help()); return; }
+  if (args.command === "scan") {
+    if (!args.source) throw new Error("--source is required");
+    const result = await createProjectFromSource({ source: args.source, workspace: args.workspace || defaultBookBuilderWorkspace(), projectId: args.projectId, repositoryRoot });
+    print({ status: "scanned", outputDirectory: result.projectDirectory, profile: result.project.selectedProfile.id, confidence: result.project.selectedProfile.confidence, files: result.scan.inventory.summary.fileCount, bytes: result.scan.inventory.summary.totalBytes, facts: result.project.detectedFacts.length });
+    return;
+  }
+  if (args.command === "rescan") {
+    if (!args.project) throw new Error("--project is required");
+    const result = await rescanProject({ projectDirectory: args.project, repositoryRoot });
+    print({ status: "rescanned", outputDirectory: result.projectDirectory, revision: result.project.revision, added: result.diff.added.length, changed: result.diff.changed.length, removed: result.diff.removed.length, staleDecisions: result.diff.staleDecisions.length });
+    return;
+  }
+  if (args.command === "inspect") {
+    if (!args.project) throw new Error("--project is required");
+    print(await inspectProject(args.project));
+    return;
+  }
+  throw new Error(`Unknown command: ${args.command}`);
+}
+
+try { await main(); } catch (error) {
+  const payload = { error: error.message, code: error instanceof AppRootResolutionError ? error.code : "book_builder_error", diagnostics: error.diagnostics || [] };
+  process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+  process.exitCode = 1;
+}
