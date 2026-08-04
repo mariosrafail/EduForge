@@ -20,10 +20,7 @@
 
 @media (min-width: 1921px) and (min-height: 1081px) {
   /* Launcher: preserve the 1080p composition as the viewport grows. */
-  .teacher-offline-library > .legacy-home-topbar {
-    min-height: clamp(calc(54px * var(--teacher-ui-scale)), 6.5vh, calc(76px * var(--teacher-ui-scale)));
-    padding: calc(8px * var(--teacher-ui-scale)) clamp(calc(18px * var(--teacher-ui-scale)), 2.3vw, calc(44px * var(--teacher-ui-scale)));
-  }
+  .teacher-offline-library > .legacy-home-floating-chrome { padding: calc(8px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)) 0; }
   .legacy-home-publisher-logo { width: calc(272px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls button,

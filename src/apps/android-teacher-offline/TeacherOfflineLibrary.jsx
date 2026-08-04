@@ -41,9 +41,12 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, onOpenSett
 
   return (
     <main className="teacher-offline-library has-classroom-tools" data-book-menu-skin={menuSkin.id} style={{ "--legacy-classroom-background": `url(${menuSkin.background})` }}>
-      <header className="legacy-home-topbar">
+      <header className="legacy-home-floating-chrome">
         <img className="legacy-home-publisher-logo" src={menuSkin.publisherLogo} alt={menuSkin.publisherLogoAlt} />
         <div className="legacy-home-window-controls" aria-label="Launcher controls">
+          <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}>
+            <img src={menuSkin.settingsIcon} alt="" draggable="false" />
+          </button>
           <button type="button" className="legacy-home-close-button" aria-label="Close application" title="Close application" onClick={onCloseApplication}>
             <img src={menuSkin.closeIcon} alt="" draggable="false" />
           </button>
@@ -75,9 +78,6 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, onOpenSett
       </section>
 
       <ClassroomToolbar surfaceKey={surfaceKey} />
-      <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}>
-        <img src={menuSkin.settingsIcon} alt="" draggable="false" />
-      </button>
     </main>
   );
 }
