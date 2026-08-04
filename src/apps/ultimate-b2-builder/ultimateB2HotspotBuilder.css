@@ -12,7 +12,7 @@ button { cursor: pointer; }
 .builder-save-state small { max-width: 360px; color: #fecaca; }
 .builder-save-state button, .builder-zoom button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #172033; font-weight: 800; }
 .builder-save-state button:disabled { cursor: default; opacity: .5; }
-.builder-controls { display: grid; grid-template-columns: 180px 180px 140px minmax(300px, 1fr) auto; align-items: end; gap: 14px; padding: 14px 24px; background: white; border-bottom: 1px solid #d9e1ec; }
+.builder-controls { display: grid; grid-template-columns: 180px 180px 210px 140px minmax(300px, 1fr) auto; align-items: end; gap: 14px; padding: 14px 24px; background: white; border-bottom: 1px solid #d9e1ec; }
 .builder-controls label, .builder-properties label { display: grid; gap: 6px; font-size: 12px; font-weight: 850; }
 .builder-controls input, .builder-controls select, .builder-properties input, .builder-properties select { width: 100%; min-height: 42px; padding: 9px 11px; color: #172033; background: #fff; border: 1px solid #cbd5e1; border-radius: 7px; }
 .builder-controls input[readonly] { color: #5b667a; background: #f3f5f8; }

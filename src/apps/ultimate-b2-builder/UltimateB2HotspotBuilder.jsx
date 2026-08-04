@@ -6,8 +6,16 @@ import {
   ultimateB2StudentsBookAuthoringPages,
 } from "../../data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { getUltimateB2UnitPartAsset } from "../../data/ultimate-b2/ultimateB2PageAssets.offline.js";
+import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
+import {
+  listBookMenuSkinOptions,
+  selectedBookMenuSkinId,
+} from "../../config/bookMenuSkins.js";
 
-const endpoint = "/__hhplms/ultimate-b2-hotspots";
+const hotspotEndpoint = "/__hhplms/ultimate-b2-hotspots";
+const menuSkinEndpoint = "/__hhplms/book-menu-skin-selection";
+const packageId = "ultimate-b2-students-book";
+const menuSkinOptions = listBookMenuSkinOptions(packageId);
 const emptyManifest = {
   schemaVersion: "1.0",
   packageSlug: "ultimate-b2",
@@ -33,11 +41,13 @@ function isTextEditingTarget(target) {
 
 export function UltimateB2HotspotBuilder() {
   const [manifest, setManifest] = useState(emptyManifest);
+  const [skinSelections, setSkinSelections] = useState(bookMenuSkinSelections);
   const [unitNumber, setUnitNumber] = useState(1);
   const unitPages = useMemo(() => ultimateB2StudentsBookAuthoringPages.filter((page) => page.unitNumber === unitNumber), [unitNumber]);
   const [pageId, setPageId] = useState(ultimateB2StudentsBookAuthoringPages[0]?.id || "");
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const [dirty, setDirty] = useState(false);
+  const [hotspotsDirty, setHotspotsDirty] = useState(false);
+  const [menuSkinDirty, setMenuSkinDirty] = useState(false);
   const [status, setStatus] = useState("Loading…");
   const [error, setError] = useState("");
   const [fitToScreen, setFitToScreen] = useState(true);
@@ -52,18 +62,25 @@ export function UltimateB2HotspotBuilder() {
     activity.unitNumber === page?.unitNumber && activity.pageSpread === page?.spreadNumber
   ));
   const otherActivities = ultimateB2StudentsBookAuthoringActivities.filter((activity) => !currentPageActivities.includes(activity));
+  const menuSkinId = selectedBookMenuSkinId(skinSelections, packageId);
+  const dirty = hotspotsDirty || menuSkinDirty;
 
   useEffect(() => {
     let mounted = true;
-    fetch(endpoint, { cache: "no-store" })
-      .then(async (response) => {
+    const getJson = async (requestEndpoint, failureMessage) => {
+      const response = await fetch(requestEndpoint, { cache: "no-store" });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Hotspots could not be loaded.");
+        if (!response.ok) throw new Error(payload.error || failureMessage);
         return payload;
-      })
-      .then((payload) => {
+    };
+    Promise.all([
+      getJson(hotspotEndpoint, "Hotspots could not be loaded."),
+      getJson(menuSkinEndpoint, "Book menu skin selection could not be loaded."),
+    ])
+      .then(([hotspotManifest, selections]) => {
         if (!mounted) return;
-        setManifest(payload);
+        setManifest(hotspotManifest);
+        setSkinSelections(selections);
         setStatus("Ready");
       })
       .catch((requestError) => {
@@ -97,7 +114,7 @@ export function UltimateB2HotspotBuilder() {
         },
       }));
       setSelectedHotspotId(null);
-      setDirty(true);
+      setHotspotsDirty(true);
       setStatus("Unsaved changes");
     };
     window.addEventListener("keydown", deleteWithKeyboard);
@@ -112,7 +129,7 @@ export function UltimateB2HotspotBuilder() {
 
   const updatePageHotspots = (nextHotspots) => {
     setManifest((current) => ({ ...current, pages: { ...current.pages, [page.id]: nextHotspots } }));
-    setDirty(true);
+    setHotspotsDirty(true);
     setStatus("Unsaved changes");
     setError("");
   };
@@ -143,15 +160,24 @@ export function UltimateB2HotspotBuilder() {
     setStatus("Saving…");
     setError("");
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(manifest),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Hotspots could not be saved.");
-      setManifest(payload);
-      setDirty(false);
+      const postJson = async (requestEndpoint, body, failureMessage) => {
+        const response = await fetch(requestEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || failureMessage);
+        return payload;
+      };
+      const [savedManifest, savedSelections] = await Promise.all([
+        hotspotsDirty ? postJson(hotspotEndpoint, manifest, "Hotspots could not be saved.") : manifest,
+        menuSkinDirty ? postJson(menuSkinEndpoint, skinSelections, "Book menu skin selection could not be saved.") : skinSelections,
+      ]);
+      setManifest(savedManifest);
+      setSkinSelections(savedSelections);
+      setHotspotsDirty(false);
+      setMenuSkinDirty(false);
       setStatus("Saved");
     } catch (requestError) {
       setError(requestError.message);
@@ -178,6 +204,19 @@ export function UltimateB2HotspotBuilder() {
       <section className="builder-controls" aria-label="Book and page controls">
         <label>Book<input readOnly value="Ultimate B2" /></label>
         <label>Component<input readOnly value="Students Book" /></label>
+        <label>Book menu skin
+          <select value={menuSkinId || ""} onChange={(event) => {
+            setSkinSelections((current) => ({
+              ...current,
+              selections: { ...current.selections, [packageId]: event.target.value },
+            }));
+            setMenuSkinDirty(true);
+            setStatus("Unsaved changes");
+            setError("");
+          }}>
+            {menuSkinOptions.map((skin) => <option key={skin.id} value={skin.id}>{skin.label}</option>)}
+          </select>
+        </label>
         <label>Unit
           <select value={unitNumber} onChange={(event) => {
             const nextUnit = Number(event.target.value);

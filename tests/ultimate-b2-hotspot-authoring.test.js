@@ -107,6 +107,23 @@ test("web, Android student, and Android teacher viewers consume the tracked mani
   assert.match(teacherViewerStyles, /\.teacher-offline-page-hotspot:active[\s\S]*background-color: rgba\(255, 221, 0, 0\.3\)/);
 });
 
+test("local builder can select a validated book menu skin without placing Teacher assets in shared configuration", async () => {
+  const [builder, plugin, catalog, selections] = await Promise.all([
+    readFile(path.join(repositoryRoot, "src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"), "utf8"),
+    readFile(path.join(repositoryRoot, "scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/config/bookMenuSkins.js"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/config/bookMenuSkinSelections.json"), "utf8"),
+  ]);
+  assert.match(builder, /Book menu skin/);
+  assert.match(builder, /listBookMenuSkinOptions\(packageId\)/);
+  assert.match(builder, /menuSkinEndpoint/);
+  assert.match(plugin, /book-menu-skin-selection/);
+  assert.match(plugin, /loopbackAddresses/);
+  assert.match(plugin, /validateAndNormalizeBookMenuSkinSelections/);
+  assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);
+  assert.deepEqual(JSON.parse(selections).selections, { "ultimate-b2-students-book": "ultimate-b2-legacy" });
+});
+
 test("Unit 1 opener special renderer activates only for its exact stable activity identity", async () => {
   const opener = findStudentsBookImplementation(openerId);
   assert.equal(isUltimateB2Unit1LegacyOpener(opener), true);

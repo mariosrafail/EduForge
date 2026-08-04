@@ -3,12 +3,16 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  BOOK_MENU_SKIN_SELECTION_SCHEMA_VERSION,
   BOOK_MENU_SKIN_IDS,
   bookMenuSkinCatalog,
   defaultBookMenuSkinId,
   findBookMenuSkinDefinition,
   listBookMenuSkinOptions,
+  selectedBookMenuSkinId,
+  validateAndNormalizeBookMenuSkinSelections,
 } from "../src/config/bookMenuSkins.js";
+import selections from "../src/config/bookMenuSkinSelections.json" with { type: "json" };
 
 test("book menu skin catalog provides one explicit ready default for Ultimate B2", () => {
   assert.equal(bookMenuSkinCatalog.length, 1);
@@ -17,6 +21,16 @@ test("book menu skin catalog provides one explicit ready default for Ultimate B2
   assert.deepEqual(listBookMenuSkinOptions("ultimate-b2-students-book").map((skin) => skin.id), [BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY]);
   assert.equal(findBookMenuSkinDefinition(BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY)?.status, "ready");
   assert.equal(findBookMenuSkinDefinition("missing"), null);
+});
+
+test("tracked book menu skin selections are compatible, normalized, and deterministic", () => {
+  assert.deepEqual(validateAndNormalizeBookMenuSkinSelections(selections), selections);
+  assert.equal(selections.schemaVersion, BOOK_MENU_SKIN_SELECTION_SCHEMA_VERSION);
+  assert.equal(selectedBookMenuSkinId(selections, "ultimate-b2-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.equal(selectedBookMenuSkinId({ schemaVersion: "1.0", selections: {} }, "ultimate-b2-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.throws(() => validateAndNormalizeBookMenuSkinSelections({ schemaVersion: "2.0", selections: {} }), /schema 1\.0/);
+  assert.throws(() => validateAndNormalizeBookMenuSkinSelections({ schemaVersion: "1.0", selections: { "ultimate-b2-students-book": "missing" } }), /Unknown book menu skin/);
+  assert.throws(() => validateAndNormalizeBookMenuSkinSelections({ schemaVersion: "1.0", selections: { "different-package": "ultimate-b2-legacy" } }), /does not support package/);
 });
 
 test("Teacher runtime resolves menu visuals by package without exposing assets through the shared catalog", async () => {
@@ -28,7 +42,8 @@ test("Teacher runtime resolves menu visuals by package without exposing assets t
   ]);
   assert.match(runtime, /resolveTeacherBookMenuSkin/);
   assert.match(runtime, /legacyClassroomAssets\.branding\.bookMenu/);
-  assert.match(app, /resolveTeacherBookMenuSkin\(pack\.manifest\.packageId\)/);
+  assert.match(app, /selectedBookMenuSkinId\(bookMenuSkinSelections, pack\.manifest\.packageId\)/);
+  assert.match(app, /resolveTeacherBookMenuSkin\(pack\.manifest\.packageId, selectedMenuSkinId\)/);
   assert.match(library, /data-book-menu-skin=\{menuSkin\.id\}/);
   assert.doesNotMatch(library, /legacyClassroomAssets/);
   assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);

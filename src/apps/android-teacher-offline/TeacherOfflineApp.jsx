@@ -17,6 +17,8 @@ import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
+import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
+import { selectedBookMenuSkinId } from "../../config/bookMenuSkins.js";
 import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
@@ -164,7 +166,8 @@ export default function TeacherOfflineApp() {
   }
 
   const pack = packState.pack;
-  const menuSkin = resolveTeacherBookMenuSkin(pack.manifest.packageId);
+  const selectedMenuSkinId = selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId);
+  const menuSkin = resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId);
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const openBookActivity = (activityId, originLocation = null) => {
     const resolved = resolveTeacherOfflineActivityLocation({
