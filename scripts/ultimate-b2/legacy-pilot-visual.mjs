@@ -19,6 +19,40 @@ const activities = [
   { id: "ultimate-b2-sb-u1-p2-o5", label: /Reading.*Debate club/i },
 ];
 
+function legacyPilotActivityUnit(activityId) {
+  const unitMatch = /-u([0-9]+)-/.exec(activityId);
+  return unitMatch ? Number(unitMatch[1]) : Number.NaN;
+}
+
+function legacyPilotActivityUnitLabel(unitNumber) {
+  return new RegExp(`^Open Unit ${unitNumber}:`);
+}
+
+function targetUnitsFromActivities() {
+  const units = activities.map((activity) => legacyPilotActivityUnit(activity.id));
+  assert.ok(units.every(Number.isInteger), `Legacy pilot activities must include numeric unit ids: ${JSON.stringify(units)}`);
+  const uniqueUnits = [...new Set(units)];
+  assert.ok(uniqueUnits.length >= 1, "Legacy pilot visual targets must include at least one unit.");
+  return uniqueUnits.sort((left, right) => left - right);
+}
+
+async function openPilotBookFromLauncher(page, targetName) {
+  const targetUnits = targetUnitsFromActivities();
+  if (targetUnits.length !== 1) {
+    throw new Error(`${targetName} cannot use single launcher path because target units are ${JSON.stringify(targetUnits)}.`);
+  }
+  const targetUnit = targetUnits[0];
+  const unitButton = page.getByRole("button", { name: legacyPilotActivityUnitLabel(targetUnit) });
+  assert.equal(await unitButton.isVisible(), true, `${targetName} expects unit ${targetUnit} launcher button to be visible`);
+  assert.equal(await unitButton.isEnabled(), true, `${targetName} expects unit ${targetUnit} launcher button to be enabled`);
+  await unitButton.click();
+  await page.locator(".teacher-offline-book").waitFor();
+  const contentsButton = page.getByRole("button", { name: "Contents and exercises", exact: true });
+  await contentsButton.waitFor({ state: "visible" });
+  assert.equal(await contentsButton.isEnabled(), true, `${targetName} expects contents control to be enabled`);
+  await contentsButton.click();
+}
+
 const preview = spawn(
   process.execPath,
   ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4181"],
@@ -162,8 +196,8 @@ try {
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} requires teacher offline build`);
-    await page.getByRole("button", { name: "Open Students Book" }).click();
-    await page.getByRole("button", { name: "Contents and exercises" }).click();
+    await openPilotBookFromLauncher(page, target.name);
+    await page.locator(".teacher-offline-lessons").waitFor();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38, `${target.name} Unit 1 count`);
 
     for (const [index, activity] of activities.entries()) {
