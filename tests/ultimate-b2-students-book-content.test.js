@@ -34,7 +34,8 @@ test("generated Students Book catalog is deterministic and byte-stable from sani
   assert.deepEqual(first, second);
   const generated = await readJson("content/students-book-content.index.json");
   assert.deepEqual(generated, first);
-  assert.equal(`${JSON.stringify(first, null, 2)}\n`, await readFile(`${generatedRoot}/content/students-book-content.index.json`, "utf8"));
+  const trackedCatalog = await readFile(`${generatedRoot}/content/students-book-content.index.json`, "utf8");
+  assert.equal(`${JSON.stringify(first, null, 2)}\n`, trackedCatalog.replaceAll("\r\n", "\n"));
 });
 
 test("catalog covers all ten units and every printed page from 5 through 154", async () => {
