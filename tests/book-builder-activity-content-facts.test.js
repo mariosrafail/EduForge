@@ -45,6 +45,8 @@ test("field anchors are content-redacted, stable, and cover every supported exis
   for (const text of ["Read the fictional sentences.", "Choose the fictional colour.", "Amber", "Blue", "Box"]) assert.doesNotMatch(serialized, new RegExp(text.replace(/[.]/g, "\\.")));
   assert.equal(result.find((item) => item.kind === "activity_question_content_anchor").value.targetId, "question_fictional");
   assert.equal(result.find((item) => item.kind === "activity_option_content_anchor").value.parentId, "question_fictional");
+  assert.match(result.find((item) => item.kind === "activity_draggable_content_anchor").value.geometryDigest, /^[a-f0-9]{64}$/);
+  assert.equal(Object.hasOwn(result[0].value, "sourceRelativeReferences"), false);
 });
 
 test("changing one prompt changes only its exact anchor while unrelated nested fields remain stable", () => {

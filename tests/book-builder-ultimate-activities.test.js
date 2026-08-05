@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityCandidateId, validateStudentActivityCandidates, validateTeacherSolutionCandidates } from "../lib/book-builder/profiles/ultimate-air-v2/activity-candidate-contract.js";
+import { activityCandidateId, nestedCandidateId, validateStudentActivityCandidates, validateTeacherSolutionCandidates } from "../lib/book-builder/profiles/ultimate-air-v2/activity-candidate-contract.js";
 import { classifyActivityDisposition, mapPublisherActivityTypes } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-activity-types.js";
 import { parseQuestionBank } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-question-bank-parser.js";
 import { detectSentenceIndexBase, parseSentenceMultipleChoice } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-multiple-choice-parser.js";
@@ -14,6 +14,26 @@ test("candidate identity is title-independent and stable at the semantic source 
   const locator = "Contents/Resources/assets/books/book1/unit/2/part3/obj4";
   assert.equal(activityCandidateId(locator), activityCandidateId(locator));
   assert.doesNotMatch(activityCandidateId(locator), /ultimate-b2/i);
+});
+
+test("reused publisher IDs receive deterministic unique nested identities", () => {
+  const writeXml = `<params><text id="same"/><text id="same"/><text id="other"/></params>`;
+  const firstWrite = parseWriteResponses({ xml: writeXml, ...source });
+  const secondWrite = parseWriteResponses({ xml: writeXml, ...source });
+  assert.equal(new Set(firstWrite.responseFields.map((item) => item.id)).size, 3);
+  assert.equal(firstWrite.responseFields[0].id, nestedCandidateId("response", activityId, "same"));
+  assert.deepEqual(firstWrite.responseFields.map((item) => item.id), secondWrite.responseFields.map((item) => item.id));
+
+  const questionXml = `<questions><question id="same"><answer id="same">A</answer><answer id="same">B</answer><correct>A</correct></question><question id="same"><answer>A</answer><correct>A</correct></question></questions>`;
+  const parsed = parseQuestionBank({ xml: questionXml, ...source });
+  assert.equal(new Set(parsed.questions.map((item) => item.id)).size, 2);
+  assert.equal(new Set(parsed.questions.flatMap((item) => item.options.map((option) => option.id))).size, 3);
+  assert.equal(validateStudentActivityCandidates({ schemaVersion: "1.0", audience: "student-safe-authoring", candidates: [{ activityCandidateId: activityId, questions: parsed.questions, responseFields: firstWrite.responseFields }] }).valid, true);
+});
+
+test("Student contract rejects ambiguous duplicate nested IDs", () => {
+  const artifact = { schemaVersion: "1.0", audience: "student-safe-authoring", candidates: [{ activityCandidateId: activityId, responseFields: [{ id: "response_same" }, { id: "response_same" }] }] };
+  assert.equal(validateStudentActivityCandidates(artifact).valid, false);
 });
 
 test("publisher types remain explicit and publication mapping is never approval", () => {
