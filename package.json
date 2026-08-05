@@ -73,6 +73,7 @@
     "books:verify": "node scripts/books/cli.mjs verify",
     "books:cleanup-failed": "node scripts/books/cli.mjs cleanup-failed",
     "test:book-builder": "node --test tests/book-builder-*.test.js",
+    "test:book-builder:ultimate": "node --test tests/book-builder-ultimate-*.test.js",
     "book-builder:scan": "node scripts/book-builder/cli.mjs scan",
     "book-builder:rescan": "node scripts/book-builder/cli.mjs rescan",
     "book-builder:inspect": "node scripts/book-builder/cli.mjs inspect",

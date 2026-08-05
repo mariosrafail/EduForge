@@ -21,6 +21,28 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+UUID_PATTERN = re.compile(
+    rb"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"
+)
+
+
+def uuid_candidates(data: bytes) -> list[dict]:
+    """Return unique UUID-shaped ASCII strings and their first byte offsets."""
+    seen: set[str] = set()
+    candidates: list[dict] = []
+    for match in UUID_PATTERN.finditer(data):
+        value = match.group(0).decode("ascii").upper()
+        if value in seen:
+            continue
+        seen.add(value)
+        candidates.append({
+            "value": value,
+            "offset": match.start(),
+            "discoveryMethod": "decompressed-swf-ascii-uuid",
+        })
+    return candidates
+
+
 def decompress_swf(source: bytes) -> bytes:
     signature = source[:3]
     if signature == b"FWS":
@@ -191,6 +213,7 @@ def main() -> None:
         "sourceSizeBytes": len(source_bytes),
         "sourceSha256": sha256(source_bytes),
         "decompressedSizeBytes": len(decompressed),
+        "uuidCandidates": uuid_candidates(decompressed),
         **header,
         "symbolClassCount": len(symbols),
         "resources": public_resources,
