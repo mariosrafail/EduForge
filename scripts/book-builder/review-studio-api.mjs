@@ -105,7 +105,7 @@ export function createReviewStudioApi({
           apiRoot: BOOK_BUILDER_API_ROOT,
           readOnly: !writeEnabled,
           writeEnabled,
-          milestone: "4B1",
+          milestone: "4B2A",
           sessionToken,
           ...(writeEnabled ? { writeCapability: writeToken } : {}),
           workspaceLabel: current.workspaceLabel,

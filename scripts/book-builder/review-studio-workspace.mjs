@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { assertNoSymlinkPath, isPathWithin } from "../../lib/book-builder/path-safety.js";
 import { unavailableClusterReviewResponse } from "./review-studio-cluster-projection.mjs";
+import { safeActivityContentDetail } from "./review-studio-activity-content.mjs";
 import {
   DEFAULT_PAGE_SIZE,
   MAXIMUM_ARTIFACT_BYTES,
@@ -299,20 +300,6 @@ function geometrySummary(items) {
   return { count: list.length, withGeometry: list.filter((item) => safeGeometry(item.geometry)).length };
 }
 
-function safeQuestion(question) {
-  return {
-    id: safeText(question.id, "question", 128),
-    prompt: typeof question.prompt === "string" ? safeText(question.prompt, "", 4000) : null,
-    promptAvailability: safeText(question.promptAvailability, "unavailable", 80),
-    responseKind: safeText(question.responseKind, "unresolved", 80),
-    options: optionalArray(question.options).slice(0, 100).map((option) => ({
-      order: safeCount(option.order),
-      text: typeof option.text === "string" ? safeText(option.text, "", 2000) : null,
-      textAvailability: safeText(option.textAvailability, "unavailable", 80),
-    })),
-  };
-}
-
 function safeActivityListItem(candidate) {
   const questions = optionalArray(candidate.questions);
   return {
@@ -345,7 +332,7 @@ function safeActivityDetail(candidate) {
   const item = safeActivityListItem(candidate);
   return {
     ...item,
-    questions: optionalArray(candidate.questions).slice(0, 100).map(safeQuestion),
+    ...safeActivityContentDetail(candidate, safeGeometry),
     draggableLabels: optionalArray(candidate.draggables).map((entry) => safeText(entry.label, "", 500)).filter(Boolean).slice(0, 100),
     targetLabels: optionalArray(candidate.targets).map((entry) => safeText(entry.label, "", 500)).filter(Boolean).slice(0, 100),
     responseFields: geometrySummary(candidate.responseFields),
@@ -375,6 +362,8 @@ function safeReviewItem(item) {
     sourceRelativeLocator: safeRelativeLocator(item.sourceRelativeLocator),
     dependencyCount: optionalArray(item.dependencyFactIds).length,
     suggestedDecisionKind: safeText(item.suggestedDecisionKind, "future_manual_review", 128),
+    targetId: item.targetId ? safeText(item.targetId, "", 128) : null,
+    activityCandidateId: item.activityCandidateId ? safeText(item.activityCandidateId, "", 128) : null,
     status: safeText(item.status, "unresolved", 80),
   };
 }

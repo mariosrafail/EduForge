@@ -44,7 +44,7 @@ test("bootstrap and project listing expose only a safe read-only workspace proje
   const bootstrap = await json(await fetch(`${origin}${BOOK_BUILDER_API_ROOT}/bootstrap`, { headers: { Origin: origin } }));
   assert.equal(bootstrap.response.status, 200);
   assert.equal(bootstrap.payload.readOnly, true);
-  assert.equal(bootstrap.payload.milestone, "4B1");
+  assert.equal(bootstrap.payload.milestone, "4B2A");
   assert.equal(bootstrap.payload.writeEnabled, false);
   assert.equal(Object.hasOwn(bootstrap.payload, "writeCapability"), false);
   assert.equal(bootstrap.payload.sessionToken, "synthetic-session-token");
@@ -93,6 +93,9 @@ test("all project view families return bounded sanitized models", async (t) => {
   assert.equal(activities.payload.pagination.total, 152);
   assert.equal(activities.payload.selected.questions[0].prompt.startsWith("Fictional question"), true);
   assert.deepEqual(activities.payload.selected.draggableLabels, ["Fictional draggable"]);
+  assert.equal(activities.payload.selected.content.title.valueOrigin, "missing");
+  assert.equal(activities.payload.selected.content.instructions.valueOrigin, "detected");
+  assert.equal(activities.payload.selected.content.questions[0].options[0].textField.valueOrigin, "detected");
   assert.doesNotMatch(activities.serialized, /"(?:correct|accepted|scoring|publisherId)[^"]*"\s*:/i);
   const reviews = await json(await request(`${project}/reviews?groupBy=reason&pageSize=10`));
   assert.equal(reviews.payload.summary.total, 5007);

@@ -1,6 +1,14 @@
 import { DecisionHistoryStore } from "../../lib/book-builder/decision-history.js";
 import { stableDecisionId } from "../../lib/book-builder/decision-contracts.js";
 import { effectiveReviewQueue } from "../../lib/book-builder/effective-reviews.js";
+import {
+  ACTIVITY_CONTENT_DECISION_KINDS,
+  activityContentDecisionDefinition,
+  detectedActivityContentValue,
+  findActivityContentTarget,
+  projectActivityContentField,
+  projectEffectiveActivityContent,
+} from "../../lib/book-builder/activity-content-overrides.js";
 
 function list(value) { return Array.isArray(value) ? value : []; }
 
@@ -25,6 +33,8 @@ function safeDecision(decision) {
     updatedAt: decision.updatedAt,
     dependencyCount: list(decision.dependencyFactIds).length,
     resolvesReviewCount: list(decision.resolvesReviewIds).length,
+    valuePresent: typeof decision.value === "string" ? decision.value.length > 0 : decision.value !== null && decision.value !== undefined,
+    valuePreview: typeof decision.value === "string" ? decision.value.replaceAll(/\s+/g, " ").slice(0, 120) : null,
   };
 }
 
@@ -80,12 +90,16 @@ export async function decorateDecisionView(reader, projectId, view, payload) {
     return { ...payload, items: list(payload.items).map(decoratePage), selected: decoratePage(payload.selected) };
   }
   if (view === "activities") {
+    const artifact = await reader.readArtifact(projectId, "activities", { optional: true, project });
+    const candidates = new Map(list(artifact?.candidates).map((item) => [item.activityCandidateId, item]));
     const decorateActivity = (item) => {
       if (!item) return item;
       const type = decisionFor(project, "activity_type", "activity", item.activityId);
       const disposition = decisionFor(project, "activity_disposition", "activity", item.activityId);
       const audience = decisionFor(project, "activity_audience_policy", "activity", item.activityId);
-      return { ...item, detectedType: item.normalizedType, effectiveType: type?.value || item.normalizedType, detectedDisposition: item.disposition, effectiveDisposition: disposition?.value || item.disposition, audiencePolicy: audience?.value || "student_and_teacher", decisions: { type: stateProjection(type), disposition: stateProjection(disposition), audience: stateProjection(audience) }, decisionKinds: ["activity_type", "activity_disposition", "activity_audience_policy"] };
+      const candidate = item.questions ? item : candidates.get(item.activityId);
+      const content = candidate ? projectEffectiveActivityContent(candidate, decisions) : null;
+      return { ...item, detectedType: item.normalizedType, effectiveType: type?.value || item.normalizedType, detectedDisposition: item.disposition, effectiveDisposition: disposition?.value || item.disposition, audiencePolicy: audience?.value || "student_and_teacher", decisions: { type: stateProjection(type), disposition: stateProjection(disposition), audience: stateProjection(audience) }, decisionKinds: ["activity_type", "activity_disposition", "activity_audience_policy"], effectiveContentCompleteness: content?.completeness || item.contentCompleteness, contentCounts: content?.counts || null, ...(item.questions && content ? { content } : {}) };
     };
     return { ...payload, items: list(payload.items).map(decorateActivity), selected: decorateActivity(payload.selected) };
   }
@@ -94,7 +108,19 @@ export async function decorateDecisionView(reader, projectId, view, payload) {
     const effective = effectiveReviewQueue(queue, decisions);
     const byId = new Map(effective.items.map((item) => [item.id, item]));
     const decisionById = new Map(decisions.map((item) => [item.id, item]));
-    return { ...payload, summary: { ...payload.summary, ...reviewSummary(effective) }, groups: list(payload.groups).map((group) => ({ ...group, samples: list(group.samples).map((item) => decorateReviewItem(item, byId, decisionById)) })), selectedGroup: payload.selectedGroup ? { ...payload.selectedGroup, items: list(payload.selectedGroup.items).map((item) => decorateReviewItem(item, byId, decisionById)) } : null };
+    const activities = await reader.readArtifact(projectId, "activities", { optional: true, project });
+    const decorate = (item) => {
+      const decorated = decorateReviewItem(item, byId, decisionById);
+      if (!ACTIVITY_CONTENT_DECISION_KINDS.has(item.suggestedDecisionKind) || !item.targetId) return decorated;
+      const target = findActivityContentTarget(activities, item.suggestedDecisionKind, item.targetId);
+      if (!target) return decorated;
+      const definition = activityContentDecisionDefinition(item.suggestedDecisionKind);
+      return { ...decorated, contentOverride: projectActivityContentField({
+        kind: item.suggestedDecisionKind, targetId: item.targetId, detectedValue: detectedActivityContentValue(target),
+        availability: target.node[definition.availability] || "raster-only-or-missing", decisions,
+      }), editorLink: `#/projects/${projectId}/activities?activityId=${target.activity.activityCandidateId}` };
+    };
+    return { ...payload, summary: { ...payload.summary, ...reviewSummary(effective) }, groups: list(payload.groups).map((group) => ({ ...group, samples: list(group.samples).map(decorate) })), selectedGroup: payload.selectedGroup ? { ...payload.selectedGroup, items: list(payload.selectedGroup.items).map(decorate) } : null };
   }
   return payload;
 }

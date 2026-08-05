@@ -6,6 +6,7 @@ import test from "node:test";
 
 import { componentDecisionTargetId } from "../lib/book-builder/decision-dependencies.js";
 import { createDetectedFact } from "../lib/book-builder/detected-facts.js";
+import { buildActivityContentAnchorFacts } from "../lib/book-builder/profiles/ultimate-air-v2/activity-content-facts.js";
 import { createReviewStudioApi } from "../scripts/book-builder/review-studio-api.mjs";
 import { BOOK_BUILDER_API_ROOT, BOOK_BUILDER_SESSION_HEADER, BOOK_BUILDER_WRITE_HEADER } from "../scripts/book-builder/review-studio-security.mjs";
 import { SYNTHETIC_TEACHER_SECRET, createBookBuilderStudioFixture } from "./helpers/book-builder-studio-fixture.mjs";
@@ -16,15 +17,22 @@ async function prepareMutableProject(fixture) {
   const componentsPath = path.join(fixture.ultimate.projectRoot, "profiles", "ultimate-air-v2", "structure-candidates.json");
   const components = JSON.parse(await fs.readFile(componentsPath, "utf8"));
   const component = components.components[0];
+  const activitiesPath = path.join(fixture.ultimate.projectRoot, "profiles", "ultimate-air-v2", "student-activity-candidates.json");
+  const activities = JSON.parse(await fs.readFile(activitiesPath, "utf8"));
+  const activity = activities.candidates[0];
   const fact = createDetectedFact({ kind: "component_structure_candidate", locator: component.sourceRelativePath, value: { name: component.name, proposedSemanticRole: component.proposedSemanticRole }, parserId: "synthetic-write-fixture", parserVersion: "1.0" });
   const review = { id: "review_fictional_component_write", category: "component", severity: "review", blocking: true, explanation: "Fictional component role needs review.", sourceRelativeLocator: component.sourceRelativePath, dependencyFactIds: [fact.id], reasonCode: "ambiguous_component_role", suggestedDecisionKind: "component_role", evidence: [], status: "open" };
   const reviewFact = createDetectedFact({ kind: "review_issue_dependency", locator: `${component.sourceRelativePath}/review/ambiguous_component_role`, value: { reviewId: review.id, category: review.category, reasonCode: review.reasonCode, suggestedDecisionKind: review.suggestedDecisionKind, blocking: true }, parserId: "synthetic-write-fixture", parserVersion: "1.0" });
-  project.detectedFacts = [fact, reviewFact];
+  const contentFacts = buildActivityContentAnchorFacts(activity, (kind, locator, value) => createDetectedFact({ kind, locator, value, parserId: "synthetic-write-fixture", parserVersion: "1.0" }));
+  const promptFact = contentFacts.find((item) => item.kind === "activity_question_content_anchor");
+  const contentReview = { id: "review_fictional_prompt_write", category: "activity", severity: "review", blocking: false, explanation: "Fictional prompt needs review.", sourceRelativeLocator: `${activity.sourceObjectLocator}/${activity.questions[0].id}`, dependencyFactIds: [promptFact.id], reasonCode: "raster_prompt_missing", suggestedDecisionKind: "question_prompt_text", targetId: activity.questions[0].id, activityCandidateId: activity.activityCandidateId, evidence: [], status: "open" };
+  const contentReviewFact = createDetectedFact({ kind: "review_issue_dependency", locator: `${contentReview.sourceRelativeLocator}/review/${contentReview.reasonCode}`, value: { reviewId: contentReview.id, category: contentReview.category, reasonCode: contentReview.reasonCode, suggestedDecisionKind: contentReview.suggestedDecisionKind, blocking: false }, parserId: "synthetic-write-fixture", parserVersion: "1.0" });
+  project.detectedFacts = [fact, reviewFact, ...contentFacts, contentReviewFact];
   project.approvedDecisions = [];
   await fs.writeFile(projectPath, `${JSON.stringify(project, null, 2)}\n`, "utf8");
   const queuePath = path.join(fixture.ultimate.projectRoot, "review-queue.json");
-  await fs.writeFile(queuePath, `${JSON.stringify({ schemaVersion: "1.0", parserId: "synthetic", parserVersion: "1.0", items: [review], summary: { total: 1, blocking: 1, byCategory: { component: 1 }, byReason: { ambiguous_component_role: 1 } } }, null, 2)}\n`, "utf8");
-  return { projectPath, component, revision: project.revision };
+  await fs.writeFile(queuePath, `${JSON.stringify({ schemaVersion: "1.0", parserId: "synthetic", parserVersion: "1.0", items: [review, contentReview], summary: { total: 2, blocking: 1, byCategory: { activity: 1, component: 1 }, byReason: { ambiguous_component_role: 1, raster_prompt_missing: 1 } } }, null, 2)}\n`, "utf8");
+  return { projectPath, component, activity, revision: project.revision };
 }
 
 async function harness(t, { writeEnabled = true } = {}) {
@@ -45,6 +53,10 @@ async function harness(t, { writeEnabled = true } = {}) {
 
 function decisionInput(mutable, overrides = {}) {
   return { targetId: componentDecisionTargetId(mutable.component), kind: "component_role", value: "students_book", approvalState: "approved", editorNote: "Publisher confirmation.", expectedRevision: mutable.revision, clientMutationId: "mutation_write_api_1", ...overrides };
+}
+
+function contentDecisionInput(mutable, overrides = {}) {
+  return { targetId: mutable.activity.questions[0].id, kind: "question_prompt_text", value: "Which fictional colour is shown?", approvalState: "approved", editorNote: "Student-safe manual prompt.", expectedRevision: mutable.revision, clientMutationId: "mutation_content_write_api_1", ...overrides };
 }
 
 test("read-only bootstrap withholds write capability and decision mutations fail closed", async (t) => {
@@ -89,6 +101,25 @@ test("write API applies, persists, rejects conflicts, and replays idempotently",
   const conflictBody = await conflict.json();
   assert.equal(conflictBody.error.code, "project_revision_conflict");
   assert.deepEqual(Object.keys(conflictBody.error.details).sort(), ["currentRevision", "expectedRevision", "guidance"]);
+});
+
+test("write API previews and persists one exact Student-safe content override without exposing Teacher artifacts", async (t) => {
+  const { mutable, request } = await harness(t);
+  const before = await fs.readFile(mutable.projectPath, "utf8");
+  const preview = await request("/projects/fictional-ultimate-review/decisions/preview", contentDecisionInput(mutable));
+  assert.equal(preview.status, 200);
+  const previewBody = await preview.json();
+  assert.equal(previewBody.contentOverride.field, "prompt");
+  assert.equal(previewBody.contentOverride.valueOrigin, "manual_override");
+  assert.deepEqual(previewBody.affectedReviews, ["review_fictional_prompt_write"]);
+  assert.equal(await fs.readFile(mutable.projectPath, "utf8"), before);
+  const applied = await request("/projects/fictional-ultimate-review/decisions/apply", contentDecisionInput(mutable));
+  assert.equal(applied.status, 200);
+  const project = JSON.parse(await fs.readFile(mutable.projectPath, "utf8"));
+  assert.equal(project.approvedDecisions[0].kind, "question_prompt_text");
+  assert.equal(project.approvedDecisions[0].dependencyFactIds.length, 1);
+  const serialized = JSON.stringify(project.approvedDecisions[0]);
+  assert.doesNotMatch(serialized, /correctAnswers|acceptedAnswers|teacherSolution|decodedXml|iwbKey/i);
 });
 
 test("write API enforces tokens, origin, content type, size, strict fields, and answer separation", async (t) => {
