@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import sharp from "sharp";
+import { materializeMenuReview } from "../lib/book-builder/profiles/ultimate-air-v2/menu-materializer.js";
+import { buildAtlasInventoryAndCropPlan } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-atlases.js";
 import { buildHotspotCandidates } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-hotspots.js";
 import { buildMediaCandidates } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-media.js";
 import { buildMenuAndBranding } from "../lib/book-builder/profiles/ultimate-air-v2/ultimate-menu.js";
@@ -100,4 +102,36 @@ test("review queue IDs and ordering are stable and never imply approval", () => 
   const item = createReviewItem({ category: "page", locator: "Contents/Resources/page.png", reasonCode: "uncertain_printed_page_number", explanation: "Needs review" });
   const again = createReviewItem({ category: "page", locator: "Contents/Resources/page.png", reasonCode: "uncertain_printed_page_number", explanation: "Needs review" });
   assert.equal(item.id, again.id); assert.equal(item.status, "open"); assert.deepEqual(createReviewQueue([item]), createReviewQueue([again]));
+});
+
+test("atlas validation emits a crop for every region and menu materialization is repeatable", async () => {
+  const root = await temporaryRoot(); const source = path.join(root, "Fictional.app"); const workspace = path.join(root, "workspace", "projects", "fixture");
+  const atlasPath = "Contents/Resources/assets/books/book1/book_menu/HD/book_atlas.png"; const metadataPath = "Contents/Resources/assets/books/book1/book_menu/HD/book_atlas.xml";
+  const png = await sharp({ create: { width: 40, height: 20, channels: 4, background: "#557799" } }).png().toBuffer();
+  const xml = '<TextureAtlas imagePath="book_atlas.png" width="40" height="20"><SubTexture name="one_a" x="0" y="0" width="20" height="20"/><SubTexture name="one_b" x="20" y="0" width="20" height="20"/></TextureAtlas>';
+  await write(source, atlasPath, png); await write(source, metadataPath, xml);
+  const menu = { buttons: [{ name: "section_1", textureTriple: ["one_a", "one_b", "one_b"], proposedDestination: { kind: "unit", unit: 1 } }], summary: { buttonCount: 1 } };
+  const result = await buildAtlasInventoryAndCropPlan({ sourceRoot: source, inventoryEntries: [entry(atlasPath, png.length, ".png"), entry(metadataPath, xml.length, ".xml")], menu });
+  assert.deepEqual(result.atlasArtifact.summary, { familyCount: 1, regionCount: 2, invalidFamilyCount: 0 });
+  assert.equal(result.cropPlan.summary.cropCount, 2); assert.equal(result.cropPlan.summary.materializableMenuCropCount, 2); assert.equal(result.reviewItems.length, 0);
+  await fs.mkdir(path.join(workspace, "profiles", "ultimate-air-v2"), { recursive: true });
+  await fs.writeFile(path.join(workspace, "local-source-binding.json"), JSON.stringify({ canonicalApplicationRealPath: source }));
+  await fs.writeFile(path.join(workspace, "profiles", "ultimate-air-v2", "atlas-crop-plan.json"), JSON.stringify(result.cropPlan));
+  await fs.writeFile(path.join(workspace, "profiles", "ultimate-air-v2", "branding-model.json"), JSON.stringify({ assets: [], archive: null }));
+  await fs.writeFile(path.join(workspace, "profiles", "ultimate-air-v2", "menu-model.json"), JSON.stringify(menu));
+  const first = await materializeMenuReview({ projectDirectory: workspace }); const second = await materializeMenuReview({ projectDirectory: workspace });
+  assert.equal(first.aggregateHash, second.aggregateHash); assert.equal(first.materializedFileCount, 4); assert.equal(first.reviewHtmlPath.startsWith(workspace), true);
+  const crop = await fs.readFile(path.join(first.outputDirectory, "book-menu", "units", "unit-01-normal.png")); const metadata = await sharp(crop).metadata(); assert.deepEqual([metadata.width, metadata.height], [20, 20]);
+});
+
+test("atlas validation reports missing images, duplicate names, and overflow without guessing", async () => {
+  const root = await temporaryRoot(); const metadataPath = "Contents/Resources/assets/books/book1/book_menu/HD/book_atlas.xml";
+  const missingXml = '<TextureAtlas imagePath="missing.png"><SubTexture name="one" x="0" y="0" width="1" height="1"/></TextureAtlas>'; await write(root, metadataPath, missingXml);
+  const missing = await buildAtlasInventoryAndCropPlan({ sourceRoot: root, inventoryEntries: [entry(metadataPath, missingXml.length, ".xml")], menu: { buttons: [] } });
+  assert.equal(missing.reviewItems[0].reasonCode, "atlas_metadata_image_mismatch");
+  const imagePath = path.posix.join(path.posix.dirname(metadataPath), "atlas.png"); const png = await sharp({ create: { width: 10, height: 10, channels: 4, background: "#000" } }).png().toBuffer(); await write(root, imagePath, png);
+  const badXml = '<TextureAtlas imagePath="atlas.png" width="10" height="10"><SubTexture name="same" x="0" y="0" width="5" height="5"/><SubTexture name="same" x="1" y="1" width="5" height="5"/><SubTexture name="overflow" x="8" y="8" width="5" height="5"/></TextureAtlas>'; await write(root, metadataPath, badXml);
+  const bad = await buildAtlasInventoryAndCropPlan({ sourceRoot: root, inventoryEntries: [entry(metadataPath, badXml.length, ".xml"), entry(imagePath, png.length, ".png")], menu: { buttons: [] } });
+  assert.equal(bad.reviewItems.some((item) => item.reasonCode === "duplicate_atlas_region"), true);
+  assert.equal(bad.reviewItems.some((item) => item.reasonCode === "invalid_atlas_bounds"), true);
 });
