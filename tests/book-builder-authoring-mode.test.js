@@ -17,7 +17,11 @@ test("authoring workspace validation refuses temp and repository paths by defaul
 });
 
 test("persistent local application-data workspaces are allowed but source containment fails closed", async (t) => {
-  const localRoot = process.env.LOCALAPPDATA || path.join(path.parse(repositoryRoot).root, "Users", "Public", "AppData", "Local");
+  const localRoot = process.env.LOCALAPPDATA
+    || process.env.XDG_DATA_HOME
+    || (process.platform === "darwin"
+      ? path.join(os.homedir(), "Library", "Application Support")
+      : path.join(os.homedir(), ".local", "share"));
   const workspace = path.join(localRoot, "HamiltonHouseLMS", `BookBuilderValidation-test-${process.pid}-${Date.now()}`);
   await fs.mkdir(path.join(workspace, "projects"), { recursive: true });
   t.after(() => fs.rm(workspace, { recursive: true, force: true }));
