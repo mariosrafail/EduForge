@@ -7,6 +7,7 @@ import { createServer } from "vite";
 
 import { createBookBuilderStudioFixture, SYNTHETIC_TEACHER_SECRET } from "../../tests/helpers/book-builder-studio-fixture.mjs";
 import { bookBuilderReviewStudioPlugin } from "./review-studio-api.mjs";
+import { runRealWorkspaceValidation } from "./review-studio-validator.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 
@@ -36,6 +37,82 @@ async function assertSafePage(page, networkBodies) {
   assert.doesNotMatch(networkBodies.join("\n"), new RegExp(SYNTHETIC_TEACHER_SECRET));
 }
 
+async function validateHighHotspotLayout(page, origin, viewport, screenshotRoot) {
+  await page.setViewportSize(viewport);
+  await page.goto(`${origin}/builder.html?visual=${encodeURIComponent(viewport.name)}#/projects/fictional-ultimate-review/pages`, { waitUntil: "domcontentloaded" });
+  await expectHeading(page, "Pages & Hotspots");
+  await page.locator(".studio-page-image").waitFor();
+  await page.waitForFunction(() => {
+    const image = document.querySelector(".studio-page-image");
+    return Boolean(image?.complete && image.naturalWidth > 0);
+  });
+  const metrics = await page.evaluate(() => {
+    const toolbar = document.querySelector(".studio-inspector-toolbar").getBoundingClientRect();
+    const layout = document.querySelector(".studio-page-layout");
+    const frame = document.querySelector(".studio-page-preview-frame");
+    const frameRect = frame.getBoundingClientRect();
+    const detailsRect = document.querySelector(".studio-page-details").getBoundingClientRect();
+    const imageRect = document.querySelector(".studio-page-image").getBoundingClientRect();
+    const list = document.querySelector(".studio-hotspot-list");
+    const listRect = list.getBoundingClientRect();
+    const overlays = [...document.querySelectorAll(".studio-hotspot-overlay span")].map((item) => item.getBoundingClientRect());
+    return {
+      frameHeight: frameRect.height,
+      frameTopGap: frameRect.top - toolbar.bottom,
+      imageTopGap: imageRect.top - frameRect.top,
+      imageVisible: imageRect.width > 100 && imageRect.height > 100,
+      listClientHeight: list.clientHeight,
+      listScrollHeight: list.scrollHeight,
+      listOverflowY: getComputedStyle(list).overflowY,
+      layoutColumns: getComputedStyle(layout).gridTemplateColumns,
+      panelsStacked: detailsRect.top >= frameRect.bottom - 1,
+      overlayCount: overlays.length,
+      overlaysInsideImage: overlays.every((rect) => rect.left >= imageRect.left - 1 && rect.top >= imageRect.top - 1 && rect.right <= imageRect.right + 1 && rect.bottom <= imageRect.bottom + 1),
+      pageOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
+      listRect: { top: listRect.top, bottom: listRect.bottom },
+    };
+  });
+  assert.equal(metrics.overlayCount, 24);
+  assert.equal(metrics.overlaysInsideImage, true);
+  assert.equal(metrics.pageOverflow, 0);
+  assert.ok(metrics.imageVisible, "high-hotspot page image must remain visible");
+  assert.ok(metrics.imageTopGap <= 30, `page image starts ${metrics.imageTopGap}px below the preview frame`);
+  assert.ok(metrics.listScrollHeight > metrics.listClientHeight, "high-hotspot list must scroll independently");
+  assert.match(metrics.listOverflowY, /auto|scroll/);
+  if (viewport.width > 820) {
+    assert.ok(metrics.frameHeight <= 700, `desktop preview frame is unbounded at ${metrics.frameHeight}px`);
+    assert.ok(metrics.frameTopGap <= 24, `preview begins ${metrics.frameTopGap}px below the toolbar`);
+    assert.equal(metrics.panelsStacked, false);
+    assert.ok(metrics.frameHeight < metrics.listScrollHeight, "preview frame must not stretch to hotspot content height");
+  } else {
+    assert.equal(metrics.panelsStacked, true);
+  }
+  const lastItem = page.locator(".studio-hotspot-list li").last();
+  await lastItem.focus();
+  await page.waitForTimeout(50);
+  const focusState = await lastItem.evaluate((item) => {
+    const itemRect = item.getBoundingClientRect();
+    const list = item.closest(".studio-hotspot-list");
+    const listRect = list.getBoundingClientRect();
+    return {
+      visible: itemRect.top >= listRect.top - 1 && itemRect.bottom <= listRect.bottom + 2,
+      scrollTop: list.scrollTop,
+      scrollHeight: list.scrollHeight,
+      clientHeight: list.clientHeight,
+      maxScrollTop: list.scrollHeight - list.clientHeight,
+      itemOffsetTop: item.offsetTop,
+      itemTop: itemRect.top,
+      itemBottom: itemRect.bottom,
+      listTop: listRect.top,
+      listBottom: listRect.bottom,
+    };
+  });
+  assert.ok(focusState.scrollTop > 0, `focused hotspot did not scroll the list: ${JSON.stringify(focusState)}`);
+  assert.equal(focusState.visible, true, `focused hotspot is outside the bounded list viewport: ${JSON.stringify(focusState)}`);
+  await page.screenshot({ path: path.join(screenshotRoot, `studio-high-hotspot-${viewport.name}.png`), fullPage: true });
+  return metrics;
+}
+
 async function run() {
   const fixture = await createBookBuilderStudioFixture();
   const primary = await startStudio(fixture.workspace);
@@ -49,7 +126,7 @@ async function run() {
       try { networkBodies.push(await response.text()); } catch { /* response may have been cancelled during navigation */ }
     });
 
-    await page.goto(`${primary.origin}/builder.html`, { waitUntil: "networkidle" });
+    await page.goto(`${primary.origin}/builder.html`, { waitUntil: "domcontentloaded" });
     await expectHeading(page, "Book Project dashboard");
     await page.getByText("Read-only review — approvals and manual corrections are not enabled in Milestone 4A.").waitFor();
     await page.getByRole("heading", { name: "Fictional Ultimate Review Book" }).waitFor();
@@ -58,9 +135,9 @@ async function run() {
     await page.getByRole("heading", { name: "Ultimate B2 hotspot authoring" }).waitFor();
     await assertSafePage(page, networkBodies);
 
-    await page.goto(`${primary.origin}/builder.html#/projects/fictional-ultimate-review/overview`, { waitUntil: "networkidle" });
+    await page.goto(`${primary.origin}/builder.html#/projects/fictional-ultimate-review/overview`, { waitUntil: "domcontentloaded" });
     await expectHeading(page, "Overview");
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expectHeading(page, "Overview");
     await page.getByText("The project is an authoring draft. Publication data is incomplete and no content has been published.").waitFor();
 
@@ -72,7 +149,7 @@ async function run() {
     await page.getByRole("tab", { name: "Pages & Hotspots" }).click();
     await expectHeading(page, "Pages & Hotspots");
     await page.getByAltText("Preview of course Unit 1 Part 1").waitFor();
-    await page.getByText("Normalized geometry available").waitFor();
+    await page.getByText("Normalized geometry available").first().waitFor();
     await page.getByRole("button", { name: "Hide hotspots" }).click();
     assert.equal(await page.getByRole("button", { name: "Show hotspots" }).isVisible(), true);
 
@@ -103,12 +180,12 @@ async function run() {
     await page.getByText("fact_fictional_1").waitFor();
     await assertSafePage(page, networkBodies);
 
-    await page.goto(`${primary.origin}/builder.html#/projects/not-a-project/overview`, { waitUntil: "networkidle" });
+    await page.goto(`${primary.origin}/builder.html#/projects/not-a-project/overview`, { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: "Book Project unavailable" }).waitFor();
     const internalStatus = await page.evaluate(async () => (await fetch("/__hhplms/book-builder/projects/fictional-ultimate-review/internal")).status);
     assert.notEqual(internalStatus, 200);
 
-    await page.goto(`${primary.origin}/ultimate-b2-builder.html`, { waitUntil: "networkidle" });
+    await page.goto(`${primary.origin}/ultimate-b2-builder.html`, { waitUntil: "domcontentloaded" });
     await expectHeading(page, "Students Book hotspot builder");
     await page.getByRole("textbox", { name: "Book", exact: true }).waitFor();
     await page.getByRole("button", { name: /Save/ }).waitFor();
@@ -121,22 +198,74 @@ async function run() {
     ];
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      await page.goto(`${primary.origin}/builder.html`, { waitUntil: "networkidle" });
+      await page.goto(`${primary.origin}/builder.html`, { waitUntil: "domcontentloaded" });
       await expectHeading(page, "Book Project dashboard");
       await assertSafePage(page, networkBodies);
       await page.screenshot({ path: path.join(fixture.root, `studio-${viewport.name}.png`), fullPage: true });
     }
+
+    const highHotspotViewports = [
+      { width: 1440, height: 900, name: "1440x900" },
+      { width: 1280, height: 720, name: "1280x720" },
+      { width: 768, height: 900, name: "768-tablet" },
+      { width: 390, height: 844, name: "390-mobile" },
+    ];
+    const highHotspotMetrics = [];
+    for (const viewport of highHotspotViewports) highHotspotMetrics.push({
+      viewport: viewport.name,
+      ...await validateHighHotspotLayout(page, primary.origin, viewport, fixture.root),
+    });
+
+    const mixedValidation = await runRealWorkspaceValidation({
+      url: primary.origin,
+      screenshotDirectory: path.join(fixture.root, "mixed-validator-screenshots"),
+    });
+    assert.equal(mixedValidation.status, "real-workspace-safe");
+    assert.equal(mixedValidation.projectCapabilityMatrix[0].projectId, fixture.olderUltimate.projectId);
+    assert.equal(mixedValidation.selectedProjects.activities, fixture.ultimate.projectId);
+    assert.equal(mixedValidation.selectedProjects.activityClusters, fixture.ultimate.projectId);
+    assert.doesNotMatch(JSON.stringify(mixedValidation), new RegExp(SYNTHETIC_TEACHER_SECRET));
+
+    const oldOnlyWorkspace = path.join(fixture.root, "old-only-workspace");
+    await fs.mkdir(path.join(oldOnlyWorkspace, "projects"), { recursive: true });
+    await fs.cp(fixture.olderUltimate.projectRoot, path.join(oldOnlyWorkspace, "projects", fixture.olderUltimate.projectId), { recursive: true });
+    const oldOnly = await startStudio(oldOnlyWorkspace);
+    let oldOnlyValidation;
+    const oldOnlyStarted = performance.now();
+    try {
+      oldOnlyValidation = await runRealWorkspaceValidation({
+        url: oldOnly.origin,
+        screenshotDirectory: path.join(fixture.root, "old-only-validator-screenshots"),
+      });
+    } finally { await oldOnly.server.close(); }
+    assert.equal(oldOnlyValidation.status, "real-workspace-incomplete");
+    assert.ok(performance.now() - oldOnlyStarted < 20_000, "old-only validation must not wait for an unavailable heading timeout");
+    assert.equal(oldOnlyValidation.selectedProjects.activities, null);
+    assert.equal(oldOnlyValidation.selectedProjects.activityClusters, null);
+    assert.ok(oldOnlyValidation.missingCapabilities.includes("activitiesAvailable"));
+    assert.ok(oldOnlyValidation.screenshots.files.some((file) => file.endsWith("activities-unavailable.png")));
+    assert.ok(oldOnlyValidation.screenshots.files.some((file) => file.endsWith("activity-clusters-unavailable.png")));
+    assert.doesNotMatch(JSON.stringify(oldOnlyValidation), new RegExp(SYNTHETIC_TEACHER_SECRET));
 
     const emptyWorkspace = path.join(fixture.root, "empty-workspace");
     await fs.mkdir(path.join(emptyWorkspace, "projects"), { recursive: true });
     const empty = await startStudio(emptyWorkspace);
     try {
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.goto(`${empty.origin}/builder.html`, { waitUntil: "networkidle" });
+      await page.goto(`${empty.origin}/builder.html`, { waitUntil: "domcontentloaded" });
       await page.getByRole("heading", { name: "No Book Projects found" }).waitFor();
     } finally { await empty.server.close(); }
 
-    process.stdout.write(`${JSON.stringify({ status: "review-studio-visual-safe", flows: 11, viewports: viewports.map((item) => item.name), syntheticReviews: 5007, screenshots: "temporary" }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({
+      status: "review-studio-visual-safe",
+      flows: 14,
+      viewports: viewports.map((item) => item.name),
+      syntheticReviews: 5007,
+      mixedValidatorStatus: mixedValidation.status,
+      oldOnlyValidatorStatus: oldOnlyValidation.status,
+      highHotspotMetrics,
+      screenshots: "temporary",
+    }, null, 2)}\n`);
   } finally {
     await browser?.close();
     await primary.server.close();
