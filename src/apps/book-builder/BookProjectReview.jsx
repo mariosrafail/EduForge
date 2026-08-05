@@ -9,6 +9,9 @@ import { OverviewView } from "./views/OverviewView.jsx";
 import { ComponentsView } from "./views/ComponentsView.jsx";
 import { PagesView } from "./views/PagesView.jsx";
 import { MenuView } from "./views/MenuView.jsx";
+import { ActivitiesView } from "./views/ActivitiesView.jsx";
+import { ReviewQueueView } from "./views/ReviewQueueView.jsx";
+import { SourceDiffView } from "./views/SourceDiffView.jsx";
 
 function ProjectTabs({ projectId, activeTab }) {
   const refs = useRef([]);
@@ -35,7 +38,9 @@ function ActiveView({ route }) {
   if (route.tab === "components") return <ComponentsView projectId={route.projectId} routeQuery={route.query} />;
   if (route.tab === "pages") return <PagesView projectId={route.projectId} routeQuery={route.query} />;
   if (route.tab === "menu") return <MenuView projectId={route.projectId} />;
-  return <div className="studio-state"><h2>{PROJECT_TABS.find((tab) => tab.id === route.tab)?.label}</h2><p>This read-only view is loading in the next implementation phase.</p></div>;
+  if (route.tab === "activities") return <ActivitiesView projectId={route.projectId} routeQuery={route.query} />;
+  if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} />;
+  return <SourceDiffView projectId={route.projectId} />;
 }
 
 export function BookProjectReview({ route }) {

@@ -63,3 +63,26 @@ test("Studio styles remain isolated and define responsive diagnostic layouts", a
   assert.match(css, /prefers-reduced-motion/);
   assert.doesNotMatch(css, /url\(/i);
 });
+
+test("large activity and review views use server pagination without mutation controls", async () => {
+  const [activities, reviews, diff, shell] = await Promise.all([
+    read("src/apps/book-builder/views/ActivitiesView.jsx"),
+    read("src/apps/book-builder/views/ReviewQueueView.jsx"),
+    read("src/apps/book-builder/views/SourceDiffView.jsx"),
+    read("src/apps/book-builder/BookProjectReview.jsx"),
+  ]);
+  assert.match(shell, /<ActivitiesView/);
+  assert.match(shell, /<ReviewQueueView/);
+  assert.match(shell, /<SourceDiffView/);
+  assert.match(activities, /<Pagination/);
+  assert.match(activities, /Student-safe projection/);
+  assert.match(activities, /Correct drag\/drop mappings are not available/);
+  assert.match(reviews, /groupBy/);
+  assert.match(reviews, /Activity structural cluster/);
+  assert.match(reviews, /<Pagination/);
+  assert.match(diff, /changeType/);
+  assert.match(diff, /Raw fact payloads are withheld/);
+  const source = [activities, reviews, diff].join("\n");
+  assert.doesNotMatch(source, /onClick=\{[^}]*\b(?:approve|reject|save|publish|dismiss|apply)\b/i);
+  assert.doesNotMatch(source, /acceptedAnswers|correctAnswers|modelAnswer|scoring/i);
+});
