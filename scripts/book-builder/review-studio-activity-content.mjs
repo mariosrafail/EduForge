@@ -36,6 +36,6 @@ export function safeActivityContentDetail(candidate, safeGeometry) {
     questions: list(candidate.questions).slice(0, 100).map((item) => safeQuestion(item, safeGeometry)),
     draggables: list(candidate.draggables).slice(0, 100).map((item) => safeContentNode(item, "label", "labelAvailability", safeGeometry)),
     targets: list(candidate.targets).slice(0, 100).map((item) => safeContentNode(item, "label", "labelAvailability", safeGeometry)),
-    responseFieldItems: list(candidate.responseFields).slice(0, 100).map((item) => safeContentNode(item, "prompt", "promptAvailability", safeGeometry)),
+    responseFields: list(candidate.responseFields).slice(0, 100).map((item) => safeContentNode(item, "prompt", "promptAvailability", safeGeometry)),
   };
 }

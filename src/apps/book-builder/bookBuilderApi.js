@@ -95,3 +95,19 @@ export function removeDecision(projectId, decision, options) {
 export function reapproveDecision(projectId, decision, options) {
   return decisionMutation(projectId, "reapprove", decision, options);
 }
+
+export function previewContentOverride(projectId, override, options) {
+  return previewDecision(projectId, override, options);
+}
+
+export function applyContentOverride(projectId, override, options) {
+  return applyDecision(projectId, override, options);
+}
+
+export function removeContentOverride(projectId, override, options) {
+  return removeDecision(projectId, override, options);
+}
+
+export function reapproveContentOverride(projectId, override, options) {
+  return reapproveDecision(projectId, override, options);
+}

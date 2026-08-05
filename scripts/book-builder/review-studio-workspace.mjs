@@ -335,7 +335,7 @@ function safeActivityDetail(candidate) {
     ...safeActivityContentDetail(candidate, safeGeometry),
     draggableLabels: optionalArray(candidate.draggables).map((entry) => safeText(entry.label, "", 500)).filter(Boolean).slice(0, 100),
     targetLabels: optionalArray(candidate.targets).map((entry) => safeText(entry.label, "", 500)).filter(Boolean).slice(0, 100),
-    responseFields: geometrySummary(candidate.responseFields),
+    responseFieldGeometry: geometrySummary(candidate.responseFields),
     geometry: {
       draggables: geometrySummary(candidate.draggables),
       targets: geometrySummary(candidate.targets),

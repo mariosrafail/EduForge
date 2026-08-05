@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { createDetectedFact } from "../../lib/book-builder/detected-facts.js";
+import { buildActivityContentAnchorFacts } from "../../lib/book-builder/profiles/ultimate-air-v2/activity-content-facts.js";
 
 export const SYNTHETIC_TEACHER_SECRET = "HHPLMS_SYNTHETIC_TEACHER_SECRET_M4A_7D3C9F";
 
@@ -316,6 +317,11 @@ export async function prepareBookBuilderStudioAuthoringFixture(fixture) {
   const spread = pages.spreads[0];
   const hotspot = hotspots.parts[0].hotspots[0];
   const activity = activities.candidates[0];
+  activity.questions[0].prompt = null;
+  activity.questions[0].promptAvailability = "raster-only-or-missing";
+  activity.questions[0].options[0].text = null;
+  activity.questions[0].options[0].textAvailability = "raster-only-or-missing";
+  activity.responseFields = [{ id: "response_fictional_authoring", prompt: null, promptAvailability: "raster-only-or-missing", inputModeCandidate: "text", geometry: { x: 8, y: 9, width: 10, height: 4 } }];
   const fact = (kind, locator, value, evidence = []) => createDetectedFact({ kind, locator, value, parserId: "synthetic-authoring-fixture", parserVersion: "1.0", evidence });
   const targetFacts = [
     fact("component_structure_candidate", component.sourceRelativePath, { name: component.name, proposedSemanticRole: component.proposedSemanticRole }),
@@ -325,12 +331,13 @@ export async function prepareBookBuilderStudioAuthoringFixture(fixture) {
     fact("activity_signature_candidate", activity.sourceObjectLocator, { activityCandidateId: activity.activityCandidateId, publisherExerciseTypes: activity.publisherExerciseTypes }),
     fact("activity_disposition_candidate", `${activity.sourceObjectLocator}/disposition`, { activityCandidateId: activity.activityCandidateId, disposition: activity.disposition, normalizedCandidateType: activity.normalizedCandidateType, runtimeSupportStatus: activity.runtimeSupportStatus }),
     fact("activity_content_candidate", `${activity.sourceObjectLocator}/content`, { activityCandidateId: activity.activityCandidateId, contentAvailability: { questionCount: activity.questions.length } }),
+    ...buildActivityContentAnchorFacts(activity, (kind, locator, value) => fact(kind, locator, value)),
   ];
   const reviewTemplates = [
     { id: "review_fictional_00001", category: "component", reasonCode: "ambiguous_component_role", locator: component.sourceRelativePath, kind: "component_role", dependency: targetFacts[0].id },
     { id: "review_fictional_00002", category: "page_number", reasonCode: "uncertain_printed_page_number", locator: spread.variants[0].sourceRelativePath, kind: "printed_page_number", dependency: targetFacts[1].id },
     { id: "review_fictional_00003", category: "activity", reasonCode: "ambiguous_activity_type", locator: activity.sourceObjectLocator, kind: "activity_type", dependency: targetFacts[5].id },
-    { id: "review_fictional_00004", category: "activity", reasonCode: "raster_prompt_missing", locator: activity.sourceObjectLocator, kind: "activity_audience_policy", dependency: targetFacts[6].id },
+    { id: "review_fictional_00004", category: "activity", reasonCode: "raster_prompt_missing", locator: `${activity.sourceObjectLocator}/${activity.questions[0].id}`, kind: "question_prompt_text", targetId: activity.questions[0].id, activityCandidateId: activity.activityCandidateId, dependency: targetFacts.find((item) => item.kind === "activity_question_content_anchor").id },
     { id: "review_fictional_00005", category: "hotspot", reasonCode: "part_button_object_count_mismatch", locator: hotspots.parts[0].sourceRelativePath, kind: "hotspot_candidate_disposition", dependency: targetFacts[3].id },
   ];
   const queuePath = path.join(projectRoot, "review-queue.json");
@@ -341,7 +348,7 @@ export async function prepareBookBuilderStudioAuthoringFixture(fixture) {
       id: template.id, category: template.category, severity: "review", blocking: false,
       explanation: `Fictional ${template.category} evidence requires a single decision.`,
       sourceRelativeLocator: template.locator, dependencyFactIds: [template.dependency],
-      reasonCode: template.reasonCode, suggestedDecisionKind: template.kind, evidence: [], status: "open",
+      reasonCode: template.reasonCode, suggestedDecisionKind: template.kind, ...(template.targetId ? { targetId: template.targetId, activityCandidateId: template.activityCandidateId } : {}), evidence: [], status: "open",
     };
   }
   queue.summary = {

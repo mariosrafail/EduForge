@@ -267,6 +267,7 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
 .studio-filter-drawer > summary svg { width: 17px; }
 .studio-filter-drawer .studio-filter-grid { margin: 0; border: 0; border-top: 1px solid var(--studio-line); box-shadow: none; border-radius: 0 0 8px 8px; }
 .studio-master-detail { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, .75fr); gap: 16px; align-items: start; }
+.studio-master-detail > *, .studio-review-layout > * { min-width: 0; }
 .studio-selectable-table td:first-child { padding: 0; }
 .studio-selectable-table td:first-child button { width: 100%; min-height: 58px; display: block; padding: 10px 11px; color: inherit; background: transparent; border: 0; text-align: left; }
 .studio-selectable-table tr[data-selected="true"] { background: var(--studio-blue-soft); box-shadow: inset 3px 0 var(--studio-blue); }
@@ -355,6 +356,26 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
 .studio-decision-preview dt { color: var(--studio-muted); font-size: .64rem; font-weight: 800; text-transform: uppercase; }
 .studio-decision-preview dd { margin: 3px 0 0; font-size: .75rem; overflow-wrap: anywhere; }
 .studio-decision-drawer > footer { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 16px; margin-top: auto; border-top: 1px solid var(--studio-line); }
+.studio-activity-content { display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--studio-line); }
+.studio-content-summary { display: flex; flex-wrap: wrap; gap: 7px; }
+.studio-content-summary span { padding: 5px 8px; color: var(--studio-muted); background: #f4f7fa; border-radius: 999px; font-size: .67rem; font-weight: 750; }
+.studio-content-field { display: grid; gap: 7px; padding: 11px; background: #fff; border: 1px solid var(--studio-line); border-left: 3px solid #8ea1b1; border-radius: 6px; }
+.studio-content-field[data-origin="manual_override"] { border-left-color: var(--studio-positive); background: #f7fcf9; }
+.studio-content-field[data-origin="missing"] { border-left-color: var(--studio-warning); background: #fffbf3; }
+.studio-content-field > div { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.studio-content-field > div > span { color: var(--studio-navy-deep); font-size: .72rem; font-weight: 850; }
+.studio-content-field p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .78rem; line-height: 1.5; }
+.studio-content-field small, .studio-content-override-drawer .studio-field small { color: var(--studio-muted); font-size: .66rem; }
+.studio-question-list .studio-content-field { margin-top: 8px; }
+.studio-question-list li .studio-content-field { margin: 7px 0; }
+.studio-empty-structure { padding: 16px; color: var(--studio-muted); background: #f5f7f9; border: 1px dashed var(--studio-line-strong); border-radius: 7px; text-align: center; }
+.studio-content-boundary-banner { display: grid; gap: 4px; padding: 12px; color: #24495f; background: #edf7fb; border: 1px solid #b8dce9; border-radius: 7px; }
+.studio-content-boundary-banner span { font-size: .74rem; line-height: 1.45; }
+.studio-content-value-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.studio-content-value-grid > div { min-width: 0; padding: 10px; background: #f4f7fa; border: 1px solid var(--studio-line); border-radius: 6px; }
+.studio-content-value-grid dt { color: var(--studio-muted); font-size: .64rem; font-weight: 850; text-transform: uppercase; }
+.studio-content-value-grid dd { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .72rem; line-height: 1.4; }
+.studio-content-value-grid small { color: var(--studio-muted); font-size: .62rem; }
 .studio-history-list { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
 .studio-history-list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 10px; background: #f7f9fb; border-radius: 5px; }
 .studio-history-list strong, .studio-history-list span { display: block; }
@@ -421,6 +442,8 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
   .studio-row-actions { flex-direction: column; }
   .studio-decision-drawer { padding: 18px; }
   .studio-decision-preview dl { grid-template-columns: 1fr; }
+  .studio-content-value-grid { grid-template-columns: 1fr; }
+  .studio-content-field > div { align-items: start; flex-direction: column; }
   .studio-history-list li { grid-template-columns: 1fr; }
 }
 

@@ -97,7 +97,9 @@ test("large activity and review views keep pagination and allow only single-item
   assert.match(shell, /<SourceDiffView/);
   assert.match(activities, /<Pagination/);
   assert.match(activities, /Student-safe projection/);
-  assert.match(activities, /Correct drag\/drop mappings are not available/);
+  assert.match(activities, /Correct drag\/drop mappings are never available/);
+  assert.match(activities, /ContentOverrideDrawer/);
+  assert.match(activities, /No existing Student-safe structure is available for manual field overrides/);
   assert.match(reviews, /groupBy/);
   assert.match(reviews, /Activity structural cluster/);
   assert.match(reviews, /<Pagination/);
@@ -105,8 +107,29 @@ test("large activity and review views keep pagination and allow only single-item
   assert.match(diff, /Raw fact payloads are withheld/);
   const source = [activities, reviews, diff].join("\n");
   assert.match(source, /DecisionDrawer/);
+  assert.match(source, /Open exact field/);
   assert.doesNotMatch(source, /resolve all|apply to cluster|bulk selection|bulk dismiss|bulk approve/i);
-  assert.doesNotMatch(source, /acceptedAnswers|correctAnswers|modelAnswer|scoring/i);
+  assert.doesNotMatch(source, /acceptedAnswers|correctAnswers|modelAnswer/i);
+});
+
+test("manual content authoring is a separate exact-field plain-text workflow", async () => {
+  const [drawer, api, activities, css] = await Promise.all([
+    read("src/apps/book-builder/components/ContentOverrideDrawer.jsx"),
+    read("src/apps/book-builder/bookBuilderApi.js"),
+    read("src/apps/book-builder/views/ActivitiesView.jsx"),
+    read("src/apps/book-builder/styles/reviewStudio.css"),
+  ]);
+  assert.match(drawer, /Manual Student-safe content override/);
+  assert.match(drawer, /Existing structure only/);
+  assert.match(drawer, /Detected/);
+  assert.match(drawer, /Saved manual/);
+  assert.match(drawer, /Effective now/);
+  assert.match(drawer, /UTF-8 bytes/);
+  assert.match(drawer, /textarea/);
+  assert.doesNotMatch(drawer, /contentEditable|dangerouslySetInnerHTML|markdown|rich text/i);
+  for (const operation of ["previewContentOverride", "applyContentOverride", "removeContentOverride", "reapproveContentOverride"]) assert.match(api, new RegExp(operation));
+  assert.match(activities, /Classify activity/);
+  assert.match(css, /studio-content-value-grid/);
 });
 
 test("normal Vite and Android bundle verifiers explicitly reject Review Studio code", async () => {
