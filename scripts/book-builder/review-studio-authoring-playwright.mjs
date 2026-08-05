@@ -51,7 +51,7 @@ async function openComponentDrawer(page, origin) {
   await page.goto(`${origin}/builder.html#/projects/fictional-ultimate-review/components`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Components", exact: true }).waitFor();
   await page.getByRole("button", { name: "Decide", exact: true }).first().click();
-  await page.getByRole("heading", { name: "course", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Students Book", exact: true }).waitFor();
 }
 
 async function assertSafe(page, networkBodies) {

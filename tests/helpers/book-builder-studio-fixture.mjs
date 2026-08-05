@@ -29,8 +29,8 @@ async function writeJson(target, value) {
 function reviewItem(index) {
   const reasonCode = index % 5 === 0 ? "raster_prompt_missing" : index % 3 === 0 ? "ambiguous_activity_type" : "unapproved_component_role";
   const category = reasonCode === "unapproved_component_role" ? "component" : "activity";
-  const component = ["course", "practice", "grammar"][(index - 1) % 3];
-  const unitCount = component === "course" ? 4 : component === "practice" ? 2 : 3;
+  const component = ["course", "practice", "grammar", "tests"][(index - 1) % 4];
+  const unitCount = component === "course" ? 4 : component === "grammar" ? 3 : 2;
   const unit = (index % unitCount) + 1;
   return {
     id: `review_fictional_${String(index).padStart(5, "0")}`,
@@ -156,8 +156,9 @@ async function createUltimateProject(workspace, sourceRoot) {
       { name: "course", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/course", proposedSemanticRole: "students_book", roleConfidence: 0.94, unitCount: 4, partCount: 8, objectCount: 120, pageSpreadCount: 2, approvalStatus: "unapproved", units: Array.from({ length: 4 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/course/${index + 1}`, parts: [{ number: 1, objectCount: 30 }] })) },
       { name: "practice", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/practice", proposedSemanticRole: "workbook", roleConfidence: 0.68, unitCount: 2, partCount: 4, objectCount: 32, pageSpreadCount: 1, approvalStatus: "unapproved", units: Array.from({ length: 2 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/practice/${index + 1}`, parts: [{ number: 1, objectCount: 16 }] })) },
       { name: "grammar", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/grammar", proposedSemanticRole: "grammar_book", roleConfidence: 0.86, unitCount: 3, partCount: 3, objectCount: 20, pageSpreadCount: 1, approvalStatus: "unapproved", units: Array.from({ length: 3 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/grammar/${index + 1}`, parts: [{ number: 1, objectCount: index === 2 ? 6 : 7 }] })) },
+      { name: "tests", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/tests", proposedSemanticRole: "tests", roleConfidence: 0.9, unitCount: 2, partCount: 2, objectCount: 0, pageSpreadCount: 0, approvalStatus: "unapproved", units: Array.from({ length: 2 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/tests/${index + 1}`, parts: [{ number: 1, objectCount: 0 }] })) },
     ],
-    summary: { sourceBookRootCount: 1, componentCount: 3, unitCount: 9, partCount: 15, objectCount: 172 },
+    summary: { sourceBookRootCount: 1, componentCount: 4, unitCount: 11, partCount: 17, objectCount: 172 },
   };
   await writeJson(path.join(profileRoot, "structure-candidates.json"), structure);
   const pages = {

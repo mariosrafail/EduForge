@@ -18,6 +18,7 @@ function lifecycleTone(value) {
 }
 
 function ProjectCard({ project }) {
+  const principalComponents = project.hierarchy?.principalComponents || [];
   return (
     <article className="studio-project-card">
       <div className="studio-project-card-heading">
@@ -32,6 +33,7 @@ function ProjectCard({ project }) {
         <div><dt>Components</dt><dd>{project.componentCount.toLocaleString()}</dd></div>
         <div><dt>Activities</dt><dd>{project.activityCount.toLocaleString()}</dd></div>
       </dl>
+      {principalComponents.length > 0 && <div className="studio-project-components" aria-label="Principal instructional components">{principalComponents.map((component) => <a key={component.componentKey} href={projectHash(project.projectId, "pages", { component: component.componentKey })}><strong>{component.displayName}</strong><span>{component.unitGroupCount} Units · {component.pageCount} pages · {component.activityCount} activities</span></a>)}</div>}
       <div className="studio-project-card-footer">
         <span>Last scan <time>{project.lastScannedAt}</time></span>
         <a className="studio-button primary" href={projectHash(project.projectId, "overview")}>Open project <ArrowRight aria-hidden="true" /></a>

@@ -40,7 +40,7 @@ function ActiveView({ route, authoring, refreshKey }) {
   if (route.tab === "pages") return <PagesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "menu") return <MenuView projectId={route.projectId} />;
   if (route.tab === "activities") return <ActivitiesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
-  if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} authoring={authoring} />;
+  if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "decisions") return <DecisionsView projectId={route.projectId} refreshKey={refreshKey} />;
   return <SourceDiffView projectId={route.projectId} />;
 }

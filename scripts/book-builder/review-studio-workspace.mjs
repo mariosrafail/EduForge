@@ -522,11 +522,27 @@ export class ReviewStudioWorkspace {
       try {
         const project = await this.readArtifact(entry.name, "project");
         if (project.projectId !== entry.name) throw new ReviewStudioError("project_identity_mismatch", 422);
-        const [queue, diff] = await Promise.all([
+        const [queue, diff, hierarchy] = await Promise.all([
           this.readArtifact(entry.name, "reviews", { optional: true, project }),
           this.readArtifact(entry.name, "diff", { optional: true, project }),
+          effectiveHierarchyView(this, entry.name, project),
         ]);
-        projects.push(safeProjectSummary(project, queue, diff));
+        projects.push({
+          ...safeProjectSummary(project, queue, diff),
+          hierarchy: {
+            available: hierarchy.available,
+            summary: hierarchy.summary,
+            principalComponents: hierarchy.components.filter((item) => item.effectiveGroupingKind === "numbered_units").map((item) => ({
+              componentKey: item.componentKey,
+              displayName: item.displayName,
+              sourceComponentName: item.sourceComponentName,
+              unitGroupCount: item.unitGroups.length,
+              pageCount: item.pageCount,
+              activityCount: item.activityCount,
+              reviewCount: item.reviewCount,
+            })),
+          },
+        });
       } catch (error) {
         diagnostics.push({ code: error instanceof ReviewStudioError ? error.code : "project_unavailable", projectId: entry.name });
       }
@@ -872,7 +888,7 @@ export class ReviewStudioWorkspace {
       summary: reviewSummary(queue),
       grouping: mode,
       groups: groupList.slice(0, 100),
-      selectedGroup: selectedGroupId ? { id: selectedGroupId, ...paginate(selectedItems, query) } : null,
+      selectedGroup: selectedGroupId ? { id: selectedGroupId, label: groupList.find((item) => item.id === selectedGroupId)?.label || selectedGroupId, ...paginate(selectedItems, query) } : null,
       filters: {
         categories: Object.keys(reviewSummary(queue).byCategory),
         reasons: Object.keys(reviewSummary(queue).byReason),
