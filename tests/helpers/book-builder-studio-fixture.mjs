@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
+import { createDetectedFact } from "../../lib/book-builder/detected-facts.js";
 
 export const SYNTHETIC_TEACHER_SECRET = "HHPLMS_SYNTHETIC_TEACHER_SECRET_M4A_7D3C9F";
 
@@ -298,4 +299,61 @@ export async function createBookBuilderStudioFixture() {
     root, workspace, sourceRoot, ultimate, olderUltimate, journey, corruptRoot,
     async cleanup() { await fs.rm(root, { recursive: true, force: true }); },
   };
+}
+
+export async function prepareBookBuilderStudioAuthoringFixture(fixture) {
+  const projectRoot = fixture.ultimate.projectRoot;
+  const profileRoot = path.join(projectRoot, "profiles", "ultimate-air-v2");
+  const projectPath = path.join(projectRoot, "book-project.json");
+  const project = JSON.parse(await fs.readFile(projectPath, "utf8"));
+  const structure = JSON.parse(await fs.readFile(path.join(profileRoot, "structure-candidates.json"), "utf8"));
+  const pages = JSON.parse(await fs.readFile(path.join(profileRoot, "page-candidates.json"), "utf8"));
+  const hotspots = JSON.parse(await fs.readFile(path.join(profileRoot, "hotspot-candidates.json"), "utf8"));
+  const activities = JSON.parse(await fs.readFile(path.join(profileRoot, "student-activity-candidates.json"), "utf8"));
+  const component = structure.components[0];
+  const spread = pages.spreads[0];
+  const hotspot = hotspots.parts[0].hotspots[0];
+  const activity = activities.candidates[0];
+  const fact = (kind, locator, value, evidence = []) => createDetectedFact({ kind, locator, value, parserId: "synthetic-authoring-fixture", parserVersion: "1.0", evidence });
+  const targetFacts = [
+    fact("component_structure_candidate", component.sourceRelativePath, { name: component.name, proposedSemanticRole: component.proposedSemanticRole }),
+    fact("part_page_candidate", spread.variants[0].sourceRelativePath, { component: spread.component, unit: spread.unit, part: spread.part, canonicalQualityCandidate: spread.canonicalQualityCandidate, printedPageCandidate: spread.printedPageCandidate, variantCount: spread.variants.length }),
+    fact("page_asset_variant", spread.variants[0].sourceRelativePath, { component: spread.component, unit: spread.unit, part: spread.part, quality: spread.variants[0].quality }),
+    fact("hotspot_geometry_candidate", hotspots.parts[0].sourceRelativePath, { component: hotspots.parts[0].component, unit: hotspots.parts[0].unit, part: hotspots.parts[0].part, normalizedCandidateCount: 24 }),
+    fact("activity_signature_candidate", activity.sourceObjectLocator, { activityCandidateId: activity.activityCandidateId, publisherExerciseTypes: activity.publisherExerciseTypes }),
+    fact("activity_disposition_candidate", `${activity.sourceObjectLocator}/disposition`, { activityCandidateId: activity.activityCandidateId, disposition: activity.disposition, normalizedCandidateType: activity.normalizedCandidateType, runtimeSupportStatus: activity.runtimeSupportStatus }),
+    fact("activity_content_candidate", `${activity.sourceObjectLocator}/content`, { activityCandidateId: activity.activityCandidateId, contentAvailability: { questionCount: activity.questions.length } }),
+  ];
+  const reviewTemplates = [
+    { id: "review_fictional_00001", category: "component", reasonCode: "ambiguous_component_role", locator: component.sourceRelativePath, kind: "component_role", dependency: targetFacts[0].id },
+    { id: "review_fictional_00002", category: "page_number", reasonCode: "uncertain_printed_page_number", locator: spread.variants[0].sourceRelativePath, kind: "printed_page_number", dependency: targetFacts[1].id },
+    { id: "review_fictional_00003", category: "activity", reasonCode: "ambiguous_activity_type", locator: activity.sourceObjectLocator, kind: "activity_type", dependency: targetFacts[5].id },
+    { id: "review_fictional_00004", category: "activity", reasonCode: "raster_prompt_missing", locator: activity.sourceObjectLocator, kind: "activity_audience_policy", dependency: targetFacts[6].id },
+    { id: "review_fictional_00005", category: "hotspot", reasonCode: "part_button_object_count_mismatch", locator: hotspots.parts[0].sourceRelativePath, kind: "hotspot_candidate_disposition", dependency: targetFacts[3].id },
+  ];
+  const queuePath = path.join(projectRoot, "review-queue.json");
+  const queue = JSON.parse(await fs.readFile(queuePath, "utf8"));
+  for (const template of reviewTemplates) {
+    const index = queue.items.findIndex((item) => item.id === template.id);
+    queue.items[index] = {
+      id: template.id, category: template.category, severity: "review", blocking: false,
+      explanation: `Fictional ${template.category} evidence requires a single decision.`,
+      sourceRelativeLocator: template.locator, dependencyFactIds: [template.dependency],
+      reasonCode: template.reasonCode, suggestedDecisionKind: template.kind, evidence: [], status: "open",
+    };
+  }
+  queue.summary = {
+    total: queue.items.length,
+    blocking: queue.items.filter((item) => item.blocking).length,
+    byCategory: Object.fromEntries([...new Set(queue.items.map((item) => item.category))].sort().map((category) => [category, queue.items.filter((item) => item.category === category).length])),
+    byReason: Object.fromEntries([...new Set(queue.items.map((item) => item.reasonCode))].sort().map((reason) => [reason, queue.items.filter((item) => item.reasonCode === reason).length])),
+  };
+  activity.reviewItemIds = ["review_fictional_00003", "review_fictional_00004"];
+  await writeJson(path.join(profileRoot, "student-activity-candidates.json"), activities);
+  const reviewFacts = reviewTemplates.map((item) => fact("review_issue_dependency", `${item.locator}/review/${item.reasonCode}`, { reviewId: item.id, category: item.category, reasonCode: item.reasonCode, suggestedDecisionKind: item.kind, blocking: false }));
+  project.detectedFacts = [...targetFacts, ...reviewFacts].sort((left, right) => left.id.localeCompare(right.id));
+  project.approvedDecisions = [];
+  await writeJson(projectPath, project);
+  await writeJson(queuePath, queue);
+  return { project, component, spread, hotspot, activity, reviewTemplates };
 }

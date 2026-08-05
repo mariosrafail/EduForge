@@ -12,6 +12,8 @@ import {
   sameOriginForHost,
 } from "./review-studio-security.mjs";
 import { createReviewStudioWorkspace } from "./review-studio-workspace.mjs";
+import { createMutationDispatcher } from "./review-studio-mutation-api.mjs";
+import { decorateDecisionView, decisionsAndHistoryView, invalidateDecisionViewCache } from "./review-studio-decision-view-models.mjs";
 
 function securityHeaders(response, contentType) {
   response.setHeader("Content-Type", contentType);
@@ -66,32 +68,59 @@ function pathSegments(pathname) {
   });
 }
 
-export function createReviewStudioApi({ workspace, sessionToken = randomBytes(32).toString("base64url"), onArtifactRead } = {}) {
+export function createReviewStudioApi({
+  workspace,
+  sessionToken = randomBytes(32).toString("base64url"),
+  writeEnabled = false,
+  writeToken = writeEnabled ? randomBytes(32).toString("base64url") : null,
+  authoringSessionId = writeEnabled ? randomBytes(24).toString("base64url") : null,
+  onArtifactRead,
+  mutationHooks,
+} = {}) {
   let readerPromise;
   const reader = () => {
     readerPromise ||= createReviewStudioWorkspace({ workspace, onArtifactRead });
     return readerPromise;
   };
+  const mutationDispatcher = createMutationDispatcher({
+    writeEnabled,
+    writeToken,
+    workspace,
+    sessionId: authoringSessionId,
+    getReader: reader,
+    hooks: mutationHooks,
+    invalidateProject: async (projectId) => invalidateDecisionViewCache(await reader(), projectId),
+  });
 
   async function dispatch(request, response) {
     const parsed = new URL(request.url || "/", "http://127.0.0.1");
     if (!parsed.pathname.startsWith(BOOK_BUILDER_API_ROOT)) return false;
     try {
-      requireReadOnlyMethod(request);
       validateLocalRequest(request);
       const segments = pathSegments(parsed.pathname);
       if (segments.length === 1 && segments[0] === "bootstrap") {
+        requireReadOnlyMethod(request);
         const current = await reader();
         endJson(request, response, 200, {
           apiRoot: BOOK_BUILDER_API_ROOT,
-          readOnly: true,
-          milestone: "4A",
+          readOnly: !writeEnabled,
+          writeEnabled,
+          milestone: "4B1",
           sessionToken,
+          ...(writeEnabled ? { writeCapability: writeToken } : {}),
           workspaceLabel: current.workspaceLabel,
         });
         return true;
       }
+      const isDecisionMutation = segments[0] === "projects" && segments[2] === "decisions" && segments.length === 4;
+      if (isDecisionMutation && !writeEnabled) throw new ReviewStudioError("write_mode_disabled", 403);
       requireSession(request, sessionToken);
+      if (isDecisionMutation) {
+        const mutation = await mutationDispatcher.dispatch(request, segments);
+        endJson(request, response, mutation.statusCode, mutation.payload);
+        return true;
+      }
+      requireReadOnlyMethod(request);
       const current = await reader();
       if (segments.length === 1 && segments[0] === "projects") {
         endJson(request, response, 200, await current.listProjects());
@@ -107,21 +136,22 @@ export function createReviewStudioApi({ workspace, sessionToken = randomBytes(32
       else if (view === "activities" && !detail) payload = await current.activities(projectId, parsed.searchParams);
       else if (view === "reviews" && !detail) payload = await current.reviews(projectId, parsed.searchParams);
       else if (view === "diff" && !detail) payload = await current.diff(projectId, parsed.searchParams);
+      else if (view === "decisions" && !detail) payload = await decisionsAndHistoryView(current, projectId);
       else if (view === "preview" && detail && segments.length === 4) {
         endPreview(request, response, await current.preview(projectId, detail));
         return true;
       } else throw new ReviewStudioError("route_not_found", 404);
-      endJson(request, response, 200, payload);
+      endJson(request, response, 200, await decorateDecisionView(current, projectId, view, payload));
       return true;
     } catch (cause) {
       const error = publicError(cause);
-      try { endJson(request, response, error.statusCode, { error: { code: error.code, message: error.code.replaceAll("_", " ") } }); }
+      try { endJson(request, response, error.statusCode, { error: { code: error.code, message: error.code.replaceAll("_", " "), ...(error.details ? { details: error.details } : {}) } }); }
       catch { response.statusCode = 500; securityHeaders(response, "application/json; charset=utf-8"); response.end('{"error":{"code":"review_studio_request_failed","message":"review studio request failed"}}\n'); }
       return true;
     }
   }
 
-  return { dispatch, sessionToken, reader };
+  return { dispatch, sessionToken, writeToken, writeEnabled, reader };
 }
 
 export function bookBuilderReviewStudioPlugin(options) {

@@ -4,12 +4,15 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Badge, Field, Pagination } from "../components/StudioPrimitives.jsx";
 import { StudioEmpty, StudioError, StudioLoading } from "../components/StudioStates.jsx";
 import { useStudioResource } from "../hooks/useStudioResource.js";
+import { DecisionDrawer } from "../components/DecisionDrawer.jsx";
 
-function ActivityDetails({ activity, notice }) {
+const ACTIVITY_DISPOSITIONS = ["structured-activity-candidate", "structured-activity-with-raster-gaps", "media-only", "teacher-reveal-only", "display-or-print-content", "unsupported-publisher-interaction", "non-exercise", "malformed-or-unresolved"];
+
+function ActivityDetails({ activity, notice, writeEnabled, onDecide }) {
   if (!activity) return <StudioEmpty title="Select an activity candidate">Choose a bounded list row to inspect its Student-safe projection.</StudioEmpty>;
   return (
     <aside className="studio-activity-details" aria-labelledby="activity-detail-title">
-      <div className="studio-view-heading compact"><div><span className="studio-eyebrow">Student-safe projection</span><h3 id="activity-detail-title">{activity.activityId}</h3><p>{activity.sourceRelativeLocator}</p></div><Badge tone={activity.rasterGap ? "warning" : "positive"}>{activity.contentCompleteness}</Badge></div>
+      <div className="studio-view-heading compact"><div><span className="studio-eyebrow">Student-safe projection</span><h3 id="activity-detail-title">{activity.activityId}</h3><p>{activity.sourceRelativeLocator}</p></div><div className="studio-inline-badges"><Badge tone={activity.rasterGap ? "warning" : "positive"}>{activity.contentCompleteness}</Badge>{writeEnabled && <button type="button" className="studio-button primary" onClick={() => onDecide(activity)}>Decide activity</button>}</div></div>
       <div className="studio-inline-badges"><Badge>{activity.normalizedType}</Badge><Badge>{activity.runtimeSupport}</Badge><Badge tone={activity.reviewCount ? "warning" : "positive"}>{activity.reviewCount} reviews</Badge></div>
       <div className="studio-activity-detail-metrics"><span><strong>{activity.questionCount}</strong> questions</span><span><strong>{activity.optionCount}</strong> options</span><span><strong>{activity.draggableCount}</strong> draggables</span><span><strong>{activity.targetCount}</strong> targets</span></div>
       {activity.rasterGap && <div className="studio-inline-notice"><AlertTriangle aria-hidden="true" /><span>Structured content has raster-only or missing text gaps.</span></div>}
@@ -22,7 +25,7 @@ function ActivityDetails({ activity, notice }) {
   );
 }
 
-export function ActivitiesView({ projectId, routeQuery }) {
+export function ActivitiesView({ projectId, routeQuery, authoring }) {
   const [filters, setFilters] = useState(() => ({
     search: routeQuery.get("search") || "", component: routeQuery.get("component") || "", unit: routeQuery.get("unit") || "", part: routeQuery.get("part") || "",
     type: "", publisherType: "", disposition: "", support: "", completeness: "", hasPrompt: "", hasOptions: "", hasMedia: "", hasHotspot: "", reviewRequired: "",
@@ -32,6 +35,7 @@ export function ActivitiesView({ projectId, routeQuery }) {
   const query = useMemo(() => ({ ...filters, search: deferredSearch }), [filters, deferredSearch]);
   const resource = useStudioResource(`/projects/${encodeURIComponent(projectId)}/activities`, query, JSON.stringify(query));
   const update = (key, value) => setFilters((current) => ({ ...current, [key]: value, ...(key === "page" || key === "activityId" ? {} : { page: 1, activityId: "" }) }));
+  const [editing, setEditing] = useState(null);
   if (resource.status === "loading" && !resource.data) return <StudioLoading label="Loading Student-safe activity candidates…" />;
   if (resource.status === "error") return <StudioError error={resource.error} onRetry={resource.retry} />;
   const data = resource.data;
@@ -55,9 +59,10 @@ export function ActivitiesView({ projectId, routeQuery }) {
       </div></details>
       {resource.status === "loading" && <div className="studio-inline-loading" role="status">Updating activity results…</div>}
       <div className="studio-master-detail">
-        <section aria-label="Activity candidate list"><div className="studio-table-scroll"><table className="studio-table studio-selectable-table"><thead><tr><th>Type / source</th><th>Disposition</th><th>Content</th><th>Questions</th><th>Options</th><th>Media</th><th>Reviews</th></tr></thead><tbody>{data.items.map((item) => <tr key={item.activityId} data-selected={data.selected?.activityId === item.activityId}><td><button type="button" onClick={() => update("activityId", item.activityId)}><strong>{item.normalizedType}</strong><small>{item.sourceRelativeLocator}</small></button></td><td>{item.disposition}</td><td><Badge tone={item.rasterGap ? "warning" : "positive"}>{item.rasterGap ? "Raster gaps" : item.contentCompleteness}</Badge></td><td>{item.questionCount}</td><td>{item.optionCount}</td><td>{item.mediaCount}</td><td>{item.reviewCount}</td></tr>)}</tbody></table></div><Pagination pagination={data.pagination} onPage={(page) => update("page", page)} /></section>
-        <ActivityDetails activity={data.selected} notice={data.notice} />
+        <section aria-label="Activity candidate list"><div className="studio-table-scroll"><table className="studio-table studio-selectable-table"><thead><tr><th>Detected / effective type</th><th>Detected / effective disposition</th><th>Content</th><th>Questions</th><th>Options</th><th>Media</th><th>Reviews</th></tr></thead><tbody>{data.items.map((item) => <tr key={item.activityId} data-selected={data.selected?.activityId === item.activityId}><td><button type="button" onClick={() => update("activityId", item.activityId)}><strong>{item.detectedType}</strong><small>Effective: {item.effectiveType} · {item.sourceRelativeLocator}</small></button></td><td>{item.detectedDisposition}<small>Effective: {item.effectiveDisposition}</small></td><td><Badge tone={item.rasterGap ? "warning" : "positive"}>{item.rasterGap ? "Raster gaps" : item.contentCompleteness}</Badge></td><td>{item.questionCount}</td><td>{item.optionCount}</td><td>{item.mediaCount}</td><td>{item.reviewCount}</td></tr>)}</tbody></table></div><Pagination pagination={data.pagination} onPage={(page) => update("page", page)} /></section>
+        <ActivityDetails activity={data.selected} notice={data.notice} writeEnabled={authoring.writeEnabled} onDecide={setEditing} />
       </div>
+      {editing && <DecisionDrawer projectId={projectId} expectedRevision={authoring.revision} target={{ targetId: editing.activityId, label: editing.activityId, sourceRelativeLocator: editing.sourceRelativeLocator }} kinds={[{ kind: "activity_type", label: "Normalized activity type", values: data.filters.types, initialValue: editing.effectiveType, detectedValue: editing.detectedType, currentDecision: editing.decisions.type.decision }, { kind: "activity_disposition", label: "Activity disposition", values: ACTIVITY_DISPOSITIONS, initialValue: editing.effectiveDisposition, detectedValue: editing.detectedDisposition, currentDecision: editing.decisions.disposition.decision }, { kind: "activity_audience_policy", label: "Audience policy", values: ["student_and_teacher", "teacher_only", "disabled"], initialValue: editing.audiencePolicy, detectedValue: "student_and_teacher", currentDecision: editing.decisions.audience.decision }]} onCommitted={authoring.onCommitted} onClose={() => setEditing(null)} />}
     </div>
   );
 }

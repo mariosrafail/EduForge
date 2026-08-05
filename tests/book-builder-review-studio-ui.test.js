@@ -35,7 +35,7 @@ test("Ultimate B2 compatibility entry retains the existing tracked authoring uti
 
 test("Review Studio routing is hash-based, path-free and covers every required project view", async () => {
   const router = await read("src/apps/book-builder/bookBuilderRouter.js");
-  for (const tab of ["overview", "components", "pages", "menu", "activities", "reviews", "diff"]) {
+  for (const tab of ["overview", "components", "pages", "menu", "activities", "reviews", "decisions", "diff"]) {
     assert.match(router, new RegExp(`id: "${tab}"`));
   }
   assert.match(router, /#\/projects\/\$\{encodeURIComponent\(projectId\)\}/);
@@ -43,7 +43,7 @@ test("Review Studio routing is hash-based, path-free and covers every required p
   assert.doesNotMatch(router, /workspace|filesystem|absolutePath/i);
 });
 
-test("core project views are read-only and keep the central menu title separate from startup intro", async () => {
+test("read-only remains default while explicit authoring UI keeps source and menu evidence immutable", async () => {
   const files = await Promise.all([
     "src/apps/book-builder/BookBuilderApp.jsx",
     "src/apps/book-builder/BookBuilderDashboard.jsx",
@@ -54,11 +54,12 @@ test("core project views are read-only and keep the central menu title separate 
     "src/apps/book-builder/views/MenuView.jsx",
   ].map(read));
   const source = files.join("\n");
-  assert.match(source, /Read-only review — approvals and manual corrections are not enabled in Milestone 4A/);
+  assert.match(source, /Read-only review — start the explicit local authoring command/);
+  assert.match(source, /Local editing enabled — durable decisions/);
   assert.match(source, /Central on-menu title/);
   assert.match(source, /Separate startup media evidence/);
   assert.match(source, /does not render or execute GAF, SWF or ActionScript/);
-  assert.doesNotMatch(source, />\s*(?:Approve|Reject|Save|Publish|Export APK|Build package)\s*</i);
+  assert.doesNotMatch(source, />\s*(?:Publish|Export APK|Build package)\s*</i);
   assert.doesNotMatch(source, /local-source-binding|teacher-solution|answer-evidence|acceptedAnswers|correctAnswers/);
 });
 
@@ -84,7 +85,7 @@ test("Studio styles remain isolated and define responsive diagnostic layouts", a
   assert.doesNotMatch(css, /url\(/i);
 });
 
-test("large activity and review views use server pagination without mutation controls", async () => {
+test("large activity and review views keep pagination and allow only single-item decisions", async () => {
   const [activities, reviews, diff, shell] = await Promise.all([
     read("src/apps/book-builder/views/ActivitiesView.jsx"),
     read("src/apps/book-builder/views/ReviewQueueView.jsx"),
@@ -103,7 +104,8 @@ test("large activity and review views use server pagination without mutation con
   assert.match(diff, /changeType/);
   assert.match(diff, /Raw fact payloads are withheld/);
   const source = [activities, reviews, diff].join("\n");
-  assert.doesNotMatch(source, /onClick=\{[^}]*\b(?:approve|reject|save|publish|dismiss|apply)\b/i);
+  assert.match(source, /DecisionDrawer/);
+  assert.doesNotMatch(source, /resolve all|apply to cluster|bulk selection|bulk dismiss|bulk approve/i);
   assert.doesNotMatch(source, /acceptedAnswers|correctAnswers|modelAnswer|scoring/i);
 });
 

@@ -3,6 +3,8 @@ import path from "node:path";
 
 export const BOOK_BUILDER_API_ROOT = "/__hhplms/book-builder";
 export const BOOK_BUILDER_SESSION_HEADER = "x-hhplms-book-builder-session";
+export const BOOK_BUILDER_WRITE_HEADER = "x-hhplms-book-builder-write-capability";
+export const MAXIMUM_MUTATION_BODY_BYTES = 128 * 1024;
 export const MAXIMUM_JSON_RESPONSE_BYTES = 2 * 1024 * 1024;
 export const MAXIMUM_ARTIFACT_BYTES = 64 * 1024 * 1024;
 export const MAXIMUM_PREVIEW_BYTES = 12 * 1024 * 1024;
@@ -22,11 +24,12 @@ const absoluteWindowsPath = /(?:^|[\s"'])(?:[a-z]:[\\/]|\\\\)[^\s"']*/i;
 const absoluteUserPath = /(?:^|[\s"'])(?:\/Users\/|\/home\/)[^\s"']*/i;
 
 export class ReviewStudioError extends Error {
-  constructor(code, statusCode = 400) {
+  constructor(code, statusCode = 400, details = null) {
     super(code);
     this.name = "ReviewStudioError";
     this.code = code;
     this.statusCode = statusCode;
+    this.details = details;
   }
 }
 

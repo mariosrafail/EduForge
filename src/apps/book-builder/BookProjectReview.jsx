@@ -1,5 +1,5 @@
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PROJECT_TABS, projectHash } from "./bookBuilderRouter.js";
 import { useStudioResource } from "./hooks/useStudioResource.js";
@@ -12,6 +12,7 @@ import { MenuView } from "./views/MenuView.jsx";
 import { ActivitiesView } from "./views/ActivitiesView.jsx";
 import { ReviewQueueView } from "./views/ReviewQueueView.jsx";
 import { SourceDiffView } from "./views/SourceDiffView.jsx";
+import { DecisionsView } from "./views/DecisionsView.jsx";
 
 function ProjectTabs({ projectId, activeTab }) {
   const refs = useRef([]);
@@ -33,32 +34,36 @@ function ProjectTabs({ projectId, activeTab }) {
   );
 }
 
-function ActiveView({ route }) {
+function ActiveView({ route, authoring, refreshKey }) {
   if (route.tab === "overview") return <OverviewView projectId={route.projectId} />;
-  if (route.tab === "components") return <ComponentsView projectId={route.projectId} routeQuery={route.query} />;
-  if (route.tab === "pages") return <PagesView projectId={route.projectId} routeQuery={route.query} />;
+  if (route.tab === "components") return <ComponentsView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
+  if (route.tab === "pages") return <PagesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "menu") return <MenuView projectId={route.projectId} />;
-  if (route.tab === "activities") return <ActivitiesView projectId={route.projectId} routeQuery={route.query} />;
-  if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} />;
+  if (route.tab === "activities") return <ActivitiesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
+  if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} authoring={authoring} />;
+  if (route.tab === "decisions") return <DecisionsView projectId={route.projectId} refreshKey={refreshKey} />;
   return <SourceDiffView projectId={route.projectId} />;
 }
 
-export function BookProjectReview({ route }) {
+export function BookProjectReview({ route, writeEnabled }) {
   const overview = useStudioResource(`/projects/${encodeURIComponent(route.projectId)}/overview`, null, route.projectId);
+  const [revisionState, setRevisionState] = useState({ projectId: route.projectId, revision: null, refreshKey: 0 });
   useEffect(() => { document.querySelector(".studio-project-view")?.focus(); }, [route.projectId, route.tab]);
   if (overview.status === "loading") return <main id="main-content"><StudioLoading label="Opening Book Project…" /></main>;
   if (overview.status === "error") return <main id="main-content"><StudioError error={overview.error} onRetry={overview.retry} title="Book Project unavailable" /><p className="studio-centered-action"><a href="#/" className="studio-button secondary"><ArrowLeft aria-hidden="true" /> Return to dashboard</a></p></main>;
   const project = overview.data.project;
+  const currentRevision = revisionState.projectId === route.projectId && revisionState.revision ? revisionState.revision : project.revision;
+  const authoring = { writeEnabled, revision: currentRevision, onCommitted: (result) => setRevisionState((current) => ({ projectId: route.projectId, revision: result.revision, refreshKey: current.refreshKey + 1 })) };
   return (
     <main className="studio-project-view" id="main-content" tabIndex={-1}>
       <nav className="studio-breadcrumbs" aria-label="Breadcrumb"><a href="#/">Projects</a><ChevronRight aria-hidden="true" /><span aria-current="page">{project.sourceLabel}</span></nav>
       <section className="studio-project-header">
         <div><a className="studio-back-link" href="#/"><ArrowLeft aria-hidden="true" /> All projects</a><span className="studio-eyebrow">{project.projectId}</span><h1>{project.sourceLabel}</h1></div>
-        <div className="studio-project-meta"><Badge>{project.profile}</Badge><Badge tone="warning">{project.lifecycle.replaceAll("_", " ")}</Badge><span>Revision <strong>{project.revision}</strong></span><span><strong>{project.reviewSummary.total.toLocaleString()}</strong> reviews</span></div>
+        <div className="studio-project-meta"><Badge>{project.profile}</Badge><Badge tone="warning">{project.lifecycle.replaceAll("_", " ")}</Badge><span>Revision <strong>{currentRevision}</strong></span><span><strong>{project.reviewSummary.total.toLocaleString()}</strong> reviews</span></div>
       </section>
       <ProjectTabs projectId={route.projectId} activeTab={route.tab} />
       <section className="studio-view-panel" role="tabpanel" aria-label={PROJECT_TABS.find((tab) => tab.id === route.tab)?.label}>
-        <ActiveView route={route} />
+        <ActiveView key={`${route.tab}-${revisionState.refreshKey}`} route={route} authoring={authoring} refreshKey={revisionState.refreshKey} />
       </section>
     </main>
   );

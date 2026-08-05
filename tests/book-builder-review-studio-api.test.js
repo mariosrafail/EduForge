@@ -44,7 +44,9 @@ test("bootstrap and project listing expose only a safe read-only workspace proje
   const bootstrap = await json(await fetch(`${origin}${BOOK_BUILDER_API_ROOT}/bootstrap`, { headers: { Origin: origin } }));
   assert.equal(bootstrap.response.status, 200);
   assert.equal(bootstrap.payload.readOnly, true);
-  assert.equal(bootstrap.payload.milestone, "4A");
+  assert.equal(bootstrap.payload.milestone, "4B1");
+  assert.equal(bootstrap.payload.writeEnabled, false);
+  assert.equal(Object.hasOwn(bootstrap.payload, "writeCapability"), false);
   assert.equal(bootstrap.payload.sessionToken, "synthetic-session-token");
   assert.doesNotMatch(bootstrap.serialized, /[A-Z]:\\|\/Users\/|\/home\//i);
   const projects = await json(await request("/projects"));

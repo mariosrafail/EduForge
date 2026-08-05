@@ -40,7 +40,7 @@ function ProjectCard({ project }) {
   );
 }
 
-export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel }) {
+export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel, writeEnabled }) {
   const [search, setSearch] = useState("");
   const [profile, setProfile] = useState("");
   const [lifecycle, setLifecycle] = useState("");
@@ -55,7 +55,7 @@ export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel }) 
   return (
     <main className="studio-dashboard" id="main-content">
       <section className="studio-dashboard-intro" aria-labelledby="dashboard-title">
-        <div><span className="studio-eyebrow">Publisher Book Builder</span><h1 id="dashboard-title">Book Project dashboard</h1><p>Inspect local authoring evidence without changing source or project state.</p></div>
+        <div><span className="studio-eyebrow">Publisher Book Builder</span><h1 id="dashboard-title">Book Project dashboard</h1><p>{writeEnabled ? "Review evidence and create durable decisions in this persistent local workspace." : "Inspect local authoring evidence without changing source or project state."}</p></div>
         <div className="studio-workspace-label"><BookOpen aria-hidden="true" /><span>{workspaceLabel}</span></div>
       </section>
 

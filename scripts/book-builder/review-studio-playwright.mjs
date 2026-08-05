@@ -128,7 +128,7 @@ async function run() {
 
     await page.goto(`${primary.origin}/builder.html`, { waitUntil: "domcontentloaded" });
     await expectHeading(page, "Book Project dashboard");
-    await page.getByText("Read-only review — approvals and manual corrections are not enabled in Milestone 4A.").waitFor();
+    await page.getByText("Read-only review — start the explicit local authoring command to create decisions.").waitFor();
     await page.getByRole("heading", { name: "Fictional Ultimate Review Book" }).waitFor();
     await page.getByRole("heading", { name: "Fictional Journey Control" }).waitFor();
     await page.getByRole("heading", { name: "Incomplete projects" }).waitFor();
@@ -144,7 +144,7 @@ async function run() {
     await page.getByRole("tab", { name: "Components" }).click();
     await expectHeading(page, "Components");
     await page.locator("label.studio-field").filter({ hasText: /^Pages/ }).locator("select").selectOption("true");
-    await page.locator("tbody").getByText("students-book", { exact: true }).waitFor();
+    await page.locator("tbody").getByText("Effective: students-book", { exact: true }).waitFor();
 
     await page.getByRole("tab", { name: "Pages & Hotspots" }).click();
     await expectHeading(page, "Pages & Hotspots");
