@@ -165,7 +165,7 @@ async function run() {
     await page.getByText("152 items").waitFor();
     await page.getByLabel("Completeness").selectOption("raster-gaps");
     await page.getByText("Structured content has raster-only or missing text gaps.").waitFor();
-    await page.getByText("Correct drag/drop mappings are not available.").waitFor();
+    await page.getByText("Labels remain independent. Correct drag/drop mappings are never available here.").waitFor();
 
     await page.getByRole("tab", { name: "Review Queue" }).click();
     await expectHeading(page, "Review Queue");
