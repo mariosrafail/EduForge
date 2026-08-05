@@ -2,10 +2,21 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 
 export const SYNTHETIC_TEACHER_SECRET = "HHPLMS_SYNTHETIC_TEACHER_SECRET_M4A_7D3C9F";
 
-const previewPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR42mP8z8AARAwMjIxoAkwMAGcABfICmR0AAAAASUVORK5CYII=", "base64");
+const previewPng = await sharp(Buffer.from(`
+  <svg width="960" height="640" xmlns="http://www.w3.org/2000/svg">
+    <rect width="960" height="640" fill="#f7f9fc"/>
+    <rect x="40" y="40" width="880" height="92" rx="16" fill="#4b1f55"/>
+    <rect x="40" y="160" width="420" height="420" rx="18" fill="#d9eef7"/>
+    <rect x="490" y="160" width="430" height="190" rx="18" fill="#f9dfd5"/>
+    <rect x="490" y="380" width="430" height="200" rx="18" fill="#e7e0f2"/>
+    <text x="72" y="98" fill="white" font-size="36" font-family="Arial">Synthetic publisher page preview</text>
+    <text x="72" y="220" fill="#17324a" font-size="28" font-family="Arial">48 accessible hotspots</text>
+  </svg>
+`)).png().toBuffer();
 
 async function writeJson(target, value) {
   await fs.mkdir(path.dirname(target), { recursive: true });
@@ -149,10 +160,22 @@ async function createUltimateProject(workspace, sourceRoot) {
     ],
     summary: { distinctSpreadCount: 2, pageImageFileCount: 1, hdCount: 1, sdCount: 0, specialCount: 0 },
   });
+  const hotspots = Array.from({ length: 48 }, (_, index) => ({
+    id: `hotspot_fictional_${String(index + 1).padStart(2, "0")}`,
+    candidateTargetObject: index < 36 ? index + 1 : null,
+    mappingConfidence: index < 24 ? 0.9 : 0.45,
+    normalizedGeometry: index < 24 ? {
+      xPct: 3 + (index % 6) * 16,
+      yPct: 3 + Math.floor(index / 6) * 22,
+      widthPct: 10,
+      heightPct: 14,
+    } : null,
+    reviewStatus: "unapproved",
+  }));
   await writeJson(path.join(profileRoot, "hotspot-candidates.json"), {
     schemaVersion: "1.0", parserId: "synthetic-hotspots", parserVersion: "1.0",
-    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: true, buttonCount: 1, objectDirectoryCount: 1, quadCount: 0, sourceRelativePath: "Fictional/Books/volume-one/course/1/part1/part_params.iwb", hotspots: [{ id: "hotspot_fictional_1", candidateTargetObject: 1, mappingConfidence: 0.9, normalizedGeometry: { xPct: 10, yPct: 20, widthPct: 30, heightPct: 25 }, reviewStatus: "unapproved" }], quads: [] }],
-    summary: { normalizedCandidateCount: 1, exactCardinalityCount: 1, mismatchCount: 0 },
+    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: false, buttonCount: 48, objectDirectoryCount: 36, quadCount: 0, sourceRelativePath: "Fictional/Books/volume-one/course/1/part1/part_params.iwb", hotspots, quads: [] }],
+    summary: { normalizedCandidateCount: 24, exactCardinalityCount: 0, mismatchCount: 1 },
   });
   await writeJson(path.join(profileRoot, "menu-model.json"), {
     schemaVersion: "1.0", parserId: "synthetic-menu", parserVersion: "1.0", sourceRelativePath: "Fictional/Menu/home_params.iwb",
@@ -208,6 +231,49 @@ async function createUltimateProject(workspace, sourceRoot) {
   return { projectId, projectRoot, sourcePreview, pageSha };
 }
 
+async function createOlderUltimateProject(workspace, current) {
+  const projectId = "fictional-00-older-ultimate";
+  const projectRoot = path.join(workspace, "projects", projectId);
+  await fs.cp(current.projectRoot, projectRoot, { recursive: true });
+  const project = JSON.parse(await fs.readFile(path.join(projectRoot, "book-project.json"), "utf8"));
+  project.projectId = projectId;
+  project.sourceDescriptor.label = "Fictional Older Ultimate Project";
+  project.sourceDescriptor.applicationName = "Fictional Older Ultimate Project";
+  project.sourceDescriptor.applicationId = `fictional.${projectId}`;
+  const { studentCandidateCount, ...olderImportSummary } = project.selectedProfile.importSummary;
+  project.selectedProfile.importSummary = { ...olderImportSummary, reviewItems: 43 };
+  await writeJson(path.join(projectRoot, "book-project.json"), project);
+  const binding = JSON.parse(await fs.readFile(path.join(projectRoot, "local-source-binding.json"), "utf8"));
+  binding.projectId = projectId;
+  binding.bindingId = "fictional-older-binding";
+  await writeJson(path.join(projectRoot, "local-source-binding.json"), binding);
+  const reviews = Array.from({ length: 43 }, (_, index) => reviewItem(index + 1));
+  await writeJson(path.join(projectRoot, "review-queue.json"), {
+    schemaVersion: "1.0",
+    parserId: "synthetic-older-review",
+    parserVersion: "1.0",
+    items: reviews,
+    summary: {
+      total: reviews.length,
+      blocking: reviews.filter((item) => item.blocking).length,
+      byCategory: Object.fromEntries([...new Set(reviews.map((item) => item.category))].map((category) => [category, reviews.filter((item) => item.category === category).length])),
+      byReason: Object.fromEntries([...new Set(reviews.map((item) => item.reasonCode))].map((reason) => [reason, reviews.filter((item) => item.reasonCode === reason).length])),
+    },
+  });
+  const profileRoot = path.join(projectRoot, "profiles", "ultimate-air-v2");
+  for (const relative of [
+    "activity-signatures.json",
+    "activity-clusters.json",
+    "student-activity-candidates.json",
+    "activity-evidence.json",
+    "activity-extraction-summary.json",
+    "activity-review-items.json",
+    "activity-extraction-report.md",
+    "internal",
+  ]) await fs.rm(path.join(profileRoot, relative), { recursive: true, force: true });
+  return { projectId, projectRoot };
+}
+
 async function createJourneyProject(workspace) {
   const projectId = "fictional-journey-control";
   const projectRoot = path.join(workspace, "projects", projectId);
@@ -223,12 +289,13 @@ export async function createBookBuilderStudioFixture() {
   const sourceRoot = path.join(root, "source");
   await fs.mkdir(path.join(workspace, "projects"), { recursive: true });
   const ultimate = await createUltimateProject(workspace, sourceRoot);
+  const olderUltimate = await createOlderUltimateProject(workspace, ultimate);
   const journey = await createJourneyProject(workspace);
   const corruptRoot = path.join(workspace, "projects", "fictional-corrupt-project");
   await fs.mkdir(corruptRoot, { recursive: true });
   await fs.writeFile(path.join(corruptRoot, "book-project.json"), "{not-json", "utf8");
   return {
-    root, workspace, sourceRoot, ultimate, journey, corruptRoot,
+    root, workspace, sourceRoot, ultimate, olderUltimate, journey, corruptRoot,
     async cleanup() { await fs.rm(root, { recursive: true, force: true }); },
   };
 }

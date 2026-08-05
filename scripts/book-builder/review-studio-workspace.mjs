@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { assertNoSymlinkPath, isPathWithin } from "../../lib/book-builder/path-safety.js";
+import { unavailableClusterReviewResponse } from "./review-studio-cluster-projection.mjs";
 import {
   DEFAULT_PAGE_SIZE,
   MAXIMUM_ARTIFACT_BYTES,
@@ -777,6 +777,7 @@ export class ReviewStudioWorkspace {
 
   async clusterReviews(projectId, project, queue, query) {
     const artifact = await this.readArtifact(projectId, "activityClusters", { optional: true, project });
+    if (!artifact) return unavailableClusterReviewResponse(reviewSummary(queue), DEFAULT_PAGE_SIZE);
     const reasonsByObject = new Map();
     for (const item of optionalArray(queue.items)) {
       const locator = safeRelativeLocator(item.sourceRelativeLocator, "");
@@ -800,6 +801,7 @@ export class ReviewStudioWorkspace {
     }).sort((left, right) => right.candidateCount - left.candidateCount || left.id.localeCompare(right.id));
     return {
       available: true,
+      clustersAvailable: true,
       summary: reviewSummary(queue),
       grouping: "cluster",
       ...paginate(clusters, query),

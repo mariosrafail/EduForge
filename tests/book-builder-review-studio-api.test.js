@@ -49,9 +49,9 @@ test("bootstrap and project listing expose only a safe read-only workspace proje
   assert.doesNotMatch(bootstrap.serialized, /[A-Z]:\\|\/Users\/|\/home\//i);
   const projects = await json(await request("/projects"));
   assert.equal(projects.response.status, 200);
-  assert.deepEqual(projects.payload.projects.map((item) => item.projectId), ["fictional-journey-control", "fictional-ultimate-review"]);
+  assert.deepEqual(projects.payload.projects.map((item) => item.projectId), ["fictional-00-older-ultimate", "fictional-journey-control", "fictional-ultimate-review"]);
   assert.equal(projects.payload.diagnostics[0].projectId, "fictional-corrupt-project");
-  assert.equal(projects.payload.projects[1].reviewSummary.total, 5007);
+  assert.equal(projects.payload.projects.find((item) => item.projectId === "fictional-ultimate-review").reviewSummary.total, 5007);
   assert.doesNotMatch(projects.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
   assert.doesNotMatch(projects.serialized, /canonicalApplicationRealPath|selectedOuterPath/i);
 });
@@ -77,7 +77,9 @@ test("all project view families return bounded sanitized models", async (t) => {
   assert.equal(components.payload.pagination.pageSize, 1);
   const pages = await json(await request(`${project}/pages?pageSize=1`));
   assert.equal(pages.payload.items.length, 1);
-  assert.equal(pages.payload.selected.hotspots[0].geometry.width, 0.3);
+  assert.equal(pages.payload.selected.hotspots.length, 48);
+  assert.equal(pages.payload.selected.hotspots.filter((item) => item.geometry).length, 24);
+  assert.equal(pages.payload.selected.hotspots[0].geometry.width, 0.1);
   assert.match(pages.payload.selected.variants[0].previewId, /^preview_/);
   const menu = await json(await request(`${project}/menu`));
   assert.equal(menu.payload.buttons.length, 2);
@@ -114,6 +116,20 @@ test("Journey-like projects use safe unavailable states for unsupported profile 
   assert.equal((await json(await request(`${project}/menu`))).payload.available, false);
   assert.equal((await json(await request(`${project}/activities`))).payload.available, false);
   assert.equal((await json(await request(`${project}/reviews`))).payload.available, false);
+});
+
+test("older Ultimate projects retain supported views and expose explicit activity capability gaps", async (t) => {
+  const { request } = await createApiHarness(t);
+  const project = "/projects/fictional-00-older-ultimate";
+  assert.equal((await json(await request(`${project}/overview`))).response.status, 200);
+  assert.equal((await json(await request(`${project}/components`))).payload.available, true);
+  assert.equal((await json(await request(`${project}/pages`))).payload.available, true);
+  assert.equal((await json(await request(`${project}/menu`))).payload.available, true);
+  assert.equal((await json(await request(`${project}/activities`))).payload.available, false);
+  const clusters = await json(await request(`${project}/reviews?groupBy=cluster`));
+  assert.equal(clusters.payload.clustersAvailable, false);
+  assert.equal(clusters.payload.pagination.total, 0);
+  assert.doesNotMatch(clusters.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
 });
 
 test("security boundary rejects bad sessions, origins, hosts, methods, traversal and arbitrary artifact routes", async (t) => {

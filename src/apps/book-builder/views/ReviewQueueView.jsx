@@ -6,6 +6,7 @@ import { StudioEmpty, StudioError, StudioLoading } from "../components/StudioSta
 import { useStudioResource } from "../hooks/useStudioResource.js";
 
 function ClusterBrowser({ data, onPage }) {
+  if (data.clustersAvailable === false) return <StudioEmpty title="Activity clusters unavailable">This project was created before activity structural-cluster artifacts were recorded.</StudioEmpty>;
   return data.items.length ? <><div className="studio-cluster-grid">{data.items.map((cluster) => <article key={cluster.id}><div><span className="studio-eyebrow">Structural cluster</span><h3>{cluster.id.slice(0, 14)}…</h3></div><Badge>{cluster.candidateCount.toLocaleString()} candidates</Badge><dl><div><dt>Common dispositions</dt><dd>{Object.entries(cluster.dispositions).map(([name, count]) => `${name} (${count})`).join(", ")}</dd></div><div><dt>Common review reasons</dt><dd>{cluster.commonReviewReasons.join(", ") || "No sample reason resolved"}</dd></div></dl><details><summary>Safe source samples</summary><ul>{cluster.samples.map((sample) => <li key={sample}>{sample}</li>)}</ul></details></article>)}</div><Pagination pagination={data.pagination} onPage={onPage} /></> : <StudioEmpty title="No structural clusters match">Choose another grouping or filter.</StudioEmpty>;
 }
 
