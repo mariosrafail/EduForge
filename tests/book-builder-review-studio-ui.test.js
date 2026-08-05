@@ -21,7 +21,11 @@ test("Ultimate B2 compatibility entry retains the existing tracked authoring uti
     read("src/apps/ultimate-b2-builder/builderEntry.jsx"),
     read("scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"),
   ]);
-  const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+  // Git stores these source files with LF endings, while a fresh Windows
+  // worktree may materialize them as CRLF. Hash the canonical Git text so the
+  // compatibility guard detects source changes without depending on checkout
+  // line-ending policy.
+  const sha256 = (value) => createHash("sha256").update(value.replaceAll("\r\n", "\n")).digest("hex");
   assert.match(html, /src\/apps\/ultimate-b2-builder\/builderEntry\.jsx/);
   assert.match(html, /Ultimate B2 Students Book hotspot builder/);
   assert.equal(sha256(component), "23bc859bd305541433bd3352e46281b980bb31a7b52ac0af507bd28f55517ad3");
