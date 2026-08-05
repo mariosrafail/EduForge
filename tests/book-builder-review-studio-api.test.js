@@ -11,8 +11,11 @@ import { SYNTHETIC_TEACHER_SECRET, createBookBuilderStudioFixture } from "./help
 
 async function createApiHarness(t, options = {}) {
   const fixture = await createBookBuilderStudioFixture();
+  await options.setup?.(fixture);
   const reads = [];
-  const api = createReviewStudioApi({ workspace: fixture.workspace, sessionToken: "synthetic-session-token", onArtifactRead: (entry) => reads.push(entry), ...options });
+  const apiOptions = { ...options };
+  delete apiOptions.setup;
+  const api = createReviewStudioApi({ workspace: fixture.workspace, sessionToken: "synthetic-session-token", onArtifactRead: (entry) => reads.push(entry), ...apiOptions });
   const server = http.createServer(async (request, response) => {
     if (!await api.dispatch(request, response)) { response.statusCode = 404; response.end("not found"); }
   });
@@ -37,8 +40,8 @@ test("default Book Builder workspace remains the local application-data location
 });
 
 test("bootstrap and project listing expose only a safe read-only workspace projection", async (t) => {
-  const { request } = await createApiHarness(t);
-  const bootstrap = await json(await request("/bootstrap", { headers: {} }));
+  const { origin, request } = await createApiHarness(t);
+  const bootstrap = await json(await fetch(`${origin}${BOOK_BUILDER_API_ROOT}/bootstrap`, { headers: { Origin: origin } }));
   assert.equal(bootstrap.response.status, 200);
   assert.equal(bootstrap.payload.readOnly, true);
   assert.equal(bootstrap.payload.milestone, "4A");
@@ -51,6 +54,15 @@ test("bootstrap and project listing expose only a safe read-only workspace proje
   assert.equal(projects.payload.projects[1].reviewSummary.total, 5007);
   assert.doesNotMatch(projects.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
   assert.doesNotMatch(projects.serialized, /canonicalApplicationRealPath|selectedOuterPath/i);
+});
+
+test("an empty explicit workspace returns a useful empty project list", async (t) => {
+  const { request } = await createApiHarness(t, { setup: async (fixture) => {
+    await fs.rm(path.join(fixture.workspace, "projects"), { recursive: true, force: true });
+    await fs.mkdir(path.join(fixture.workspace, "projects"));
+  } });
+  const projects = await (await request("/projects")).json();
+  assert.deepEqual(projects, { projects: [], diagnostics: [] });
 });
 
 test("all project view families return bounded sanitized models", async (t) => {
@@ -106,6 +118,7 @@ test("Journey-like projects use safe unavailable states for unsupported profile 
 
 test("security boundary rejects bad sessions, origins, hosts, methods, traversal and arbitrary artifact routes", async (t) => {
   const { origin, request } = await createApiHarness(t);
+  assert.equal((await fetch(`${origin}${BOOK_BUILDER_API_ROOT}/projects`, { headers: { Origin: origin } })).status, 401);
   assert.equal((await request("/projects", { headers: { [BOOK_BUILDER_SESSION_HEADER]: "wrong" } })).status, 401);
   assert.equal((await request("/projects", { headers: { Origin: "http://evil.example" } })).status, 403);
   assert.equal((await request("/projects", { method: "POST" })).status, 405);
@@ -160,6 +173,34 @@ test("opaque page and materialized preview IDs serve only verified raster bytes"
   assert.equal((await request(`${base}/preview/preview_unknown`)).status, 404);
   await fs.writeFile(fixture.ultimate.sourcePreview, Buffer.from("changed"));
   assert.equal((await request(`${base}/preview/${pagePreviewId}`)).status, 409);
+});
+
+test("preview allowlist ignores forbidden types and rejects source or materialized symlink escapes", async (t) => {
+  const { fixture, request } = await createApiHarness(t);
+  const base = "/projects/fictional-ultimate-review";
+  const profileRoot = path.join(fixture.ultimate.projectRoot, "profiles", "ultimate-air-v2");
+  const menuRoot = path.join(profileRoot, "review-assets", "menu");
+  await fs.writeFile(path.join(menuRoot, "forbidden.svg"), "<svg/>", "utf8");
+  const menuBefore = await (await request(`${base}/menu`)).json();
+  assert.equal(menuBefore.previews.some((item) => item.label === "forbidden.svg"), false);
+  const outsideRaster = path.join(fixture.root, "outside-preview.png");
+  await fs.writeFile(outsideRaster, Buffer.from("not-a-real-raster"));
+  const materializedLink = path.join(menuRoot, "escape.png");
+  const sourceLinkTarget = path.join(fixture.root, "outside-source-preview.png");
+  await fs.writeFile(sourceLinkTarget, Buffer.from("not-a-real-raster"));
+  try {
+    await fs.symlink(outsideRaster, materializedLink);
+    const menuAfter = await (await request(`${base}/menu`)).json();
+    assert.equal(menuAfter.previews.some((item) => item.label === "escape.png"), false);
+    const pages = await (await request(`${base}/pages`)).json();
+    const previewId = pages.selected.variants[0].previewId;
+    await fs.rm(fixture.ultimate.sourcePreview);
+    await fs.symlink(sourceLinkTarget, fixture.ultimate.sourcePreview);
+    assert.equal((await request(`${base}/preview/${previewId}`)).status, 404);
+  } catch (error) {
+    if (!["EPERM", "EACCES"].includes(error.code)) throw error;
+    t.diagnostic("Symlink escape checks are covered by path guards; creation is unavailable here.");
+  }
 });
 
 test("ordinary requests never open local bindings or internal Teacher artifacts", async (t) => {

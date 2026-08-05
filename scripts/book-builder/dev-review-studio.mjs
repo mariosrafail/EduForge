@@ -3,12 +3,10 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import react from "@vitejs/plugin-react";
 import { createServer } from "vite";
 
 import { defaultBookBuilderWorkspace } from "../../lib/book-builder/source-binding.js";
 import { bookBuilderReviewStudioPlugin } from "./review-studio-api.mjs";
-import { ultimateB2HotspotBuilderPlugin } from "../ultimate-b2/hotspot-builder-vite-plugin.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -38,9 +36,9 @@ async function main() {
   const workspace = await validatedWorkspace(options.workspace);
   const server = await createServer({
     root: repositoryRoot,
-    configFile: false,
+    configFile: path.join(repositoryRoot, "vite.config.js"),
     appType: "mpa",
-    plugins: [react(), bookBuilderReviewStudioPlugin({ workspace }), ultimateB2HotspotBuilderPlugin()],
+    plugins: [bookBuilderReviewStudioPlugin({ workspace })],
     server: {
       host: "127.0.0.1",
       port: options.port,

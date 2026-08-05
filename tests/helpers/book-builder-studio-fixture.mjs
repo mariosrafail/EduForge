@@ -151,7 +151,7 @@ async function createUltimateProject(workspace, sourceRoot) {
   });
   await writeJson(path.join(profileRoot, "hotspot-candidates.json"), {
     schemaVersion: "1.0", parserId: "synthetic-hotspots", parserVersion: "1.0",
-    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: true, buttonCount: 1, objectDirectoryCount: 1, quadCount: 0, sourceRelativePath: "Fictional/Books/volume-one/course/1/part1/part_params.iwb", hotspots: [{ id: "hotspot_fictional_1", candidateTargetObject: 1, mappingConfidence: 0.9, normalizedGeometry: { x: 0.1, y: 0.2, width: 0.3, height: 0.25 }, reviewStatus: "unapproved" }], quads: [] }],
+    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: true, buttonCount: 1, objectDirectoryCount: 1, quadCount: 0, sourceRelativePath: "Fictional/Books/volume-one/course/1/part1/part_params.iwb", hotspots: [{ id: "hotspot_fictional_1", candidateTargetObject: 1, mappingConfidence: 0.9, normalizedGeometry: { xPct: 10, yPct: 20, widthPct: 30, heightPct: 25 }, reviewStatus: "unapproved" }], quads: [] }],
     summary: { normalizedCandidateCount: 1, exactCardinalityCount: 1, mismatchCount: 0 },
   });
   await writeJson(path.join(profileRoot, "menu-model.json"), {

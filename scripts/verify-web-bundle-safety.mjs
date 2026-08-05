@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const textExtensions = new Set([".html", ".js", ".css", ".json", ".map", ".txt", ".xml"]);
 
 const prohibitedPatterns = [
+  ["Publisher Review Studio client", /Hamilton House Publisher Review Studio|Read-only Milestone 4A|__hhplms\/book-builder/gi],
   ["publisher resource path", /Contents[\\/]Resources[\\/]/gi],
   ["publisher application path", /Ultimate English B2\.app/gi],
   ["publisher IWB reference", /\.iwb\b/gi],

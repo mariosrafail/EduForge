@@ -44,7 +44,7 @@ export function useBookBuilderRoute() {
     return () => window.removeEventListener("hashchange", update);
   }, []);
   useEffect(() => {
-    if (route.kind === "invalid") window.history.replaceState(null, "", "#/");
+    if (route.kind === "invalid") window.location.hash = "/";
     else if (route.redirected) window.history.replaceState(null, "", projectHash(route.projectId, route.tab));
   }, [route]);
   return route;

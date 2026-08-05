@@ -5,6 +5,7 @@ import path from "node:path";
 const distRoot = path.resolve(process.cwd(), "dist");
 const textExtensions = new Set([".html", ".js", ".css", ".json", ".xml", ".txt"]);
 const forbidden = [
+  ["Publisher Review Studio client", /Hamilton House Publisher Review Studio|Read-only Milestone 4A|__hhplms\/book-builder/gi],
   ["Netlify function path", /\.netlify\/functions/gi],
   ["teacher web solutions action", /teacher-activity-solutions/gi],
   ["student submission action", /(?:submit-assignment|submit-activity|student-submission)/gi],

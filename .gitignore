@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-book-builder/
 .env
 .env.*
 !.env.example

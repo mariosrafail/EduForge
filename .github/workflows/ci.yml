@@ -22,12 +22,16 @@ jobs:
       - run: npm test
       - run: npm run audit:source-structure
       - run: npm run audit:branding
+      - run: npm run test:book-builder:studio
+      - run: npm run build:book-builder
+      - run: npm run verify:book-builder-bundle-safety
       - run: npm run build
       - run: npm run verify:web-bundle-safety
       - run: npm run build:android-offline
       - run: npm run verify:android-student-bundle-safety
       - run: npm run build:android-teacher-offline
       - run: npx playwright install --with-deps chromium
+      - run: npm run test:book-builder:studio:visual
       - run: npm run test:android-teacher-offline:smoke
       - run: npm run test:android-teacher-offline:intro
       - run: npm run test:android-teacher-offline:viewports

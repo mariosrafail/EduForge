@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -11,6 +12,21 @@ test("builder.html loads the generic Publisher Review Studio entry", async () =>
   assert.match(html, /Hamilton House Publisher Review Studio/);
   assert.match(html, /src\/apps\/book-builder\/bookBuilderEntry\.jsx/);
   assert.doesNotMatch(html, /ultimate-b2-builder\/builderEntry/);
+});
+
+test("Ultimate B2 compatibility entry retains the existing tracked authoring utility byte-for-byte", async () => {
+  const [html, component, entry, plugin] = await Promise.all([
+    read("ultimate-b2-builder.html"),
+    read("src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"),
+    read("src/apps/ultimate-b2-builder/builderEntry.jsx"),
+    read("scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"),
+  ]);
+  const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+  assert.match(html, /src\/apps\/ultimate-b2-builder\/builderEntry\.jsx/);
+  assert.match(html, /Ultimate B2 Students Book hotspot builder/);
+  assert.equal(sha256(component), "23bc859bd305541433bd3352e46281b980bb31a7b52ac0af507bd28f55517ad3");
+  assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");
+  assert.equal(sha256(plugin), "37df07b4a0db138fcd8166189f0cd2167b262bdafeaf9739dc412239bda91e6f");
 });
 
 test("Review Studio routing is hash-based, path-free and covers every required project view", async () => {
@@ -85,4 +101,22 @@ test("large activity and review views use server pagination without mutation con
   const source = [activities, reviews, diff].join("\n");
   assert.doesNotMatch(source, /onClick=\{[^}]*\b(?:approve|reject|save|publish|dismiss|apply)\b/i);
   assert.doesNotMatch(source, /acceptedAnswers|correctAnswers|modelAnswer|scoring/i);
+});
+
+test("normal Vite and Android bundle verifiers explicitly reject Review Studio code", async () => {
+  const [vite, webVerifier, studentVerifier, teacherVerifier, builderScript] = await Promise.all([
+    read("vite.config.js"),
+    read("scripts/verify-web-bundle-safety.mjs"),
+    read("scripts/android/verify-student-bundle.mjs"),
+    read("scripts/android-teacher/verify-bundle.mjs"),
+    read("scripts/book-builder/build-review-studio.mjs"),
+  ]);
+  assert.doesNotMatch(vite, /book-builder\/bookBuilderEntry|review-studio-api|dist-book-builder/);
+  assert.match(webVerifier, /Publisher Review Studio client/);
+  assert.match(studentVerifier, /scanWebBundle/);
+  assert.match(teacherVerifier, /Publisher Review Studio client/);
+  assert.match(builderScript, /configFile: false/);
+  assert.match(builderScript, /dist-book-builder/);
+  assert.match(builderScript, /builder\.html/);
+  assert.doesNotMatch(builderScript, /ultimate-b2-builder\.html|index\.html/);
 });

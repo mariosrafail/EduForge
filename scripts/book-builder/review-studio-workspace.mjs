@@ -190,11 +190,12 @@ function safeGeometry(value) {
 }
 
 function safeNormalizedGeometry(value) {
-  const geometry = safeGeometry(value);
-  if (!geometry) return null;
-  if ([geometry.x, geometry.y, geometry.width, geometry.height].some((item) => item < 0 || item > 1)) return null;
-  if (geometry.x + geometry.width > 1.000001 || geometry.y + geometry.height > 1.000001) return null;
-  return geometry;
+  const geometry = optionalRecord(value);
+  const values = [geometry.xPct, geometry.yPct, geometry.widthPct, geometry.heightPct];
+  if (!values.every(Number.isFinite)) return null;
+  const [xPct, yPct, widthPct, heightPct] = values.map(Number);
+  if (xPct < 0 || yPct < 0 || widthPct <= 0 || heightPct <= 0 || xPct + widthPct > 100.000001 || yPct + heightPct > 100.000001) return null;
+  return { x: xPct / 100, y: yPct / 100, width: widthPct / 100, height: heightPct / 100 };
 }
 
 function safeHotspot(item) {
@@ -774,11 +775,19 @@ export class ReviewStudioWorkspace {
 
   async clusterReviews(projectId, project, queue, query) {
     const artifact = await this.readArtifact(projectId, "activityClusters", { optional: true, project });
+    const reasonsByObject = new Map();
+    for (const item of optionalArray(queue.items)) {
+      const locator = safeRelativeLocator(item.sourceRelativeLocator, "");
+      const objectMatch = locator.match(/^(.*\/obj\d+)(?:\/|$)/i);
+      const objectLocator = objectMatch?.[1] || locator;
+      if (!objectLocator) continue;
+      const reasons = reasonsByObject.get(objectLocator) || new Set();
+      reasons.add(safeText(item.reasonCode, "unresolved", 128));
+      reasonsByObject.set(objectLocator, reasons);
+    }
     const clusters = optionalArray(artifact?.clusters).map((cluster) => {
       const samples = optionalArray(cluster.examples).map((item) => safeRelativeLocator(item)).slice(0, 3);
-      const reasons = [...new Set(optionalArray(queue.items)
-        .filter((item) => samples.some((sample) => safeRelativeLocator(item.sourceRelativeLocator, "").startsWith(sample)))
-        .map((item) => safeText(item.reasonCode, "unresolved", 128)))].slice(0, 10);
+      const reasons = [...new Set(samples.flatMap((sample) => [...(reasonsByObject.get(sample) || [])]))].slice(0, 10);
       return {
         id: safeText(cluster.structuralSignatureHash, "Unavailable", 128),
         candidateCount: safeCount(cluster.objectCount),
