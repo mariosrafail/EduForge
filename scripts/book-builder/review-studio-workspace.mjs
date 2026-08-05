@@ -47,13 +47,7 @@ const RASTER_TYPES = Object.freeze({
 const safeFilterToken = /^[a-z0-9][a-z0-9._:+-]{0,127}$/i;
 const safeProjectDirectoryName = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
-async function assertPreviewPath(root, target) {
-  try {
-    await assertNoSymlinkPath(root, target);
-  } catch {
-    throw new ReviewStudioError("preview_not_available", 404);
-  }
-}
+async function assertPreviewPath(root, target) { try { await assertNoSymlinkPath(root, target); } catch { throw new ReviewStudioError("preview_not_available", 404); } }
 
 function opaqueId(...parts) {
   return createHash("sha256").update(parts.join("\0")).digest("hex").slice(0, 32);
