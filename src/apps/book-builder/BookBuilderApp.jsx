@@ -25,7 +25,7 @@ export function BookBuilderApp() {
       <a className="studio-skip-link" href="#main-content">Skip to main content</a>
       <header className="studio-topbar">
         <a className="studio-brand" href="#/" aria-label="Hamilton House Publisher Review Studio home"><span aria-hidden="true">HH</span><div><strong>Hamilton House</strong><small>Publisher Review Studio</small></div></a>
-        <div className={`studio-readonly-chip ${state.bootstrap?.writeEnabled ? "editing" : ""}`}>{state.bootstrap?.writeEnabled ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}<span>{state.bootstrap?.writeEnabled ? "Local editing · Milestone 4B1" : "Read-only · Milestone 4B1"}</span></div>
+        <div className={`studio-readonly-chip ${state.bootstrap?.writeEnabled ? "editing" : ""}`}>{state.bootstrap?.writeEnabled ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}<span>{state.bootstrap?.writeEnabled ? "Local editing" : "Read-only review"}</span></div>
       </header>
       <div className={`studio-readonly-banner ${state.bootstrap?.writeEnabled ? "editing" : ""}`} role="status">{state.bootstrap?.writeEnabled ? "Local editing enabled — durable decisions change only this persistent Book Project copy." : "Read-only review — start the explicit local authoring command to create decisions."}</div>
       {state.status === "loading" && <main id="main-content"><StudioLoading label="Connecting to the local Book Builder workspace…" /></main>}

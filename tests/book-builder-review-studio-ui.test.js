@@ -54,6 +54,9 @@ test("read-only remains default while explicit authoring UI keeps source and men
     "src/apps/book-builder/views/MenuView.jsx",
   ].map(read));
   const source = files.join("\n");
+  assert.match(source, /Read-only review/);
+  assert.match(source, /Local editing/);
+  assert.doesNotMatch(source, /Milestone 4B1/);
   assert.match(source, /Read-only review — start the explicit local authoring command/);
   assert.match(source, /Local editing enabled — durable decisions/);
   assert.match(source, /Central on-menu title/);
