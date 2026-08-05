@@ -46,6 +46,12 @@ test("static SWF inspection handles FWS/CWS and reports deterministic unique UUI
   assert.throws(() => inspectUncompressedSwfBytes(Buffer.from("FWS")), /truncated/);
 });
 
+test("static SWF inspection preserves UUID case for byte-exact XOR keys", () => {
+  const lowercase = "abcdef01-2345-6789-abcd-ef0123456789";
+  const inspected = inspectUncompressedSwfBytes(swf("FWS", Buffer.from(`prefix-${lowercase}-suffix`)));
+  assert.equal(inspected.uuidCandidates[0].value, lowercase);
+});
+
 test("ZWS inspection fails with a structured python-unavailable diagnostic and never executes the SWF", async () => {
   const root = await temporaryRoot();
   const source = path.join(root, "fixture.swf");
@@ -76,6 +82,7 @@ test("IWB codec enforces canonical Base64, repeating XOR, UTF-8, XML safety, and
   const invalidUtf8 = applyRepeatingXor(Buffer.from([0xff, 0xff]), key).toString("base64");
   assert.equal(decodeIwb(invalidUtf8, key).status, "invalid_utf8");
   assert.equal(decodeIwb(encodedIwb("<html/>", key), key).status, "wrong_key_or_non_xml");
+  assert.equal(decodeIwb(encodedIwb("\ufeff<!-- publisher --><questions/>", key), key).status, "strict_xml");
 });
 
 async function writeIwbCorpus(root, key) {

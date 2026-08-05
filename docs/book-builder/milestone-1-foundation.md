@@ -17,7 +17,7 @@ Commands return non-zero status for blocking errors such as a missing source, in
 
 ## Explicit non-goals
 
-This milestone does not add or change a visual Builder, `builder.html`, the Ultimate B2 hotspot Builder, extraction, IWB decoding, activity or answer conversion, page/menu import, OCR, media conversion, publication, content packages, database persistence, deployment, or APK generation. It inventories structural evidence only. The next milestone should implement the Ultimate profile's IWB/graphics/pages/menu import behind these contracts.
+Milestone 1 itself does not add or change a visual Builder, `builder.html`, the Ultimate B2 hotspot Builder, extraction, IWB decoding, activity or answer conversion, page/menu import, OCR, media conversion, publication, content packages, database persistence, deployment, or APK generation. It inventories structural evidence only. Milestone 2 now implements the Ultimate profile's safe IWB/graphics/pages/menu evidence import behind these contracts; see `milestone-2-ultimate-profile.md`.
 
 ## Existing-system boundary
 

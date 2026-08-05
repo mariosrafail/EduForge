@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { AppRootResolutionError } from "../../lib/book-builder/app-root-resolver.js";
 import { defaultBookBuilderWorkspace } from "../../lib/book-builder/source-binding.js";
 import { createProjectFromSource, inspectProject, rescanProject } from "../../lib/book-builder/scanner-service.js";
+import { materializeMenuReview } from "../../lib/book-builder/profiles/ultimate-air-v2/menu-materializer.js";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -22,12 +23,13 @@ function parseArgs(argv) {
 }
 
 function help() {
-  return `Hamilton House Book Builder Milestone 1
+  return `Hamilton House Book Builder Milestone 2
 
 Usage:
   book-builder scan --source <folder> [--workspace <folder>] [--project-id <id>]
   book-builder rescan --project <project-directory>
   book-builder inspect --project <project-directory>
+  book-builder materialize --project <project-directory> --scope menu
   book-builder --help
 `;
 }
@@ -40,7 +42,8 @@ async function main() {
   if (args.command === "scan") {
     if (!args.source) throw new Error("--source is required");
     const result = await createProjectFromSource({ source: args.source, workspace: args.workspace || defaultBookBuilderWorkspace(), projectId: args.projectId, repositoryRoot });
-    print({ status: "scanned", outputDirectory: result.projectDirectory, profile: result.project.selectedProfile.id, confidence: result.project.selectedProfile.confidence, files: result.scan.inventory.summary.fileCount, bytes: result.scan.inventory.summary.totalBytes, facts: result.project.detectedFacts.length });
+    const summary = result.scan.profileResult?.summary || {};
+    print({ status: "scanned", projectDirectory: result.projectDirectory, outputDirectory: result.projectDirectory, profile: result.project.selectedProfile.id, confidence: result.project.selectedProfile.confidence, fileCount: result.scan.inventory.summary.fileCount, byteCount: result.scan.inventory.summary.totalBytes, factCount: result.project.detectedFacts.length, iwbTotal: summary.iwbTotal || 0, strictIwbCount: summary.iwbStrict || 0, malformedIwbCount: summary.iwbMalformed || 0, componentCandidateCount: summary.componentCandidates || 0, pageSpreadCount: summary.pageSpreads || 0, atlasFamilyCount: summary.atlasFamilies || 0, atlasRegionCount: summary.atlasRegions || 0, menuButtonCount: summary.menuButtons || 0, hotspotExactMatchCount: summary.hotspotExact || 0, hotspotReviewCount: summary.hotspotReview || 0, reviewItemCount: summary.reviewItems || 0 });
     return;
   }
   if (args.command === "rescan") {
@@ -54,11 +57,18 @@ async function main() {
     print(await inspectProject(args.project));
     return;
   }
+  if (args.command === "materialize") {
+    if (!args.project) throw new Error("--project is required");
+    if (args.scope !== "menu") throw new Error("--scope menu is required");
+    const result = await materializeMenuReview({ projectDirectory: args.project });
+    print({ status: "materialized", scope: "menu", outputDirectory: result.outputDirectory, materializedFileCount: result.materializedFileCount, aggregateHash: result.aggregateHash, reviewHtmlPath: result.reviewHtmlPath });
+    return;
+  }
   throw new Error(`Unknown command: ${args.command}`);
 }
 
 try { await main(); } catch (error) {
-  const payload = { error: error.message, code: error instanceof AppRootResolutionError ? error.code : "book_builder_error", diagnostics: error.diagnostics || [] };
+  const payload = { error: error.message, code: error instanceof AppRootResolutionError ? error.code : error.code || "book_builder_error", diagnostics: error.diagnostics || [] };
   process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
   process.exitCode = 1;
 }

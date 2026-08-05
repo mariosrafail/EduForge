@@ -31,7 +31,9 @@ def uuid_candidates(data: bytes) -> list[dict]:
     seen: set[str] = set()
     candidates: list[dict] = []
     for match in UUID_PATTERN.finditer(data):
-        value = match.group(0).decode("ascii").upper()
+        # Preserve byte-exact ASCII case because the UUID-shaped value is also
+        # used verbatim as a repeating XOR key by some publisher generations.
+        value = match.group(0).decode("ascii")
         if value in seen:
             continue
         seen.add(value)

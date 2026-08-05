@@ -77,6 +77,7 @@
     "book-builder:scan": "node scripts/book-builder/cli.mjs scan",
     "book-builder:rescan": "node scripts/book-builder/cli.mjs rescan",
     "book-builder:inspect": "node scripts/book-builder/cli.mjs inspect",
+    "book-builder:materialize": "node scripts/book-builder/cli.mjs materialize",
     "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs",
     "ultimate-b2:extract:activities": "node scripts/ultimate-b2/extract-activities.mjs",
     "ultimate-b2:build:unit-01": "node scripts/ultimate-b2/build-unit-01-implementation.mjs",
