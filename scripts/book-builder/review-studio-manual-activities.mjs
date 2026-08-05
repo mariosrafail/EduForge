@@ -6,7 +6,7 @@ import { ManualActivityTransactionService } from "../../lib/book-builder/manual-
 import { validateManualActivity } from "../../lib/book-builder/manual-activity-contract.js";
 import { effectiveHierarchyView, hierarchyOwnership } from "./hierarchy-view-models.mjs";
 import { pageCandidateId } from "./review-studio-hierarchy-projections.mjs";
-import { readManualActivityAssetContent } from "./manual-activity-asset-content.mjs";
+import { readManualActivityAssetContent, resolveManualActivityMediaAssets } from "./manual-activity-asset-content.mjs";
 import { readJsonBody } from "./review-studio-mutation-api.mjs";
 import { BOOK_BUILDER_WRITE_HEADER, ReviewStudioError, equalSessionToken, safeText } from "./review-studio-security.mjs";
 
@@ -37,7 +37,8 @@ async function context(reader, projectId) {
   ]);
   const pageOwners = list(pages?.spreads).map((spread) => ({ candidateId: pageCandidateId(spread), sourceIdentity: `${spread.component}/${spread.unit}/part${spread.part}`, part: spread.part, hierarchy: hierarchyOwnership(hierarchy, spread) }));
   const hotspotOwners = list(hotspots?.parts).flatMap((part) => { const owner = hierarchyOwnership(hierarchy, part); return [...list(part.hotspots), ...list(part.quads)].map((item) => ({ candidateId: item.id, componentKey: owner.componentKey, unitKey: owner.unitKey })); });
-  const assetCatalog = createManualActivityAssetCatalog({ pages, media });
+  const verifiedMedia = await resolveManualActivityMediaAssets(projectDirectory, media);
+  const assetCatalog = createManualActivityAssetCatalog({ pages, media, materialized: verifiedMedia });
   return { project, projectDirectory, hierarchy, pages, hotspots, media, detected, pageOwners, assetCatalog, hierarchyResolver: createManualHierarchyResolver(hierarchy, { pages: pageOwners, hotspots: hotspotOwners }) };
 }
 

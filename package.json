@@ -79,6 +79,7 @@
     "test:book-builder:studio:visual": "node scripts/book-builder/review-studio-playwright.mjs",
     "test:book-builder:studio:authoring": "node scripts/book-builder/review-studio-authoring-playwright.mjs",
     "test:book-builder:studio:manual-authoring": "node scripts/book-builder/review-studio-manual-authoring-playwright.mjs",
+    "validate:book-builder:manual-authoring": "node scripts/book-builder/validate-manual-activity-authoring.mjs",
     "build:book-builder": "node scripts/book-builder/build-review-studio.mjs",
     "verify:book-builder-bundle-safety": "node scripts/book-builder/verify-review-studio-bundle.mjs",
     "validate:book-builder:studio": "node scripts/book-builder/validate-review-studio-workspace.mjs",

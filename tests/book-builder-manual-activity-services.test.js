@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { attachManualActivityAsset, createManualActivityAssetCatalog, publicManualActivityAssetCatalog } from "../lib/book-builder/manual-activity-assets.js";
 import { createManualHierarchyResolver, manualHierarchyFromOwnership } from "../lib/book-builder/manual-activity-hierarchy.js";
 import { prefillManualActivityFromDetectedCandidate, refreshManualActivityStaleness } from "../lib/book-builder/manual-activity-prefill.js";
 import { effectiveReviewWithManualActivities } from "../lib/book-builder/manual-activity-reviews.js";
+import { resolveManualActivityMediaAssets } from "../scripts/book-builder/manual-activity-asset-content.mjs";
 
 const sha = "a".repeat(64); const now = "2026-08-06T14:00:00.000Z";
 const component = { sourceBookRootId: "bookroot_one", componentKey: "component_students", effectiveRole: "students_book", unitGroups: [{ unitKey: "unit_students_3", sourceNumber: 3 }] };
@@ -14,6 +18,15 @@ test("asset catalog produces opaque allowlisted references and rejects paths, st
   const catalog = createManualActivityAssetCatalog({ pages: { spreads: [{ variants: [{ sourceRelativePath: "Pages/unit-3.png", sha256: sha, width: 1000, height: 2400 }] }] }, media: { candidates: [{ sourceRelativePath: "Media/listen.mp3", sourceSha256: "b".repeat(64) }, { sourceRelativePath: "C:\\private\\bad.mp4", sourceSha256: sha }] } });
   assert.equal(catalog.size, 2); const assets = publicManualActivityAssetCatalog(catalog); assert.match(assets[0].assetId, /^manual_asset_[a-f0-9]{24}$/); assert.doesNotMatch(JSON.stringify(assets), /C:\\private/);
   const image = assets.find((item) => item.mimeType === "image/png"); assert.equal(attachManualActivityAsset(catalog, image.assetId, "background").sourceRelativeIdentity, "Pages/unit-3.png"); assert.throws(() => attachManualActivityAsset(catalog, image.assetId, "audio")); assert.throws(() => attachManualActivityAsset(catalog, "missing"));
+});
+
+test("deferred detected media is resolved to a current digest through the bound source allowlist", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hhplms-manual-media-")); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const project = path.join(root, "project"); const source = path.join(root, "source.app"); const mediaPath = path.join(source, "Contents", "Resources", "audio", "listen.mp3");
+  await fs.mkdir(path.dirname(mediaPath), { recursive: true }); await fs.mkdir(project); await fs.writeFile(mediaPath, Buffer.from("fixture audio"));
+  await fs.writeFile(path.join(project, "local-source-binding.json"), JSON.stringify({ canonicalApplicationRealPath: source }));
+  const assets = await resolveManualActivityMediaAssets(project, { candidates: [{ type: "audio", byteSize: 13, mimeCandidate: "audio/mpeg", sourceRelativePath: "Contents/Resources/audio/listen.mp3", owningStructureCandidate: { unit: 1 } }, { type: "audio", byteSize: 1, mimeCandidate: "audio/mpeg", sourceRelativePath: "../outside.mp3" }] });
+  assert.equal(assets.length, 1); assert.equal(assets[0].role, "audio"); assert.match(assets[0].sha256, /^[a-f0-9]{64}$/); assert.equal(assets[0].sourceRelativePath, "Contents/Resources/audio/listen.mp3");
 });
 
 test("hierarchy validation is parent-scoped and rejects same-number cross-component attachment", () => {
