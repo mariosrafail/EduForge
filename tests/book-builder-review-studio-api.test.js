@@ -84,7 +84,7 @@ test("all project view families return bounded sanitized models", async (t) => {
   assert.equal(pages.payload.selected.hotspots[0].geometry.width, 0.1);
   assert.match(pages.payload.selected.variants[0].previewId, /^preview_/);
   const menu = await json(await request(`${project}/menu`));
-  assert.equal(menu.payload.buttons.length, 2);
+  assert.equal(menu.payload.buttons.length, 3);
   assert.equal(menu.payload.gaf.status, "static-evidence-only");
   assert.equal(menu.payload.startupIntro.distinctFromMenuTitle, true);
   assert.ok(menu.payload.previews.length >= 1);
@@ -110,6 +110,76 @@ test("all project view families return bounded sanitized models", async (t) => {
     assert.doesNotMatch(result.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
     assert.doesNotMatch(result.serialized, /[A-Z]:\\|\/Users\/|\/home\//i);
   }
+});
+
+test("hierarchy APIs expose component-scoped Units without a global numeric union", async (t) => {
+  const { request } = await createApiHarness(t);
+  const base = "/projects/fictional-ultimate-review";
+  const unscoped = await json(await request(`${base}/pages`));
+  assert.equal(unscoped.payload.pagination.total, 4);
+  assert.equal(unscoped.payload.filters.unitFilterEnabled, false);
+  assert.deepEqual(unscoped.payload.filters.unitOptions, []);
+  const options = unscoped.payload.filters.componentOptions;
+  const studentsBook = options.find((item) => item.effectiveRole === "students_book");
+  const workbook = options.find((item) => item.effectiveRole === "workbook");
+  const grammarBook = options.find((item) => item.effectiveRole === "grammar_book");
+  assert.deepEqual(options.filter((item) => ["students_book", "workbook", "grammar_book"].includes(item.effectiveRole)).map((item) => item.label).sort(), ["Grammar Book", "Students Book", "Workbook"]);
+
+  const scoped = async (family, component) => json(await request(`${base}/${family}?component=${encodeURIComponent(component.value)}`));
+  const studentPages = await scoped("pages", studentsBook);
+  const workbookPages = await scoped("pages", workbook);
+  const grammarPages = await scoped("pages", grammarBook);
+  assert.deepEqual(studentPages.payload.filters.unitOptions.map((item) => item.label), ["Unit 1", "Unit 2", "Unit 3", "Unit 4"]);
+  assert.deepEqual(workbookPages.payload.filters.unitOptions.map((item) => item.label), ["Unit 1", "Unit 2"]);
+  assert.deepEqual(grammarPages.payload.filters.unitOptions.map((item) => item.label), ["Unit 1", "Unit 2", "Unit 3"]);
+  assert.notEqual(studentPages.payload.filters.unitOptions[0].value, workbookPages.payload.filters.unitOptions[0].value);
+  assert.notEqual(workbookPages.payload.filters.unitOptions[0].value, grammarPages.payload.filters.unitOptions[0].value);
+  assert.equal(studentPages.payload.items.every((item) => item.hierarchy.effectiveRole === "students_book"), true);
+  assert.equal(workbookPages.payload.items.every((item) => item.hierarchy.effectiveRole === "workbook"), true);
+  assert.equal(grammarPages.payload.items.every((item) => item.hierarchy.effectiveRole === "grammar_book"), true);
+
+  const workbookActivities = await scoped("activities", workbook);
+  const grammarActivities = await scoped("activities", grammarBook);
+  assert.equal(workbookActivities.payload.pagination.total, 32);
+  assert.equal(grammarActivities.payload.pagination.total, 20);
+  assert.equal(workbookActivities.payload.items.every((item) => item.componentKey === workbook.value), true);
+  assert.equal(grammarActivities.payload.items.every((item) => item.componentKey === grammarBook.value), true);
+
+  const studentUnit = studentPages.payload.filters.unitOptions[0];
+  const workbookUnit = workbookPages.payload.filters.unitOptions[0];
+  const studentComponentReviews = await json(await request(`${base}/reviews?groupBy=unit&component=${encodeURIComponent(studentsBook.value)}`));
+  const workbookComponentReviews = await json(await request(`${base}/reviews?groupBy=unit&component=${encodeURIComponent(workbook.value)}`));
+  const studentReviewGroup = studentComponentReviews.payload.groups[0];
+  const workbookReviewGroup = workbookComponentReviews.payload.groups[0];
+  assert.ok(studentReviewGroup);
+  assert.ok(workbookReviewGroup);
+  assert.notEqual(studentReviewGroup.id, workbookReviewGroup.id);
+  assert.match(studentReviewGroup.label, /^Students Book .* Unit \d+$/);
+  assert.match(workbookReviewGroup.label, /^Workbook .* Unit \d+$/);
+  const studentReviews = await json(await request(`${base}/reviews?groupBy=unit&component=${encodeURIComponent(studentsBook.value)}&unit=${encodeURIComponent(studentReviewGroup.id)}`));
+  const workbookReviews = await json(await request(`${base}/reviews?groupBy=unit&component=${encodeURIComponent(workbook.value)}&unit=${encodeURIComponent(workbookReviewGroup.id)}`));
+  assert.equal(studentReviews.payload.groups.every((group) => group.id === studentReviewGroup.id), true);
+  assert.equal(workbookReviews.payload.groups.every((group) => group.id === workbookReviewGroup.id), true);
+
+  assert.equal((await request(`${base}/pages?unit=1`)).status, 400);
+  assert.equal((await request(`${base}/pages?component=not-a-component`)).status, 400);
+  assert.equal((await request(`${base}/pages?component=${encodeURIComponent(workbook.value)}&unit=${encodeURIComponent(studentUnit.value)}`)).status, 400);
+  for (const response of [unscoped, studentPages, workbookPages, grammarPages, workbookActivities, grammarActivities, studentReviews, workbookReviews]) {
+    assert.doesNotMatch(response.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
+    assert.doesNotMatch(response.serialized, /[A-Z]:\\|\/Users\/|\/home\//i);
+  }
+});
+
+test("an older Ultimate project derives the same hierarchy without a persisted hierarchy artifact", async (t) => {
+  const { request } = await createApiHarness(t);
+  const base = "/projects/fictional-00-older-ultimate";
+  const overview = await json(await request(`${base}/overview`));
+  const pages = await json(await request(`${base}/pages`));
+  assert.equal(overview.payload.hierarchy.available, true);
+  assert.equal(overview.payload.hierarchy.summary.componentCount, 3);
+  assert.deepEqual(pages.payload.filters.componentOptions.map((item) => item.effectiveRole).sort(), ["grammar_book", "students_book", "workbook"]);
+  assert.deepEqual(pages.payload.filters.unitOptions, []);
+  assert.doesNotMatch(overview.serialized, new RegExp(SYNTHETIC_TEACHER_SECRET));
 });
 
 test("Journey-like projects use safe unavailable states for unsupported profile artifacts", async (t) => {

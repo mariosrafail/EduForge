@@ -78,7 +78,8 @@ export async function decorateDecisionView(reader, projectId, view, payload) {
   }
   if (view === "components") return { ...payload, items: list(payload.items).map((item) => {
     const decision = decisionFor(project, "component_role", "component", item.candidateId);
-    return { ...item, detectedRole: item.proposedSemanticRole, effectiveRole: decision?.value || item.proposedSemanticRole, ...stateProjection(decision), decisionKinds: ["component_role"] };
+    const usable = decision?.approvalState === "approved" && decision.stale !== true;
+    return { ...item, detectedRole: item.detectedRole || item.proposedSemanticRole, effectiveRole: usable ? decision.value : item.effectiveRole || item.proposedSemanticRole, ...stateProjection(decision), decisionKinds: ["component_role"] };
   }) };
   if (view === "pages") {
     const decoratePage = (item) => {
@@ -115,10 +116,11 @@ export async function decorateDecisionView(reader, projectId, view, payload) {
       const target = findActivityContentTarget(activities, item.suggestedDecisionKind, item.targetId);
       if (!target) return decorated;
       const definition = activityContentDecisionDefinition(item.suggestedDecisionKind);
+      const hierarchyQuery = item.hierarchy?.componentKey ? `&component=${encodeURIComponent(item.hierarchy.componentKey)}${item.hierarchy.unitKey ? `&unit=${encodeURIComponent(item.hierarchy.unitKey)}` : ""}` : "";
       return { ...decorated, contentOverride: projectActivityContentField({
         kind: item.suggestedDecisionKind, targetId: item.targetId, detectedValue: detectedActivityContentValue(target),
         availability: target.node[definition.availability] || "raster-only-or-missing", decisions,
-      }), editorLink: `#/projects/${projectId}/activities?activityId=${target.activity.activityCandidateId}` };
+      }), editorLink: `#/projects/${projectId}/activities?activityId=${target.activity.activityCandidateId}${hierarchyQuery}` };
     };
     return { ...payload, summary: { ...payload.summary, ...reviewSummary(effective) }, groups: list(payload.groups).map((group) => ({ ...group, samples: list(group.samples).map(decorate) })), selectedGroup: payload.selectedGroup ? { ...payload.selectedGroup, items: list(payload.selectedGroup.items).map(decorate) } : null };
   }

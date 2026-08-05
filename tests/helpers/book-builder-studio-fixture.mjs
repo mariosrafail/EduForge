@@ -5,6 +5,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { createDetectedFact } from "../../lib/book-builder/detected-facts.js";
 import { buildActivityContentAnchorFacts } from "../../lib/book-builder/profiles/ultimate-air-v2/activity-content-facts.js";
+import { buildUltimateHierarchy } from "../../lib/book-builder/profiles/ultimate-air-v2/ultimate-hierarchy.js";
 
 export const SYNTHETIC_TEACHER_SECRET = "HHPLMS_SYNTHETIC_TEACHER_SECRET_M4A_7D3C9F";
 
@@ -28,6 +29,9 @@ async function writeJson(target, value) {
 function reviewItem(index) {
   const reasonCode = index % 5 === 0 ? "raster_prompt_missing" : index % 3 === 0 ? "ambiguous_activity_type" : "unapproved_component_role";
   const category = reasonCode === "unapproved_component_role" ? "component" : "activity";
+  const component = ["course", "practice", "grammar"][(index - 1) % 3];
+  const unitCount = component === "course" ? 4 : component === "practice" ? 2 : 3;
+  const unit = (index % unitCount) + 1;
   return {
     id: `review_fictional_${String(index).padStart(5, "0")}`,
     reasonCode,
@@ -35,7 +39,7 @@ function reviewItem(index) {
     severity: index % 11 === 0 ? "blocking" : "review",
     blocking: index % 11 === 0,
     explanation: `Fictional review item ${index} requires a future publisher decision.`,
-    sourceRelativeLocator: `Fictional/Books/volume-one/course/${(index % 4) + 1}/part${(index % 8) + 1}/obj${(index % 12) + 1}`,
+    sourceRelativeLocator: `Fictional/Books/book1/${component}/${unit}/part${(index % 8) + 1}/obj${(index % 12) + 1}`,
     dependencyFactIds: [`fact_fictional_${index % 25}`],
     suggestedDecisionKind: category === "activity" ? "future_activity_disposition" : "future_component_role",
     status: "unresolved",
@@ -146,22 +150,27 @@ async function createUltimateProject(workspace, sourceRoot) {
     schemaVersion: "1.0", fromRevision: 2, toRevision: 3,
     added: ["fact_fictional_1", "fact_fictional_2"], changed: ["fact_fictional_3"], removed: ["fact_removed_fictional"], staleDecisions: ["decision_fictional_1"],
   });
-  await writeJson(path.join(profileRoot, "structure-candidates.json"), {
+  const structure = {
     schemaVersion: "1.0", parserId: "synthetic-structure", parserVersion: "1.0",
     components: [
-      { name: "course", sourceRelativePath: "Fictional/Books/volume-one/course", proposedSemanticRole: "students-book", roleConfidence: 0.94, unitCount: 4, partCount: 8, objectCount: 152, pageSpreadCount: 2, approvalStatus: "unapproved" },
-      { name: "practice", sourceRelativePath: "Fictional/Books/volume-one/practice", proposedSemanticRole: "workbook", roleConfidence: 0.68, unitCount: 2, partCount: 4, objectCount: 0, pageSpreadCount: 0, approvalStatus: "unapproved" },
+      { name: "course", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/course", proposedSemanticRole: "students_book", roleConfidence: 0.94, unitCount: 4, partCount: 8, objectCount: 120, pageSpreadCount: 2, approvalStatus: "unapproved", units: Array.from({ length: 4 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/course/${index + 1}`, parts: [{ number: 1, objectCount: 30 }] })) },
+      { name: "practice", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/practice", proposedSemanticRole: "workbook", roleConfidence: 0.68, unitCount: 2, partCount: 4, objectCount: 32, pageSpreadCount: 1, approvalStatus: "unapproved", units: Array.from({ length: 2 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/practice/${index + 1}`, parts: [{ number: 1, objectCount: 16 }] })) },
+      { name: "grammar", sourceBookRoot: "book1", sourceRelativePath: "Fictional/Books/book1/grammar", proposedSemanticRole: "grammar_book", roleConfidence: 0.86, unitCount: 3, partCount: 3, objectCount: 20, pageSpreadCount: 1, approvalStatus: "unapproved", units: Array.from({ length: 3 }, (_, index) => ({ number: index + 1, sourceRelativePath: `Fictional/Books/book1/grammar/${index + 1}`, parts: [{ number: 1, objectCount: index === 2 ? 6 : 7 }] })) },
     ],
-    summary: { componentCount: 2, unitCount: 6, partCount: 12, objectCount: 152 },
-  });
-  await writeJson(path.join(profileRoot, "page-candidates.json"), {
+    summary: { sourceBookRootCount: 1, componentCount: 3, unitCount: 9, partCount: 15, objectCount: 172 },
+  };
+  await writeJson(path.join(profileRoot, "structure-candidates.json"), structure);
+  const pages = {
     schemaVersion: "1.0", parserId: "synthetic-pages", parserVersion: "1.0",
     spreads: [
       { component: "course", unit: 1, part: 1, canonicalQualityCandidate: "HD", printedPageCandidate: { numericCandidate: 12, confidence: 0.96, direct: true, rawLabels: ["12"] }, variants: [{ component: "course", unit: 1, part: 1, quality: "HD", width: 2, height: 2, byteSize: previewPng.length, sha256: pageSha, sourceRelativePath: "Fictional/Pages/page-one.png" }] },
-      { component: "course", unit: 1, part: 2, canonicalQualityCandidate: null, printedPageCandidate: { numericCandidate: null, confidence: 0.2, direct: false, rawLabels: [] }, variants: [] },
+      { component: "course", unit: 2, part: 1, canonicalQualityCandidate: null, printedPageCandidate: { numericCandidate: null, confidence: 0.2, direct: false, rawLabels: [] }, variants: [] },
+      { component: "practice", unit: 1, part: 1, canonicalQualityCandidate: null, printedPageCandidate: { numericCandidate: 90, confidence: 0.7, direct: true, rawLabels: ["90"] }, variants: [] },
+      { component: "grammar", unit: 1, part: 1, canonicalQualityCandidate: null, printedPageCandidate: { numericCandidate: 140, confidence: 0.7, direct: true, rawLabels: ["140"] }, variants: [] },
     ],
-    summary: { distinctSpreadCount: 2, pageImageFileCount: 1, hdCount: 1, sdCount: 0, specialCount: 0 },
-  });
+    summary: { distinctSpreadCount: 4, pageImageFileCount: 1, hdCount: 1, sdCount: 0, specialCount: 0 },
+  };
+  await writeJson(path.join(profileRoot, "page-candidates.json"), pages);
   const hotspots = Array.from({ length: 48 }, (_, index) => ({
     id: `hotspot_fictional_${String(index + 1).padStart(2, "0")}`,
     candidateTargetObject: index < 36 ? index + 1 : null,
@@ -174,18 +183,21 @@ async function createUltimateProject(workspace, sourceRoot) {
     } : null,
     reviewStatus: "unapproved",
   }));
-  await writeJson(path.join(profileRoot, "hotspot-candidates.json"), {
+  const hotspotArtifact = {
     schemaVersion: "1.0", parserId: "synthetic-hotspots", parserVersion: "1.0",
-    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: false, buttonCount: 48, objectDirectoryCount: 36, quadCount: 0, sourceRelativePath: "Fictional/Books/volume-one/course/1/part1/part_params.iwb", hotspots, quads: [] }],
+    parts: [{ component: "course", unit: 1, part: 1, exactCardinality: false, buttonCount: 48, objectDirectoryCount: 36, quadCount: 0, sourceRelativePath: "Fictional/Books/book1/course/1/part1/part_params.iwb", hotspots, quads: [] }],
     summary: { normalizedCandidateCount: 24, exactCardinalityCount: 0, mismatchCount: 1 },
-  });
-  await writeJson(path.join(profileRoot, "menu-model.json"), {
+  };
+  await writeJson(path.join(profileRoot, "hotspot-candidates.json"), hotspotArtifact);
+  const menu = {
     schemaVersion: "1.0", parserId: "synthetic-menu", parserVersion: "1.0", sourceRelativePath: "Fictional/Menu/home_params.iwb",
     buttons: [
       { id: "menu_fictional_1", name: "Unit 1", sourceRelativePath: "Fictional/Menu/unit-1", proposedDestination: { kind: "unit", component: "course", unit: 1 }, x: 40, y: 80, width: 120, height: 44, textureTriple: ["normal", "hover", "pressed"], confidence: 0.9 },
-      { id: "menu_fictional_2", name: "Practice", sourceRelativePath: "Fictional/Menu/practice", proposedDestination: { kind: "component", component: "practice" }, x: 40, y: 140, width: 120, height: 44, textureTriple: ["normal"], confidence: 0.6 },
-    ], summary: { buttonCount: 2 },
-  });
+      { id: "menu_fictional_2", name: "Practice", sourceRelativePath: "Fictional/Menu/practice", proposedDestination: { kind: "component", role: "workbook" }, x: 40, y: 140, width: 120, height: 44, textureTriple: ["normal"], confidence: 0.6 },
+      { id: "menu_fictional_3", name: "Grammar", sourceRelativePath: "Fictional/Menu/grammar", proposedDestination: { kind: "component", role: "grammar_book" }, x: 40, y: 200, width: 120, height: 44, textureTriple: ["normal"], confidence: 0.8 },
+    ], summary: { buttonCount: 3 }, sourceBookRoot: "book1",
+  };
+  await writeJson(path.join(profileRoot, "menu-model.json"), menu);
   await writeJson(path.join(profileRoot, "branding-model.json"), {
     schemaVersion: "1.0", parserId: "synthetic-branding", parserVersion: "1.0", sourceRelativePath: "Fictional/Branding",
     menuTitleKind: "gaf-timeline", startupIntroIsSeparate: true,
@@ -202,10 +214,14 @@ async function createUltimateProject(workspace, sourceRoot) {
     schemaVersion: "1.0", parserId: "synthetic-media", parserVersion: "1.0", candidates: [], descriptors: [],
     intro: { distinctFromMenuTitle: true, descriptorPath: "Fictional/Media/intro.xml", mediaPath: "Fictional/Media/intro.flv", descriptor: { width: 640, height: 360, autoPlay: true } }, summary: { candidateCount: 1 },
   });
-  const candidates = Array.from({ length: 152 }, (_, index) => ({
+  const candidates = Array.from({ length: 152 }, (_, index) => {
+    const component = index < 100 ? "course" : index < 132 ? "practice" : "grammar";
+    const unitCount = component === "course" ? 4 : component === "practice" ? 2 : 3;
+    const unit = (index % unitCount) + 1;
+    return ({
     schemaVersion: "1.0", activityCandidateId: `activity_fictional_${String(index + 1).padStart(3, "0")}`,
-    componentCandidateId: "component:course", unit: (index % 4) + 1, part: (index % 8) + 1, object: (index % 12) + 1,
-    sourceObjectLocator: `Fictional/Books/volume-one/course/${(index % 4) + 1}/part${(index % 8) + 1}/obj${(index % 12) + 1}`,
+    componentCandidateId: `component:${component}`, unit, part: (index % 8) + 1, object: (index % 12) + 1,
+    sourceObjectLocator: `Fictional/Books/book1/${component}/${unit}/part${(index % 8) + 1}/obj${(index % 12) + 1}`,
     displayTitle: null, displayTitleAvailability: "raster-only-or-missing",
     instructions: "Answer the fictional questions.", instructionAvailability: "structured",
     normalizedCandidateType: index % 2 ? "multiple-choice" : "short-answer", publisherExerciseTypes: [index % 2 ? "mc" : "write"],
@@ -215,18 +231,20 @@ async function createUltimateProject(workspace, sourceRoot) {
     draggables: [{ id: `drag_fictional_${index}`, label: "Fictional draggable", labelAvailability: "structured", geometry: { x: 1, y: 2, width: 3, height: 4 } }],
     targets: [{ id: `target_fictional_${index}`, label: "Fictional target", labelAvailability: "structured", geometry: { x: 5, y: 6, width: 3, height: 4 } }],
     responseFields: [], mediaCandidateIds: index % 3 ? [] : ["Fictional/Media/audio.mp3"], hotspotCandidateIds: ["hotspot_fictional_1"],
-    pageCandidateId: "course/1/part1", reviewItemIds: [`review_fictional_${String(index + 1).padStart(5, "0")}`],
+    pageCandidateId: `${component}/${unit}/part1`, reviewItemIds: [`review_fictional_${String(index + 1).padStart(5, "0")}`],
     sourceEvidenceDigests: [{ sourceRelativePath: `Fictional/Evidence/activity-${index + 1}.iwb`, sourceSha256: createHash("sha256").update(`activity-${index + 1}`).digest("hex") }],
-  }));
-  await writeJson(path.join(profileRoot, "student-activity-candidates.json"), {
+  }); });
+  const activityArtifact = {
     schemaVersion: "1.0", parserId: "synthetic-activities", parserVersion: "1.0", audience: "student-safe", candidates,
     summary: { candidateCount: candidates.length, questionCount: candidates.length, optionCount: candidates.length * 2 },
-  });
+  };
+  await writeJson(path.join(profileRoot, "student-activity-candidates.json"), activityArtifact);
   await writeJson(path.join(profileRoot, "activity-clusters.json"), {
     schemaVersion: "1.0", parserId: "synthetic-clusters", parserVersion: "1.0",
     clusters: [{ structuralSignatureHash: "c".repeat(64), objectCount: 120, dispositions: { "structured-activity-candidate": 119, "structured-activity-with-raster-gaps": 1 }, examples: candidates.slice(0, 3).map((item) => item.sourceObjectLocator) }], summary: { clusterCount: 1, objectCount: 120 },
   });
   await writeJson(path.join(profileRoot, "activity-extraction-summary.json"), { schemaVersion: "1.0", parserId: "synthetic-summary", parserVersion: "1.0", studentCandidateCount: 152, reviewItemCount: 5007 });
+  await writeJson(path.join(profileRoot, "component-hierarchy.json"), buildUltimateHierarchy({ structure, pages, hotspots: hotspotArtifact, activities: activityArtifact, reviews: { items: reviews }, menu }));
   const materialized = path.join(profileRoot, "review-assets", "menu", "branding", "fictional-menu-preview.png");
   await fs.mkdir(path.dirname(materialized), { recursive: true });
   await fs.writeFile(materialized, previewPng);
@@ -266,6 +284,7 @@ async function createOlderUltimateProject(workspace, current) {
   });
   const profileRoot = path.join(projectRoot, "profiles", "ultimate-air-v2");
   for (const relative of [
+    "component-hierarchy.json",
     "activity-signatures.json",
     "activity-clusters.json",
     "student-activity-candidates.json",

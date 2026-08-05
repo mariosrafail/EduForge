@@ -5,6 +5,14 @@ import { assertNoSymlinkPath, isPathWithin } from "../../lib/book-builder/path-s
 import { unavailableClusterReviewResponse } from "./review-studio-cluster-projection.mjs";
 import { safeActivityContentDetail } from "./review-studio-activity-content.mjs";
 import {
+  effectiveHierarchyView,
+  hierarchyComponentForFilter,
+  hierarchyComponentOptions,
+  hierarchyOwnership,
+  hierarchyUnitForFilter,
+  hierarchyUnitOptions,
+} from "./hierarchy-view-models.mjs";
+import {
   DEFAULT_PAGE_SIZE,
   MAXIMUM_ARTIFACT_BYTES,
   MAXIMUM_PAGE_SIZE,
@@ -26,6 +34,7 @@ const ARTIFACTS = Object.freeze({
   reviews: ["review-queue.json"],
   diff: ["rescan-diff.json"],
   components: ["profiles", "$profile", "structure-candidates.json"],
+  hierarchy: ["profiles", "$profile", "component-hierarchy.json"],
   pages: ["profiles", "$profile", "page-candidates.json"],
   menu: ["profiles", "$profile", "menu-model.json"],
   branding: ["profiles", "$profile", "branding-model.json"],
@@ -55,7 +64,10 @@ function opaqueId(...parts) {
 }
 
 function pageCandidateId(spread) {
-  return `page_${opaqueId(spread.component, spread.unit, spread.part).slice(0, 24)}`;
+  const parts = spread.sourceBookRoot && spread.sourceBookRoot !== "book1"
+    ? [spread.sourceBookRoot, spread.component, spread.unit, spread.part]
+    : [spread.component, spread.unit, spread.part];
+  return `page_${opaqueId(...parts).slice(0, 24)}`;
 }
 
 function previewId(projectId, kind, locator, fingerprint) {
@@ -201,25 +213,29 @@ function safeNormalizedGeometry(value) {
   return { x: xPct / 100, y: yPct / 100, width: widthPct / 100, height: heightPct / 100 };
 }
 
-function safeHotspot(item) {
+function safeHotspot(item, ownership = null, ownerPageKey = null) {
   return {
     candidateId: safeText(item.id, "Unavailable", 128),
     targetObject: Number.isSafeInteger(item.candidateTargetObject) ? item.candidateTargetObject : null,
     confidence: safeConfidence(item.mappingConfidence),
     geometry: safeNormalizedGeometry(item.normalizedGeometry),
     reviewState: safeText(item.reviewStatus, "unapproved", 80),
+    ownerPageKey,
+    componentKey: ownership?.componentKey || null,
+    unitKey: ownership?.unitKey || null,
   };
 }
 
 function hotspotPartFor(spread, hotspotArtifact) {
   return optionalArray(hotspotArtifact?.parts).find((part) => (
-    String(part.component) === String(spread.component)
+    String(part.sourceBookRoot || "book1") === String(spread.sourceBookRoot || "book1")
+    && String(part.component) === String(spread.component)
     && Number(part.unit) === Number(spread.unit)
     && Number(part.part) === Number(spread.part)
   ));
 }
 
-function safePage(projectId, spread, hotspotArtifact, includeHotspots = false) {
+function safePage(projectId, spread, hotspotArtifact, hierarchy, includeHotspots = false) {
   const variants = optionalArray(spread.variants).flatMap((variant) => {
     const locator = safeRelativeLocator(variant.sourceRelativePath, "");
     const sha256 = /^[a-f0-9]{64}$/i.test(String(variant.sha256 || "")) ? String(variant.sha256).toLowerCase() : "";
@@ -233,12 +249,16 @@ function safePage(projectId, spread, hotspotArtifact, includeHotspots = false) {
       previewId: previewId(projectId, "source", locator, sha256),
     }];
   });
+  const ownership = hierarchyOwnership(hierarchy, spread);
+  const pageKey = safeText(spread.pageKey, "", 128) || ownership.unitKey && `page:${ownership.unitKey}:part-${safeCount(spread.part)}` || null;
   const part = hotspotPartFor(spread, hotspotArtifact);
-  const hotspotItems = [...optionalArray(part?.hotspots), ...optionalArray(part?.quads)].map(safeHotspot);
+  const hotspotItems = [...optionalArray(part?.hotspots), ...optionalArray(part?.quads)].map((item) => safeHotspot(item, ownership, pageKey));
   const unresolved = hotspotItems.filter((item) => !item.geometry).length;
   const printed = optionalRecord(spread.printedPageCandidate);
   return {
     candidateId: pageCandidateId(spread),
+    pageKey,
+    hierarchy: ownership,
     component: safeText(spread.component, "Unknown", 120),
     unit: safeCount(spread.unit),
     part: safeCount(spread.part),
@@ -300,11 +320,15 @@ function geometrySummary(items) {
   return { count: list.length, withGeometry: list.filter((item) => safeGeometry(item.geometry)).length };
 }
 
-function safeActivityListItem(candidate) {
+function safeActivityListItem(candidate, hierarchy) {
   const questions = optionalArray(candidate.questions);
+  const ownership = hierarchyOwnership(hierarchy, candidate);
   return {
     activityId: safeText(candidate.activityCandidateId, "Unavailable", 128),
     component: safeText(candidate.componentCandidateId, "Unavailable", 160),
+    componentKey: ownership.componentKey,
+    unitKey: ownership.unitKey,
+    hierarchy: ownership,
     unit: safeCount(candidate.unit),
     part: safeCount(candidate.part),
     object: safeCount(candidate.object),
@@ -328,8 +352,8 @@ function safeActivityListItem(candidate) {
   };
 }
 
-function safeActivityDetail(candidate) {
-  const item = safeActivityListItem(candidate);
+function safeActivityDetail(candidate, hierarchy) {
+  const item = safeActivityListItem(candidate, hierarchy);
   return {
     ...item,
     ...safeActivityContentDetail(candidate, safeGeometry),
@@ -351,7 +375,8 @@ function safeActivityDetail(candidate) {
   };
 }
 
-function safeReviewItem(item) {
+function safeReviewItem(item, hierarchy = null) {
+  const ownership = hierarchy ? hierarchyOwnership(hierarchy, item) : null;
   return {
     id: safeText(item.id, "Unavailable", 128),
     reasonCode: safeText(item.reasonCode, "unresolved", 128),
@@ -365,6 +390,7 @@ function safeReviewItem(item) {
     targetId: item.targetId ? safeText(item.targetId, "", 128) : null,
     activityCandidateId: item.activityCandidateId ? safeText(item.activityCandidateId, "", 128) : null,
     status: safeText(item.status, "unresolved", 80),
+    hierarchy: ownership,
   };
 }
 
@@ -380,13 +406,13 @@ function locatorUnit(locator) {
   return marker >= 0 ? parts[marker + 2] || "unresolved" : "unresolved";
 }
 
-function reviewGroupValue(item, mode) {
+function reviewGroupValue(item, mode, hierarchy = null) {
   if (mode === "reason") return safeText(item.reasonCode, "unresolved", 128);
   if (mode === "category") return safeText(item.category, "unresolved", 128);
   if (mode === "severity") return safeText(item.severity, "review", 80);
   if (mode === "decision") return safeText(item.suggestedDecisionKind, "future_manual_review", 128);
-  if (mode === "component") return locatorComponent(item.sourceRelativeLocator);
-  if (mode === "unit") return locatorUnit(item.sourceRelativeLocator);
+  if (mode === "component") return hierarchyOwnership(hierarchy, item).componentKey || "unresolved";
+  if (mode === "unit") return hierarchyOwnership(hierarchy, item).unitKey || "unresolved";
   throw new ReviewStudioError("invalid_review_group", 400);
 }
 
@@ -516,10 +542,11 @@ export class ReviewStudioWorkspace {
 
   async overview(projectId) {
     const project = await this.projectContext(projectId);
-    const [queue, diff, fingerprint] = await Promise.all([
+    const [queue, diff, fingerprint, hierarchy] = await Promise.all([
       this.readArtifact(projectId, "reviews", { optional: true, project }),
       this.readArtifact(projectId, "diff", { optional: true, project }),
       this.readArtifact(projectId, "fingerprint", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
     ]);
     const summary = safeProjectSummary(project, queue, diff);
     return {
@@ -542,6 +569,19 @@ export class ReviewStudioWorkspace {
         approvedDecisionCount: optionalArray(project.approvedDecisions).length,
         structuralFingerprint: safeText(fingerprint?.fingerprintSha256, "Unavailable", 80),
       },
+      hierarchy: {
+        available: hierarchy.available,
+        summary: hierarchy.summary,
+        warnings: hierarchy.warnings,
+        principalComponents: hierarchy.components.filter((item) => item.effectiveGroupingKind === "numbered_units").map((item) => ({
+          componentKey: item.componentKey,
+          displayName: item.displayName,
+          unitGroupCount: item.unitGroups.length,
+          pageCount: item.pageCount,
+          activityCount: item.activityCount,
+          reviewCount: item.reviewCount,
+        })),
+      },
       limitations: {
         readOnly: true,
         publicationMessage: "The project is an authoring draft. Publication data is incomplete and no content has been published.",
@@ -551,7 +591,10 @@ export class ReviewStudioWorkspace {
 
   async components(projectId, query) {
     const project = await this.projectContext(projectId);
-    const artifact = await this.readArtifact(projectId, "components", { optional: true, project });
+    const [artifact, hierarchy] = await Promise.all([
+      this.readArtifact(projectId, "components", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
+    ]);
     if (!artifact) return { available: false, items: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0, pageCount: 1 }, filters: {} };
     const role = parseFilter(query.get("role"), "role");
     const confidenceBand = parseFilter(query.get("confidence"), "confidence");
@@ -559,43 +602,71 @@ export class ReviewStudioWorkspace {
     const hasPages = parseFilter(query.get("hasPages"), "has_pages");
     const hasActivities = parseFilter(query.get("hasActivities"), "has_activities");
     const search = parseSearch(query.get("search"));
-    const items = optionalArray(artifact.components).map(safeComponent).filter((item) => {
+    const items = optionalArray(artifact.components).map(safeComponent).map((item) => {
+      const normalized = hierarchy.components.find((component) => component.decisionTargetId === item.candidateId);
+      return normalized ? {
+        ...item,
+        sourceBookRootId: normalized.sourceBookRootId,
+        sourceBookRootName: normalized.sourceBookRootName,
+        componentKey: normalized.componentKey,
+        displayName: normalized.displayName,
+        detectedRole: normalized.detectedRole,
+        effectiveRole: normalized.effectiveRole,
+        groupingKind: normalized.effectiveGroupingKind,
+        unitGroups: normalized.unitGroups,
+        unresolvedReviewCount: normalized.reviewCount,
+      } : item;
+    }).filter((item) => {
       const band = item.confidence === null ? "unknown" : item.confidence >= 0.8 ? "high" : item.confidence >= 0.5 ? "medium" : "low";
-      return exactMatch(item.proposedSemanticRole, role)
+      return exactMatch(item.effectiveRole || item.proposedSemanticRole, role)
         && exactMatch(band, confidenceBand)
         && (!review || (review === "required" ? item.reviewState !== "approved" : item.reviewState === review))
         && (!hasPages || String(item.hasPages) === hasPages)
         && (!hasActivities || String(item.hasActivities) === hasActivities)
-        && containsSearch([item.name, item.sourceRelativeLocator, item.proposedSemanticRole], search);
+        && containsSearch([item.name, item.displayName, item.sourceRelativeLocator, item.proposedSemanticRole, item.effectiveRole], search);
     });
-    return { available: true, ...paginate(items, query), filters: {
-      roles: [...new Set(optionalArray(artifact.components).map((item) => safeText(item.proposedSemanticRole, "unresolved", 80)))].sort(),
+    return { available: true, hierarchySummary: hierarchy.summary, ...paginate(items, query), filters: {
+      roles: [...new Set(hierarchy.components.map((item) => safeText(item.effectiveRole, "unresolved", 80)))].sort(),
     } };
   }
 
   async pages(projectId, query) {
     const project = await this.projectContext(projectId);
-    const [pages, hotspots] = await Promise.all([
+    const [pages, hotspots, hierarchy] = await Promise.all([
       this.readArtifact(projectId, "pages", { optional: true, project }),
       this.readArtifact(projectId, "hotspots", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
     ]);
     if (!pages) return { available: false, items: [], selected: null, pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0, pageCount: 1 }, filters: {} };
-    const component = parseFilter(query.get("component"), "component");
-    const unit = parseFilter(query.get("unit"), "unit");
+    const componentFilter = parseFilter(query.get("component"), "component");
+    const unitFilter = parseFilter(query.get("unit"), "unit");
+    const component = componentFilter ? hierarchyComponentForFilter(hierarchy, componentFilter) : null;
+    if (componentFilter && !component) throw new ReviewStudioError("invalid_component_filter", 400);
+    const unit = unitFilter ? hierarchyUnitForFilter(component, unitFilter) : null;
+    if (unitFilter && !component) throw new ReviewStudioError("component_required_for_unit_filter", 400);
+    if (unitFilter && !unit) throw new ReviewStudioError("invalid_unit_filter", 400);
     const part = parseFilter(query.get("part"), "part");
     const selectedId = query.get("pageId") ? safeText(query.get("pageId"), "", 128) : "";
-    const spreads = optionalArray(pages.spreads).filter((spread) => (
-      exactMatch(spread.component, component) && exactMatch(spread.unit, unit) && exactMatch(spread.part, part)
-    ));
-    const projected = spreads.map((spread) => safePage(projectId, spread, hotspots, false));
+    const spreads = optionalArray(pages.spreads).filter((spread) => {
+      const ownership = hierarchyOwnership(hierarchy, spread);
+      return (!component || ownership.componentKey === component.componentKey)
+        && (!unit || ownership.unitKey === unit.unitKey)
+        && exactMatch(spread.part, part);
+    });
+    const projected = spreads.map((spread) => safePage(projectId, spread, hotspots, hierarchy, false));
     const selectedSpread = spreads.find((spread) => pageCandidateId(spread) === selectedId) || spreads[0] || null;
     return {
       available: true,
       ...paginate(projected, query),
-      selected: selectedSpread ? safePage(projectId, selectedSpread, hotspots, true) : null,
+      selected: selectedSpread ? safePage(projectId, selectedSpread, hotspots, hierarchy, true) : null,
       filters: {
         components: [...new Set(optionalArray(pages.spreads).map((item) => safeText(item.component, "Unknown", 120)))].sort(),
-        units: [...new Set(optionalArray(pages.spreads).map((item) => safeCount(item.unit)))].sort((a, b) => a - b),
+        componentOptions: hierarchyComponentOptions(hierarchy),
+        units: component ? component.unitGroups.map((item) => item.sourceNumber) : [],
+        unitOptions: hierarchyUnitOptions(hierarchy, component?.componentKey),
+        unitFilterEnabled: Boolean(component),
+        selectedComponentKey: component?.componentKey || null,
+        selectedUnitKey: unit?.unitKey || null,
       },
     };
   }
@@ -625,18 +696,34 @@ export class ReviewStudioWorkspace {
 
   async menu(projectId) {
     const project = await this.projectContext(projectId);
-    const [menu, branding, gaf, atlas, media, previews] = await Promise.all([
+    const [menu, branding, gaf, atlas, media, previews, hierarchy] = await Promise.all([
       this.readArtifact(projectId, "menu", { optional: true, project }),
       this.readArtifact(projectId, "branding", { optional: true, project }),
       this.readArtifact(projectId, "gaf", { optional: true, project }),
       this.readArtifact(projectId, "atlas", { optional: true, project }),
       this.readArtifact(projectId, "media", { optional: true, project }),
       this.materializedRasters(projectId, project),
+      effectiveHierarchyView(this, projectId, project),
     ]);
     if (!menu && !branding && !gaf) return { available: false, buttons: [], branding: null, gaf: null, startupIntro: null, atlas: null, previews: [] };
     return {
       available: true,
-      buttons: optionalArray(menu?.buttons).map(safeMenuButton),
+      buttons: optionalArray(menu?.buttons).map((button) => {
+        const projected = safeMenuButton(button);
+        const evidence = hierarchy.menuEvidence.find((item) => item.menuButtonId === projected.id);
+        const component = evidence?.targetComponentKey ? hierarchy.components.find((item) => item.componentKey === evidence.targetComponentKey) : null;
+        const group = component?.unitGroups.find((item) => item.unitKey === evidence?.targetUnitKey) || null;
+        return {
+          ...projected,
+          hierarchyDestination: evidence ? {
+            status: evidence.status,
+            componentKey: component?.componentKey || null,
+            componentDisplayName: component?.displayName || null,
+            unitKey: group?.unitKey || null,
+            groupLabel: group?.displayLabel || null,
+          } : null,
+        };
+      }),
       branding: branding ? {
         menuTitleKind: safeText(branding.menuTitleKind, "unresolved", 100),
         startupIntroIsSeparate: branding.startupIntroIsSeparate === true,
@@ -677,10 +764,18 @@ export class ReviewStudioWorkspace {
 
   async activities(projectId, query) {
     const project = await this.projectContext(projectId);
-    const artifact = await this.readArtifact(projectId, "activities", { optional: true, project });
+    const [artifact, hierarchy] = await Promise.all([
+      this.readArtifact(projectId, "activities", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
+    ]);
     if (!artifact) return { available: false, items: [], selected: null, pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0, pageCount: 1 }, filters: {} };
-    const component = parseFilter(query.get("component"), "component");
-    const unit = parseFilter(query.get("unit"), "unit");
+    const componentFilter = parseFilter(query.get("component"), "component");
+    const unitFilter = parseFilter(query.get("unit"), "unit");
+    const component = componentFilter ? hierarchyComponentForFilter(hierarchy, componentFilter) : null;
+    if (componentFilter && !component) throw new ReviewStudioError("invalid_component_filter", 400);
+    const unit = unitFilter ? hierarchyUnitForFilter(component, unitFilter) : null;
+    if (unitFilter && !component) throw new ReviewStudioError("component_required_for_unit_filter", 400);
+    if (unitFilter && !unit) throw new ReviewStudioError("invalid_unit_filter", 400);
     const part = parseFilter(query.get("part"), "part");
     const type = parseFilter(query.get("type"), "type");
     const publisherType = parseFilter(query.get("publisherType"), "publisher_type");
@@ -691,12 +786,13 @@ export class ReviewStudioWorkspace {
     const search = parseSearch(query.get("search"));
     const candidates = optionalArray(artifact.candidates);
     const filtered = candidates.filter((candidate) => {
-      const item = safeActivityListItem(candidate);
+      const item = safeActivityListItem(candidate, hierarchy);
       const booleans = {
         hasPrompt: item.hasStructuredPrompt, hasOptions: item.hasStructuredOptions,
         hasMedia: item.mediaCount > 0, hasHotspot: item.hotspotCount > 0, reviewRequired: item.reviewCount > 0,
       };
-      return exactMatch(item.component, component) && exactMatch(item.unit, unit) && exactMatch(item.part, part)
+      return (!component || item.componentKey === component.componentKey)
+        && (!unit || item.unitKey === unit.unitKey) && exactMatch(item.part, part)
         && exactMatch(item.normalizedType, type) && (!publisherType || item.publisherTypes.includes(publisherType))
         && exactMatch(item.disposition, disposition) && exactMatch(item.runtimeSupport, support)
         && exactMatch(item.contentCompleteness, completeness)
@@ -712,14 +808,20 @@ export class ReviewStudioWorkspace {
       return direction === "desc" ? -result : result;
     });
     const selectedId = query.get("activityId") ? safeText(query.get("activityId"), "", 128) : "";
-    const selected = selectedId ? candidates.find((candidate) => candidate.activityCandidateId === selectedId) : sorted[0];
-    const page = paginate(sorted.map(safeActivityListItem), query);
+    const selected = selectedId ? sorted.find((candidate) => candidate.activityCandidateId === selectedId) : sorted[0];
+    const page = paginate(sorted.map((candidate) => safeActivityListItem(candidate, hierarchy)), query);
     return {
       available: true,
       ...page,
-      selected: selected ? safeActivityDetail(selected) : null,
+      selected: selected ? safeActivityDetail(selected, hierarchy) : null,
       filters: {
         components: [...new Set(candidates.map((item) => safeText(item.componentCandidateId, "Unavailable", 160)))].sort(),
+        componentOptions: hierarchyComponentOptions(hierarchy),
+        units: component ? component.unitGroups.map((item) => item.sourceNumber) : [],
+        unitOptions: hierarchyUnitOptions(hierarchy, component?.componentKey),
+        unitFilterEnabled: Boolean(component),
+        selectedComponentKey: component?.componentKey || null,
+        selectedUnitKey: unit?.unitKey || null,
         types: [...new Set(candidates.map((item) => safeText(item.normalizedCandidateType, "unresolved", 100)))].sort(),
         dispositions: [...new Set(candidates.map((item) => safeText(item.disposition, "unresolved", 100)))].sort(),
       },
@@ -729,38 +831,57 @@ export class ReviewStudioWorkspace {
 
   async reviews(projectId, query) {
     const project = await this.projectContext(projectId);
-    const queue = await this.readArtifact(projectId, "reviews", { optional: true, project });
+    const [queue, hierarchy] = await Promise.all([
+      this.readArtifact(projectId, "reviews", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
+    ]);
     if (!queue) return { available: false, summary: reviewSummary(null), groups: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0, pageCount: 1 }, selectedGroup: null };
     const mode = parseFilter(query.get("groupBy") || "reason", "review_group");
     if (mode === "cluster") return this.clusterReviews(projectId, project, queue, query);
     const reason = parseFilter(query.get("reason"), "reason");
     const category = parseFilter(query.get("category"), "category");
     const severity = parseFilter(query.get("severity"), "severity");
-    const component = parseFilter(query.get("component"), "component");
-    const unit = parseFilter(query.get("unit"), "unit");
+    const componentFilter = parseFilter(query.get("component"), "component");
+    const unitFilter = parseFilter(query.get("unit"), "unit");
+    const component = componentFilter ? hierarchyComponentForFilter(hierarchy, componentFilter) : null;
+    if (componentFilter && !component) throw new ReviewStudioError("invalid_component_filter", 400);
+    const unit = unitFilter ? hierarchyUnitForFilter(component, unitFilter) : null;
+    if (unitFilter && !component) throw new ReviewStudioError("component_required_for_unit_filter", 400);
+    if (unitFilter && !unit) throw new ReviewStudioError("invalid_unit_filter", 400);
     const items = optionalArray(queue.items).filter((item) => exactMatch(item.reasonCode, reason)
       && exactMatch(item.category, category) && exactMatch(item.severity, severity)
-      && exactMatch(locatorComponent(item.sourceRelativeLocator), component)
-      && exactMatch(locatorUnit(item.sourceRelativeLocator), unit));
+      && (!component || hierarchyOwnership(hierarchy, item).componentKey === component.componentKey)
+      && (!unit || hierarchyOwnership(hierarchy, item).unitKey === unit.unitKey));
     const groups = new Map();
     for (const item of items) {
-      const value = reviewGroupValue(item, mode);
-      const group = groups.get(value) || { id: value, label: value, count: 0, blocking: 0, samples: [] };
+      const value = reviewGroupValue(item, mode, hierarchy);
+      const ownership = hierarchyOwnership(hierarchy, item);
+      const label = mode === "component" ? ownership.componentDisplayName
+        : mode === "unit" ? `${ownership.componentDisplayName} · ${ownership.groupLabel}` : value;
+      const group = groups.get(value) || { id: value, label, count: 0, blocking: 0, samples: [] };
       group.count += 1;
       if (item.blocking === true) group.blocking += 1;
-      if (group.samples.length < 3) group.samples.push(safeReviewItem(item));
+      if (group.samples.length < 3) group.samples.push(safeReviewItem(item, hierarchy));
       groups.set(value, group);
     }
     const groupList = [...groups.values()].sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
     const selectedGroupId = query.get("groupId") ? safeText(query.get("groupId"), "", 128) : groupList[0]?.id;
-    const selectedItems = items.filter((item) => reviewGroupValue(item, mode) === selectedGroupId).map(safeReviewItem);
+    const selectedItems = items.filter((item) => reviewGroupValue(item, mode, hierarchy) === selectedGroupId).map((item) => safeReviewItem(item, hierarchy));
     return {
       available: true,
       summary: reviewSummary(queue),
       grouping: mode,
       groups: groupList.slice(0, 100),
       selectedGroup: selectedGroupId ? { id: selectedGroupId, ...paginate(selectedItems, query) } : null,
-      filters: { categories: Object.keys(reviewSummary(queue).byCategory), reasons: Object.keys(reviewSummary(queue).byReason) },
+      filters: {
+        categories: Object.keys(reviewSummary(queue).byCategory),
+        reasons: Object.keys(reviewSummary(queue).byReason),
+        componentOptions: hierarchyComponentOptions(hierarchy),
+        unitOptions: hierarchyUnitOptions(hierarchy, component?.componentKey),
+        unitFilterEnabled: Boolean(component),
+        selectedComponentKey: component?.componentKey || null,
+        selectedUnitKey: unit?.unitKey || null,
+      },
     };
   }
 
@@ -800,7 +921,10 @@ export class ReviewStudioWorkspace {
 
   async diff(projectId, query) {
     const project = await this.projectContext(projectId);
-    const diff = await this.readArtifact(projectId, "diff", { optional: true, project });
+    const [diff, hierarchy] = await Promise.all([
+      this.readArtifact(projectId, "diff", { optional: true, project }),
+      effectiveHierarchyView(this, projectId, project),
+    ]);
     if (!diff) return { available: false, message: "No rescan diff has been recorded for this project." };
     const collections = {
       added: optionalArray(diff.added), changed: optionalArray(diff.changed), removed: optionalArray(diff.removed), stale: optionalArray(diff.staleDecisions),
@@ -817,6 +941,7 @@ export class ReviewStudioWorkspace {
     return {
       available: true,
       summary: diffSummary(diff),
+      hierarchy: { available: hierarchy.available, summary: hierarchy.summary, warnings: hierarchy.warnings },
       byFactKind: safeCountRecord(kindCounts),
       changeType,
       ...paginate(details, query),
