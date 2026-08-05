@@ -47,6 +47,14 @@ const RASTER_TYPES = Object.freeze({
 const safeFilterToken = /^[a-z0-9][a-z0-9._:+-]{0,127}$/i;
 const safeProjectDirectoryName = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
+async function assertPreviewPath(root, target) {
+  try {
+    await assertNoSymlinkPath(root, target);
+  } catch {
+    throw new ReviewStudioError("preview_not_available", 404);
+  }
+}
+
 function opaqueId(...parts) {
   return createHash("sha256").update(parts.join("\0")).digest("hex").slice(0, 32);
 }
@@ -858,7 +866,7 @@ export class ReviewStudioWorkspace {
   async sourcePreview(projectId, sourceRelativePath, expectedSha256, expectedBytes) {
     const directory = await this.projectDirectory(projectId);
     const bindingTarget = path.join(directory, "local-source-binding.json");
-    await assertNoSymlinkPath(directory, bindingTarget);
+    await assertPreviewPath(directory, bindingTarget);
     const bindingInfo = await fs.lstat(bindingTarget).catch(() => null);
     if (!bindingInfo?.isFile() || bindingInfo.isSymbolicLink() || bindingInfo.size > 64 * 1024) throw new ReviewStudioError("preview_not_available", 404);
     this.onArtifactRead?.({ projectId, key: "previewBinding", relativePath: "local-source-binding.json" });
@@ -870,7 +878,7 @@ export class ReviewStudioWorkspace {
     const sourceReal = await fs.realpath(sourceRoot);
     const target = path.resolve(sourceReal, ...sourceRelativePath.split("/"));
     if (!isPathWithin(sourceReal, target)) throw new ReviewStudioError("preview_not_available", 404);
-    await assertNoSymlinkPath(sourceReal, target);
+    await assertPreviewPath(sourceReal, target);
     const info = await fs.lstat(target).catch(() => null);
     const extension = path.extname(target).toLowerCase();
     if (!info?.isFile() || info.isSymbolicLink() || !RASTER_TYPES[extension] || info.size > MAXIMUM_PREVIEW_BYTES) throw new ReviewStudioError("preview_not_available", 404);
@@ -883,7 +891,7 @@ export class ReviewStudioWorkspace {
 
   async materializedPreview(root, target, info) {
     if (!isPathWithin(root, target)) throw new ReviewStudioError("preview_not_available", 404);
-    await assertNoSymlinkPath(root, target);
+    await assertPreviewPath(root, target);
     const extension = path.extname(target).toLowerCase();
     if (!info.isFile() || info.isSymbolicLink() || !RASTER_TYPES[extension] || info.size > MAXIMUM_PREVIEW_BYTES) throw new ReviewStudioError("preview_not_available", 404);
     return { buffer: await fs.readFile(target), contentType: RASTER_TYPES[extension] };
