@@ -2,6 +2,8 @@
 
 All parsers consume strict decoded IWB documents through the existing in-memory profile pipeline. No decoded XML is persisted or exposed as a generic API.
 
+The extraction pipeline supplies every parser invocation for one activity with a shared nested-ID allocator. Parser-local duplicate handling remains deterministic, and merge-time collisions across source documents are resolved before Student and Teacher projections are finalized. Teacher references use the same allocated IDs, while answer values never participate in identity generation.
+
 Question banks parse `questions_params.iwb` questions, CDATA/plain prompts, ordered answer options, and the publisher correct value. Exact matching resolves one Teacher-only option ID. Zero or multiple exact matches stay unresolved and enter review. Unicode and punctuation are preserved; only whitespace is normalized; unsafe markup is rejected.
 
 Sentence multiple choice parses `sentence@answer`, choices, structured text, and geometry. Index base is proven for each parsed compatible document/family as zero-based, one-based, ambiguous, or invalid. Only a proven base yields a Teacher-only correct option ID. Missing prompts or option text are retained as raster gaps; OCR and visual answer inference are forbidden.

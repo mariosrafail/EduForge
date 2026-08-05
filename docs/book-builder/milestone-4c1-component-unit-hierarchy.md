@@ -20,8 +20,8 @@ English Journey 6 remains a `journey-air-v1` negative control. No Ultimate hiera
 
 The old Pages API built one numeric selector from every page spread, irrespective of component. The Students Book, Workbook, Grammar Book, and supplementary test page groups were unioned. Because tests reached group 17, the UI could misleadingly suggest a 17-Unit principal book. The new API returns no Unit options until a component is selected, then returns only parent-scoped options for that component.
 
-## Boundaries and finding
+## Boundaries and follow-up
 
-The hierarchy audit uses source inventory, page, menu, hotspot, and IWB metadata without executing publisher binaries. A pre-existing duplicate response-field ID validation failure prevents a new full Ultimate B2 activity scan from completing; this is unrelated to hierarchy identity and is not relaxed or hidden by 4C1. Existing activity-capable projects and read-only structural audits remain sufficient to validate hierarchy projection.
+The hierarchy audit uses source inventory, page, menu, hotspot, and IWB metadata without executing publisher binaries. Milestone 4C1.1 resolved the previously recorded duplicate response-field identity failure generically, without changing hierarchy identity or weakening validation. Fresh full activity scans now validate the hierarchy projection for B2, B1 Plus, and held-out B1.
 
 The next milestone is Manual Activity Authoring Core. It is intentionally not implemented here.
