@@ -168,7 +168,7 @@ async function run() {
     await page.getByRole("button", { name: "Hide hotspots" }).click();
     assert.equal(await page.getByRole("button", { name: "Show hotspots" }).isVisible(), true);
     await pageComponent.selectOption({ label: "Workbook" });
-    await page.waitForFunction(() => document.querySelectorAll(".studio-hierarchy-navigator select")[1]?.options.length === 3);
+    await page.waitForFunction(() => document.querySelectorAll(".studio-hierarchy-navigator select")[1]?.options.length === 3 && document.querySelectorAll(".studio-hierarchy-navigator select")[1]?.options[1]?.textContent === "Unit 1");
     assert.deepEqual(await page.locator(".studio-hierarchy-navigator select").nth(1).locator("option").allTextContents(), ["All Units", "Unit 1", "Unit 2"]);
     await page.locator(".studio-hierarchy-navigator select").nth(1).selectOption({ label: "Unit 1" });
     await page.getByRole("heading", { name: "Workbook · Unit 1 · Part 1", exact: true }).waitFor();
@@ -179,7 +179,7 @@ async function run() {
     await page.goForward();
     await page.getByRole("heading", { name: "Workbook · Unit 1 · Part 1", exact: true }).waitFor();
     await pageComponent.selectOption({ label: "Tests" });
-    await page.waitForFunction(() => document.querySelectorAll(".studio-hierarchy-navigator select")[1]?.options.length === 3);
+    await page.waitForFunction(() => document.querySelectorAll(".studio-hierarchy-navigator select")[1]?.options[1]?.textContent === "Group 1");
     assert.deepEqual(await pageUnit.locator("option").allTextContents(), ["All groups", "Group 1", "Group 2"]);
     await page.getByRole("heading", { name: "No pages match these filters" }).waitFor();
 

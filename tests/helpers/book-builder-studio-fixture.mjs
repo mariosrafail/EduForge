@@ -29,7 +29,7 @@ async function writeJson(target, value) {
 function reviewItem(index) {
   const reasonCode = index % 5 === 0 ? "raster_prompt_missing" : index % 3 === 0 ? "ambiguous_activity_type" : "unapproved_component_role";
   const category = reasonCode === "unapproved_component_role" ? "component" : "activity";
-  const component = ["course", "practice", "grammar", "tests"][(index - 1) % 4];
+  const component = ["course", "practice", "grammar", "tests"][Math.floor((index - 1) / 12) % 4];
   const unitCount = component === "course" ? 4 : component === "grammar" ? 3 : 2;
   const unit = (index % unitCount) + 1;
   return {
