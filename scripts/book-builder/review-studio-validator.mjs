@@ -177,7 +177,12 @@ async function negativeRequest(origin, pathname, init, expectedStatus) {
 
 async function capture(page, screenshotRoot, screenshots, filename) {
   const target = path.join(screenshotRoot, filename);
-  await page.screenshot({ path: target, fullPage: true });
+  try {
+    await page.screenshot({ path: target, fullPage: true });
+  } catch (error) {
+    if (!/Page\.captureScreenshot|Unable to capture screenshot/i.test(String(error?.message || error))) throw error;
+    await page.screenshot({ path: target });
+  }
   screenshots.push(filename);
 }
 
