@@ -13,6 +13,7 @@ import { detectSourceProfile } from "../lib/book-builder/profile-registry.js";
 import { createProjectFromSource, inspectProject, rescanProject } from "../lib/book-builder/scanner-service.js";
 import { buildSourceInventory } from "../lib/book-builder/source-inventory.js";
 import { buildStructuralFingerprint, normalizeStructuralPath } from "../lib/book-builder/structural-fingerprint.js";
+import { materializeActivityReview } from "../lib/book-builder/profiles/ultimate-air-v2/activity-materializer.js";
 
 const temporaryRoots = [];
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
@@ -194,6 +195,21 @@ test("local project creation, unchanged rescan, inspect, and portable redaction 
   const rescanned = await rescanProject({ projectDirectory: created.projectDirectory, repositoryRoot, now: "2026-08-05T02:00:00.000Z" });
   assert.deepEqual(rescanned.diff, { schemaVersion: "1.0", fromRevision: 1, toRevision: 2, added: [], changed: [], removed: [], staleDecisions: [] });
   assert.equal((await inspectProject(created.projectDirectory)).portable.revision, 2);
+});
+
+test("activity artifacts keep a fictional solution token local-only and materialize deterministically", async () => {
+  const secret = "FICTIONAL_LOCAL_SOLUTION_9KQ";
+  const root = await temporaryRoot(); const source = await createAirApp(path.join(root, "sources"), "Activities.app", "ultimate");
+  await writeFile(source, "Contents/Resources/assets/books/book1/unit/1/part1/obj1/obj_params.iwb", encodedIwb(`<params><exercise type="write"><text id="field" answers="${secret}"/></exercise></params>`));
+  await writeFile(source, "Contents/Resources/assets/books/book1/unit/1/part1/obj1/questions_params.iwb", encodedIwb(`<questions><question id="q"><![CDATA[Fictional question?]]><answer>Other</answer><answer>Else</answer><correct>${secret}</correct></question></questions>`));
+  const created = await createProjectFromSource({ source, workspace: path.join(root, "workspace"), projectId: "activity-project", repositoryRoot });
+  const profile = path.join(created.projectDirectory, "profiles", "ultimate-air-v2");
+  const studentPath = path.join(profile, "student-activity-candidates.json"); const teacherPath = path.join(profile, "internal", "teacher-solution-candidates.json");
+  const publicFiles = ["book-project.json", "detected-facts.json", "review-queue.json", "scan-report.md"].map((name) => path.join(created.projectDirectory, name)).concat([studentPath, path.join(profile, "activity-evidence.json"), path.join(profile, "activity-extraction-report.md")]);
+  for (const file of publicFiles) assert.equal((await fs.readFile(file, "utf8")).includes(secret), false, file);
+  assert.equal((await fs.readFile(teacherPath, "utf8")).includes(secret), true);
+  const first = await materializeActivityReview({ projectDirectory: created.projectDirectory }); const second = await materializeActivityReview({ projectDirectory: created.projectDirectory });
+  assert.equal(first.aggregateHash, second.aggregateHash); assert.equal((await fs.readFile(first.reviewHtmlPath, "utf8")).includes(secret), false);
 });
 
 test("changed source produces a changed fact without source writes by the scanner", async () => {

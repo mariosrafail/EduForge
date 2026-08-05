@@ -4,6 +4,7 @@ import { AppRootResolutionError } from "../../lib/book-builder/app-root-resolver
 import { defaultBookBuilderWorkspace } from "../../lib/book-builder/source-binding.js";
 import { createProjectFromSource, inspectProject, rescanProject } from "../../lib/book-builder/scanner-service.js";
 import { materializeMenuReview } from "../../lib/book-builder/profiles/ultimate-air-v2/menu-materializer.js";
+import { materializeActivityReview } from "../../lib/book-builder/profiles/ultimate-air-v2/activity-materializer.js";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -29,7 +30,7 @@ Usage:
   book-builder scan --source <folder> [--workspace <folder>] [--project-id <id>]
   book-builder rescan --project <project-directory>
   book-builder inspect --project <project-directory>
-  book-builder materialize --project <project-directory> --scope menu
+  book-builder materialize --project <project-directory> --scope menu|activities
   book-builder --help
 `;
 }
@@ -43,7 +44,7 @@ async function main() {
     if (!args.source) throw new Error("--source is required");
     const result = await createProjectFromSource({ source: args.source, workspace: args.workspace || defaultBookBuilderWorkspace(), projectId: args.projectId, repositoryRoot });
     const summary = result.scan.profileResult?.summary || {};
-    print({ status: "scanned", projectDirectory: result.projectDirectory, outputDirectory: result.projectDirectory, profile: result.project.selectedProfile.id, confidence: result.project.selectedProfile.confidence, fileCount: result.scan.inventory.summary.fileCount, byteCount: result.scan.inventory.summary.totalBytes, factCount: result.project.detectedFacts.length, iwbTotal: summary.iwbTotal || 0, strictIwbCount: summary.iwbStrict || 0, malformedIwbCount: summary.iwbMalformed || 0, componentCandidateCount: summary.componentCandidates || 0, pageSpreadCount: summary.pageSpreads || 0, atlasFamilyCount: summary.atlasFamilies || 0, atlasRegionCount: summary.atlasRegions || 0, menuButtonCount: summary.menuButtons || 0, hotspotExactMatchCount: summary.hotspotExact || 0, hotspotReviewCount: summary.hotspotReview || 0, reviewItemCount: summary.reviewItems || 0 });
+    print({ status: "scanned", projectDirectory: result.projectDirectory, outputDirectory: result.projectDirectory, profile: result.project.selectedProfile.id, confidence: result.project.selectedProfile.confidence, fileCount: result.scan.inventory.summary.fileCount, byteCount: result.scan.inventory.summary.totalBytes, factCount: result.project.detectedFacts.length, iwbTotal: summary.iwbTotal || 0, strictIwbCount: summary.iwbStrict || 0, malformedIwbCount: summary.iwbMalformed || 0, componentCandidateCount: summary.componentCandidates || 0, pageSpreadCount: summary.pageSpreads || 0, atlasFamilyCount: summary.atlasFamilies || 0, atlasRegionCount: summary.atlasRegions || 0, menuButtonCount: summary.menuButtons || 0, hotspotExactMatchCount: summary.hotspotExact || 0, hotspotReviewCount: summary.hotspotReview || 0, objectDirectoryCount: summary.objectCount || 0, activityClusterCount: summary.signatureClusterCount || 0, studentActivityCandidateCount: summary.studentCandidateCount || 0, teacherSolutionCandidateCount: summary.teacherCandidateCount || 0, structuredQuestionCount: summary.questions || 0, structuredOptionCount: summary.options || 0, reviewItemCount: summary.reviewItems || 0 });
     return;
   }
   if (args.command === "rescan") {
@@ -59,9 +60,9 @@ async function main() {
   }
   if (args.command === "materialize") {
     if (!args.project) throw new Error("--project is required");
-    if (args.scope !== "menu") throw new Error("--scope menu is required");
-    const result = await materializeMenuReview({ projectDirectory: args.project });
-    print({ status: "materialized", scope: "menu", outputDirectory: result.outputDirectory, materializedFileCount: result.materializedFileCount, aggregateHash: result.aggregateHash, reviewHtmlPath: result.reviewHtmlPath });
+    if (!new Set(["menu", "activities"]).has(args.scope)) throw new Error("--scope menu|activities is required");
+    const result = args.scope === "menu" ? await materializeMenuReview({ projectDirectory: args.project }) : await materializeActivityReview({ projectDirectory: args.project });
+    print({ status: "materialized", scope: args.scope, outputDirectory: result.outputDirectory, materializedFileCount: result.materializedFileCount, aggregateHash: result.aggregateHash, reviewHtmlPath: result.reviewHtmlPath });
     return;
   }
   throw new Error(`Unknown command: ${args.command}`);
