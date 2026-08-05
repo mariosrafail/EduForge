@@ -104,7 +104,7 @@ async function run() {
     await page.getByLabel("Approval state").selectOption("approved");
     await previewAndSave(page);
 
-    await page.getByRole("tab", { name: "Activities" }).click();
+    await page.getByRole("tab", { name: "Activities", exact: true }).click();
     await page.getByRole("heading", { name: "Activities" }).waitFor();
     await editContentField(page, "Activity display title", "Activity display title", "Fictional publisher activity");
     await editContentField(page, "Activity instructions", "Activity instructions", "Read carefully.\nChoose the fictional response.");

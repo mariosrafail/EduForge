@@ -111,7 +111,10 @@ export async function decorateDecisionView(reader, projectId, view, payload) {
     const decisionById = new Map(decisions.map((item) => [item.id, item]));
     const activities = await reader.readArtifact(projectId, "activities", { optional: true, project });
     const decorate = (item) => {
-      const decorated = decorateReviewItem(item, byId, decisionById);
+      const decisionDecorated = decorateReviewItem(item, byId, decisionById);
+      const decorated = item.effectiveStatus === "resolved_by_manual_activity"
+        ? { ...decisionDecorated, effectiveStatus: "resolved_by_manual_activity", status: "resolved_by_manual_activity", manualActivityId: item.manualActivityId }
+        : decisionDecorated;
       if (!ACTIVITY_CONTENT_DECISION_KINDS.has(item.suggestedDecisionKind) || !item.targetId) return decorated;
       const target = findActivityContentTarget(activities, item.suggestedDecisionKind, item.targetId);
       if (!target) return decorated;

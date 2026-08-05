@@ -403,6 +403,44 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
 .studio-history-list strong, .studio-history-list span { display: block; }
 .studio-history-list span, .studio-history-list time { margin-top: 3px; color: var(--studio-muted); font-size: .68rem; }
 
+.studio-manual-create { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; padding: 14px; border: 1px solid var(--studio-line); border-radius: 8px; background: #f7f9fb; }
+.studio-manual-create > div { display: flex; align-items: end; gap: 10px; }
+.studio-manual-create label { flex: 1; }
+.studio-manual-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.studio-manual-card-grid > button { display: grid; gap: 8px; min-height: 142px; padding: 14px; text-align: left; color: inherit; background: white; border: 1px solid var(--studio-line); border-radius: 8px; cursor: pointer; }
+.studio-manual-card-grid > button:hover, .studio-manual-card-grid > button:focus-visible { border-color: var(--studio-accent); box-shadow: 0 0 0 3px rgb(75 31 85 / 10%); }
+.studio-manual-card-grid small { color: var(--studio-muted); }
+.studio-manual-editor { position: fixed; z-index: 40; inset: 18px; overflow: auto; padding: 22px; color: var(--studio-text); background: #fff; border: 1px solid var(--studio-line); border-radius: 12px; box-shadow: 0 24px 80px rgb(16 28 40 / 28%); }
+.studio-manual-editor > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--studio-line); }
+.studio-manual-editor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.studio-manual-editor-grid .wide { grid-column: span 2; }
+.studio-binding-summary { align-self: end; padding: 10px; color: var(--studio-muted); background: #f7f9fb; border-radius: 5px; }
+.studio-manual-workspace { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(280px, .7fr); gap: 18px; align-items: start; }
+.studio-manual-workspace > section, .studio-manual-workspace > aside { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--studio-line); border-radius: 8px; }
+.studio-manual-workspace fieldset { position: relative; display: grid; gap: 9px; margin: 0 0 10px; padding: 14px; border: 1px solid var(--studio-line); border-radius: 6px; }
+.studio-node-controls { display: flex; justify-content: end; gap: 4px; }
+.studio-node-controls button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; background: #f7f9fb; border: 1px solid var(--studio-line); border-radius: 4px; }
+.studio-node-controls svg { width: 14px; }
+.studio-option-list { display: grid; gap: 6px; }
+.studio-option-list > div { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.studio-manual-actions { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 14px 0 0; margin-top: 14px; background: #fff; border-top: 1px solid var(--studio-line); }
+.studio-student-activity-preview { display: grid; gap: 14px; min-width: 0; padding: 16px; background: #f7f9fb; border: 2px solid #cdd9e4; border-radius: 8px; }
+.studio-student-activity-preview fieldset, .studio-student-activity-preview label { display: grid; gap: 7px; }
+.studio-scrollable-activity { max-width: 100%; max-height: 58vh; overflow: auto; padding: 10px; border: 2px solid #758ba0; border-radius: 6px; overscroll-behavior: contain; }
+.studio-scrollable-activity:focus { outline: 3px solid var(--studio-accent); outline-offset: 2px; }
+.studio-manual-asset { display: block; max-width: 100%; height: auto; }
+.studio-manual-media { width: 100%; max-height: 52vh; }
+.studio-image-backed-preview { position: relative; max-width: 100%; overflow: auto; isolation: isolate; }
+.studio-image-backed-preview > .studio-manual-asset { width: 100%; }
+.studio-image-field-preview { position: absolute; z-index: 1; display: grid; align-items: center; overflow: hidden; padding: 3px; background: rgb(255 255 255 / 88%); border: 2px solid #4b1f55; }
+.studio-image-field-preview input, .studio-image-field-preview select { min-width: 0; width: 100%; }
+.studio-image-backed-editor, .studio-image-field-list { display: grid; gap: 10px; }
+.studio-geometry-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.studio-teacher-boundary { display: grid; gap: 10px; padding: 14px; background: #fff8e6; border: 2px solid #bd7b00; border-radius: 7px; }
+.studio-teacher-boundary.revealed { background: #fff3d3; }
+.studio-teacher-boundary header { display: flex; justify-content: space-between; gap: 8px; }
+.studio-validation-errors { color: #8a1c1c; }
+
 @media (max-width: 1180px) {
   .studio-filter-bar { grid-template-columns: repeat(2, 1fr); }
   .studio-filter-grid { grid-template-columns: repeat(3, 1fr); }
@@ -427,6 +465,9 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
   .studio-cluster-grid { grid-template-columns: repeat(2, 1fr); }
   .studio-preview-gallery { grid-template-columns: repeat(3, 1fr); }
   .studio-intro-separation { grid-template-columns: 1fr; }
+  .studio-manual-create, .studio-manual-workspace { grid-template-columns: 1fr; }
+  .studio-manual-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .studio-manual-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .studio-project-card-footer { align-items: start; }
 }
 
@@ -472,6 +513,11 @@ html[data-app-mode="book-builder-studio"] body { margin: 0; min-width: 320px; mi
   .studio-content-field > div { align-items: start; flex-direction: column; }
   .studio-history-list li { grid-template-columns: 1fr; }
   .studio-hierarchy-navigator { grid-template-columns: 1fr; align-items: stretch; }
+  .studio-manual-create > div, .studio-manual-actions { align-items: stretch; flex-direction: column; }
+  .studio-manual-card-grid, .studio-manual-editor-grid { grid-template-columns: 1fr; }
+  .studio-manual-editor-grid .wide { grid-column: auto; }
+  .studio-manual-editor { inset: 0; padding: 14px; border: 0; border-radius: 0; }
+  .studio-geometry-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -190,7 +190,7 @@ async function run() {
     await page.getByText("The startup intro is explicitly distinct from the central on-menu title animation.").waitFor();
     await page.getByAltText("fictional-menu-preview.png").waitFor();
 
-    await page.getByRole("tab", { name: "Activities" }).click();
+    await page.getByRole("tab", { name: "Activities", exact: true }).click();
     await expectHeading(page, "Activities");
     await page.getByText("152 items").waitFor();
     await page.locator(".studio-hierarchy-navigator select").nth(0).selectOption({ label: "Workbook" });

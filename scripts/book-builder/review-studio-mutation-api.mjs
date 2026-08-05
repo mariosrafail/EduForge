@@ -7,7 +7,7 @@ import {
   equalSessionToken,
 } from "./review-studio-security.mjs";
 
-async function readJsonBody(request) {
+export async function readJsonBody(request) {
   const contentType = String(request.headers["content-type"] || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") throw new ReviewStudioError("unsupported_content_type", 415);
   const declared = Number(request.headers["content-length"] || 0);

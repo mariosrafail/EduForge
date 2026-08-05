@@ -10,6 +10,7 @@ import { ComponentsView } from "./views/ComponentsView.jsx";
 import { PagesView } from "./views/PagesView.jsx";
 import { MenuView } from "./views/MenuView.jsx";
 import { ActivitiesView } from "./views/ActivitiesView.jsx";
+import { ManualActivitiesView } from "./views/ManualActivitiesView.jsx";
 import { ReviewQueueView } from "./views/ReviewQueueView.jsx";
 import { SourceDiffView } from "./views/SourceDiffView.jsx";
 import { DecisionsView } from "./views/DecisionsView.jsx";
@@ -40,6 +41,7 @@ function ActiveView({ route, authoring, refreshKey }) {
   if (route.tab === "pages") return <PagesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "menu") return <MenuView projectId={route.projectId} />;
   if (route.tab === "activities") return <ActivitiesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
+  if (route.tab === "manual") return <ManualActivitiesView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "reviews") return <ReviewQueueView projectId={route.projectId} routeQuery={route.query} authoring={authoring} />;
   if (route.tab === "decisions") return <DecisionsView projectId={route.projectId} refreshKey={refreshKey} />;
   return <SourceDiffView projectId={route.projectId} />;

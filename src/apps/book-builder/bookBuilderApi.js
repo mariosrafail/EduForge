@@ -12,6 +12,7 @@ async function readPayload(response) {
     const error = new Error(payload?.error?.message || "Review Studio request failed.");
     error.code = payload?.error?.code || "request_failed";
     error.status = response.status;
+    error.details = payload?.error?.details || null;
     throw error;
   }
   return payload;
@@ -78,6 +79,47 @@ async function decisionMutation(projectId, operation, body, { signal } = {}) {
     body: JSON.stringify(body),
     signal,
   }));
+}
+
+async function manualMutation(projectId, resource, operation, body, { signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  if (!writeCapability) {
+    const error = new Error("Local authoring mode is not enabled.");
+    error.code = "write_mode_disabled";
+    throw error;
+  }
+  return readPayload(await fetch(apiUrl(`/projects/${encodeURIComponent(projectId)}/${resource}/${operation}`), {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { [SESSION_HEADER]: sessionToken, [WRITE_HEADER]: writeCapability, "Content-Type": "application/json" },
+    body: JSON.stringify(body), signal,
+  }));
+}
+
+export function mutateManualActivity(projectId, operation, body, options) {
+  return manualMutation(projectId, "manual-activities", operation, body, options);
+}
+
+export function prefillManualActivity(projectId, activityCandidateId, options) {
+  return manualMutation(projectId, "manual-activities", "prefill", { activityCandidateId }, options);
+}
+
+export function updateManualActivitySolution(projectId, body, options) {
+  return manualMutation(projectId, "manual-solutions", "update", body, options);
+}
+
+export async function requestManualActivitySolution(projectId, activityId, { signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  if (!writeCapability) throw Object.assign(new Error("Teacher solutions require local edit mode."), { code: "write_mode_disabled" });
+  return readPayload(await fetch(apiUrl(`/projects/${encodeURIComponent(projectId)}/manual-solutions/${encodeURIComponent(activityId)}`), {
+    cache: "no-store", credentials: "same-origin", headers: { [SESSION_HEADER]: sessionToken, [WRITE_HEADER]: writeCapability }, signal,
+  }));
+}
+
+export async function requestManualAssetContent(projectId, assetId, { signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  const response = await fetch(apiUrl(`/projects/${encodeURIComponent(projectId)}/manual-assets/${encodeURIComponent(assetId)}/content`), { cache: "no-store", credentials: "same-origin", headers: { [SESSION_HEADER]: sessionToken }, signal });
+  if (!response.ok) await readPayload(response);
+  return response.blob();
 }
 
 export function previewDecision(projectId, decision, options) {

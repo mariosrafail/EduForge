@@ -1,0 +1,18 @@
+import { useState } from "react";
+
+import { ManualAssetPreview } from "./ManualAssetPreview.jsx";
+
+function MultipleChoice({ content }) { const [responses, setResponses] = useState({}); return <div>{(content.questions || []).map((question) => <fieldset key={question.id}><legend>{question.prompt}</legend>{question.options.map((option) => <label key={option.id}><input type="radio" name={question.id} checked={responses[question.id] === option.id} onChange={() => setResponses((value) => ({ ...value, [question.id]: option.id }))} /> {option.text}</label>)}</fieldset>)}</div>; }
+function TrueFalse({ content }) { return <div>{(content.statements || []).map((item) => <fieldset key={item.id}><legend>{item.prompt}</legend><label><input type="radio" name={item.id} /> True</label><label><input type="radio" name={item.id} /> False</label></fieldset>)}</div>; }
+function Typed({ content }) { return <div>{(content.items || []).map((item) => <label key={item.id}>{item.prompt}<input aria-describedby={`${item.id}-guide`} /><small id={`${item.id}-guide`}>{item.displayGuidance?.case} {item.displayGuidance?.punctuation}</small></label>)}</div>; }
+function ImageBacked({ projectId, content }) { return <div className="studio-image-backed-preview"><ManualAssetPreview projectId={projectId} assetId={content.backgroundAssetId} alt="Activity background" />{(content.fields || []).map((field) => <div key={field.id} className="studio-image-field-preview" style={{ left: `${field.geometry.x * 100}%`, top: `${field.geometry.y * 100}%`, width: `${field.geometry.width * 100}%`, height: `${field.geometry.height * 100}%` }}>{field.kind === "text_input" ? <input aria-label={field.prompt} /> : field.kind === "single_choice" ? <select aria-label={field.prompt}><option value="">Choose</option>{field.options.map((option) => <option key={option.id} value={option.id}>{option.text}</option>)}</select> : field.kind === "media_trigger" ? <button type="button">Play media</button> : field.label || field.text}</div>)}</div>; }
+
+export function StudentActivityPreview({ projectId, activity }) {
+  const content = activity.content || {};
+  return <section className={`studio-student-activity-preview viewport-${activity.presentation?.viewportMode || "fit"}`} aria-label="Student preview"><header><span>Student preview · Student-safe artifact only</span><h3>{activity.title || "Untitled draft"}</h3><p>{activity.instructions}</p></header>
+    {activity.type === "multiple_choice" && <MultipleChoice content={content} />}{activity.type === "true_false" && <TrueFalse content={content} />}{activity.type === "typed_gap_fill" && <Typed content={content} />}{activity.type === "open_answer" && <label>{content.prompt}<textarea /><small>{content.responseGuidance}</small></label>}
+    {activity.type === "media_audio" && <><ManualAssetPreview projectId={projectId} assetId={content.assetId} controls /><p>{content.transcript}</p></>}{activity.type === "media_video" && <><ManualAssetPreview projectId={projectId} assetId={content.assetId} controls /><p>{content.captions || content.transcript}</p></>}
+    {activity.type === "scrollable_panel" && <div className="studio-scrollable-activity" tabIndex={0}>{(content.blocks || []).map((block) => block.kind === "text" ? <p key={block.id}>{block.text}</p> : <ManualAssetPreview key={block.id} projectId={projectId} assetId={block.assetId} alt={block.altText} />)}{content.linkedAudioAssetId && <ManualAssetPreview projectId={projectId} assetId={content.linkedAudioAssetId} controls />}</div>}
+    {activity.type === "image_backed" && <ImageBacked projectId={projectId} content={content} />}
+  </section>;
+}

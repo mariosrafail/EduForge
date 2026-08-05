@@ -6,6 +6,7 @@ export const PROJECT_TABS = Object.freeze([
   { id: "pages", label: "Pages & Hotspots" },
   { id: "menu", label: "Menu & Branding" },
   { id: "activities", label: "Activities" },
+  { id: "manual", label: "Manual Activities" },
   { id: "reviews", label: "Review Queue" },
   { id: "decisions", label: "Decisions & History" },
   { id: "diff", label: "Source Diff" },

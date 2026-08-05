@@ -45,6 +45,7 @@ const ARTIFACTS = Object.freeze({
   activities: ["profiles", "$profile", "student-activity-candidates.json"],
   activityClusters: ["profiles", "$profile", "activity-clusters.json"],
   activitySummary: ["profiles", "$profile", "activity-extraction-summary.json"],
+  manualActivities: ["authoring", "manual-activities.json"],
 });
 
 const RASTER_TYPES = Object.freeze({
@@ -665,9 +666,10 @@ export class ReviewStudioWorkspace {
 
   async reviews(projectId, query) {
     const project = await this.projectContext(projectId);
-    const [queue, hierarchy] = await Promise.all([
+    const [queue, hierarchy, manual] = await Promise.all([
       this.readArtifact(projectId, "reviews", { optional: true, project }),
       effectiveHierarchyView(this, projectId, project),
+      this.readArtifact(projectId, "manualActivities", { optional: true, project }),
     ]);
     if (!queue) return { available: false, summary: reviewSummary(null), groups: [], pagination: { page: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0, pageCount: 1 }, selectedGroup: null };
     const mode = parseFilter(query.get("groupBy") || "reason", "review_group");
@@ -686,6 +688,11 @@ export class ReviewStudioWorkspace {
       && exactMatch(item.category, category) && exactMatch(item.severity, severity)
       && (!component || hierarchyOwnership(hierarchy, item).componentKey === component.componentKey)
       && (!unit || hierarchyOwnership(hierarchy, item).unitKey === unit.unitKey));
+    const replacements = new Map(optionalArray(manual?.activities).filter((activity) => activity.status === "approved" && activity.stale !== true && activity.replacesCandidateId).map((activity) => [activity.replacesCandidateId, activity.activityId]));
+    const effectiveReview = (item) => {
+      const projected = safeReviewItem(item, hierarchy); const manualActivityId = replacements.get(item.activityCandidateId || item.targetActivityCandidateId);
+      return manualActivityId ? { ...projected, effectiveStatus: "resolved_by_manual_activity", manualActivityId } : { ...projected, effectiveStatus: projected.status, manualActivityId: null };
+    };
     const groups = new Map();
     for (const item of items) {
       const value = reviewGroupValue(item, mode, hierarchy);
@@ -695,12 +702,12 @@ export class ReviewStudioWorkspace {
       const group = groups.get(value) || { id: value, label, count: 0, blocking: 0, samples: [] };
       group.count += 1;
       if (item.blocking === true) group.blocking += 1;
-      if (group.samples.length < 3) group.samples.push(safeReviewItem(item, hierarchy));
+      if (group.samples.length < 3) group.samples.push(effectiveReview(item));
       groups.set(value, group);
     }
     const groupList = [...groups.values()].sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
     const selectedGroupId = query.get("groupId") ? safeText(query.get("groupId"), "", 128) : groupList[0]?.id;
-    const selectedItems = items.filter((item) => reviewGroupValue(item, mode, hierarchy) === selectedGroupId).map((item) => safeReviewItem(item, hierarchy));
+    const selectedItems = items.filter((item) => reviewGroupValue(item, mode, hierarchy) === selectedGroupId).map(effectiveReview);
     return {
       available: true,
       summary: reviewSummary(queue),
