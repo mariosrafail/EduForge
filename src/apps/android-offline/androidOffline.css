@@ -285,6 +285,19 @@ html[data-app-mode="android-offline"] body {
   border-radius: 8px;
 }
 
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-selection-gateway:not(.book-page-spread-view) {
+  isolation: isolate;
+  background-color: #f6e8fa;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-selection-gateway:not(.book-page-spread-view)::before {
+  display: block;
+  z-index: 0;
+  opacity: 0.68;
+  background: var(--ultimate-b2-students-book-menu-bg) center / cover no-repeat;
+  mask-image: none;
+}
+
 .android-existing-viewer-shell .students-book-gateway::before,
 .android-existing-viewer-shell .book-gateway-bg-orb,
 .android-existing-viewer-shell .book-page-ambient-orb {

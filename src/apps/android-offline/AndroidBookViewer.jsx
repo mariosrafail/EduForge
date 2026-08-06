@@ -4,6 +4,7 @@ import { BookPackageBrowser } from "../../components/lms/books/BookPackageBrowse
 import { UltimateB2ActivityRunner } from "../../components/lms/activities/ultimate-b2/UltimateB2ActivityRunner.jsx";
 import { getComponentRouteSlug } from "../../utils/hashRoutes.js";
 import { buildAndroidPageKey } from "./androidBooks.js";
+import ultimateB2StudentsBookMenuBackground from "../../assets/books/ultimate-b2/legacy-source/assets/books/book1/unit/2/parts/HD/parts_BG.png";
 import {
   getAndroidOfflineProgress,
   markAndroidOfflinePageComplete,
@@ -37,6 +38,16 @@ export default function AndroidBookViewer({
   const unit = component?.pageUnits?.find((item) => item.id === location.unitId) || component?.pageUnits?.[0] || null;
   const page = unit?.pages?.find((item) => item.id === location.pageId) || unit?.pages?.[0] || null;
   const hasSelectedPage = Boolean(location.pageId || location.pageNumber);
+  const isUltimateB2StudentsBook = Boolean(
+    component
+    && [book.slug, book.id].some((value) => String(value || "").toLowerCase() === "ultimate-b2")
+    && `${component.type || ""} ${component.title || ""}`.toLowerCase().includes("students book"),
+  );
+  const viewerShellStyle = isUltimateB2StudentsBook
+    ? {
+        "--ultimate-b2-students-book-menu-bg": `url(${ultimateB2StudentsBookMenuBackground})`,
+      }
+    : undefined;
 
   useEffect(() => {
     if (!component || !unit || !page || !hasSelectedPage) return;
@@ -96,7 +107,10 @@ export default function AndroidBookViewer({
         )}
       </header>
 
-      <div className="android-existing-viewer-shell">
+      <div
+        className={`android-existing-viewer-shell${isUltimateB2StudentsBook ? " ultimate-b2-students-book-shell" : ""}`}
+        style={viewerShellStyle}
+      >
         <BookPackageBrowser
           bookPackage={book}
           mode="student"
