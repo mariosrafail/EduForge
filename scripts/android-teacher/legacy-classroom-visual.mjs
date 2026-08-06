@@ -169,9 +169,12 @@ async function assertCleanAbout(page, label) {
   await assertScreen(page, label);
 }
 
-async function skipStartupIntro(page) {
-  const skip = page.getByRole("button", { name: "Skip intro" });
-  if (await skip.count()) await skip.click();
+async function completeStartupIntro(page) {
+  const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
+  if (await intro.count()) {
+    assert.equal(await intro.getByRole("button", { name: "Skip intro" }).count(), 0);
+    await intro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
+  }
   await page.locator(".legacy-home-launcher").waitFor();
 }
 
@@ -278,7 +281,7 @@ try {
     page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
     page.on("request", (request) => { if (!request.url().startsWith(baseURL)) forbiddenRequests.push(request.url()); });
     await page.goto(baseURL, { waitUntil: "networkidle" });
-    await skipStartupIntro(page);
+    await completeStartupIntro(page);
     await run(page);
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(forbiddenRequests, []);
@@ -312,7 +315,7 @@ try {
     const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
     await soundToggle.click();
     await page.reload({ waitUntil: "networkidle" });
-    await skipStartupIntro(page);
+    await completeStartupIntro(page);
     await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
     await selectOverviewUnit(page, 1);

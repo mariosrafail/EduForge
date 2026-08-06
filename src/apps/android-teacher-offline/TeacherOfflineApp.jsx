@@ -129,7 +129,6 @@ export default function TeacherOfflineApp() {
     const register = async () => {
       backHandle = await App.addListener("backButton", async () => {
         if (startupIntroPendingRef.current) {
-          setStartupIntroPending(false);
           return;
         }
         if (settingsOpenRef.current) {

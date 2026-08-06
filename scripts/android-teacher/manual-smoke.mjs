@@ -121,9 +121,9 @@ try {
   await page.goto(baseURL, { waitUntil: "networkidle" });
   const startupIntro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
   await startupIntro.waitFor();
-  assert.equal(await startupIntro.getByRole("button", { name: "Skip intro" }).isVisible(), true, "Cold startup must expose an explicit intro skip control");
+  assert.equal(await startupIntro.getByRole("button", { name: "Skip intro" }).count(), 0, "Cold startup must not expose an intro skip control");
   assert.match(await startupIntro.locator("video").getAttribute("src"), /ultimate-b2-startup-intro-.*\.mp4$/, "Teacher startup must use the recovered MP4 intro");
-  await startupIntro.getByRole("button", { name: "Skip intro" }).click();
+  await startupIntro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
   await page.locator(".legacy-home-launcher").waitFor();
   const migratedMarkup = await page.evaluate(() => JSON.parse(localStorage.getItem("interactive-classroom:annotations:v1"))["migration-probe"]);
   assert.deepEqual(migratedMarkup.drawing.map(({ type }) => type), ["stroke", "text"], "Legacy drawing elements must migrate into drawing history");

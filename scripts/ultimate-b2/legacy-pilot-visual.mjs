@@ -72,9 +72,12 @@ async function waitForPreview() {
   throw new Error("Legacy pilot preview did not start.");
 }
 
-async function skipStartupIntro(page) {
-  const skip = page.getByRole("button", { name: "Skip intro" });
-  if (await skip.count()) await skip.click();
+async function completeStartupIntro(page) {
+  const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
+  if (await intro.count()) {
+    assert.equal(await intro.getByRole("button", { name: "Skip intro" }).count(), 0);
+    await intro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
+  }
   await page.locator(".legacy-home-launcher").waitFor();
 }
 
@@ -201,7 +204,7 @@ try {
     });
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
-    await skipStartupIntro(page);
+    await completeStartupIntro(page);
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} requires teacher offline build`);
     await openPilotBookFromLauncher(page, target.name);
     await page.locator(".teacher-offline-lessons").waitFor();

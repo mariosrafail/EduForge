@@ -51,9 +51,6 @@ export default function TeacherStartupIntro({ onFinish }) {
           Play intro
         </button>
       )}
-      <button type="button" className="teacher-startup-intro-skip" onClick={() => finish("skipped")}>
-        Skip intro
-      </button>
     </section>
   );
 }

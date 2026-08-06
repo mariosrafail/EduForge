@@ -505,11 +505,12 @@ test("teacher media mappings are checkout-local and never use raw publisher appl
   assert.match(runtimeAssets, /teacher-offline-media/);
 });
 
-test("Teacher startup intro is a reproducible, session-scoped, WebView-safe asset", async () => {
-  const [introBytes, recovery, introComponent, app, library, launcherStyles] = await Promise.all([
+test("Teacher startup intro is reproducible, centered, non-skippable, and WebView-safe", async () => {
+  const [introBytes, recovery, introComponent, introStyles, app, library, launcherStyles] = await Promise.all([
     readFile("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"),
     readFile("scripts/ultimate-b2/recover-startup-intro.mjs", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherStartupIntro.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherStartupIntro.css", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineLauncher.css", "utf8"),
@@ -525,10 +526,20 @@ test("Teacher startup intro is a reproducible, session-scoped, WebView-safe asse
   assert.match(introComponent, /onEnded=\{\(\) => finish\("ended"\)\}/);
   assert.match(introComponent, /onError=\{\(\) => finish\("error"\)\}/);
   assert.match(introComponent, /videoRef\.current[\s\S]*await video\.play\(\)/);
-  assert.match(introComponent, /Skip intro/);
+  assert.match(introComponent, /Play intro/);
+  assert.doesNotMatch(introComponent, /Skip intro|finish\("skipped"\)/);
+  assert.match(introStyles, /background:\s*#fff/);
+  assert.match(introStyles, /place-items:\s*center/);
+  assert.match(introStyles, /grid-template-rows:\s*minmax\(0, 1fr\)/);
+  assert.match(introStyles, /width:\s*auto[\s\S]*height:\s*auto/);
+  assert.match(introStyles, /max-width:\s*min\(90vw, 100%, 1024px\)/);
+  assert.match(introStyles, /max-height:\s*min\(86dvh, 100%, 768px\)/);
+  assert.match(introStyles, /object-fit:\s*contain/);
+  assert.doesNotMatch(introStyles, /teacher-startup-intro-skip|background:\s*#020711/);
   assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
   assert.match(app, /if \(!animationsActive\) setStartupIntroPending\(false\)/);
-  assert.match(app, /startupIntroPendingRef\.current[\s\S]*setStartupIntroPending\(false\)/);
+  assert.match(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*return;\s*\}/);
+  assert.doesNotMatch(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*setStartupIntroPending\(false\)/);
   assert.match(library, /legacy-home-floating-chrome/);
   assert.doesNotMatch(library, /legacy-home-topbar/);
   assert.match(launcherStyles, /\.teacher-offline-library\.has-classroom-tools::after\s*\{\s*display: none/);

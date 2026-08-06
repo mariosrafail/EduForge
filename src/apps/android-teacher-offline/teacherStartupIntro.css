@@ -3,18 +3,33 @@
   inset: 0;
   z-index: 100;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   overflow: hidden;
-  background: #020711;
-  color: #fff;
+  background: #fff;
+  color: #172033;
 }
 
 .teacher-startup-intro video {
-  width: 100%;
-  height: 100%;
   display: block;
+  width: auto;
+  height: auto;
+  max-width: min(90vw, 100%, 1024px);
+  max-height: min(86dvh, 100%, 768px);
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
-  background: #020711;
+  background: #fff;
   pointer-events: none;
 }
 
@@ -23,32 +38,37 @@
   position: absolute;
   z-index: 1;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
-.teacher-startup-intro-loading { margin: 0; font-weight: 800; letter-spacing: .04em; }
-.teacher-startup-intro-play,
-.teacher-startup-intro-skip {
+.teacher-startup-intro-loading {
+  bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px));
+  margin: 0;
+  color: #30394a;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.teacher-startup-intro-play {
+  top: 50%;
+  transform: translate(-50%, -50%);
   min-width: 112px;
   min-height: 48px;
   padding: 10px 18px;
-  border: 2px solid rgba(255, 255, 255, .9);
+  border: 2px solid #163f68;
   border-radius: 999px;
-  background: rgba(4, 31, 55, .82);
+  background: #174f82;
   color: #fff;
   font-weight: 900;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, .32);
+  box-shadow: 0 4px 16px rgba(22, 63, 104, .24);
+  cursor: pointer;
 }
 
-.teacher-startup-intro-skip {
-  position: absolute;
-  z-index: 1;
-  top: max(12px, env(safe-area-inset-top));
-  right: max(12px, env(safe-area-inset-right));
-}
+.teacher-startup-intro button:focus-visible { outline: 4px solid #f0b500; outline-offset: 3px; }
 
-.teacher-startup-intro button:focus-visible { outline: 4px solid #fff600; outline-offset: 3px; }
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-startup-intro .teacher-startup-intro-play:active {
+  transform: translate(-50%, -50%) scale(.985);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .teacher-startup-intro { display: none; }

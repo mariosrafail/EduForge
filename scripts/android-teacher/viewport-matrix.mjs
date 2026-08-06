@@ -46,9 +46,12 @@ function expectedDisplayScale({ width, height }) {
   return Math.min(2, Math.max(1, Math.min(width / 1920, height / 1080)));
 }
 
-async function skipStartupIntro(page) {
-  const skip = page.getByRole("button", { name: "Skip intro" });
-  if (await skip.count()) await skip.click();
+async function completeStartupIntro(page) {
+  const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
+  if (await intro.count()) {
+    assert.equal(await intro.getByRole("button", { name: "Skip intro" }).count(), 0);
+    await intro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
+  }
   await page.locator(".legacy-home-launcher").waitFor();
 }
 
@@ -107,7 +110,7 @@ try {
     });
 
     await page.goto(baseURL, { waitUntil: "networkidle" });
-    await skipStartupIntro(page);
+    await completeStartupIntro(page);
     const settingsSurface = page.locator(".teacher-offline-settings-surface");
     const displayScale = expectedDisplayScale(target);
     assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", `${target.name} modern default`);
