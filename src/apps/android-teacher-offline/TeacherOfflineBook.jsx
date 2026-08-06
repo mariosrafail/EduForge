@@ -33,7 +33,13 @@ export default function TeacherOfflineBook({
   const update = (patch, options) => onLocationChange({ ...location, ...patch }, options);
 
   return (
-    <main className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""}`.trim()} style={{ "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})` }}>
+    <main
+      className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""}`.trim()}
+      style={{
+        "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})`,
+        "--legacy-students-book-parts-background": `url(${legacyClassroomAssets.backgrounds.studentsBookPartsBackground})`,
+      }}
+    >
       <header className="teacher-offline-book-header">
         <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
           <LegacyClassroomIcon name="home" /><span>Library</span>

@@ -19,6 +19,18 @@
 }
 
 @media (min-width: 1921px) and (min-height: 1081px) {
+  .teacher-offline-settings-surface {
+    --teacher-presentation-screen-gutter: clamp(calc(22px * var(--teacher-ui-scale)), 4vw, calc(76px * var(--teacher-ui-scale)));
+    --teacher-presentation-screen-padding-top: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-top));
+    --teacher-presentation-screen-padding-bottom: max(calc(7px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
+    --teacher-presentation-heading-row: calc(72px * var(--teacher-ui-scale));
+    --teacher-presentation-navigation-row: calc(66px * var(--teacher-ui-scale));
+    --teacher-presentation-grid-gap: calc(4px * var(--teacher-ui-scale));
+    --teacher-students-book-stage-max-width: min(calc(1680px * var(--teacher-ui-scale)), 90vw);
+    --teacher-students-book-stage-radius: calc(42px * var(--teacher-ui-scale));
+    --teacher-students-book-stage-border-width: calc(3px * var(--teacher-ui-scale));
+    --teacher-students-book-stage-chrome-width: min(calc(1680px * var(--teacher-ui-scale)), 90vw);
+  }
   /* Launcher: preserve the 1080p composition as the viewport grows. */
   .teacher-offline-library > .legacy-home-floating-chrome { padding: calc(8px * var(--teacher-ui-scale)) calc(12px * var(--teacher-ui-scale)) 0; }
   .legacy-home-publisher-logo { width: calc(272px * var(--teacher-ui-scale)); }
@@ -126,19 +138,19 @@
 
   /* Unit overview and page-viewer chrome. */
   .teacher-offline-unit-overview-screen {
-    --overview-screen-gutter: clamp(calc(18px * var(--teacher-ui-scale)), 3vw, calc(58px * var(--teacher-ui-scale)));
-    grid-template-rows: calc(70px * var(--teacher-ui-scale)) minmax(0, 1fr) calc(66px * var(--teacher-ui-scale)) var(--classroom-toolbar-height);
-    gap: calc(4px * var(--teacher-ui-scale));
+    --overview-screen-gutter: var(--teacher-presentation-screen-gutter);
+    grid-template-rows: var(--teacher-presentation-heading-row) minmax(0, 1fr) var(--teacher-presentation-navigation-row) var(--classroom-toolbar-height);
+    gap: var(--teacher-presentation-grid-gap);
   }
   .legacy-overview-heading,
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview,
-  .legacy-overview-navigation { width: min(calc(1680px * var(--teacher-ui-scale)), 90vw); }
+  .legacy-overview-navigation { max-width: var(--teacher-students-book-stage-max-width); }
   .teacher-offline-settings-surface .legacy-overview-heading h2 { font-size: calc(63.36px * var(--teacher-ui-scale)); }
   .teacher-unit-side-navigation { width: calc(60px * var(--teacher-ui-scale)); height: calc(60px * var(--teacher-ui-scale)); min-height: calc(60px * var(--teacher-ui-scale)); }
   .teacher-unit-side-navigation.previous { left: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-left)); }
   .teacher-unit-side-navigation.next { right: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-right)); }
   .teacher-unit-side-navigation svg { width: calc(38px * var(--teacher-ui-scale)); height: calc(38px * var(--teacher-ui-scale)); }
-  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { padding: clamp(calc(18px * var(--teacher-ui-scale)), 1.7vw, calc(32px * var(--teacher-ui-scale))); border-radius: calc(42px * var(--teacher-ui-scale)); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; padding: clamp(calc(18px * var(--teacher-ui-scale)), 1.7vw, calc(32px * var(--teacher-ui-scale))); border-radius: var(--teacher-students-book-stage-radius); }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.2vh, calc(18px * var(--teacher-ui-scale))) clamp(calc(8px * var(--teacher-ui-scale)), .85vw, calc(15px * var(--teacher-ui-scale))); }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: clamp(calc(44px * var(--teacher-ui-scale)), 5.5vh, calc(62px * var(--teacher-ui-scale))); }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(.9rem * var(--teacher-display-scale)), 1.15vw, calc(1.38rem * var(--teacher-display-scale))); }
@@ -149,9 +161,9 @@
   .teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar { width: min(calc(1320px * var(--teacher-ui-scale)), 78vw); }
 
   .teacher-offline-pages-viewer {
-    padding: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-top)) clamp(calc(22px * var(--teacher-ui-scale)), 4vw, calc(76px * var(--teacher-ui-scale))) max(calc(7px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
-    grid-template-rows: auto minmax(0, 1fr) calc(66px * var(--teacher-ui-scale)) var(--classroom-toolbar-height);
-    gap: calc(4px * var(--teacher-ui-scale));
+    padding: var(--teacher-presentation-screen-padding-top) var(--teacher-presentation-screen-gutter) var(--teacher-presentation-screen-padding-bottom);
+    grid-template-rows: var(--teacher-presentation-heading-row) minmax(0, 1fr) var(--teacher-presentation-navigation-row) var(--classroom-toolbar-height);
+    gap: var(--teacher-presentation-grid-gap);
   }
   .legacy-page-heading { min-height: calc(72px * var(--teacher-ui-scale)); }
   .legacy-page-heading h2 { font-size: clamp(calc(1.8rem * var(--teacher-display-scale)), 2.25vw, calc(2.75rem * var(--teacher-display-scale))); }
@@ -159,8 +171,8 @@
   .legacy-page-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
   .legacy-page-window-controls button { width: calc(46px * var(--teacher-ui-scale)); height: calc(46px * var(--teacher-ui-scale)); min-height: calc(46px * var(--teacher-ui-scale)); font-size: calc(1.75rem * var(--teacher-display-scale)); }
   .teacher-offline-pages-viewer .teacher-offline-page-reader,
-  .legacy-page-navigation { width: min(calc(1540px * var(--teacher-ui-scale)), 88vw); }
-  .teacher-offline-pages-viewer .teacher-offline-page-reader { border-radius: calc(38px * var(--teacher-ui-scale)); }
+  .legacy-page-navigation { max-width: var(--teacher-students-book-stage-max-width); }
+  .teacher-offline-pages-viewer .teacher-offline-page-reader { width: auto; border-radius: var(--teacher-students-book-stage-radius); }
   .teacher-offline-pages-viewer .teacher-offline-page-stage { padding: clamp(calc(20px * var(--teacher-ui-scale)), 2.1vh, calc(32px * var(--teacher-ui-scale))) clamp(calc(26px * var(--teacher-ui-scale)), 2.2vw, calc(42px * var(--teacher-ui-scale))); }
   .legacy-page-navigation { margin-top: calc(-9px * var(--teacher-ui-scale)); gap: calc(18px * var(--teacher-ui-scale)); }
   .legacy-page-navigation > div { gap: calc(9px * var(--teacher-ui-scale)); }

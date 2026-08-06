@@ -457,10 +457,10 @@
 
 @media (max-width: 1100px), (max-height: 650px) {
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-unit-overview-screen {
-    grid-template-rows: 48px minmax(0, 1fr) 39px 43px;
+    grid-template-rows: var(--teacher-presentation-heading-row) minmax(0, 1fr) var(--teacher-presentation-navigation-row) var(--classroom-toolbar-height);
   }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-overview-heading {
-    min-height: 48px;
+    min-height: var(--teacher-presentation-heading-row);
   }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch { gap: 6px; }
   .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch button {

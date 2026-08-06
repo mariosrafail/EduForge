@@ -1,4 +1,5 @@
 import classroomGlacier from "../../assets/books/ultimate-b2/legacy-classroom-ui/backgrounds/classroom-glacier.png";
+import studentsBookPartsBackground from "../../assets/books/ultimate-b2/legacy-source/assets/books/book1/unit/2/parts/HD/parts_BG.png";
 import hamiltonHouseLogo from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/hamilton-house-logo.png";
 import menuTitleGaf from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo.gaf?url";
 import menuTitleAtlasSd1 from "../../assets/books/ultimate-b2/legacy-classroom-ui/branding/menu-title-animation/logo_SD.png";
@@ -105,7 +106,7 @@ export const ultimateB2TeacherToolbarItems = Object.freeze([
 ]);
 
 export const legacyClassroomAssets = Object.freeze({
-  backgrounds: Object.freeze({ classroomGlacier }),
+  backgrounds: Object.freeze({ classroomGlacier, studentsBookPartsBackground }),
   branding: Object.freeze({
     hamiltonHouseLogo,
     menuTitle: Object.freeze({
