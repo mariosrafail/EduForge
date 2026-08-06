@@ -356,68 +356,52 @@ try {
       assert.ok(layout.image.width <= layout.stage.width + 1 && layout.image.height <= layout.stage.height + 1);
     }
 
-    const toolbarButtons = page.locator(".classroom-teaching-toolbar.normal-mode button");
-    assert.equal(await toolbarButtons.count(), 8, `${target.name} normal toolbar button count`);
-    assert.equal(await page.getByRole("button", { name: "More classroom tools" }).count(), 0);
-    if (target.name === "4k-3840x2160") {
-      const overlay = page.locator(".classroom-tools-overlay");
-      const overlayBox = await overlay.boundingBox();
-      const start = { x: overlayBox.x + overlayBox.width * .24, y: overlayBox.y + overlayBox.height * .22 };
-      const end = { x: overlayBox.x + overlayBox.width * .46, y: overlayBox.y + overlayBox.height * .4 };
+    const toolbarButtons = page.locator(".classroom-teaching-toolbar .legacy-teacher-tool-button");
+    assert.equal(await toolbarButtons.count(), 18, `${target.name} legacy toolbar button count`);
+    assert.deepEqual(await toolbarButtons.evaluateAll((buttons) => buttons.map((button) => button.dataset.teacherTool)), [
+      "mouse", "pencil", "marker", "eraser", "clear", "zoom", "hide", "show", "undo",
+      "redo", "text", "annotations", "url", "save", "load", "timer", "score", "print",
+    ], `${target.name} recovered toolbar order`);
+    const toolbarLayout = await page.locator(".classroom-teaching-toolbar").evaluate((toolbar) => {
+      const style = getComputedStyle(toolbar);
+      const rect = toolbar.getBoundingClientRect();
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        borderTopWidth: style.borderTopWidth,
+        left: rect.left,
+        right: rect.right,
+        selected: toolbar.querySelectorAll('[aria-pressed="true"]').length,
+        selectedTool: toolbar.querySelector('[aria-pressed="true"]')?.dataset.teacherTool,
+      };
+    });
+    assert.equal(toolbarLayout.backgroundColor, "rgba(0, 0, 0, 0)", `${target.name} toolbar background`);
+    assert.equal(toolbarLayout.backgroundImage, "none", `${target.name} toolbar background image`);
+    assert.equal(toolbarLayout.borderTopWidth, "0px", `${target.name} toolbar border`);
+    assert.ok(toolbarLayout.left >= -1 && toolbarLayout.right <= target.width + 1, `${target.name} toolbar bounds`);
+    assert.equal(toolbarLayout.selected, 1, `${target.name} initial selected count`);
+    assert.equal(toolbarLayout.selectedTool, "mouse", `${target.name} initial selected tool`);
 
-      await page.getByRole("button", { name: "Pen tool" }).click();
-      await page.mouse.move(start.x, start.y);
+    if (target.name === "full-hd-1920x1080") {
+      const pencil = page.getByRole("button", { name: "Pencil", exact: true });
+      await pencil.hover();
+      await page.waitForTimeout(120);
+      assert.equal(await pencil.locator(".legacy-teacher-tool-icon-active").evaluate((icon) => getComputedStyle(icon).opacity), "1", "desktop hover uses active artwork");
+      assert.equal(await pencil.locator(".legacy-teacher-tool-icon-normal").evaluate((icon) => getComputedStyle(icon).opacity), "0", "desktop hover hides normal artwork");
+      await pencil.click();
+      await page.waitForTimeout(140);
+      assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1, "selection stays exclusive");
+      assert.equal(await pencil.getAttribute("aria-pressed"), "true", "clicked tool remains selected");
+      const selectedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
+      assertNear(selectedScale, 1.2, .01, "selected tool scale");
+      const pencilBox = await pencil.boundingBox();
+      await page.mouse.move(pencilBox.x + pencilBox.width / 2, pencilBox.y + pencilBox.height / 2);
       await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 6 });
+      await page.waitForTimeout(70);
+      const pressedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
+      assertNear(pressedScale, .8, .01, "pressed tool scale");
       await page.mouse.up();
-      const strokeBox = await overlay.locator("path[data-drawing-id]").last().boundingBox();
-      assertNear(strokeBox.x, start.x, 4, "4K pen start x");
-      assertNear(strokeBox.y, start.y, 4, "4K pen start y");
-      assertNear(strokeBox.width, end.x - start.x, 8, "4K pen width");
-      assertNear(strokeBox.height, end.y - start.y, 8, "4K pen height");
-      await page.getByRole("button", { name: "Exit pen mode" }).click();
-
-      await page.getByRole("button", { name: "Cover area tool" }).click();
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 6 });
-      await page.mouse.up();
-      const cover = overlay.locator(".classroom-cover").last();
-      const coverBox = await cover.boundingBox();
-      assertNear(coverBox.x, start.x, 3, "4K cover start x");
-      assertNear(coverBox.y, start.y, 3, "4K cover start y");
-      assertNear(coverBox.width, end.x - start.x, 4, "4K cover width");
-      assertNear(coverBox.height, end.y - start.y, 4, "4K cover height");
-      await page.getByRole("button", { name: "Exit cover mode" }).first().click();
-      await cover.click({ force: true });
-      const deleteBox = await page.getByRole("button", { name: "Delete selected cover" }).boundingBox();
-      assert.ok(deleteBox.x >= coverBox.x - deleteBox.width && deleteBox.x <= coverBox.x + coverBox.width, "4K cover delete aligned horizontally");
-      assert.ok(deleteBox.y >= coverBox.y - deleteBox.height && deleteBox.y <= coverBox.y + coverBox.height, "4K cover delete aligned vertically");
-      await page.getByRole("button", { name: "Delete selected cover" }).click();
-
-      await page.getByRole("button", { name: "Spotlight reveal tool" }).click();
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 6 });
-      await page.mouse.up();
-      const spotlightBox = await overlay.locator('rect[stroke="#f4e84a"]').boundingBox();
-      assertNear(spotlightBox.x, start.x, 4, "4K spotlight start x");
-      assertNear(spotlightBox.y, start.y, 4, "4K spotlight start y");
-      assertNear(spotlightBox.width, end.x - start.x, 5, "4K spotlight width");
-      assertNear(spotlightBox.height, end.y - start.y, 5, "4K spotlight height");
-      await page.getByRole("button", { name: "Exit spotlight mode" }).first().click();
     }
-    await page.getByRole("button", { name: "Zoom region" }).click();
-    const overlayBox = await page.locator(".classroom-tools-overlay").boundingBox();
-    await page.mouse.move(overlayBox.x + overlayBox.width * .2, overlayBox.y + overlayBox.height * .2);
-    await page.mouse.down();
-    await page.mouse.move(overlayBox.x + overlayBox.width * .7, overlayBox.y + overlayBox.height * .72, { steps: 5 });
-    await page.mouse.up();
-    const zoomLayer = page.locator(".classroom-stage-transform.region-zoom-active");
-    await zoomLayer.waitFor();
-    assert.ok(Number(await zoomLayer.getAttribute("data-region-zoom-scale")) > 1, `${target.name} region zoom scale`);
-    await page.getByRole("button", { name: "Zoom out" }).click();
-    assert.equal(await page.locator(".classroom-stage-transform.region-zoom-active").count(), 0, `${target.name} region zoom reset`);
 
     await page.getByRole("button", { name: "Contents and exercises" }).click();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 40, `${target.name} Unit 2 contents`);

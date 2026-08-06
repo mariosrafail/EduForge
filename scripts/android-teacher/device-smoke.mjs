@@ -272,7 +272,6 @@ const viewportScenario = String.raw`
 
   const stage = document.querySelector(".teacher-offline-page-stage");
   const pageImage = document.querySelector(".teacher-offline-page-image");
-  const zoomRegionButton = document.querySelector('[aria-label="Zoom region"]');
   const dimensions = () => {
     const stageRect = stage.getBoundingClientRect();
     const pageRect = pageImage.getBoundingClientRect();
@@ -286,36 +285,6 @@ const viewportScenario = String.raw`
 
   const defaultFit = pageImage.dataset.fitMode;
   const fitPage = { mode: pageImage.dataset.fitMode, ...dimensions() };
-  zoomRegionButton.click();
-  await sleep(50);
-  const overlay = document.querySelector(".classroom-tools-overlay");
-  const stageRect = overlay.getBoundingClientRect();
-  overlay.setPointerCapture = () => {};
-  overlay.hasPointerCapture = () => true;
-  overlay.releasePointerCapture = () => {};
-  overlay.dispatchEvent(new PointerEvent("pointerdown", {
-    bubbles: true, pointerId: 91, buttons: 1,
-    pointerType: "touch", isPrimary: true,
-    clientX: stageRect.left + stageRect.width * .2, clientY: stageRect.top + stageRect.height * .2,
-  }));
-  for (let step = 1; step <= 4; step += 1) {
-    overlay.dispatchEvent(new PointerEvent("pointermove", {
-      bubbles: true, pointerId: 91, buttons: 1,
-      pointerType: "touch", isPrimary: true,
-      clientX: stageRect.left + stageRect.width * (.2 + step * .1),
-      clientY: stageRect.top + stageRect.height * (.2 + step * .1),
-    }));
-    await sleep(20);
-  }
-  overlay.dispatchEvent(new PointerEvent("pointerup", {
-    bubbles: true, pointerId: 91,
-    pointerType: "touch", isPrimary: true,
-    clientX: stageRect.left + stageRect.width * .6, clientY: stageRect.top + stageRect.height * .6,
-  }));
-  await sleep(50);
-  const regionScale = document.querySelector(".classroom-stage-transform")?.dataset.regionZoomScale || null;
-  document.querySelector('[aria-label="Zoom out"]')?.click();
-
   return {
     innerWidth,
     innerHeight,
@@ -326,8 +295,8 @@ const viewportScenario = String.raw`
     profile: document.documentElement.dataset.teacherViewport,
     defaultFit,
     fitPage,
-    regionScale,
-    toolbarButtonCount: document.querySelectorAll(".classroom-teaching-toolbar.normal-mode button").length,
+    toolbarButtonCount: document.querySelectorAll(".classroom-teaching-toolbar .legacy-teacher-tool-button").length,
+    selectedToolbarButtonCount: document.querySelectorAll('.classroom-teaching-toolbar [aria-pressed="true"]').length,
     hotspotCount: pageImage.querySelectorAll(".teacher-offline-page-hotspot").length,
     mountedPageImages: document.querySelectorAll(".teacher-offline-page-image img").length,
   };

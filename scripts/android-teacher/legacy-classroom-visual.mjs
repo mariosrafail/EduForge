@@ -6,16 +6,16 @@ import { chromium } from "@playwright/test";
 import { FORBIDDEN_BRAND_PATTERN, FORBIDDEN_VISIBLE_BRANDING_PATTERN } from "../_branding-audit.mjs";
 import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
-const baseURL = "http://127.0.0.1:4180";
+const baseURL = "http://127.0.0.1:4181";
 const artifactRoot = "test-results/legacy-classroom-visual";
-const preview = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4180"], {
+const preview = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4181"], {
   cwd: process.cwd(),
-  stdio: ["ignore", "pipe", "pipe"],
+  stdio: ["ignore", "inherit", "inherit"],
   windowsHide: true,
 });
 
 async function waitForPreview() {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
       if ((await fetch(baseURL)).ok) return;
     } catch {
@@ -330,55 +330,22 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-1920x1080.png` });
-    await page.getByRole("button", { name: "Pen tool" }).click();
-    const overlayBox = await page.locator(".classroom-tools-overlay").boundingBox();
-    await page.mouse.move(overlayBox.x + 260, overlayBox.y + 210);
+    const pencil = page.getByRole("button", { name: "Pencil", exact: true });
+    await pencil.hover();
+    await page.waitForTimeout(140);
+    assert.equal(await pencil.locator(".legacy-teacher-tool-icon-active").evaluate((icon) => getComputedStyle(icon).opacity), "1");
+    await page.screenshot({ path: `${artifactRoot}/toolbar-hover-1920x1080.png` });
+    await pencil.click();
+    await page.waitForTimeout(140);
+    assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1);
+    assert.equal(await pencil.getAttribute("aria-pressed"), "true");
+    await page.screenshot({ path: `${artifactRoot}/toolbar-selected-1920x1080.png` });
+    const pencilBox = await pencil.boundingBox();
+    await page.mouse.move(pencilBox.x + pencilBox.width / 2, pencilBox.y + pencilBox.height / 2);
     await page.mouse.down();
-    await page.mouse.move(overlayBox.x + 470, overlayBox.y + 300, { steps: 10 });
+    await page.waitForTimeout(70);
+    await page.screenshot({ path: `${artifactRoot}/toolbar-pressed-1920x1080.png` });
     await page.mouse.up();
-    await page.locator(".classroom-tools-overlay path[data-drawing-id]").waitFor();
-    await page.screenshot({ path: `${artifactRoot}/classroom-tools-pen-1920x1080.png` });
-    await page.screenshot({ path: `${artifactRoot}/modern-classroom-tools-1920x1080.png` });
-    await page.screenshot({ path: `${artifactRoot}/pen-mode-1920x1080.png` });
-    await page.getByRole("button", { name: "Text tool" }).click();
-    await page.locator(".classroom-tools-overlay").click({ position: { x: 520, y: 220 } });
-    await page.getByRole("textbox", { name: "Annotation text" }).fill("Class note");
-    await page.screenshot({ path: `${artifactRoot}/text-mode-1920x1080.png` });
-    await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await page.getByRole("button", { name: "Exit pen mode" }).click();
-    await page.getByRole("button", { name: "Cover area tool" }).click();
-    await page.screenshot({ path: `${artifactRoot}/cover-mode-1920x1080.png` });
-    await page.mouse.move(overlayBox.x + 520, overlayBox.y + 160);
-    await page.mouse.down();
-    await page.mouse.move(overlayBox.x + 760, overlayBox.y + 330, { steps: 8 });
-    await page.mouse.up();
-    await page.getByRole("button", { name: "Exit cover mode" }).first().click();
-    await page.locator(".classroom-cover").click({ force: true });
-    await page.getByRole("button", { name: "Delete selected cover" }).waitFor();
-    await page.screenshot({ path: `${artifactRoot}/cover-selected-delete-1920x1080.png` });
-    await page.getByRole("button", { name: "Delete selected cover" }).click();
-    await page.getByRole("button", { name: "Spotlight reveal tool" }).click();
-    await page.mouse.move(overlayBox.x + 300, overlayBox.y + 140);
-    await page.mouse.down();
-    await page.mouse.move(overlayBox.x + 700, overlayBox.y + 380, { steps: 8 });
-    await page.mouse.up();
-    await page.screenshot({ path: `${artifactRoot}/spotlight-mode-1920x1080.png` });
-    await page.getByRole("button", { name: "Exit spotlight mode" }).first().click();
-    await page.getByRole("button", { name: "Zoom region" }).click();
-    await page.mouse.move(overlayBox.x + 280, overlayBox.y + 130);
-    await page.mouse.down();
-    await page.mouse.move(overlayBox.x + 760, overlayBox.y + 410, { steps: 8 });
-    await page.screenshot({ path: `${artifactRoot}/zoom-region-selection-1920x1080.png` });
-    await page.mouse.up();
-    await page.locator(".classroom-stage-transform.region-zoom-active").waitFor();
-    await page.screenshot({ path: `${artifactRoot}/zoom-region-active-1920x1080.png` });
-    await page.getByRole("button", { name: "Zoom out" }).click();
-    await page.getByRole("button", { name: "Open timer" }).click();
-    await page.screenshot({ path: `${artifactRoot}/timer-1920x1080.png` });
-    await page.getByRole("button", { name: "Close timer" }).click();
-    await page.getByRole("button", { name: "Open scoreboard" }).click();
-    await page.screenshot({ path: `${artifactRoot}/scoreboard-1920x1080.png` });
-    await page.getByRole("button", { name: "Close scoreboard" }).click();
     await openActivity(page, 1, "Reading · Exercise 3");
     await assertScreen(page, "multiple-choice-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/multiple-choice-1920x1080.png` });

@@ -1,0 +1,116 @@
+/* Ultimate B2's recovered teacher toolbar: keep the native 64px art and source order. */
+.teacher-offline-library.has-classroom-tools,
+.teacher-offline-unit-overview-screen,
+.teacher-offline-pages-viewer,
+.teacher-offline-presentation.has-classroom-tools,
+.teacher-offline-media.has-classroom-tools {
+  --classroom-toolbar-height: clamp(54px, 6.24vw, calc(76.8px * var(--teacher-ui-scale, 1)));
+}
+
+.teacher-offline-settings-surface .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar {
+  --legacy-tool-icon-size: clamp(38px, 5.2vw, calc(64px * var(--teacher-ui-scale, 1)));
+  --legacy-tool-row-width: min(calc(1018px * var(--teacher-ui-scale, 1)), calc(100vw - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right))));
+  box-sizing: border-box;
+  width: var(--legacy-tool-row-width);
+  min-height: calc(var(--legacy-tool-icon-size) * 1.2);
+  margin: 0 auto;
+  padding: 0 0 max(1px, env(safe-area-inset-bottom));
+  align-self: end;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(18, minmax(0, 1fr));
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  overflow: visible;
+}
+
+.teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row > .legacy-teacher-tool-button {
+  position: relative;
+  isolation: auto;
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--legacy-tool-icon-size) * 1.2);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  appearance: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row > .legacy-teacher-tool-button::before {
+  display: none;
+}
+
+.legacy-teacher-tool-icon-stack {
+  position: relative;
+  width: var(--legacy-tool-icon-size);
+  height: var(--legacy-tool-icon-size);
+  display: block;
+  flex: none;
+  transform: scale(1);
+  transform-origin: center;
+  transition: transform 110ms ease-out;
+  will-change: transform;
+}
+
+.legacy-teacher-tool-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 90ms linear;
+}
+
+.legacy-teacher-tool-icon-normal { opacity: 1; }
+.legacy-teacher-tool-icon-active { opacity: 0; }
+
+.legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-stack { transform: scale(1.2); }
+.legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-normal { opacity: 0; }
+.legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-active { opacity: 1; }
+.teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row > .legacy-teacher-tool-button:active { transform: none; }
+.legacy-teacher-tool-button:active .legacy-teacher-tool-icon-stack { transform: scale(.8); transition-duration: 45ms; }
+
+.legacy-teacher-tool-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -5px;
+  border-radius: 50%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .legacy-teacher-tool-button:hover .legacy-teacher-tool-icon-normal { opacity: 0; }
+  .legacy-teacher-tool-button:hover .legacy-teacher-tool-icon-active { opacity: 1; }
+}
+
+@media (max-width: 1100px), (max-height: 650px) {
+  .teacher-offline-settings-surface .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar {
+    --legacy-tool-icon-size: clamp(36px, 5.2vw, 52px);
+    width: calc(100vw - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legacy-teacher-tool-icon-stack,
+  .legacy-teacher-tool-icon { transition: none; }
+}

@@ -3284,8 +3284,11 @@
       "functionalRole": "teacher-toolbar: button custom page",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_custom_page",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3326,8 +3329,11 @@
       "functionalRole": "teacher-toolbar: button custom page active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_custom_page_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3638,8 +3644,11 @@
       "functionalRole": "teacher-toolbar: button marker",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_marker",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3680,8 +3689,11 @@
       "functionalRole": "teacher-toolbar: button marker active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_marker_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3722,8 +3734,11 @@
       "functionalRole": "teacher-toolbar: button mouse",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_mouse",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3764,8 +3779,11 @@
       "functionalRole": "teacher-toolbar: button mouse active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_mouse_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3890,8 +3908,11 @@
       "functionalRole": "teacher-toolbar: button open",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_open",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3932,8 +3953,11 @@
       "functionalRole": "teacher-toolbar: button open active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_open_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4244,8 +4268,11 @@
       "functionalRole": "teacher-toolbar: button save",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_save",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4286,8 +4313,11 @@
       "functionalRole": "teacher-toolbar: button save active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_save_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4778,8 +4808,11 @@
       "functionalRole": "teacher-toolbar: button url",
       "state": "normal",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_url",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -4820,8 +4853,11 @@
       "functionalRole": "teacher-toolbar: button url active",
       "state": "active",
       "audience": "teacher",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region button_url_active",
       "confidence": "high",
       "sourceKind": "atlas-crop",

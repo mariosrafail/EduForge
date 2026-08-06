@@ -427,14 +427,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(presentation, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(media, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(app, /ClassroomToolsProvider/);
-  for (const label of ["Pen tool", "Zoom region", "Cover area tool", "Spotlight reveal tool", "Open timer", "Open scoreboard", "Print current view", "Clear classroom markup", "Eraser tool", "Text tool", "Undo drawing", "Redo drawing", "Show on-screen keyboard"]) {
-    assert.match(toolbar, new RegExp(label));
-  }
-  assert.doesNotMatch(toolbar, /More classroom tools|Show classroom tools|menuAutoHide|menuDelay|viewControls|Fullscreen/);
-  assert.match(toolbar, /PEN MODE/);
-  assert.match(toolbar, /COVER MODE/);
-  assert.match(toolbar, /SPOTLIGHT MODE/);
-  assert.match(toolbar, /ZOOM MODE/);
+  assert.doesNotMatch(toolbar, /useClassroomTools|lucide-react|PEN MODE|COVER MODE|SPOTLIGHT MODE|ZOOM MODE/);
+  assert.match(toolbar, /useState\("mouse"\)/);
+  assert.match(toolbar, /selected=\{selectedTool === item\.id\}/);
   assert.match(overlay, /setPointerCapture[\s\S]*type: "stroke"/);
   assert.match(overlay, /addCover[\s\S]*setSpotlight[\s\S]*setRegionZoom/);
   assert.match(overlay, /Delete selected cover/);
@@ -457,9 +452,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
   assert.match(library, /legacy-home-settings-button[\s\S]*onOpenSettings/);
   assert.match(library, /legacy-home-close-button[\s\S]*onCloseApplication/);
-  assert.match(toolbar, /legacyIcon="pencil"/);
-  assert.match(toolbar, /legacyIcon="timer"/);
-  assert.match(toolbar, /legacyIcon="score"/);
+  assert.match(toolbar, /ultimateB2TeacherToolbarItems\.map/);
   assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
   assert.match(app, /onCloseApplication=\{closeApplication\}/);
   assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);

@@ -47,12 +47,22 @@ import hideTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/t
 import hideToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-hide-active.png";
 import keyboardTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-keyboard.png";
 import keyboardToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-keyboard-active.png";
+import markerTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-marker.png";
+import markerToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-marker-active.png";
+import mouseTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-mouse.png";
+import mouseToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-mouse-active.png";
+import annotationsTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-custom-page.png";
+import annotationsToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-custom-page-active.png";
+import loadTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-open.png";
+import loadToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-open-active.png";
 import pencilTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-pencil.png";
 import pencilToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-pencil-active.png";
 import printTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-print.png";
 import printToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-print-active.png";
 import redoTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-redo.png";
 import redoToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-redo-active.png";
+import saveTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-save.png";
+import saveToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-save-active.png";
 import scoreTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-score.png";
 import scoreToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-score-active.png";
 import showTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-show.png";
@@ -63,6 +73,8 @@ import timerTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/
 import timerToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-timer-active.png";
 import undoTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-undo.png";
 import undoToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-undo-active.png";
+import urlTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-url.png";
+import urlToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-url-active.png";
 import zoomTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-zoom.png";
 import zoomToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-zoom-active.png";
 import buttonSound from "../../assets/books/ultimate-b2/legacy-classroom-ui/audio/ui/button.mp3";
@@ -70,6 +82,27 @@ import correctSound from "../../assets/books/ultimate-b2/legacy-classroom-ui/aud
 import incorrectSound from "../../assets/books/ultimate-b2/legacy-classroom-ui/audio/ui/incorrect.mp3";
 import pageTurnSound from "../../assets/books/ultimate-b2/legacy-classroom-ui/audio/ui/page-turn.mp3";
 import { createElement } from "react";
+
+export const ultimateB2TeacherToolbarItems = Object.freeze([
+  Object.freeze({ id: "mouse", label: "Mouse", normal: mouseTool, active: mouseToolActive }),
+  Object.freeze({ id: "pencil", label: "Pencil", normal: pencilTool, active: pencilToolActive }),
+  Object.freeze({ id: "marker", label: "Marker", normal: markerTool, active: markerToolActive }),
+  Object.freeze({ id: "eraser", label: "Eraser", normal: eraserTool, active: eraserToolActive }),
+  Object.freeze({ id: "clear", label: "Clear screen", normal: clearTool, active: clearToolActive }),
+  Object.freeze({ id: "zoom", label: "Zoom", normal: zoomTool, active: zoomToolActive }),
+  Object.freeze({ id: "hide", label: "Hide screen", normal: hideTool, active: hideToolActive }),
+  Object.freeze({ id: "show", label: "Show screen", normal: showTool, active: showToolActive }),
+  Object.freeze({ id: "undo", label: "Undo", normal: undoTool, active: undoToolActive }),
+  Object.freeze({ id: "redo", label: "Redo", normal: redoTool, active: redoToolActive }),
+  Object.freeze({ id: "text", label: "Text", normal: textTool, active: textToolActive }),
+  Object.freeze({ id: "annotations", label: "Annotations", normal: annotationsTool, active: annotationsToolActive }),
+  Object.freeze({ id: "url", label: "URL", normal: urlTool, active: urlToolActive }),
+  Object.freeze({ id: "save", label: "Save", normal: saveTool, active: saveToolActive }),
+  Object.freeze({ id: "load", label: "Load", normal: loadTool, active: loadToolActive }),
+  Object.freeze({ id: "timer", label: "Timer", normal: timerTool, active: timerToolActive }),
+  Object.freeze({ id: "score", label: "Scoreboard", normal: scoreTool, active: scoreToolActive }),
+  Object.freeze({ id: "print", label: "Print", normal: printTool, active: printToolActive }),
+]);
 
 export const legacyClassroomAssets = Object.freeze({
   backgrounds: Object.freeze({ classroomGlacier }),
@@ -108,14 +141,20 @@ export const legacyClassroomAssets = Object.freeze({
       eraser: Object.freeze({ normal: eraserTool, active: eraserToolActive }),
       hide: Object.freeze({ normal: hideTool, active: hideToolActive }),
       keyboard: Object.freeze({ normal: keyboardTool, active: keyboardToolActive }),
+      marker: Object.freeze({ normal: markerTool, active: markerToolActive }),
+      mouse: Object.freeze({ normal: mouseTool, active: mouseToolActive }),
+      annotations: Object.freeze({ normal: annotationsTool, active: annotationsToolActive }),
+      load: Object.freeze({ normal: loadTool, active: loadToolActive }),
       pencil: Object.freeze({ normal: pencilTool, active: pencilToolActive }),
       print: Object.freeze({ normal: printTool, active: printToolActive }),
       redo: Object.freeze({ normal: redoTool, active: redoToolActive }),
+      save: Object.freeze({ normal: saveTool, active: saveToolActive }),
       score: Object.freeze({ normal: scoreTool, active: scoreToolActive }),
       show: Object.freeze({ normal: showTool, active: showToolActive }),
       text: Object.freeze({ normal: textTool, active: textToolActive }),
       timer: Object.freeze({ normal: timerTool, active: timerToolActive }),
       undo: Object.freeze({ normal: undoTool, active: undoToolActive }),
+      url: Object.freeze({ normal: urlTool, active: urlToolActive }),
       zoom: Object.freeze({ normal: zoomTool, active: zoomToolActive }),
     }),
   }),
