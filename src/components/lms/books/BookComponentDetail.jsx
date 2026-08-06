@@ -126,7 +126,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
   }, [componentSlug, packageSlug, viewMode]);
 
   return (
-    <Card className={`book-detail-view ${hasSelectedPage ? "selected-page-detail" : ""}`}>
+    <Card className={`book-detail-view ${viewMode === "pages" ? "book-detail-pages-mode" : ""} ${hasSelectedPage ? "selected-page-detail" : ""}`}>
       {!hasSelectedPage && (
         <div className="book-detail-hero">
           <BookCover component={component} bookPackage={bookPackage} size="large" />

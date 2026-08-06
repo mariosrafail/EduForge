@@ -287,15 +287,79 @@ html[data-app-mode="android-offline"] body {
 
 .android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-selection-gateway:not(.book-page-spread-view) {
   isolation: isolate;
-  background-color: #f6e8fa;
+  background-color: #d65ee7;
 }
 
 .android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-selection-gateway:not(.book-page-spread-view)::before {
   display: block;
   z-index: 0;
-  opacity: 0.68;
-  background: var(--ultimate-b2-students-book-menu-bg) center / cover no-repeat;
+  opacity: 1;
+  background: var(--ultimate-b2-students-book-menu-bg) center / contain no-repeat;
   mask-image: none;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell {
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: min(calc(100vw - 24px), calc((100dvh - 74px) * 16 / 9));
+  height: auto;
+  max-height: calc(100dvh - 74px);
+  aspect-ratio: 16 / 9;
+  margin: auto;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: clamp(14px, 2vw, 24px);
+  box-shadow:
+    0 0 0 5px rgba(51, 125, 174, 0.24),
+    0 18px 42px rgba(25, 61, 87, 0.3);
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-package-browser,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-detail-view,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-detail-pages-mode,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .student-book-pages-shell,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-hotspot-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-detail-pages-mode {
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-detail-pages-mode.selected-page-detail {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .student-book-pages-shell,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-hotspot-screen {
+  overflow: auto;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .android-activity-frame {
+  position: absolute;
+  inset: 4px;
+  z-index: 30;
+  width: auto;
+  height: auto;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: clamp(8px, 1.5vw, 18px);
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .android-activity-frame .ultimate-activity-runner {
+  height: 100%;
+  overflow: auto;
+}
+
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-spread-image,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage img,
+.android-existing-viewer-shell.ultimate-b2-students-book-shell .book-page-spread-view.book-page-selection-gateway .book-page-spread-stage.two-page-spread .book-page-spread-image {
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .android-existing-viewer-shell .students-book-gateway::before,

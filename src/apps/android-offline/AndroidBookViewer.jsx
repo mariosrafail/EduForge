@@ -48,6 +48,31 @@ export default function AndroidBookViewer({
         "--ultimate-b2-students-book-menu-bg": `url(${ultimateB2StudentsBookMenuBackground})`,
       }
     : undefined;
+  const closeActivity = () => {
+    setActiveActivityKey(null);
+    setActiveExercise(null);
+    onLocationChange?.(location);
+  };
+  const activityFrame = activeActivityKey ? (
+    <div className="android-activity-frame">
+      <button className="android-activity-back" type="button" onClick={closeActivity}>
+        <ArrowLeft size={20} /> Back to book
+      </button>
+      <UltimateB2ActivityRunner
+        activityKey={activeActivityKey}
+        mode="student"
+        onBack={closeActivity}
+        onSubmit={(result) => {
+          setProgress(markAndroidOfflinePageComplete(`activity:${book.slug}:${activeActivityKey}`, {
+            ...result,
+            activityKey: activeActivityKey,
+          }));
+        }}
+        activity={activeExercise}
+        hideBreadcrumb
+      />
+    </div>
+  ) : null;
 
   useEffect(() => {
     if (!component || !unit || !page || !hasSelectedPage) return;
@@ -158,36 +183,12 @@ export default function AndroidBookViewer({
             onOpenActivity?.(exercise.demoActivityKey, location, exercise);
           }}
         />
+        {activeActivityKey && isUltimateB2StudentsBook && activityFrame}
       </div>
 
-      {activeActivityKey && (
+      {activeActivityKey && !isUltimateB2StudentsBook && (
         <div className="android-activity-overlay">
-          <div className="android-activity-frame">
-            <button className="android-activity-back" type="button" onClick={() => {
-              setActiveActivityKey(null);
-              setActiveExercise(null);
-              onLocationChange?.(location);
-            }}>
-              <ArrowLeft size={20} /> Back to book
-            </button>
-            <UltimateB2ActivityRunner
-              activityKey={activeActivityKey}
-              mode="student"
-              onBack={() => {
-                setActiveActivityKey(null);
-                setActiveExercise(null);
-                onLocationChange?.(location);
-              }}
-              onSubmit={(result) => {
-                setProgress(markAndroidOfflinePageComplete(`activity:${book.slug}:${activeActivityKey}`, {
-                  ...result,
-                  activityKey: activeActivityKey,
-                }));
-              }}
-              activity={activeExercise}
-              hideBreadcrumb
-            />
-          </div>
+          {activityFrame}
         </div>
       )}
     </section>
