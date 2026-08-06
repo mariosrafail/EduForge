@@ -21,10 +21,19 @@ test("Ultimate B2 teacher toolbar keeps the recovered legacy order and assets", 
     assert.match(assets, new RegExp(`button-${assetName}\\.png`));
     assert.match(assets, new RegExp(`button-${assetName}-active\\.png`));
   }
-  assert.match(toolbar, /useState\("mouse"\)/);
+  assert.match(toolbar, /useClassroomTools\(\)/);
+  assert.match(toolbar, /pointer: "mouse"[\s\S]*pen: "pencil"[\s\S]*eraser: "eraser"[\s\S]*text: "text"[\s\S]*cover: "hide"[\s\S]*spotlight: "show"[\s\S]*"zoom-region": "zoom"/);
+  assert.match(toolbar, /UI_ONLY_TOOLS = new Set\(\["marker", "annotations", "url", "save", "load"\]\)/);
   assert.match(toolbar, /aria-pressed=\{selected\}/);
-  assert.equal((toolbar.match(/onClick=/g) || []).length, 1, "toolbar clicks only select one local item");
-  assert.doesNotMatch(toolbar, /useClassroomTools|setActiveTool|setOpenPanel|globalThis\.print|lucide-react/);
+  const iconButton = toolbar.match(/function LegacyTeacherToolButton[\s\S]*?^}/m)?.[0] || "";
+  assert.doesNotMatch(iconButton, /disabled|aria-disabled|lock/i);
+  for (const behavior of [
+    'enterMode("pen")', 'enterMode("eraser")', 'togglePanel("clear")', 'enterMode("zoom-region")',
+    'enterMode("cover")', 'enterMode("spotlight")', "undoDrawing(surfaceKey)", "redoDrawing(surfaceKey)",
+    'enterMode("text")', 'togglePanel("timer")', 'togglePanel("scoreboard")', "printCurrentView()",
+  ]) assert.ok(toolbar.includes(behavior), `${behavior} must stay wired`);
+  assert.match(toolbar, /selectMouse[\s\S]*setActiveTool\("pointer"\)[\s\S]*resetRegionZoom\(surfaceKey\)/);
+  assert.doesNotMatch(toolbar, /lucide-react|window\.open|fetch\(|XMLHttpRequest|showSaveFilePicker/);
 });
 
 test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and selected states", async () => {
@@ -38,7 +47,9 @@ test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and sel
   assert.match(styles, /grid-template-columns: repeat\(18, minmax\(0, 1fr\)\)/);
   assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-stack \{ transform: scale\(1\.2\); \}/);
   assert.match(styles, /\.legacy-teacher-tool-button:active \.legacy-teacher-tool-icon-stack \{ transform: scale\(\.8\);/);
+  assert.match(styles, /\.legacy-teacher-tool-button:active \.legacy-teacher-tool-icon-active \{ opacity: 1; \}/);
   assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*:hover \.legacy-teacher-tool-icon-active \{ opacity: 1; \}/);
+  assert.match(styles, /cursor: pointer;/);
   assert.match(styles, /calc\(100vw - max\(8px, env\(safe-area-inset-left\)\) - max\(8px, env\(safe-area-inset-right\)\)\)/);
   assert.doesNotMatch(styles, /linear-gradient/);
 });

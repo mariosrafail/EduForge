@@ -342,8 +342,144 @@ try {
     "redo", "text", "annotations", "url", "save", "load", "timer", "score", "print",
   ]);
   assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1, "Toolbar selection must be exclusive");
+  assert.equal(await toolbarButtons.evaluateAll((buttons) => buttons.every((button) => !button.disabled && button.getAttribute("aria-disabled") === null)), true, "All recovered toolbar buttons must be enabled");
+  assert.equal(await page.locator(".classroom-teaching-toolbar .legacy-home-lock, .classroom-teaching-toolbar .lock-badge").count(), 0, "Toolbar icons must not show locks");
+  assert.equal(await page.getByRole("button", { name: "Pencil", exact: true }).evaluate((button) => getComputedStyle(button).cursor), "pointer", "Toolbar buttons must use the hand cursor");
   await page.waitForTimeout(10_200);
   assert.equal(await page.locator(".classroom-teaching-toolbar").isVisible(), true, "Page toolbar must remain visible");
+
+  const overlay = page.locator(".classroom-tools-overlay");
+  await page.getByRole("button", { name: "Pencil", exact: true }).click();
+  await page.getByText("PEN MODE", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Pencil", exact: true }).getAttribute("aria-pressed"), "true");
+  assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "pen");
+  assert.equal(await page.evaluate(() => globalThis.__teacherSoundPlays.some((play) => /button/i.test(play.source) && Math.abs(play.volume - 0.52) < 0.001)), true, "Toolbar sounds must use toolbar volume");
+  const overlayBox = await overlay.boundingBox();
+  await page.mouse.move(overlayBox.x + 120, overlayBox.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 240, overlayBox.y + 170, { steps: 8 });
+  await page.mouse.up();
+  await overlay.locator("path[data-drawing-id]").waitFor();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 1, "Pencil must add a stroke");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 0, "Undo must remove the stroke");
+  assert.equal(await page.getByRole("button", { name: "Pencil", exact: true }).getAttribute("aria-pressed"), "true", "Momentary Undo must preserve the active Pencil mode");
+  await page.getByRole("button", { name: "Redo", exact: true }).click();
+  assert.equal(await overlay.locator("path[data-drawing-id]").count(), 1, "Redo must restore the stroke");
+
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "text");
+  await overlay.click({ position: { x: 360, y: 150 } });
+  await page.getByRole("textbox", { name: "Annotation text" }).fill("Class note");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await overlay.locator("text", { hasText: "Class note" }).waitFor();
+  await page.getByRole("button", { name: "Eraser", exact: true }).click();
+  assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "eraser");
+  await overlay.locator("text", { hasText: "Class note" }).click({ force: true });
+  assert.equal(await overlay.locator("text", { hasText: "Class note" }).count(), 0, "Eraser must remove drawing text");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await overlay.locator("text", { hasText: "Class note" }).waitFor();
+  await page.getByRole("button", { name: "Text", exact: true }).click();
+  await page.getByRole("button", { name: "Show on-screen keyboard" }).click();
+  const keyboardInput = page.getByRole("textbox", { name: "Annotation text" });
+  await keyboardInput.waitFor();
+  assert.equal(await keyboardInput.evaluate((input) => document.activeElement === input), true, "Keyboard action must focus the annotation input");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Mouse", exact: true }).click();
+  assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "pointer", "Mouse must exit text mode");
+  assert.equal(await page.getByRole("button", { name: "Mouse", exact: true }).getAttribute("aria-pressed"), "true");
+
+  await page.getByRole("button", { name: "Hide screen", exact: true }).click();
+  await page.getByText("COVER MODE", { exact: true }).waitFor();
+  for (const [startX, startY, endX, endY] of [[470, 110, 650, 230], [720, 280, 850, 390]]) {
+    await page.mouse.move(overlayBox.x + startX, overlayBox.y + startY);
+    await page.mouse.down();
+    await page.mouse.move(overlayBox.x + endX, overlayBox.y + endY, { steps: 6 });
+    await page.mouse.up();
+  }
+  await overlay.locator(".classroom-cover").first().waitFor();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 2, "Hide must support multiple covers");
+  await page.getByRole("button", { name: "Mouse", exact: true }).click();
+  await overlay.locator(".classroom-cover").first().click({ force: true });
+  await page.getByRole("button", { name: "Delete selected cover" }).click();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 1, "Cover delete must remove only the selected cover");
+  await page.getByRole("button", { name: "Pencil", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  assert.equal(await overlay.locator(".classroom-cover").count(), 1, "Drawing Undo must not remove a cover");
+  await page.getByRole("button", { name: "Mouse", exact: true }).click();
+
+  await page.getByRole("button", { name: "Show screen", exact: true }).click();
+  await page.getByText("SPOTLIGHT MODE", { exact: true }).waitFor();
+  await page.mouse.move(overlayBox.x + 180, overlayBox.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 410, overlayBox.y + 240, { steps: 6 });
+  await page.mouse.up();
+  await overlay.locator("mask").waitFor({ state: "attached" });
+  const firstSpotlightX = await overlay.locator('rect[stroke="#f4e84a"]').getAttribute("x");
+  await page.mouse.move(overlayBox.x + 260, overlayBox.y + 160);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 500, overlayBox.y + 330, { steps: 6 });
+  await page.mouse.up();
+  assert.equal(await overlay.locator("mask").count(), 1, "A second Show region must replace the first");
+  assert.notEqual(await overlay.locator('rect[stroke="#f4e84a"]').getAttribute("x"), firstSpotlightX);
+  await page.getByRole("button", { name: "Pencil", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  assert.equal(await overlay.locator("mask").count(), 1, "Drawing Undo must not remove the spotlight");
+  await page.getByRole("button", { name: "Mouse", exact: true }).click();
+
+  await page.getByRole("button", { name: "Clear screen", exact: true }).click();
+  await page.getByRole("complementary", { name: "Clear current view" }).waitFor();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "All classroom markup", exact: true }).click();
+  assert.equal(await overlay.locator("[data-drawing-id], .classroom-cover, mask").count(), 0, "Clear must remove all classroom markup");
+  assert.equal(await page.getByRole("button", { name: "Mouse", exact: true }).getAttribute("aria-pressed"), "true", "Clear completion must return to Mouse");
+
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  await page.getByText("ZOOM MODE", { exact: true }).waitFor();
+  await page.mouse.move(overlayBox.x + 160, overlayBox.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(overlayBox.x + 510, overlayBox.y + 270, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".classroom-stage-transform.region-zoom-active").waitFor();
+  assert.ok(Number(await page.locator(".classroom-stage-transform").getAttribute("data-region-zoom-scale")) > 1);
+  assert.equal(await page.getByRole("button", { name: "Zoom", exact: true }).getAttribute("aria-pressed"), "true", "Region zoom must keep Zoom selected");
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  assert.equal(await page.locator(".classroom-stage-transform.region-zoom-active").count(), 0, "A second Zoom activation must restore the page");
+  assert.equal(await page.getByRole("button", { name: "Mouse", exact: true }).getAttribute("aria-pressed"), "true");
+
+  await page.getByRole("button", { name: "Timer", exact: true }).click();
+  await page.getByRole("complementary", { name: "Classroom timer" }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Timer", exact: true }).getAttribute("aria-pressed"), "true");
+  await page.getByRole("button", { name: "1 min" }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".classroom-timer-panel output")?.textContent !== "01:00");
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page.getByRole("button", { name: "Close timer" }).click();
+  assert.equal(await page.getByRole("button", { name: "Mouse", exact: true }).getAttribute("aria-pressed"), "true", "Closing Timer must restore Mouse");
+  await page.getByRole("button", { name: "Scoreboard", exact: true }).click();
+  await page.getByRole("complementary", { name: "Two-team scoreboard" }).waitFor();
+  await page.getByRole("button", { name: "Add point to Team A" }).click();
+  assert.equal(await page.getByLabel("Team A score").textContent(), "1");
+  await page.getByRole("button", { name: "Close scoreboard" }).click();
+  assert.equal(await page.getByRole("button", { name: "Mouse", exact: true }).getAttribute("aria-pressed"), "true", "Closing Scoreboard must restore Mouse");
+
+  await page.evaluate(() => { globalThis.__teacherPrintCalls = 0; globalThis.print = () => { globalThis.__teacherPrintCalls += 1; }; });
+  await page.getByRole("button", { name: "Print", exact: true }).click();
+  assert.equal(await page.evaluate(() => globalThis.__teacherPrintCalls), 1, "Print must remain wired to the safe browser print path");
+
+  await page.waitForTimeout(100);
+  const uiOnlyStorageBefore = await page.evaluate(() => localStorage.getItem("interactive-classroom:annotations:v1"));
+  const uiOnlyRequestCountBefore = requests.length;
+  for (const label of ["Marker", "Annotations", "URL", "Save", "Load"]) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    assert.equal(await page.getByRole("button", { name: label, exact: true }).getAttribute("aria-pressed"), "true", `${label} must be selectable`);
+    assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1, `${label} selection must remain exclusive`);
+    assert.equal(await overlay.getAttribute("data-active-classroom-tool"), "pointer", `${label} must remain a safe no-op`);
+  }
+  await page.waitForTimeout(100);
+  assert.equal(requests.length, uiOnlyRequestCountBefore, "UI-only tools must not make requests");
+  assert.equal(await page.evaluate(() => localStorage.getItem("interactive-classroom:annotations:v1")), uiOnlyStorageBefore, "UI-only tools must not write classroom data");
+  await page.getByRole("button", { name: "Mouse", exact: true }).click();
   await page.getByRole("button", { name: "Contents and exercises" }).click();
 
   await openExercises(page, 1);
@@ -357,6 +493,15 @@ try {
   await page.waitForTimeout(10_200);
   assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-teaching-toolbar").isVisible(), true, "Activity toolbar must remain visible");
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Activity toolbar must not use a reveal button");
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  const activityOverlayBox = await page.locator(".teacher-offline-pages-viewer .classroom-tools-overlay").boundingBox();
+  await page.mouse.move(activityOverlayBox.x + 120, activityOverlayBox.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(activityOverlayBox.x + 520, activityOverlayBox.y + 300, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".teacher-offline-pages-viewer .classroom-stage-transform.region-zoom-active").waitFor();
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-stage-transform.region-zoom-active").count(), 0, "Activity region zoom must reset");
   const activityOpenMs = Math.round(performance.now() - activityOpenStartedAt);
   const multipleChoiceSolution = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o3"];
   const firstMultipleChoice = Object.values(multipleChoiceSolution.questions)[0];
@@ -424,6 +569,15 @@ try {
   await page.waitForTimeout(10_200);
   assert.equal(await page.locator(".teacher-offline-media .classroom-teaching-toolbar").isVisible(), true, "Media toolbar must remain visible");
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Media toolbar must not use a reveal button");
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  const mediaOverlayBox = await page.locator(".teacher-offline-media .classroom-tools-overlay").boundingBox();
+  await page.mouse.move(mediaOverlayBox.x + 160, mediaOverlayBox.y + 90);
+  await page.mouse.down();
+  await page.mouse.move(mediaOverlayBox.x + 560, mediaOverlayBox.y + 320, { steps: 6 });
+  await page.mouse.up();
+  await page.locator(".teacher-offline-media .classroom-stage-transform.region-zoom-active").waitFor();
+  await page.getByRole("button", { name: "Zoom", exact: true }).click();
+  assert.equal(await page.locator(".teacher-offline-media .classroom-stage-transform.region-zoom-active").count(), 0, "Media region zoom must reset");
   const standaloneVideo = page.locator(".teacher-offline-standalone-media");
   await standaloneVideo.waitFor();
   assert.match(await standaloneVideo.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);

@@ -94,6 +94,7 @@ try {
     const context = await browser.newContext({
       viewport: { width: target.width, height: target.height },
       deviceScaleFactor: target.dpr,
+      hasTouch: target.name.startsWith("phone-"),
     });
     const page = await context.newPage();
     const consoleErrors = [];
@@ -365,6 +366,8 @@ try {
     const toolbarLayout = await page.locator(".classroom-teaching-toolbar").evaluate((toolbar) => {
       const style = getComputedStyle(toolbar);
       const rect = toolbar.getBoundingClientRect();
+      const unselected = toolbar.querySelector('[data-teacher-tool="pencil"]');
+      const selected = toolbar.querySelector('[aria-pressed="true"]');
       return {
         backgroundColor: style.backgroundColor,
         backgroundImage: style.backgroundImage,
@@ -372,7 +375,14 @@ try {
         left: rect.left,
         right: rect.right,
         selected: toolbar.querySelectorAll('[aria-pressed="true"]').length,
-        selectedTool: toolbar.querySelector('[aria-pressed="true"]')?.dataset.teacherTool,
+        selectedTool: selected?.dataset.teacherTool,
+        selectedNormalOpacity: getComputedStyle(selected.querySelector(".legacy-teacher-tool-icon-normal")).opacity,
+        selectedActiveOpacity: getComputedStyle(selected.querySelector(".legacy-teacher-tool-icon-active")).opacity,
+        normalOpacity: getComputedStyle(unselected.querySelector(".legacy-teacher-tool-icon-normal")).opacity,
+        activeOpacity: getComputedStyle(unselected.querySelector(".legacy-teacher-tool-icon-active")).opacity,
+        imagesLoaded: [...toolbar.querySelectorAll("img")].every((image) => image.complete && image.naturalWidth === 64 && image.naturalHeight === 64),
+        enabled: [...toolbar.querySelectorAll(".legacy-teacher-tool-button")].every((button) => !button.disabled && button.getAttribute("aria-disabled") === null),
+        lockCount: toolbar.querySelectorAll(".legacy-home-lock, .lock-badge").length,
       };
     });
     assert.equal(toolbarLayout.backgroundColor, "rgba(0, 0, 0, 0)", `${target.name} toolbar background`);
@@ -381,17 +391,38 @@ try {
     assert.ok(toolbarLayout.left >= -1 && toolbarLayout.right <= target.width + 1, `${target.name} toolbar bounds`);
     assert.equal(toolbarLayout.selected, 1, `${target.name} initial selected count`);
     assert.equal(toolbarLayout.selectedTool, "mouse", `${target.name} initial selected tool`);
+    assert.equal(toolbarLayout.selectedNormalOpacity, "0", `${target.name} selected normal artwork hidden`);
+    assert.equal(toolbarLayout.selectedActiveOpacity, "1", `${target.name} selected active artwork visible`);
+    assert.equal(toolbarLayout.normalOpacity, "1", `${target.name} normal artwork visible`);
+    assert.equal(toolbarLayout.activeOpacity, "0", `${target.name} inactive artwork hidden`);
+    assert.equal(toolbarLayout.imagesLoaded, true, `${target.name} recovered images loaded at native dimensions`);
+    assert.equal(toolbarLayout.enabled, true, `${target.name} toolbar buttons enabled`);
+    assert.equal(toolbarLayout.lockCount, 0, `${target.name} toolbar lock count`);
+
+    if (target.name.startsWith("phone-")) {
+      const marker = page.getByRole("button", { name: "Marker", exact: true });
+      await marker.tap();
+      assert.equal(await marker.getAttribute("aria-pressed"), "true", `${target.name} touch selection`);
+      assert.equal(await page.locator(".classroom-tools-overlay").getAttribute("data-active-classroom-tool"), "pointer", `${target.name} UI-only touch no-op`);
+      assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1, `${target.name} touch selection exclusive`);
+      await page.getByRole("button", { name: "Mouse", exact: true }).tap();
+    }
 
     if (target.name === "full-hd-1920x1080") {
       const pencil = page.getByRole("button", { name: "Pencil", exact: true });
+      const pencilButtonBox = await pencil.boundingBox();
       await pencil.hover();
-      await page.waitForTimeout(120);
+      await page.waitForFunction((button) => getComputedStyle(button.querySelector(".legacy-teacher-tool-icon-active")).opacity === "1", await pencil.elementHandle());
+      assert.equal(await pencil.evaluate((button) => getComputedStyle(button).cursor), "pointer", "desktop toolbar cursor");
       assert.equal(await pencil.locator(".legacy-teacher-tool-icon-active").evaluate((icon) => getComputedStyle(icon).opacity), "1", "desktop hover uses active artwork");
       assert.equal(await pencil.locator(".legacy-teacher-tool-icon-normal").evaluate((icon) => getComputedStyle(icon).opacity), "0", "desktop hover hides normal artwork");
       await pencil.click();
       await page.waitForTimeout(140);
       assert.equal(await page.locator('.classroom-teaching-toolbar [aria-pressed="true"]').count(), 1, "selection stays exclusive");
       assert.equal(await pencil.getAttribute("aria-pressed"), "true", "clicked tool remains selected");
+      assert.equal(await page.locator(".classroom-tools-overlay").getAttribute("data-active-classroom-tool"), "pen", "selected Pencil drives the real pen tool");
+      const selectedButtonBox = await pencil.boundingBox();
+      for (const key of ["x", "y", "width", "height"]) assertNear(selectedButtonBox[key], pencilButtonBox[key], .01, `selected tool ${key} layout stability`);
       const selectedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
       assertNear(selectedScale, 1.2, .01, "selected tool scale");
       const pencilBox = await pencil.boundingBox();
@@ -400,7 +431,10 @@ try {
       await page.waitForTimeout(70);
       const pressedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
       assertNear(pressedScale, .8, .01, "pressed tool scale");
+      assert.equal(await pencil.locator(".legacy-teacher-tool-icon-active").evaluate((icon) => getComputedStyle(icon).opacity), "1", "pressed tool active artwork");
       await page.mouse.up();
+      await page.getByRole("button", { name: "Mouse", exact: true }).click();
+      assert.equal(await page.locator(".classroom-tools-overlay").getAttribute("data-active-classroom-tool"), "pointer", "Mouse exits the real pen tool");
     }
 
     await page.getByRole("button", { name: "Contents and exercises" }).click();

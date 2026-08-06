@@ -427,8 +427,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(presentation, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(media, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(app, /ClassroomToolsProvider/);
-  assert.doesNotMatch(toolbar, /useClassroomTools|lucide-react|PEN MODE|COVER MODE|SPOTLIGHT MODE|ZOOM MODE/);
-  assert.match(toolbar, /useState\("mouse"\)/);
+  assert.match(toolbar, /useClassroomTools|PEN MODE|COVER MODE|SPOTLIGHT MODE|ZOOM MODE/);
+  assert.doesNotMatch(toolbar, /lucide-react/);
+  assert.match(toolbar, /ACTIVE_TOOL_TO_LEGACY_ID/);
   assert.match(toolbar, /selected=\{selectedTool === item\.id\}/);
   assert.match(overlay, /setPointerCapture[\s\S]*type: "stroke"/);
   assert.match(overlay, /addCover[\s\S]*setSpotlight[\s\S]*setRegionZoom/);
