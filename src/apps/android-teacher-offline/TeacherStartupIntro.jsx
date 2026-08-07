@@ -6,6 +6,7 @@ export default function TeacherStartupIntro({ onFinish }) {
   const finishedRef = useRef(false);
   const videoRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
 
   const finish = useCallback((reason) => {
@@ -29,6 +30,7 @@ export default function TeacherStartupIntro({ onFinish }) {
     <section
       className="teacher-startup-intro"
       data-intro-ready={ready ? "true" : "false"}
+      data-intro-playing={playing ? "true" : "false"}
       role="dialog"
       aria-modal="true"
       aria-label="Ultimate B2 opening"
@@ -42,6 +44,7 @@ export default function TeacherStartupIntro({ onFinish }) {
         aria-label="Ultimate B2 opening animation"
         onCanPlay={startPlayback}
         onLoadedData={() => setReady(true)}
+        onPlaying={() => setPlaying(true)}
         onEnded={() => finish("ended")}
         onError={() => finish("error")}
       />
