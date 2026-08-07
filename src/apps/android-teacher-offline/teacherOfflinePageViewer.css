@@ -203,8 +203,9 @@
 }
 
 .teacher-offline-pages-viewer .teacher-offline-page-image > img {
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 22px rgba(42, 17, 68, 0.3);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .teacher-offline-pages-viewer .teacher-offline-page-hotspot {
