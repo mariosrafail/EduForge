@@ -101,12 +101,18 @@
 .legacy-menu-button-art { position: absolute; inset: 0; display: block; }
 .legacy-menu-button-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .legacy-menu-button-art .hover-pressed { opacity: 0; }
-.legacy-home-unit.available:hover .legacy-menu-button-art .normal,
-.legacy-home-unit.available:active .legacy-menu-button-art .normal,
-.legacy-home-unit.available:focus-visible .legacy-menu-button-art .normal { opacity: 0; }
-.legacy-home-unit.available:hover .legacy-menu-button-art .hover-pressed,
-.legacy-home-unit.available:active .legacy-menu-button-art .hover-pressed,
-.legacy-home-unit.available:focus-visible .legacy-menu-button-art .hover-pressed { opacity: 1; }
+.legacy-home-unit:hover .legacy-menu-button-art .normal,
+.legacy-home-unit:active .legacy-menu-button-art .normal,
+.legacy-home-unit:focus-visible .legacy-menu-button-art .normal,
+.legacy-home-book-button:hover .legacy-menu-button-art .normal,
+.legacy-home-book-button:active .legacy-menu-button-art .normal,
+.legacy-home-book-button:focus-visible .legacy-menu-button-art .normal { opacity: 0; }
+.legacy-home-unit:hover .legacy-menu-button-art .hover-pressed,
+.legacy-home-unit:active .legacy-menu-button-art .hover-pressed,
+.legacy-home-unit:focus-visible .legacy-menu-button-art .hover-pressed,
+.legacy-home-book-button:hover .legacy-menu-button-art .hover-pressed,
+.legacy-home-book-button:active .legacy-menu-button-art .hover-pressed,
+.legacy-home-book-button:focus-visible .legacy-menu-button-art .hover-pressed { opacity: 1; }
 .legacy-home-unit:focus-visible { outline: 4px solid #fff600; outline-offset: 3px; }
 
 .legacy-menu-title-animation {

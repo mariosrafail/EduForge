@@ -33,6 +33,26 @@ function exerciseRow(page, title) {
   return page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
 }
 
+async function assertLauncherPressedArtwork(page, button, label) {
+  const artwork = button.locator(".legacy-menu-button-art");
+  const normal = artwork.locator(".normal");
+  const pressed = artwork.locator(".hover-pressed");
+  assert.equal(await normal.evaluate((image) => getComputedStyle(image).opacity), "1", `${label} starts with normal artwork`);
+  assert.equal(await pressed.evaluate((image) => getComputedStyle(image).opacity), "0", `${label} starts without pressed artwork`);
+
+  const box = await button.boundingBox();
+  assert.ok(box, `${label} must have a visible press target`);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(50);
+  assert.equal(await normal.evaluate((image) => getComputedStyle(image).opacity), "0", `${label} press hides normal artwork`);
+  assert.equal(await pressed.evaluate((image) => getComputedStyle(image).opacity), "1", `${label} press shows recovered pressed artwork`);
+  await page.mouse.move(1, 1);
+  await page.mouse.up();
+  assert.equal(await normal.evaluate((image) => getComputedStyle(image).opacity), "1", `${label} release restores normal artwork`);
+  assert.equal(await pressed.evaluate((image) => getComputedStyle(image).opacity), "0", `${label} release hides pressed artwork`);
+}
+
 const canonicalOverview = {
   1: [
     ["pg 5", "ub2-sb-unit-1-part-1"],
@@ -166,6 +186,15 @@ try {
   assert.equal(await page.locator(".legacy-home-publisher-logo").evaluate((image) => image.complete && image.naturalWidth === 272 && image.naturalHeight === 40), true, "Exact Hamilton House logo must render");
   await page.waitForFunction(() => document.querySelector(".legacy-menu-title-animation canvas")?.dataset.animationState === "playing");
   assert.equal(await page.locator(".legacy-menu-title-animation canvas").evaluate((canvas) => canvas.width > 0 && canvas.height > 0), true, "Recovered menu title timeline must render");
+  for (const [label, button] of [
+    ["Unit 1", page.getByRole("button", { name: /^Open Unit 1:/ })],
+    ["Unit 2", page.getByRole("button", { name: /^Open Unit 2:/ })],
+    ["Unit 3", page.getByRole("button", { name: /^Unit 3:/ })],
+    ["Unit 10", page.getByRole("button", { name: /^Unit 10:/ })],
+    ["Workbook", page.getByRole("button", { name: "Workbook", exact: true })],
+    ["Grammar Book", page.getByRole("button", { name: "Grammar Book", exact: true })],
+    ["Extras", page.getByRole("button", { name: "Extras", exact: true })],
+  ]) await assertLauncherPressedArtwork(page, button, label);
   assert.equal(await page.getByRole("button", { name: /Minimize/i }).count(), 0, "Launcher must not expose minimize");
   assert.equal(await page.getByRole("button", { name: "Close application" }).isVisible(), true, "Launcher close control must remain visible");
   assert.equal(await page.locator(".legacy-home-topbar").count(), 0, "Launcher must not render a horizontal top bar");
