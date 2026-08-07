@@ -296,12 +296,6 @@
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-presentation, .teacher-offline-media) header button .legacy-classroom-icon { display: none; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-icon-label::before { content: "⌂"; font-size: 1.5rem; line-height: 1; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] :is(.teacher-offline-presentation, .teacher-offline-media) header button:first-child::before { content: "‹"; font-size: 1.8rem; line-height: 1; }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-page-location {
-  border: 1px solid rgba(224, 210, 241, 0.66);
-  border-radius: 12px;
-  background: rgba(67, 42, 108, 0.74);
-  text-shadow: none;
-}
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-classroom-viewer-toolbar {
   border: 1px solid rgba(203, 240, 249, 0.72);
   border-radius: 16px;

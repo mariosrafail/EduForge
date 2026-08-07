@@ -128,6 +128,8 @@ async function assertEmbeddedActivity(page, label) {
       toolbarCount: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
       standaloneChrome: document.querySelectorAll(".teacher-offline-presentation").length,
       pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
+      pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
+      locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
       contained: reader && content
@@ -142,6 +144,8 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.toolbarCount, 1, `${label} has one toolbar`);
   assert.equal(metrics.standaloneChrome, 0, `${label} removes standalone presentation chrome`);
   assert.equal(metrics.pageImages, 0, `${label} replaces page image`);
+  assert.match(metrics.pageContext, /pg \d/, `${label} keeps the parent page context in the heading`);
+  assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
   assert.equal(metrics.contained, true, `${label} content fits reader`);
@@ -245,7 +249,7 @@ async function assertLegacyLauncher(page, label) {
   assert.ok(metrics.maximumUnitHeight <= (94 * metrics.displayScale) + 1, `${label} proportional unit height: ${metrics.maximumUnitHeight}`);
 }
 
-async function assertLegacyPageViewer(page, label) {
+async function assertLegacyPageViewer(page, label, expectedPageLabel = "pg 5") {
   const metrics = await page.evaluate(() => {
     const panel = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
     const image = document.querySelector(".teacher-offline-page-image")?.getBoundingClientRect();
@@ -259,6 +263,8 @@ async function assertLegacyPageViewer(page, label) {
       navigationExists: visible(".legacy-page-navigation"),
       toolsExist: visible(".legacy-classroom-viewer-toolbar"),
       bookHeaderVisible: visible(".teacher-offline-book-header"),
+      pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
+      locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       centered: panel && image ? Math.abs((image.left + image.width / 2) - (panel.left + panel.width / 2)) < 3 : false,
       contained: panel && image ? image.left >= panel.left - 4 && image.right <= panel.right + 4 && image.top >= panel.top - 4 && image.bottom <= panel.bottom + 4 : false,
@@ -271,6 +277,8 @@ async function assertLegacyPageViewer(page, label) {
   assert.equal(metrics.navigationExists, true, `${label} lower navigation`);
   assert.equal(metrics.toolsExist, true, `${label} viewer tools`);
   assert.equal(metrics.bookHeaderVisible, false, `${label} web-style book header hidden`);
+  assert.match(metrics.pageContext, new RegExp(`${expectedPageLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), `${label} heading shows the current page context`);
+  assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.equal(metrics.centered, true, `${label} page centered`);
   assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
@@ -338,6 +346,18 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-1920x1080.png` });
+    await page.getByRole("button", { name: "Unit overview" }).click();
+    await page.locator('[data-page-ids="ub2-sb-unit-1-part-4"]').click();
+    await waitForPageImage(page);
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page10-11-1920x1080", "pg 10-11");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page10-11-1920x1080.png` });
+    await page.getByRole("button", { name: "Unit overview" }).click();
+    await page.locator('[data-page-ids="ub2-sb-unit-1-part-7"]').click();
+    await waitForPageImage(page);
+    await assertLegacyPageViewer(page, "page-viewer-unit1-page14-15-1920x1080", "pg 14-15");
+    await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page14-15-1920x1080.png` });
+    await page.getByRole("button", { name: "Unit overview" }).click();
+    await openPage(page, "pg 5");
     const unselectedToolGaps = await page.locator(".classroom-teaching-toolbar .legacy-teacher-tool-icon-stack").evaluateAll((icons) => {
       const unselected = icons.slice(1);
       return unselected.slice(1).map((icon, index) => icon.getBoundingClientRect().left - unselected[index].getBoundingClientRect().right);
@@ -477,6 +497,7 @@ try {
       .click();
     await page.locator(".teacher-offline-embedded-activity").waitFor();
     await assertEmbeddedActivity(page, "unit-opener-1366x768");
+    assert.match(await page.locator(".legacy-page-heading strong").textContent(), /pg 5$/, "unit opener keeps its parent page context");
     for (const question of [1, 2, 3]) {
       await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
     }

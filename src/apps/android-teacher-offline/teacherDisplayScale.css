@@ -165,7 +165,6 @@
   .legacy-page-navigation > div { gap: calc(9px * var(--teacher-ui-scale)); }
   .legacy-page-round-button { width: calc(62px * var(--teacher-ui-scale)); height: calc(62px * var(--teacher-ui-scale)); min-height: calc(62px * var(--teacher-ui-scale)); }
   .legacy-page-round-button .legacy-classroom-icon { width: calc(60px * var(--teacher-ui-scale)); height: calc(60px * var(--teacher-ui-scale)); flex-basis: calc(60px * var(--teacher-ui-scale)); }
-  .legacy-page-location { padding: calc(7px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); font-size: calc(.86rem * var(--teacher-display-scale)); }
   .legacy-classroom-viewer-toolbar { width: min(calc(1320px * var(--teacher-ui-scale)), 78vw); min-height: calc(54px * var(--teacher-ui-scale)); padding: calc(4px * var(--teacher-ui-scale)) calc(13px * var(--teacher-ui-scale)); gap: calc(22px * var(--teacher-ui-scale)); }
   .legacy-classroom-viewer-toolbar button { width: calc(46px * var(--teacher-ui-scale)); height: calc(46px * var(--teacher-ui-scale)); min-height: calc(46px * var(--teacher-ui-scale)); font-size: calc(.72rem * var(--teacher-display-scale)); }
   .legacy-classroom-viewer-toolbar svg { width: calc(21px * var(--teacher-ui-scale)); height: calc(21px * var(--teacher-ui-scale)); }

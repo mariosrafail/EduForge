@@ -14,7 +14,6 @@ import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineEmbeddedActivity from "./TeacherOfflineEmbeddedActivity.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
-import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
 import {
   getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
@@ -72,6 +71,7 @@ export default function TeacherOfflinePages({
   const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
+  const pageContext = page ? `${page.title} · ${page.label || `Page ${page.pageNumber}`}` : "";
   const embeddedActivityId = activeActivity?.stableActivityId || activeActivityId || "";
   const activityActive = Boolean(embeddedActivityId);
   const classroomSurfaceKey = activityActive
@@ -282,7 +282,7 @@ export default function TeacherOfflinePages({
         <div aria-hidden="true" />
         {showLeftNavigation ? <div data-navbar-side="left">
           <h2>Unit {unit.number}</h2>
-          <strong>{teacherStudentsBookUnitTitle(unit.number)}</strong>
+          <strong>{pageContext}</strong>
         </div> : <div data-navbar-side="left" data-navbar-hidden="true" />}
         <div className="legacy-page-window-controls">
           <button type="button" disabled aria-disabled="true" title="Minimize — not available in this prototype"><Minimize2 size={20} /></button>
@@ -372,7 +372,6 @@ export default function TeacherOfflinePages({
           <button type="button" className="legacy-page-round-button" onClick={activityActive ? onCloseActivity : () => onSelectPage("")} title={activityActive ? "Back to page" : "Unit overview"} aria-label={activityActive ? "Back to page" : "Unit overview"}><LegacyClassroomIcon name="back" /></button>
           <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
         </div> : <div data-navbar-side="right" data-navbar-hidden="true" />}
-        <span className="legacy-page-location">{activityActive ? activeActivity?.title || "Students Book activity" : `${page.title} · ${page.label || `Page ${page.pageNumber}`}`}</span>
         <div>
           {!activityActive && actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}
           <button type="button" className="legacy-page-round-button" onClick={onOpenContents} title="Contents and exercises" aria-label="Contents and exercises"><BookOpen size={25} /></button>
