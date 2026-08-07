@@ -121,6 +121,8 @@ async function assertEmbeddedActivity(page, label) {
       return Boolean(rect?.width && rect?.height);
     };
     const reader = document.querySelector(".teacher-offline-page-reader")?.getBoundingClientRect();
+    const host = document.querySelector(".teacher-offline-embedded-activity");
+    const hostRect = host?.getBoundingClientRect();
     const content = document.querySelector(".teacher-offline-embedded-activity-content")?.getBoundingClientRect();
     return {
       heading: visible(".legacy-page-heading"),
@@ -134,7 +136,12 @@ async function assertEmbeddedActivity(page, label) {
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
-      fillsReaderWidth: reader && content ? content.width >= reader.width - 20 : false,
+      edgeToEdgeHost: reader && hostRect
+        ? hostRect.left <= reader.left + 7 && hostRect.right >= reader.right - 7
+          && hostRect.top <= reader.top + 7 && hostRect.bottom >= reader.bottom - 7
+        : false,
+      neutralHostCanvas: host ? getComputedStyle(host).backgroundColor === "rgb(255, 255, 255)" : false,
+      fillsReaderWidth: reader && content ? content.width >= reader.width - 8 : false,
       contained: reader && content
         ? content.left >= reader.left - 1 && content.right <= reader.right + 1
           && content.top >= reader.top - 1 && content.bottom <= reader.bottom + 1
@@ -152,6 +159,8 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
+  assert.equal(metrics.edgeToEdgeHost, true, `${label} host fills the reader interior: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.neutralHostCanvas, true, `${label} masks the reader background behind activity corners`);
   assert.equal(metrics.fillsReaderWidth, true, `${label} uses the available reader width: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
