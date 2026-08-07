@@ -113,7 +113,7 @@ try {
     await completeStartupIntro(page);
     const settingsSurface = page.locator(".teacher-offline-settings-surface");
     const displayScale = expectedDisplayScale(target);
-    assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", `${target.name} modern default`);
+    assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "legacy", `${target.name} legacy-only theme`);
     assertNear(Number(await settingsSurface.getAttribute("data-teacher-display-scale")), displayScale, .001, `${target.name} display scale attribute`);
     const initialScaleVariables = await settingsSurface.evaluate((surface) => ({
       display: Number(getComputedStyle(surface).getPropertyValue("--teacher-display-scale")),
@@ -194,6 +194,7 @@ try {
     assert.ok(settingsLayout.overflow <= 1, `${target.name} settings overflow`);
     await page.getByRole("tab", { name: "Graphics" }).click();
     await page.locator('[data-settings-panel="graphics"]').waitFor();
+    assert.equal(await page.getByRole("group", { name: "Interface style" }).count(), 0, `${target.name} theme switcher unavailable`);
     if (target.name === "4k-3840x2160") {
       await page.getByRole("slider", { name: "Interface size" }).fill("90");
       await page.waitForFunction(() => Math.abs(Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) - 1.8) < .001);
@@ -201,11 +202,7 @@ try {
       await page.getByRole("slider", { name: "Interface size" }).fill("100");
       await page.waitForFunction(() => Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) === 2);
     }
-    await page.getByRole("button", { name: "Legacy", exact: true }).click();
-    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy", `${target.name} live legacy theme`);
-    assert.equal(await page.getByRole("dialog", { name: "Classroom settings" }).isVisible(), true, `${target.name} legacy dialog remains open`);
-    await page.getByRole("button", { name: "Modern", exact: true }).click();
-    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "modern", `${target.name} live modern theme`);
+    assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy", `${target.name} legacy theme remains active`);
     await page.getByRole("button", { name: "Close settings" }).click();
     await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
     await page.locator(".teacher-offline-book").waitFor();

@@ -152,7 +152,7 @@ try {
   const settingsSurface = page.locator(".teacher-offline-settings-surface");
   assert.equal(await settingsSurface.getAttribute("data-teacher-display-scale"), "1", "1280x720 must retain the 1080p baseline scale");
   assert.equal(Number(await settingsSurface.evaluate((surface) => getComputedStyle(surface).getPropertyValue("--teacher-ui-scale"))), 1, "1280x720 effective UI scale must remain 1");
-  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", "Modern must be the fresh-install default");
+  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "legacy", "Legacy must be the active teacher theme");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "on", "Motion must default on");
   assert.equal(await page.getByRole("button", { name: /Open Unit/ }).count(), 2, "Only Units 1 and 2 may be available");
   for (const unit of [1, 2]) {
@@ -241,16 +241,12 @@ try {
   assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).count(), 0, "Obsolete auto-hide must not be visible");
   await page.getByText(/left group remains available/i).waitFor();
   await page.getByRole("tab", { name: "Graphics" }).click();
-  assert.equal(await page.getByRole("button", { name: "Modern", exact: true }).getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("group", { name: "Interface style" }).count(), 0, "Interface style switcher must be unavailable");
   await page.getByRole("switch", { name: "Animations" }).click();
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "off", "Animation setting must apply live");
-  const stoppedTransitionSeconds = await page.getByRole("button", { name: "Modern", exact: true }).evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration));
+  const stoppedTransitionSeconds = await page.getByRole("switch", { name: "Animations" }).evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration));
   assert.ok(stoppedTransitionSeconds <= 0.001, "Motion off must remove representative control transitions");
   await page.getByRole("switch", { name: "Animations" }).click();
-  await page.getByRole("button", { name: "Legacy", exact: true }).click();
-  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "legacy", "Legacy theme must apply to the open dialog immediately");
-  await page.getByRole("button", { name: "Modern", exact: true }).click();
-  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", "Modern theme must apply to the open dialog immediately");
   await page.getByRole("slider", { name: "Interface size" }).fill("105");
   await page.getByRole("slider", { name: "Colour intensity" }).fill("80");
   await page.getByRole("switch", { name: "Visual effects" }).click();
@@ -280,7 +276,8 @@ try {
   await page.getByRole("button", { name: "Close settings" }).click();
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".legacy-home-launcher").waitFor();
-  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "modern", "Modern selection must persist across reload");
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("teacher-offline:ultimate-b2:settings:v2")).graphics.appearanceMode), "modern", "Stored modern preference must be retained for later re-enablement");
+  assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "legacy", "Stored modern preference must not activate the modern theme");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion-preference"), "off", "Motion OFF must persist across reload");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "off", "Persisted motion OFF must remain effective");
   await settingsButton.click();

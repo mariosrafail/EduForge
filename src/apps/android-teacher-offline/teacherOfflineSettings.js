@@ -5,6 +5,11 @@ export const TEACHER_OFFLINE_SETTINGS_V1_STORAGE_KEY = "teacher-offline:ultimate
 const LEGACY_SOUND_KEY = "teacher-offline:ultimate-b2:ui-sound";
 const listeners = new Set();
 
+// Temporary legacy-only presentation mode. Keep the stored preference and modern
+// implementation intact so the switcher can be re-enabled without migration.
+export const ACTIVE_TEACHER_THEME = "legacy";
+export const ENABLE_TEACHER_THEME_SWITCHER = false;
+
 export const DEFAULT_TEACHER_OFFLINE_SETTINGS = Object.freeze({
   audio: Object.freeze({ buttonEnabled: true, buttonVolume: 24, navigationEnabled: true, navigationVolume: 24, toolbarEnabled: true, toolbarVolume: 24 }),
   content: Object.freeze({ showNavbarLeft: true, showNavbarRight: true, menuAutoHide: false, menuDelay: 50 }),

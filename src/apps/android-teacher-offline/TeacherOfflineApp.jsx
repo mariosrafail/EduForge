@@ -16,7 +16,7 @@ import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import TeacherStartupIntro from "./TeacherStartupIntro.jsx";
-import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
 import { selectedBookMenuSkinId } from "../../config/bookMenuSkins.js";
@@ -240,7 +240,7 @@ export default function TeacherOfflineApp() {
     <ClassroomToolsProvider>
       <div
         className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
-        data-teacher-theme={settings.graphics.appearanceMode}
+        data-teacher-theme={ACTIVE_TEACHER_THEME}
         data-teacher-motion={animationsActive ? "on" : "off"}
         data-teacher-motion-preference={settings.graphics.motionEnabled ? "on" : "off"}
         data-teacher-reduced-motion={prefersReducedMotion ? "reduce" : "no-preference"}

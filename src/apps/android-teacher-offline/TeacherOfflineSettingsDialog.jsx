@@ -1,7 +1,7 @@
 import { BookOpen, Info, Palette, Volume2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { updateTeacherOfflineSettings, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { ENABLE_TEACHER_THEME_SWITCHER, updateTeacherOfflineSettings, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 const tabs = [
   { id: "audio", label: "Audio", icon: Volume2 },
@@ -99,14 +99,14 @@ export default function TeacherOfflineSettingsDialog({ open, onClose }) {
           )}
           {activeTab === "graphics" && (
             <div className="legacy-settings-panel" data-settings-panel="graphics">
-              <SettingRow title="Interface style" description="Choose the Teacher shell design language">
+              {ENABLE_TEACHER_THEME_SWITCHER && <SettingRow title="Interface style" description="Choose the Teacher shell design language">
                 <SettingsSegmented
                   label="Interface style"
                   value={settings.graphics.appearanceMode}
                   options={[{ value: "modern", label: "Modern" }, { value: "legacy", label: "Legacy" }]}
                   onChange={(value) => update("graphics", "appearanceMode", value)}
                 />
-              </SettingRow>
+              </SettingRow>}
               <SettingRow title="Animations" description="Screen transitions and control animations"><LegacyToggle label="Animations" checked={settings.graphics.motionEnabled} onChange={(value) => update("graphics", "motionEnabled", value)} /></SettingRow>
               <SettingRow title="Interface size" description="Scales readable classroom text"><LegacySlider label="Interface size" min={90} max={110} value={settings.graphics.interfaceScale} onChange={(value) => update("graphics", "interfaceScale", value)} /></SettingRow>
               <SettingRow title="Colour intensity" description="Adjusts the legacy glacier shell saturation"><LegacySlider label="Colour intensity" min={40} max={100} value={settings.graphics.colourIntensity} onChange={(value) => update("graphics", "colourIntensity", value)} /></SettingRow>

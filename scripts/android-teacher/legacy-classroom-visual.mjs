@@ -430,8 +430,8 @@ try {
   await capture({ width: 1920, height: 1080 }, async (page) => {
     await page.getByRole("button", { name: "Open classroom settings" }).click();
     await page.getByRole("tab", { name: "Graphics" }).click();
-    await page.getByRole("button", { name: "Legacy", exact: true }).click();
     assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy");
+    assert.equal(await page.getByRole("group", { name: "Interface style" }).count(), 0);
     await page.screenshot({ path: `${artifactRoot}/legacy-settings-1920x1080.png` });
     await page.getByRole("tab", { name: "About" }).click();
     await assertCleanAbout(page, "legacy-about-1920x1080");
