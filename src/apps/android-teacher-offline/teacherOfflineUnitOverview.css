@@ -92,7 +92,7 @@
   overflow: hidden;
   border: calc(var(--teacher-students-book-stage-border-width) + 1px) solid rgba(229, 250, 255, 0.96);
   border-radius: var(--teacher-students-book-stage-radius);
-  background: #d65ee7 var(--legacy-students-book-parts-background) center / contain no-repeat;
+  background: #d65ee7 var(--legacy-students-book-parts-background) center center / cover no-repeat;
   box-shadow: var(--teacher-students-book-stage-shadow);
   color: #fff;
 }
