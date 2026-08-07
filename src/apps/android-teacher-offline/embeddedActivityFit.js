@@ -8,7 +8,11 @@ export function calculateEmbeddedActivityScale({ availableWidth, availableHeight
 export function resolveEmbeddedActivityFit({ minimumTargetSize, ...dimensions }) {
   const scale = calculateEmbeddedActivityScale(dimensions);
   const targetSize = Number(minimumTargetSize);
-  if (targetSize > 0 && targetSize * scale < EMBEDDED_ACTIVITY_MIN_TARGET_SIZE) {
+  // In the teacher reader, shrinking a tall worksheet to fit its full height
+  // also leaves conspicuous unused bands at the sides of the 16:9 stage.
+  // Keep the activity surface at the reader width and allow its own safe
+  // scroll container to expose the remaining vertical content instead.
+  if (scale < 1 || (targetSize > 0 && targetSize * scale < EMBEDDED_ACTIVITY_MIN_TARGET_SIZE)) {
     return { mode: "scroll", scale: 1 };
   }
   return { mode: "scale", scale };

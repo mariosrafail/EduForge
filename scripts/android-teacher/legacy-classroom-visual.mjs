@@ -134,6 +134,7 @@ async function assertEmbeddedActivity(page, label) {
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
+      fillsReaderWidth: reader && content ? content.width >= reader.width - 20 : false,
       contained: reader && content
         ? content.left >= reader.left - 1 && content.right <= reader.right + 1
           && content.top >= reader.top - 1 && content.bottom <= reader.bottom + 1
@@ -151,6 +152,7 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
+  assert.equal(metrics.fillsReaderWidth, true, `${label} uses the available reader width: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
 
