@@ -1,5 +1,3 @@
-import { LockKeyhole } from "lucide-react";
-
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
@@ -22,13 +20,12 @@ function UnitColumn({ label, items, artwork, onOpenBook }) {
         <button
           key={unit.number}
           type="button"
-          className={`legacy-home-unit ${unit.available ? "available" : "locked"}`}
-          disabled={!unit.available}
-          aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title} — Locked`}
+          className={`legacy-home-unit${unit.available ? " available" : ""}`}
+          aria-disabled={unit.available ? undefined : "true"}
+          aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title}`}
           onClick={unit.available ? () => onOpenBook(unit.number) : undefined}
         >
           <LegacyMenuArtwork artwork={artwork[unit.number - 1]} />
-          {!unit.available && <small className="legacy-home-lock"><LockKeyhole size={13} /> Locked</small>}
         </button>
       ))}
     </div>
@@ -62,13 +59,12 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, onOpenSett
 
             <div className="legacy-home-book-row" aria-label="Additional book editions">
               {[
-                ["Workbook", "workbook", "Workbook content not installed"],
-                ["Grammar Book", "grammarBook", "Grammar Book content not installed"],
-                ["Extras", "extras", "Extras content not installed"],
-              ].map(([label, assetKey, title]) => (
-                <button key={label} type="button" className="legacy-home-book-button locked" disabled aria-label={`${label} — Locked`} title={title}>
+                ["Workbook", "workbook"],
+                ["Grammar Book", "grammarBook"],
+                ["Extras", "extras"],
+              ].map(([label, assetKey]) => (
+                <button key={label} type="button" className="legacy-home-book-button" aria-disabled="true" aria-label={label}>
                   <LegacyMenuArtwork artwork={menuSkin.editions[assetKey]} />
-                  <small className="legacy-home-lock"><LockKeyhole size={13} /> Locked</small>
                 </button>
               ))}
             </div>

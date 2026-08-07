@@ -139,14 +139,25 @@ try {
     assert.equal(await page.getByRole("button", { name: new RegExp(`^Open Unit ${unit}:`) }).isEnabled(), true);
   }
   for (const unit of [3, 4, 5, 6, 7, 8, 9, 10]) {
-    const lockedUnit = page.getByRole("button", { name: new RegExp(`^Unit ${unit}:.*Locked$`) });
-    assert.equal(await lockedUnit.isDisabled(), true, `Unit ${unit} must be locked`);
+    const placeholderUnit = page.getByRole("button", { name: new RegExp(`^Unit ${unit}:`) });
+    assert.equal(await placeholderUnit.getAttribute("disabled"), null, `Unit ${unit} must retain full-strength native button artwork`);
+    assert.equal(await placeholderUnit.getAttribute("aria-disabled"), "true", `Unit ${unit} must remain an inert placeholder`);
+    assert.deepEqual(await placeholderUnit.evaluate((button) => {
+      const style = getComputedStyle(button);
+      return { opacity: style.opacity, filter: style.filter, notAllowed: style.cursor === "not-allowed" };
+    }), { opacity: "1", filter: "none", notAllowed: false }, `Unit ${unit} must render at full visual strength`);
   }
-  assert.equal(await page.locator(".legacy-home-unit .legacy-home-lock").count(), 8);
+  assert.equal(await page.locator(".legacy-home-unit.locked, .legacy-home-unit .legacy-home-lock").count(), 0);
   for (const book of ["Workbook", "Grammar Book", "Extras"]) {
-    assert.equal(await page.getByRole("button", { name: `${book} — Locked` }).isDisabled(), true, `${book} must be locked`);
+    const placeholderBook = page.getByRole("button", { name: book, exact: true });
+    assert.equal(await placeholderBook.getAttribute("disabled"), null, `${book} must retain full-strength native button artwork`);
+    assert.equal(await placeholderBook.getAttribute("aria-disabled"), "true", `${book} must remain an inert placeholder`);
+    assert.deepEqual(await placeholderBook.evaluate((button) => {
+      const style = getComputedStyle(button);
+      return { opacity: style.opacity, filter: style.filter, notAllowed: style.cursor === "not-allowed" };
+    }), { opacity: "1", filter: "none", notAllowed: false }, `${book} must render at full visual strength`);
   }
-  assert.equal(await page.locator(".legacy-home-book-button .legacy-home-lock").count(), 3);
+  assert.equal(await page.locator(".legacy-home-book-button.locked, .legacy-home-book-button .legacy-home-lock").count(), 0);
   const settingsButton = page.getByRole("button", { name: "Open classroom settings" });
   assert.equal(await page.locator(".legacy-home-classroom-toolbar").count(), 0, "Launcher must not render its former locked teaching-tool row");
   assert.equal(await page.locator(".teacher-offline-library .classroom-teaching-toolbar").count(), 1, "Launcher must retain the legacy classroom toolbar");
@@ -258,9 +269,9 @@ try {
   assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).count(), 0);
   await page.getByRole("button", { name: "Close settings" }).click();
   const initialHash = await page.evaluate(() => location.hash);
-  await page.getByRole("button", { name: /^Unit 3:.*Locked$/ }).evaluate((button) => button.click());
-  await page.getByRole("button", { name: "Workbook — Locked" }).evaluate((button) => button.click());
-  assert.equal(await page.evaluate(() => location.hash), initialHash, "Locked launcher controls must not navigate");
+  await page.getByRole("button", { name: /^Unit 3:/ }).evaluate((button) => button.click());
+  await page.getByRole("button", { name: "Workbook", exact: true }).evaluate((button) => button.click());
+  assert.equal(await page.evaluate(() => location.hash), initialHash, "Placeholder launcher controls must not navigate");
   assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
   const coldStartupMs = Math.round(performance.now() - startupStartedAt);
   const bookOpenStartedAt = performance.now();

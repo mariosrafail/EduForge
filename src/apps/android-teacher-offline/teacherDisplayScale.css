@@ -67,11 +67,6 @@
     padding: 0;
     border-radius: calc(19px * var(--teacher-ui-scale));
   }
-  .legacy-home-lock {
-    padding: calc(3px * var(--teacher-ui-scale)) calc(7px * var(--teacher-ui-scale));
-    font-size: clamp(calc(.62rem * var(--teacher-display-scale)), .6vw, calc(.76rem * var(--teacher-display-scale))) !important;
-  }
-  .legacy-home-lock svg { width: var(--teacher-icon-sm); height: var(--teacher-icon-sm); }
   .legacy-menu-title-animation { width: min(100%, calc(500px * var(--teacher-ui-scale))); }
   .legacy-home-identity {
     padding: clamp(calc(10px * var(--teacher-ui-scale)), 1.5vw, calc(24px * var(--teacher-ui-scale)));

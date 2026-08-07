@@ -97,7 +97,6 @@
 }
 
 .legacy-home-unit.available { cursor: pointer; }
-.legacy-home-unit.locked { opacity: 0.72; filter: saturate(0.72); cursor: not-allowed; }
 
 .legacy-menu-button-art { position: absolute; inset: 0; display: block; }
 .legacy-menu-button-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -109,30 +108,6 @@
 .legacy-home-unit.available:active .legacy-menu-button-art .hover-pressed,
 .legacy-home-unit.available:focus-visible .legacy-menu-button-art .hover-pressed { opacity: 1; }
 .legacy-home-unit:focus-visible { outline: 4px solid #fff600; outline-offset: 3px; }
-
-.legacy-home-lock {
-  position: absolute;
-  right: 10px;
-  bottom: 7px;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 3px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  background: rgba(58, 29, 81, 0.78);
-  color: #fff;
-  font-size: clamp(0.62rem, 0.6vw, 0.76rem) !important;
-  font-weight: 950;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  text-shadow: none;
-  text-transform: uppercase;
-}
-
-.legacy-home-unit-column:last-child .legacy-home-lock { right: auto; left: 10px; }
 
 .legacy-menu-title-animation {
   align-self: center;
@@ -169,9 +144,6 @@
   box-shadow: none;
 }
 
-.legacy-home-book-button.locked { opacity: 0.76; filter: saturate(0.78); cursor: not-allowed; }
-.legacy-home-book-button .legacy-home-lock { right: 12px; bottom: 9px; }
-
 .teacher-offline-library > .classroom-teaching-toolbar {
   align-self: center;
   width: min(1040px, calc(100vw - 144px));
@@ -180,11 +152,8 @@
 
 /* The recovered launcher keeps its authored legacy palette in either app theme. */
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit { border: 0; background: transparent; box-shadow: none; }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-unit.locked { opacity: 0.72; background: transparent; }
 
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button,
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button.locked {
-  opacity: 0.76;
+.teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-offline-library .legacy-home-book-button {
   border: 0;
   border-radius: 18px;
   background: transparent;
@@ -212,12 +181,9 @@
   }
   .legacy-home-unit-column { grid-template-rows: repeat(5, minmax(44px, 1fr)); align-content: end; gap: 3px; }
   .legacy-home-unit { justify-self: center; width: auto; max-width: 100%; height: 100%; max-height: 93px; min-height: 44px; padding: 0; border-width: 0; }
-  .legacy-home-lock { padding: 2px 4px; font-size: 0.49rem !important; }
-  .legacy-home-lock svg { display: none; }
   .legacy-menu-title-animation { grid-column: 2; grid-row: 1; align-self: start; width: min(100%, 135px); }
   .legacy-home-book-row { grid-column: 2; grid-row: 1; align-self: end; width: 100%; grid-template-columns: 1fr; gap: 1px; }
   .legacy-home-book-button { height: 44px; min-height: 44px; aspect-ratio: auto; padding: 0; border-width: 0; border-radius: 10px; }
-  .legacy-home-book-button .legacy-home-lock { right: 5px; bottom: 4px; padding: 1px 3px; }
   .legacy-home-settings-button { width: 46px; height: 46px; min-height: 46px; }
   .legacy-teacher-tool-icon { width: 40px; height: 40px; }
 }

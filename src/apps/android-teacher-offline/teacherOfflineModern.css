@@ -131,25 +131,12 @@
   transition: transform var(--teacher-motion-fast) ease;
 }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-unit.available:active { background: transparent; }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-unit.locked {
-  opacity: 0.72;
-  background: transparent;
-  filter: saturate(0.72);
-}
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-lock {
-  padding: 4px 7px;
-  border: 0;
-  border-radius: 7px;
-  background: rgba(39, 31, 69, 0.72);
-}
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-book-button {
   border: 0;
   background: transparent;
   box-shadow: none;
   transition: transform var(--teacher-motion-fast) ease;
 }
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-book-button.available,
-.teacher-offline-settings-surface[data-teacher-theme="modern"] .legacy-home-book-button.locked { background: transparent; }
 /* Legacy keeps its compact text tabs; Modern uses the launcher-inspired badge + title geometry. */
 .teacher-unit-switch-modern-label { display: none; }
 .teacher-offline-settings-surface[data-teacher-theme="modern"] .teacher-unit-switch {
