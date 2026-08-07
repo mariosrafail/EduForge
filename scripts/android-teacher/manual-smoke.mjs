@@ -272,6 +272,11 @@ try {
   await page.getByRole("slider", { name: "Colour intensity" }).fill("100");
   await page.getByRole("switch", { name: "Visual effects" }).click();
   await page.getByRole("switch", { name: "Animations" }).click();
+  await page.getByRole("tab", { name: "Content" }).click();
+  assert.equal(await page.getByRole("switch", { name: "Show left navbar buttons" }).getAttribute("aria-checked"), "false");
+  assert.equal(await page.getByRole("switch", { name: "Show right navbar buttons" }).getAttribute("aria-checked"), "false");
+  await page.getByRole("switch", { name: "Show left navbar buttons" }).click();
+  await page.getByRole("switch", { name: "Show right navbar buttons" }).click();
   await page.getByRole("button", { name: "Close settings" }).click();
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".legacy-home-launcher").waitFor();
@@ -308,6 +313,7 @@ try {
   await page.locator(".teacher-offline-book").waitFor();
   const bookOpenMs = Math.round(performance.now() - bookOpenStartedAt);
 
+  assert.equal(await page.locator(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").count(), 0, "Book views must not render floating sound or settings controls");
   assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, "Overview top-left unit switcher must be absent");
   assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Unit 1 title must remain visible");
   assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).count(), 0, "Unit 1 must not expose a previous-unit target");
@@ -325,18 +331,6 @@ try {
 
   await page.waitForTimeout(1200);
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Toolbar must never auto-hide behind a reveal button");
-  await page.getByRole("button", { name: "Open classroom settings" }).click();
-  await page.getByRole("tab", { name: "Graphics" }).click();
-  await page.getByRole("button", { name: "Legacy", exact: true }).click();
-  assert.equal(await page.locator('.teacher-offline-unit-overview-screen[aria-label="Unit 1 page overview"]').count(), 1, "Theme switching must preserve navigation state");
-  await page.getByRole("button", { name: "Modern", exact: true }).click();
-  await page.getByRole("tab", { name: "Content" }).click();
-  assert.equal(await page.getByRole("switch", { name: "Show left navbar buttons" }).getAttribute("aria-checked"), "false");
-  assert.equal(await page.getByRole("switch", { name: "Show right navbar buttons" }).getAttribute("aria-checked"), "false");
-  assert.equal(await page.locator('[aria-label="Left overview navigation"]').isVisible(), true, "Both sides off must retain the safe left navigation group");
-  await page.getByRole("switch", { name: "Show left navbar buttons" }).click();
-  await page.getByRole("switch", { name: "Show right navbar buttons" }).click();
-  await page.getByRole("button", { name: "Close settings" }).click();
 
   await assertCanonicalUnitOverview(page, 1);
   await page.locator('[data-page-ids="ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"]').click();

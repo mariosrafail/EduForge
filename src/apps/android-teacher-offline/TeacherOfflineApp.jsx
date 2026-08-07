@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
-import { Settings, Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
 import { teacherContentPackProvider } from "./generatedPackProvider.js";
@@ -256,14 +256,9 @@ export default function TeacherOfflineApp() {
         <div key={startupIntroPending ? "intro" : navigation.view} className="teacher-offline-view-transition" data-teacher-view={startupIntroPending ? "intro" : navigation.view} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
-        {!startupIntroPending && navigation.view === "book" && (
-          <button type="button" className="legacy-classroom-settings-trigger" data-sound="none" aria-label="Open classroom settings" title="Classroom settings" onClick={() => setSettingsOpen(true)}>
-            <Settings />
-          </button>
-        )}
-        {!startupIntroPending && <button
+        {!startupIntroPending && navigation.view === "media" && <button
           type="button"
-          className={`legacy-classroom-sound-toggle${navigation.view === "library" ? " legacy-classroom-sound-toggle-home" : ""}`}
+          className="legacy-classroom-sound-toggle"
           aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
           aria-pressed={classroomSound.enabled}
           title={classroomSound.enabled ? "Mute interface sounds" : "Enable interface sounds"}

@@ -48,14 +48,6 @@
 .legacy-home-window-controls img,
 .legacy-home-settings-button img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 
-.legacy-classroom-sound-toggle-home {
-  top: auto;
-  right: auto;
-  bottom: max(8px, env(safe-area-inset-bottom));
-  left: max(8px, env(safe-area-inset-left));
-  z-index: 31;
-}
-
 .legacy-home-classroom-surface { min-height: 0; outline-offset: -4px; }
 .legacy-home-classroom-surface > .classroom-stage-transform { display: grid; place-items: stretch; }
 

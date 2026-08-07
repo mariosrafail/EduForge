@@ -128,6 +128,7 @@ async function assertEmbeddedActivity(page, label) {
       toolbarCount: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
       standaloneChrome: document.querySelectorAll(".teacher-offline-presentation").length,
       pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
+      floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
       contained: reader && content
         ? content.left >= reader.left - 1 && content.right <= reader.right + 1
@@ -141,6 +142,7 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.toolbarCount, 1, `${label} has one toolbar`);
   assert.equal(metrics.standaloneChrome, 0, `${label} removes standalone presentation chrome`);
   assert.equal(metrics.pageImages, 0, `${label} replaces page image`);
+  assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
   assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
@@ -200,6 +202,7 @@ async function assertLegacyLauncher(page, label) {
       settings: visible(".legacy-home-settings-button"),
       settingsInFloatingChrome: Boolean(settings?.closest(".legacy-home-floating-chrome")),
       bottomSettings: visible(".legacy-classroom-settings-trigger"),
+      floatingSound: visible(".legacy-classroom-sound-toggle"),
       close: visible(".legacy-home-close-button"),
       minimize: document.querySelectorAll('[aria-label^="Minimize"]').length,
       horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
@@ -226,6 +229,7 @@ async function assertLegacyLauncher(page, label) {
     settings: true,
     settingsInFloatingChrome: true,
     bottomSettings: false,
+    floatingSound: false,
     close: true,
     minimize: 0,
     horizontalTopbars: 0,
@@ -255,6 +259,7 @@ async function assertLegacyPageViewer(page, label) {
       navigationExists: visible(".legacy-page-navigation"),
       toolsExist: visible(".legacy-classroom-viewer-toolbar"),
       bookHeaderVisible: visible(".teacher-offline-book-header"),
+      floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
       centered: panel && image ? Math.abs((image.left + image.width / 2) - (panel.left + panel.width / 2)) < 3 : false,
       contained: panel && image ? image.left >= panel.left - 4 && image.right <= panel.right + 4 && image.top >= panel.top - 4 && image.bottom <= panel.bottom + 4 : false,
       panel: panel ? { left: panel.left, top: panel.top, right: panel.right, bottom: panel.bottom } : null,
@@ -266,6 +271,7 @@ async function assertLegacyPageViewer(page, label) {
   assert.equal(metrics.navigationExists, true, `${label} lower navigation`);
   assert.equal(metrics.toolsExist, true, `${label} viewer tools`);
   assert.equal(metrics.bookHeaderVisible, false, `${label} web-style book header hidden`);
+  assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.equal(metrics.centered, true, `${label} page centered`);
   assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
 }
@@ -316,11 +322,6 @@ try {
     await assertCleanAbout(page, "modern-about-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/settings-about-1920x1080.png` });
     await settingsDialog.getByRole("button", { name: "Close settings" }).click();
-    const soundToggle = page.getByRole("button", { name: "Mute classroom interface sounds" });
-    await soundToggle.click();
-    await page.reload({ waitUntil: "networkidle" });
-    await completeStartupIntro(page);
-    await page.getByRole("button", { name: "Enable classroom interface sounds" }).click();
     await openBook(page);
     await selectOverviewUnit(page, 1);
     await assertLegacyUnitOverview(page, 1, "students-book-unit1-overview-1920x1080");

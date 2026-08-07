@@ -128,8 +128,7 @@ try {
       const units = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect());
       const settings = document.querySelector(".legacy-home-settings-button");
       const close = document.querySelector(".legacy-home-close-button");
-      const sound = document.querySelector(".legacy-classroom-sound-toggle-home");
-      const controls = [sound, settings, close].map((control) => control?.getBoundingClientRect()).filter(Boolean);
+      const controls = [settings, close].map((control) => control?.getBoundingClientRect()).filter(Boolean);
       const overlaps = controls.some((first, index) => controls.slice(index + 1).some((second) => (
         first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
       )));
@@ -141,6 +140,7 @@ try {
         minimizeControls: document.querySelectorAll('[aria-label^="Minimize"]').length,
         horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
         bottomSettings: document.querySelectorAll(".legacy-classroom-settings-trigger").length,
+        floatingSound: document.querySelectorAll(".legacy-classroom-sound-toggle").length,
         minimumUnitHeight: Math.min(...units.map((rect) => rect.height)),
         maximumUnitHeight: Math.max(...units.map((rect) => rect.height)),
         floatingChromeBackground: getComputedStyle(document.querySelector(".legacy-home-floating-chrome")).backgroundColor,
@@ -165,6 +165,7 @@ try {
     assert.equal(launcherLayout.minimizeControls, 0, `${target.name} minimize removed`);
     assert.equal(launcherLayout.horizontalTopbars, 0, `${target.name} horizontal top bar removed`);
     assert.equal(launcherLayout.bottomSettings, 0, `${target.name} bottom settings removed`);
+    assert.equal(launcherLayout.floatingSound, 0, `${target.name} floating sound removed`);
     assert.equal(launcherLayout.floatingChromeBackground, "rgba(0, 0, 0, 0)", `${target.name} floating chrome is transparent`);
     assert.equal(launcherLayout.launcherBackground, "none", `${target.name} central panel background removed`);
     assert.equal(launcherLayout.launcherBorder, "0px", `${target.name} central panel border removed`);

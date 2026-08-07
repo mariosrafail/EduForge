@@ -36,20 +36,12 @@
   .legacy-home-publisher-logo { width: calc(272px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls { gap: calc(9px * var(--teacher-ui-scale)); }
   .legacy-home-window-controls button,
-  .legacy-home-settings-button,
-  .legacy-classroom-sound-toggle-home {
+  .legacy-home-settings-button {
     width: calc(52px * var(--teacher-ui-scale));
     height: calc(52px * var(--teacher-ui-scale));
     min-height: calc(52px * var(--teacher-ui-scale));
   }
-  .legacy-home-window-controls button svg,
-  .legacy-classroom-sound-toggle-home svg { width: var(--teacher-icon-md); height: var(--teacher-icon-md); }
-  .legacy-classroom-sound-toggle-home {
-    top: auto;
-    right: auto;
-    bottom: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
-    left: max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-left));
-  }
+  .legacy-home-window-controls button svg { width: var(--teacher-icon-md); height: var(--teacher-icon-md); }
   .legacy-home-launcher {
     width: min(calc(1760px * var(--teacher-ui-scale)), 94vw);
     margin: clamp(calc(8px * var(--teacher-ui-scale)), 1.5vh, calc(18px * var(--teacher-ui-scale))) auto max(calc(8px * var(--teacher-ui-scale)), env(safe-area-inset-bottom));
@@ -221,8 +213,6 @@
   .classroom-tool-message { max-width: min(calc(620px * var(--teacher-ui-scale)), 90vw); padding: calc(12px * var(--teacher-ui-scale)) calc(18px * var(--teacher-ui-scale)); font-size: calc(1rem * var(--teacher-display-scale)); }
 
   /* Settings remains a modal but scales to classroom-reading proportions. */
-  .legacy-classroom-settings-trigger { right: calc(78px * var(--teacher-ui-scale)); bottom: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-bottom)); width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
-  .legacy-classroom-settings-trigger svg { width: calc(27px * var(--teacher-ui-scale)); height: calc(27px * var(--teacher-ui-scale)); }
   .legacy-settings-backdrop { padding: calc(24px * var(--teacher-ui-scale)); }
   .legacy-settings-dialog { width: min(calc(1040px * var(--teacher-ui-scale)), 88vw); min-height: min(calc(660px * var(--teacher-ui-scale)), 78vh); max-height: 94vh; padding: calc(84px * var(--teacher-ui-scale)) calc(30px * var(--teacher-ui-scale)) calc(30px * var(--teacher-ui-scale)); border-radius: calc(34px * var(--teacher-ui-scale)); }
   .legacy-settings-tabs { top: calc(-5px * var(--teacher-ui-scale)); left: calc(30px * var(--teacher-ui-scale)); right: calc(94px * var(--teacher-ui-scale)); height: calc(82px * var(--teacher-ui-scale)); gap: calc(8px * var(--teacher-ui-scale)); }
