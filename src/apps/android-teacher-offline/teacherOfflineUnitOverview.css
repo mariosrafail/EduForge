@@ -161,16 +161,18 @@
 .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong {
   max-width: 100%;
   overflow: visible;
-  font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  font-family: "PF Stiele Futura Medium", "Arial Narrow", Arial, sans-serif;
   font-size: clamp(1.2rem, 1.6vw, 1.9rem);
-  font-stretch: condensed;
-  font-weight: 950;
+  font-stretch: normal;
+  font-weight: 400;
   line-height: 1;
   text-overflow: clip;
   white-space: nowrap;
 }
 
 .teacher-offline-unit-overview-screen .teacher-unit-page-copy b {
+  font-family: "PF Stiele Futura Medium", "Arial Narrow", Arial, sans-serif;
+  font-weight: 400;
   font-size: clamp(1.06rem, 1.28vw, 1.46rem);
   line-height: 1.05;
 }

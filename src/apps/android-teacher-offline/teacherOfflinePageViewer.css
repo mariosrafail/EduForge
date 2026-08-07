@@ -177,6 +177,31 @@
   max-height: 100%;
 }
 
+/* Original Ultimate B2 activity source uses Fira Sans for body copy and
+   ITC Flora Std Medium for publisher-model answers. Keep this inside the
+   Teacher presentation host so student and web typography are untouched. */
+.teacher-offline-embedded-activity :is(
+  .ultimate-b2-legacy-unit-opener,
+  .ultimate-b2-legacy-pilot,
+  .teacher-presentation-activity
+) {
+  font-family: "Fira Sans", Arial, sans-serif;
+}
+
+.teacher-offline-embedded-activity :is(
+  .legacy-unit-opener-answer-lines,
+  .legacy-pilot-revealed-answer > strong,
+  .presentation-revealed-answer > strong
+) {
+  font-family: "ITC Flora Std Medium", "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.teacher-offline-embedded-activity .legacy-unit-opener-answer-lines.revealed > span {
+  font-family: "ITC Flora Std Medium", "Times New Roman", serif;
+  font-weight: 400 !important;
+}
+
 /* The recovered publisher-image display is a single white presentation canvas,
    not the blue floating card used by the web activity treatment. */
 .teacher-offline-embedded-activity .ultimate-b2-publisher-image-display {

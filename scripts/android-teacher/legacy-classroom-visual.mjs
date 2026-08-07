@@ -71,6 +71,21 @@ async function assertLegacyUnitOverview(page, unit, label) {
   assert.equal(await overview.getByText(/activities$/i).count(), 0, `${label} activity counts hidden`);
   assert.equal(await overview.locator("img").count(), unit === 1 ? 10 : 12, `${label} thumbnail count`);
   assert.equal(await overview.evaluate((element) => getComputedStyle(element).backgroundSize), "cover", `${label} overview background covers the frame`);
+  const overviewFonts = await entries.locator(".teacher-unit-page-copy").evaluateAll((nodes) => nodes
+    .filter((node) => node.querySelector("strong"))
+    .slice(0, 2)
+    .map((node) => ({
+      heading: getComputedStyle(node.querySelector("strong")).fontFamily,
+      page: getComputedStyle(node.querySelector("b")).fontFamily,
+      headingWeight: getComputedStyle(node.querySelector("strong")).fontWeight,
+      pageWeight: getComputedStyle(node.querySelector("b")).fontWeight,
+    })));
+  for (const font of overviewFonts) {
+    assert.match(font.heading, /PF Stiele Futura Medium/, `${label} uses the recovered overview heading family`);
+    assert.match(font.page, /PF Stiele Futura Medium/, `${label} uses the recovered overview page-label family`);
+    assert.equal(font.headingWeight, "400", `${label} overview heading keeps publisher normal weight`);
+    assert.equal(font.pageWeight, "400", `${label} overview page label keeps publisher normal weight`);
+  }
   if (unit === 2) assert.equal(await overview.locator('[data-page-ids="reading-19"] strong').count(), 0, `${label} pg 19 heading omitted`);
   assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, `${label} top-left unit switcher absent`);
   assert.equal(await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).isVisible(), true, `${label} centered unit title`);
@@ -536,6 +551,14 @@ try {
       await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
     }
     await page.getByRole("button", { name: "Publisher model answer for question 3" }).waitFor();
+    const unitOpenerFonts = await page.evaluate(() => ({
+      question: getComputedStyle(document.querySelector(".legacy-unit-opener-question h3")).fontFamily,
+      answer: getComputedStyle(document.querySelector(".legacy-unit-opener-answer-lines.revealed > span")).fontFamily,
+      answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-answer-lines.revealed > span")).fontWeight,
+    }));
+    assert.match(unitOpenerFonts.question, /Fira Sans/, "unit opener question uses the recovered Fira Sans family");
+    assert.match(unitOpenerFonts.answer, /ITC Flora Std Medium/, "unit opener answer uses the recovered ITC Flora family");
+    assert.equal(unitOpenerFonts.answerWeight, "400", "unit opener answer keeps publisher normal weight");
     await page.screenshot({ path: `${artifactRoot}/embedded-unit-opener-1366x768.png` });
     await page.getByRole("button", { name: "Back to page" }).click();
     await waitForPageImage(page);
