@@ -137,6 +137,7 @@
 .legacy-menu-title-animation {
   align-self: center;
   justify-self: center;
+  transform: translateY(clamp(-30px, -2vh, -15px));
   width: min(100%, 500px);
   aspect-ratio: 432.075 / 295.6;
   display: grid;
