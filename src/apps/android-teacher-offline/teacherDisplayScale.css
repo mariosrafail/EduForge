@@ -146,10 +146,10 @@
   .teacher-unit-side-navigation.next { right: max(calc(18px * var(--teacher-ui-scale)), env(safe-area-inset-right)); }
   .teacher-unit-side-navigation svg { width: calc(38px * var(--teacher-ui-scale)); height: calc(38px * var(--teacher-ui-scale)); }
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; padding: clamp(calc(18px * var(--teacher-ui-scale)), 1.7vw, calc(32px * var(--teacher-ui-scale))); border-radius: var(--teacher-students-book-stage-radius); }
-  .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.2vh, calc(18px * var(--teacher-ui-scale))) clamp(calc(8px * var(--teacher-ui-scale)), .85vw, calc(15px * var(--teacher-ui-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.2vh, calc(18px * var(--teacher-ui-scale))) clamp(calc(4px * var(--teacher-ui-scale)), .45vw, calc(8px * var(--teacher-ui-scale))); }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: clamp(calc(44px * var(--teacher-ui-scale)), 5.5vh, calc(62px * var(--teacher-ui-scale))); }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(1.12rem * var(--teacher-display-scale)), 1.45vw, calc(1.75rem * var(--teacher-display-scale))); }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(calc(.98rem * var(--teacher-display-scale)), 1.18vw, calc(1.35rem * var(--teacher-display-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(1.2rem * var(--teacher-display-scale)), 1.6vw, calc(1.9rem * var(--teacher-display-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(calc(1.06rem * var(--teacher-display-scale)), 1.28vw, calc(1.46rem * var(--teacher-display-scale))); }
   .legacy-overview-book-links button { width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
   .legacy-overview-book-links button span { font-size: calc(1rem * var(--teacher-display-scale)); }
   .legacy-overview-book-links button small { font-size: calc(.48rem * var(--teacher-display-scale)); }
