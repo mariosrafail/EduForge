@@ -103,8 +103,8 @@ export default function TeacherOfflineUnitOverview({
       <nav className="legacy-page-navigation legacy-overview-navigation" aria-label="Unit overview navigation">
         {settings.content.showNavbarLeft || (!settings.content.showNavbarLeft && !settings.content.showNavbarRight) ? navigationGroup("Left") : <div data-navbar-side="left" data-navbar-hidden="true" />}
         <div className="legacy-overview-book-links" aria-label="Book and contents controls">
-          <button type="button" disabled aria-label="Grammar Book — Locked" title="Grammar Book — Locked"><span>GB</span><small>Locked</small></button>
-          <button type="button" disabled aria-label="Workbook — Locked" title="Workbook — Locked"><span>WB</span><small>Locked</small></button>
+          <button type="button" aria-label="Grammar Book" title="Grammar Book"><span>GB</span></button>
+          <button type="button" aria-label="Workbook" title="Workbook"><span>WB</span></button>
           <button type="button" onClick={onOpenContents} aria-label="Contents and exercises" title="Contents and exercises"><Grid2X2 size={24} /><small>Contents</small></button>
         </div>
         {settings.content.showNavbarRight ? navigationGroup("Right") : <div data-navbar-side="right" data-navbar-hidden="true" />}
