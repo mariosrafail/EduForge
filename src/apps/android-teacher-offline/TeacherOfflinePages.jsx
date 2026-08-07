@@ -71,7 +71,7 @@ export default function TeacherOfflinePages({
   const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
-  const pageContext = page ? `${page.title} · ${page.label || `Page ${page.pageNumber}`}` : "";
+  const pageContext = page?.title || "";
   const embeddedActivityId = activeActivity?.stableActivityId || activeActivityId || "";
   const activityActive = Boolean(embeddedActivityId);
   const classroomSurfaceKey = activityActive
