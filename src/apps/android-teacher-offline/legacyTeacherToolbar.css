@@ -9,7 +9,7 @@
 
 .teacher-offline-settings-surface .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar {
   --legacy-tool-icon-size: clamp(38px, 5.2vw, calc(64px * var(--teacher-ui-scale, 1)));
-  --legacy-tool-row-width: min(calc(1018px * var(--teacher-ui-scale, 1)), calc(100vw - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right))));
+  --legacy-tool-row-width: min(calc(1240px * var(--teacher-ui-scale, 1)), calc(100vw - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right))));
   box-sizing: border-box;
   width: var(--legacy-tool-row-width);
   min-height: calc(var(--legacy-tool-icon-size) * 1.2);
@@ -29,7 +29,7 @@
   grid-template-columns: repeat(18, minmax(0, 1fr));
   align-items: center;
   justify-content: center;
-  gap: 0;
+  column-gap: clamp(calc(2px * var(--teacher-ui-scale, 1)), .3vw, calc(4px * var(--teacher-ui-scale, 1)));
   overflow: visible;
 }
 

@@ -337,6 +337,11 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-1920x1080.png` });
+    const unselectedToolGaps = await page.locator(".classroom-teaching-toolbar .legacy-teacher-tool-icon-stack").evaluateAll((icons) => {
+      const unselected = icons.slice(1);
+      return unselected.slice(1).map((icon, index) => icon.getBoundingClientRect().left - unselected[index].getBoundingClientRect().right);
+    });
+    assert.ok(unselectedToolGaps.every((gap) => gap >= 3 && gap <= 6), `toolbar artwork gaps must remain subtle: ${unselectedToolGaps}`);
     const pencil = page.getByRole("button", { name: "Pencil", exact: true });
     await pencil.hover();
     await page.waitForTimeout(140);
