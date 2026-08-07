@@ -368,8 +368,7 @@ export default function TeacherOfflinePages({
 
       <nav className="legacy-page-navigation" aria-label="Page navigation">
         {showRightNavigation ? <div data-navbar-side="right">
-          <button type="button" className="legacy-page-round-button" onClick={onBackToLibrary} title="Library" aria-label="Library"><LegacyClassroomIcon name="home" /></button>
-          <button type="button" className="legacy-page-round-button" onClick={activityActive ? onCloseActivity : () => onSelectPage("")} title={activityActive ? "Back to page" : "Unit overview"} aria-label={activityActive ? "Back to page" : "Unit overview"}><LegacyClassroomIcon name="back" /></button>
+          {activityActive && <button type="button" className="legacy-page-round-button" onClick={onCloseActivity} title="Back to page" aria-label="Back to page"><LegacyClassroomIcon name="back" /></button>}
           <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
         </div> : <div data-navbar-side="right" data-navbar-hidden="true" />}
         <div>

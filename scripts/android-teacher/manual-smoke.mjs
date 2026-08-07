@@ -109,6 +109,12 @@ async function backToBook(page) {
   await page.locator(".teacher-offline-page-image").waitFor();
 }
 
+async function returnToOverview(page, unitNumber) {
+  await page.getByRole("button", { name: "Contents and exercises" }).click();
+  await page.locator(".teacher-offline-unit-tabs").getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
+  await assertCanonicalUnitOverview(page, unitNumber);
+}
+
 let browser;
 try {
   await waitForPreview();
@@ -336,9 +342,12 @@ try {
   assert.equal(await page.locator(".legacy-page-location").count(), 0, "Page location pill must be removed");
   await page.getByRole("button", { name: "Next page" }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice");
+  assert.equal(await page.getByRole("button", { name: "Library" }).count(), 0, "Page viewer must not expose a redundant Library button");
+  assert.equal(await page.getByRole("button", { name: "Unit overview" }).count(), 0, "Page viewer must not expose a redundant Unit overview button");
+  assert.equal(await page.getByRole("button", { name: "Back to page" }).count(), 0, "Page viewer must reserve Back to page for activities");
   const navigationSoundPlays = await page.evaluate(() => globalThis.__teacherSoundPlays);
   assert.equal(navigationSoundPlays.some((play) => /page-turn/i.test(play.source) && Math.abs(play.volume - 0.37) < 0.001), true, `Navigation sounds must use navigation volume: ${JSON.stringify(navigationSoundPlays)}`);
-  await page.getByRole("button", { name: "Unit overview" }).click();
+  await returnToOverview(page, 1);
   await page.getByRole("button", { name: "Next unit", exact: true }).click();
   assert.equal(await page.getByRole("heading", { name: "Unit 2", exact: true }).isVisible(), true, "Next-unit arrow must stay in overview mode and open Unit 2");
   assert.equal(await page.locator(".teacher-offline-pages-viewer").count(), 0, "Unit switching must not open a page");
@@ -352,17 +361,17 @@ try {
   assert.equal(await page.locator('[data-page-ids="reading-19"] .teacher-unit-page-copy strong').count(), 0, "pg 19 must visually omit Reading");
   await page.locator('[data-page-ids="reading-20-21"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Reading");
-  await page.getByRole("button", { name: "Unit overview" }).click();
+  await returnToOverview(page, 2);
   await page.locator('[data-page-ids="practice-31,practice-32"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
   await page.getByRole("button", { name: "Next page" }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
-  await page.getByRole("button", { name: "Unit overview" }).click();
+  await returnToOverview(page, 2);
   await page.locator('[data-page-ids="progress-check-33,progress-check-34"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
   await page.getByRole("button", { name: "Next page" }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
-  await page.getByRole("button", { name: "Unit overview" }).click();
+  await returnToOverview(page, 2);
   await page.getByRole("button", { name: "Contents and exercises" }).click();
   await page.getByRole("button", { name: "Unit 1", exact: true }).click();
   await assertCanonicalUnitOverview(page, 1);
@@ -580,11 +589,7 @@ try {
   await page.getByText("No verified answer is available for this activity.").waitFor();
   await backToBook(page);
 
-  const bookPagesTab = page.getByRole("tab", { name: "Book pages" });
-  if (await bookPagesTab.count()) await bookPagesTab.click();
-  if (!await page.locator(".teacher-offline-unit-overview").count()) {
-    await page.getByRole("button", { name: "Unit overview" }).click();
-  }
+  await returnToOverview(page, 1);
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
   await page.getByRole("button", { name: "Page activities" }).click();
   await page.getByRole("button", { name: "Reading · Exercise 1", exact: true }).last().click();

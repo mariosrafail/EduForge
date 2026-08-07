@@ -118,6 +118,12 @@ async function openPage(page, label) {
   await waitForPageImage(page);
 }
 
+async function returnToOverview(page, unit) {
+  await page.getByRole("button", { name: "Contents and exercises" }).click();
+  await page.locator(".teacher-offline-unit-tabs").getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
+  await waitForUnitOverview(page);
+}
+
 async function openActivity(page, unit, title) {
   if (await page.locator(".teacher-offline-embedded-activity").count()) await page.getByRole("button", { name: "Back to page" }).click();
   if (await page.locator(".teacher-offline-pages-viewer").count()) await page.getByRole("button", { name: "Contents and exercises" }).click();
@@ -150,6 +156,9 @@ async function assertEmbeddedActivity(page, label) {
       pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
+      libraryButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Library"]').length,
+      unitOverviewButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Unit overview"]').length,
+      backToPageButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Back to page"]').length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
       edgeToEdgeHost: reader && hostRect
         ? hostRect.left <= reader.left + 7 && hostRect.right >= reader.right - 7
@@ -173,6 +182,9 @@ async function assertEmbeddedActivity(page, label) {
   assert.doesNotMatch(metrics.pageContext, /pg \d/, `${label} omits the page number from the heading`);
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
+  assert.equal(metrics.libraryButtons, 0, `${label} has no redundant library button`);
+  assert.equal(metrics.unitOverviewButtons, 0, `${label} has no redundant unit overview button`);
+  assert.equal(metrics.backToPageButtons, 1, `${label} keeps one back-to-page button`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
   assert.equal(metrics.edgeToEdgeHost, true, `${label} host fills the reader interior: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.neutralHostCanvas, true, `${label} masks the reader background behind activity corners`);
@@ -309,6 +321,9 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
       pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
+      libraryButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Library"]').length,
+      unitOverviewButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Unit overview"]').length,
+      backToPageButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Back to page"]').length,
       centered: panel && image ? Math.abs((image.left + image.width / 2) - (panel.left + panel.width / 2)) < 3 : false,
       contained: panel && image ? image.left >= panel.left - 4 && image.right <= panel.right + 4 && image.top >= panel.top - 4 && image.bottom <= panel.bottom + 4 : false,
       panel: panel ? { left: panel.left, top: panel.top, right: panel.right, bottom: panel.bottom } : null,
@@ -325,6 +340,9 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
   assert.equal(metrics.pageContext, expectedPageTitle, `${label} heading shows only the current page title`);
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
+  assert.equal(metrics.libraryButtons, 0, `${label} has no redundant library button`);
+  assert.equal(metrics.unitOverviewButtons, 0, `${label} has no redundant unit overview button`);
+  assert.equal(metrics.backToPageButtons, 0, `${label} only exposes back to page for activities`);
   assert.equal(metrics.centered, true, `${label} page centered`);
   assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
 }
@@ -391,17 +409,17 @@ try {
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page5-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-page-viewer-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-1920x1080.png` });
-    await page.getByRole("button", { name: "Unit overview" }).click();
+    await returnToOverview(page, 1);
     await page.locator('[data-page-ids="ub2-sb-unit-1-part-4"]').click();
     await waitForPageImage(page);
     await assertLegacyPageViewer(page, "page-viewer-unit1-page10-11-1920x1080", "Grammar in Use");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page10-11-1920x1080.png` });
-    await page.getByRole("button", { name: "Unit overview" }).click();
+    await returnToOverview(page, 1);
     await page.locator('[data-page-ids="ub2-sb-unit-1-part-7"]').click();
     await waitForPageImage(page);
     await assertLegacyPageViewer(page, "page-viewer-unit1-page14-15-1920x1080", "Writing");
     await page.screenshot({ path: `${artifactRoot}/page-viewer-unit1-page14-15-1920x1080.png` });
-    await page.getByRole("button", { name: "Unit overview" }).click();
+    await returnToOverview(page, 1);
     await openPage(page, "pg 5");
     const unselectedToolGaps = await page.locator(".classroom-teaching-toolbar .legacy-teacher-tool-icon-stack").evaluateAll((icons) => {
       const unselected = icons.slice(1);
@@ -546,6 +564,8 @@ try {
       .click();
     await page.locator(".teacher-offline-embedded-activity").waitFor();
     await assertEmbeddedActivity(page, "unit-opener-1366x768");
+    assert.equal(await page.getByRole("button", { name: "Library" }).count(), 0, "embedded activity has no redundant library button");
+    assert.equal(await page.getByRole("button", { name: "Back to page" }).count(), 1, "embedded activity keeps one back-to-page button");
     assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Unit opener", "unit opener keeps its parent page title");
     for (const question of [1, 2, 3]) {
       await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
