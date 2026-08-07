@@ -89,7 +89,7 @@
   padding: clamp(18px, 1.7vw, 32px);
   display: block;
   overflow: hidden;
-  border: var(--teacher-students-book-stage-border-width) solid rgba(229, 250, 255, 0.96);
+  border: calc(var(--teacher-students-book-stage-border-width) + 1px) solid rgba(229, 250, 255, 0.96);
   border-radius: var(--teacher-students-book-stage-radius);
   background: #d65ee7 var(--legacy-students-book-parts-background) center / contain no-repeat;
   box-shadow: var(--teacher-students-book-stage-shadow);
@@ -157,7 +157,7 @@
   max-width: 100%;
   overflow: visible;
   font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
-  font-size: clamp(0.9rem, 1.15vw, 1.38rem);
+  font-size: clamp(0.96rem, 1.25vw, 1.5rem);
   font-stretch: condensed;
   font-weight: 950;
   line-height: 1;
@@ -166,7 +166,7 @@
 }
 
 .teacher-offline-unit-overview-screen .teacher-unit-page-copy b {
-  font-size: clamp(0.8rem, 0.92vw, 1.08rem);
+  font-size: clamp(0.86rem, 1.02vw, 1.18rem);
   line-height: 1.05;
 }
 
@@ -194,9 +194,9 @@
   display: block;
   object-fit: contain;
   object-position: top center;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 1px;
-  box-shadow: 0 7px 15px rgba(51, 18, 72, 0.34);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .teacher-offline-unit-overview-screen .teacher-unit-page-thumb.grouped img {
@@ -251,7 +251,7 @@
   .legacy-overview-heading h2 { font-size: 1.45rem; }
   .legacy-overview-heading .legacy-page-window-controls { gap: 5px; }
   .legacy-overview-heading .legacy-page-window-controls button { width: 30px; height: 30px; min-height: 30px; border-width: 2px; font-size: 1.1rem; }
-  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; max-width: var(--teacher-students-book-stage-max-width); padding: 5px 7px; border-width: var(--teacher-students-book-stage-border-width); border-radius: var(--teacher-students-book-stage-radius); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; max-width: var(--teacher-students-book-stage-max-width); padding: 5px 7px; border-width: calc(var(--teacher-students-book-stage-border-width) + 1px); border-radius: var(--teacher-students-book-stage-radius); }
   .teacher-unit-side-navigation { width: 44px; height: 44px; min-height: 44px; border-width: 2px; box-shadow: 0 0 0 1px rgba(70, 31, 104, 0.78), 0 3px 0 rgba(52, 24, 79, 0.72), 0 5px 10px rgba(18, 29, 66, 0.26); }
   .teacher-unit-side-navigation.previous { left: max(6px, env(safe-area-inset-left)); }
   .teacher-unit-side-navigation.next { right: max(6px, env(safe-area-inset-right)); }
@@ -259,8 +259,8 @@
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 3px 5px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-card { padding-inline: 1px; border-radius: 4px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 25px; padding-bottom: 2px; }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(0.48rem, 1.25vw, 0.68rem); }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(0.46rem, 1.15vw, 0.62rem); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(0.52rem, 1.35vw, 0.74rem); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(0.5rem, 1.25vw, 0.68rem); }
   .teacher-offline-unit-overview-screen .teacher-unit-page-thumb { gap: 1px; }
   .legacy-overview-navigation { width: var(--teacher-students-book-stage-chrome-width); min-height: var(--teacher-presentation-navigation-row); margin-top: -3px; gap: 5px; }
   .legacy-overview-navigation > div { gap: 2px; }
@@ -283,11 +283,11 @@
   .teacher-unit-side-navigation.previous { left: max(32px, env(safe-area-inset-left)); }
   .teacher-unit-side-navigation.next { right: max(32px, env(safe-area-inset-right)); }
   .teacher-unit-side-navigation svg { width: 48px; height: 48px; }
-  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; padding: 42px; border-width: var(--teacher-students-book-stage-border-width); border-radius: var(--teacher-students-book-stage-radius); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; padding: 42px; border-width: calc(var(--teacher-students-book-stage-border-width) + 1px); border-radius: var(--teacher-students-book-stage-radius); }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 28px 24px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 96px; }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: 2.35rem; }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: 1.8rem; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: 2.5rem; }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: 1.95rem; }
   .legacy-overview-navigation .legacy-page-round-button,
   .legacy-overview-book-links button { width: 88px; height: 88px; min-height: 88px; }
   .legacy-overview-navigation .legacy-page-round-button .legacy-classroom-icon { width: 86px; height: 86px; flex-basis: 86px; }

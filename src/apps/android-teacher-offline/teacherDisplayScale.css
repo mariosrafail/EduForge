@@ -148,8 +148,8 @@
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { width: auto; padding: clamp(calc(18px * var(--teacher-ui-scale)), 1.7vw, calc(32px * var(--teacher-ui-scale))); border-radius: var(--teacher-students-book-stage-radius); }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: clamp(calc(10px * var(--teacher-ui-scale)), 1.2vh, calc(18px * var(--teacher-ui-scale))) clamp(calc(8px * var(--teacher-ui-scale)), .85vw, calc(15px * var(--teacher-ui-scale))); }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: clamp(calc(44px * var(--teacher-ui-scale)), 5.5vh, calc(62px * var(--teacher-ui-scale))); }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(.9rem * var(--teacher-display-scale)), 1.15vw, calc(1.38rem * var(--teacher-display-scale))); }
-  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(calc(.8rem * var(--teacher-display-scale)), .92vw, calc(1.08rem * var(--teacher-display-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: clamp(calc(.96rem * var(--teacher-display-scale)), 1.25vw, calc(1.5rem * var(--teacher-display-scale))); }
+  .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: clamp(calc(.86rem * var(--teacher-display-scale)), 1.02vw, calc(1.18rem * var(--teacher-display-scale))); }
   .legacy-overview-book-links button { width: calc(58px * var(--teacher-ui-scale)); height: calc(58px * var(--teacher-ui-scale)); min-height: calc(58px * var(--teacher-ui-scale)); }
   .legacy-overview-book-links button span { font-size: calc(1rem * var(--teacher-display-scale)); }
   .legacy-overview-book-links button small { font-size: calc(.48rem * var(--teacher-display-scale)); }
