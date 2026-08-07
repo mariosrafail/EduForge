@@ -165,6 +165,17 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
 
+async function assertPublisherImageCanvas(page, label) {
+  const styles = await page.locator(".ultimate-b2-publisher-image-display, .ultimate-b2-publisher-image-display-sheet").evaluateAll((elements) => elements.map((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, border: style.borderWidth, radius: style.borderRadius, shadow: style.boxShadow };
+  }));
+  assert.deepEqual(styles, [
+    { background: "rgb(255, 255, 255)", border: "0px", radius: "0px", shadow: "none" },
+    { background: "rgb(255, 255, 255)", border: "0px", radius: "0px", shadow: "none" },
+  ], `${label} uses a continuous white canvas`);
+}
+
 async function assertScreen(page, label) {
   await page.waitForFunction(() => [...document.querySelectorAll(".teacher-offline-view-transition, .teacher-offline-unit-overview-screen, .teacher-offline-pages-viewer")]
     .every((element) => Number.parseFloat(getComputedStyle(element).opacity) >= 0.99));
@@ -487,6 +498,10 @@ try {
     await page.waitForFunction(() => document.querySelector(".teacher-offline-page-image img")?.getBoundingClientRect().width > innerWidth * 0.2);
     await assertScreen(page, "legacy-page-viewer-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-page-viewer-1920x1080.png` });
+    await openActivity(page, 1, "Unit opener · Exercise 2");
+    await assertEmbeddedActivity(page, "publisher-image-1920x1080");
+    await assertPublisherImageCanvas(page, "publisher-image-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/publisher-image-1920x1080.png` });
   });
 
   await capture({ width: 1280, height: 720 }, async (page) => {
