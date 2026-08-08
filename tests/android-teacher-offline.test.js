@@ -46,6 +46,7 @@ import {
   EMBEDDED_ACTIVITY_MIN_TARGET_SIZE,
   resolveEmbeddedActivityFit,
 } from "../src/apps/android-teacher-offline/embeddedActivityFit.js";
+import { renderedDeltaToTeacherStage } from "../src/apps/android-teacher-offline/teacherStageGeometry.js";
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -93,30 +94,39 @@ test("teacher viewport profiles use available width and height rather than devic
   assert.equal(classifyTeacherViewport({ width: 3840, height: 2160 }), TEACHER_VIEWPORT_PROFILES.EXTRA_LARGE);
 });
 
-test("Teacher automatic display scale uses the 1920x1080 baseline and clamps from 1 to 2", () => {
-  assert.equal(getTeacherDisplayScale(800, 360), 1);
-  assert.equal(getTeacherDisplayScale(1280, 720), 1);
+test("Teacher stage scale is the unclamped 1920x1080 contain-fit ratio", () => {
+  assert.ok(Math.abs(getTeacherDisplayScale(800, 360) - 1 / 3) < 0.0001);
+  assert.ok(Math.abs(getTeacherDisplayScale(1280, 720) - 2 / 3) < 0.0001);
   assert.equal(getTeacherDisplayScale(1920, 1080), 1);
   assert.ok(Math.abs(getTeacherDisplayScale(2560, 1440) - 4 / 3) < 0.0001);
   assert.equal(getTeacherDisplayScale(3840, 2160), 2);
-  assert.equal(getTeacherDisplayScale(7680, 4320), 2);
+  assert.equal(getTeacherDisplayScale(7680, 4320), 4);
   assert.equal(getTeacherDisplayScale(3840, 1080), 1);
   assert.equal(getTeacherDisplayScale(0, 0), 1);
 });
 
-test("Teacher large-display scaling uses layout dimensions and multiplies Interface Size", async () => {
-  const [app, rootCss, scaleCss] = await Promise.all([
+test("Teacher fixed stage separates viewport fit from bounded Interface Size", async () => {
+  const [app, stage, rootCss, fixedCss] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherFixedStage.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineRoot.css", "utf8"),
-    readFile("src/apps/android-teacher-offline/teacherDisplayScale.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherFixedStage.css", "utf8"),
   ]);
-  assert.match(app, /viewport\.displayScale \* userInterfaceScale/);
+  assert.doesNotMatch(app, /viewport\.displayScale \* userInterfaceScale/);
   assert.match(app, /"--teacher-display-scale": viewport\.displayScale/);
   assert.match(app, /"--teacher-ui-scale": effectiveUiScale/);
-  assert.match(rootCss, /teacherDisplayScale\.css/);
-  assert.match(scaleCss, /\.legacy-home-launcher[\s\S]*\.teacher-offline-unit-overview-screen[\s\S]*\.teacher-offline-pages-viewer[\s\S]*\.classroom-teaching-toolbar[\s\S]*\.legacy-settings-dialog/);
-  assert.doesNotMatch(scaleCss, /\bzoom\s*:/i);
-  assert.doesNotMatch(scaleCss, /\.teacher-offline-settings-surface\s*\{[^}]*transform\s*:/i);
+  assert.match(app, /<TeacherFixedStage viewport=\{viewport\}>/);
+  assert.match(stage, /data-teacher-stage-scale/);
+  assert.match(rootCss, /teacherFixedStage\.css/);
+  assert.doesNotMatch(rootCss, /teacherDisplayScale\.css/);
+  assert.match(fixedCss, /width: 1920px[\s\S]*height: 1080px[\s\S]*scale\(var\(--teacher-stage-scale\)\)/);
+  assert.match(fixedCss, /\.legacy-home-launcher[\s\S]*\.teacher-offline-unit-overview-screen[\s\S]*\.teacher-offline-pages-viewer[\s\S]*\.classroom-teaching-toolbar[\s\S]*\.legacy-settings-dialog/);
+});
+
+test("Teacher page pan converts rendered pointer deltas into logical stage pixels", () => {
+  assert.equal(renderedDeltaToTeacherStage(100, 0.5), 200);
+  assert.equal(renderedDeltaToTeacherStage(100, 1), 100);
+  assert.equal(renderedDeltaToTeacherStage(100, 2), 50);
 });
 
 test("Students Book overview groups every real Unit 1 and Unit 2 page exactly once", () => {
@@ -311,7 +321,7 @@ test("page hotspot origins remain exact while Contents uses runtime metadata", (
   assert.equal(isTeacherOfflinePageLocation({ ...authored.location, pageId: "other" }, hotspotOrigin), false);
 });
 
-test("embedded activity fit preserves the 38px target gate when scaling would make controls unsafe", () => {
+test("embedded Teacher activities always use complete presentation fit instead of scroll fallback", () => {
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 1200, availableHeight: 700, contentWidth: 1000, contentHeight: 600 }), 1);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 0.5);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 0, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 1);
@@ -322,7 +332,7 @@ test("embedded activity fit preserves the 38px target gate when scaling would ma
   );
   assert.deepEqual(
     resolveEmbeddedActivityFit({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900, minimumTargetSize: 48 }),
-    { mode: "scroll", scale: 1 },
+    { mode: "scale", scale: 0.5 },
   );
 });
 
@@ -396,7 +406,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(pages, /students-book:activity:\$\{embeddedActivityId\}/);
   assert.match(pages, /activityActive \? \{\} : \{[\s\S]*onPointerDown/);
   assert.match(pages, /event\.target\.closest\?\.\("\.teacher-offline-page-hotspot"\)/);
-  assert.match(pages, /activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)/);
+  assert.match(pages, /activityActive && <button[\s\S]*onClick=\{onCloseActivity\}/);
   assert.equal((pages.match(/<ClassroomToolbar\b/g) || []).length, 1);
   assert.match(embedded, /TEACHER_PRESENTATION_OFFLINE/);
   assert.match(embedded, /NormalizedStudentsBookActivity/);
@@ -404,8 +414,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(activityLocation, /pageContainsActivity[\s\S]*pageNumbers[\s\S]*printedPage/);
   assert.match(pageViewerStyles, /\.teacher-offline-embedded-activity[\s\S]*align-items: center[\s\S]*justify-content: center[\s\S]*overflow: hidden/);
   assert.match(pageViewerStyles, /transform: scale\(var\(--embedded-activity-scale, 1\)\)/);
-  assert.match(pageViewerStyles, /\[data-fit-mode="scroll"\][\s\S]*transform: none;[\s\S]*overflow: auto;[\s\S]*scroll-padding: 8px;/);
-  assert.match(pageViewerStyles, /\[data-fit-mode="scroll"\] \.ultimate-b2-legacy-pilot \.legacy-pilot-actions\s*\{[\s\S]*?position: static;/);
+  assert.doesNotMatch(pageViewerStyles, /data-fit-mode="scroll"/);
   assert.match(classroomToolStyles, /\.teacher-offline-page-stage\.has-embedded-activity > \.classroom-stage-transform\s*\{[\s\S]*?min-height: 0;/);
   assert.doesNotMatch(embedded, /Back to book|Activity \{index|ClassroomToolbar|teacher-offline-presentation/);
   assert.match(presentation, /TeacherOfflinePresentation/);
@@ -415,7 +424,6 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(overview, /buildStudentsBookOverviewEntries/);
   assert.match(overview, /onClick=\{\(\) => onSelectPage\(entry\.pageIds\[0\]\)\}/);
   assert.doesNotMatch(overview, /activities<\/small>/);
-  assert.match(pages, /onSelectPage\(""\)/);
   assert.match(pages, /legacy-page-heading/);
   assert.match(pages, /legacy-page-navigation/);
   assert.match(pages, /ClassroomToolOverlay/);
@@ -434,6 +442,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(overlay, /setPointerCapture[\s\S]*type: "stroke"/);
   assert.match(overlay, /addCover[\s\S]*setSpotlight[\s\S]*setRegionZoom/);
   assert.match(overlay, /Delete selected cover/);
+  assert.doesNotMatch(overlay, /createPortal|document\.body/);
   assert.match(toolsContext, /interactive-classroom:annotations:v1/);
   assert.match(toolsContext, /past:[\s\S]*present:[\s\S]*future:/);
   assert.match(toolsContext, /drawings:[\s\S]*overlays:/);
@@ -458,7 +467,6 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
   assert.match(app, /onCloseApplication=\{closeApplication\}/);
   assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);
-  assert.match(app, /navigation\.view === "book"[\s\S]*legacy-classroom-settings-trigger/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);

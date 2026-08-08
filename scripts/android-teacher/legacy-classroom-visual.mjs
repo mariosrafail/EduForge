@@ -103,10 +103,9 @@ async function assertLegacyUnitOverview(page, unit, label) {
       centerDelta: Math.abs((arrowRect.top + arrowRect.height / 2) - (panelRect.top + panelRect.height / 2)),
       overlapsEntry: entries.some((entry) => arrowRect.left < entry.right && arrowRect.right > entry.left && arrowRect.top < entry.bottom && arrowRect.bottom > entry.top),
       displayScale: Number(document.querySelector(".teacher-offline-settings-surface").dataset.teacherDisplayScale),
-      compact: innerWidth <= 1100 || innerHeight <= 650,
     };
   });
-  const expectedArrowSize = arrowLayout.compact ? 44 : 60 * arrowLayout.displayScale;
+  const expectedArrowSize = 60 * arrowLayout.displayScale;
   assert.ok(Math.abs(arrowLayout.size - expectedArrowSize) <= 1, `${label} proportional arrow touch size: ${JSON.stringify(arrowLayout)}`);
   assert.ok(arrowLayout.centerDelta <= 1, `${label} arrow vertical alignment`);
   assert.equal(arrowLayout.overlapsEntry, false, `${label} arrow keeps thumbnails clear`);
@@ -160,12 +159,13 @@ async function assertEmbeddedActivity(page, label) {
       unitOverviewButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Unit overview"]').length,
       backToPageButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Back to page"]').length,
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
-      edgeToEdgeHost: reader && hostRect
-        ? hostRect.left <= reader.left + 7 && hostRect.right >= reader.right - 7
-          && hostRect.top <= reader.top + 7 && hostRect.bottom >= reader.bottom - 7
+      hostContained: reader && hostRect
+        ? hostRect.left >= reader.left - 1 && hostRect.right <= reader.right + 1
+          && hostRect.top >= reader.top - 1 && hostRect.bottom <= reader.bottom + 1
         : false,
       neutralHostCanvas: host ? getComputedStyle(host).backgroundColor === "rgb(255, 255, 255)" : false,
-      fillsReaderWidth: reader && content ? content.width >= reader.width - 8 : false,
+      hostOverflow: host ? `${getComputedStyle(host).overflowX}/${getComputedStyle(host).overflowY}` : "",
+      contentVisible: Boolean(content?.width && content?.height),
       contained: reader && content
         ? content.left >= reader.left - 1 && content.right <= reader.right + 1
           && content.top >= reader.top - 1 && content.bottom <= reader.bottom + 1
@@ -186,9 +186,10 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.unitOverviewButtons, 0, `${label} has no redundant unit overview button`);
   assert.equal(metrics.backToPageButtons, 1, `${label} keeps one back-to-page button`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
-  assert.equal(metrics.edgeToEdgeHost, true, `${label} host fills the reader interior: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.hostContained, true, `${label} host remains inside the reader: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.neutralHostCanvas, true, `${label} masks the reader background behind activity corners`);
-  assert.equal(metrics.fillsReaderWidth, true, `${label} uses the available reader width: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.hostOverflow, "hidden/hidden", `${label} disables embedded scrolling`);
+  assert.equal(metrics.contentVisible, true, `${label} keeps the activity visible`);
   assert.equal(metrics.contained, true, `${label} content fits reader`);
 }
 
@@ -297,7 +298,7 @@ async function assertLegacyLauncher(page, label) {
     maximumUnitHeight: undefined,
     displayScale: undefined,
   }, `${label} launcher composition`);
-  assert.ok(metrics.minimumUnitHeight >= 44, `${label} unit touch target: ${metrics.minimumUnitHeight}`);
+  assert.ok(metrics.minimumUnitHeight >= (44 * metrics.displayScale) - 1, `${label} scaled unit touch target: ${metrics.minimumUnitHeight}`);
   assert.ok(metrics.maximumUnitHeight <= (94 * metrics.displayScale) + 1, `${label} proportional unit height: ${metrics.maximumUnitHeight}`);
 }
 

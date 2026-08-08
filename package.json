@@ -52,6 +52,7 @@
     "test:android-teacher-offline:smoke": "node scripts/android-teacher/manual-smoke.mjs",
     "test:android-teacher-offline:intro": "node scripts/android-teacher/launcher-intro-smoke.mjs",
     "test:android-teacher-offline:viewports": "node scripts/android-teacher/viewport-matrix.mjs",
+    "test:android-teacher-offline:fixed-stage": "node scripts/android-teacher/fixed-stage-matrix.mjs",
     "test:android-teacher-offline:legacy-visual": "node scripts/android-teacher/legacy-classroom-visual.mjs",
     "test:lms-branding-visual": "node scripts/lms-branding-visual.mjs",
     "test:ultimate-b2:legacy-pilot:assets": "node --test tests/ultimate-b2-unit-1-part-2-legacy-pilot.test.js",

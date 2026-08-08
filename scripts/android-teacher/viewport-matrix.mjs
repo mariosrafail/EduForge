@@ -43,7 +43,7 @@ function assertNear(actual, expected, tolerance, label) {
 }
 
 function expectedDisplayScale({ width, height }) {
-  return Math.min(2, Math.max(1, Math.min(width / 1920, height / 1080)));
+  return Math.min(width / 1920, height / 1080);
 }
 
 async function completeStartupIntro(page) {
@@ -68,9 +68,7 @@ async function waitForEmbeddedActivityFit(page) {
       const style = getComputedStyle(viewport);
       const availableWidth = viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
       const availableHeight = viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-      const expectedScale = viewport.dataset.fitMode === "scroll"
-        ? 1
-        : Math.min(1, availableWidth / content.scrollWidth, availableHeight / content.scrollHeight);
+      const expectedScale = Math.min(1, availableWidth / content.scrollWidth, availableHeight / content.scrollHeight);
       const appliedScale = Number(viewport.dataset.fitScale);
       const embedded = content.getBoundingClientRect();
       const contained = embedded.left >= reader.left - 1 && embedded.right <= reader.right + 1
@@ -120,7 +118,7 @@ try {
       effective: Number(getComputedStyle(surface).getPropertyValue("--teacher-ui-scale")),
     }));
     assertNear(initialScaleVariables.display, displayScale, .001, `${target.name} display scale variable`);
-    assertNear(initialScaleVariables.effective, displayScale, .001, `${target.name} effective scale variable`);
+    assertNear(initialScaleVariables.effective, 1, .001, `${target.name} user interface scale variable`);
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
     assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
     assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
@@ -170,7 +168,7 @@ try {
     assert.equal(launcherLayout.launcherBackground, "none", `${target.name} central panel background removed`);
     assert.equal(launcherLayout.launcherBorder, "0px", `${target.name} central panel border removed`);
     assert.equal(launcherLayout.launcherRadius, "0px", `${target.name} central panel radius removed`);
-    assert.ok(launcherLayout.minimumUnitHeight >= 44, `${target.name} unit touch targets: ${JSON.stringify(launcherLayout)}`);
+    assert.ok(launcherLayout.minimumUnitHeight >= (44 * displayScale) - 1, `${target.name} scaled unit targets: ${JSON.stringify(launcherLayout)}`);
     assert.ok(launcherLayout.maximumUnitHeight <= (94 * displayScale) + 1, `${target.name} proportional unit sizing: ${JSON.stringify(launcherLayout)}`);
     assert.ok(launcherLayout.overflow <= 1, `${target.name} launcher overflow: ${JSON.stringify(launcherLayout)}`);
     await page.getByRole("button", { name: "Open classroom settings" }).click();
@@ -190,17 +188,17 @@ try {
     assert.equal(settingsLayout.dialogContained, true, `${target.name} settings dialog contained`);
     assert.equal(settingsLayout.closeVisible, true, `${target.name} settings close visible`);
     assert.equal(settingsLayout.tabCount, 4, `${target.name} settings tabs`);
-    assert.ok(settingsLayout.minimumTabHeight >= 43, `${target.name} settings tab touch targets`);
+    assert.ok(settingsLayout.minimumTabHeight >= (62 * displayScale) - 1, `${target.name} scaled settings tab targets`);
     assert.ok(settingsLayout.overflow <= 1, `${target.name} settings overflow`);
     await page.getByRole("tab", { name: "Graphics" }).click();
     await page.locator('[data-settings-panel="graphics"]').waitFor();
     assert.equal(await page.getByRole("group", { name: "Interface style" }).count(), 0, `${target.name} theme switcher unavailable`);
     if (target.name === "4k-3840x2160") {
       await page.getByRole("slider", { name: "Interface size" }).fill("90");
-      await page.waitForFunction(() => Math.abs(Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) - 1.8) < .001);
-      assertNear(Number(await settingsSurface.evaluate((surface) => getComputedStyle(surface).getPropertyValue("--teacher-ui-scale"))), 1.8, .001, "4K Interface Size multiplies automatic scale");
+      await page.waitForFunction(() => Math.abs(Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) - .9) < .001);
+      assertNear(Number(await settingsSurface.evaluate((surface) => getComputedStyle(surface).getPropertyValue("--teacher-ui-scale"))), .9, .001, "4K Interface Size remains a logical preference");
       await page.getByRole("slider", { name: "Interface size" }).fill("100");
-      await page.waitForFunction(() => Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) === 2);
+      await page.waitForFunction(() => Number(getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).getPropertyValue("--teacher-ui-scale")) === 1);
     }
     assert.equal(await page.locator(".teacher-offline-settings-surface").getAttribute("data-teacher-theme"), "legacy", `${target.name} legacy theme remains active`);
     await page.getByRole("button", { name: "Close settings" }).click();
@@ -219,7 +217,7 @@ try {
     }));
     assert.equal(bookShellUnitSwitcher.length, 2, `${target.name} book-shell unit switcher count`);
     assert.deepEqual(bookShellUnitSwitcher.map((button) => button.title), ["Lights, Camera, Action!", "Journeys of Discovery"], `${target.name} book-shell unit titles`);
-    assert.ok(bookShellUnitSwitcher.every((button) => button.height >= 44 && button.contained), `${target.name} book-shell touch targets contained: ${JSON.stringify(bookShellUnitSwitcher)}`);
+    assert.ok(bookShellUnitSwitcher.every((button) => button.height >= (44 * displayScale) - 1 && button.contained), `${target.name} scaled book-shell targets contained: ${JSON.stringify(bookShellUnitSwitcher)}`);
     assert.ok(bookShellUnitSwitcher[0].right < bookShellUnitSwitcher[1].left, `${target.name} book-shell unit controls do not overlap`);
     await page.getByRole("tab", { name: "Book pages" }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
@@ -242,10 +240,9 @@ try {
       };
     });
     const nextArrow = await readSideArrow("Next unit");
-    const compactArrow = target.width <= 1100 || target.height <= 650;
-    const expectedArrowSize = compactArrow ? 44 : 60 * displayScale;
+    const expectedArrowSize = 60 * displayScale;
     assert.ok(Math.abs(nextArrow.size - expectedArrowSize) <= 1, `${target.name} next-unit arrow size: ${JSON.stringify(nextArrow)}`);
-    assert.ok(target.width - nextArrow.right <= (compactArrow ? 9 : (20 * displayScale) + 1), `${target.name} next-unit arrow near right safe edge`);
+    assert.ok(target.width - nextArrow.right <= (20 * displayScale) + Math.max(1, (target.width - 1920 * displayScale) / 2 + 1), `${target.name} next-unit arrow near right stage edge`);
     assert.ok(nextArrow.centerDelta <= 1, `${target.name} next-unit arrow vertically centered`);
     assert.equal(nextArrow.overlapsEntry, false, `${target.name} next-unit arrow does not cover thumbnails`);
     assert.equal(nextArrow.target, "2", `${target.name} next-unit target`);
@@ -255,7 +252,7 @@ try {
     assert.equal(await page.getByRole("button", { name: "Next unit", exact: true }).count(), 0, `${target.name} Unit 2 next edge hidden`);
     const previousArrow = await readSideArrow("Previous unit");
     assert.ok(Math.abs(previousArrow.size - expectedArrowSize) <= 1, `${target.name} previous-unit arrow size: ${JSON.stringify(previousArrow)}`);
-    assert.ok(previousArrow.left <= (compactArrow ? 9 : (20 * displayScale) + 1), `${target.name} previous-unit arrow near left safe edge: ${JSON.stringify(previousArrow)}`);
+    assert.ok(previousArrow.left <= (20 * displayScale) + Math.max(1, (target.width - 1920 * displayScale) / 2 + 1), `${target.name} previous-unit arrow near left stage edge: ${JSON.stringify(previousArrow)}`);
     assert.ok(previousArrow.centerDelta <= 1, `${target.name} previous-unit arrow vertically centered`);
     assert.equal(previousArrow.overlapsEntry, false, `${target.name} previous-unit arrow does not cover thumbnails`);
     assert.equal(previousArrow.target, "1", `${target.name} previous-unit target`);
@@ -286,7 +283,7 @@ try {
     assert.ok(overviewLayout.documentOverflow <= 1, `${target.name} overview document overflow`);
     assert.equal(overviewLayout.entries, 10, `${target.name} Unit 2 overview entries`);
     assert.equal(overviewLayout.images, 12, `${target.name} Unit 2 real thumbnails`);
-    assert.ok(overviewLayout.minimumEntryHeight >= 44, `${target.name} overview touch targets`);
+    assert.ok(overviewLayout.minimumEntryHeight >= (44 * displayScale) - 1, `${target.name} scaled overview targets`);
     assert.equal(overviewLayout.entriesContained, true, `${target.name} overview entries contained`);
     await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
     await page.waitForFunction(() => {
@@ -318,7 +315,7 @@ try {
         .map((button) => button.getBoundingClientRect())
         .filter((rect) => rect.width > 0 && rect.height > 0);
       return {
-        profile: root.dataset.teacherViewport,
+        profile: root.dataset.teacherPhysicalViewport,
         documentOverflow: root.scrollWidth - root.clientWidth,
         shellOverflow: shell.scrollWidth - shell.offsetWidth,
         headerHeight: header.getBoundingClientRect().height,
@@ -347,7 +344,7 @@ try {
     assert.equal(layout.imageCount, 1, `${target.name} must mount one page image`);
     assert.ok(layout.hotspotCount > 0, `${target.name} hotspot page must expose positioned actions`);
     assert.ok(layout.controlsInViewport, `${target.name} page controls must remain in the viewport`);
-    assert.ok(layout.minControlHeight >= 43, `${target.name} controls are too small`);
+    assert.ok(layout.minControlHeight >= (43 * displayScale) - 1, `${target.name} controls do not follow stage scale`);
     assert.ok(layout.hotspotContained, `${target.name} hotspots must remain aligned to the page`);
     assert.equal(
       layout.image.fit,
@@ -548,7 +545,9 @@ try {
     if (await bookPagesTab.isVisible()) await bookPagesTab.click();
     if (target.screenshot) {
       if (!await page.locator(".teacher-offline-unit-overview").count()) {
-        await page.getByRole("button", { name: "Unit overview" }).click();
+        await page.getByRole("button", { name: "Close book" }).click();
+        await page.getByRole("button", { name: /^Open Unit 2:/ }).click();
+        await page.locator(".teacher-offline-unit-overview").waitFor();
       }
       await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
       await page.waitForFunction(() => {
