@@ -22,6 +22,7 @@ function isRequiredMapping(mapping) {
 export default function TeacherProjectBulkImport({ open, project, shell, writeEnabled, onClose, onApplied }) {
   const headingRef = useRef(null);
   const dialogRef = useRef(null);
+  const progressRef = useRef(null);
   const [plan, setPlan] = useState(null);
   const [selection, setSelection] = useState({});
   const [filter, setFilter] = useState("All");
@@ -29,12 +30,13 @@ export default function TeacherProjectBulkImport({ open, project, shell, writeEn
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [importCommonAudio, setImportCommonAudio] = useState(true);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
   useEffect(() => {
     if (!open) return undefined;
     const restoreFocus = document.activeElement;
     headingRef.current?.focus();
     const keyboard = (event) => {
-      if (event.key === "Escape" && !progress) onClose();
+      if (event.key === "Escape" && !progressRef.current) onClose();
       if (event.key !== "Tab") return;
       const focusable = [...(dialogRef.current?.querySelectorAll("button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex='-1'])") || [])];
       if (!focusable.length) return;
@@ -44,7 +46,7 @@ export default function TeacherProjectBulkImport({ open, project, shell, writeEn
     };
     window.addEventListener("keydown", keyboard);
     return () => { window.removeEventListener("keydown", keyboard); restoreFocus?.focus?.(); };
-  }, [open, onClose, progress]);
+  }, [open, onClose]);
   const scan = (fileList) => {
     setError(""); setResult(null);
     try {
