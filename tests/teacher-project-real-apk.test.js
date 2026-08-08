@@ -13,11 +13,15 @@ test("complete generic Teacher Project exports and verifies a real debug APK", {
 }, async (t) => {
   const fixture = await createCompleteTeacherProjectFixture({ projectId: "generic-ci-teacher", distinctVisualAssets: true });
   t.after(fixture.cleanup);
+  const trackedCapacitorFiles = ["android/app/capacitor.build.gradle", "android/capacitor.settings.gradle"];
+  const beforeCapacitorSync = await Promise.all(trackedCapacitorFiles.map((file) => fs.readFile(file)));
   const stages = [];
   const result = await exportTeacherProjectApk({ workspace: fixture.workspace, projectId: "generic-ci-teacher", onStage: (stage) => stages.push(stage) });
   assert.equal(result.report.verification.status, "generic-teacher-project-apk-safe");
   assert.equal(result.report.applicationId, TEACHER_ANDROID_APPLICATION_ID);
   assert.ok((await fs.stat(result.apkPath)).size > 0);
   assert.equal(path.basename(result.apkPath), `generic-ci-teacher-r${String(fixture.project.revision).padStart(4, "0")}-debug.apk`);
+  const afterCapacitorSync = await Promise.all(trackedCapacitorFiles.map((file) => fs.readFile(file)));
+  assert.deepEqual(afterCapacitorSync, beforeCapacitorSync, "Export must restore tracked Capacitor-generated Gradle files byte-for-byte");
   assert.deepEqual(stages, ["Validating project", "Building Teacher app", "Verifying Teacher bundle", "Syncing Android", "Building APK", "Verifying APK", "Archiving APK", "Export complete"]);
 });
