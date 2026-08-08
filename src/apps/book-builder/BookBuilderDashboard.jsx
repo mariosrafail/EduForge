@@ -1,7 +1,7 @@
-import { ArrowRight, BookOpen, Filter, Plus, Search, TabletSmartphone, Wrench } from "lucide-react";
+import { ArrowRight, BookOpen, Copy, Filter, Plus, Search, TabletSmartphone, Wrench, X } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
-import { createTeacherProject } from "./bookBuilderApi.js";
+import { createTeacherProject, duplicateTeacherProject } from "./bookBuilderApi.js";
 import { projectHash, teacherProjectHash } from "./bookBuilderRouter.js";
 import { Badge } from "./components/StudioPrimitives.jsx";
 import { StudioEmpty } from "./components/StudioStates.jsx";
@@ -49,6 +49,8 @@ export function BookBuilderDashboard({ projects, diagnostics, teacherProjects, w
   const [lifecycle, setLifecycle] = useState("");
   const [newTeacherProject, setNewTeacherProject] = useState({ displayName: "", projectId: "" });
   const [createState, setCreateState] = useState({ pending: false, error: "" });
+  const [duplicate, setDuplicate] = useState(null);
+  const [duplicateState, setDuplicateState] = useState({ pending: false, error: "" });
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
   const profiles = useMemo(() => [...new Set(projects.map((item) => item.profile))].sort(), [projects]);
   const lifecycles = useMemo(() => [...new Set(projects.map((item) => item.lifecycle))].sort(), [projects]);
@@ -66,6 +68,14 @@ export function BookBuilderDashboard({ projects, diagnostics, teacherProjects, w
     } catch (error) {
       setCreateState({ pending: false, error: error.message });
     }
+  };
+  const duplicateProject = async (event) => {
+    event.preventDefault();
+    setDuplicateState({ pending: true, error: "" });
+    try {
+      const result = await duplicateTeacherProject(duplicate.sourceProjectId, { projectId: duplicate.projectId, displayName: duplicate.displayName });
+      window.location.hash = teacherProjectHash(result.project.projectId).slice(1);
+    } catch (error) { setDuplicateState({ pending: false, error: error.message }); }
   };
   return (
     <main className="studio-dashboard" id="main-content">
@@ -97,11 +107,12 @@ export function BookBuilderDashboard({ projects, diagnostics, teacherProjects, w
             {createState.error && <p className="studio-validation-errors" role="alert">{createState.error}</p>}
           </form>
         )}
+        {duplicate && <form className="studio-teacher-project-duplicate" onSubmit={duplicateProject} aria-label={`Duplicate ${duplicate.sourceName}`}><div><Copy aria-hidden="true" /><span><strong>Duplicate {duplicate.sourceName}</strong><small>Assets and shell settings are copied into an independent project.</small></span></div><label><span>New project name</span><input required maxLength="120" value={duplicate.displayName} onChange={(event) => setDuplicate((current) => ({ ...current, displayName: event.target.value }))} /></label><label><span>New project slug / ID</span><input required maxLength="64" pattern="[a-z0-9][a-z0-9-]{0,63}" value={duplicate.projectId} onChange={(event) => setDuplicate((current) => ({ ...current, projectId: event.target.value.toLowerCase() }))} /></label><button className="studio-button primary" type="submit" disabled={duplicateState.pending}>{duplicateState.pending ? "Duplicating…" : "Create duplicate"}</button><button className="studio-icon-button" type="button" aria-label="Cancel duplication" onClick={() => setDuplicate(null)}><X aria-hidden="true" /></button>{duplicateState.error && <p className="studio-validation-errors" role="alert">{duplicateState.error}</p>}</form>}
         {teacherProjects.projects.length ? <div className="studio-project-grid">{teacherProjects.projects.map((project) => (
           <article className="studio-project-card" key={project.projectId}>
             <div className="studio-project-card-heading"><div><span className="studio-eyebrow">{project.projectId}</span><h2>{project.displayName}</h2></div><TabletSmartphone aria-hidden="true" /></div>
-            <dl className="studio-project-facts"><div><dt>Revision</dt><dd>{project.revision}</dd></div><div><dt>Assets</dt><dd>{project.assetCount}</dd></div><div><dt>Status</dt><dd>{project.completeness.complete ? "Complete shell" : `${project.completeness.missingCount} missing`}</dd></div></dl>
-            <div className="studio-project-card-footer"><span>Last saved <time>{project.savedAt}</time></span><a className="studio-button primary" href={teacherProjectHash(project.projectId)}>Open project <ArrowRight aria-hidden="true" /></a></div>
+            <dl className="studio-project-facts"><div><dt>Revision</dt><dd>{project.revision}</dd></div><div><dt>Assets</dt><dd>{project.assetCount}</dd></div><div><dt>Progress</dt><dd>{project.completeness.configuredCount} / {project.completeness.requiredCount}</dd></div><div><dt>Status</dt><dd>{project.completeness.complete ? "Complete shell" : `${project.completeness.missingCount} missing`}</dd></div></dl><progress className="studio-teacher-project-progress" value={project.completeness.configuredCount} max={project.completeness.requiredCount} aria-label={`${project.displayName} completion`} />
+            <div className="studio-project-card-footer"><span>Last saved <time>{project.savedAt}</time></span><div className="studio-teacher-project-card-actions">{writeEnabled && <button type="button" className="studio-button secondary" onClick={() => { setDuplicateState({ pending: false, error: "" }); setDuplicate({ sourceProjectId: project.projectId, sourceName: project.displayName, displayName: `${project.displayName} Copy`, projectId: `${project.projectId}-copy`.slice(0, 64) }); }}><Copy aria-hidden="true" />Duplicate</button>}<a className="studio-button primary" href={teacherProjectHash(project.projectId)}>Open <ArrowRight aria-hidden="true" /></a></div></div>
           </article>
         ))}</div> : <StudioEmpty title="No Teacher APK Projects yet">{writeEnabled ? "Create the first reusable Teacher shell project above." : "Start local editing mode to create a Teacher APK Project."}</StudioEmpty>}
         {teacherProjects.diagnostics.length > 0 && <p className="studio-validation-errors" role="status">{teacherProjects.diagnostics.length} Teacher Project director{teacherProjects.diagnostics.length === 1 ? "y is" : "ies are"} unavailable.</p>}
