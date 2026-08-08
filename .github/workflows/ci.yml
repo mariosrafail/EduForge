@@ -20,6 +20,7 @@ jobs:
       - run: npm run verify:migration-manifest
       - run: npm run audit:runtime-schema-boundary
       - run: npm test
+      - run: npm run test:teacher-project-builder
       - run: npm run audit:source-structure
       - run: npm run audit:branding
       - run: npm run test:book-builder:studio
@@ -65,6 +66,10 @@ jobs:
         run: npm run android:build
       - name: Assemble and verify teacher classroom debug APK
         run: npm run android:teacher:build
+      - name: Assemble and verify generic Teacher Project debug APK
+        env:
+          TEACHER_PROJECT_REAL_APK: "1"
+        run: node --test tests/teacher-project-real-apk.test.js
 
   integration-database:
     needs: unit-and-build

@@ -36,3 +36,17 @@ test("generic runtime source graph has no static Ultimate B2 pack, content, solu
   assert.match(vite, /isAndroidTeacherProject/);
   assert.match(vite, /teacherProjectVitePlugin/);
 });
+
+test("generic shell click controls resolve their assigned project sound without changing textbook media", async () => {
+  const [shell, toolbar, chrome, sounds] = await Promise.all([
+    readFile("src/apps/android-teacher-project/TeacherProjectShell.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/ClassroomToolbar.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherShellChrome.jsx", "utf8"),
+    readFile("src/apps/android-teacher-project/teacherProjectSound.js", "utf8"),
+  ]);
+  for (const source of [shell, toolbar, chrome]) assert.match(source, /data-teacher-control-id/);
+  assert.match(sounds, /soundMap\[button\.dataset\.teacherControlId\]/);
+  assert.match(sounds, /activeSound\.currentTime = 0/);
+  assert.match(sounds, /activeSound\.volume = audio\[volumeKey\] \/ 100/);
+  assert.match(sounds, /textbookMediaIsPlaying/);
+});
