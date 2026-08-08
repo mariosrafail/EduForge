@@ -121,6 +121,10 @@ export function saveTeacherProject(projectId, body, options) {
   return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/save`, body, options);
 }
 
+export function duplicateTeacherProject(sourceProjectId, body, options) {
+  return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(sourceProjectId)}/duplicate`, body, options);
+}
+
 export async function importTeacherProjectAsset(projectId, file, descriptor, { signal } = {}) {
   if (!sessionToken) await bootstrapReviewStudio({ signal });
   if (!writeCapability) throw Object.assign(new Error("Local editing mode is not enabled."), { code: "write_mode_disabled" });

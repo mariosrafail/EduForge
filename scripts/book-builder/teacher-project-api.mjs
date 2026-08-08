@@ -75,6 +75,13 @@ export function createTeacherProjectDispatcher({ workspace, writeEnabled = false
       const project = await store.save(projectId, body);
       return { statusCode: 200, payload: { project, completeness: (await store.status(projectId)).completeness } };
     }
+    if (segments.length === 3 && segments[2] === "duplicate") {
+      requireMethod(request, "POST");
+      requireWrite(request, writeEnabled, writeToken);
+      const body = exactBody(await readJsonBody(request), ["projectId", "displayName"], "invalid_teacher_project_duplicate");
+      const project = await store.duplicate(projectId, body);
+      return { statusCode: 201, payload: { project } };
+    }
     if (segments.length === 3 && segments[2] === "export") {
       requireMethod(request, "POST");
       requireWrite(request, writeEnabled, writeToken);
