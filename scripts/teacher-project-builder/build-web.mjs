@@ -24,8 +24,9 @@ export async function buildTeacherProjectWeb({ workspace, projectId, onStage = (
   process.env.VITE_APP_MODE = "android-teacher-project";
   process.env.TEACHER_PROJECT_PUBLIC_DIR = prepared.publicRoot;
   process.env.TEACHER_PROJECT_RUNTIME_CONFIG = prepared.runtimeConfigPath;
+  const distRoot = path.join(prepared.buildRoot, "dist");
   try {
-    await build({ root: repositoryRoot, configFile: path.join(repositoryRoot, "vite.config.js"), mode: "production" });
+    await build({ root: repositoryRoot, configFile: path.join(repositoryRoot, "vite.config.js"), mode: "production", build: { outDir: distRoot, emptyOutDir: true } });
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key];
@@ -35,10 +36,10 @@ export async function buildTeacherProjectWeb({ workspace, projectId, onStage = (
   onStage("Verifying Teacher bundle");
   const fixedLogoSha256 = createHash("sha256").update(await fs.readFile(fixedLogoPath)).digest("hex");
   const verification = await verifyTeacherProjectBundle({
-    distRoot: path.join(repositoryRoot, "dist"),
+    distRoot,
     project: prepared.project,
     stagingManifest: prepared.manifest,
     fixedLogoSha256,
   });
-  return { ...prepared, verification, distRoot: path.join(repositoryRoot, "dist") };
+  return { ...prepared, verification, distRoot };
 }
