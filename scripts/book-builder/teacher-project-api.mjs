@@ -71,7 +71,7 @@ export function createTeacherProjectDispatcher({ workspace, writeEnabled = false
     if (segments.length === 3 && segments[2] === "save") {
       requireMethod(request, "POST");
       requireWrite(request, writeEnabled, writeToken);
-      const body = exactBody(await readJsonBody(request), ["displayName", "expectedRevision", "shell"], "invalid_teacher_project_save");
+      const body = exactBody(await readJsonBody(request), ["displayName", "expectedRevision", "shell", "content"], "invalid_teacher_project_save");
       const project = await store.save(projectId, body);
       return { statusCode: 200, payload: { project, completeness: (await store.status(projectId)).completeness } };
     }

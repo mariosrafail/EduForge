@@ -23,11 +23,12 @@ async function workspaceFixture(t) {
 
 test("blank Teacher APK projects use the strict versioned shell contract", () => {
   const project = createBlankTeacherProject({ projectId: "ultimate-b3", displayName: "Ultimate B3", now: "2026-08-08T12:00:00.000Z" });
-  assert.equal(project.schemaVersion, "1.0");
+  assert.equal(project.schemaVersion, "2.0");
   assert.equal(project.kind, "teacher-apk-project");
   assert.equal(project.shell.units.length, 10);
   assert.deepEqual(project.shell.editions.map(({ id }) => id), ["students-book", "workbook", "grammar-book", "extras"]);
   assert.equal(project.shell.toolbar.length, 18);
+  assert.equal(project.content.studentsBook.units.length, 10);
   assert.equal(teacherProjectCompleteness(project).complete, false);
   assert.match(stableJson(project), /^\{\n/);
 });
@@ -57,13 +58,13 @@ test("Teacher project store creates, lists, saves and reloads without changing i
   const created = await store.create({ projectId: "ultimate-b3", displayName: "Ultimate B3" });
   assert.equal(created.revision, 1);
   await assert.rejects(() => store.create({ projectId: "ultimate-b3", displayName: "Duplicate" }), (error) => error.code === "teacher_project_already_exists");
-  const same = await store.save("ultimate-b3", { displayName: created.displayName, expectedRevision: 1, shell: created.shell });
+  const same = await store.save("ultimate-b3", { displayName: created.displayName, expectedRevision: 1, shell: created.shell, content: created.content });
   assert.equal(same.revision, 1);
-  const changed = await store.save("ultimate-b3", { displayName: "Ultimate B3 Teacher", expectedRevision: 1, shell: created.shell });
+  const changed = await store.save("ultimate-b3", { displayName: "Ultimate B3 Teacher", expectedRevision: 1, shell: created.shell, content: created.content });
   assert.equal(changed.revision, 2);
   assert.equal((await store.load("ultimate-b3")).displayName, "Ultimate B3 Teacher");
   assert.deepEqual((await store.list()).projects.map(({ projectId }) => projectId), ["ultimate-b3"]);
-  await assert.rejects(() => store.save("ultimate-b3", { displayName: "Conflict", expectedRevision: 1, shell: created.shell }), (error) => error.code === "teacher_project_revision_conflict");
+  await assert.rejects(() => store.save("ultimate-b3", { displayName: "Conflict", expectedRevision: 1, shell: created.shell, content: created.content }), (error) => error.code === "teacher_project_revision_conflict");
 });
 
 test("Teacher project roots and assets cannot escape through symlinks", async (t) => {

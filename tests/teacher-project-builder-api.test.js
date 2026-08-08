@@ -63,7 +63,7 @@ test("Teacher Project API creates, lists, loads, imports, saves and serves only 
   project.shell.background = imported.asset.assetId;
   const savedResponse = await request("/teacher-projects/ultimate-b3/save", {
     method: "POST",
-    ...jsonBody({ displayName: project.displayName, expectedRevision: project.revision, shell: project.shell }),
+    ...jsonBody({ displayName: project.displayName, expectedRevision: project.revision, shell: project.shell, content: project.content }),
   });
   assert.equal(savedResponse.status, 200);
   project = (await savedResponse.json()).project;
@@ -94,7 +94,7 @@ test("Teacher Project API duplicates only by source ID into a self-contained rev
   const importedResponse = await request("/teacher-projects/ultimate-b3/assets/import?section=background&slot=main&variant=image", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-HHPLMS-Teacher-Asset-Name": "background.png" }, body: png });
   const imported = await importedResponse.json();
   const sourceShell = structuredClone(imported.project.shell); sourceShell.background = imported.asset.assetId;
-  await request("/teacher-projects/ultimate-b3/save", { method: "POST", ...jsonBody({ displayName: "Ultimate B3", expectedRevision: imported.project.revision, shell: sourceShell }) });
+  await request("/teacher-projects/ultimate-b3/save", { method: "POST", ...jsonBody({ displayName: "Ultimate B3", expectedRevision: imported.project.revision, shell: sourceShell, content: imported.project.content }) });
   const response = await request("/teacher-projects/ultimate-b3/duplicate", { method: "POST", ...jsonBody({ projectId: "ultimate-b4", displayName: "Ultimate B4" }) });
   assert.equal(response.status, 201);
   const duplicate = (await response.json()).project;
