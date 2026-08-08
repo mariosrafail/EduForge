@@ -39,6 +39,7 @@ import homeIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/h
 import nextIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/next.png";
 import previousIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/previous.png";
 import closeIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/dialogs/exit-btn-enabled.png";
+import minimizeIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/dialogs/minimize-btn-enabled.png";
 import settingsIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-settings-active.png";
 import clearTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-clear.png";
 import clearToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-clear-active.png";
@@ -136,7 +137,7 @@ export const legacyClassroomAssets = Object.freeze({
   }),
   controls: Object.freeze({ activityHotspot }),
   icons: Object.freeze({
-    back: backIcon, check: checkIcon, close: closeIcon, home: homeIcon, next: nextIcon, previous: previousIcon, settings: settingsIcon,
+    back: backIcon, check: checkIcon, close: closeIcon, home: homeIcon, minimize: minimizeIcon, next: nextIcon, previous: previousIcon, settings: settingsIcon,
     teacherTools: Object.freeze({
       clear: Object.freeze({ normal: clearTool, active: clearToolActive }),
       eraser: Object.freeze({ normal: eraserTool, active: eraserToolActive }),

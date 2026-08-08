@@ -1,10 +1,7 @@
-import { BookOpen, ListChecks } from "lucide-react";
-
+import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import TeacherOfflineActivityList from "./TeacherOfflineActivityList.jsx";
 import TeacherOfflinePages from "./TeacherOfflinePages.jsx";
-import TeacherUnitSwitch from "./TeacherUnitSwitch.jsx";
-import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
-import { teacherStudentsBookUnitTitle } from "./teacherOfflineUnitMetadata.js";
+import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineBook({
   pack,
@@ -34,36 +31,12 @@ export default function TeacherOfflineBook({
 
   return (
     <main
-      className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""}`.trim()}
+      className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""} ${tab === "exercises" ? "contents-active" : ""}`.trim()}
       style={{
         "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})`,
         "--legacy-students-book-parts-background": `url(${legacyClassroomAssets.backgrounds.studentsBookPartsBackground})`,
       }}
     >
-      <header className="teacher-offline-book-header">
-        <button type="button" className="teacher-offline-icon-label" onClick={onBackToLibrary} title="Library">
-          <LegacyClassroomIcon name="home" /><span>Library</span>
-        </button>
-        <div className="teacher-offline-book-title">
-          <span className="teacher-offline-eyebrow">Ultimate English B2 · Students Book</span>
-          <h1>Unit {unitNumber} · {teacherStudentsBookUnitTitle(unitNumber)}</h1>
-        </div>
-        <div className="teacher-offline-book-controls">
-          <TeacherUnitSwitch
-            className="teacher-offline-unit-tabs"
-            selectedUnit={unitNumber}
-            onSelectUnit={(number) => update({ unitNumber: number, tab: "pages", pageId: "" })}
-          />
-          <div className="teacher-offline-view-tabs" role="tablist" aria-label="Book view">
-            <button type="button" title="Book pages" role="tab" aria-selected={tab === "pages"} className={tab === "pages" ? "selected" : ""} onClick={() => update({ tab: "pages" })}>
-              <BookOpen size={20} /><span>Book pages</span>
-            </button>
-            <button type="button" title="Contents and exercises" role="tab" aria-selected={tab === "exercises"} className={tab === "exercises" ? "selected" : ""} onClick={() => update({ tab: "exercises" })}>
-              <ListChecks size={20} /><span>Contents / Exercises</span>
-            </button>
-          </div>
-        </div>
-      </header>
       {tab === "pages" ? (
         <TeacherOfflinePages
           unit={pageUnits.find((candidate) => Number(candidate.number) === unitNumber)}
@@ -75,16 +48,19 @@ export default function TeacherOfflineBook({
           onCloseActivity={onCloseActivity}
           onOpenMedia={onOpenMedia}
           onBackToLibrary={onBackToLibrary}
-          onOpenContents={() => update({ tab: "exercises" })}
-          onSelectUnit={(number) => update({ unitNumber: number, tab: "pages", pageId: "" })}
-          availableUnitNumbers={availableUnitNumbers}
           viewportProfile={viewportProfile}
         />
       ) : (
-        <TeacherOfflineActivityList
-          unit={pack.catalog.units.find((candidate) => Number(candidate.unitNumber) === unitNumber)}
-          onOpenActivity={onOpenActivity}
-        />
+        <>
+          <TeacherOfflineActivityList
+            unit={pack.catalog.units.find((candidate) => Number(candidate.unitNumber) === unitNumber)}
+            onOpenActivity={onOpenActivity}
+          />
+          <TeacherBookNavigation
+            onHome={onBackToLibrary}
+            onBack={() => update({ tab: "pages", pageId: "" })}
+          />
+        </>
       )}
     </main>
   );

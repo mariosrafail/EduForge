@@ -95,23 +95,28 @@ async function assertCanonicalUnitOverview(page, unit) {
   assert.equal(new Set(representedIds).size, representedIds.length);
 }
 
+async function setBookLocation(page, patch) {
+  await page.evaluate((locationPatch) => {
+    const current = window.history.state || {};
+    const next = { teacherOffline: true, view: "book", location: { ...(current.location || {}), ...locationPatch } };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, patch);
+}
+
 async function openExercises(page, unitNumber) {
-  const unitTabs = page.locator(".teacher-offline-unit-tabs");
-  if (!await unitTabs.isVisible()) await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await unitTabs.getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
-  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
-    .every((image) => image.complete && image.naturalWidth > 0));
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
+  await setBookLocation(page, { unitNumber, tab: "exercises", pageId: "" });
+  await page.locator(".teacher-offline-lessons").waitFor();
 }
 
 async function backToBook(page) {
-  await page.getByRole("button", { name: "Back to page" }).click();
-  await page.locator(".teacher-offline-page-image").waitFor();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+  await page.waitForFunction(() => !document.querySelector(".teacher-offline-embedded-activity")
+    && document.querySelector(".teacher-offline-page-image")?.getBoundingClientRect().width > 0);
 }
 
 async function returnToOverview(page, unitNumber) {
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await page.locator(".teacher-offline-unit-tabs").getByRole("button", { name: `Unit ${unitNumber}`, exact: true }).click();
+  await setBookLocation(page, { unitNumber, tab: "pages", pageId: "" });
   await assertCanonicalUnitOverview(page, unitNumber);
 }
 
@@ -201,15 +206,16 @@ try {
     ["Grammar Book", page.getByRole("button", { name: "Grammar Book", exact: true })],
     ["Extras", page.getByRole("button", { name: "Extras", exact: true })],
   ]) await assertLauncherPressedArtwork(page, button, label);
-  assert.equal(await page.getByRole("button", { name: /Minimize/i }).count(), 0, "Launcher must not expose minimize");
+  assert.equal(await page.getByRole("button", { name: "Minimize application" }).count(), 1, "Launcher must expose one minimize control");
   assert.equal(await page.getByRole("button", { name: "Close application" }).isVisible(), true, "Launcher close control must remain visible");
   assert.equal(await page.locator(".legacy-home-topbar").count(), 0, "Launcher must not render a horizontal top bar");
   assert.equal(await page.locator(".legacy-classroom-settings-trigger").count(), 0, "Launcher must not retain the bottom-right settings gear");
   assert.equal(await settingsButton.isVisible(), true, "Settings must be visible on the launcher");
-  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest(".legacy-home-floating-chrome"))), true, "Launcher settings must float at the top-right");
+  assert.equal(await settingsButton.evaluate((button) => Boolean(button.closest("[data-teacher-shell-chrome]"))), true, "Launcher settings must float in canonical top-right chrome");
+  assert.deepEqual(await page.locator("[data-teacher-shell-chrome] button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Open classroom settings", "Minimize application", "Close application"], "Launcher must expose exactly Settings, Minimize, Close");
   const launcherChrome = await page.evaluate(() => {
     const launcher = getComputedStyle(document.querySelector(".legacy-home-launcher"));
-    const chrome = getComputedStyle(document.querySelector(".legacy-home-floating-chrome"));
+    const chrome = getComputedStyle(document.querySelector("[data-teacher-shell-chrome]"));
     return {
       launcherBackground: launcher.backgroundImage,
       launcherBorder: launcher.borderTopWidth,
@@ -319,18 +325,11 @@ try {
   assert.equal(await page.locator(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").count(), 0, "Book views must not render floating sound or settings controls");
   assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, "Overview top-left unit switcher must be absent");
   assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Unit 1 title must remain visible");
-  assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).count(), 0, "Unit 1 must not expose a previous-unit target");
-  const nextUnitControl = page.getByRole("button", { name: "Next unit", exact: true });
-  assert.equal(await nextUnitControl.count(), 1, "Unit 1 must expose one next-unit arrow");
-  assert.equal(await nextUnitControl.getAttribute("data-unit-target"), "2", "Next-unit arrow must target the installed Unit 2");
-  assert.ok(await nextUnitControl.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) >= 0.08, "Motion ON must animate the unit arrow");
-  await nextUnitControl.hover();
-  assert.notEqual(await nextUnitControl.evaluate((button) => getComputedStyle(button).transform), "none", "Fine-pointer hover enhancement must be available");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "off");
-  assert.ok(await nextUnitControl.evaluate((button) => parseFloat(getComputedStyle(button).transitionDuration)) <= 0.001, "Reduced motion must disable unit transitions");
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.waitForFunction(() => document.querySelector(".teacher-offline-settings-surface")?.dataset.teacherMotion === "on");
+  assert.equal(await page.getByRole("button", { name: /^(?:Previous|Next) unit$/, exact: true }).count(), 0, "Overview must not expose side unit arrows");
+  const overviewNavigation = page.locator("[data-teacher-book-navigation] button");
+  assert.deepEqual(await overviewNavigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], "Overview must expose the canonical navigation row");
+  assert.equal(await overviewNavigation.nth(2).isDisabled(), true, "Overview Previous page must be disabled");
+  assert.equal(await overviewNavigation.nth(3).isDisabled(), true, "Overview Next page must be disabled");
 
   await page.waitForTimeout(1200);
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Toolbar must never auto-hide behind a reveal button");
@@ -340,7 +339,7 @@ try {
   await page.locator(".teacher-offline-pages-viewer").waitFor();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice");
   assert.equal(await page.locator(".legacy-page-location").count(), 0, "Page location pill must be removed");
-  await page.getByRole("button", { name: "Next page" }).click();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice");
   assert.equal(await page.getByRole("button", { name: "Library" }).count(), 0, "Page viewer must not expose a redundant Library button");
   assert.equal(await page.getByRole("button", { name: "Unit overview" }).count(), 0, "Page viewer must not expose a redundant Unit overview button");
@@ -348,15 +347,9 @@ try {
   const navigationSoundPlays = await page.evaluate(() => globalThis.__teacherSoundPlays);
   assert.equal(navigationSoundPlays.some((play) => /page-turn/i.test(play.source) && Math.abs(play.volume - 0.37) < 0.001), true, `Navigation sounds must use navigation volume: ${JSON.stringify(navigationSoundPlays)}`);
   await returnToOverview(page, 1);
-  await page.getByRole("button", { name: "Next unit", exact: true }).click();
-  assert.equal(await page.getByRole("heading", { name: "Unit 2", exact: true }).isVisible(), true, "Next-unit arrow must stay in overview mode and open Unit 2");
+  await setBookLocation(page, { unitNumber: 2, tab: "pages", pageId: "" });
+  assert.equal(await page.getByRole("heading", { name: "Unit 2", exact: true }).isVisible(), true, "Internal Unit 2 location remains supported");
   assert.equal(await page.locator(".teacher-offline-pages-viewer").count(), 0, "Unit switching must not open a page");
-  assert.equal(await page.getByRole("button", { name: "Next unit", exact: true }).count(), 0, "Unit 2 must not expose Unit 3 navigation");
-  assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).getAttribute("data-unit-target"), "1", "Previous-unit arrow must target Unit 1");
-  await assertCanonicalUnitOverview(page, 2);
-  await page.getByRole("button", { name: "Previous unit", exact: true }).click();
-  assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Previous-unit arrow must return to Unit 1 overview");
-  await page.getByRole("button", { name: "Next unit", exact: true }).click();
   await assertCanonicalUnitOverview(page, 2);
   assert.equal(await page.locator('[data-page-ids="reading-19"] .teacher-unit-page-copy strong').count(), 0, "pg 19 must visually omit Reading");
   await page.locator('[data-page-ids="reading-20-21"]').click();
@@ -364,16 +357,15 @@ try {
   await returnToOverview(page, 2);
   await page.locator('[data-page-ids="practice-31,practice-32"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
-  await page.getByRole("button", { name: "Next page" }).click();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
   await returnToOverview(page, 2);
   await page.locator('[data-page-ids="progress-check-33,progress-check-34"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
-  await page.getByRole("button", { name: "Next page" }).click();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
   await returnToOverview(page, 2);
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await page.getByRole("button", { name: "Unit 1", exact: true }).click();
+  await setBookLocation(page, { unitNumber: 1, tab: "pages", pageId: "" });
   await assertCanonicalUnitOverview(page, 1);
 
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 5" }).first().click();
@@ -521,7 +513,6 @@ try {
   assert.equal(requests.length, uiOnlyRequestCountBefore, "UI-only tools must not make requests");
   assert.equal(await page.evaluate(() => localStorage.getItem("interactive-classroom:annotations:v1")), uiOnlyStorageBefore, "UI-only tools must not write classroom data");
   await page.getByRole("button", { name: "Mouse", exact: true }).click();
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
 
   await openExercises(page, 1);
   assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38);
@@ -596,7 +587,7 @@ try {
   const video = page.locator("video").first();
   await video.waitFor();
   assert.match(await video.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);
-  await page.goBack();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
   await page.locator(".teacher-offline-book").waitFor();
   await page.getByRole("button", { name: "Page activities" }).click();
   await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
@@ -618,7 +609,7 @@ try {
   const standaloneVideo = page.locator(".teacher-offline-standalone-media");
   await standaloneVideo.waitFor();
   assert.match(await standaloneVideo.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);
-  await page.goBack();
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
   await page.locator(".teacher-offline-book").waitFor();
 
   const forbiddenRequests = requests.filter(({ url, type }) => (

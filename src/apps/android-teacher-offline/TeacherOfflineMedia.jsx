@@ -1,15 +1,14 @@
 import { StudentsBookMediaPlayer } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
-import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 
-export default function TeacherOfflineMedia({ media, onBack }) {
+export default function TeacherOfflineMedia({ media, onBack, onHome }) {
   const surfaceKey = `students-book:media:${media?.logicalKey || "unavailable"}`;
   return (
     <main className="teacher-offline-media has-classroom-tools">
       <header>
-        <button type="button" onClick={onBack}><LegacyClassroomIcon name="back" /> Back to book</button>
         <div>
           <span className="teacher-offline-eyebrow">Local classroom media</span>
           <h1>{media?.label || "Book media"}</h1>
@@ -29,6 +28,7 @@ export default function TeacherOfflineMedia({ media, onBack }) {
         <ClassroomToolOverlay surfaceKey={surfaceKey} />
         </ClassroomStageTransform>
       </section>
+      <TeacherBookNavigation onHome={onHome} onBack={onBack} />
       <ClassroomToolbar surfaceKey={surfaceKey} />
     </main>
   );

@@ -143,6 +143,50 @@ async function logicalRects(page, selectors) {
   }, selectors);
 }
 
+const shellControlLabels = ["Open classroom settings", "Minimize application", "Close application"];
+const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
+
+async function waitForBookNavigation(page) {
+  await page.waitForFunction(() => {
+    const navigation = document.querySelector("[data-teacher-book-navigation]");
+    const images = [...(navigation?.querySelectorAll("img") || [])];
+    return navigation?.querySelectorAll("button").length === 6
+      && images.length === 4
+      && images.every((image) => image.complete && image.naturalWidth > 0);
+  });
+}
+
+async function assertShellControls(page, label) {
+  const controls = page.locator("[data-teacher-shell-chrome] button");
+  assert.equal(await controls.count(), 3, `${label} has exactly three shell controls`);
+  assert.deepEqual(await controls.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), shellControlLabels, `${label} shell control order`);
+}
+
+async function assertBookNavigation(page, label, { previousDisabled, nextDisabled } = {}) {
+  await waitForBookNavigation(page);
+  const buttons = page.locator("[data-teacher-book-navigation] button");
+  assert.deepEqual(await buttons.evaluateAll((items) => items.map((button) => button.getAttribute("aria-label"))), bookNavigationLabels, `${label} book navigation order`);
+  if (previousDisabled !== undefined) assert.equal(await buttons.nth(2).isDisabled(), previousDisabled, `${label} previous-page state`);
+  if (nextDisabled !== undefined) assert.equal(await buttons.nth(3).isDisabled(), nextDisabled, `${label} next-page state`);
+  assert.equal(await buttons.nth(4).isDisabled(), false, `${label} GB remains visible and enabled`);
+  assert.equal(await buttons.nth(5).isDisabled(), false, `${label} WB remains visible and enabled`);
+  assert.equal(await page.locator(".legacy-home-window-controls,.legacy-page-window-controls,.teacher-unit-side-navigation,.legacy-overview-book-links,.legacy-page-navigation,.teacher-offline-view-tabs,.teacher-offline-unit-tabs").count(), 0, `${label} has no obsolete or duplicate navigation`);
+}
+
+async function openInternalContents(page, unitNumber = 1) {
+  await page.evaluate((selectedUnitNumber) => {
+    const current = window.history.state || {};
+    const next = {
+      teacherOffline: true,
+      view: "book",
+      location: { ...(current.location || {}), unitNumber: selectedUnitNumber, tab: "exercises", pageId: "" },
+    };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, unitNumber);
+  await page.locator(".teacher-offline-lessons").waitFor();
+}
+
 let browser;
 try {
   await rm(artifactRoot, { recursive: true, force: true });
@@ -166,6 +210,7 @@ try {
     assert.equal(introBackdrop.image, "none", `${target.width}x${target.height} intro has no launcher image`);
     assert.equal(introBackdrop.color, "rgb(255, 255, 255)", `${target.width}x${target.height} intro viewport is white`);
     await completeStartupIntro(page);
+    await assertShellControls(page, `${target.width}x${target.height} library`);
 
     const launcherBackdrop = await readViewportBackdrop(page);
     assertBackdrop(launcherBackdrop, "library", `${target.width}x${target.height} library`);
@@ -198,11 +243,13 @@ try {
     assertBackdrop(overviewBackdrop, "unit-overview", `${target.width}x${target.height} overview`, { classroomImage: true });
     assertTransparent(overviewBackdrop.book, `${target.width}x${target.height} overview book`);
     assertTransparent(overviewBackdrop.overview, `${target.width}x${target.height} overview screen`);
+    await assertShellControls(page, `${target.width}x${target.height} overview`);
+    await assertBookNavigation(page, `${target.width}x${target.height} overview`, { previousDisabled: true, nextDisabled: true });
     if (target.width === 1280 && target.height === 800) {
       await page.screenshot({ path: `${artifactRoot}/overview-bleed-1280x800.png` });
     }
     if (target.width === 1280 && target.height === 800) {
-      await page.getByRole("button", { name: "Close book" }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Home", exact: true }).click();
       await page.locator(".legacy-home-launcher").waitFor();
       const restoredBackdrop = await readViewportBackdrop(page);
       assertBackdrop(restoredBackdrop, "library", "returning to Library");
@@ -210,6 +257,7 @@ try {
       assertTransparent(restoredBackdrop.library, "returning to Library logical surface");
       await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
       await page.locator(".teacher-offline-unit-overview").waitFor();
+      await assertBookNavigation(page, "reopened Unit 1", { previousDisabled: true, nextDisabled: true });
       overviewBackdrop = await readViewportBackdrop(page);
       assertBackdrop(overviewBackdrop, "unit-overview", "reopened Unit 1", { classroomImage: true });
     }
@@ -230,6 +278,8 @@ try {
     assertBackdrop(pageBackdrop, "page", `${target.width}x${target.height} page`, { classroomImage: true });
     assertTransparent(pageBackdrop.book, `${target.width}x${target.height} page book`);
     assertTransparent(pageBackdrop.page, `${target.width}x${target.height} page screen`);
+    await assertShellControls(page, `${target.width}x${target.height} page`);
+    await assertBookNavigation(page, `${target.width}x${target.height} first page`, { previousDisabled: true, nextDisabled: false });
     if (target.width === 1280 && target.height === 800) {
       await page.screenshot({ path: `${artifactRoot}/page-bleed-1280x800.png` });
     }
@@ -241,6 +291,15 @@ try {
       image: ".teacher-offline-page-image",
       toolbar: ".teacher-offline-pages-viewer > .classroom-teaching-toolbar",
     });
+    const toolbarBeforeSelection = await page.locator(".teacher-offline-pages-viewer > .classroom-teaching-toolbar").boundingBox();
+    await page.locator('[data-teacher-tool="pencil"]').click();
+    const toolbarWithPencil = await page.locator(".teacher-offline-pages-viewer > .classroom-teaching-toolbar").boundingBox();
+    await page.locator('[data-teacher-tool="eraser"]').click();
+    const toolbarWithEraser = await page.locator(".teacher-offline-pages-viewer > .classroom-teaching-toolbar").boundingBox();
+    await page.locator('[data-teacher-tool="mouse"]').click();
+    for (const [selection, rect] of [["pencil", toolbarWithPencil], ["eraser", toolbarWithEraser]]) {
+      for (const field of ["x", "y", "width", "height"]) near(rect[field], toolbarBeforeSelection[field], .5, `${target.width}x${target.height} toolbar ${field} after ${selection} selection`);
+    }
     const pageSafety = await page.evaluate(() => {
       const image = document.querySelector(".teacher-offline-page-image").getBoundingClientRect();
       const hotspots = [...document.querySelectorAll(".teacher-offline-page-hotspot")].map((element) => element.getBoundingClientRect());
@@ -319,38 +378,57 @@ try {
     const activityBackdrop = await readViewportBackdrop(page);
     assertBackdrop(activityBackdrop, "page", `${target.width}x${target.height} activity`, { classroomImage: true });
     assertTransparent(activityBackdrop.page, `${target.width}x${target.height} activity page screen`);
+    await assertBookNavigation(page, `${target.width}x${target.height} activity`, { previousDisabled: true, nextDisabled: true });
 
     if (target.width === 1280 && target.height === 800) {
-      await page.getByRole("button", { name: "Back to page", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
       await page.locator(".teacher-offline-page-image").waitFor();
       assertBackdrop(await readViewportBackdrop(page), "page", "activity return to page", { classroomImage: true });
+      await assertBookNavigation(page, "activity return to page", { previousDisabled: true, nextDisabled: false });
 
-      await page.getByRole("button", { name: "Contents and exercises", exact: true }).click();
-      await page.locator(".teacher-offline-lessons").waitFor();
+      const beforeEditionButtons = await page.evaluate(() => JSON.stringify(window.history.state));
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Grammar Book", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Workbook", exact: true }).click();
+      assert.equal(await page.evaluate(() => JSON.stringify(window.history.state)), beforeEditionButtons, "GB and WB are intentional no-ops");
+
+      const pageNavigation = page.locator("[data-teacher-book-navigation]");
+      for (let remaining = 20; remaining > 0 && !await pageNavigation.getByRole("button", { name: "Next page", exact: true }).isDisabled(); remaining -= 1) {
+        await pageNavigation.getByRole("button", { name: "Next page", exact: true }).click();
+      }
+      assert.equal(await pageNavigation.getByRole("button", { name: "Next page", exact: true }).isDisabled(), true, "last page disables Next page");
+      assert.equal(await pageNavigation.getByRole("button", { name: "Previous page", exact: true }).isDisabled(), false, "last page keeps Previous page enabled");
+
+      await openInternalContents(page);
       const contentsBackdrop = await readViewportBackdrop(page);
       assertBackdrop(contentsBackdrop, "contents", "Contents / Exercises", { classroomImage: true });
       assertTransparent(contentsBackdrop.book, "Contents / Exercises book surface");
+      await assertBookNavigation(page, "Contents / Exercises", { previousDisabled: true, nextDisabled: true });
 
-      await page.getByRole("tab", { name: "Book pages", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+      await page.locator(".teacher-offline-unit-overview").waitFor();
+      assertBackdrop(await readViewportBackdrop(page), "unit-overview", "Contents return to overview", { classroomImage: true });
+      await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
       await page.locator(".teacher-offline-pages-viewer").waitFor();
-      assertBackdrop(await readViewportBackdrop(page), "page", "Contents return to page", { classroomImage: true });
 
-      await page.getByRole("button", { name: "Next page", exact: true }).click();
-      await page.getByRole("button", { name: "Page activities", exact: true }).click();
-      await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
+      await page.locator(".teacher-page-actions-trigger").click({ force: true });
+      await page.locator(".teacher-offline-page-actions").getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
       await page.locator(".teacher-offline-media").waitFor();
       const mediaBackdrop = await readViewportBackdrop(page);
       assertBackdrop(mediaBackdrop, "media", "Media");
       assert.match(mediaBackdrop.image, /linear-gradient/iu, "Media keeps its existing gradient");
       assert.doesNotMatch(mediaBackdrop.image, /url\(/iu, "Media does not invent an image background");
       assertTransparent(mediaBackdrop.media, "Media outer surface");
+      await assertShellControls(page, "Media");
+      await assertBookNavigation(page, "Media", { previousDisabled: true, nextDisabled: true });
       await page.screenshot({ path: `${artifactRoot}/media-bleed-1280x800.png` });
 
-      await page.getByRole("button", { name: "Back to book", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
       await page.locator(".teacher-offline-pages-viewer").waitFor();
       assertBackdrop(await readViewportBackdrop(page), "page", "Media return to page", { classroomImage: true });
 
-      await page.getByRole("button", { name: "Close book", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+      await page.locator(".teacher-offline-unit-overview").waitFor();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
       await page.locator(".legacy-home-launcher").waitFor();
       const finalLibraryBackdrop = await readViewportBackdrop(page);
       assertBackdrop(finalLibraryBackdrop, "library", "final Library return");

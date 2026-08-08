@@ -12,7 +12,8 @@
   --legacy-tool-row-width: min(calc(1240px * var(--teacher-ui-scale, 1)), calc(100vw - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right))));
   box-sizing: border-box;
   width: var(--legacy-tool-row-width);
-  min-height: calc(var(--legacy-tool-icon-size) * 1.2);
+  height: var(--classroom-toolbar-height);
+  min-height: var(--classroom-toolbar-height);
   margin: 0 auto;
   padding: 0 0 max(1px, env(safe-area-inset-bottom));
   align-self: end;
@@ -21,10 +22,12 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  contain: layout size;
 }
 
 .teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row {
   width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(18, minmax(0, 1fr));
   align-items: center;
@@ -66,10 +69,9 @@
   height: var(--legacy-tool-icon-size);
   display: block;
   flex: none;
-  transform: scale(1);
+  transform: none;
   transform-origin: center;
-  transition: transform 110ms ease-out;
-  will-change: transform;
+  transition: none;
 }
 
 .legacy-teacher-tool-icon {
@@ -87,11 +89,11 @@
 .legacy-teacher-tool-icon-normal { opacity: 1; }
 .legacy-teacher-tool-icon-active { opacity: 0; }
 
-.legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-stack { transform: scale(1.2); }
+.legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-stack { transform: none; }
 .legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-normal { opacity: 0; }
 .legacy-teacher-tool-button[aria-pressed="true"] .legacy-teacher-tool-icon-active { opacity: 1; }
 .teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row > .legacy-teacher-tool-button:active { transform: none; }
-.legacy-teacher-tool-button:active .legacy-teacher-tool-icon-stack { transform: scale(.8); transition-duration: 45ms; }
+.legacy-teacher-tool-button:active .legacy-teacher-tool-icon-stack { transform: none; }
 .legacy-teacher-tool-button:active .legacy-teacher-tool-icon-normal { opacity: 0; }
 .legacy-teacher-tool-button:active .legacy-teacher-tool-icon-active { opacity: 1; }
 

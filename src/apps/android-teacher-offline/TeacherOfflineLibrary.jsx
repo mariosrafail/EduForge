@@ -32,7 +32,7 @@ function UnitColumn({ label, items, artwork, onOpenBook }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, onOpenSettings, onCloseApplication, animationsActive }) {
+export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, animationsActive }) {
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
 
@@ -40,14 +40,6 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, onOpenSett
     <main className="teacher-offline-library has-classroom-tools" data-book-menu-skin={menuSkin.id} style={{ "--legacy-classroom-background": `url(${menuSkin.background})` }}>
       <header className="legacy-home-floating-chrome">
         <img className="legacy-home-publisher-logo" src={menuSkin.publisherLogo} alt={menuSkin.publisherLogoAlt} />
-        <div className="legacy-home-window-controls" aria-label="Launcher controls">
-          <button type="button" className="legacy-home-settings-button" aria-label="Open classroom settings" title="Classroom settings" onClick={onOpenSettings}>
-            <img src={menuSkin.settingsIcon} alt="" draggable="false" />
-          </button>
-          <button type="button" className="legacy-home-close-button" aria-label="Close application" title="Close application" onClick={onCloseApplication}>
-            <img src={menuSkin.closeIcon} alt="" draggable="false" />
-          </button>
-        </div>
       </header>
 
       <section className="legacy-home-classroom-surface" data-classroom-surface-id={surfaceKey} tabIndex={-1} aria-label={`${menuSkin.title.accessibleLabel} classroom launcher`}>

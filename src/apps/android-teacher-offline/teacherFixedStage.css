@@ -79,6 +79,7 @@ html[data-app-mode="android-teacher-offline"] :is(
 }
 
 html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface {
+  position: relative;
   --teacher-presentation-screen-gutter: 76px;
   --teacher-presentation-screen-padding-top: 8px;
   --teacher-presentation-screen-padding-bottom: 7px;
@@ -333,12 +334,124 @@ html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface 
   --legacy-tool-icon-size: calc(64px * var(--teacher-ui-scale, 1));
   --legacy-tool-row-width: calc(1240px * var(--teacher-ui-scale, 1));
   width: var(--legacy-tool-row-width);
-  min-height: calc(var(--legacy-tool-icon-size) * 1.2);
+  height: var(--classroom-toolbar-height);
+  min-height: var(--classroom-toolbar-height);
   padding: 0;
+  align-self: stretch;
+  justify-self: center;
+  contain: layout size;
 }
 html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row {
+  height: 100%;
   column-gap: calc(4px * var(--teacher-ui-scale, 1));
   overflow: visible;
+}
+
+/* One application chrome cluster and one book-navigation row across Teacher views. */
+html[data-app-mode="android-teacher-offline"] .teacher-shell-window-controls {
+  position: absolute;
+  z-index: 32;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-shell-window-controls button {
+  box-sizing: border-box;
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-shell-window-controls img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation {
+  box-sizing: border-box;
+  z-index: 8;
+  width: 1680px;
+  height: 66px;
+  min-height: 66px;
+  margin: -7px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation button {
+  box-sizing: border-box;
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  filter: drop-shadow(0 4px 2px rgba(41, 20, 72, 0.32));
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation button:disabled {
+  opacity: .34;
+  filter: grayscale(.75) drop-shadow(0 2px 1px rgba(41, 20, 72, .2));
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation .legacy-classroom-icon {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-edition {
+  border: 3px solid #fff !important;
+  background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099) !important;
+  box-shadow: 0 0 0 2px #59277f, inset 0 4px 8px rgba(255, 255, 255, .26) !important;
+  filter: none !important;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-edition span {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 950;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-page-actions-trigger {
+  position: absolute;
+  z-index: 8;
+  top: 18px;
+  right: 18px;
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  display: grid !important;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099);
+  box-shadow: 0 0 0 2px #59277f, inset 0 4px 8px rgba(255, 255, 255, .26);
+  color: #fff;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-book.contents-active {
+  grid-template-rows: minmax(0, 1fr) 66px;
+  padding: 72px 76px 7px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-book.contents-active > .teacher-offline-contents {
+  min-height: 0;
+  overflow: auto;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-media.has-classroom-tools {
+  grid-template-rows: 72px minmax(0, 1fr) 66px var(--classroom-toolbar-height);
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-media > header {
+  padding-right: 190px;
 }
 
 /* Stage-local production controls. Transformed ancestors make fixed positioning

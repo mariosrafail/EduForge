@@ -200,13 +200,12 @@ test("teacher settings v1 migration preserves existing values and adds modern mo
   assert.equal(sanitizeTeacherOfflineSettings({ graphics: { appearanceMode: "invalid", motionEnabled: "yes" } }).graphics.appearanceMode, "modern");
 });
 
-test("generic Teacher shell identity is not B2-only while book identity remains specific", async () => {
-  const [settingsDialog, entry, library, menuSkins, book] = await Promise.all([
+test("generic Teacher shell identity is not B2-only while menu identity remains specific", async () => {
+  const [settingsDialog, entry, library, menuSkins] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherBookMenuSkins.js", "utf8"),
-    readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
   ]);
   assert.match(settingsDialog, /Hamilton House LMS/);
   assert.match(settingsDialog, /Interactive Classroom/);
@@ -214,7 +213,6 @@ test("generic Teacher shell identity is not B2-only while book identity remains 
   assert.match(entry, /Hamilton House LMS/);
   assert.match(library, /menuSkin\.title\.accessibleLabel/);
   assert.match(menuSkins, /Ultimate English B2/);
-  assert.match(book, /Ultimate English B2/);
 });
 
 test("modern Teacher unit selectors use shared titles and touch-safe interaction CSS", async () => {
@@ -235,31 +233,45 @@ test("modern Teacher unit selectors use shared titles and touch-safe interaction
   assert.match(modernCss, /\.teacher-unit-switch button::before[\s\S]*?border-radius: 13px/);
 });
 
-test("Unit Overview uses installed-unit side arrows instead of its top-left switcher", async () => {
-  const [book, pages, overview, overviewCss, modernCss] = await Promise.all([
+test("Teacher book screens use one canonical six-control navigation row", async () => {
+  const [navigation, shell, book, pages, overview, media, fixedCss, toolbarCss] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherBookNavigation.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherShellChrome.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
-    readFile("src/apps/android-teacher-offline/teacherOfflineUnitOverview.css", "utf8"),
-    readFile("src/apps/android-teacher-offline/teacherOfflineModern.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineMedia.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherFixedStage.css", "utf8"),
+    readFile("src/apps/android-teacher-offline/legacyTeacherToolbar.css", "utf8"),
   ]);
+  const orderedLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
+  let previousIndex = -1;
+  for (const label of orderedLabels) {
+    const currentIndex = navigation.indexOf(`aria-label="${label}"`);
+    assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
+    previousIndex = currentIndex;
+  }
+  assert.equal((navigation.match(/<button\b/g) || []).length, 6);
+  assert.match(navigation, /previousDisabled = true/);
+  assert.match(navigation, /nextDisabled = true/);
+  assert.match(navigation, /onClick=\{noOp\} aria-label="Grammar Book"/);
+  assert.match(navigation, /onClick=\{noOp\} aria-label="Workbook"/);
+  assert.equal((shell.match(/<button\b/g) || []).length, 3);
+  for (const label of ["Open classroom settings", "Minimize application", "Close application"]) assert.match(shell, new RegExp(`aria-label="${label}"`));
   assert.match(book, /availableUnitNumbers = \(pageUnits \|\| \[\]\)/);
-  assert.match(book, /availableUnitNumbers=\{availableUnitNumbers\}/);
-  assert.match(pages, /availableUnitNumbers=\{availableUnitNumbers\}/);
-  assert.match(overview, /orderedAvailableUnits = \[\.\.\.availableUnitNumbers\]\.sort/);
-  assert.match(overview, /aria-label="Previous unit"/);
-  assert.match(overview, /aria-label="Next unit"/);
-  assert.match(overview, /data-unit-target=\{previousUnit\}/);
-  assert.match(overview, /data-unit-target=\{nextUnit\}/);
-  assert.doesNotMatch(overview, /TeacherUnitSwitch|legacy-overview-unit-switcher/);
-  assert.doesNotMatch(overview, /LegacyClassroomIcon name="(?:previous|next)"/);
-  assert.doesNotMatch(overview, /unitNumber (?:>|<) [12]/);
+  assert.doesNotMatch(book, /TeacherUnitSwitch|teacher-offline-view-tabs|Contents and exercises/);
+  assert.match(pages, /<TeacherBookNavigation/);
+  assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
+  assert.match(pages, /previousDisabled=\{activityActive \|\| selectedIndex <= 0\}/);
+  assert.match(pages, /nextDisabled=\{activityActive \|\| selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
+  assert.match(overview, /<TeacherBookNavigation/);
+  assert.match(media, /<TeacherBookNavigation onHome=\{onHome\} onBack=\{onBack\}/);
+  for (const source of [book, pages, overview, media]) assert.doesNotMatch(source, /legacy-page-navigation|teacher-unit-side-navigation|legacy-overview-book-links/);
+  assert.doesNotMatch(overview, /Previous unit|Next unit|Grid2X2|Minimize2/);
   assert.match(overview, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
-  assert.match(overviewCss, /\.teacher-unit-side-navigation[\s\S]*width: 60px;[\s\S]*height: 60px/);
-  assert.match(overviewCss, /\.teacher-unit-side-navigation \{ width: 44px; height: 44px; min-height: 44px/);
-  assert.match(overviewCss, /\.teacher-unit-side-navigation \{ width: 72px; height: 72px; min-height: 72px/);
-  assert.match(overviewCss, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*\.teacher-unit-side-navigation:hover/);
-  assert.match(modernCss, /\.teacher-unit-side-navigation[\s\S]*linear-gradient\(145deg, #16a8bd, #78338f\)/);
+  assert.match(fixedCss, /\.teacher-book-navigation[\s\S]*height: 66px/);
+  assert.match(toolbarCss, /\.classroom-teaching-toolbar[\s\S]*height: var\(--classroom-toolbar-height\)/);
+  assert.match(toolbarCss, /\.legacy-teacher-tool-icon-stack[\s\S]*transform: none/);
 });
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
@@ -405,7 +417,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
     readFile("src/apps/android-teacher-offline/classroomTools.css", "utf8"),
   ]);
   assert.doesNotMatch(app, /TeacherOfflinePresentation|navigation\.view === "activity"/);
-  assert.match(app, /current\.view === "book" && current\.activityId[\s\S]*window\.history\.back\(\)/);
+  assert.match(app, /current\.view === "book" && current\.activityId[\s\S]*returnToBookPage\(\)/);
   assert.match(app, /window\.history\.pushState\(pageState[\s\S]*window\.history\.pushState\(activityState/);
   assert.match(app, /activityId=\{navigation\.activityId \|\| ""\}/);
   assert.match(book, /activeActivity=\{activeActivity\}/);
@@ -413,7 +425,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(pages, /students-book:activity:\$\{embeddedActivityId\}/);
   assert.match(pages, /activityActive \? \{\} : \{[\s\S]*onPointerDown/);
   assert.match(pages, /event\.target\.closest\?\.\("\.teacher-offline-page-hotspot"\)/);
-  assert.match(pages, /activityActive && <button[\s\S]*onClick=\{onCloseActivity\}/);
+  assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
   assert.equal((pages.match(/<ClassroomToolbar\b/g) || []).length, 1);
   assert.match(embedded, /TEACHER_PRESENTATION_OFFLINE/);
   assert.match(embedded, /NormalizedStudentsBookActivity/);
@@ -432,7 +444,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(overview, /onClick=\{\(\) => onSelectPage\(entry\.pageIds\[0\]\)\}/);
   assert.doesNotMatch(overview, /activities<\/small>/);
   assert.match(pages, /legacy-page-heading/);
-  assert.match(pages, /legacy-page-navigation/);
+  assert.doesNotMatch(pages, /legacy-page-navigation/);
+  assert.match(pages, /<TeacherBookNavigation/);
   assert.match(pages, /ClassroomToolOverlay/);
   assert.match(pages, /ClassroomToolbar/);
   assert.doesNotMatch(pages, /requestFullscreen|Fit page|Fit width|Reset zoom/);
@@ -468,11 +481,11 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\}/);
   assert.match(library, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
-  assert.match(library, /legacy-home-settings-button[\s\S]*onOpenSettings/);
-  assert.match(library, /legacy-home-close-button[\s\S]*onCloseApplication/);
+  assert.doesNotMatch(library, /legacy-home-settings-button|legacy-home-close-button|legacy-home-minimize-button/);
   assert.match(toolbar, /ultimateB2TeacherToolbarItems\.map/);
   assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
-  assert.match(app, /onCloseApplication=\{closeApplication\}/);
+  assert.match(app, /onMinimize=\{minimizeApplication\}/);
+  assert.match(app, /onClose=\{closeApplication\}/);
   assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
@@ -481,7 +494,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(renderer, /onError=\{\(\) => setMediaError/);
   assert.match(app, /teacherContentPackProvider\.load/);
   assert.match(app, /App\.addListener\("backButton"/);
-  assert.match(app, /current\.view === "book"[\s\S]*replaceState\(next, "", "#library"\)/);
+  assert.match(app, /current\.location\?\.pageId \|\| current\.location\?\.tab === "exercises"[\s\S]*returnToUnitOverview\(\)/);
+  assert.match(app, /current\.view === "media"\) returnToBookPage\(\)/);
   assert.match(app, /current\.view === "library"[\s\S]*App\.exitApp/);
   assert.match(app, /replace: true/);
   assert.doesNotMatch(app, /onSubmit|markAndroidOfflinePageComplete|saveAndroidOfflineAnswer/);

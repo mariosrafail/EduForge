@@ -15,6 +15,7 @@ const runtimeAssetsBySkinId = Object.freeze({
     units: legacyClassroomAssets.branding.bookMenu.units,
     editions: legacyClassroomAssets.branding.bookMenu.editions,
     closeIcon: legacyClassroomAssets.icons.close,
+    minimizeIcon: legacyClassroomAssets.icons.minimize,
     settingsIcon: legacyClassroomAssets.icons.settings,
   }),
 });

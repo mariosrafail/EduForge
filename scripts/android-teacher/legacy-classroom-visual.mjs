@@ -45,11 +45,20 @@ async function waitForUnitOverview(page) {
   await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
 }
 
+async function setBookLocation(page, patch) {
+  await page.evaluate((locationPatch) => {
+    const current = window.history.state || {};
+    const next = { teacherOffline: true, view: "book", location: { ...(current.location || {}), ...locationPatch } };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, patch);
+}
+
 async function selectOverviewUnit(page, unit) {
   await waitForUnitOverview(page);
   const currentUnit = Number((await page.locator(".legacy-overview-heading h2").textContent()).match(/\d+/)?.[0]);
   if (currentUnit === unit) return;
-  await page.getByRole("button", { name: unit > currentUnit ? "Next unit" : "Previous unit", exact: true }).click();
+  await setBookLocation(page, { unitNumber: unit, tab: "pages", pageId: "" });
   await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).waitFor();
   await waitForUnitOverview(page);
 }
@@ -89,26 +98,11 @@ async function assertLegacyUnitOverview(page, unit, label) {
   if (unit === 2) assert.equal(await overview.locator('[data-page-ids="reading-19"] strong').count(), 0, `${label} pg 19 heading omitted`);
   assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, `${label} top-left unit switcher absent`);
   assert.equal(await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).isVisible(), true, `${label} centered unit title`);
-  const visibleArrowLabel = unit === 1 ? "Next unit" : "Previous unit";
-  const hiddenArrowLabel = unit === 1 ? "Previous unit" : "Next unit";
-  assert.equal(await page.getByRole("button", { name: hiddenArrowLabel, exact: true }).count(), 0, `${label} unavailable edge hidden`);
-  const arrow = page.getByRole("button", { name: visibleArrowLabel, exact: true });
-  assert.equal(await arrow.getAttribute("data-unit-target"), unit === 1 ? "2" : "1", `${label} installed-unit target`);
-  const arrowLayout = await arrow.evaluate((button) => {
-    const arrowRect = button.getBoundingClientRect();
-    const panelRect = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
-    const entries = [...document.querySelectorAll("[data-overview-entry]")].map((entry) => entry.getBoundingClientRect());
-    return {
-      size: arrowRect.width,
-      centerDelta: Math.abs((arrowRect.top + arrowRect.height / 2) - (panelRect.top + panelRect.height / 2)),
-      overlapsEntry: entries.some((entry) => arrowRect.left < entry.right && arrowRect.right > entry.left && arrowRect.top < entry.bottom && arrowRect.bottom > entry.top),
-      displayScale: Number(document.querySelector(".teacher-offline-settings-surface").dataset.teacherDisplayScale),
-    };
-  });
-  const expectedArrowSize = 60 * arrowLayout.displayScale;
-  assert.ok(Math.abs(arrowLayout.size - expectedArrowSize) <= 1, `${label} proportional arrow touch size: ${JSON.stringify(arrowLayout)}`);
-  assert.ok(arrowLayout.centerDelta <= 1, `${label} arrow vertical alignment`);
-  assert.equal(arrowLayout.overlapsEntry, false, `${label} arrow keeps thumbnails clear`);
+  assert.equal(await page.getByRole("button", { name: /^(?:Previous|Next) unit$/, exact: true }).count(), 0, `${label} side unit arrows absent`);
+  const navigation = page.locator("[data-teacher-book-navigation] button");
+  assert.deepEqual(await navigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], `${label} canonical navigation`);
+  assert.equal(await navigation.nth(2).isDisabled(), true, `${label} Previous page disabled`);
+  assert.equal(await navigation.nth(3).isDisabled(), true, `${label} Next page disabled`);
   await assertScreen(page, label);
 }
 
@@ -118,16 +112,16 @@ async function openPage(page, label) {
 }
 
 async function returnToOverview(page, unit) {
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await page.locator(".teacher-offline-unit-tabs").getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
+  if (await page.locator(".teacher-offline-embedded-activity").count()) await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+  if (await page.locator(".teacher-offline-pages-viewer").count()) await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+  await setBookLocation(page, { unitNumber: unit, tab: "pages", pageId: "" });
   await waitForUnitOverview(page);
 }
 
 async function openActivity(page, unit, title) {
-  if (await page.locator(".teacher-offline-embedded-activity").count()) await page.getByRole("button", { name: "Back to page" }).click();
-  if (await page.locator(".teacher-offline-pages-viewer").count()) await page.getByRole("button", { name: "Contents and exercises" }).click();
-  await page.getByRole("button", { name: `Unit ${unit}`, exact: true }).click();
-  await page.getByRole("button", { name: "Contents and exercises" }).click();
+  if (await page.locator(".teacher-offline-embedded-activity").count()) await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+  await setBookLocation(page, { unitNumber: unit, tab: "exercises", pageId: "" });
+  await page.locator(".teacher-offline-lessons").waitFor();
   const row = page.locator(".teacher-offline-lessons article").filter({ hasText: title }).first();
   await row.getByRole("button", { name: "Present" }).click();
   await page.locator(".teacher-offline-embedded-activity").waitFor();
@@ -148,16 +142,14 @@ async function assertEmbeddedActivity(page, label) {
       heading: visible(".legacy-page-heading"),
       reader: visible(".teacher-offline-page-reader"),
       backgroundSize: document.querySelector(".teacher-offline-page-reader") ? getComputedStyle(document.querySelector(".teacher-offline-page-reader")).backgroundSize : "",
-      navigation: visible(".legacy-page-navigation"),
+      navigation: visible(".teacher-book-navigation"),
       toolbarCount: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
       standaloneChrome: document.querySelectorAll(".teacher-offline-presentation").length,
       pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
       pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
-      libraryButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Library"]').length,
-      unitOverviewButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Unit overview"]').length,
-      backToPageButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Back to page"]').length,
+      navigationLabels: [...document.querySelectorAll('.teacher-book-navigation button')].map((button) => button.getAttribute("aria-label")),
       fitScale: Number(document.querySelector(".teacher-offline-embedded-activity")?.dataset.fitScale),
       hostContained: reader && hostRect
         ? hostRect.left >= reader.left - 1 && hostRect.right <= reader.right + 1
@@ -182,9 +174,7 @@ async function assertEmbeddedActivity(page, label) {
   assert.doesNotMatch(metrics.pageContext, /pg \d/, `${label} omits the page number from the heading`);
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
-  assert.equal(metrics.libraryButtons, 0, `${label} has no redundant library button`);
-  assert.equal(metrics.unitOverviewButtons, 0, `${label} has no redundant unit overview button`);
-  assert.equal(metrics.backToPageButtons, 1, `${label} keeps one back-to-page button`);
+  assert.deepEqual(metrics.navigationLabels, ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], `${label} keeps canonical navigation`);
   assert.ok(metrics.fitScale > 0 && metrics.fitScale <= 1, `${label} uses bounded fit scale`);
   assert.equal(metrics.hostContained, true, `${label} host remains inside the reader: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.neutralHostCanvas, true, `${label} masks the reader background behind activity corners`);
@@ -244,7 +234,8 @@ async function assertLegacyLauncher(page, label) {
       return Boolean(rect?.width && rect?.height);
     };
     const unitHeights = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect().height);
-    const settings = document.querySelector(".legacy-home-settings-button");
+    const chrome = document.querySelector("[data-teacher-shell-chrome]");
+    const settings = chrome?.querySelector('[aria-label="Open classroom settings"]');
     return {
       launcher: visible(".legacy-home-launcher"),
       unitColumns: document.querySelectorAll(".legacy-home-unit-column").length,
@@ -256,14 +247,14 @@ async function assertLegacyLauncher(page, label) {
       disabledBooks: document.querySelectorAll(".legacy-home-book-button:disabled").length,
       toolbar: visible(".legacy-home-classroom-toolbar"),
       teachingToolbar: visible(".teacher-offline-library .classroom-teaching-toolbar"),
-      settings: visible(".legacy-home-settings-button"),
-      settingsInFloatingChrome: Boolean(settings?.closest(".legacy-home-floating-chrome")),
+      settings: visible('[data-teacher-shell-chrome] [aria-label="Open classroom settings"]'),
+      settingsInFloatingChrome: Boolean(settings?.closest("[data-teacher-shell-chrome]")),
       bottomSettings: visible(".legacy-classroom-settings-trigger"),
       floatingSound: visible(".legacy-classroom-sound-toggle"),
-      close: visible(".legacy-home-close-button"),
+      close: visible('[data-teacher-shell-chrome] [aria-label="Close application"]'),
       minimize: document.querySelectorAll('[aria-label^="Minimize"]').length,
       horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
-      floatingChromeBackground: getComputedStyle(document.querySelector(".legacy-home-floating-chrome")).backgroundColor,
+      floatingChromeBackground: getComputedStyle(chrome).backgroundColor,
       launcherBackground: getComputedStyle(document.querySelector(".legacy-home-launcher")).backgroundImage,
       launcherBorder: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopWidth,
       launcherRadius: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopLeftRadius,
@@ -288,7 +279,7 @@ async function assertLegacyLauncher(page, label) {
     bottomSettings: false,
     floatingSound: false,
     close: true,
-    minimize: 0,
+    minimize: 1,
     horizontalTopbars: 0,
     floatingChromeBackground: "rgba(0, 0, 0, 0)",
     launcherBackground: "none",
@@ -314,7 +305,7 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
     return {
       panelExists: visible(".teacher-offline-page-reader"),
       headingExists: visible(".legacy-page-heading"),
-      navigationExists: visible(".legacy-page-navigation"),
+      navigationExists: visible(".teacher-book-navigation"),
       toolsExist: visible(".legacy-classroom-viewer-toolbar"),
       bookHeaderVisible: visible(".teacher-offline-book-header"),
       backgroundSize: reader ? getComputedStyle(reader).backgroundSize : "",
@@ -322,9 +313,7 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
       pageContext: document.querySelector(".legacy-page-heading strong")?.textContent?.trim(),
       locationPills: document.querySelectorAll(".legacy-page-location").length,
       floatingControls: document.querySelectorAll(".legacy-classroom-sound-toggle, .legacy-classroom-settings-trigger").length,
-      libraryButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Library"]').length,
-      unitOverviewButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Unit overview"]').length,
-      backToPageButtons: document.querySelectorAll('.legacy-page-navigation button[aria-label="Back to page"]').length,
+      navigationLabels: [...document.querySelectorAll('.teacher-book-navigation button')].map((button) => button.getAttribute("aria-label")),
       centered: panel && image ? Math.abs((image.left + image.width / 2) - (panel.left + panel.width / 2)) < 3 : false,
       contained: panel && image ? image.left >= panel.left - 4 && image.right <= panel.right + 4 && image.top >= panel.top - 4 && image.bottom <= panel.bottom + 4 : false,
       panel: panel ? { left: panel.left, top: panel.top, right: panel.right, bottom: panel.bottom } : null,
@@ -341,9 +330,7 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
   assert.equal(metrics.pageContext, expectedPageTitle, `${label} heading shows only the current page title`);
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
-  assert.equal(metrics.libraryButtons, 0, `${label} has no redundant library button`);
-  assert.equal(metrics.unitOverviewButtons, 0, `${label} has no redundant unit overview button`);
-  assert.equal(metrics.backToPageButtons, 0, `${label} only exposes back to page for activities`);
+  assert.deepEqual(metrics.navigationLabels, ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], `${label} canonical page navigation`);
   assert.equal(metrics.centered, true, `${label} page centered`);
   assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
 }
@@ -566,7 +553,7 @@ try {
     await page.locator(".teacher-offline-embedded-activity").waitFor();
     await assertEmbeddedActivity(page, "unit-opener-1366x768");
     assert.equal(await page.getByRole("button", { name: "Library" }).count(), 0, "embedded activity has no redundant library button");
-    assert.equal(await page.getByRole("button", { name: "Back to page" }).count(), 1, "embedded activity keeps one back-to-page button");
+    assert.equal(await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).count(), 1, "embedded activity keeps one logical Back button");
     assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Unit opener", "unit opener keeps its parent page title");
     for (const question of [1, 2, 3]) {
       await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
@@ -581,7 +568,7 @@ try {
     assert.match(unitOpenerFonts.answer, /ITC Flora Std Medium/, "unit opener answer uses the recovered ITC Flora family");
     assert.equal(unitOpenerFonts.answerWeight, "400", "unit opener answer keeps publisher normal weight");
     await page.screenshot({ path: `${artifactRoot}/embedded-unit-opener-1366x768.png` });
-    await page.getByRole("button", { name: "Back to page" }).click();
+    await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
     await waitForPageImage(page);
     await page
       .locator('.teacher-offline-page-hotspot[aria-label="Unit opener · Exercise 1"]')

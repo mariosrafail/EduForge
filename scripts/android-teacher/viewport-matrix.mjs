@@ -75,12 +75,23 @@ async function waitForEmbeddedActivityFit(page) {
         && embedded.top >= reader.top - 1 && embedded.bottom <= reader.bottom + 1;
       return contained && Number.isFinite(expectedScale) && Number.isFinite(appliedScale)
         && Math.abs(appliedScale - expectedScale) < 0.001;
-    }, undefined, { polling: "raf" });
+    }, undefined, { polling: "raf", timeout: 5000 });
   } catch (error) {
     if (error?.name !== "TimeoutError") throw error;
   }
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
+
+async function openInternalBookLocation(page, patch) {
+  await page.evaluate((locationPatch) => {
+    const current = window.history.state || {};
+    const next = { teacherOffline: true, view: "book", location: { ...(current.location || {}), ...locationPatch } };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, patch);
+}
+
+const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
 
 let browser;
 try {
@@ -124,16 +135,18 @@ try {
     assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
     const launcherLayout = await page.evaluate(() => {
       const units = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect());
-      const settings = document.querySelector(".legacy-home-settings-button");
-      const close = document.querySelector(".legacy-home-close-button");
-      const controls = [settings, close].map((control) => control?.getBoundingClientRect()).filter(Boolean);
+      const chrome = document.querySelector("[data-teacher-shell-chrome]");
+      const settings = chrome?.querySelector('[aria-label="Open classroom settings"]');
+      const close = chrome?.querySelector('[aria-label="Close application"]');
+      const controls = [...(chrome?.querySelectorAll("button") || [])].map((control) => control.getBoundingClientRect());
       const overlaps = controls.some((first, index) => controls.slice(index + 1).some((second) => (
         first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
       )));
       return {
         teachingToolbars: document.querySelectorAll(".teacher-offline-library :is(.legacy-home-classroom-toolbar, .classroom-teaching-toolbar)").length,
-        settingsInFloatingChrome: Boolean(settings?.closest(".legacy-home-floating-chrome")),
-        closeInFloatingChrome: Boolean(close?.closest(".legacy-home-floating-chrome")),
+        settingsInFloatingChrome: Boolean(settings?.closest("[data-teacher-shell-chrome]")),
+        closeInFloatingChrome: Boolean(close?.closest("[data-teacher-shell-chrome]")),
+        chromeLabels: [...(chrome?.querySelectorAll("button") || [])].map((button) => button.getAttribute("aria-label")),
         headerControlsOverlap: overlaps,
         minimizeControls: document.querySelectorAll('[aria-label^="Minimize"]').length,
         horizontalTopbars: document.querySelectorAll(".legacy-home-topbar").length,
@@ -141,7 +154,7 @@ try {
         floatingSound: document.querySelectorAll(".legacy-classroom-sound-toggle").length,
         minimumUnitHeight: Math.min(...units.map((rect) => rect.height)),
         maximumUnitHeight: Math.max(...units.map((rect) => rect.height)),
-        floatingChromeBackground: getComputedStyle(document.querySelector(".legacy-home-floating-chrome")).backgroundColor,
+        floatingChromeBackground: getComputedStyle(chrome).backgroundColor,
         launcherBackground: getComputedStyle(document.querySelector(".legacy-home-launcher")).backgroundImage,
         launcherBorder: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopWidth,
         launcherRadius: getComputedStyle(document.querySelector(".legacy-home-launcher")).borderTopLeftRadius,
@@ -160,7 +173,8 @@ try {
     assert.equal(launcherLayout.settingsInFloatingChrome, true, `${target.name} settings floats at top-right`);
     assert.equal(launcherLayout.closeInFloatingChrome, true, `${target.name} close floats at top-right`);
     assert.equal(launcherLayout.headerControlsOverlap, false, `${target.name} launcher header controls do not overlap`);
-    assert.equal(launcherLayout.minimizeControls, 0, `${target.name} minimize removed`);
+    assert.equal(launcherLayout.minimizeControls, 1, `${target.name} one minimize control`);
+    assert.deepEqual(launcherLayout.chromeLabels, ["Open classroom settings", "Minimize application", "Close application"], `${target.name} canonical top-right chrome`);
     assert.equal(launcherLayout.horizontalTopbars, 0, `${target.name} horizontal top bar removed`);
     assert.equal(launcherLayout.bottomSettings, 0, `${target.name} bottom settings removed`);
     assert.equal(launcherLayout.floatingSound, 0, `${target.name} floating sound removed`);
@@ -204,63 +218,16 @@ try {
     await page.getByRole("button", { name: "Close settings" }).click();
     await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
     await page.locator(".teacher-offline-book").waitFor();
-    await page.getByRole("button", { name: "Contents and exercises" }).click();
-    const bookShellUnitSwitcher = await page.locator(".teacher-offline-unit-tabs button").evaluateAll((buttons) => buttons.map((button) => {
-      const rect = button.getBoundingClientRect();
-      return {
-        height: rect.height,
-        left: rect.left,
-        right: rect.right,
-        title: button.dataset.unitTitle,
-        contained: rect.left >= -1 && rect.right <= innerWidth + 1,
-      };
-    }));
-    assert.equal(bookShellUnitSwitcher.length, 2, `${target.name} book-shell unit switcher count`);
-    assert.deepEqual(bookShellUnitSwitcher.map((button) => button.title), ["Lights, Camera, Action!", "Journeys of Discovery"], `${target.name} book-shell unit titles`);
-    assert.ok(bookShellUnitSwitcher.every((button) => button.height >= (44 * displayScale) - 1 && button.contained), `${target.name} scaled book-shell targets contained: ${JSON.stringify(bookShellUnitSwitcher)}`);
-    assert.ok(bookShellUnitSwitcher[0].right < bookShellUnitSwitcher[1].left, `${target.name} book-shell unit controls do not overlap`);
-    await page.getByRole("tab", { name: "Book pages" }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
     await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
       .every((image) => image.complete && image.naturalWidth > 0));
-    assert.equal(await page.locator(".legacy-overview-unit-switcher").count(), 0, `${target.name} overview top-left unit switcher absent`);
     assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, `${target.name} Unit 1 overview title`);
-    assert.equal(await page.getByRole("button", { name: "Previous unit", exact: true }).count(), 0, `${target.name} Unit 1 previous edge hidden`);
-    const readSideArrow = async (label) => page.getByRole("button", { name: label, exact: true }).evaluate((button) => {
-      const rect = button.getBoundingClientRect();
-      const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
-      const entries = [...document.querySelectorAll("[data-overview-entry]")].map((entry) => entry.getBoundingClientRect());
-      return {
-        size: rect.width,
-        left: rect.left,
-        right: rect.right,
-        centerDelta: Math.abs((rect.top + rect.height / 2) - (panel.top + panel.height / 2)),
-        overlapsEntry: entries.some((entry) => rect.left < entry.right && rect.right > entry.left && rect.top < entry.bottom && rect.bottom > entry.top),
-        target: button.dataset.unitTarget,
-      };
-    });
-    const nextArrow = await readSideArrow("Next unit");
-    const expectedArrowSize = 60 * displayScale;
-    assert.ok(Math.abs(nextArrow.size - expectedArrowSize) <= 1, `${target.name} next-unit arrow size: ${JSON.stringify(nextArrow)}`);
-    assert.ok(target.width - nextArrow.right <= (20 * displayScale) + Math.max(1, (target.width - 1920 * displayScale) / 2 + 1), `${target.name} next-unit arrow near right stage edge`);
-    assert.ok(nextArrow.centerDelta <= 1, `${target.name} next-unit arrow vertically centered`);
-    assert.equal(nextArrow.overlapsEntry, false, `${target.name} next-unit arrow does not cover thumbnails`);
-    assert.equal(nextArrow.target, "2", `${target.name} next-unit target`);
-    await page.getByRole("button", { name: "Next unit", exact: true }).click();
-    await page.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
-    await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
-    assert.equal(await page.getByRole("button", { name: "Next unit", exact: true }).count(), 0, `${target.name} Unit 2 next edge hidden`);
-    const previousArrow = await readSideArrow("Previous unit");
-    assert.ok(Math.abs(previousArrow.size - expectedArrowSize) <= 1, `${target.name} previous-unit arrow size: ${JSON.stringify(previousArrow)}`);
-    assert.ok(previousArrow.left <= (20 * displayScale) + Math.max(1, (target.width - 1920 * displayScale) / 2 + 1), `${target.name} previous-unit arrow near left stage edge: ${JSON.stringify(previousArrow)}`);
-    assert.ok(previousArrow.centerDelta <= 1, `${target.name} previous-unit arrow vertically centered`);
-    assert.equal(previousArrow.overlapsEntry, false, `${target.name} previous-unit arrow does not cover thumbnails`);
-    assert.equal(previousArrow.target, "1", `${target.name} previous-unit target`);
-    await page.getByRole("button", { name: "Previous unit", exact: true }).click();
-    await page.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
-    await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
-    assert.equal(await page.locator(".teacher-offline-pages-viewer").count(), 0, `${target.name} previous-unit arrow stays in overview mode`);
-    await page.getByRole("button", { name: "Next unit", exact: true }).click();
+    const overviewNavigation = page.locator("[data-teacher-book-navigation] button");
+    assert.deepEqual(await overviewNavigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), bookNavigationLabels, `${target.name} overview navigation order`);
+    assert.equal(await overviewNavigation.nth(2).isDisabled(), true, `${target.name} overview Previous disabled`);
+    assert.equal(await overviewNavigation.nth(3).isDisabled(), true, `${target.name} overview Next disabled`);
+    assert.equal(await page.locator(".teacher-unit-side-navigation,.legacy-overview-book-links,.teacher-offline-unit-tabs,.teacher-offline-view-tabs,.legacy-page-navigation").count(), 0, `${target.name} obsolete navigation absent`);
+    await openInternalBookLocation(page, { unitNumber: 2, tab: "pages", pageId: "" });
     await page.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
     await page.locator(".teacher-offline-unit-overview-screen").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     const overviewLayout = await page.evaluate(() => {
@@ -311,7 +278,7 @@ try {
       const image = document.querySelector(".teacher-offline-page-image");
       const stageRect = stage.getBoundingClientRect();
       const imageRect = image.getBoundingClientRect();
-      const buttons = [...document.querySelectorAll(".legacy-page-navigation button, .legacy-classroom-viewer-toolbar button")]
+      const buttons = [...document.querySelectorAll(".teacher-book-navigation button, .legacy-classroom-viewer-toolbar button")]
         .map((button) => button.getBoundingClientRect())
         .filter((rect) => rect.width > 0 && rect.height > 0);
       return {
@@ -422,20 +389,21 @@ try {
       const selectedButtonBox = await pencil.boundingBox();
       for (const key of ["x", "y", "width", "height"]) assertNear(selectedButtonBox[key], pencilButtonBox[key], .01, `selected tool ${key} layout stability`);
       const selectedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
-      assertNear(selectedScale, 1.2, .01, "selected tool scale");
+      assertNear(selectedScale, 1, .01, "selected tool scale remains stable");
       const pencilBox = await pencil.boundingBox();
       await page.mouse.move(pencilBox.x + pencilBox.width / 2, pencilBox.y + pencilBox.height / 2);
       await page.mouse.down();
       await page.waitForTimeout(70);
       const pressedScale = await pencil.locator(".legacy-teacher-tool-icon-stack").evaluate((stack) => new DOMMatrixReadOnly(getComputedStyle(stack).transform).a);
-      assertNear(pressedScale, .8, .01, "pressed tool scale");
+      assertNear(pressedScale, 1, .01, "pressed tool scale remains stable");
       assert.equal(await pencil.locator(".legacy-teacher-tool-icon-active").evaluate((icon) => getComputedStyle(icon).opacity), "1", "pressed tool active artwork");
       await page.mouse.up();
       await page.getByRole("button", { name: "Mouse", exact: true }).click();
       assert.equal(await page.locator(".classroom-tools-overlay").getAttribute("data-active-classroom-tool"), "pointer", "Mouse exits the real pen tool");
     }
 
-    await page.getByRole("button", { name: "Contents and exercises" }).click();
+    await openInternalBookLocation(page, { unitNumber: 2, tab: "exercises", pageId: "" });
+    await page.locator(".teacher-offline-lessons").waitFor();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 40, `${target.name} Unit 2 contents`);
     const firstActivity = page.locator(".teacher-offline-lessons article").filter({
       hasText: target.name === "4k-3840x2160" ? /Reading.*Exercise 3/ : /Reading/,
@@ -457,7 +425,7 @@ try {
         fitScale: Number(document.querySelector(".teacher-offline-embedded-activity").dataset.fitScale),
         fitMode: document.querySelector(".teacher-offline-embedded-activity").dataset.fitMode,
         heading: Boolean(document.querySelector(".legacy-page-heading")),
-        navigation: Boolean(document.querySelector(".legacy-page-navigation")),
+        navigation: Boolean(document.querySelector(".teacher-book-navigation")),
         reader: Boolean(document.querySelector(".teacher-offline-page-reader")),
         pageImages: document.querySelectorAll(".teacher-offline-page-image").length,
         toolbars: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
@@ -497,56 +465,57 @@ try {
       await page.getByText("Publisher answer", { exact: true }).first().waitFor();
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
     }
-    await page.getByRole("button", { name: "Back to page" }).click();
-    await page.locator(".teacher-offline-page-image").waitFor();
+    await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+    await page.waitForFunction(() => !document.querySelector(".teacher-offline-embedded-activity")
+      && document.querySelector(".teacher-offline-page-image")?.getBoundingClientRect().width > 0);
 
     if (target.name === "tablet-1280x800") {
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
+      await openInternalBookLocation(page, { unitNumber: 2, tab: "exercises", pageId: "" });
+      await page.locator(".teacher-offline-lessons").waitFor();
       const typedActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 4/ }).first();
       await typedActivity.getByRole("button", { name: "Present" }).click();
       await page.locator(".teacher-offline-embedded-activity input").first().fill("test");
       assert.equal(await page.locator(".teacher-offline-embedded-activity input").first().inputValue(), "test");
-      await page.getByRole("button", { name: "Back to page" }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
     }
 
     if (target.name === "full-hd-1920x1080") {
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
+      await openInternalBookLocation(page, { unitNumber: 2, tab: "exercises", pageId: "" });
+      await page.locator(".teacher-offline-lessons").waitFor();
       const answerActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Reading.*Exercise 3/ }).first();
       await answerActivity.getByRole("button", { name: "Present" }).click();
       await page.getByRole("button", { name: "Show all answers" }).click();
       await page.getByText("Publisher answer", { exact: true }).first().waitFor();
       await page.screenshot({ path: `${artifactRoot}/${target.name}-answers.png` });
-      await page.getByRole("button", { name: "Back to page" }).click();
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
-      await page.getByRole("button", { name: "Unit 1", exact: true }).click();
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+      await openInternalBookLocation(page, { unitNumber: 1, tab: "exercises", pageId: "" });
+      await page.locator(".teacher-offline-lessons").waitFor();
       const matchingActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Vocabulary in Use.*Exercise 1/ }).first();
       await matchingActivity.getByRole("button", { name: "Present" }).click();
       assert.ok(await page.locator(".teacher-offline-embedded-activity select").count() > 0, "Normalized matching activity must render choices");
-      await page.getByRole("button", { name: "Next page" }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
       await page.locator(".teacher-offline-page-image").waitFor();
       assert.equal(await page.locator(".teacher-offline-embedded-activity").count(), 0, "Next page closes the old activity");
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
-      await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+      await openInternalBookLocation(page, { unitNumber: 2, tab: "exercises", pageId: "" });
+      await page.locator(".teacher-offline-lessons").waitFor();
     }
 
     if (target.name === "qhd-2560x1440") {
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
+      await openInternalBookLocation(page, { unitNumber: 2, tab: "exercises", pageId: "" });
+      await page.locator(".teacher-offline-lessons").waitFor();
       const audioActivity = page.locator(".teacher-offline-lessons article").filter({ hasText: /Reading.*Exercise 2/ }).first();
       await audioActivity.getByRole("button", { name: "Present" }).click();
       const audio = page.locator("audio");
       await audio.waitFor();
       assert.equal(await audio.getAttribute("preload"), "metadata");
       assert.match(await audio.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4179)?\/assets\//);
-      await page.getByRole("button", { name: "Back to page" }).click();
+      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
     }
 
-    const bookPagesTab = page.locator('[title="Book pages"]');
-    if (await bookPagesTab.isVisible()) await bookPagesTab.click();
     if (target.screenshot) {
       if (!await page.locator(".teacher-offline-unit-overview").count()) {
-        await page.getByRole("button", { name: "Close book" }).click();
-        await page.getByRole("button", { name: /^Open Unit 2:/ }).click();
+        await openInternalBookLocation(page, { unitNumber: 2, tab: "pages", pageId: "" });
         await page.locator(".teacher-offline-unit-overview").waitFor();
       }
       await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();

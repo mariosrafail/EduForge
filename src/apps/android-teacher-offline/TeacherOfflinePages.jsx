@@ -1,16 +1,15 @@
 import {
-  BookOpen,
-  Minimize2,
   MonitorPlay,
   Move,
   PlayCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { LegacyClassroomIcon, legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import TeacherOfflineEmbeddedActivity from "./TeacherOfflineEmbeddedActivity.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherStage } from "./TeacherFixedStage.jsx";
@@ -63,15 +62,11 @@ export default function TeacherOfflinePages({
   onCloseActivity,
   onOpenMedia,
   onBackToLibrary,
-  onOpenContents,
-  onSelectUnit,
-  availableUnitNumbers,
 }) {
   const pages = unit?.pages || [];
   const settings = useTeacherOfflineSettings();
   const { scale: teacherStageScale } = useTeacherStage();
   const showLeftNavigation = settings.content.showNavbarLeft || (!settings.content.showNavbarLeft && !settings.content.showNavbarRight);
-  const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
   const page = selectedIndex >= 0 ? pages[selectedIndex] : null;
   const pageContext = page?.title || "";
@@ -277,10 +272,7 @@ export default function TeacherOfflinePages({
       key={`unit-overview-${unit.number}`}
       unit={unit}
       onSelectPage={onSelectPage}
-      onSelectUnit={onSelectUnit}
-      availableUnitNumbers={availableUnitNumbers}
       onBackToLibrary={onBackToLibrary}
-      onOpenContents={onOpenContents}
     />
   );
 
@@ -292,10 +284,7 @@ export default function TeacherOfflinePages({
           <h2>Unit {unit.number}</h2>
           <strong>{pageContext}</strong>
         </div> : <div data-navbar-side="left" data-navbar-hidden="true" />}
-        <div className="legacy-page-window-controls">
-          <button type="button" disabled aria-disabled="true" title="Minimize — not available in this prototype"><Minimize2 size={20} /></button>
-          <button type="button" onClick={onBackToLibrary} title="Close book" aria-label="Close book">×</button>
-        </div>
+        <div aria-hidden="true" />
       </header>
 
       <div className="teacher-offline-page-reader">
@@ -372,19 +361,26 @@ export default function TeacherOfflinePages({
             ))}
           </nav>
         )}
+        {!activityActive && actions.length > 0 && (
+          <button
+            type="button"
+            className="teacher-page-actions-trigger"
+            aria-expanded={actionsOpen}
+            onClick={() => setActionsOpen((open) => !open)}
+            title="Page activities"
+            aria-label="Page activities"
+          ><MonitorPlay size={26} /></button>
+        )}
       </div>
 
-      <nav className="legacy-page-navigation" aria-label="Page navigation">
-        {showRightNavigation ? <div data-navbar-side="right">
-          {activityActive && <button type="button" className="legacy-page-round-button" onClick={onCloseActivity} title="Back to page" aria-label="Back to page"><LegacyClassroomIcon name="back" /></button>}
-          <button type="button" className="legacy-page-round-button" disabled={selectedIndex === 0} onClick={() => onSelectPage(pages[selectedIndex - 1].id)} title="Previous page" aria-label="Previous page"><LegacyClassroomIcon name="previous" /></button>
-        </div> : <div data-navbar-side="right" data-navbar-hidden="true" />}
-        <div>
-          {!activityActive && actions.length > 0 && <button type="button" className="legacy-page-round-button legacy-page-activities-button" aria-expanded={actionsOpen} onClick={() => setActionsOpen((open) => !open)} title="Page activities" aria-label="Page activities"><MonitorPlay size={26} /></button>}
-          <button type="button" className="legacy-page-round-button" onClick={onOpenContents} title="Contents and exercises" aria-label="Contents and exercises"><BookOpen size={25} /></button>
-          <button type="button" className="legacy-page-round-button" disabled={selectedIndex === pages.length - 1} onClick={() => onSelectPage(pages[selectedIndex + 1].id)} title="Next page" aria-label="Next page"><LegacyClassroomIcon name="next" /></button>
-        </div>
-      </nav>
+      <TeacherBookNavigation
+        onHome={onBackToLibrary}
+        onBack={activityActive ? onCloseActivity : () => onSelectPage("")}
+        onPrevious={() => onSelectPage(pages[selectedIndex - 1].id)}
+        onNext={() => onSelectPage(pages[selectedIndex + 1].id)}
+        previousDisabled={activityActive || selectedIndex <= 0}
+        nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
+      />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />
     </section>

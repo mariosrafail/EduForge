@@ -17,6 +17,7 @@ import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import TeacherStartupIntro from "./TeacherStartupIntro.jsx";
 import TeacherFixedStage from "./TeacherFixedStage.jsx";
+import TeacherShellChrome from "./TeacherShellChrome.jsx";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
@@ -151,9 +152,33 @@ export default function TeacherOfflineApp() {
   const closeApplication = useCallback(async () => {
     if (Capacitor.isNativePlatform()) await App.exitApp();
   }, []);
+  const minimizeApplication = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) await App.minimizeApp();
+  }, []);
   const updateBookLocation = (location, options) => {
     writeTeacherOfflineLocation(location);
     navigate({ view: "book", location }, { ...options, replace: true });
+  };
+  const replaceBookNavigation = (location) => {
+    const next = { teacherOffline: true, view: "book", location };
+    writeTeacherOfflineLocation(location);
+    navigationRef.current = next;
+    setNavigation(next);
+    window.history.replaceState(next, "", "#book");
+  };
+  const returnToBookPage = () => {
+    const location = navigationRef.current.location || defaultLocation;
+    replaceBookNavigation({ ...location, tab: "pages" });
+  };
+  const returnToUnitOverview = () => {
+    const location = navigationRef.current.location || defaultLocation;
+    replaceBookNavigation({ ...location, tab: "pages", pageId: "" });
+  };
+  const returnToLibrary = () => {
+    const next = libraryState();
+    navigationRef.current = next;
+    setNavigation(next);
+    window.history.replaceState(next, "", "#library");
   };
 
   useEffect(() => {
@@ -179,16 +204,15 @@ export default function TeacherOfflineApp() {
           return;
         }
         if (current.view === "book" && current.activityId) {
-          window.history.back();
+          returnToBookPage();
           return;
         }
         if (current.view === "book") {
-          const next = libraryState();
-          window.history.replaceState(next, "", "#library");
-          setNavigation(next);
+          if (current.location?.pageId || current.location?.tab === "exercises") returnToUnitOverview();
+          else returnToLibrary();
           return;
         }
-        window.history.back();
+        if (current.view === "media") returnToBookPage();
       });
       if (disposed) await backHandle.remove();
     };
@@ -239,7 +263,8 @@ export default function TeacherOfflineApp() {
     content = (
       <TeacherOfflineMedia
         media={navigation.media}
-        onBack={() => window.history.back()}
+        onBack={returnToBookPage}
+        onHome={returnToLibrary}
       />
     );
   } else if (navigation.view === "book") {
@@ -251,9 +276,9 @@ export default function TeacherOfflineApp() {
         activityId={navigation.activityId || ""}
         onLocationChange={updateBookLocation}
         onOpenActivity={openBookActivity}
-        onCloseActivity={() => window.history.back()}
+        onCloseActivity={returnToBookPage}
         onOpenMedia={(media) => navigate({ view: "media", media, location: navigation.location || defaultLocation })}
-        onBackToLibrary={() => navigate(libraryState(), { replace: true })}
+        onBackToLibrary={returnToLibrary}
         viewportProfile={viewport.profile}
       />
     );
@@ -262,8 +287,6 @@ export default function TeacherOfflineApp() {
       <TeacherOfflineLibrary
         menuSkin={menuSkin}
         onOpenBook={openBook}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onCloseApplication={closeApplication}
         animationsActive={animationsActive}
       />
     );
@@ -299,6 +322,14 @@ export default function TeacherOfflineApp() {
         <div key={startupIntroPending ? "intro" : navigation.view} className="teacher-offline-view-transition" data-teacher-view={startupIntroPending ? "intro" : navigation.view} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
+        {!startupIntroPending && (
+          <TeacherShellChrome
+            menuSkin={menuSkin}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onMinimize={minimizeApplication}
+            onClose={closeApplication}
+          />
+        )}
         {!startupIntroPending && navigation.view === "media" && <button
           type="button"
           className="legacy-classroom-sound-toggle"
