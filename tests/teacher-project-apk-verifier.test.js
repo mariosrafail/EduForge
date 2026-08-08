@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { verifyTeacherProjectApkArchive } from "../lib/teacher-project-builder/apk-verifier.js";
+import { TEACHER_ANDROID_APPLICATION_ID, TEACHER_ANDROID_APPLICATION_LABEL } from "../lib/teacher-project-builder/android-contract.js";
 import { buildTeacherProjectWeb } from "../scripts/teacher-project-builder/build-web.mjs";
 import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
 
@@ -40,7 +41,7 @@ test("APK verifier proves assets/public equals the verified generic dist and rej
   zipFiles.push(["AndroidManifest.xml", Buffer.from("binary manifest")]);
   const apkPath = path.join(fixture.root, "fixture.apk");
   await fs.writeFile(apkPath, storedZip(zipFiles));
-  const inspectApk = async () => ({ applicationId: "com.eduforge.offlinebooks", applicationLabel: "Hamilton House LMS Teacher", minSdk: 24, targetSdk: 36, permissions: [] });
+  const inspectApk = async () => ({ applicationId: TEACHER_ANDROID_APPLICATION_ID, applicationLabel: TEACHER_ANDROID_APPLICATION_LABEL, minSdk: 24, targetSdk: 36, permissions: [] });
   const verified = await verifyTeacherProjectApkArchive({ apkPath, distRoot: built.distRoot, project: built.project, stagingManifest: built.manifest, inspectApk });
   assert.equal(verified.status, "generic-teacher-project-apk-safe");
   assert.equal(verified.verifiedProjectAssets, built.manifest.assetIds.length);

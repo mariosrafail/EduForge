@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { exportTeacherProjectApk } from "../lib/teacher-project-builder/export-apk.js";
+import { TEACHER_ANDROID_APPLICATION_ID } from "../lib/teacher-project-builder/android-contract.js";
 import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
 
 test("complete generic Teacher Project exports and verifies a real debug APK", {
@@ -15,7 +16,7 @@ test("complete generic Teacher Project exports and verifies a real debug APK", {
   const stages = [];
   const result = await exportTeacherProjectApk({ workspace: fixture.workspace, projectId: "generic-ci-teacher", onStage: (stage) => stages.push(stage) });
   assert.equal(result.report.verification.status, "generic-teacher-project-apk-safe");
-  assert.equal(result.report.applicationId, "com.eduforge.offlinebooks");
+  assert.equal(result.report.applicationId, TEACHER_ANDROID_APPLICATION_ID);
   assert.ok((await fs.stat(result.apkPath)).size > 0);
   assert.equal(path.basename(result.apkPath), `generic-ci-teacher-r${String(fixture.project.revision).padStart(4, "0")}-debug.apk`);
   assert.deepEqual(stages, ["Validating project", "Building Teacher app", "Verifying Teacher bundle", "Syncing Android", "Building APK", "Verifying APK", "Archiving APK", "Export complete"]);

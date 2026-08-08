@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { parseAdbDevices, listAdbDevices, installAndLaunchTeacherApk } from "../lib/teacher-project-builder/adb.js";
+import { TEACHER_ANDROID_MAIN_ACTIVITY } from "../lib/teacher-project-builder/android-contract.js";
 import { TeacherProjectJobManager } from "../lib/teacher-project-builder/jobs.js";
 import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
 
@@ -34,7 +35,7 @@ test("ADB discovery output is sanitized and fixed serial install/launch argument
   const result = await installAndLaunchTeacherApk({ repositoryRoot: path.resolve("."), apkPath: path.resolve("fixture.apk"), serial: "emulator-5554", environment, runProcess });
   assert.equal(result.replacedExistingDebugApp, true);
   assert.deepEqual(calls.at(-2).args.slice(0, 4), ["-s", "emulator-5554", "install", "-r"]);
-  assert.deepEqual(calls.at(-1).args, ["-s", "emulator-5554", "shell", "am", "start", "-n", "com.eduforge.offlinebooks/.MainActivity"]);
+  assert.deepEqual(calls.at(-1).args, ["-s", "emulator-5554", "shell", "am", "start", "-n", TEACHER_ANDROID_MAIN_ACTIVITY]);
   await assert.rejects(() => installAndLaunchTeacherApk({ repositoryRoot: ".", apkPath: "x", serial: "bad serial;rm", environment, runProcess }), /invalid_android_device_serial/);
 });
 
