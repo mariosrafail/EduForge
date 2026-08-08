@@ -19,5 +19,5 @@ test("preview and native fixed-stage hosts bleed the uploaded background behind 
   assert.match(editorCss, /teacher-project-preview-host[^}]*background-color:[^;]+;[^}]*background-position: center;[^}]*background-size: cover;/s);
   assert.match(editorCss, /teacher-project-preview-stage[^}]*background: transparent;/s);
   assert.match(fixedCss, /teacher-fixed-stage-host\[data-viewport-backdrop\][^}]*background-position: center;[^}]*background-size: cover;/s);
-  assert.match(app, /viewportBackdrop=\{\{ name: "library"[\s\S]+projectConfig\.background/);
+  assert.match(app, /viewportBackdrop=\{\{ name: presentationView[\s\S]+projectConfig\.background/);
 });

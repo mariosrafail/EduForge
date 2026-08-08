@@ -1,6 +1,6 @@
 # Teacher APK Projects
 
-A Teacher APK Project is the versioned authoring source for a reusable, shell-only Hamilton House Teacher application. It lives beside, but never inside, scanned Book Projects in the local Publisher Review Studio workspace:
+A Teacher APK Project is the versioned authoring source for a reusable Hamilton House Teacher application. It lives beside, but never inside, scanned Book Projects in the local Publisher Review Studio workspace:
 
 ```text
 <workspace>/teacher-projects/<project-id>/
@@ -13,6 +13,7 @@ A Teacher APK Project is the versioned authoring source for a reusable, shell-on
     editions/
     toolbar/
     audio/
+    pages/
   exports/
     <project-id>-r####-debug.apk
     <project-id>-r####-build.json
@@ -21,7 +22,21 @@ A Teacher APK Project is the versioned authoring source for a reusable, shell-on
 
 Start the Studio in explicit local edit mode with `npm run dev:book-builder:edit -- --confirm=local-book-project-writes`, then use the separate **Teacher APK Projects** section. Create a project with a display name and stable lowercase slug. The fixed Hamilton House logo and Android application ID are not project settings.
 
-The authoring workspace has section navigation, a compact current-section editor, and a persistent shared-runtime preview. The header always shows the saved revision, Saved/Unsaved state, dynamic completion progress, Import Assets, Save, Export APK, and Run. Export and Run remain disabled until the complete draft has been saved.
+The authoring workspace has section navigation, a compact current-section editor, and a persistent shared-runtime preview. The header always shows the saved revision, Saved/Unsaved state, separate Shell and Pages status, Import Assets, Save, Export APK, and Run. Export and Run remain disabled until the complete draft has been saved.
+
+## Students Book pages
+
+Open **Units & Pages**, choose one of the ten Units, and explicitly import PNG, JPEG, or WebP page images. Multi-import processes only the selected browser files, in natural filename order. Imported files enter a project-local Page Image Library; filenames and dimensions are display metadata only and never determine navigation.
+
+Use **Add Page / Spread** to create an ordered logical entry. Each entry has an opaque stable ID, a publisher-authored page label, an optional section title, and one of three layouts:
+
+- **Single page** uses one portrait or landscape raster.
+- **Double page / One spread image** uses one already-composed wide raster.
+- **Double page / Two page images** uses explicit left and right rasters and remains one logical Previous/Next entry.
+
+Entry array order is authoritative. Moving entries changes navigation order; labels such as `10`, `2`, `1`, `6-7`, `6–7`, or `A1` are never parsed or sorted. Deleting an entry removes only its reference. The imported page image remains in the library until it has no saved shell or content references and is explicitly removed from **Sounds & Assets**.
+
+Empty Units and projects with no page entries are valid. An incomplete entry may be saved as a draft, but the Pages status lists the affected Unit and missing fields, and Export/Run fail closed until every existing entry has a label and the images required by its layout. The shell inventory remains a separate fixed 106-item completeness count.
 
 ## Bulk shell import
 
@@ -77,7 +92,7 @@ Recognized state tokens include `normal`, `default`, `base`, `enabled`, `up`, `a
 
 Only assets with zero current draft references expose **Remove unused**. The server remains authoritative and refuses removal if the saved project still references the asset; save a replacement mapping first, then remove the orphan. Cleanup never touches exports or build staging.
 
-Teacher Project cards provide **Duplicate**. Duplication asks for a new name and slug, copies verified asset bytes and shell assignments into a self-contained revision-1 project, and never copies `exports`, APKs, build reports, `.build`, jobs, or device state.
+Teacher Project cards provide **Duplicate**. Duplication asks for a new name and slug, copies verified asset bytes, shell assignments, ordered content entries, and stable entry IDs into a self-contained revision-1 project, and never copies `exports`, APKs, build reports, `.build`, jobs, or device state.
 
 The QA list reports Normal, Active, and Sound state for Chrome, Units, Editions, and the actual Toolbar array. Selecting a control highlights its real `data-teacher-control-id` inside the shared-runtime preview; sound testing remains local and window actions are simulated. Preview can be expanded and retains 16:9, 16:10, and ultrawide modes. Incomplete projects use safe runtime placeholders, while APK Export remains completeness-gated.
 
@@ -85,13 +100,13 @@ The QA list reports Normal, Active, and Sound state for Chrome, Units, Editions,
 
 The schema currently requires a background; a title GAF plus all SD/HD atlas rasters declared by that GAF; Settings, Minimize, and Close images; normal/active images for 10 units, 4 editions, and the 18 primary toolbar controls; and a click-sound assignment for every interactive control. MP3 and WAV files are imported once into the project audio library and may be reused by any control. The toolbar is an array and the schema accepts additional entries later, while the milestone UI starts with the recovered 18-control primary set.
 
-Imports are validated from their bytes, hashed, deduplicated, stored by opaque asset ID, and referenced with portable `assets/...` paths. Save writes a complete new project revision atomically. Export and Run operate only on the last saved complete revision; unsaved drafts must be saved first.
+Imports are validated from their bytes, hashed, deduplicated, stored by opaque asset ID, and referenced with portable `assets/...` paths. Save writes a complete new project revision atomically. Export and Run operate only on the last saved complete revision; unsaved drafts must be saved first. Version-1 shell-only manifests are strictly validated and normalized in memory to version 2 with empty page content; merely opening one does not rewrite it, while the next genuine Save persists version 2.
 
 ## Preview, Export, and Run
 
-The live 16:9, 16:10, and ultrawide previews materialize the same generic runtime contract and render the same shared shell components as the APK. Preview never invokes Android tooling.
+The live 16:9, 16:10, and ultrawide previews materialize the same generic runtime contract and presentation components as the APK. A configured Unit opens an Overview with one card per logical entry. Home, Back, Previous, and Next preserve authored array order. The page viewer fits single pages, composed spreads, and paired pages without distortion, keeps left/right geometry, and supports bounded 1x-4x zoom and pan. Preview never invokes Android tooling.
 
-**Export APK** validates and stages only referenced project assets, runs the isolated `android-teacher-project` Vite entry, verifies the web bundle, syncs Capacitor, assembles a debug APK, verifies its manifest and packaged web bytes, and archives it under `exports/` with a sanitized build report. The global Android build lock prevents concurrent projects from sharing Gradle output. Export does not rewrite tracked Ultimate B2 project data.
+**Export APK** validates and stages only referenced project assets (including referenced page rasters), runs the isolated `android-teacher-project` Vite entry, verifies the web bundle, syncs Capacitor, assembles a debug APK, verifies its manifest and packaged web bytes, and archives it under `exports/` with a sanitized build report. Staging evidence includes content-entry and page-asset counts. The global Android build lock prevents concurrent projects from sharing Gradle output. Export does not rewrite tracked Ultimate B2 project data.
 
 **Run** discovers ADB from `ANDROID_ADB_PATH`, Android SDK environment variables, `android/local.properties`, or PATH. It lists targets with `adb devices -l`; one ready target is selected automatically, while multiple targets require a choice. Run revalidates the serial, executes fixed-argument `adb install -r`, and launches `com.eduforge.offlinebooks/.MainActivity`.
 
@@ -99,6 +114,6 @@ All Teacher debug APKs retain the current `com.eduforge.offlinebooks` compatibil
 
 ## Milestone boundary
 
-This milestone produces a deterministic debug, shell-only APK: logo, title animation, units, editions, toolbar, window controls, and sounds. It intentionally contains no textbook pages, hotspots, activities, Teacher solutions, release signing, AAB, deployment, or remote distribution. The generic runtime import boundary must remain independent of title-specific B2 content packs. A later milestone can add a separately versioned content/page/activity contract without weakening that boundary.
+This milestone produces a deterministic generic debug APK with shell chrome and raster-only Students Book pages. It intentionally contains no hotspots, activities, media, interactive exercises, Teacher solutions, release signing, AAB, deployment, or remote distribution. The generic runtime import boundary remains independent of title-specific B2 content packs and monolithic page/content modules.
 
 Passing repository, bundle, APK, and emulator checks demonstrates implementation and deterministic-build correctness. It does not establish production-scale authoring operations, signed-release readiness, fleet deployment, or long-duration publisher workflow resilience.

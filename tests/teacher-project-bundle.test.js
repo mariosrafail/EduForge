@@ -11,8 +11,11 @@ test("complete synthetic Teacher Project builds through the isolated generic web
   const result = await buildTeacherProjectWeb({ workspace: fixture.workspace, projectId: fixture.project.projectId, onStage: (stage) => stages.push(stage) });
   assert.equal(result.verification.status, "generic-teacher-project-bundle-safe");
   assert.equal(result.verification.projectAssetCount, result.manifest.assetIds.length);
+  assert.equal(result.manifest.pageAssetCount, 4);
+  assert.deepEqual(result.manifest.content, { unitCountWithContent: 1, entryCount: 3, completeEntryCount: 3 });
   assert.deepEqual(stages, ["Validating project", "Building Teacher app", "Verifying Teacher bundle"]);
   assert.equal(result.runtimeConfig.units.length, 10);
   assert.equal(result.runtimeConfig.editions.length, 4);
   assert.equal(result.runtimeConfig.toolbar.length, 18);
+  assert.deepEqual(result.runtimeConfig.content.studentsBook.units[0].entries.map((entry) => entry.layout), ["single-page", "double-wide", "double-pair"]);
 });

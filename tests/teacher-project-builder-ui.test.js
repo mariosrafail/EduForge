@@ -10,15 +10,16 @@ test("Review Studio dashboard exposes create, progress, open, and duplicate Teac
   assert.doesNotMatch(api, /FileSystem|showOpenFilePicker|absolutePath/);
 });
 
-test("Teacher editor uses section navigation, compact authoring modules, and the shared runtime preview", async () => {
-  const [editor, authoring, bulk, slot, qa, css] = await Promise.all([
-    readFile("src/apps/book-builder/teacher-projects/TeacherProjectEditor.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/teacherProjectAuthoring.js", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectBulkImport.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectAssetSlot.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectQaPanel.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/teacherProjectEditor.css", "utf8"),
+test("Teacher editor uses section navigation, page authoring modules, and the shared runtime preview", async () => {
+  const [editor, authoring, bulk, pages, slot, qa, css] = await Promise.all([
+    readFile("src/apps/book-builder/teacher-projects/TeacherProjectEditor.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/teacherProjectAuthoring.js", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectBulkImport.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectPagesEditor.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectAssetSlot.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/TeacherProjectQaPanel.jsx", "utf8"), readFile("src/apps/book-builder/teacher-projects/teacherProjectEditor.css", "utf8"),
   ]);
-  for (const heading of ["Overview", "Shell & Animation", "Window Controls", "Units", "Book Editions", "Teacher Toolbar", "Sounds & Assets", "Build & Run"]) assert.match(authoring, new RegExp(heading.replace(/[&]/g, "&")));
-  assert.match(editor, /TeacherProjectShell/); assert.match(editor, /materializeTeacherProjectRuntime/); assert.match(editor, /TeacherShellChrome/); assert.match(editor, /1920 × 1080/); assert.match(editor, /16:9/); assert.match(editor, /16:10/); assert.match(editor, /ultrawide/); assert.match(editor, /Import Assets/); assert.match(editor, /teacherShellProgress/); assert.match(editor, /assignSoundGroup/); assert.match(editor, /Remove unused/); assert.match(qa, /Test .* sound/); assert.match(qa, /Simulate active/); assert.match(slot, /onDrop/); assert.doesNotMatch(editor, /<details/);
+  for (const heading of ["Overview", "Units & Pages", "Shell & Animation", "Window Controls", "Units", "Book Editions", "Teacher Toolbar", "Sounds & Assets", "Build & Run"]) assert.match(authoring, new RegExp(heading.replace(/[&]/g, "&")));
+  assert.match(editor, /TeacherProjectPresentation/); assert.match(editor, /materializeTeacherProjectRuntime/); assert.match(editor, /TeacherShellChrome/); assert.match(editor, /1920 × 1080/); assert.match(editor, /16:9/); assert.match(editor, /16:10/); assert.match(editor, /ultrawide/); assert.match(editor, /Import Assets/); assert.match(editor, /teacherShellProgress/); assert.match(editor, /teacherContentProgress/); assert.match(editor, /assignSoundGroup/); assert.match(editor, /Remove unused/); assert.match(qa, /Test .* sound/); assert.match(qa, /Simulate active/); assert.match(slot, /onDrop/); assert.doesNotMatch(editor, /<details/);
+  assert.match(pages, /Import Page Images/); assert.match(pages, /Add Page \/ Spread/); assert.match(pages, /One spread image/); assert.match(pages, /Two page images/); assert.match(pages, /Move entry/); assert.match(pages, /naturalCompare/); assert.doesNotMatch(pages, /PDF|OCR|hotspot|activity/i);
   assert.match(css, /grid-template-columns: 180px/); assert.match(css, /@media \(max-width: 1500px\)/); assert.match(css, /@media \(max-width: 980px\)/); assert.match(css, /focus-visible/);
   assert.match(bulk, /webkitdirectory/); assert.match(bulk, /Nothing is uploaded until/); assert.match(bulk, /Apply mappings/); assert.match(bulk, /Importing/); assert.match(bulk, /Needs review/); assert.match(bulk, /event\.key !== "Tab"/); assert.match(bulk, /restoreFocus/); assert.doesNotMatch(bulk, /scan-directory|open-path|absolutePath/);
-  assert.doesNotMatch(editor, /page import|PDF import|hotspot authoring|teacher answer/i);
+  assert.doesNotMatch(editor, /PDF import|hotspot authoring|teacher answer/i);
 });
 
 test("Teacher project routes remain opaque and separate from scanned Book Projects", () => {

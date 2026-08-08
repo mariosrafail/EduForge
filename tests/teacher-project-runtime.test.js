@@ -6,7 +6,7 @@ import { teacherProjectCompleteness } from "../lib/teacher-project-builder/schem
 import { materializeTeacherProjectRuntime } from "../src/apps/android-teacher-project/teacherProjectRuntimeContract.js";
 import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
 
-test("generic Teacher project runtime materializes 35 independent sound controls and shell-only slots", async (t) => {
+test("generic Teacher project runtime materializes shell controls and ordered page content", async (t) => {
   const fixture = await createCompleteTeacherProjectFixture();
   t.after(fixture.cleanup);
   assert.equal(teacherProjectCompleteness(fixture.project).complete, true);
@@ -17,6 +17,8 @@ test("generic Teacher project runtime materializes 35 independent sound controls
   assert.equal(runtime.toolbar.length, 18);
   assert.equal(Object.keys(runtime.soundMap).length, 35);
   assert.deepEqual(Object.keys(runtime.chrome), ["settings", "minimize", "close"]);
+  assert.deepEqual(runtime.content.studentsBook.units[0].entries.map(({ pageLabel }) => pageLabel), ["5", "6-7", "8-9"]);
+  assert.equal(runtime.content.studentsBook.units[0].entries[2].layout, "double-pair");
 });
 
 test("generic runtime source graph has no static Ultimate B2 pack, content, solution, or monolithic asset import", async () => {
@@ -24,6 +26,10 @@ test("generic runtime source graph has no static Ultimate B2 pack, content, solu
     "src/apps/android-teacher-project/TeacherProjectApp.jsx",
     "src/apps/android-teacher-project/TeacherProjectShell.jsx",
     "src/apps/android-teacher-project/TeacherProjectTitleAnimation.jsx",
+    "src/apps/android-teacher-project/TeacherProjectPresentation.jsx",
+    "src/apps/android-teacher-project/TeacherProjectUnitOverview.jsx",
+    "src/apps/android-teacher-project/TeacherProjectPageViewer.jsx",
+    "src/apps/android-teacher-project/TeacherProjectNavigation.jsx",
     "src/apps/android-teacher-project/teacherProjectEntry.jsx",
     "src/apps/android-teacher-project/teacherProjectSound.js",
     "src/apps/android-teacher-project/teacherProjectRuntimeContract.js",
