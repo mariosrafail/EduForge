@@ -9,7 +9,7 @@ import { TeacherProjectStore } from "../../lib/teacher-project-builder/store.js"
 import { verifyTeacherProjectBundle } from "./verify-bundle.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
-const fixedLogoPath = path.join(repositoryRoot, "src/assets/branding/hamilton-house-logo.png");
+const fixedLogoPath = path.join(repositoryRoot, "src/assets/teacher-shell/hamilton-house-logo.png");
 
 export async function buildTeacherProjectWeb({ workspace, projectId, onStage = () => {} } = {}) {
   const store = new TeacherProjectStore({ workspace });

@@ -95,6 +95,53 @@ async function manualMutation(projectId, resource, operation, body, { signal } =
   }));
 }
 
+async function teacherProjectMutation(pathname, body, { signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  if (!writeCapability) throw Object.assign(new Error("Local editing mode is not enabled."), { code: "write_mode_disabled" });
+  return readPayload(await fetch(apiUrl(pathname), {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { [SESSION_HEADER]: sessionToken, [WRITE_HEADER]: writeCapability, "Content-Type": "application/json" },
+    body: JSON.stringify(body), signal,
+  }));
+}
+
+export function requestTeacherProjects(options) {
+  return requestReviewStudio("/teacher-projects", options);
+}
+
+export function requestTeacherProject(projectId, options) {
+  return requestReviewStudio(`/teacher-projects/${encodeURIComponent(projectId)}`, options);
+}
+
+export function createTeacherProject(body, options) {
+  return teacherProjectMutation("/teacher-projects", body, options);
+}
+
+export function saveTeacherProject(projectId, body, options) {
+  return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/save`, body, options);
+}
+
+export async function importTeacherProjectAsset(projectId, file, descriptor, { signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  if (!writeCapability) throw Object.assign(new Error("Local editing mode is not enabled."), { code: "write_mode_disabled" });
+  const query = Object.fromEntries(Object.entries(descriptor).filter(([, value]) => value !== null && value !== undefined));
+  return readPayload(await fetch(apiUrl(`/teacher-projects/${encodeURIComponent(projectId)}/assets/import`, query), {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { [SESSION_HEADER]: sessionToken, [WRITE_HEADER]: writeCapability, "Content-Type": "application/octet-stream", "X-HHPLMS-Teacher-Asset-Name": file.name },
+    body: file, signal,
+  }));
+}
+
+export async function requestTeacherProjectAsset(projectId, assetId, { signal } = {}) {
+  const response = await authorizedFetch(`/teacher-projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}/content`, { signal });
+  if (!response.ok) await readPayload(response);
+  return response.blob();
+}
+
+export function removeTeacherProjectAsset(projectId, assetId, expectedRevision, options) {
+  return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}/remove`, { expectedRevision }, options);
+}
+
 export function mutateManualActivity(projectId, operation, body, options) {
   return manualMutation(projectId, "manual-activities", operation, body, options);
 }

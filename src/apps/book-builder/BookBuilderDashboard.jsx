@@ -1,7 +1,8 @@
-import { ArrowRight, BookOpen, Filter, Search, Wrench } from "lucide-react";
+import { ArrowRight, BookOpen, Filter, Plus, Search, TabletSmartphone, Wrench } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
-import { projectHash } from "./bookBuilderRouter.js";
+import { createTeacherProject } from "./bookBuilderApi.js";
+import { projectHash, teacherProjectHash } from "./bookBuilderRouter.js";
 import { Badge } from "./components/StudioPrimitives.jsx";
 import { StudioEmpty } from "./components/StudioStates.jsx";
 
@@ -42,10 +43,12 @@ function ProjectCard({ project }) {
   );
 }
 
-export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel, writeEnabled }) {
+export function BookBuilderDashboard({ projects, diagnostics, teacherProjects, workspaceLabel, writeEnabled }) {
   const [search, setSearch] = useState("");
   const [profile, setProfile] = useState("");
   const [lifecycle, setLifecycle] = useState("");
+  const [newTeacherProject, setNewTeacherProject] = useState({ displayName: "", projectId: "" });
+  const [createState, setCreateState] = useState({ pending: false, error: "" });
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());
   const profiles = useMemo(() => [...new Set(projects.map((item) => item.profile))].sort(), [projects]);
   const lifecycles = useMemo(() => [...new Set(projects.map((item) => item.lifecycle))].sort(), [projects]);
@@ -54,6 +57,16 @@ export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel, wr
     && (!profile || item.profile === profile)
     && (!lifecycle || item.lifecycle === lifecycle)
   )), [deferredSearch, lifecycle, profile, projects]);
+  const createProject = async (event) => {
+    event.preventDefault();
+    setCreateState({ pending: true, error: "" });
+    try {
+      const result = await createTeacherProject(newTeacherProject);
+      window.location.hash = teacherProjectHash(result.project.projectId).slice(1);
+    } catch (error) {
+      setCreateState({ pending: false, error: error.message });
+    }
+  };
   return (
     <main className="studio-dashboard" id="main-content">
       <section className="studio-dashboard-intro" aria-labelledby="dashboard-title">
@@ -71,6 +84,27 @@ export function BookBuilderDashboard({ projects, diagnostics, workspaceLabel, wr
       <section aria-labelledby="projects-title">
         <div className="studio-section-heading"><div><span className="studio-eyebrow">Local projects</span><h2 id="projects-title">Available for review</h2></div></div>
         {filtered.length ? <div className="studio-project-grid">{filtered.map((project) => <ProjectCard key={project.projectId} project={project} />)}</div> : <StudioEmpty title={projects.length ? "No projects match these filters" : "No Book Projects found"}>{projects.length ? "Clear or change the filters to see another project." : "Run a Book Builder scan from the CLI, then return to this dashboard."}</StudioEmpty>}
+      </section>
+
+      <section className="studio-teacher-projects" aria-labelledby="teacher-projects-title">
+        <div className="studio-section-heading"><div><span className="studio-eyebrow">Teacher authoring</span><h2 id="teacher-projects-title">Teacher APK Projects</h2><p>Reusable shell projects for deterministic Teacher debug APKs.</p></div></div>
+        {writeEnabled && (
+          <form className="studio-teacher-project-create" onSubmit={createProject}>
+            <div><Plus aria-hidden="true" /><strong>New Teacher APK Project</strong></div>
+            <label><span>Project name</span><input required maxLength="120" value={newTeacherProject.displayName} onChange={(event) => setNewTeacherProject((current) => ({ ...current, displayName: event.target.value }))} placeholder="Ultimate B3" /></label>
+            <label><span>Project slug / ID</span><input required maxLength="64" pattern="[a-z0-9][a-z0-9-]{0,63}" value={newTeacherProject.projectId} onChange={(event) => setNewTeacherProject((current) => ({ ...current, projectId: event.target.value.toLowerCase() }))} placeholder="ultimate-b3" /></label>
+            <button className="studio-button primary" type="submit" disabled={createState.pending}>{createState.pending ? "Creating…" : "Create project"}</button>
+            {createState.error && <p className="studio-validation-errors" role="alert">{createState.error}</p>}
+          </form>
+        )}
+        {teacherProjects.projects.length ? <div className="studio-project-grid">{teacherProjects.projects.map((project) => (
+          <article className="studio-project-card" key={project.projectId}>
+            <div className="studio-project-card-heading"><div><span className="studio-eyebrow">{project.projectId}</span><h2>{project.displayName}</h2></div><TabletSmartphone aria-hidden="true" /></div>
+            <dl className="studio-project-facts"><div><dt>Revision</dt><dd>{project.revision}</dd></div><div><dt>Assets</dt><dd>{project.assetCount}</dd></div><div><dt>Status</dt><dd>{project.completeness.complete ? "Complete shell" : `${project.completeness.missingCount} missing`}</dd></div></dl>
+            <div className="studio-project-card-footer"><span>Last saved <time>{project.savedAt}</time></span><a className="studio-button primary" href={teacherProjectHash(project.projectId)}>Open project <ArrowRight aria-hidden="true" /></a></div>
+          </article>
+        ))}</div> : <StudioEmpty title="No Teacher APK Projects yet">{writeEnabled ? "Create the first reusable Teacher shell project above." : "Start local editing mode to create a Teacher APK Project."}</StudioEmpty>}
+        {teacherProjects.diagnostics.length > 0 && <p className="studio-validation-errors" role="status">{teacherProjects.diagnostics.length} Teacher Project director{teacherProjects.diagnostics.length === 1 ? "y is" : "ies are"} unavailable.</p>}
       </section>
 
       {diagnostics.length > 0 && <section className="studio-diagnostics" aria-labelledby="diagnostics-title"><h2 id="diagnostics-title">Incomplete projects</h2><p>{diagnostics.length} project director{diagnostics.length === 1 ? "y" : "ies"} could not be opened. Paths and stack details are intentionally hidden.</p><ul>{diagnostics.map((item, index) => <li key={`${item.projectId || "unknown"}-${index}`}><strong>{item.projectId || "Unavailable project"}</strong><span>{item.code.replaceAll("_", " ")}</span></li>)}</ul></section>}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import hamiltonHouseLogo from "../../assets/branding/hamilton-house-logo.png";
+import hamiltonHouseLogo from "../../assets/teacher-shell/hamilton-house-logo.png";
 import ClassroomStageTransform from "../android-teacher-offline/ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "../android-teacher-offline/ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "../android-teacher-offline/ClassroomToolbar.jsx";

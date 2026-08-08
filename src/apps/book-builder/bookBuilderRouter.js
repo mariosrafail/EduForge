@@ -23,6 +23,10 @@ export function projectHash(projectId, tab = "overview", query = null) {
   return suffix ? `${base}?${suffix}` : base;
 }
 
+export function teacherProjectHash(projectId) {
+  return `#/teacher-projects/${encodeURIComponent(projectId)}`;
+}
+
 export function parseBookBuilderHash(hash = window.location.hash) {
   const raw = hash.startsWith("#") ? hash.slice(1) : hash;
   const parsed = new URL(raw || "/", "http://review-studio.local");
@@ -30,6 +34,9 @@ export function parseBookBuilderHash(hash = window.location.hash) {
     try { return decodeURIComponent(segment); } catch { return ""; }
   });
   if (!segments.length) return { kind: "dashboard", query: parsed.searchParams };
+  if (segments[0] === "teacher-projects" && segments.length === 2 && projectIdPattern.test(segments[1])) {
+    return { kind: "teacher-project", projectId: segments[1], query: parsed.searchParams };
+  }
   if (segments[0] !== "projects" || segments.length < 2 || !projectIdPattern.test(segments[1])) {
     return { kind: "invalid", query: parsed.searchParams };
   }
