@@ -590,12 +590,12 @@ try {
       ["launcher identity title", (result) => result.launcher.identityTitleWidth],
       ["launcher settings control", (result) => result.launcher.settingsButtonWidth],
       ["settings tab", (result) => result.settingsTabHeight],
-      ["overview title", (result) => result.overviewTitleFontSize],
       ["overview toolbar", (result) => result.overviewToolbarHeight],
       ["page toolbar control", (result) => result.toolbarButtonSize],
     ]) {
       assertNear(read(large) / read(baseline), expectedRatio, .12, `${prefix} ${label} ratio`);
     }
+    assertNear(large.overviewTitleFontSize / baseline.overviewTitleFontSize, 1, .02, `${prefix} overview logical title ratio`);
     const viewportWidth = Number(prefix.split("x")[0]);
     const baselineLauncherShare = baseline.launcher.launcherWidth / 1920;
     const baselineBookRowShare = baseline.launcher.bookRowWidth / 1920;
