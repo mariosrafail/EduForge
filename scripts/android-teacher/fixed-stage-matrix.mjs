@@ -143,6 +143,10 @@ async function logicalRects(page, selectors) {
   }, selectors);
 }
 
+function assertSameLogicalRect(actual, expected, label) {
+  for (const field of ["x", "y", "width", "height"]) near(actual[field], expected[field], .5, `${label}.${field}`);
+}
+
 const shellControlLabels = ["Open classroom settings", "Minimize application", "Close application"];
 const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
 
@@ -267,6 +271,7 @@ try {
       heading: ".legacy-overview-heading",
       frame: ".teacher-offline-unit-overview",
       firstEntry: ".teacher-unit-page-card",
+      navigation: "[data-teacher-book-navigation]",
       toolbar: ".teacher-offline-unit-overview-screen > .classroom-teaching-toolbar",
     });
     await page.locator(".teacher-unit-page-card").first().click();
@@ -289,8 +294,11 @@ try {
       reader: ".teacher-offline-page-reader",
       stage: ".teacher-offline-page-stage",
       image: ".teacher-offline-page-image",
+      navigation: "[data-teacher-book-navigation]",
       toolbar: ".teacher-offline-pages-viewer > .classroom-teaching-toolbar",
     });
+    assertSameLogicalRect(pageView.navigation, overview.navigation, `${target.width}x${target.height} overview-to-page navigation`);
+    assertSameLogicalRect(pageView.toolbar, overview.toolbar, `${target.width}x${target.height} overview-to-page toolbar`);
     const toolbarBeforeSelection = await page.locator(".teacher-offline-pages-viewer > .classroom-teaching-toolbar").boundingBox();
     await page.locator('[data-teacher-tool="pencil"]').click();
     const toolbarWithPencil = await page.locator(".teacher-offline-pages-viewer > .classroom-teaching-toolbar").boundingBox();
@@ -379,6 +387,8 @@ try {
     assertBackdrop(activityBackdrop, "page", `${target.width}x${target.height} activity`, { classroomImage: true });
     assertTransparent(activityBackdrop.page, `${target.width}x${target.height} activity page screen`);
     await assertBookNavigation(page, `${target.width}x${target.height} activity`, { previousDisabled: true, nextDisabled: true });
+    const activityNavigation = await logicalRects(page, { navigation: "[data-teacher-book-navigation]" });
+    assertSameLogicalRect(activityNavigation.navigation, overview.navigation, `${target.width}x${target.height} overview-to-activity navigation`);
 
     if (target.width === 1280 && target.height === 800) {
       await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
@@ -397,12 +407,16 @@ try {
       }
       assert.equal(await pageNavigation.getByRole("button", { name: "Next page", exact: true }).isDisabled(), true, "last page disables Next page");
       assert.equal(await pageNavigation.getByRole("button", { name: "Previous page", exact: true }).isDisabled(), false, "last page keeps Previous page enabled");
+      const lastPageNavigation = await logicalRects(page, { navigation: "[data-teacher-book-navigation]" });
+      assertSameLogicalRect(lastPageNavigation.navigation, overview.navigation, "overview-to-another-page navigation");
 
       await openInternalContents(page);
       const contentsBackdrop = await readViewportBackdrop(page);
       assertBackdrop(contentsBackdrop, "contents", "Contents / Exercises", { classroomImage: true });
       assertTransparent(contentsBackdrop.book, "Contents / Exercises book surface");
       await assertBookNavigation(page, "Contents / Exercises", { previousDisabled: true, nextDisabled: true });
+      const contentsNavigation = await logicalRects(page, { navigation: "[data-teacher-book-navigation]" });
+      assertSameLogicalRect(contentsNavigation.navigation, overview.navigation, "overview-to-contents navigation");
 
       await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
       await page.locator(".teacher-offline-unit-overview").waitFor();
@@ -420,6 +434,8 @@ try {
       assertTransparent(mediaBackdrop.media, "Media outer surface");
       await assertShellControls(page, "Media");
       await assertBookNavigation(page, "Media", { previousDisabled: true, nextDisabled: true });
+      const mediaNavigation = await logicalRects(page, { navigation: "[data-teacher-book-navigation]" });
+      assertSameLogicalRect(mediaNavigation.navigation, overview.navigation, "overview-to-media navigation");
       await page.screenshot({ path: `${artifactRoot}/media-bleed-1280x800.png` });
 
       await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();

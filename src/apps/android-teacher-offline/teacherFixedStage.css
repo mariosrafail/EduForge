@@ -86,6 +86,7 @@ html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface 
   --teacher-presentation-heading-row: 72px;
   --teacher-presentation-navigation-row: 66px;
   --teacher-presentation-grid-gap: 4px;
+  --teacher-fixed-classroom-toolbar-height: calc(76.8px * var(--teacher-ui-scale, 1));
   --teacher-students-book-stage-max-width: 1680px;
   --teacher-students-book-stage-chrome-width: 1680px;
   --teacher-students-book-stage-radius: 42px;
@@ -328,7 +329,7 @@ html[data-app-mode="android-teacher-offline"] :is(
   .teacher-offline-presentation.has-classroom-tools,
   .teacher-offline-media.has-classroom-tools
 ) {
-  --classroom-toolbar-height: calc(76.8px * var(--teacher-ui-scale, 1));
+  --classroom-toolbar-height: var(--teacher-fixed-classroom-toolbar-height);
 }
 html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar {
   --legacy-tool-icon-size: calc(64px * var(--teacher-ui-scale, 1));
@@ -378,15 +379,19 @@ html[data-app-mode="android-teacher-offline"] .teacher-shell-window-controls img
 }
 html[data-app-mode="android-teacher-offline"] .teacher-book-navigation {
   box-sizing: border-box;
+  position: absolute;
   z-index: 8;
+  left: 50%;
+  bottom: calc(var(--teacher-presentation-screen-padding-bottom) + var(--teacher-fixed-classroom-toolbar-height) + var(--teacher-presentation-grid-gap));
   width: 1680px;
   height: 66px;
   min-height: 66px;
-  margin: -7px auto 0;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  transform: translateX(-50%);
 }
 html[data-app-mode="android-teacher-offline"] .teacher-book-navigation button {
   box-sizing: border-box;
@@ -422,6 +427,13 @@ html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-edition s
   font-size: 1rem;
   font-weight: 950;
 }
+html[data-app-mode="android-teacher-offline"] :is(
+  .teacher-offline-unit-overview-screen,
+  .teacher-offline-pages-viewer,
+  .teacher-offline-media
+) > .classroom-teaching-toolbar {
+  grid-row: 4;
+}
 html[data-app-mode="android-teacher-offline"] .teacher-page-actions-trigger {
   position: absolute;
   z-index: 8;
@@ -440,7 +452,8 @@ html[data-app-mode="android-teacher-offline"] .teacher-page-actions-trigger {
   color: #fff;
 }
 html[data-app-mode="android-teacher-offline"] .teacher-offline-book.contents-active {
-  grid-template-rows: minmax(0, 1fr) 66px;
+  grid-template-rows: minmax(0, 1fr) 66px var(--teacher-fixed-classroom-toolbar-height);
+  gap: var(--teacher-presentation-grid-gap);
   padding: 72px 76px 7px;
 }
 html[data-app-mode="android-teacher-offline"] .teacher-offline-book.contents-active > .teacher-offline-contents {

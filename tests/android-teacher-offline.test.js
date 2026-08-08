@@ -270,6 +270,8 @@ test("Teacher book screens use one canonical six-control navigation row", async 
   assert.doesNotMatch(overview, /Previous unit|Next unit|Grid2X2|Minimize2/);
   assert.match(overview, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(fixedCss, /\.teacher-book-navigation[\s\S]*height: 66px/);
+  assert.match(fixedCss, /\.teacher-book-navigation[\s\S]*position: absolute;[\s\S]*bottom: calc\(var\(--teacher-presentation-screen-padding-bottom\) \+ var\(--teacher-fixed-classroom-toolbar-height\) \+ var\(--teacher-presentation-grid-gap\)\)/);
+  assert.doesNotMatch(fixedCss, /\.teacher-book-navigation[\s\S]*margin: -7px/);
   assert.match(toolbarCss, /\.classroom-teaching-toolbar[\s\S]*height: var\(--classroom-toolbar-height\)/);
   assert.match(toolbarCss, /\.legacy-teacher-tool-icon-stack[\s\S]*transform: none/);
 });
