@@ -7,14 +7,12 @@ import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 export default function TeacherOfflineEmbeddedActivity({ activityId, title }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
-  const scrollModeRef = useRef(false);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     const content = contentRef.current;
     if (!viewport || !content) return undefined;
-    scrollModeRef.current = false;
     let active = true;
     let refreshFrame = 0;
     const update = () => {
@@ -40,8 +38,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title }) {
         contentHeight: Math.max(content.offsetHeight, content.scrollHeight, activity?.scrollHeight || 0),
         minimumTargetSize,
       });
-      if (measuredFit.mode === "scroll") scrollModeRef.current = true;
-      const next = scrollModeRef.current ? { mode: "scroll", scale: 1 } : measuredFit;
+      const next = measuredFit;
       setFit((current) => (
         current.mode === next.mode && Math.abs(current.scale - next.scale) < 0.001 ? current : next
       ));

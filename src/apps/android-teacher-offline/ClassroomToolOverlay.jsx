@@ -1,6 +1,5 @@
 import { Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { createClassroomElementId, useClassroomTools } from "./ClassroomToolsContext.jsx";
 
@@ -47,7 +46,6 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
   const [draft, setDraft] = useState(null);
   const [textDraft, setTextDraft] = useState(null);
   const [selectedCoverId, setSelectedCoverId] = useState("");
-  const [selectedCoverAnchor, setSelectedCoverAnchor] = useState(null);
   const drawing = getDrawingHistory(surfaceKey).present;
   const { covers, spotlight } = getOverlays(surfaceKey);
   const regionZoom = getRegionZoom(surfaceKey);
@@ -69,12 +67,11 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
     if (activeTool !== "text") setTextDraft(null);
   }, [activeTool, surfaceKey]);
 
-  useEffect(() => { setSelectedCoverId(""); setSelectedCoverAnchor(null); }, [surfaceKey]);
+  useEffect(() => { setSelectedCoverId(""); }, [surfaceKey]);
 
   useEffect(() => {
     if (selectedCoverId && !covers.some(({ id }) => id === selectedCoverId)) {
       setSelectedCoverId("");
-      setSelectedCoverAnchor(null);
     }
   }, [covers, selectedCoverId]);
 
@@ -82,7 +79,7 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
     if (!selectedCoverId) return undefined;
     const deselect = (event) => {
       if (!event.target.closest(`[data-cover-id="${CSS.escape(selectedCoverId)}"]`)
-        && !event.target.closest(".classroom-cover-delete")) { setSelectedCoverId(""); setSelectedCoverAnchor(null); }
+        && !event.target.closest(".classroom-cover-delete")) { setSelectedCoverId(""); }
     };
     document.addEventListener("pointerdown", deselect);
     return () => document.removeEventListener("pointerdown", deselect);
@@ -213,9 +210,7 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
             onPointerDown={(event) => {
               if (activeTool === "pointer") {
                 event.stopPropagation();
-                const rect = event.currentTarget.getBoundingClientRect();
                 setSelectedCoverId(cover.id);
-                setSelectedCoverAnchor({ left: rect.right, top: rect.top });
               }
             }}
           />
@@ -239,16 +234,15 @@ export default function ClassroomToolOverlay({ surfaceKey }) {
         </form>
       )}
     </div>
-    {selectedCover && selectedCoverAnchor && createPortal(
+    {selectedCover && (
       <button
         type="button"
         className="classroom-cover-delete"
-        style={{ left: selectedCoverAnchor.left, top: selectedCoverAnchor.top }}
+        style={{ left: `${(selectedCover.x + selectedCover.width) * 100}%`, top: `${selectedCover.y * 100}%` }}
         aria-label="Delete selected cover"
         onPointerDown={(event) => event.stopPropagation()}
-        onClick={() => { removeCover(surfaceKey, selectedCover.id); setSelectedCoverId(""); setSelectedCoverAnchor(null); }}
-      ><Trash2 /></button>,
-      document.body,
+        onClick={() => { removeCover(surfaceKey, selectedCover.id); setSelectedCoverId(""); }}
+      ><Trash2 /></button>
     )}
     </>
   );

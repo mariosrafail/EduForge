@@ -16,6 +16,7 @@ import { useLegacyClassroomSound } from "./legacyClassroomSound.js";
 import { ClassroomToolsProvider } from "./ClassroomToolsContext.jsx";
 import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import TeacherStartupIntro from "./TeacherStartupIntro.jsx";
+import TeacherFixedStage from "./TeacherFixedStage.jsx";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
@@ -235,9 +236,10 @@ export default function TeacherOfflineApp() {
     );
   }
   const userInterfaceScale = settings.graphics.interfaceScale / 100;
-  const effectiveUiScale = Math.min(2.4, Math.max(0.8, viewport.displayScale * userInterfaceScale));
+  const effectiveUiScale = Math.min(1.1, Math.max(0.9, userInterfaceScale));
   return (
     <ClassroomToolsProvider>
+      <TeacherFixedStage viewport={viewport}>
       <div
         className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
         data-teacher-theme={ACTIVE_TEACHER_THEME}
@@ -269,6 +271,7 @@ export default function TeacherOfflineApp() {
         <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
         {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
       </div>
+      </TeacherFixedStage>
     </ClassroomToolsProvider>
   );
 }

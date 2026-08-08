@@ -1,0 +1,383 @@
+/* One authored Teacher presentation coordinate system. Physical viewport values
+   are used only by .teacher-fixed-stage-host and its single contain-fit scale. */
+html[data-app-mode="android-teacher-offline"],
+html[data-app-mode="android-teacher-offline"] body,
+html[data-app-mode="android-teacher-offline"] #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+html[data-app-mode="android-teacher-offline"] body {
+  position: fixed;
+  inset: 0;
+}
+
+.teacher-fixed-stage-host {
+  position: fixed;
+  z-index: 0;
+  overflow: hidden;
+  background: #111827;
+  contain: strict;
+}
+
+.teacher-fixed-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  box-sizing: border-box;
+  width: 1920px;
+  min-width: 1920px;
+  max-width: 1920px;
+  height: 1080px;
+  min-height: 1080px;
+  max-height: 1080px;
+  overflow: hidden;
+  transform: translate(-50%, -50%) scale(var(--teacher-stage-scale));
+  transform-origin: center;
+  contain: layout paint size;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-view-transition,
+html[data-app-mode="android-teacher-offline"] :is(
+  .teacher-offline-library,
+  .teacher-offline-book,
+  .teacher-offline-media,
+  .teacher-offline-presentation,
+  .teacher-offline-status
+) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface {
+  --teacher-presentation-screen-gutter: 76px;
+  --teacher-presentation-screen-padding-top: 8px;
+  --teacher-presentation-screen-padding-bottom: 7px;
+  --teacher-presentation-heading-row: 72px;
+  --teacher-presentation-navigation-row: 66px;
+  --teacher-presentation-grid-gap: 4px;
+  --teacher-students-book-stage-max-width: 1680px;
+  --teacher-students-book-stage-chrome-width: 1680px;
+  --teacher-students-book-stage-radius: 42px;
+  --teacher-students-book-stage-border-width: 3px;
+  --teacher-shell-gap: 12px;
+  --teacher-shell-padding-x: 22px;
+  --teacher-control-height: 48px;
+  --teacher-toolbar-height: 58px;
+  --teacher-classroom-font: 16px;
+  --teacher-content-max: 1720px;
+  --teacher-page-rail: 116px;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-view-transition {
+  position: relative;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-startup-intro {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+}
+
+/* Launcher: canonical Full HD geometry, including the current recovered-title offset. */
+html[data-app-mode="android-teacher-offline"] .teacher-offline-library.has-classroom-tools {
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) var(--classroom-toolbar-height);
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-library > .legacy-home-floating-chrome {
+  padding: 8px 12px 0;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-publisher-logo { width: 272px; }
+html[data-app-mode="android-teacher-offline"] .legacy-home-window-controls { display: flex; gap: 8px; }
+html[data-app-mode="android-teacher-offline"] :is(.legacy-home-window-controls button, .legacy-home-settings-button) {
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-launcher {
+  width: 1760px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 20px 46px;
+  grid-template-columns: minmax(260px, 440px) minmax(280px, 1fr) minmax(260px, 440px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 18px 46px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-unit-column {
+  grid-template-rows: repeat(5, minmax(44px, 93px));
+  align-content: center;
+  gap: 11px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-unit {
+  justify-self: start;
+  width: min(100%, 360px);
+  height: auto;
+  max-height: none;
+  min-height: 44px;
+  aspect-ratio: 360 / 93;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-menu-title-animation {
+  grid-column: auto;
+  grid-row: auto;
+  align-self: center;
+  width: min(100%, 500px);
+  transform: translateX(70px) translateY(-97px) scale(1.1);
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-book-row {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  align-self: auto;
+  width: 920px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-book-button {
+  height: auto;
+  min-height: 44px;
+  aspect-ratio: 301 / 99;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-library > .classroom-teaching-toolbar { width: 1040px; }
+
+/* One overview composition, independent of the physical media-query result. */
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen {
+  --overview-screen-gutter: 76px;
+  padding: 8px 76px 7px;
+  grid-template-rows: 72px minmax(0, 1fr) 66px var(--classroom-toolbar-height);
+  gap: 4px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-overview-heading {
+  width: 1680px;
+  min-height: 72px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-overview-heading h2 { font-size: 4rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-overview-heading .legacy-page-window-controls { gap: 9px; }
+html[data-app-mode="android-teacher-offline"] .legacy-overview-heading .legacy-page-window-controls button {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  border-width: 3px;
+  font-size: 1.75rem;
+}
+
+html[data-app-mode="android-teacher-offline"] .teacher-unit-side-navigation {
+  width: 60px;
+  height: 60px;
+  min-height: 60px;
+  border-width: 3px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-unit-side-navigation.previous { left: 18px; }
+html[data-app-mode="android-teacher-offline"] .teacher-unit-side-navigation.next { right: 18px; }
+html[data-app-mode="android-teacher-offline"] .teacher-unit-side-navigation svg { width: 38px; height: 38px; }
+
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-offline-unit-overview {
+  --teacher-unit-overview-thumbnail-height: 235px;
+  width: auto;
+  max-width: 1680px;
+  padding: 32px;
+  border-width: 4px;
+  border-radius: 42px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 13px 8px; }
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-page-card {
+  padding: 0 2px 2px;
+  border-radius: 8px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-page-copy {
+  min-height: 59px;
+  padding: 0 2px 6px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: 1.9rem; }
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-page-copy b { font-size: 1.46rem; }
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen .teacher-unit-page-thumb { gap: 5px; }
+
+html[data-app-mode="android-teacher-offline"] .legacy-overview-navigation {
+  width: 1680px;
+  min-height: 66px;
+  margin-top: -7px;
+  gap: 18px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-overview-navigation > div { gap: 9px; }
+html[data-app-mode="android-teacher-offline"] :is(.legacy-overview-navigation .legacy-page-round-button, .legacy-overview-book-links button) {
+  width: 58px;
+  height: 58px;
+  min-height: 58px;
+  border-width: 3px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-overview-navigation .legacy-page-round-button .legacy-classroom-icon {
+  width: 60px;
+  height: 60px;
+  flex-basis: 60px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-overview-book-links button span { font-size: 1rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-overview-book-links button small { font-size: .48rem; }
+html[data-app-mode="android-teacher-offline"] .teacher-offline-unit-overview-screen > .legacy-classroom-viewer-toolbar { width: 1320px; }
+
+/* Page reader canonical chrome and contain area. */
+html[data-app-mode="android-teacher-offline"] .teacher-offline-pages-viewer {
+  padding: 8px 76px 7px;
+  grid-template-rows: 72px minmax(0, 1fr) 66px var(--classroom-toolbar-height);
+  gap: 4px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-page-heading {
+  width: 1680px;
+  min-height: 72px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-page-heading h2 { font-size: 2.75rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-page-heading strong { margin-top: 7px; font-size: 1.45rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-page-window-controls { gap: 9px; }
+html[data-app-mode="android-teacher-offline"] .legacy-page-window-controls button {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  border-width: 3px;
+  font-size: 1.75rem;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-pages-viewer .teacher-offline-page-reader {
+  width: auto;
+  max-width: 1680px;
+  border-width: 3px;
+  border-radius: 42px;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-pages-viewer .teacher-offline-page-stage { padding: 23px 42px; }
+html[data-app-mode="android-teacher-offline"] .legacy-page-navigation {
+  width: 1680px;
+  max-width: 1680px;
+  margin-top: -9px;
+  gap: 18px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-page-navigation > div { gap: 9px; }
+html[data-app-mode="android-teacher-offline"] .legacy-page-round-button {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  min-height: 62px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-page-round-button .legacy-classroom-icon {
+  width: 60px;
+  height: 60px;
+  flex-basis: 60px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-classroom-viewer-toolbar { width: 1320px; min-height: 54px; padding: 4px 13px; gap: 22px; }
+html[data-app-mode="android-teacher-offline"] .legacy-classroom-viewer-toolbar button {
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-disabled-book-tools { display: flex; }
+
+/* Embedded Teacher activities are presentation canvases: fit, never scroll. */
+html[data-app-mode="android-teacher-offline"] .teacher-offline-embedded-activity,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-embedded-activity-content,
+html[data-app-mode="android-teacher-offline"] .teacher-offline-embedded-activity-content > * {
+  overflow: hidden;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-embedded-activity .legacy-unit-opener-paper { overflow: hidden; }
+
+/* Recovered one-row toolbar stays at authored logical dimensions. */
+html[data-app-mode="android-teacher-offline"] :is(
+  .teacher-offline-library.has-classroom-tools,
+  .teacher-offline-unit-overview-screen,
+  .teacher-offline-pages-viewer,
+  .teacher-offline-presentation.has-classroom-tools,
+  .teacher-offline-media.has-classroom-tools
+) {
+  --classroom-toolbar-height: calc(76.8px * var(--teacher-ui-scale, 1));
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface .legacy-classroom-viewer-toolbar.classroom-teaching-toolbar {
+  --legacy-tool-icon-size: calc(64px * var(--teacher-ui-scale, 1));
+  --legacy-tool-row-width: calc(1240px * var(--teacher-ui-scale, 1));
+  width: var(--legacy-tool-row-width);
+  min-height: calc(var(--legacy-tool-icon-size) * 1.2);
+  padding: 0;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-offline-settings-surface .classroom-teaching-toolbar .legacy-teacher-tool-row {
+  column-gap: calc(4px * var(--teacher-ui-scale, 1));
+  overflow: visible;
+}
+
+/* Stage-local production controls. Transformed ancestors make fixed positioning
+   stage-relative; the cover delete anchor is surface-relative by design. */
+html[data-app-mode="android-teacher-offline"] .classroom-cover-delete { position: absolute; }
+html[data-app-mode="android-teacher-offline"] .classroom-text-editor { width: 440px; }
+html[data-app-mode="android-teacher-offline"] .classroom-drawing-options-panel { max-width: 1900px; }
+html[data-app-mode="android-teacher-offline"] .classroom-mode-instruction { font-size: 1.15rem; }
+html[data-app-mode="android-teacher-offline"] .classroom-mode-banner { top: 10px; min-width: 360px; min-height: 62px; padding: 7px 8px 7px 18px; }
+html[data-app-mode="android-teacher-offline"] .classroom-mode-banner strong { font-size: 2rem; }
+html[data-app-mode="android-teacher-offline"] .classroom-mode-banner button { width: 52px; height: 52px; min-height: 52px; }
+html[data-app-mode="android-teacher-offline"] .classroom-floating-panel {
+  right: 20px;
+  bottom: 78px;
+  width: 430px;
+  max-height: none;
+  padding: 14px;
+  overflow: visible;
+  transform: none;
+}
+html[data-app-mode="android-teacher-offline"] .classroom-timer-panel > output { font-size: 5.5rem; }
+html[data-app-mode="android-teacher-offline"] .classroom-scoreboard { width: 560px; }
+html[data-app-mode="android-teacher-offline"] .classroom-scoreboard section output { font-size: 6rem; }
+html[data-app-mode="android-teacher-offline"] .classroom-tool-message { max-width: 620px; }
+
+/* Settings are a stage dialog. User Interface Size remains a bounded logical
+   preference through --teacher-ui-scale; it does not multiply viewport fit. */
+html[data-app-mode="android-teacher-offline"] .legacy-settings-backdrop { padding: 24px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-dialog {
+  width: 1040px;
+  min-height: 660px;
+  max-height: none;
+  padding: 84px 30px 30px;
+  border-width: 5px;
+  border-radius: 34px;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-settings-tabs { left: 30px; right: 94px; height: 82px; gap: 8px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-tabs button { min-height: 62px; padding: 10px 14px; gap: 9px; border-width: 3px; border-radius: 22px 22px 8px 8px; font-size: 1.16rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-tabs button.active { min-height: 72px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-tabs svg { width: 23px; height: 23px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-close { top: 13px; right: 18px; width: 58px; height: 58px; min-height: 58px; border-width: 4px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-close svg { width: 28px; height: 28px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-content {
+  min-height: 540px;
+  max-height: none;
+  padding: 46px;
+  border-width: 3px;
+  border-radius: 22px;
+  overflow: hidden;
+}
+html[data-app-mode="android-teacher-offline"] .legacy-settings-panel { gap: 18px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-panel > h2 { margin: 2px 0 -7px; font-size: 1.35rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-row { min-height: 105px; padding: 15px 20px; grid-template-columns: minmax(180px, .85fr) minmax(340px, 1.4fr); gap: 26px; border-width: 2px; border-radius: 18px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-row strong { font-size: 1.1rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-row small { font-size: .78rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-row > div:last-child { gap: 18px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-slider { gap: 13px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-slider input { min-width: 160px; height: 44px; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-slider output { width: 54px; font-size: .95rem; }
+html[data-app-mode="android-teacher-offline"] .legacy-settings-toggle { width: 104px; height: 46px; min-height: 46px; border-width: 3px; font-size: .8rem; }
+html[data-app-mode="android-teacher-offline"] .teacher-settings-segmented { gap: 8px; }
+html[data-app-mode="android-teacher-offline"] .teacher-settings-segmented button { min-height: 46px; padding: 8px 18px; border-width: 3px; font-size: inherit; }
+
+/* Developer diagnostics intentionally stay within the stage so their position
+   is deterministic and cannot create viewport/document overflow. */
+html[data-app-mode="android-teacher-offline"] .teacher-viewport-diagnostics { right: 8px; top: 8px; }

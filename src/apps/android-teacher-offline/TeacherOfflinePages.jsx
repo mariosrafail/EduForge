@@ -13,6 +13,8 @@ import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
 import TeacherOfflineEmbeddedActivity from "./TeacherOfflineEmbeddedActivity.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
+import { useTeacherStage } from "./TeacherFixedStage.jsx";
+import { renderedDeltaToTeacherStage } from "./teacherStageGeometry.js";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import {
   getUltimateB2AuthoredHotspotActivityKey,
@@ -67,6 +69,7 @@ export default function TeacherOfflinePages({
 }) {
   const pages = unit?.pages || [];
   const settings = useTeacherOfflineSettings();
+  const { scale: teacherStageScale } = useTeacherStage();
   const showLeftNavigation = settings.content.showNavbarLeft || (!settings.content.showNavbarLeft && !settings.content.showNavbarRight);
   const showRightNavigation = settings.content.showNavbarRight;
   const selectedIndex = pages.findIndex((page) => page.id === selectedPageId);
@@ -240,8 +243,8 @@ export default function TeacherOfflinePages({
         changeZoom(gestureState.current.zoom * distance / Math.max(1, gestureState.current.distance));
       } else if (points.length === 1 && gestureState.current?.type === "pan" && canPan) {
         updatePan({
-          x: gestureState.current.pan.x + points[0].x - gestureState.current.start.x,
-          y: gestureState.current.pan.y + points[0].y - gestureState.current.start.y,
+          x: gestureState.current.pan.x + renderedDeltaToTeacherStage(points[0].x - gestureState.current.start.x, teacherStageScale),
+          y: gestureState.current.pan.y + renderedDeltaToTeacherStage(points[0].y - gestureState.current.start.y, teacherStageScale),
         });
       }
     });
@@ -250,17 +253,22 @@ export default function TeacherOfflinePages({
     pointerState.current.delete(event.pointerId);
     gestureState.current = null;
   };
-  const onWheel = (event) => {
-    if (!event.ctrlKey && Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
-    event.preventDefault();
-    changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
-  };
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || activityActive) return undefined;
+    const onWheel = (event) => {
+      if (!event.ctrlKey && Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+      event.preventDefault();
+      changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", onWheel);
+  }, [activityActive, page?.id, zoom]);
   const pageGestureHandlers = activityActive ? {} : {
     onPointerDown,
     onPointerMove,
     onPointerUp: onPointerEnd,
     onPointerCancel: onPointerEnd,
-    onWheel,
   };
 
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;

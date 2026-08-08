@@ -9,8 +9,8 @@
 @import "./teacherOfflineUnitOverview.css";
 @import "./teacherOfflineSettings.css";
 @import "./teacherOfflineModern.css";
-@import "./teacherDisplayScale.css";
 @import "./legacyTeacherToolbar.css";
+@import "./teacherFixedStage.css";
 
 :where(.teacher-offline-settings-surface) {
   --teacher-presentation-screen-gutter: clamp(22px, 4vw, 76px);
