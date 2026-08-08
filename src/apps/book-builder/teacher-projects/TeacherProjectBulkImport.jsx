@@ -21,6 +21,7 @@ function isRequiredMapping(mapping) {
 
 export default function TeacherProjectBulkImport({ open, project, shell, writeEnabled, onClose, onApplied }) {
   const headingRef = useRef(null);
+  const dialogRef = useRef(null);
   const [plan, setPlan] = useState(null);
   const [selection, setSelection] = useState({});
   const [filter, setFilter] = useState("All");
@@ -30,10 +31,19 @@ export default function TeacherProjectBulkImport({ open, project, shell, writeEn
   const [importCommonAudio, setImportCommonAudio] = useState(true);
   useEffect(() => {
     if (!open) return undefined;
+    const restoreFocus = document.activeElement;
     headingRef.current?.focus();
-    const escape = (event) => { if (event.key === "Escape" && !progress) onClose(); };
-    window.addEventListener("keydown", escape);
-    return () => window.removeEventListener("keydown", escape);
+    const keyboard = (event) => {
+      if (event.key === "Escape" && !progress) onClose();
+      if (event.key !== "Tab") return;
+      const focusable = [...(dialogRef.current?.querySelectorAll("button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex='-1'])") || [])];
+      if (!focusable.length) return;
+      const first = focusable[0]; const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", keyboard);
+    return () => { window.removeEventListener("keydown", keyboard); restoreFocus?.focus?.(); };
   }, [open, onClose, progress]);
   const scan = (fileList) => {
     setError(""); setResult(null);
@@ -90,7 +100,7 @@ export default function TeacherProjectBulkImport({ open, project, shell, writeEn
   if (!open) return null;
   return (
     <div className="teacher-modal-backdrop" role="presentation">
-      <section className="teacher-bulk-import" role="dialog" aria-modal="true" aria-labelledby="teacher-import-title">
+      <section ref={dialogRef} className="teacher-bulk-import" role="dialog" aria-modal="true" aria-labelledby="teacher-import-title">
         <header><div><span className="studio-eyebrow">Suggestion-based workflow</span><h2 id="teacher-import-title" tabIndex="-1" ref={headingRef}>Import assets</h2><p>Files are scanned locally first. Nothing is uploaded until you choose Apply.</p></div><button type="button" className="studio-icon-button" aria-label="Close Import Assets" disabled={Boolean(progress)} onClick={onClose}><X aria-hidden="true" /></button></header>
         {!plan && <div className="teacher-import-pickers"><label className="teacher-import-picker"><FolderOpen aria-hidden="true" /><strong>Select folder</strong><span>Use a prepared shell asset folder</span><input type="file" multiple webkitdirectory="" directory="" disabled={!writeEnabled} onChange={(event) => scan(event.target.files)} /></label><label className="teacher-import-picker"><Upload aria-hidden="true" /><strong>Select multiple files</strong><span>Up to {BULK_IMPORT_FILE_LIMIT} explicit files</span><input type="file" multiple disabled={!writeEnabled} onChange={(event) => scan(event.target.files)} /></label></div>}
         {error && <p className="studio-validation-errors" role="alert">{error}</p>}

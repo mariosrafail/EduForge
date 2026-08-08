@@ -60,8 +60,8 @@ async function run() {
     const b3 = page.locator(".studio-project-card").filter({ hasText: "Ultimate B3" }); await b3.getByRole("button", { name: "Duplicate" }).click();
     await page.getByLabel("New project name").fill("Ultimate B4"); await page.getByLabel("New project slug / ID").fill("ultimate-b4"); await page.getByRole("button", { name: "Create duplicate" }).click();
     await page.getByText(/ultimate-b4 · Revision 1/).waitFor(); await page.getByRole("button", { name: /^Units/ }).click(); await page.getByText("unit-01-normal.png").waitFor();
-    await page.getByRole("button", { name: /^Sounds & Assets/ }).click(); await page.locator(".teacher-qa-list article").filter({ hasText: "Unit 1" }).first().locator("button").first().click();
-    await page.locator(".teacher-project-qa-focus").waitFor();
+    await page.getByRole("button", { name: /^Sounds & Assets/ }).click(); const unitQa = page.locator(".teacher-qa-list article").filter({ hasText: "Unit 1" }).first(); await unitQa.locator("button").first().click();
+    await page.locator(".teacher-project-qa-focus").waitFor(); await unitQa.getByRole("button", { name: "Simulate active" }).click(); await page.locator(".teacher-project-qa-active").waitFor();
     for (const viewport of [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1280, height: 800 }]) { await page.setViewportSize(viewport); await assertNoOverflow(page); }
     const b3Manifest = JSON.parse(await fs.readFile(path.join(fixture.workspace, "teacher-projects", "ultimate-b3", "teacher-project.json"), "utf8"));
     const b4Manifest = JSON.parse(await fs.readFile(path.join(fixture.workspace, "teacher-projects", "ultimate-b4", "teacher-project.json"), "utf8"));
