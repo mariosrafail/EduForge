@@ -22,6 +22,16 @@ html[data-app-mode="android-teacher-offline"] body {
   contain: strict;
 }
 
+.teacher-fixed-stage-host[data-launcher-backdrop] {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.teacher-fixed-stage-host[data-launcher-backdrop] .teacher-offline-library.has-classroom-tools {
+  background: transparent;
+}
+
 .teacher-fixed-stage {
   position: absolute;
   left: 50%;

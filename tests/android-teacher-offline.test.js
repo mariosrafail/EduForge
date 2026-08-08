@@ -115,11 +115,13 @@ test("Teacher fixed stage separates viewport fit from bounded Interface Size", a
   assert.doesNotMatch(app, /viewport\.displayScale \* userInterfaceScale/);
   assert.match(app, /"--teacher-display-scale": viewport\.displayScale/);
   assert.match(app, /"--teacher-ui-scale": effectiveUiScale/);
-  assert.match(app, /<TeacherFixedStage viewport=\{viewport\}>/);
+  assert.match(app, /<TeacherFixedStage[\s\S]*viewport=\{viewport\}[\s\S]*launcherBackdrop=\{!startupIntroPending && navigation\.view === "library" \? menuSkin\?\.background : ""\}/);
   assert.match(stage, /data-teacher-stage-scale/);
+  assert.match(stage, /data-launcher-backdrop=\{launcherBackdrop \? "" : undefined\}/);
   assert.match(rootCss, /teacherFixedStage\.css/);
   assert.doesNotMatch(rootCss, /teacherDisplayScale\.css/);
   assert.match(fixedCss, /width: 1920px[\s\S]*height: 1080px[\s\S]*scale\(var\(--teacher-stage-scale\)\)/);
+  assert.match(fixedCss, /\.teacher-fixed-stage-host\[data-launcher-backdrop\][\s\S]*background-size: cover[\s\S]*\.teacher-offline-library\.has-classroom-tools[\s\S]*background: transparent/);
   assert.match(fixedCss, /\.legacy-home-launcher[\s\S]*\.teacher-offline-unit-overview-screen[\s\S]*\.teacher-offline-pages-viewer[\s\S]*\.classroom-teaching-toolbar[\s\S]*\.legacy-settings-dialog/);
 });
 

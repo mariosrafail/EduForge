@@ -239,7 +239,10 @@ export default function TeacherOfflineApp() {
   const effectiveUiScale = Math.min(1.1, Math.max(0.9, userInterfaceScale));
   return (
     <ClassroomToolsProvider>
-      <TeacherFixedStage viewport={viewport}>
+      <TeacherFixedStage
+        viewport={viewport}
+        launcherBackdrop={!startupIntroPending && navigation.view === "library" ? menuSkin?.background : ""}
+      >
       <div
         className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
         data-teacher-theme={ACTIVE_TEACHER_THEME}

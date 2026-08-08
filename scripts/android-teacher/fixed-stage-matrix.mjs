@@ -13,6 +13,7 @@ const viewports = [
   { width: 1280, height: 800 },
   { width: 1366, height: 768 },
   { width: 1920, height: 1080 },
+  { width: 2560, height: 1080 },
   { width: 2560, height: 1440 },
   { width: 3840, height: 2160 },
 ];
@@ -43,6 +44,24 @@ async function completeStartupIntro(page) {
   const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
   if (await intro.count()) await intro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
   await page.locator(".legacy-home-launcher").waitFor();
+}
+
+async function readLauncherBackdrop(page) {
+  return page.evaluate(() => {
+    const host = document.querySelector("[data-teacher-stage-host]");
+    const library = document.querySelector(".teacher-offline-library");
+    const hostStyle = getComputedStyle(host);
+    const libraryStyle = library ? getComputedStyle(library) : null;
+    return {
+      active: host.hasAttribute("data-launcher-backdrop"),
+      image: hostStyle.backgroundImage,
+      position: hostStyle.backgroundPosition,
+      size: hostStyle.backgroundSize,
+      repeat: hostStyle.backgroundRepeat,
+      libraryImage: libraryStyle?.backgroundImage || "none",
+      libraryColor: libraryStyle?.backgroundColor || "rgba(0, 0, 0, 0)",
+    };
+  });
 }
 
 async function readGeometry(page) {
@@ -117,7 +136,20 @@ try {
       if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text());
     });
     await page.goto(baseURL, { waitUntil: "networkidle" });
+    await page.locator("[data-teacher-stage-host]").waitFor();
+    const introBackdrop = await readLauncherBackdrop(page);
+    assert.equal(introBackdrop.active, false, `${target.width}x${target.height} intro launcher backdrop inactive`);
+    assert.equal(introBackdrop.image, "none", `${target.width}x${target.height} intro has no launcher image`);
     await completeStartupIntro(page);
+
+    const launcherBackdrop = await readLauncherBackdrop(page);
+    assert.equal(launcherBackdrop.active, true, `${target.width}x${target.height} launcher backdrop active`);
+    assert.notEqual(launcherBackdrop.image, "none", `${target.width}x${target.height} launcher viewport image`);
+    assert.equal(launcherBackdrop.position, "50% 50%", `${target.width}x${target.height} centered launcher backdrop`);
+    assert.equal(launcherBackdrop.size, "cover", `${target.width}x${target.height} launcher backdrop cover`);
+    assert.equal(launcherBackdrop.repeat, "no-repeat", `${target.width}x${target.height} launcher backdrop repeat`);
+    assert.equal(launcherBackdrop.libraryImage, "none", `${target.width}x${target.height} single launcher background image`);
+    assert.equal(launcherBackdrop.libraryColor, "rgba(0, 0, 0, 0)", `${target.width}x${target.height} transparent logical launcher`);
 
     const geometry = await readGeometry(page);
     const expectedScale = Math.min(target.width / 1920, target.height / 1080);
@@ -132,8 +164,27 @@ try {
     assert.ok(geometry.renderedStage.top + geometry.renderedStage.height <= geometry.host.top + geometry.host.height + 1, `${target.width}x${target.height} vertical containment`);
     assert.deepEqual(geometry.document, { widthOverflow: 0, heightOverflow: 0, bodyWidthOverflow: 0, bodyHeightOverflow: 0 }, `${target.width}x${target.height} document overflow`);
 
+    if ((target.width === 1280 && target.height === 800) || (target.width === 2560 && target.height === 1080)) {
+      await page.screenshot({ path: `${artifactRoot}/launcher-bleed-${target.width}x${target.height}.png` });
+    }
+
     await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
+    let overviewBackdrop = await readLauncherBackdrop(page);
+    assert.equal(overviewBackdrop.active, false, `${target.width}x${target.height} overview launcher backdrop inactive`);
+    assert.equal(overviewBackdrop.image, "none", `${target.width}x${target.height} overview has no launcher image`);
+    if (target.width === 1280 && target.height === 800) {
+      await page.getByRole("button", { name: "Close book" }).click();
+      await page.locator(".legacy-home-launcher").waitFor();
+      const restoredBackdrop = await readLauncherBackdrop(page);
+      assert.equal(restoredBackdrop.active, true, "returning to Library restores launcher backdrop");
+      assert.notEqual(restoredBackdrop.image, "none", "returning to Library restores launcher image");
+      assert.equal(restoredBackdrop.libraryImage, "none", "returning to Library keeps a single background image");
+      await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
+      await page.locator(".teacher-offline-unit-overview").waitFor();
+      overviewBackdrop = await readLauncherBackdrop(page);
+      assert.equal(overviewBackdrop.active, false, "reopening Unit 1 removes restored launcher backdrop");
+    }
     await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")].every((image) => image.complete && image.naturalWidth > 0));
     const overview = await logicalRects(page, {
       screen: ".teacher-offline-unit-overview-screen",
