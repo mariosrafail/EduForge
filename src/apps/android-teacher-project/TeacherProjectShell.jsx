@@ -16,11 +16,11 @@ function Artwork({ item, label, editing }) {
   );
 }
 
-function UnitColumn({ items, editing }) {
+function UnitColumn({ items, editing, onOpenUnit }) {
   return (
     <div className="legacy-home-unit-column" aria-label={`${items[0]?.label || "Units"} through ${items.at(-1)?.label || "Units"}`}>
       {items.map((unit) => (
-        <button key={unit.id} type="button" className="legacy-home-unit available" data-teacher-control-id={unit.controlId} data-sound-category="button" aria-label={unit.label}>
+        <button key={unit.id} type="button" className="legacy-home-unit available" data-teacher-control-id={unit.controlId} data-sound-category="button" aria-label={unit.label} onClick={() => onOpenUnit?.(unit.id)}>
           <Artwork item={unit} label={unit.label} editing={editing} />
         </button>
       ))}
@@ -28,7 +28,7 @@ function UnitColumn({ items, editing }) {
   );
 }
 
-export default function TeacherProjectShell({ config, animationsActive = true, editing = false }) {
+export default function TeacherProjectShell({ config, animationsActive = true, editing = false, onOpenUnit }) {
   const [edition, setEdition] = useState("students-book");
   const surfaceKey = `teacher-project:${config.projectId || "draft"}:shell`;
   return (
@@ -44,9 +44,9 @@ export default function TeacherProjectShell({ config, animationsActive = true, e
       <section className="legacy-home-classroom-surface" data-classroom-surface-id={surfaceKey} tabIndex={-1} aria-label={`${config.displayName || "Teacher project"} classroom launcher`}>
         <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="legacy-home-launcher">
-            <UnitColumn items={config.units.slice(0, 5)} editing={editing} />
+            <UnitColumn items={config.units.slice(0, 5)} editing={editing} onOpenUnit={onOpenUnit} />
             <TeacherProjectTitleAnimation bundle={config.titleAnimation} animate={animationsActive} editing={editing} />
-            <UnitColumn items={config.units.slice(5)} editing={editing} />
+            <UnitColumn items={config.units.slice(5)} editing={editing} onOpenUnit={onOpenUnit} />
             <div className="legacy-home-book-row teacher-project-edition-row" aria-label="Book editions">
               {config.editions.map((item) => (
                 <button

@@ -1,6 +1,6 @@
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import projectConfig from "virtual:teacher-project-config";
 import { ClassroomToolsProvider } from "../android-teacher-offline/ClassroomToolsContext.jsx";
@@ -9,7 +9,7 @@ import TeacherOfflineSettingsDialog from "../android-teacher-offline/TeacherOffl
 import TeacherShellChrome from "../android-teacher-offline/TeacherShellChrome.jsx";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "../android-teacher-offline/teacherOfflineSettings.js";
 import { useTeacherViewportProfile } from "../android-teacher-offline/viewportProfiles.js";
-import TeacherProjectShell from "./TeacherProjectShell.jsx";
+import TeacherProjectPresentation from "./TeacherProjectPresentation.jsx";
 import { useTeacherProjectSound } from "./teacherProjectSound.js";
 
 function usePrefersReducedMotion() {
@@ -33,6 +33,10 @@ export default function TeacherProjectApp() {
   const prefersReducedMotion = usePrefersReducedMotion();
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [presentationView, setPresentationView] = useState("library");
+  const presentationRef = useRef(null);
+  const settingsOpenRef = useRef(settingsOpen);
+  settingsOpenRef.current = settingsOpen;
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const menuSkin = useMemo(() => ({
     settingsIcon: projectConfig.chrome.settings.image,
@@ -52,11 +56,21 @@ export default function TeacherProjectApp() {
   const close = useCallback(async () => {
     if (Capacitor.isNativePlatform()) await App.exitApp();
   }, []);
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let handle;
+    let disposed = false;
+    App.addListener("backButton", async () => {
+      if (settingsOpenRef.current) { setSettingsOpen(false); return; }
+      if (!presentationRef.current?.back()) await App.exitApp();
+    }).then((next) => { handle = next; if (disposed) next.remove(); });
+    return () => { disposed = true; handle?.remove(); };
+  }, []);
   const userInterfaceScale = settings.graphics.interfaceScale / 100;
   const effectiveUiScale = Math.min(1.1, Math.max(0.9, userInterfaceScale));
   return (
     <ClassroomToolsProvider>
-      <TeacherFixedStage viewport={viewport} viewportBackdrop={{ name: "library", color: "#064968", image: `url("${projectConfig.background}")` }}>
+      <TeacherFixedStage viewport={viewport} viewportBackdrop={{ name: presentationView, color: "#064968", image: `url("${projectConfig.background}")` }}>
         <div
           className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}
           data-teacher-theme={ACTIVE_TEACHER_THEME}
@@ -70,7 +84,7 @@ export default function TeacherProjectApp() {
             "--teacher-ui-scale": effectiveUiScale,
           }}
         >
-          <TeacherProjectShell config={projectConfig} animationsActive={animationsActive} />
+          <TeacherProjectPresentation ref={presentationRef} config={projectConfig} animationsActive={animationsActive} onViewChange={setPresentationView} />
           <TeacherShellChrome
             menuSkin={menuSkin}
             soundControlIds={{

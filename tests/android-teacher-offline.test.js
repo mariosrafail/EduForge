@@ -234,8 +234,9 @@ test("modern Teacher unit selectors use shared titles and touch-safe interaction
 });
 
 test("Teacher book screens use one canonical six-control navigation row", async () => {
-  const [navigation, shell, book, pages, overview, media, fixedCss, toolbarCss] = await Promise.all([
+  const [navigation, navigationCore, shell, book, pages, overview, media, fixedCss, toolbarCss] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherBookNavigation.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherBookNavigationCore.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherShellChrome.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
@@ -247,15 +248,17 @@ test("Teacher book screens use one canonical six-control navigation row", async 
   const orderedLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
   let previousIndex = -1;
   for (const label of orderedLabels) {
-    const currentIndex = navigation.indexOf(`aria-label="${label}"`);
+    const currentIndex = navigationCore.indexOf(`aria-label="${label}"`);
     assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
     previousIndex = currentIndex;
   }
-  assert.equal((navigation.match(/<button\b/g) || []).length, 6);
-  assert.match(navigation, /previousDisabled = true/);
-  assert.match(navigation, /nextDisabled = true/);
-  assert.match(navigation, /onClick=\{noOp\} aria-label="Grammar Book"/);
-  assert.match(navigation, /onClick=\{noOp\} aria-label="Workbook"/);
+  assert.equal((navigationCore.match(/<button\b/g) || []).length, 6);
+  assert.match(navigationCore, /previousDisabled = true/);
+  assert.match(navigationCore, /nextDisabled = true/);
+  assert.match(navigationCore, /onClick=\{noOp\} aria-label="Grammar Book"/);
+  assert.match(navigationCore, /onClick=\{noOp\} aria-label="Workbook"/);
+  assert.match(navigation, /TeacherBookNavigationCore/);
+  assert.match(navigation, /LegacyClassroomIcon/);
   assert.equal((shell.match(/<button\b/g) || []).length, 3);
   for (const label of ["Open classroom settings", "Minimize application", "Close application"]) assert.match(shell, new RegExp(`aria-label="${label}"`));
   assert.match(book, /availableUnitNumbers = \(pageUnits \|\| \[\]\)/);

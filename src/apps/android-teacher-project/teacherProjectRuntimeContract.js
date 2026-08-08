@@ -35,6 +35,27 @@ export function materializeTeacherProjectRuntime(project, resolveAsset) {
     units: project.shell.units.map((item) => visual(item, TEACHER_PROJECT_CONTROL_IDS.unit(item.id))),
     editions: project.shell.editions.map((item) => visual(item, TEACHER_PROJECT_CONTROL_IDS.edition(item.id))),
     toolbar: project.shell.toolbar.map((item) => visual(item, TEACHER_PROJECT_CONTROL_IDS.toolbar(item.id))),
+    content: {
+      studentsBook: {
+        units: project.content.studentsBook.units.map((unit) => ({
+          id: unit.id,
+          entries: unit.entries.map((entry) => entry.layout === "double-pair" ? {
+            id: entry.id,
+            sectionTitle: entry.sectionTitle,
+            pageLabel: entry.pageLabel,
+            layout: entry.layout,
+            leftImage: asset(entry.leftImage),
+            rightImage: asset(entry.rightImage),
+          } : {
+            id: entry.id,
+            sectionTitle: entry.sectionTitle,
+            pageLabel: entry.pageLabel,
+            layout: entry.layout,
+            image: asset(entry.image),
+          }),
+        })),
+      },
+    },
   };
   runtime.soundMap = Object.fromEntries([
     ...Object.values(runtime.chrome).map((item) => [item.controlId, item.sound]),

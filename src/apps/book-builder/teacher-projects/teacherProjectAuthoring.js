@@ -1,5 +1,6 @@
 export const TEACHER_PROJECT_SECTIONS = Object.freeze([
   ["overview", "Overview"],
+  ["pages", "Units & Pages"],
   ["shell", "Shell & Animation"],
   ["chrome", "Window Controls"],
   ["units", "Units"],
@@ -8,6 +9,62 @@ export const TEACHER_PROJECT_SECTIONS = Object.freeze([
   ["assets", "Sounds & Assets"],
   ["build", "Build & Run"],
 ]);
+
+export const TEACHER_PAGE_LAYOUTS = Object.freeze(["single-page", "double-wide", "double-pair"]);
+export const TEACHER_PAGE_ENTRY_LIMIT = 24;
+
+export function createTeacherPageEntry() {
+  const id = globalThis.crypto?.randomUUID?.();
+  if (!id) throw new Error("Secure page entry identity generation is unavailable.");
+  return { id: `entry-${id}`, sectionTitle: "", pageLabel: "", layout: "single-page", image: null };
+}
+
+export function changeTeacherPageLayout(entry, layout) {
+  if (!TEACHER_PAGE_LAYOUTS.includes(layout)) throw new Error("Unsupported Teacher page layout.");
+  if (layout === "double-pair") {
+    const image = entry.layout === "double-pair" ? null : entry.image;
+    return { id: entry.id, sectionTitle: entry.sectionTitle, pageLabel: entry.pageLabel, layout, leftImage: image, rightImage: null };
+  }
+  const image = entry.layout === "double-pair" ? entry.leftImage : entry.image;
+  return { id: entry.id, sectionTitle: entry.sectionTitle, pageLabel: entry.pageLabel, layout, image: image || null };
+}
+
+export function teacherContentProgress(content) {
+  let entryCount = 0;
+  let completeEntryCount = 0;
+  let unitCountWithContent = 0;
+  const issuesByUnit = {};
+  for (const unit of content.studentsBook.units) {
+    if (unit.entries.length) unitCountWithContent += 1;
+    entryCount += unit.entries.length;
+    const issues = [];
+    for (const entry of unit.entries) {
+      const missing = [];
+      if (!entry.pageLabel.trim()) missing.push("Page label");
+      if (entry.layout === "double-pair") {
+        if (!entry.leftImage) missing.push("Left page image");
+        if (!entry.rightImage) missing.push("Right page image");
+      } else if (!entry.image) missing.push(entry.layout === "double-wide" ? "Spread image" : "Page image");
+      if (missing.length) issues.push({ entryId: entry.id, missing });
+      else completeEntryCount += 1;
+    }
+    if (issues.length) issuesByUnit[unit.id] = issues;
+  }
+  return { valid: completeEntryCount === entryCount, unitCountWithContent, entryCount, completeEntryCount, incompleteEntryCount: entryCount - completeEntryCount, issuesByUnit };
+}
+
+export function teacherContentReferences(content) {
+  const references = [];
+  if (!content) return references;
+  for (const unit of content.studentsBook.units) for (const entry of unit.entries) {
+    const add = (assetId, role) => { if (assetId) references.push({ assetId, label: `${unit.id} ${entry.pageLabel || entry.id} ${role}`, section: "pages", target: `${unit.id}.${entry.id}.${role}` }); };
+    if (entry.layout === "double-pair") {
+      add(entry.leftImage, "left page");
+      add(entry.rightImage, "right page");
+    } else add(entry.image, entry.layout === "double-wide" ? "spread" : "page");
+  }
+  return references;
+}
 
 function assignment(value, label, section, missing) {
   if (!value) missing.push({ label, section });
@@ -69,9 +126,9 @@ export function teacherShellReferences(shell) {
   return entries;
 }
 
-export function teacherAssetUsage(shell) {
+export function teacherAssetUsage(shell, content = null) {
   const usage = new Map();
-  for (const reference of teacherShellReferences(shell)) {
+  for (const reference of [...teacherShellReferences(shell), ...teacherContentReferences(content)]) {
     const list = usage.get(reference.assetId) || [];
     list.push(reference);
     usage.set(reference.assetId, list);
