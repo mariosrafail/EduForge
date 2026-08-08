@@ -127,6 +127,9 @@ export function assertSafeResponseBody(serialized) {
 
 export function publicError(error) {
   if (error instanceof ReviewStudioError) return error;
+  if (error?.name === "TeacherProjectError" && /^[a-z0-9_]+$/.test(String(error.code || "")) && Number.isInteger(error.statusCode)) {
+    return new ReviewStudioError(error.code, error.statusCode, error.details);
+  }
   if (error?.name === "ProjectMutationError" && /^[a-z0-9_]+$/.test(String(error.code || "")) && Number.isInteger(error.statusCode)) {
     return new ReviewStudioError(error.code, error.statusCode, error.details);
   }

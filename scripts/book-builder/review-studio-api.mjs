@@ -14,6 +14,7 @@ import {
 import { createReviewStudioWorkspace } from "./review-studio-workspace.mjs";
 import { createMutationDispatcher } from "./review-studio-mutation-api.mjs";
 import { createManualActivityDispatcher } from "./review-studio-manual-activities.mjs";
+import { createTeacherProjectDispatcher } from "./teacher-project-api.mjs";
 import { decorateDecisionView, decisionsAndHistoryView, invalidateDecisionViewCache } from "./review-studio-decision-view-models.mjs";
 
 function securityHeaders(response, contentType) {
@@ -96,6 +97,7 @@ export function createReviewStudioApi({
     workspace, writeEnabled, writeToken, sessionId: authoringSessionId, getReader: reader,
     hooks: mutationHooks, invalidateProject: async (projectId) => invalidateDecisionViewCache(await reader(), projectId),
   });
+  const teacherProjectDispatcher = createTeacherProjectDispatcher({ workspace, writeEnabled, writeToken });
 
   async function dispatch(request, response) {
     const parsed = new URL(request.url || "/", "http://127.0.0.1");
@@ -120,6 +122,12 @@ export function createReviewStudioApi({
       const isDecisionMutation = segments[0] === "projects" && segments[2] === "decisions" && segments.length === 4;
       if (isDecisionMutation && !writeEnabled) throw new ReviewStudioError("write_mode_disabled", 403);
       requireSession(request, sessionToken);
+      const teacherProject = await teacherProjectDispatcher.dispatch(request, segments, parsed);
+      if (teacherProject) {
+        if (teacherProject.binary) endPreview(request, response, teacherProject.binary);
+        else endJson(request, response, teacherProject.statusCode, teacherProject.payload);
+        return true;
+      }
       const manual = await manualActivityDispatcher.dispatch(request, segments, parsed);
       if (manual) {
         if (manual.preview) endPreview(request, response, manual.preview);
