@@ -4,6 +4,7 @@ import process from "node:process";
 import { assertTeacherProjectId } from "../../lib/teacher-project-builder/schema.js";
 import { TeacherProjectStore } from "../../lib/teacher-project-builder/store.js";
 import { buildTeacherProjectWeb } from "./build-web.mjs";
+import { exportTeacherProjectApk } from "../../lib/teacher-project-builder/export-apk.js";
 
 function argumentsFrom(argv) {
   const result = { command: argv[0] || "", workspace: "", projectId: "" };
@@ -15,7 +16,7 @@ function argumentsFrom(argv) {
     else if (argument.startsWith("--project=")) result.projectId = argument.slice(10);
     else throw new Error(`Unknown Teacher Project option: ${argument}`);
   }
-  if (!["validate", "build-web"].includes(result.command)) throw new Error("Use validate or build-web.");
+  if (!["validate", "build-web", "export-apk"].includes(result.command)) throw new Error("Use validate, build-web, or export-apk.");
   if (!result.workspace) throw new Error("--workspace is required.");
   result.workspace = path.resolve(result.workspace);
   result.projectId = assertTeacherProjectId(result.projectId);
@@ -30,8 +31,13 @@ async function main() {
     if (!status.completeness.complete) process.exitCode = 2;
     return;
   }
-  const result = await buildTeacherProjectWeb({ ...options, onStage: (stage) => process.stdout.write(`${stage}\n`) });
-  process.stdout.write(`${JSON.stringify({ projectId: options.projectId, revision: result.project.revision, verification: result.verification }, null, 2)}\n`);
+  if (options.command === "build-web") {
+    const result = await buildTeacherProjectWeb({ ...options, onStage: (stage) => process.stdout.write(`${stage}\n`) });
+    process.stdout.write(`${JSON.stringify({ projectId: options.projectId, revision: result.project.revision, verification: result.verification }, null, 2)}\n`);
+    return;
+  }
+  const result = await exportTeacherProjectApk({ ...options, onStage: (stage) => process.stdout.write(`${stage}\n`) });
+  process.stdout.write(`${JSON.stringify({ projectId: options.projectId, apkFilename: result.apkFilename, reportFilename: result.reportFilename, verification: result.report.verification }, null, 2)}\n`);
 }
 
 main().catch((error) => {

@@ -2,6 +2,7 @@ import { TEACHER_PROJECT_LIMITS } from "../../lib/teacher-project-builder/consta
 import { TeacherProjectError } from "../../lib/teacher-project-builder/errors.js";
 import { TeacherProjectStore } from "../../lib/teacher-project-builder/store.js";
 import { parseTeacherAssetDescriptor } from "../../lib/teacher-project-builder/asset-inspection.js";
+import { TeacherProjectJobManager } from "../../lib/teacher-project-builder/jobs.js";
 import { BOOK_BUILDER_WRITE_HEADER, ReviewStudioError, equalSessionToken } from "./review-studio-security.mjs";
 import { readJsonBody } from "./review-studio-mutation-api.mjs";
 
@@ -39,11 +40,21 @@ async function readBinaryBody(request, maximumBytes) {
   return Buffer.concat(chunks);
 }
 
-export function createTeacherProjectDispatcher({ workspace, writeEnabled = false, writeToken = null, store: suppliedStore } = {}) {
+export function createTeacherProjectDispatcher({ workspace, writeEnabled = false, writeToken = null, store: suppliedStore, jobs: suppliedJobs } = {}) {
   const store = suppliedStore || new TeacherProjectStore({ workspace });
+  const jobs = suppliedJobs || new TeacherProjectJobManager({ workspace });
 
   async function dispatch(request, segments, parsed) {
     if (segments[0] !== "teacher-projects") return null;
+    if (segments.length === 3 && segments[1] === "android" && segments[2] === "devices") {
+      requireMethod(request, "GET");
+      requireWrite(request, writeEnabled, writeToken);
+      return { statusCode: 200, payload: await jobs.devices() };
+    }
+    if (segments.length === 3 && segments[1] === "jobs") {
+      requireMethod(request, "GET");
+      return { statusCode: 200, payload: { job: jobs.get(segments[2]) } };
+    }
     if (segments.length === 1) {
       if (request.method === "GET" || request.method === "HEAD") return { statusCode: 200, payload: await store.list() };
       requireMethod(request, "POST");
@@ -63,6 +74,18 @@ export function createTeacherProjectDispatcher({ workspace, writeEnabled = false
       const body = exactBody(await readJsonBody(request), ["displayName", "expectedRevision", "shell"], "invalid_teacher_project_save");
       const project = await store.save(projectId, body);
       return { statusCode: 200, payload: { project, completeness: (await store.status(projectId)).completeness } };
+    }
+    if (segments.length === 3 && segments[2] === "export") {
+      requireMethod(request, "POST");
+      requireWrite(request, writeEnabled, writeToken);
+      const body = exactBody(await readJsonBody(request), ["expectedRevision"], "invalid_teacher_project_export");
+      return { statusCode: 202, payload: { job: await jobs.startExport(projectId, body.expectedRevision) } };
+    }
+    if (segments.length === 3 && segments[2] === "run") {
+      requireMethod(request, "POST");
+      requireWrite(request, writeEnabled, writeToken);
+      const body = exactBody(await readJsonBody(request), ["expectedRevision", "serial"], "invalid_teacher_project_run");
+      return { statusCode: 202, payload: { job: await jobs.startRun(projectId, body.expectedRevision, body.serial) } };
     }
     if (segments.length === 4 && segments[2] === "assets" && segments[3] === "import") {
       requireMethod(request, "POST");
@@ -94,7 +117,7 @@ export function createTeacherProjectDispatcher({ workspace, writeEnabled = false
     throw new ReviewStudioError("route_not_found", 404);
   }
 
-  return { dispatch, store };
+  return { dispatch, store, jobs };
 }
 
 export { ASSET_FILENAME_HEADER, readBinaryBody };

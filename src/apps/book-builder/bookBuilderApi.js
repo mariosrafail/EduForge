@@ -142,6 +142,26 @@ export function removeTeacherProjectAsset(projectId, assetId, expectedRevision, 
   return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}/remove`, { expectedRevision }, options);
 }
 
+export function exportTeacherProject(projectId, expectedRevision, options) {
+  return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/export`, { expectedRevision }, options);
+}
+
+export function runTeacherProject(projectId, expectedRevision, serial, options) {
+  return teacherProjectMutation(`/teacher-projects/${encodeURIComponent(projectId)}/run`, { expectedRevision, serial }, options);
+}
+
+export function requestTeacherProjectJob(jobId, options) {
+  return requestReviewStudio(`/teacher-projects/jobs/${encodeURIComponent(jobId)}`, options);
+}
+
+export async function requestAndroidDevices({ signal } = {}) {
+  if (!sessionToken) await bootstrapReviewStudio({ signal });
+  if (!writeCapability) throw Object.assign(new Error("Local editing mode is not enabled."), { code: "write_mode_disabled" });
+  return readPayload(await fetch(apiUrl("/teacher-projects/android/devices"), {
+    cache: "no-store", credentials: "same-origin", headers: { [SESSION_HEADER]: sessionToken, [WRITE_HEADER]: writeCapability }, signal,
+  }));
+}
+
 export function mutateManualActivity(projectId, operation, body, options) {
   return manualMutation(projectId, "manual-activities", operation, body, options);
 }

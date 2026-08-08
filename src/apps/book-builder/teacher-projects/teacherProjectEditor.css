@@ -25,6 +25,13 @@
 .teacher-project-section { display: grid; gap: 12px; padding: 14px; }
 .teacher-project-section > p { margin: 0; color: var(--studio-muted); font-size: .72rem; line-height: 1.5; }
 .teacher-project-section h3 { margin: 0; color: var(--studio-navy-deep); font-size: .75rem; }
+.teacher-build-job { display: grid; gap: 4px; padding: 10px 12px; color: var(--studio-blue); background: #eef6fb; border: 1px solid #b7d7e8; border-radius: 6px; }
+.teacher-build-job.complete { color: var(--studio-positive); background: var(--studio-positive-bg); border-color: #a9ddc2; }
+.teacher-build-job.failed { color: #a23b3b; background: #fff1f1; border-color: #e7b4b4; }
+.teacher-build-job span { font-size: .65rem; }
+.teacher-device-picker { display: flex; align-items: end; gap: 8px; }
+.teacher-device-picker label { display: grid; flex: 1; gap: 5px; color: var(--studio-muted); font-size: .68rem; font-weight: 800; }
+.teacher-device-picker select { min-height: 40px; padding: 7px 9px; background: #fff; border: 1px solid var(--studio-line-strong); border-radius: 6px; }
 .teacher-project-completeness { display: flex; align-items: center; gap: 10px; padding: 13px; border: 1px solid; border-radius: 8px; }
 .teacher-project-completeness svg { flex: none; }
 .teacher-project-completeness strong, .teacher-project-completeness span { display: block; }
