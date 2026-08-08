@@ -19,7 +19,67 @@ A Teacher APK Project is the versioned authoring source for a reusable, shell-on
   .build/                  # disposable deterministic staging
 ```
 
-Start the Studio in explicit local edit mode with `npm run dev:book-builder:edit`, then use the separate **Teacher APK Projects** section. Create a project with a display name and stable lowercase slug. The fixed Hamilton House logo and Android application ID are not project settings.
+Start the Studio in explicit local edit mode with `npm run dev:book-builder:edit -- --confirm=local-book-project-writes`, then use the separate **Teacher APK Projects** section. Create a project with a display name and stable lowercase slug. The fixed Hamilton House logo and Android application ID are not project settings.
+
+The authoring workspace has section navigation, a compact current-section editor, and a persistent shared-runtime preview. The header always shows the saved revision, Saved/Unsaved state, dynamic completion progress, Import Assets, Save, Export APK, and Run. Export and Run remain disabled until the complete draft has been saved.
+
+## Bulk shell import
+
+Use **Import Assets** to select either a folder or multiple files. The browser examines only the explicitly selected `File` objects and transient browser-provided relative names. It never sends a machine directory path to the server and no local path is persisted in `teacher-project.json`.
+
+Import is suggestion-based:
+
+1. Select up to 256 files. The local deterministic matcher normalizes filename tokens and classifies supported raster, GAF, MP3, and WAV candidates without uploading anything.
+2. Review **Mapped**, **Needs review**, **Unmatched**, and **Missing** filters. High-confidence suggestions are preselected; ambiguous candidates are never selected silently. Every target can be changed or cleared.
+3. Choose **Apply mappings**. Selected unique files are uploaded sequentially through the existing byte-validating import endpoint, SHA deduplication is retained, and successful asset IDs are assigned to the draft shell.
+4. If one file fails, successful durable imports remain available and the failure is listed. Retrying is safe because identical bytes deduplicate. Shell assignments still require **Save**.
+
+GAF SD/HD atlas candidates are ordered naturally (`title_SD.png`, `title_SD_2.png`, `title_SD_10.png`). The Shell & Animation section also provides explicit up/down controls before Save.
+
+### Optional naming convention
+
+The folders are helpful matching evidence, not a required layout:
+
+```text
+my-book/
+  background/background.png
+  animation/title.gaf
+  animation/title_SD.png
+  animation/title_SD_2.png
+  animation/title_HD.png
+  animation/title_HD_2.png
+  chrome/settings.png
+  chrome/minimize.png
+  chrome/close.png
+  units/unit-01-normal.png
+  units/unit-01-active.png
+  units/unit-10-normal.png
+  units/unit-10-active.png
+  editions/students-book-normal.png
+  editions/students-book-active.png
+  editions/workbook-normal.png
+  editions/workbook-active.png
+  editions/grammar-book-normal.png
+  editions/grammar-book-active.png
+  editions/extras-normal.png
+  editions/extras-active.png
+  toolbar/pencil.png
+  toolbar/pencil-active.png
+  audio/button.mp3
+  audio/unit-01.wav
+```
+
+Recognized state tokens include `normal`, `default`, `base`, `enabled`, `up`, `active`, `hover`, `pressed`, `selected`, and `down`. Unit numbers require an explicit `unit`/`u` token. Edition abbreviations `sb`, `wb`, and `gb` match only as complete tokens. Toolbar matching uses the IDs present in the actual project shell and a small documented synonym set such as `pointer`→mouse, `open`→load, and `custom-page`→annotations.
+
+## Sounds, assets, duplication, and QA
+
+**Sounds & Assets** shows each asset's current draft usage count. A reusable sound can be assigned to all Units, Editions, Toolbar controls, or Window controls, with an **Only empty assignments** option. Testing a sound plays its local project blob and does not mutate the project.
+
+Only assets with zero current draft references expose **Remove unused**. The server remains authoritative and refuses removal if the saved project still references the asset; save a replacement mapping first, then remove the orphan. Cleanup never touches exports or build staging.
+
+Teacher Project cards provide **Duplicate**. Duplication asks for a new name and slug, copies verified asset bytes and shell assignments into a self-contained revision-1 project, and never copies `exports`, APKs, build reports, `.build`, jobs, or device state.
+
+The QA list reports Normal, Active, and Sound state for Chrome, Units, Editions, and the actual Toolbar array. Selecting a control highlights its real `data-teacher-control-id` inside the shared-runtime preview; sound testing remains local and window actions are simulated. Preview can be expanded and retains 16:9, 16:10, and ultrawide modes. Incomplete projects use safe runtime placeholders, while APK Export remains completeness-gated.
 
 ## Required shell inventory
 

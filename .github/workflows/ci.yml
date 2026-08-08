@@ -32,6 +32,7 @@ jobs:
       - run: npm run verify:android-student-bundle-safety
       - run: npm run build:android-teacher-offline
       - run: npx playwright install --with-deps chromium
+      - run: node scripts/book-builder/teacher-project-authoring-playwright.mjs
       - run: npm run test:book-builder:studio:visual
       - run: npm run test:android-teacher-offline:smoke
       - run: npm run test:android-teacher-offline:intro

@@ -87,12 +87,30 @@ test("Teacher Project API preserves local session, origin, method, traversal and
   assert.equal((await fetch(`${origin}${BOOK_BUILDER_API_ROOT}/teacher-projects`, { headers: { Origin: "http://evil.example", [BOOK_BUILDER_SESSION_HEADER]: api.sessionToken } })).status, 403);
 });
 
+test("Teacher Project API duplicates only by source ID into a self-contained revision-one project", async (t) => {
+  const { request } = await harness(t);
+  await request("/teacher-projects", { method: "POST", ...jsonBody({ projectId: "ultimate-b3", displayName: "Ultimate B3" }) });
+  const png = await sharp({ create: { width: 4, height: 3, channels: 4, background: "#123456" } }).png().toBuffer();
+  const importedResponse = await request("/teacher-projects/ultimate-b3/assets/import?section=background&slot=main&variant=image", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-HHPLMS-Teacher-Asset-Name": "background.png" }, body: png });
+  const imported = await importedResponse.json();
+  const sourceShell = structuredClone(imported.project.shell); sourceShell.background = imported.asset.assetId;
+  await request("/teacher-projects/ultimate-b3/save", { method: "POST", ...jsonBody({ displayName: "Ultimate B3", expectedRevision: imported.project.revision, shell: sourceShell }) });
+  const response = await request("/teacher-projects/ultimate-b3/duplicate", { method: "POST", ...jsonBody({ projectId: "ultimate-b4", displayName: "Ultimate B4" }) });
+  assert.equal(response.status, 201);
+  const duplicate = (await response.json()).project;
+  assert.equal(duplicate.projectId, "ultimate-b4"); assert.equal(duplicate.revision, 1); assert.deepEqual(duplicate.shell, sourceShell); assert.ok(duplicate.assets[imported.asset.assetId]);
+  assert.deepEqual(Buffer.from(await (await request(`/teacher-projects/ultimate-b4/assets/${imported.asset.assetId}/content`)).arrayBuffer()), png);
+  assert.equal((await request("/teacher-projects/ultimate-b3/duplicate", { method: "POST", ...jsonBody({ projectId: "ultimate-b4", displayName: "Conflict" }) })).status, 409);
+  assert.equal((await request("/teacher-projects/ultimate-b3/duplicate", { method: "POST", ...jsonBody({ projectId: "../escape", displayName: "Unsafe" }) })).status, 400);
+});
+
 test("read-only Review Studio can list Teacher Projects but cannot create, import, save, remove, export or run", async (t) => {
   const { request } = await harness(t, { writeEnabled: false });
   assert.equal((await request("/teacher-projects")).status, 200);
   assert.equal((await request("/teacher-projects", { method: "POST", ...jsonBody({ projectId: "b3", displayName: "B3" }) })).status, 403);
   for (const route of [
     "/teacher-projects/b3/save",
+    "/teacher-projects/b3/duplicate",
     "/teacher-projects/b3/assets/import?section=background&slot=main&variant=image",
     "/teacher-projects/b3/assets/asset-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/remove",
     "/teacher-projects/b3/export",
