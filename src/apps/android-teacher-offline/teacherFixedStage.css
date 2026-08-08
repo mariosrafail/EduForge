@@ -88,6 +88,10 @@ html[data-app-mode="android-teacher-offline"] .teacher-startup-intro {
   height: 100%;
   max-height: none;
 }
+html[data-app-mode="android-teacher-offline"] .teacher-startup-intro video {
+  max-width: 1024px;
+  max-height: 768px;
+}
 
 /* Launcher: canonical Full HD geometry, including the current recovered-title offset. */
 html[data-app-mode="android-teacher-offline"] .teacher-offline-library.has-classroom-tools {

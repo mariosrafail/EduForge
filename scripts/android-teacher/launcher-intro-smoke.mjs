@@ -121,6 +121,7 @@ async function assertIntroGeometry(page, target) {
   ];
   const renderedRatio = metrics.video.width / metrics.video.height;
   const naturalRatio = metrics.video.naturalWidth / metrics.video.naturalHeight;
+  const stageScale = Math.min(target.width / 1920, target.height / 1080);
   assert.deepEqual(metrics.viewport, { width: target.width, height: target.height }, `${target.name} viewport`);
   assert.equal(metrics.stage.background, "rgb(255, 255, 255)", `${target.name} white stage`);
   assert.equal(metrics.video.background, "rgb(255, 255, 255)", `${target.name} white video backing`);
@@ -131,8 +132,8 @@ async function assertIntroGeometry(page, target) {
   assert.ok(Math.abs(horizontalCenter - target.width / 2) <= 2, `${target.name} horizontal center: ${JSON.stringify(metrics)}`);
   assert.ok(Math.abs(verticalCenter - target.height / 2) <= 2, `${target.name} vertical center: ${JSON.stringify(metrics)}`);
   assert.ok(margins.every((margin) => margin >= 15), `${target.name} white margins: ${JSON.stringify(margins)}`);
-  assert.ok(metrics.video.width <= Math.min(target.width * 0.9, 1024) + 1, `${target.name} width bound`);
-  assert.ok(metrics.video.height <= Math.min(target.height * 0.86, 768) + 1, `${target.name} height bound`);
+  assert.ok(metrics.video.width <= (1024 * stageScale) + 1, `${target.name} stage-scaled width bound`);
+  assert.ok(metrics.video.height <= (768 * stageScale) + 1, `${target.name} stage-scaled height bound`);
   assert.ok(metrics.video.left >= 0 && metrics.video.right <= target.width, `${target.name} horizontal containment`);
   assert.ok(metrics.video.top >= 0 && metrics.video.bottom <= target.height, `${target.name} vertical containment`);
   assert.ok(metrics.overflow.horizontal <= 1 && metrics.overflow.vertical <= 1, `${target.name} overflow: ${JSON.stringify(metrics.overflow)}`);
