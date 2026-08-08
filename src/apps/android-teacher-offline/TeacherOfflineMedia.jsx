@@ -1,7 +1,7 @@
 import { StudentsBookMediaPlayer } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
-import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 
 export default function TeacherOfflineMedia({ media, onBack, onHome }) {

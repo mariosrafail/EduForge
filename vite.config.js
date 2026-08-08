@@ -4,12 +4,15 @@ import path from "node:path";
 import { legacyFlashProofPlugin } from "./scripts/ultimate-b2/legacy-flash-vite-plugin.mjs";
 import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
 import { ultimateB2HotspotBuilderPlugin } from "./scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs";
+import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
+  const isAndroidTeacherProject = appMode === "android-teacher-project";
   const isAndroidTeacherOffline = appMode === "android-teacher-offline";
-  const isAndroidOffline = appMode === "android-offline" || isAndroidTeacherOffline;
+  const isTeacherRuntime = isAndroidTeacherOffline || isAndroidTeacherProject;
+  const isAndroidOffline = appMode === "android-offline" || isTeacherRuntime;
   const webInputs = {
     lms: path.resolve(process.cwd(), "index.html"),
     platformAdmin: path.resolve(process.cwd(), "platform-admin/index.html"),
@@ -35,12 +38,12 @@ export default defineConfig(({ mode }) => {
     ? "src/apps/android-offline/androidOfflineServiceStubs.js"
     : "src/services/bookContentApi.js");
   const ultimateB2PageAssets = path.resolve(process.cwd(), isAndroidOffline
-    ? isAndroidTeacherOffline
+      ? isAndroidTeacherOffline
       ? "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2PageAssets.web.js");
   const ultimateB2MediaAssets = path.resolve(process.cwd(), isAndroidOffline
-    ? isAndroidTeacherOffline
+      ? isAndroidTeacherOffline
       ? "src/data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2MediaAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2MediaAssets.web.js");
@@ -66,12 +69,21 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: false,
-      assetsInlineLimit: isAndroidTeacherOffline ? 0 : 4096,
+      assetsInlineLimit: isAndroidTeacherOffline ? 0 : isAndroidTeacherProject ? 0 : 4096,
       rollupOptions: {
         input: isAndroidOffline ? path.resolve(process.cwd(), "index.html") : webInputs,
       },
     },
-    plugins: [react(), ultimateB2HotspotBuilderPlugin(), unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }), legacyFlashProofPlugin({ ...process.env, ...env })].filter(Boolean),
+    publicDir: isAndroidTeacherProject
+      ? path.resolve(env.TEACHER_PROJECT_PUBLIC_DIR || process.env.TEACHER_PROJECT_PUBLIC_DIR || ".teacher-project-build/missing-public")
+      : undefined,
+    plugins: [
+      react(),
+      isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
+      !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin() : null,
+      !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
+      !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
+    ].filter(Boolean),
     resolve: {
       alias: [
         {
@@ -96,7 +108,9 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: "virtual:app-entry",
-          replacement: isAndroidTeacherOffline
+          replacement: isAndroidTeacherProject
+            ? "/src/apps/android-teacher-project/teacherProjectEntry.jsx"
+            : isAndroidTeacherOffline
             ? "/src/apps/android-teacher-offline/teacherOfflineEntry.jsx"
             : isAndroidOffline
               ? "/src/apps/android-offline/offlineEntry.jsx"
@@ -104,7 +118,9 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: "virtual:app-styles",
-          replacement: isAndroidTeacherOffline
+          replacement: isAndroidTeacherProject
+            ? "/src/apps/android-teacher-project/teacherProjectRoot.css"
+            : isAndroidTeacherOffline
             ? "/src/apps/android-teacher-offline/teacherOfflineRoot.css"
             : isAndroidOffline
               ? "/src/apps/android-offline/offlineRoot.css"

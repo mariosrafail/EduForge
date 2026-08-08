@@ -1,0 +1,38 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+import { teacherProjectCompleteness } from "../lib/teacher-project-builder/schema.js";
+import { materializeTeacherProjectRuntime } from "../src/apps/android-teacher-project/teacherProjectRuntimeContract.js";
+import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
+
+test("generic Teacher project runtime materializes 35 independent sound controls and shell-only slots", async (t) => {
+  const fixture = await createCompleteTeacherProjectFixture();
+  t.after(fixture.cleanup);
+  assert.equal(teacherProjectCompleteness(fixture.project).complete, true);
+  const runtime = materializeTeacherProjectRuntime(fixture.project, (assetId, asset) => `/fixture/${assetId}${asset.relativePath.slice(asset.relativePath.lastIndexOf("."))}`);
+  assert.equal(runtime.units.length, 10);
+  assert.equal(runtime.editions.length, 4);
+  assert.equal(runtime.editions[0].id, "students-book");
+  assert.equal(runtime.toolbar.length, 18);
+  assert.equal(Object.keys(runtime.soundMap).length, 35);
+  assert.deepEqual(Object.keys(runtime.chrome), ["settings", "minimize", "close"]);
+});
+
+test("generic runtime source graph has no static Ultimate B2 pack, content, solution, or monolithic asset import", async () => {
+  const files = [
+    "src/apps/android-teacher-project/TeacherProjectApp.jsx",
+    "src/apps/android-teacher-project/TeacherProjectShell.jsx",
+    "src/apps/android-teacher-project/TeacherProjectTitleAnimation.jsx",
+    "src/apps/android-teacher-project/teacherProjectEntry.jsx",
+    "src/apps/android-teacher-project/teacherProjectSound.js",
+    "src/apps/android-teacher-project/teacherProjectRuntimeContract.js",
+    "src/apps/android-teacher-offline/ClassroomToolbar.jsx",
+  ];
+  const source = (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
+  assert.doesNotMatch(source, /generatedPackProvider|teacherContentPackProvider|legacyClassroomAssets|ultimateB2(?:Page|Media|Activity)|teacher-solutions/);
+  assert.match(source, /virtual:teacher-project-config/);
+  const vite = await readFile("vite.config.js", "utf8");
+  assert.match(vite, /isAndroidTeacherProject/);
+  assert.match(vite, /teacherProjectVitePlugin/);
+});

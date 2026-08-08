@@ -1,6 +1,6 @@
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
-import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
 

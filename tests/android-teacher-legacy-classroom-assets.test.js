@@ -204,7 +204,8 @@ test("UI audio does not duplicate educational media and Teacher build emits file
   const educationalHashes = new Set();
   for (const root of educationalRoots) for (const file of await filesBelow(path.resolve(root))) educationalHashes.add(sha256(await readFile(file)));
   for (const asset of manifest.assets.filter((candidate) => candidate.outputPath.endsWith(".mp3"))) assert.ok(!educationalHashes.has(asset.sha256), `${asset.id} duplicates educational media`);
-  const viteConfig = await readFile("vite.config.js", "utf8"); assert.match(viteConfig, /assetsInlineLimit:\s*isAndroidTeacherOffline\s*\?\s*0\s*:\s*4096/);
+  const viteConfig = await readFile("vite.config.js", "utf8");
+  assert.match(viteConfig, /assetsInlineLimit:\s*isAndroidTeacherOffline\s*\?\s*0\s*:\s*isAndroidTeacherProject\s*\?\s*0\s*:\s*4096/);
 });
 
 test("static extractors are explicit, dry by default, and reject writes into the app", async () => {

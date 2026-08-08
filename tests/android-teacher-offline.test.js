@@ -484,7 +484,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
   assert.doesNotMatch(library, /legacy-home-settings-button|legacy-home-close-button|legacy-home-minimize-button/);
-  assert.match(toolbar, /ultimateB2TeacherToolbarItems\.map/);
+  assert.match(toolbar, /items\.map/);
   assert.match(app, /onOpenSettings=\{\(\) => setSettingsOpen\(true\)\}/);
   assert.match(app, /onMinimize=\{minimizeApplication\}/);
   assert.match(app, /onClose=\{closeApplication\}/);

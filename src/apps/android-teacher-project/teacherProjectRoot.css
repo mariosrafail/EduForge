@@ -1,0 +1,32 @@
+@import "../../styles/base.css";
+@import "../../styles/shared-components.css";
+@import "../android-teacher-offline/teacherOffline.css";
+@import "../android-teacher-offline/classroomTools.css";
+@import "../android-teacher-offline/teacherOfflineLauncher.css";
+@import "../android-teacher-offline/teacherOfflineSettings.css";
+@import "../android-teacher-offline/legacyTeacherToolbar.css";
+@import "../android-teacher-offline/teacherFixedStage.css";
+
+.teacher-project-shell .legacy-home-unit-column { transform: none; }
+.teacher-project-shell .legacy-menu-title-animation { transform: translateX(70px) translateY(-97px) scale(1.1); }
+.teacher-project-shell .teacher-project-edition-row {
+  width: 1240px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.teacher-project-shell .legacy-home-book-button[aria-pressed="true"] .legacy-menu-button-art .normal { opacity: 1; }
+.teacher-project-shell .legacy-home-book-button[aria-pressed="true"] { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
+.teacher-project-asset-placeholder {
+  position: absolute;
+  inset: 4px;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 2px dashed rgba(255, 255, 255, .85);
+  border-radius: 14px;
+  color: #fff;
+  background: rgba(27, 57, 82, .66);
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+}
+.teacher-project-title.is-placeholder { min-height: 220px; }

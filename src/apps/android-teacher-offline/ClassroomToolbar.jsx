@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { CLASSROOM_COLORS, CLASSROOM_STROKES, DRAWING_TOOLS, useClassroomTools } from "./ClassroomToolsContext.jsx";
-import { ultimateB2TeacherToolbarItems } from "./legacyClassroomAssets.js";
 
 const UI_ONLY_TOOLS = new Set(["marker", "annotations", "url", "save", "load"]);
 const ACTIVE_TOOL_TO_LEGACY_ID = Object.freeze({
@@ -25,6 +24,8 @@ function LegacyTeacherToolButton({ item, selected, onActivate }) {
       type="button"
       className="legacy-teacher-tool-button"
       data-teacher-tool={item.id}
+      data-teacher-control-id={item.controlId}
+      data-sound-category={item.controlId ? "toolbar" : undefined}
       aria-label={item.label}
       aria-pressed={selected}
       title={item.label}
@@ -38,7 +39,7 @@ function LegacyTeacherToolButton({ item, selected, onActivate }) {
   );
 }
 
-export default function ClassroomToolbar({ surfaceKey }) {
+export default function ClassroomToolbar({ surfaceKey, items }) {
   const {
     activeTool,
     setActiveTool,
@@ -206,9 +207,9 @@ export default function ClassroomToolbar({ surfaceKey }) {
         </div>
       )}
 
-      <div className="legacy-classroom-viewer-toolbar classroom-teaching-toolbar" role="toolbar" aria-label="Classroom teaching tools">
+      <div className="legacy-classroom-viewer-toolbar classroom-teaching-toolbar" role="toolbar" aria-label="Classroom teaching tools" style={{ "--teacher-toolbar-slot-count": items.length }}>
         <div className="classroom-tool-primary legacy-teacher-tool-row">
-          {ultimateB2TeacherToolbarItems.map((item) => (
+          {items.map((item) => (
             <LegacyTeacherToolButton
               key={item.id}
               item={item}

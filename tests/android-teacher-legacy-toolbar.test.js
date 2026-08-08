@@ -8,9 +8,10 @@ const expectedOrder = [
 ];
 
 test("Ultimate B2 teacher toolbar keeps the recovered legacy order and assets", async () => {
-  const [assets, toolbar] = await Promise.all([
+  const [assets, toolbar, adapter] = await Promise.all([
     readFile("src/apps/android-teacher-offline/legacyClassroomAssets.js", "utf8"),
     readFile("src/apps/android-teacher-offline/ClassroomToolbar.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/UltimateB2ClassroomToolbar.jsx", "utf8"),
   ]);
   const itemBlock = assets.match(/ultimateB2TeacherToolbarItems = Object\.freeze\(\[([\s\S]*?)\]\);/)?.[1] || "";
   const actualOrder = [...itemBlock.matchAll(/id: "([^"]+)"/g)].map((match) => match[1]);
@@ -34,6 +35,9 @@ test("Ultimate B2 teacher toolbar keeps the recovered legacy order and assets", 
   ]) assert.ok(toolbar.includes(behavior), `${behavior} must stay wired`);
   assert.match(toolbar, /selectMouse[\s\S]*setActiveTool\("pointer"\)[\s\S]*resetRegionZoom\(surfaceKey\)/);
   assert.doesNotMatch(toolbar, /lucide-react|window\.open|fetch\(|XMLHttpRequest|showSaveFilePicker/);
+  assert.doesNotMatch(toolbar, /legacyClassroomAssets|ultimateB2TeacherToolbarItems/);
+  assert.match(adapter, /ultimateB2TeacherToolbarItems/);
+  assert.match(adapter, /<ClassroomToolbar [^>]*items=\{ultimateB2TeacherToolbarItems\}/);
 });
 
 test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and selected states", async () => {
@@ -44,7 +48,7 @@ test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and sel
 
   assert.match(rootStyles, /@import "\.\/legacyTeacherToolbar\.css";/);
   assert.match(styles, /\.legacy-classroom-viewer-toolbar\.classroom-teaching-toolbar[\s\S]*background: transparent;/);
-  assert.match(styles, /grid-template-columns: repeat\(18, minmax\(0, 1fr\)\)/);
+  assert.match(styles, /grid-template-columns: repeat\(var\(--teacher-toolbar-slot-count, 18\), minmax\(0, 1fr\)\)/);
   assert.match(styles, /\.legacy-teacher-tool-icon-stack \{[\s\S]*transform: none;/);
   assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-stack \{ transform: none; \}/);
   assert.match(styles, /> \.legacy-teacher-tool-button:active \{ transform: none; \}/);

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
-import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import TeacherOfflineEmbeddedActivity from "./TeacherOfflineEmbeddedActivity.jsx";
 import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";

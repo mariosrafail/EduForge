@@ -3,7 +3,7 @@ import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js
 import { LegacyClassroomIcon } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
-import ClassroomToolbar from "./ClassroomToolbar.jsx";
+import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 
 export default function TeacherOfflinePresentation({ activityId, activities, onBack, onNavigate }) {
   const index = activities.findIndex((activity) => activity.stableActivityId === activityId);

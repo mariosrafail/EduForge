@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from "react";
 
-export const TEACHER_OFFLINE_SETTINGS_STORAGE_KEY = "teacher-offline:ultimate-b2:settings:v2";
-export const TEACHER_OFFLINE_SETTINGS_V1_STORAGE_KEY = "teacher-offline:ultimate-b2:settings:v1";
-const LEGACY_SOUND_KEY = "teacher-offline:ultimate-b2:ui-sound";
+const teacherProjectMode = import.meta.env?.VITE_APP_MODE === "android-teacher-project";
+export const TEACHER_OFFLINE_SETTINGS_STORAGE_KEY = teacherProjectMode ? "teacher-project:shell:settings:v1" : "teacher-offline:ultimate-b2:settings:v2";
+export const TEACHER_OFFLINE_SETTINGS_V1_STORAGE_KEY = teacherProjectMode ? "teacher-project:shell:settings:legacy" : "teacher-offline:ultimate-b2:settings:v1";
+const LEGACY_SOUND_KEY = teacherProjectMode ? "teacher-project:shell:ui-sound" : "teacher-offline:ultimate-b2:ui-sound";
 const listeners = new Set();
 
 // Temporary legacy-only presentation mode. Keep the stored preference and modern
