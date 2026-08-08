@@ -3156,8 +3156,12 @@
       "functionalRole": "topbar: minimize btn enabled",
       "state": "enabled",
       "audience": "shared",
-      "intendedConsumer": "Forensic catalog; not imported at runtime",
-      "usedBy": [],
+      "intendedConsumer": "Android Teacher offline runtime",
+      "usedBy": [
+        "src/apps/android-teacher-offline/TeacherShellChrome.jsx",
+        "src/apps/android-teacher-offline/teacherBookMenuSkins.js",
+        "src/apps/android-teacher-offline/legacyClassroomAssets.js"
+      ],
       "evidence": "Machine-readable atlas region minimize_btn_enabled",
       "confidence": "high",
       "sourceKind": "atlas-crop",
@@ -3177,7 +3181,7 @@
         "matches": []
       },
       "nearDuplicateStatus": "Related HD/SD and visual-state families are documented by symbol name; no perceptual-equivalence claim is made.",
-      "recommendedAction": "Retain as an exact review asset; evaluate runtime integration separately."
+      "recommendedAction": "Keep as an exact Teacher runtime asset with its provenance metadata."
     },
     {
       "id": "teacher-toolbar-button-clear",

@@ -45,8 +45,13 @@ test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and sel
   assert.match(rootStyles, /@import "\.\/legacyTeacherToolbar\.css";/);
   assert.match(styles, /\.legacy-classroom-viewer-toolbar\.classroom-teaching-toolbar[\s\S]*background: transparent;/);
   assert.match(styles, /grid-template-columns: repeat\(18, minmax\(0, 1fr\)\)/);
-  assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-stack \{ transform: scale\(1\.2\); \}/);
-  assert.match(styles, /\.legacy-teacher-tool-button:active \.legacy-teacher-tool-icon-stack \{ transform: scale\(\.8\);/);
+  assert.match(styles, /\.legacy-teacher-tool-icon-stack \{[\s\S]*transform: none;/);
+  assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-stack \{ transform: none; \}/);
+  assert.match(styles, /> \.legacy-teacher-tool-button:active \{ transform: none; \}/);
+  assert.match(styles, /\.legacy-teacher-tool-button:active \.legacy-teacher-tool-icon-stack \{ transform: none; \}/);
+  assert.doesNotMatch(styles, /\.legacy-teacher-tool-(?:button|icon-stack)[^{]*\{[^}]*transform: scale\(/);
+  assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-normal \{ opacity: 0; \}/);
+  assert.match(styles, /\[aria-pressed="true"\] \.legacy-teacher-tool-icon-active \{ opacity: 1; \}/);
   assert.match(styles, /\.legacy-teacher-tool-button:active \.legacy-teacher-tool-icon-active \{ opacity: 1; \}/);
   assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)[\s\S]*:hover \.legacy-teacher-tool-icon-active \{ opacity: 1; \}/);
   assert.match(styles, /cursor: pointer;/);
