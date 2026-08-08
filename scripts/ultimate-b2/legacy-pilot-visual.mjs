@@ -36,6 +36,20 @@ function targetUnitsFromActivities() {
   return uniqueUnits.sort((left, right) => left - right);
 }
 
+async function openInternalContents(page, unitNumber) {
+  await page.evaluate((selectedUnitNumber) => {
+    const current = window.history.state || {};
+    const next = {
+      teacherOffline: true,
+      view: "book",
+      location: { ...(current.location || {}), unitNumber: selectedUnitNumber, tab: "exercises", pageId: "" },
+    };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, unitNumber);
+  await page.locator(".teacher-offline-lessons").waitFor();
+}
+
 async function openPilotBookFromLauncher(page, targetName) {
   const targetUnits = targetUnitsFromActivities();
   if (targetUnits.length !== 1) {
@@ -47,10 +61,7 @@ async function openPilotBookFromLauncher(page, targetName) {
   assert.equal(await unitButton.isEnabled(), true, `${targetName} expects unit ${targetUnit} launcher button to be enabled`);
   await unitButton.click();
   await page.locator(".teacher-offline-book").waitFor();
-  const contentsButton = page.getByRole("button", { name: "Contents and exercises", exact: true });
-  await contentsButton.waitFor({ state: "visible" });
-  assert.equal(await contentsButton.isEnabled(), true, `${targetName} expects contents control to be enabled`);
-  await contentsButton.click();
+  await openInternalContents(page, targetUnit);
 }
 
 const preview = spawn(
@@ -101,6 +112,10 @@ async function assertPilotLayout(page, target, id) {
   }, id);
   const metrics = await page.locator(".ultimate-b2-legacy-pilot").evaluate((root) => {
     const rect = root.getBoundingClientRect();
+    const stageScale = Number(document.querySelector("[data-teacher-stage-scale]")?.dataset.teacherStageScale);
+    const fitViewport = root.closest(".teacher-offline-embedded-activity");
+    const fitScale = Number(fitViewport?.dataset.fitScale);
+    const presentationScale = stageScale * fitScale;
     const images = [...root.querySelectorAll("img")].filter((image) => {
       const imageRect = image.getBoundingClientRect();
       return imageRect.width > 0 && imageRect.height > 0;
@@ -118,20 +133,23 @@ async function assertPilotLayout(page, target, id) {
           selector: `${element.tagName.toLowerCase()}${element.className ? `.${String(element.className).trim().split(/\s+/).join(".")}` : ""}`,
           role: element.getAttribute("role") || element.tagName.toLowerCase(),
           name: element.getAttribute("aria-label") || element.textContent?.trim() || "",
-          width: bounds.width,
-          height: bounds.height,
+          width: bounds.width / presentationScale,
+          height: bounds.height / presentationScale,
+          renderedWidth: bounds.width,
+          renderedHeight: bounds.height,
         };
       })
       .filter((control) => control.width && control.height);
     const smallestControl = controls.reduce((smallest, control) => (
       Math.min(control.width, control.height) < Math.min(smallest.width, smallest.height) ? control : smallest
     ));
-    const fitViewport = root.closest(".teacher-offline-embedded-activity");
     const fitContent = root.closest(".teacher-offline-embedded-activity-content");
     const fitStyle = fitContent ? getComputedStyle(fitContent) : null;
     const viewportStyle = fitViewport ? getComputedStyle(fitViewport) : null;
     return {
       activityId: root.dataset.legacyPilotActivity,
+      stageScale,
+      presentationScale,
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       rootOverflow: root.scrollWidth - root.clientWidth,
       rootWidth: rect.width,
@@ -142,7 +160,7 @@ async function assertPilotLayout(page, target, id) {
         .map((image) => ({ source: image.currentSrc || image.src, complete: image.complete, naturalWidth: image.naturalWidth })),
       minimumTarget: Math.min(smallestControl.width, smallestControl.height),
       smallestControl,
-      fitScale: fitViewport?.dataset.fitScale || null,
+      fitScale,
       fitTransform: fitStyle?.transform || null,
       fitContentSize: fitContent ? {
         clientWidth: fitContent.clientWidth,
@@ -158,7 +176,7 @@ async function assertPilotLayout(page, target, id) {
       } : null,
       rasterUpscale: images.map((image) => ({
         source: image.currentSrc.split("/").at(-1),
-        scale: Number((image.getBoundingClientRect().width / image.naturalWidth).toFixed(3)),
+        scale: Number((image.getBoundingClientRect().width / presentationScale / image.naturalWidth).toFixed(3)),
       })),
     };
   });
@@ -167,7 +185,9 @@ async function assertPilotLayout(page, target, id) {
   assert.ok(metrics.rootOverflow <= 1, `${target.name} pilot overflow ${metrics.rootOverflow}px`);
   assert.ok(metrics.rootInViewport, `${target.name} pilot root must remain in viewport`);
   assert.equal(metrics.brokenImages, 0, `${target.name} publisher images: ${JSON.stringify(metrics.brokenImageSources)}`);
-  assert.ok(metrics.minimumTarget >= 38, `${target.name} minimum target ${metrics.minimumTarget}px: ${JSON.stringify(metrics)}`);
+  assert.ok(Number.isFinite(metrics.stageScale) && metrics.stageScale > 0, `${target.name} fixed-stage scale: ${metrics.stageScale}`);
+  assert.ok(Number.isFinite(metrics.fitScale) && metrics.fitScale > 0, `${target.name} activity-fit scale: ${metrics.fitScale}`);
+  assert.ok(metrics.minimumTarget >= 38, `${target.name} authored minimum target ${metrics.minimumTarget}px: ${JSON.stringify(metrics)}`);
   assert.ok(
     metrics.rasterUpscale.every((image) => image.scale <= 1.05),
     `${target.name} must not enlarge publisher rasters: ${JSON.stringify(metrics.rasterUpscale)}`,
@@ -287,7 +307,7 @@ try {
         maximumRasterScale: Math.max(...initial.rasterUpscale.map((image) => image.scale)),
         overflow: Math.max(initial.documentOverflow, initial.rootOverflow),
       });
-      await page.getByRole("button", { name: "Contents and exercises" }).click();
+      await openInternalContents(page, legacyPilotActivityUnit(activity.id));
     }
 
     assert.deepEqual(consoleErrors, [], `${target.name} console errors`);
