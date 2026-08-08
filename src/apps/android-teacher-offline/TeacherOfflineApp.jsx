@@ -28,6 +28,39 @@ import {
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 
+const classroomBackdropGradients = Object.freeze({
+  contents: "linear-gradient(rgba(21, 79, 120, 0.08), rgba(81, 35, 119, 0.12))",
+  "unit-overview": "linear-gradient(180deg, rgba(2, 89, 132, 0.06), rgba(88, 35, 127, 0.1))",
+  page: "linear-gradient(180deg, rgba(2, 89, 132, 0.08), rgba(88, 35, 127, 0.08))",
+});
+
+function resolveViewportBackdrop({ startupIntroPending, navigation, classroomBackground }) {
+  if (startupIntroPending) return { name: "intro", color: "#fff", image: "none" };
+  if (navigation.view === "library") {
+    return {
+      name: "library",
+      color: "#064968",
+      image: classroomBackground ? `url("${classroomBackground}")` : "none",
+    };
+  }
+  if (navigation.view === "media") {
+    return {
+      name: "media",
+      color: "#7abbd7",
+      image: "linear-gradient(145deg, #e7f7ff, #b9deef 54%, #7abbd7)",
+    };
+  }
+
+  const location = navigation.location || defaultLocation;
+  const name = location.tab === "exercises" ? "contents" : location.pageId ? "page" : "unit-overview";
+  const gradient = classroomBackdropGradients[name] || classroomBackdropGradients.contents;
+  return {
+    name,
+    color: "#064968",
+    image: classroomBackground ? `${gradient}, url("${classroomBackground}")` : gradient,
+  };
+}
+
 function libraryState() {
   return { teacherOffline: true, view: "library" };
 }
@@ -237,11 +270,16 @@ export default function TeacherOfflineApp() {
   }
   const userInterfaceScale = settings.graphics.interfaceScale / 100;
   const effectiveUiScale = Math.min(1.1, Math.max(0.9, userInterfaceScale));
+  const viewportBackdrop = resolveViewportBackdrop({
+    startupIntroPending,
+    navigation,
+    classroomBackground: menuSkin?.background,
+  });
   return (
     <ClassroomToolsProvider>
       <TeacherFixedStage
         viewport={viewport}
-        launcherBackdrop={!startupIntroPending && navigation.view === "library" ? menuSkin?.background : ""}
+        viewportBackdrop={viewportBackdrop}
       >
       <div
         className={`teacher-offline-settings-surface ${settings.graphics.effectsEnabled ? "" : "teacher-effects-off"}`.trim()}

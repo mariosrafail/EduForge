@@ -22,13 +22,23 @@ html[data-app-mode="android-teacher-offline"] body {
   contain: strict;
 }
 
-.teacher-fixed-stage-host[data-launcher-backdrop] {
+.teacher-fixed-stage-host[data-viewport-backdrop] {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
 }
 
-.teacher-fixed-stage-host[data-launcher-backdrop] .teacher-offline-library.has-classroom-tools {
+.teacher-fixed-stage-host[data-viewport-backdrop="library"] .teacher-offline-library.has-classroom-tools,
+.teacher-fixed-stage-host[data-viewport-backdrop="contents"] .teacher-offline-book,
+.teacher-fixed-stage-host[data-viewport-backdrop="unit-overview"] :is(
+  .teacher-offline-book,
+  .teacher-offline-unit-overview-screen
+),
+.teacher-fixed-stage-host[data-viewport-backdrop="page"] :is(
+  .teacher-offline-book,
+  .teacher-offline-pages-viewer
+),
+.teacher-fixed-stage-host[data-viewport-backdrop="media"] .teacher-offline-media {
   background: transparent;
 }
 

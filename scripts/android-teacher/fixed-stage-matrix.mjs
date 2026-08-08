@@ -46,22 +46,46 @@ async function completeStartupIntro(page) {
   await page.locator(".legacy-home-launcher").waitFor();
 }
 
-async function readLauncherBackdrop(page) {
+async function readViewportBackdrop(page) {
   return page.evaluate(() => {
     const host = document.querySelector("[data-teacher-stage-host]");
-    const library = document.querySelector(".teacher-offline-library");
     const hostStyle = getComputedStyle(host);
-    const libraryStyle = library ? getComputedStyle(library) : null;
+    const surfaceStyle = (selector) => {
+      const element = document.querySelector(selector);
+      const style = element ? getComputedStyle(element) : null;
+      return {
+        image: style?.backgroundImage || "none",
+        color: style?.backgroundColor || "rgba(0, 0, 0, 0)",
+      };
+    };
     return {
-      active: host.hasAttribute("data-launcher-backdrop"),
+      name: host.dataset.viewportBackdrop || "",
       image: hostStyle.backgroundImage,
+      color: hostStyle.backgroundColor,
       position: hostStyle.backgroundPosition,
       size: hostStyle.backgroundSize,
       repeat: hostStyle.backgroundRepeat,
-      libraryImage: libraryStyle?.backgroundImage || "none",
-      libraryColor: libraryStyle?.backgroundColor || "rgba(0, 0, 0, 0)",
+      library: surfaceStyle(".teacher-offline-library"),
+      book: surfaceStyle(".teacher-offline-book"),
+      overview: surfaceStyle(".teacher-offline-unit-overview-screen"),
+      page: surfaceStyle(".teacher-offline-pages-viewer"),
+      media: surfaceStyle(".teacher-offline-media"),
     };
   });
+}
+
+function assertTransparent(surface, label) {
+  assert.equal(surface.image, "none", `${label} has no duplicate background image`);
+  assert.equal(surface.color, "rgba(0, 0, 0, 0)", `${label} outer surface is transparent`);
+}
+
+function assertBackdrop(backdrop, name, label, { classroomImage = false } = {}) {
+  assert.equal(backdrop.name, name, `${label} viewport backdrop`);
+  assert.notEqual(backdrop.color, "rgb(17, 24, 39)", `${label} has no dark fallback bars`);
+  if (classroomImage) {
+    assert.match(backdrop.image, /linear-gradient/iu, `${label} keeps its tint gradient`);
+    assert.match(backdrop.image, /url\(/iu, `${label} keeps the classroom image`);
+  }
 }
 
 async function readGeometry(page) {
@@ -137,19 +161,19 @@ try {
     });
     await page.goto(baseURL, { waitUntil: "networkidle" });
     await page.locator("[data-teacher-stage-host]").waitFor();
-    const introBackdrop = await readLauncherBackdrop(page);
-    assert.equal(introBackdrop.active, false, `${target.width}x${target.height} intro launcher backdrop inactive`);
+    const introBackdrop = await readViewportBackdrop(page);
+    assertBackdrop(introBackdrop, "intro", `${target.width}x${target.height} intro`);
     assert.equal(introBackdrop.image, "none", `${target.width}x${target.height} intro has no launcher image`);
+    assert.equal(introBackdrop.color, "rgb(255, 255, 255)", `${target.width}x${target.height} intro viewport is white`);
     await completeStartupIntro(page);
 
-    const launcherBackdrop = await readLauncherBackdrop(page);
-    assert.equal(launcherBackdrop.active, true, `${target.width}x${target.height} launcher backdrop active`);
+    const launcherBackdrop = await readViewportBackdrop(page);
+    assertBackdrop(launcherBackdrop, "library", `${target.width}x${target.height} library`);
     assert.notEqual(launcherBackdrop.image, "none", `${target.width}x${target.height} launcher viewport image`);
     assert.equal(launcherBackdrop.position, "50% 50%", `${target.width}x${target.height} centered launcher backdrop`);
     assert.equal(launcherBackdrop.size, "cover", `${target.width}x${target.height} launcher backdrop cover`);
     assert.equal(launcherBackdrop.repeat, "no-repeat", `${target.width}x${target.height} launcher backdrop repeat`);
-    assert.equal(launcherBackdrop.libraryImage, "none", `${target.width}x${target.height} single launcher background image`);
-    assert.equal(launcherBackdrop.libraryColor, "rgba(0, 0, 0, 0)", `${target.width}x${target.height} transparent logical launcher`);
+    assertTransparent(launcherBackdrop.library, `${target.width}x${target.height} logical library`);
 
     const geometry = await readGeometry(page);
     const expectedScale = Math.min(target.width / 1920, target.height / 1080);
@@ -170,20 +194,24 @@ try {
 
     await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
     await page.locator(".teacher-offline-unit-overview").waitFor();
-    let overviewBackdrop = await readLauncherBackdrop(page);
-    assert.equal(overviewBackdrop.active, false, `${target.width}x${target.height} overview launcher backdrop inactive`);
-    assert.equal(overviewBackdrop.image, "none", `${target.width}x${target.height} overview has no launcher image`);
+    let overviewBackdrop = await readViewportBackdrop(page);
+    assertBackdrop(overviewBackdrop, "unit-overview", `${target.width}x${target.height} overview`, { classroomImage: true });
+    assertTransparent(overviewBackdrop.book, `${target.width}x${target.height} overview book`);
+    assertTransparent(overviewBackdrop.overview, `${target.width}x${target.height} overview screen`);
+    if (target.width === 1280 && target.height === 800) {
+      await page.screenshot({ path: `${artifactRoot}/overview-bleed-1280x800.png` });
+    }
     if (target.width === 1280 && target.height === 800) {
       await page.getByRole("button", { name: "Close book" }).click();
       await page.locator(".legacy-home-launcher").waitFor();
-      const restoredBackdrop = await readLauncherBackdrop(page);
-      assert.equal(restoredBackdrop.active, true, "returning to Library restores launcher backdrop");
+      const restoredBackdrop = await readViewportBackdrop(page);
+      assertBackdrop(restoredBackdrop, "library", "returning to Library");
       assert.notEqual(restoredBackdrop.image, "none", "returning to Library restores launcher image");
-      assert.equal(restoredBackdrop.libraryImage, "none", "returning to Library keeps a single background image");
+      assertTransparent(restoredBackdrop.library, "returning to Library logical surface");
       await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
       await page.locator(".teacher-offline-unit-overview").waitFor();
-      overviewBackdrop = await readLauncherBackdrop(page);
-      assert.equal(overviewBackdrop.active, false, "reopening Unit 1 removes restored launcher backdrop");
+      overviewBackdrop = await readViewportBackdrop(page);
+      assertBackdrop(overviewBackdrop, "unit-overview", "reopened Unit 1", { classroomImage: true });
     }
     await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")].every((image) => image.complete && image.naturalWidth > 0));
     const overview = await logicalRects(page, {
@@ -198,6 +226,13 @@ try {
       const image = document.querySelector(".teacher-offline-page-image img");
       return image?.naturalWidth > 0 && image.getBoundingClientRect().width > 0;
     });
+    const pageBackdrop = await readViewportBackdrop(page);
+    assertBackdrop(pageBackdrop, "page", `${target.width}x${target.height} page`, { classroomImage: true });
+    assertTransparent(pageBackdrop.book, `${target.width}x${target.height} page book`);
+    assertTransparent(pageBackdrop.page, `${target.width}x${target.height} page screen`);
+    if (target.width === 1280 && target.height === 800) {
+      await page.screenshot({ path: `${artifactRoot}/page-bleed-1280x800.png` });
+    }
     const pageView = await logicalRects(page, {
       screen: ".teacher-offline-pages-viewer",
       heading: ".legacy-page-heading",
@@ -281,6 +316,46 @@ try {
     assert.equal(activity.contained, true, `${target.width}x${target.height} activity containment`);
     assert.equal(activity.documentWidthOverflow, 0, `${target.width}x${target.height} activity horizontal overflow`);
     assert.equal(activity.documentHeightOverflow, 0, `${target.width}x${target.height} activity vertical overflow`);
+    const activityBackdrop = await readViewportBackdrop(page);
+    assertBackdrop(activityBackdrop, "page", `${target.width}x${target.height} activity`, { classroomImage: true });
+    assertTransparent(activityBackdrop.page, `${target.width}x${target.height} activity page screen`);
+
+    if (target.width === 1280 && target.height === 800) {
+      await page.getByRole("button", { name: "Back to page", exact: true }).click();
+      await page.locator(".teacher-offline-page-image").waitFor();
+      assertBackdrop(await readViewportBackdrop(page), "page", "activity return to page", { classroomImage: true });
+
+      await page.getByRole("button", { name: "Contents and exercises", exact: true }).click();
+      await page.locator(".teacher-offline-lessons").waitFor();
+      const contentsBackdrop = await readViewportBackdrop(page);
+      assertBackdrop(contentsBackdrop, "contents", "Contents / Exercises", { classroomImage: true });
+      assertTransparent(contentsBackdrop.book, "Contents / Exercises book surface");
+
+      await page.getByRole("tab", { name: "Book pages", exact: true }).click();
+      await page.locator(".teacher-offline-pages-viewer").waitFor();
+      assertBackdrop(await readViewportBackdrop(page), "page", "Contents return to page", { classroomImage: true });
+
+      await page.getByRole("button", { name: "Next page", exact: true }).click();
+      await page.getByRole("button", { name: "Page activities", exact: true }).click();
+      await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
+      await page.locator(".teacher-offline-media").waitFor();
+      const mediaBackdrop = await readViewportBackdrop(page);
+      assertBackdrop(mediaBackdrop, "media", "Media");
+      assert.match(mediaBackdrop.image, /linear-gradient/iu, "Media keeps its existing gradient");
+      assert.doesNotMatch(mediaBackdrop.image, /url\(/iu, "Media does not invent an image background");
+      assertTransparent(mediaBackdrop.media, "Media outer surface");
+      await page.screenshot({ path: `${artifactRoot}/media-bleed-1280x800.png` });
+
+      await page.getByRole("button", { name: "Back to book", exact: true }).click();
+      await page.locator(".teacher-offline-pages-viewer").waitFor();
+      assertBackdrop(await readViewportBackdrop(page), "page", "Media return to page", { classroomImage: true });
+
+      await page.getByRole("button", { name: "Close book", exact: true }).click();
+      await page.locator(".legacy-home-launcher").waitFor();
+      const finalLibraryBackdrop = await readViewportBackdrop(page);
+      assertBackdrop(finalLibraryBackdrop, "library", "final Library return");
+      assertTransparent(finalLibraryBackdrop.library, "final Library logical surface");
+    }
 
     const currentCanonical = { launcher: geometry.launcher, firstUnit: geometry.firstUnit, title: geometry.title, toolbar: geometry.toolbar, overview, pageView };
     if (target.width === 1920 && target.height === 1080) canonicalLauncher = currentCanonical;

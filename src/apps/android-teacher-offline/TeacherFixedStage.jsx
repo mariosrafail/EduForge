@@ -12,7 +12,7 @@ export function useTeacherStage() {
   return useContext(TeacherStageContext);
 }
 
-export default function TeacherFixedStage({ viewport, launcherBackdrop = "", children }) {
+export default function TeacherFixedStage({ viewport, viewportBackdrop = null, children }) {
   const scale = viewport.displayScale;
   const contextValue = useMemo(() => ({
     scale,
@@ -25,13 +25,14 @@ export default function TeacherFixedStage({ viewport, launcherBackdrop = "", chi
       <div
         className="teacher-fixed-stage-host"
         data-teacher-stage-host=""
-        data-launcher-backdrop={launcherBackdrop ? "" : undefined}
+        data-viewport-backdrop={viewportBackdrop?.name}
         style={{
           left: `${viewport.offsetLeft}px`,
           top: `${viewport.offsetTop}px`,
           width: `${viewport.width}px`,
           height: `${viewport.height}px`,
-          backgroundImage: launcherBackdrop ? `url("${launcherBackdrop}")` : undefined,
+          backgroundColor: viewportBackdrop?.color,
+          backgroundImage: viewportBackdrop?.image,
           "--teacher-stage-scale": scale,
         }}
       >
