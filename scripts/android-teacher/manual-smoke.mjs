@@ -4,6 +4,7 @@ import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
 import teacherSolutions from "../../android-content-packs/ultimate-b2-students-book/teacher-solutions.json" with { type: "json" };
+import multipleChoiceAuthoring from "../../src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json" with { type: "json" };
 
 const baseURL = "http://127.0.0.1:4178";
 const preview = spawn(
@@ -535,21 +536,20 @@ try {
   await page.getByRole("button", { name: "Zoom", exact: true }).click();
   assert.equal(await page.locator(".teacher-offline-pages-viewer .classroom-stage-transform.region-zoom-active").count(), 0, "Activity region zoom must reset");
   const activityOpenMs = Math.round(performance.now() - activityOpenStartedAt);
-  const multipleChoiceSolution = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o3"];
-  const firstMultipleChoice = Object.values(multipleChoiceSolution.questions)[0];
-  const firstMultipleChoiceRadios = page.locator(".legacy-pilot-choice-question").first().getByRole("radio");
-  const firstMultipleChoiceValues = await firstMultipleChoiceRadios.evaluateAll((radios) => radios.map((radio) => radio.value));
-  const correctMultipleChoiceIndex = firstMultipleChoiceValues.indexOf(firstMultipleChoice.acceptedAnswers[0]);
-  assert.ok(correctMultipleChoiceIndex >= 0, "Publisher multiple-choice answer must remain available in the pilot controls");
-  await firstMultipleChoiceRadios.nth(correctMultipleChoiceIndex).check();
-  await page.getByRole("button", { name: "Check", exact: true }).click();
-  await page.getByText("Correct", { exact: true }).first().waitFor();
-  await page.getByRole("button", { name: "Show answer", exact: true }).first().click();
-  await page.getByText("Publisher answer", { exact: true }).first().waitFor();
-  await page.getByRole("button", { name: "Show all answers" }).click();
-  await page.getByRole("button", { name: "Hide answers" }).click();
-  await page.getByRole("button", { name: "Reset" }).click();
-  assert.equal(await firstMultipleChoiceRadios.nth(correctMultipleChoiceIndex).isChecked(), false);
+  const firstMultipleChoice = multipleChoiceAuthoring.questions[0];
+  const firstMultipleChoiceOptions = page.locator(`[data-question-number="${firstMultipleChoice.number}"]`);
+  const correctMultipleChoice = firstMultipleChoice.options.find((option) => option.id === firstMultipleChoice.correctOptionId);
+  const wrongMultipleChoice = firstMultipleChoice.options.find((option) => option.id !== firstMultipleChoice.correctOptionId);
+  assert.ok(correctMultipleChoice && wrongMultipleChoice, "Recovered multiple-choice authoring must retain correct and distractor options");
+  const wrongButton = page.locator(`[data-question-number="${firstMultipleChoice.number}"][data-option-label="${wrongMultipleChoice.label}"]`);
+  const correctButton = page.locator(`[data-question-number="${firstMultipleChoice.number}"][data-option-label="${correctMultipleChoice.label}"]`);
+  await wrongButton.click();
+  assert.equal(await wrongButton.getAttribute("data-answer-state"), "wrong", "Distractor selection must show wrong feedback");
+  await correctButton.click();
+  assert.equal(await correctButton.getAttribute("data-answer-state"), "correct", "Publisher answer selection must show correct feedback");
+  assert.equal(await correctButton.getAttribute("aria-pressed"), "true", "Solved publisher answer must remain programmatically exposed");
+  assert.equal(await firstMultipleChoiceOptions.evaluateAll((options) => options.every((option) => option.disabled)), true, "A solved question must lock its choices");
+  await page.getByText(`Question ${firstMultipleChoice.number}: correct.`, { exact: true }).waitFor();
   await backToBook(page);
 
   await openExercises(page, 2);

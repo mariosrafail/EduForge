@@ -8,6 +8,7 @@ const baseURL = "http://127.0.0.1:4181";
 const artifactRoot = "test-results/ultimate-b2-legacy-pilot/visual";
 const targets = [
   { name: "compact-804x360", width: 804, height: 360 },
+  { name: "desktop-1280x800", width: 1280, height: 800 },
   { name: "full-hd-1920x1080", width: 1920, height: 1080 },
   { name: "4k-3840x2160", width: 3840, height: 2160 },
 ];
@@ -191,8 +192,12 @@ async function assertPilotLayout(page, target, id) {
       Math.min(control.width, control.height) < Math.min(smallest.width, smallest.height) ? control : smallest
     ));
     const fitContent = root.closest(".teacher-offline-embedded-activity-content");
+    const listeningPlayer = root.querySelector(".teacher-listening-question-player, .teacher-listening-karaoke-player");
+    const listeningPlayerRect = listeningPlayer?.getBoundingClientRect();
+    const listeningStageRect = listeningPlayer?.closest(".teacher-listening-stage")?.getBoundingClientRect();
     const fitStyle = fitContent ? getComputedStyle(fitContent) : null;
     const viewportStyle = fitViewport ? getComputedStyle(fitViewport) : null;
+    const viewportRect = fitViewport?.getBoundingClientRect();
     return {
       activityId: root.dataset.legacyPilotActivity,
       stageScale,
@@ -205,6 +210,8 @@ async function assertPilotLayout(page, target, id) {
         rootRight: rect.right,
       })).slice(0, 10),
       rootWidth: rect.width,
+      authoredRootWidth: rect.width / presentationScale,
+      authoredRootHeight: rect.height / presentationScale,
       rootInViewport: rect.left >= -1 && rect.right <= innerWidth + 1,
       brokenImages: images.filter((image) => !image.complete || image.naturalWidth === 0).length,
       brokenImageSources: images
@@ -213,6 +220,7 @@ async function assertPilotLayout(page, target, id) {
       minimumTarget: Math.min(smallestControl.width, smallestControl.height),
       smallestControl,
       fitScale,
+      fitPolicy: fitViewport?.dataset.fitPolicy || null,
       fitTransform: fitStyle?.transform || null,
       fitContentSize: fitContent ? {
         clientWidth: fitContent.clientWidth,
@@ -223,6 +231,8 @@ async function assertPilotLayout(page, target, id) {
       fitViewportSize: fitViewport ? {
         clientWidth: fitViewport.clientWidth,
         clientHeight: fitViewport.clientHeight,
+        renderedWidth: viewportRect.width,
+        renderedHeight: viewportRect.height,
         padding: viewportStyle?.padding,
         overflow: viewportStyle?.overflow,
       } : null,
@@ -230,6 +240,11 @@ async function assertPilotLayout(page, target, id) {
         source: image.currentSrc.split("/").at(-1),
         scale: Number((image.getBoundingClientRect().width / presentationScale / image.naturalWidth).toFixed(3)),
       })),
+      listeningPlayer: listeningPlayerRect ? {
+        rightGap: (listeningStageRect.right - listeningPlayerRect.right) / presentationScale,
+        bottomGap: (listeningStageRect.bottom - listeningPlayerRect.bottom) / presentationScale,
+        inside: listeningPlayerRect.left >= listeningStageRect.left && listeningPlayerRect.top >= listeningStageRect.top && listeningPlayerRect.right <= listeningStageRect.right && listeningPlayerRect.bottom <= listeningStageRect.bottom,
+      } : null,
     };
   });
   assert.equal(metrics.activityId, id, `${target.name} activity identity`);
@@ -240,10 +255,24 @@ async function assertPilotLayout(page, target, id) {
   assert.ok(Number.isFinite(metrics.stageScale) && metrics.stageScale > 0, `${target.name} fixed-stage scale: ${metrics.stageScale}`);
   assert.ok(Number.isFinite(metrics.fitScale) && metrics.fitScale > 0, `${target.name} activity-fit scale: ${metrics.fitScale}`);
   assert.ok(metrics.minimumTarget >= 38, `${target.name} authored minimum target ${metrics.minimumTarget}px: ${JSON.stringify(metrics)}`);
+  const improvedSurfaceActivity = /-o[23]$/.test(id);
   assert.ok(
-    metrics.rasterUpscale.every((image) => image.scale <= 1.05),
+    metrics.rasterUpscale.every((image) => image.scale <= (improvedSurfaceActivity ? 1.3 : 1.05)),
     `${target.name} must not enlarge publisher rasters: ${JSON.stringify(metrics.rasterUpscale)}`,
   );
+  if (improvedSurfaceActivity) {
+    assert.ok(metrics.authoredRootWidth >= 1279 && metrics.authoredRootHeight >= 727, `${target.name} ${id} must use the enlarged authored surface: ${JSON.stringify(metrics)}`);
+    assert.equal(metrics.fitPolicy, "source-authored-canvas", `${target.name} ${id} source canvas fit policy`);
+    const expectedFitScale = Math.min(metrics.fitViewportSize.clientWidth / 1280, metrics.fitViewportSize.clientHeight / 728);
+    assert.ok(Math.abs(metrics.fitScale - expectedFitScale) <= 0.002, `${target.name} ${id} maximum-contain scale: ${JSON.stringify({ expectedFitScale, metrics })}`);
+    const renderedRootHeight = metrics.authoredRootHeight * metrics.presentationScale;
+    assert.ok(Math.min(Math.abs(metrics.rootWidth - metrics.fitViewportSize.renderedWidth), Math.abs(renderedRootHeight - metrics.fitViewportSize.renderedHeight)) <= 2, `${target.name} ${id} must fill one activity viewport dimension`);
+  }
+  if (id.endsWith("-o2")) {
+    assert.equal(metrics.listeningPlayer?.inside, true, `${target.name} Listening player must remain inside the activity root`);
+    assert.ok(metrics.listeningPlayer.rightGap >= 20 && metrics.listeningPlayer.rightGap <= 40, `${target.name} Listening player right anchor: ${JSON.stringify(metrics.listeningPlayer)}`);
+    assert.ok(metrics.listeningPlayer.bottomGap >= 15 && metrics.listeningPlayer.bottomGap <= 40, `${target.name} Listening player bottom anchor: ${JSON.stringify(metrics.listeningPlayer)}`);
+  }
   return metrics;
 }
 
@@ -285,10 +314,12 @@ try {
 
     for (const [index, activity] of activities.entries()) {
       const objectNumber = index + 1;
+      let videoGeometry = null;
       const row = page.locator(".teacher-offline-lessons article").filter({ hasText: activity.label }).first();
       await row.getByRole("button", { name: "Present" }).click();
       await page.locator(`[data-legacy-pilot-activity="${activity.id}"]`).waitFor();
       const initial = await assertPilotLayout(page, target, activity.id);
+      assert.equal(await page.getByRole("button", { name: /activity part/ }).count(), objectNumber === 3 ? 2 : 0, `${target.name} Object ${objectNumber} internal navigation visibility`);
       stableChrome ||= await readChromeGeometry(page, `${target.name} object ${objectNumber} initial`);
       await assertStableChromeGeometry(page, stableChrome, `${target.name} object ${objectNumber} initial`);
       await screenshot(page, target, objectNumber, "initial");
@@ -300,6 +331,24 @@ try {
         await assertStableChromeGeometry(page, stableChrome, `${target.name} object 1 video overlay`);
         const video = overlay.locator("video");
         await video.waitFor();
+        videoGeometry = await overlay.evaluate((element) => {
+          const host = element.closest(".teacher-offline-embedded-activity").getBoundingClientRect();
+          const overlayRect = element.getBoundingClientRect();
+          const panel = element.querySelector(".teacher-activity-video-panel").getBoundingClientRect();
+          const videoElement = element.querySelector("video");
+          return {
+            host: { left: host.left, top: host.top, width: host.width, height: host.height },
+            overlay: { left: overlayRect.left, top: overlayRect.top, width: overlayRect.width, height: overlayRect.height },
+            panel: { left: panel.left, top: panel.top, width: panel.width, height: panel.height },
+            objectFit: getComputedStyle(videoElement).objectFit,
+            policy: element.dataset.videoFitPolicy,
+          };
+        });
+        for (const surface of [videoGeometry.overlay, videoGeometry.panel]) {
+          assert.ok(Math.abs(surface.left - videoGeometry.host.left) <= 1 && Math.abs(surface.top - videoGeometry.host.top) <= 1 && Math.abs(surface.width - videoGeometry.host.width) <= 1 && Math.abs(surface.height - videoGeometry.host.height) <= 1, `${target.name} video activity viewport fill: ${JSON.stringify(videoGeometry)}`);
+        }
+        assert.equal(videoGeometry.objectFit, "contain", `${target.name} video media aspect ratio policy`);
+        assert.equal(videoGeometry.policy, "viewport-with-contained-media", `${target.name} video fit policy`);
         await video.evaluate(async (element) => {
           element.muted = true;
           await element.play();
@@ -348,14 +397,39 @@ try {
       }
 
       if (objectNumber === 3) {
-        await page.locator(".legacy-pilot-choice-grid input").first().check();
-        await screenshot(page, target, objectNumber, "partial");
-        await page.getByRole("button", { name: "Check", exact: true }).click();
-        await page.locator(".legacy-pilot-result").first().waitFor();
-        await screenshot(page, target, objectNumber, "feedback");
-        await page.getByRole("button", { name: "Show all answers" }).click();
-        await page.getByText("Publisher answer", { exact: true }).first().waitFor();
-        await screenshot(page, target, objectNumber, "teacher-reveal");
+        assert.equal(await page.locator(".teacher-multiple-choice-part-indicator").count(), 0, `${target.name} has no visible Part X/Y indicator`);
+        const previousPart = page.getByRole("button", { name: "Previous activity part" });
+        const nextPart = page.getByRole("button", { name: "Next activity part" });
+        await page.waitForFunction(() => !document.querySelector('button[aria-label="Next activity part"]')?.disabled);
+        assert.equal(await previousPart.isDisabled(), true, `${target.name} first Object 3 part disables previous`);
+        assert.equal(await nextPart.isDisabled(), false, `${target.name} first Object 3 part enables next`);
+        await page.getByRole("button", { name: /Question 1 option A:/ }).click();
+        assert.equal(await page.getByRole("button", { name: /Question 1 option A:/ }).getAttribute("data-answer-state"), "wrong");
+        await screenshot(page, target, objectNumber, "wrong-feedback");
+        await page.getByRole("button", { name: /Question 1 option B:/ }).click();
+        assert.equal(await page.getByRole("button", { name: /Question 1 option B:/ }).getAttribute("data-answer-state"), "correct");
+        assert.equal(await page.getByRole("button", { name: /Question 1 option A:/ }).isDisabled(), true, `${target.name} solved question locks its options`);
+        await screenshot(page, target, objectNumber, "correct-feedback");
+        await nextPart.click();
+        await page.locator('[data-multiple-choice-panel="2"]').waitFor();
+        assert.equal(await page.getByText(/Part\s+2\s*\/\s*2/i).count(), 0, `${target.name} panel 2 has no visible Part X/Y text`);
+        assert.equal(await nextPart.isDisabled(), true, `${target.name} last Object 3 part disables next`);
+        await screenshot(page, target, objectNumber, "panel-2");
+        await previousPart.click();
+        await page.locator('[data-multiple-choice-panel="1"]').waitFor();
+        assert.equal(await page.getByRole("button", { name: /Question 1 option B:/ }).getAttribute("data-answer-state"), "correct", `${target.name} Object 3 answer persists across panels`);
+        await page.getByRole("button", { name: "Show Text" }).click();
+        await page.locator('[data-multiple-choice-view="text"]').waitFor();
+        await assertStableChromeGeometry(page, stableChrome, `${target.name} object 3 manual Show Text`);
+        await screenshot(page, target, objectNumber, "show-text");
+        await page.getByRole("button", { name: "Return to questions" }).click();
+        await nextPart.click();
+        await page.getByRole("button", { name: "Open text reference for question 5" }).click();
+        await page.locator('[data-multiple-choice-view="text"]').waitFor();
+        assert.equal(await page.locator(".teacher-multiple-choice-highlight").count(), 8, `${target.name} question 5 highlight count`);
+        await screenshot(page, target, objectNumber, "question-5-reference");
+        await page.locator(".teacher-multiple-choice-hidden-audio").evaluate((audio) => audio.dispatchEvent(new Event("ended")));
+        await page.locator('[data-multiple-choice-panel="2"][data-multiple-choice-view="questions"]').waitFor();
       }
 
       if (objectNumber === 4) {
@@ -384,6 +458,11 @@ try {
         minimumTarget: initial.minimumTarget,
         maximumRasterScale: Math.max(...initial.rasterUpscale.map((image) => image.scale)),
         overflow: Math.max(initial.documentOverflow, initial.rootOverflow),
+        fitScale: initial.fitScale,
+        fitPolicy: initial.fitPolicy,
+        viewport: initial.fitViewportSize,
+        listeningPlayer: initial.listeningPlayer,
+        videoGeometry,
       });
       await openInternalContents(page, legacyPilotActivityUnit(activity.id));
     }

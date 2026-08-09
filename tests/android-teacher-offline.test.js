@@ -252,14 +252,18 @@ test("Teacher book screens use one canonical navigation row with code-controlled
     assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
     previousIndex = currentIndex;
   }
-  assert.ok(navigationCore.indexOf("contextAction &&") > navigationCore.indexOf('aria-label="Next page"'));
-  assert.ok(navigationCore.indexOf("contextAction &&") < navigationCore.indexOf('aria-label="Grammar Book"'));
-  assert.equal((navigationCore.match(/<button\b/g) || []).length, 7);
+  assert.ok(navigationCore.indexOf("internalNavigation &&") > navigationCore.indexOf('aria-label="Next page"'));
+  assert.ok(navigationCore.indexOf("actions.map") < navigationCore.indexOf('aria-label="Grammar Book"'));
+  assert.equal((navigationCore.match(/<button\b/g) || []).length, 9);
   assert.match(navigationCore, /previousDisabled = true/);
   assert.match(navigationCore, /nextDisabled = true/);
   assert.match(navigationCore, /contextAction = null/);
-  assert.match(navigationCore, /aria-pressed=\{contextAction\.active\}/);
-  assert.match(navigationCore, /contextAction\.activeIconName/);
+  assert.match(navigationCore, /contextActions = null/);
+  assert.match(navigationCore, /internalNavigation = null/);
+  assert.match(navigationCore, /aria-pressed=\{action\.active\}/);
+  assert.match(navigationCore, /action\.activeIconName/);
+  assert.match(navigationCore, /Previous activity part/);
+  assert.match(navigationCore, /Next activity part/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Grammar Book"/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Workbook"/);
   assert.match(navigation, /TeacherBookNavigationCore/);
@@ -274,7 +278,8 @@ test("Teacher book screens use one canonical navigation row with code-controlled
   assert.match(pages, /nextDisabled=\{activityActive \|\| selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
   assert.match(pages, /id: "video"[\s\S]*iconName: "video"/);
   assert.match(pages, /id: "show-text"[\s\S]*label: "Show Text"[\s\S]*iconName: "showText"/);
-  assert.match(pages, /contextAction=\{contextAction\}/);
+  assert.match(pages, /contextActions=\{contextActions\}/);
+  assert.match(pages, /internalNavigation=\{internalNavigation\}/);
   assert.match(overview, /<TeacherBookNavigation/);
   assert.match(media, /<TeacherBookNavigation onHome=\{onHome\} onBack=\{onBack\}/);
   for (const source of [book, pages, overview, media]) assert.doesNotMatch(source, /legacy-page-navigation|teacher-unit-side-navigation|legacy-overview-book-links/);
@@ -397,6 +402,7 @@ test("page hotspot origins remain exact while Contents uses runtime metadata", (
 
 test("embedded Teacher activities always use complete presentation fit instead of scroll fallback", () => {
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 1200, availableHeight: 700, contentWidth: 1000, contentHeight: 600 }), 1);
+  assert.equal(calculateEmbeddedActivityScale({ availableWidth: 1600, availableHeight: 910, contentWidth: 1280, contentHeight: 728, allowUpscale: true }), 1.25);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 0.5);
   assert.equal(calculateEmbeddedActivityScale({ availableWidth: 0, availableHeight: 450, contentWidth: 1200, contentHeight: 900 }), 1);
   assert.equal(EMBEDDED_ACTIVITY_MIN_TARGET_SIZE, 38);
@@ -407,6 +413,10 @@ test("embedded Teacher activities always use complete presentation fit instead o
   assert.deepEqual(
     resolveEmbeddedActivityFit({ availableWidth: 900, availableHeight: 450, contentWidth: 1200, contentHeight: 900, minimumTargetSize: 48 }),
     { mode: "scale", scale: 0.5 },
+  );
+  assert.deepEqual(
+    resolveEmbeddedActivityFit({ availableWidth: 1600, availableHeight: 910, contentWidth: 1280, contentHeight: 728, allowUpscale: true }),
+    { mode: "scale", scale: 1.25 },
   );
 });
 
