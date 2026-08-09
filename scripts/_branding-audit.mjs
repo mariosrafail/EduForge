@@ -38,6 +38,7 @@ export const BRANDING_COMPATIBILITY_EXCEPTIONS = Object.freeze([
     paths: [
       "android/app/build.gradle",
       `android/app/src/main/java/com/${retiredProductSlug}/offlinebooks/MainActivity.java`,
+      `android/app/src/main/java/com/${retiredProductSlug}/offlinebooks/PdfSaverPlugin.java`,
       "android/app/src/main/res/values/strings.xml",
       "capacitor.config.ts",
       "docs/book-builder/teacher-apk-projects.md",

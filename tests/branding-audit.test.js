@@ -29,7 +29,7 @@ test("branding audit permits only an enumerated compatibility token in its appro
   }]).length, 1);
 });
 
-test("branding audit permits the preserved Android application ID in the student APK verifier only", () => {
+test("branding audit permits the preserved Android application ID only in enumerated compatibility files", () => {
   const token = ["com", retiredSlug, "offlinebooks"].join(".");
   assert.deepEqual(findBrandingViolations([{
     path: "scripts/android/verify-student-apk.mjs",
@@ -39,6 +39,10 @@ test("branding audit permits the preserved Android application ID in the student
     path: "scripts/android/example.mjs",
     content: `assert.equal(applicationId, "${token}");`,
   }]).length, 1);
+  assert.deepEqual(findBrandingViolations([{
+    path: `android/app/src/main/java/com/${retiredSlug}/offlinebooks/PdfSaverPlugin.java`,
+    content: `package ${token};`,
+  }]), []);
 });
 
 test("branding audit checks filenames and excludes only the tracked comparison build output", () => {
