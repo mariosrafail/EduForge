@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p2-o3",
+  "source": {
+    "path": "assets/books/book1/unit/1/part2/obj3",
+    "teacherVariant": "obj_params.iwb",
+    "totalPages": 2,
+    "files": [
+      { "name": "obj_params.iwb", "sha256": "04369a700863b204bfebef73a33e8e2961ab90b73d1b832f03f853228462ccd4", "decodedSha256": "cdad565fa5ef67e102faaa12ac0b5b9b7984928b44cbd8b8426b87195e6f78ea" },
+      { "name": "highlight_params.iwb", "sha256": "990b19fec2289f6aaccc82a1b6e0da85ec517a30313a60f9858caf2d86e98df6", "decodedSha256": "4a3342e1ef98a722471355b9b76a1b042db47f6733811e7a07ae71e0674af842" },
+      { "name": "image_1.png", "sha256": "6bc69a5c7bc62aaccc6c3f3b16072fefe3cb543cc7e661a9c1ce5b634a22dc07" },
+      { "name": "image_2.png", "sha256": "065bb11feca35c5055122d5ab0e74c9a85db7271bb31aebaa78116321752bc8e" },
+      { "name": "image_3.png", "sha256": "3abd8126c1b75011b4b1f86f87934ad165d331959c4f358489e736064ca036be" },
+      { "name": "showText.png", "sha256": "c7721cbb080f39c0178c215e66c47abdc61a4167441c242e3fa8f7746914ab4a" },
+      { "name": "highlight_1.mp3", "sha256": "0aee3c30b44bcbe2689e726ffd1bdbc166a66a64599a67f02e54032b740ce05f" },
+      { "name": "highlight_2.mp3", "sha256": "0d3247e0c1acada2d3fe55dbb46b81df13cab0204106219362af77d78de2996d" },
+      { "name": "highlight_3.mp3", "sha256": "dd80adb04ce7156a86656635543948d6a08473a37ad6fbd3f4098f3eedacd7f5" },
+      { "name": "highlight_4.mp3", "sha256": "ce71aaf5cc370301045dc51014377ed75639acc59a1613990b0a22d5f5947b3b" },
+      { "name": "highlight_5.mp3", "sha256": "b8c20e2031273edfea7995244c7dcc28a31b4e1e3a4a00bb883d298fb83fa74f" },
+      { "name": "highlight_6.mp3", "sha256": "3831336fae6c2b412a0c8d98d1fb8119f307ec82755543493eea594bd6505073" }
+    ]
+  },
+  "surface": { "width": 1024, "height": 582 },
+  "textSurface": { "width": 1000, "height": 1219 },
+  "assets": { "instructionImage": "image_2.png", "textImage": "showText.png" },
+  "panels": [
+    { "id": "panel-1", "number": 1, "imageAsset": "image_1.png", "imageArea": { "x": 45, "y": 106, "width": 917, "height": 415 }, "instructionArea": { "x": 45, "y": 18, "width": 949, "height": 64 }, "questionIds": ["ultimate-b2-sb-u1-p2-o3-q1", "ultimate-b2-sb-u1-p2-o3-q2", "ultimate-b2-sb-u1-p2-o3-q3", "ultimate-b2-sb-u1-p2-o3-q4"] },
+    { "id": "panel-2", "number": 2, "imageAsset": "image_3.png", "imageArea": { "x": 45, "y": 46, "width": 956, "height": 532 }, "instructionArea": null, "questionIds": ["ultimate-b2-sb-u1-p2-o3-q5", "ultimate-b2-sb-u1-p2-o3-q6"] }
+  ],
+  "questions": [
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q1", "number": 1, "panelId": "panel-1", "prompt": "What is the writer’s purpose in the first paragraph?", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q1-o2", "referenceArea": { "x": 8, "y": 97, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-1", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q1-o1", "label": "A", "text": "to explain how media streaming works", "area": { "x": 67, "y": 145, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q1-o2", "label": "B", "text": "to introduce a comparison between two types of entertainment", "area": { "x": 67, "y": 170, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q1-o3", "label": "C", "text": "to describe the many ways people relax", "area": { "x": 67, "y": 217, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q1-o4", "label": "D", "text": "to give details about popular kinds of films", "area": { "x": 67, "y": 243, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-1", "x": 168, "y": 405, "width": 327, "height": 17 }, { "id": "region-2", "x": 81, "y": 424, "width": 283, "height": 17 }]
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q2", "number": 2, "panelId": "panel-1", "prompt": "The writer mentions seasons in line 9 to", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q2-o3", "referenceArea": { "x": 8, "y": 302, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-2", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q2-o1", "label": "A", "text": "say that series only last a few months.", "area": { "x": 67, "y": 331, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q2-o2", "label": "B", "text": "refer to when series are shown.", "area": { "x": 67, "y": 354, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q2-o3", "label": "C", "text": "explain how series are structured.", "area": { "x": 67, "y": 377, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q2-o4", "label": "D", "text": "complain about how series are organised.", "area": { "x": 67, "y": 401, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-3", "x": 367, "y": 454, "width": 129, "height": 17 }, { "id": "region-4", "x": 81, "y": 473, "width": 417, "height": 17 }, { "id": "region-5", "x": 81, "y": 493, "width": 86, "height": 17 }]
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q3", "number": 3, "panelId": "panel-1", "prompt": "According to the text, when viewers binge-watch, they", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q3-o1", "referenceArea": { "x": 482, "y": 97, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-3", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q3-o1", "label": "A", "text": "start seeing the series’ characters as real people.", "area": { "x": 553, "y": 147, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q3-o2", "label": "B", "text": "forget about their everyday life.", "area": { "x": 553, "y": 191, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q3-o3", "label": "C", "text": "watch two episodes back to back.", "area": { "x": 553, "y": 215, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q3-o4", "label": "D", "text": "watch all the episodes that have been released.", "area": { "x": 553, "y": 240, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-6", "x": 555, "y": 432, "width": 388, "height": 17 }, { "id": "region-7", "x": 517, "y": 451, "width": 426, "height": 17 }, { "id": "region-8", "x": 517, "y": 471, "width": 79, "height": 17 }]
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q4", "number": 4, "panelId": "panel-1", "prompt": "Why does the writer express concern about binge-watching?", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q4-o1", "referenceArea": { "x": 482, "y": 305, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-4", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q4-o1", "label": "A", "text": "It might prevent people from socialising with friends.", "area": { "x": 553, "y": 356, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q4-o2", "label": "B", "text": "It’s not a normal thing to do.", "area": { "x": 553, "y": 401, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q4-o3", "label": "C", "text": "Viewers may become too attached to the characters.", "area": { "x": 553, "y": 426, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q4-o4", "label": "D", "text": "Viewers have fewer reasons to do other things.", "area": { "x": 553, "y": 471, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-9", "x": 803, "y": 490, "width": 138, "height": 17 }, { "id": "region-10", "x": 517, "y": 509, "width": 404, "height": 17 }]
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q5", "number": 5, "panelId": "panel-2", "prompt": "What significant difference between films and series does the author mention?", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q5-o3", "referenceArea": { "x": 8, "y": 35, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-5", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q5-o1", "label": "A", "text": "Films are more entertaining than series.", "area": { "x": 67, "y": 85, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q5-o2", "label": "B", "text": "Series rely on images to tell stories more than films do.", "area": { "x": 67, "y": 110, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q5-o3", "label": "C", "text": "Films don’t develop as many sub-plots as series do.", "area": { "x": 67, "y": 155, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q5-o4", "label": "D", "text": "Dialogues in films are shorter than in series.", "area": { "x": 67, "y": 203, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-11", "x": 803, "y": 576, "width": 138, "height": 17 }, { "id": "region-12", "x": 517, "y": 595, "width": 426, "height": 17 }, { "id": "region-13", "x": 517, "y": 615, "width": 426, "height": 17 }, { "id": "region-14", "x": 517, "y": 635, "width": 426, "height": 17 }, { "id": "region-15", "x": 517, "y": 655, "width": 426, "height": 17 }, { "id": "region-16", "x": 517, "y": 674, "width": 426, "height": 17 }, { "id": "region-17", "x": 517, "y": 693, "width": 426, "height": 17 }, { "id": "region-18", "x": 517, "y": 712, "width": 315, "height": 17 }]
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p2-o3-q6", "number": 6, "panelId": "panel-2", "prompt": "What does the writer refer to in line 53?", "correctOptionId": "ultimate-b2-sb-u1-p2-o3-q6-o4", "referenceArea": { "x": 8, "y": 230, "width": 44, "height": 44 }, "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj3.highlight-6", "persistSolved": true,
+      "options": [
+        { "id": "ultimate-b2-sb-u1-p2-o3-q6-o1", "label": "A", "text": "all films", "area": { "x": 67, "y": 259, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q6-o2", "label": "B", "text": "certain popular series", "area": { "x": 67, "y": 282, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q6-o3", "label": "C", "text": "people who watch films", "area": { "x": 67, "y": 305, "width": 30, "height": 30 } },
+        { "id": "ultimate-b2-sb-u1-p2-o3-q6-o4", "label": "D", "text": "film franchises", "area": { "x": 67, "y": 329, "width": 30, "height": 30 } }
+      ],
+      "highlightRegions": [{ "id": "region-19", "x": 701, "y": 759, "width": 242, "height": 17 }, { "id": "region-20", "x": 517, "y": 778, "width": 426, "height": 17 }, { "id": "region-21", "x": 517, "y": 798, "width": 426, "height": 17 }, { "id": "region-22", "x": 517, "y": 818, "width": 426, "height": 17 }, { "id": "region-23", "x": 517, "y": 838, "width": 242, "height": 17 }]
+    }
+  ]
+}

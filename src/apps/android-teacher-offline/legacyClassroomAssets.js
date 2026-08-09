@@ -44,6 +44,10 @@ import settingsIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/ico
 import videoIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-video-active.png";
 import showTextIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-show-text-active.png";
 import showTextPressedIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-show-text-pressed.png";
+import previousInternalIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-previous-internal-active.png";
+import previousInternalDisabledIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-previous-internal-disabled.png";
+import nextInternalIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-next-internal-active.png";
+import nextInternalDisabledIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-next-internal-disabled.png";
 import playerBackground from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-bg.png";
 import playerPlayActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-play-active.png";
 import playerPlayPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-play-pressed.png";
@@ -154,6 +158,7 @@ export const legacyClassroomAssets = Object.freeze({
   }),
   icons: Object.freeze({
     back: backIcon, check: checkIcon, close: closeIcon, home: homeIcon, minimize: minimizeIcon, next: nextIcon, previous: previousIcon, settings: settingsIcon, video: videoIcon, showText: showTextIcon, showTextPressed: showTextPressedIcon,
+    previousInternal: previousInternalIcon, previousInternalDisabled: previousInternalDisabledIcon, nextInternal: nextInternalIcon, nextInternalDisabled: nextInternalDisabledIcon,
     teacherTools: Object.freeze({
       clear: Object.freeze({ normal: clearTool, active: clearToolActive }),
       eraser: Object.freeze({ normal: eraserTool, active: eraserToolActive }),

@@ -117,6 +117,7 @@ export default function TeacherOfflineActivityVideoOverlay({ activityId, onClose
       aria-modal="true"
       aria-label={`${activity.title || "Activity"} video`}
       data-activity-video-overlay=""
+      data-video-fit-policy="viewport-with-contained-media"
     >
       <div className="teacher-activity-video-panel">
         <header>

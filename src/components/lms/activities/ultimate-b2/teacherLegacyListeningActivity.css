@@ -1,7 +1,7 @@
 .legacy-pilot--object-2.teacher-presentation-activity {
-  width: 1024px;
+  width: 1280px;
   max-width: none;
-  height: 582px;
+  height: 728px;
   border: 0;
   border-radius: 0;
   padding: 0;
@@ -10,8 +10,8 @@
 }
 
 .legacy-pilot--object-2.teacher-presentation-activity .teacher-listening-paper {
-  width: 1024px;
-  height: 582px;
+  width: 1280px;
+  height: 728px;
   min-height: 0;
   padding: 0;
   overflow: hidden;
@@ -25,6 +25,11 @@
   width: 1024px;
   height: 582px;
   overflow: hidden;
+}
+
+.teacher-listening-stage {
+  transform: scale(1.25);
+  transform-origin: top left;
 }
 
 .teacher-listening-instruction {

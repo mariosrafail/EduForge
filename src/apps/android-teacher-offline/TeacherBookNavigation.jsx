@@ -11,6 +11,8 @@ export default function TeacherBookNavigation({
   previousDisabled = true,
   nextDisabled = true,
   contextAction = null,
+  contextActions = null,
+  internalNavigation = null,
 }) {
-  return <TeacherBookNavigationCore {...{ onHome, onBack, onPrevious, onNext, previousDisabled, nextDisabled, contextAction }} renderIcon={(name) => <LegacyClassroomIcon name={name} />} />;
+  return <TeacherBookNavigationCore {...{ onHome, onBack, onPrevious, onNext, previousDisabled, nextDisabled, contextAction, contextActions, internalNavigation }} renderIcon={(name) => <LegacyClassroomIcon name={name} />} />;
 }

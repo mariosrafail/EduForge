@@ -76,6 +76,7 @@ export default function TeacherOfflinePages({
     (dependency) => dependency.type === "video" && dependency.logicalKey,
   ));
   const listeningAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o2";
+  const multipleChoiceAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o3";
   const classroomSurfaceKey = activityActive
     ? `students-book:activity:${embeddedActivityId}`
     : page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -95,6 +96,8 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0 });
+  const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
 
   useEffect(() => {
     setAssetError("");
@@ -105,6 +108,8 @@ export default function TeacherOfflinePages({
     setActivityVideoOpen(false);
     setListeningView("questions");
     setListeningShowTextCommand(0);
+    setActivityPresentationState({ view: "questions", panelIndex: 0, panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : 0 });
+    setActivityPresentationCommand(null);
   }, [activityActive, embeddedActivityId, page?.id, selectedPageId]);
 
   useEffect(() => {
@@ -275,7 +280,8 @@ export default function TeacherOfflinePages({
     onPointerUp: onPointerEnd,
     onPointerCancel: onPointerEnd,
   };
-  const contextAction = videoAvailable ? {
+  const sendActivityCommand = (type) => setActivityPresentationCommand((current) => ({ type, token: (current?.token || 0) + 1 }));
+  const contextActions = videoAvailable ? [{
     id: "video",
     label: "Video",
     title: "Video",
@@ -283,7 +289,7 @@ export default function TeacherOfflinePages({
     active: activityVideoOpen,
     iconName: "video",
     onClick: () => setActivityVideoOpen((open) => !open),
-  } : listeningAvailable ? {
+  }] : listeningAvailable ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
@@ -292,6 +298,21 @@ export default function TeacherOfflinePages({
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => setListeningShowTextCommand((command) => command + 1),
+  }] : multipleChoiceAvailable ? [{
+    id: "show-text",
+    label: "Show Text",
+    title: "Show Text",
+    ariaLabel: activityPresentationState.view === "questions" ? "Show Text" : "Return to questions",
+    active: activityPresentationState.view !== "questions",
+    iconName: "showText",
+    activeIconName: "showTextPressed",
+    onClick: () => sendActivityCommand("toggle-text"),
+  }] : [];
+  const internalNavigation = multipleChoiceAvailable ? {
+    previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,
+    nextDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
+    onPrevious: () => sendActivityCommand("previous-panel"),
+    onNext: () => sendActivityCommand("next-panel"),
   } : null;
 
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
@@ -333,6 +354,8 @@ export default function TeacherOfflinePages({
               onCloseVideo={() => setActivityVideoOpen(false)}
               listeningShowTextCommand={listeningShowTextCommand}
               onListeningStateChange={setListeningView}
+              activityPresentationCommand={activityPresentationCommand}
+              onActivityPresentationStateChange={setActivityPresentationState}
             />
           ) : image && !assetError ? (
             <div
@@ -415,7 +438,8 @@ export default function TeacherOfflinePages({
         onNext={() => onSelectPage(pages[selectedIndex + 1].id)}
         previousDisabled={activityActive || selectedIndex <= 0}
         nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
-        contextAction={contextAction}
+        contextActions={contextActions}
+        internalNavigation={internalNavigation}
       />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />

@@ -4,11 +4,18 @@ import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
+import multipleChoiceAuthoring from "../../data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json";
 
-export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange }) {
+const sourceAuthoredCanvases = Object.freeze({
+  "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
+  "ultimate-b2-sb-u1-p2-o3": Object.freeze({ width: 1280, height: 728 }),
+});
+
+export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
+  const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -35,9 +42,10 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
       const measuredFit = resolveEmbeddedActivityFit({
         availableWidth,
         availableHeight,
-        contentWidth: Math.max(content.offsetWidth, content.scrollWidth, activity?.scrollWidth || 0),
-        contentHeight: Math.max(content.offsetHeight, content.scrollHeight, activity?.scrollHeight || 0),
+        contentWidth: authoredCanvas?.width || Math.max(content.offsetWidth, content.scrollWidth, activity?.scrollWidth || 0),
+        contentHeight: authoredCanvas?.height || Math.max(content.offsetHeight, content.scrollHeight, activity?.scrollHeight || 0),
         minimumTargetSize,
+        allowUpscale: Boolean(authoredCanvas),
       });
       const next = measuredFit;
       setFit((current) => (
@@ -75,7 +83,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
       content.removeEventListener("load", refresh, true);
       globalThis.removeEventListener("resize", refresh);
     };
-  }, [activityId]);
+  }, [activityId, authoredCanvas]);
 
   return (
     <div
@@ -84,18 +92,27 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
       data-embedded-activity-id={activityId}
       data-fit-mode={fit.mode}
       data-fit-scale={fit.scale.toFixed(4)}
+      data-fit-policy={authoredCanvas ? "source-authored-canvas" : "standard-contain"}
       aria-label={title || "Students Book activity"}
     >
       <div
         ref={contentRef}
         className="teacher-offline-embedded-activity-content"
-        style={{ "--embedded-activity-scale": fit.scale }}
+        style={{
+          "--embedded-activity-scale": fit.scale,
+          ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
+        }}
       >
         <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           mode={ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE}
           listeningPresentation={{ showTextCommand: listeningShowTextCommand, onStateChange: onListeningStateChange }}
+          activityPresentation={{
+            command: activityPresentationCommand,
+            onStateChange: onActivityPresentationStateChange,
+            multipleChoiceAuthoring: activityId === multipleChoiceAuthoring.activityId ? multipleChoiceAuthoring : null,
+          }}
         />
       </div>
       {videoOpen && <TeacherOfflineActivityVideoOverlay activityId={activityId} onClose={onCloseVideo} />}

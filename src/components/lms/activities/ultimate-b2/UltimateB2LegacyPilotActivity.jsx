@@ -11,6 +11,7 @@ import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
 import { TeacherLegacyQuestionFeedback, TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
 import { TeacherLegacyListeningActivity } from "./TeacherLegacyListeningActivity.jsx";
+import { TeacherLegacyMultipleChoiceActivity } from "./TeacherLegacyMultipleChoiceActivity.jsx";
 
 const PdfSaver = registerPlugin("PdfSaver");
 
@@ -307,7 +308,10 @@ function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation 
   );
 }
 
-function ObjectThree({ images, questionProps }) {
+function ObjectThree({ images, questionProps, activityPresentation }) {
+  if (questionProps.capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring) {
+    return <TeacherLegacyMultipleChoiceActivity authoring={activityPresentation.multipleChoiceAuthoring} images={images} presentation={activityPresentation} />;
+  }
   return (
     <>
       <LegacyInstruction src={images.instruction} alt="Exercise 3. Read the text again and choose the best answer." />
@@ -373,6 +377,7 @@ export function UltimateB2LegacyPilotActivity({
   mediaPlayers,
   actions,
   listeningPresentation = null,
+  activityPresentation = null,
 }) {
   const images = ultimateB2Unit1Part2LegacyImages[activity.stableNormalizedId];
   const objectNumber = Number(activity.stableNormalizedId.at(-1));
@@ -388,22 +393,23 @@ export function UltimateB2LegacyPilotActivity({
     solutionsLoading,
     revealQuestion,
   };
-  const bodyProps = { images, mediaPlayers, questionProps, listeningPresentation };
+  const bodyProps = { images, mediaPlayers, questionProps, listeningPresentation, activityPresentation };
   const teacherListening = objectNumber === 2 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
+  const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
 
   return (
     <article
       className={`unit2-normalized-activity ultimate-b2-legacy-pilot legacy-pilot--object-${objectNumber} ${capabilities.isPresentation ? "teacher-presentation-activity" : ""}`}
       data-legacy-pilot-activity={activity.stableNormalizedId}
     >
-      {objectNumber !== 1 && !teacherListening && <header className="legacy-pilot-titlebar">
+      {objectNumber !== 1 && !teacherListening && !teacherMultipleChoice && <header className="legacy-pilot-titlebar">
         <div>
           <span>Unit 1 · Reading</span>
           <strong>Streaming now!</strong>
         </div>
         <b>Ultimate English B2</b>
       </header>}
-      <section className={`legacy-pilot-paper ${teacherListening ? "teacher-listening-paper" : ""}`}>
+      <section className={`legacy-pilot-paper ${teacherListening ? "teacher-listening-paper" : ""} ${teacherMultipleChoice ? "teacher-multiple-choice-paper" : ""}`}>
         {objectNumber === 1 && <ObjectOne {...bodyProps} />}
         {objectNumber === 2 && <ObjectTwo {...bodyProps} />}
         {objectNumber === 3 && <ObjectThree {...bodyProps} />}

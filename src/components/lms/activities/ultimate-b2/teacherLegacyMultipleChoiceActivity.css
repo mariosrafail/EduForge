@@ -1,0 +1,20 @@
+.legacy-pilot--object-3.teacher-presentation-activity { width: 1280px; max-width: none; height: 728px; padding: 0; overflow: hidden; border: 0; border-radius: 0; background: #fff; box-shadow: none; }
+.legacy-pilot--object-3.teacher-presentation-activity .teacher-multiple-choice-paper { width: 1280px; height: 728px; min-height: 0; padding: 0; overflow: hidden; background: #fff; }
+.teacher-multiple-choice-stage { position: relative; width: 1024px; height: 582px; overflow: hidden; background: #fff; transform: scale(1.25); transform-origin: top left; }
+.teacher-multiple-choice-panel, .teacher-multiple-choice-text-shell { position: absolute; inset: 0; overflow: hidden; }
+.teacher-multiple-choice-source-image { position: absolute; display: block; max-width: none; margin: 0; pointer-events: none; user-select: none; }
+.teacher-multiple-choice-reference, .teacher-multiple-choice-option { position: absolute; z-index: 2; display: grid; min-width: 44px; min-height: 44px; place-items: center; padding: 0; }
+.teacher-multiple-choice-reference { border: 2px solid #744095; border-radius: 50%; background: linear-gradient(#efd7fb, #bd81dd); box-shadow: 0 2px 3px rgb(52 22 70 / 24%); color: #4d1a69; }
+.teacher-multiple-choice-reference svg { width: 23px; height: 23px; }
+.teacher-multiple-choice-option { border: 2px solid transparent; border-radius: 50%; background: transparent; color: transparent; transition: background-color 100ms ease, border-color 100ms ease; }
+.teacher-multiple-choice-option span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.teacher-multiple-choice-option:hover:not(:disabled), .teacher-multiple-choice-option:focus-visible { border-color: rgb(88 45 113 / 55%); background: rgb(221 181 241 / 22%); outline: 0; }
+.teacher-multiple-choice-option.is-wrong { border-color: #b42318; background: rgb(239 68 68 / 31%); box-shadow: inset 0 0 0 3px rgb(255 255 255 / 70%); }
+.teacher-multiple-choice-option.is-correct { border-color: #067647; background: rgb(18 183 106 / 34%); box-shadow: inset 0 0 0 3px rgb(255 255 255 / 72%); }
+.teacher-multiple-choice-option:disabled { opacity: 1; }
+.teacher-multiple-choice-text-viewport { position: absolute; inset: 7px; overflow: auto; overscroll-behavior: contain; border: 1px solid #7d8590; background: #fff; scrollbar-color: #8752a7 #eadff0; }
+.teacher-multiple-choice-text-canvas { position: relative; }
+.teacher-multiple-choice-text-canvas > img { position: absolute; inset: 0; display: block; width: 1000px; height: 1219px; }
+.teacher-multiple-choice-highlight { position: absolute; z-index: 1; background: rgb(255 0 255 / 30%); box-shadow: 0 0 0 1px rgb(188 0 188 / 18%); pointer-events: none; }
+.teacher-multiple-choice-hidden-audio, .teacher-multiple-choice-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) { .teacher-multiple-choice-option { transition: none; } }
