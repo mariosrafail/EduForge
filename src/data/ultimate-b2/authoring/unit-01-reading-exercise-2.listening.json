@@ -1,0 +1,1837 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p2-o2",
+  "source": {
+    "extractionSchemaVersion": 1,
+    "iwbFiles": [
+      {
+        "name": "obj_params.iwb",
+        "sha256": "4194b3db0d9057041b69a19e33697c30b075a5485aa8922874c032d34be21568"
+      },
+      {
+        "name": "ebook_obj_params.iwb",
+        "sha256": "7c98badcb63c7d0a5ec87b824fd4a290c60300c051b9fb8e383e5b325103a217"
+      },
+      {
+        "name": "highlight_params.iwb",
+        "sha256": "3b8e27e9ad9fdc6a2234e0cc69dd09f7fcb4927ca2b47e63d9708369e00bec61"
+      }
+    ],
+    "selectedTeacherVariant": "obj_params.iwb"
+  },
+  "assets": {
+    "instructionImage": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.image_2",
+    "staticTextImage": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.showText",
+    "karaokeBackgroundImage": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.image_1",
+    "fullAudio": "ultimate-b2.students-book.unit-1.reading.text-audio"
+  },
+  "staticText": {
+    "surface": {
+      "width": 1000,
+      "height": 1219
+    },
+    "highlightColor": "#FF00FF",
+    "highlightAlpha": 0.3,
+    "autoScroll": true
+  },
+  "questionSegments": [
+    {
+      "id": "question-1",
+      "questionId": "ultimate-b2-sb-u1-p2-o2-q1",
+      "questionNumber": 1,
+      "questionText": "What is the main idea of the text?",
+      "answerLineCount": 2,
+      "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-1",
+      "sourceButtonId": 1,
+      "sourceAudioId": 1,
+      "regions": [
+        {
+          "id": "region-10",
+          "x": 659,
+          "y": 998,
+          "width": 285,
+          "height": 19
+        },
+        {
+          "id": "region-11",
+          "x": 516,
+          "y": 1019,
+          "width": 429,
+          "height": 19
+        },
+        {
+          "id": "region-12",
+          "x": 516,
+          "y": 1040,
+          "width": 323,
+          "height": 19
+        }
+      ]
+    },
+    {
+      "id": "question-2",
+      "questionId": "ultimate-b2-sb-u1-p2-o2-q2",
+      "questionNumber": 2,
+      "questionText": "What is the Netflix effect according to the text?",
+      "answerLineCount": 3,
+      "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-2",
+      "sourceButtonId": 2,
+      "sourceAudioId": 2,
+      "regions": [
+        {
+          "id": "region-1",
+          "x": 82,
+          "y": 729,
+          "width": 414,
+          "height": 19
+        },
+        {
+          "id": "region-2",
+          "x": 82,
+          "y": 750,
+          "width": 414,
+          "height": 19
+        },
+        {
+          "id": "region-3",
+          "x": 82,
+          "y": 770,
+          "width": 414,
+          "height": 19
+        },
+        {
+          "id": "region-4",
+          "x": 82,
+          "y": 790,
+          "width": 414,
+          "height": 19
+        },
+        {
+          "id": "region-5",
+          "x": 517,
+          "y": 266,
+          "width": 429,
+          "height": 19
+        },
+        {
+          "id": "region-6",
+          "x": 517,
+          "y": 287,
+          "width": 429,
+          "height": 19
+        },
+        {
+          "id": "region-7",
+          "x": 516,
+          "y": 308,
+          "width": 364,
+          "height": 19
+        }
+      ]
+    },
+    {
+      "id": "question-3",
+      "questionId": "ultimate-b2-sb-u1-p2-o2-q3",
+      "questionNumber": 3,
+      "questionText": "What benefits do TV series and films both have?",
+      "answerLineCount": 1,
+      "audioLogicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-3",
+      "sourceButtonId": 3,
+      "sourceAudioId": 3,
+      "regions": [
+        {
+          "id": "region-8",
+          "x": 516,
+          "y": 536,
+          "width": 429,
+          "height": 19
+        },
+        {
+          "id": "region-9",
+          "x": 516,
+          "y": 557,
+          "width": 242,
+          "height": 19
+        }
+      ]
+    }
+  ],
+  "karaoke": {
+    "content": {
+      "width": 1010,
+      "height": 2151
+    },
+    "viewport": {
+      "x": 7,
+      "y": 7,
+      "width": 1008,
+      "height": 568
+    },
+    "background": {
+      "x": 0,
+      "y": 350,
+      "width": 1020,
+      "height": 1801
+    },
+    "font": {
+      "family": "Roboto Regular",
+      "sizePx": 21
+    },
+    "fragments": [
+      {
+        "id": "fragment-1",
+        "x": 16,
+        "y": 658,
+        "width": 453,
+        "height": 31,
+        "runs": [
+          {
+            "text": "We all seek comfort and relaxation in our lives."
+          }
+        ]
+      },
+      {
+        "id": "fragment-2",
+        "x": 462,
+        "y": 658,
+        "width": 84,
+        "height": 31,
+        "runs": [
+          {
+            "text": "What"
+          }
+        ]
+      },
+      {
+        "id": "fragment-3",
+        "x": 16,
+        "y": 688,
+        "width": 537,
+        "height": 31,
+        "runs": [
+          {
+            "text": "better way to experience this than through tuning in to"
+          }
+        ]
+      },
+      {
+        "id": "fragment-4",
+        "x": 16,
+        "y": 718,
+        "width": 556,
+        "height": 31,
+        "runs": [
+          {
+            "text": "our favourite TV series or watching a film in our favourite"
+          }
+        ]
+      },
+      {
+        "id": "fragment-5",
+        "x": 16,
+        "y": 748,
+        "width": 103,
+        "height": 31,
+        "runs": [
+          {
+            "text": "genre?"
+          }
+        ]
+      },
+      {
+        "id": "fragment-6",
+        "x": 96,
+        "y": 748,
+        "width": 459,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Thanks to media streaming, accessing our"
+          }
+        ]
+      },
+      {
+        "id": "fragment-7",
+        "x": 16,
+        "y": 778,
+        "width": 516,
+        "height": 31,
+        "runs": [
+          {
+            "text": "favourite series is something we take for granted"
+          }
+        ]
+      },
+      {
+        "id": "fragment-8",
+        "x": 16,
+        "y": 808,
+        "width": 139,
+        "height": 31,
+        "runs": [
+          {
+            "text": "nowadays."
+          }
+        ]
+      },
+      {
+        "id": "fragment-9",
+        "x": 131,
+        "y": 808,
+        "width": 383,
+        "height": 31,
+        "runs": [
+          {
+            "text": "But which provides the better viewing"
+          }
+        ]
+      },
+      {
+        "id": "fragment-10",
+        "x": 16,
+        "y": 838,
+        "width": 418,
+        "height": 31,
+        "runs": [
+          {
+            "text": "experience, TV series or feature films?"
+          }
+        ]
+      },
+      {
+        "id": "fragment-11",
+        "x": 16,
+        "y": 888,
+        "width": 368,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Let’s first take a look at TV series."
+          }
+        ]
+      },
+      {
+        "id": "fragment-12",
+        "x": 340,
+        "y": 888,
+        "width": 186,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Most series are"
+          }
+        ]
+      },
+      {
+        "id": "fragment-13",
+        "x": 16,
+        "y": 918,
+        "width": 504,
+        "height": 31,
+        "runs": [
+          {
+            "text": "organised into seasons that are made up of several"
+          }
+        ]
+      },
+      {
+        "id": "fragment-14",
+        "x": 16,
+        "y": 948,
+        "width": 140,
+        "height": 31,
+        "runs": [
+          {
+            "text": "episodes."
+          }
+        ]
+      },
+      {
+        "id": "fragment-15",
+        "x": 118,
+        "y": 948,
+        "width": 403,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Each season deals with a main story as"
+          }
+        ]
+      },
+      {
+        "id": "fragment-16",
+        "x": 16,
+        "y": 978,
+        "width": 248,
+        "height": 31,
+        "runs": [
+          {
+            "text": "well as other sub-plots."
+          }
+        ]
+      },
+      {
+        "id": "fragment-17",
+        "x": 246,
+        "y": 978,
+        "width": 266,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This allows for stories to"
+          }
+        ]
+      },
+      {
+        "id": "fragment-18",
+        "x": 16,
+        "y": 1008,
+        "width": 494,
+        "height": 31,
+        "runs": [
+          {
+            "text": "be told slowly and in a way that is close to real life."
+          }
+        ]
+      },
+      {
+        "id": "fragment-19",
+        "x": 16,
+        "y": 1038,
+        "width": 504,
+        "height": 31,
+        "runs": [
+          {
+            "text": "As a result, viewers can relate more deeply with the"
+          }
+        ]
+      },
+      {
+        "id": "fragment-20",
+        "x": 16,
+        "y": 1068,
+        "width": 536,
+        "height": 31,
+        "runs": [
+          {
+            "text": "characters, the situations they face, and the life events"
+          }
+        ]
+      },
+      {
+        "id": "fragment-21",
+        "x": 16,
+        "y": 1098,
+        "width": 359,
+        "height": 31,
+        "runs": [
+          {
+            "text": "and relationships they experience."
+          }
+        ]
+      },
+      {
+        "id": "fragment-22",
+        "x": 16,
+        "y": 1148,
+        "width": 507,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Most people watch their favourite series using"
+          }
+        ]
+      },
+      {
+        "id": "fragment-23",
+        "x": 16,
+        "y": 1178,
+        "width": 321,
+        "height": 31,
+        "runs": [
+          {
+            "text": "streaming services like Netflix."
+          }
+        ]
+      },
+      {
+        "id": "fragment-24",
+        "x": 316,
+        "y": 1178,
+        "width": 187,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This on-demand"
+          }
+        ]
+      },
+      {
+        "id": "fragment-25",
+        "x": 16,
+        "y": 1208,
+        "width": 541,
+        "height": 31,
+        "runs": [
+          {
+            "text": "service operates globally and produces its own content"
+          }
+        ]
+      },
+      {
+        "id": "fragment-26",
+        "x": 16,
+        "y": 1238,
+        "width": 524,
+        "height": 31,
+        "runs": [
+          {
+            "text": "as well as showing other companies’ productions."
+          }
+        ]
+      },
+      {
+        "id": "fragment-27",
+        "x": 16,
+        "y": 1268,
+        "width": 529,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Nowadays, we can access series on demand wherever"
+          }
+        ]
+      },
+      {
+        "id": "fragment-28",
+        "x": 16,
+        "y": 1298,
+        "width": 406,
+        "height": 31,
+        "runs": [
+          {
+            "text": "we are thanks to streaming services."
+          }
+        ]
+      },
+      {
+        "id": "fragment-29",
+        "x": 374,
+        "y": 1298,
+        "width": 160,
+        "height": 31,
+        "runs": [
+          {
+            "text": "On demand"
+          }
+        ]
+      },
+      {
+        "id": "fragment-30",
+        "x": 16,
+        "y": 1328,
+        "width": 539,
+        "height": 31,
+        "runs": [
+          {
+            "text": "means that we can watch all 32 episodes from the four"
+          }
+        ]
+      },
+      {
+        "id": "fragment-31",
+        "x": 16,
+        "y": 1358,
+        "width": 529,
+        "height": 31,
+        "runs": [
+          {
+            "text": "seasons of a series like "
+          },
+          {
+            "text": "Stranger Things",
+            "style": "italic"
+          },
+          {
+            "text": " one after the"
+          }
+        ]
+      },
+      {
+        "id": "fragment-32",
+        "x": 16,
+        "y": 1388,
+        "width": 234,
+        "height": 31,
+        "runs": [
+          {
+            "text": "other if we choose."
+          }
+        ]
+      },
+      {
+        "id": "fragment-33",
+        "x": 206,
+        "y": 1388,
+        "width": 336,
+        "height": 31,
+        "runs": [
+          {
+            "text": "The fact that most people today"
+          }
+        ]
+      },
+      {
+        "id": "fragment-34",
+        "x": 16,
+        "y": 1418,
+        "width": 508,
+        "height": 31,
+        "runs": [
+          {
+            "text": "have their own portable digital devices makes this"
+          }
+        ]
+      },
+      {
+        "id": "fragment-35",
+        "x": 16,
+        "y": 1448,
+        "width": 154,
+        "height": 31,
+        "runs": [
+          {
+            "text": "even easier."
+          }
+        ]
+      },
+      {
+        "id": "fragment-36",
+        "x": 136,
+        "y": 1448,
+        "width": 413,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This has produced what some experts are"
+          }
+        ]
+      },
+      {
+        "id": "fragment-37",
+        "x": 16,
+        "y": 1478,
+        "width": 274,
+        "height": 31,
+        "runs": [
+          {
+            "text": "calling the Netflix effect."
+          }
+        ]
+      },
+      {
+        "id": "fragment-38",
+        "x": 248,
+        "y": 1478,
+        "width": 297,
+        "height": 31,
+        "runs": [
+          {
+            "text": "The Netflix effect is really just"
+          }
+        ]
+      },
+      {
+        "id": "fragment-39",
+        "x": 16,
+        "y": 1508,
+        "width": 485,
+        "height": 31,
+        "runs": [
+          {
+            "text": "the freedom on-demand services give viewers."
+          }
+        ]
+      },
+      {
+        "id": "fragment-40",
+        "x": 16,
+        "y": 1559,
+        "width": 506,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Recently, back-to-back viewing has become the new"
+          }
+        ]
+      },
+      {
+        "id": "fragment-41",
+        "x": 16,
+        "y": 1589,
+        "width": 481,
+        "height": 31,
+        "runs": [
+          {
+            "text": "normal as more viewers tend to watch whole"
+          }
+        ]
+      },
+      {
+        "id": "fragment-42",
+        "x": 16,
+        "y": 1619,
+        "width": 443,
+        "height": 31,
+        "runs": [
+          {
+            "text": "seasons within a few days or weeks."
+          }
+        ]
+      },
+      {
+        "id": "fragment-43",
+        "x": 367,
+        "y": 1619,
+        "width": 176,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This habit even"
+          }
+        ]
+      },
+      {
+        "id": "fragment-44",
+        "x": 16,
+        "y": 1649,
+        "width": 365,
+        "height": 31,
+        "runs": [
+          {
+            "text": "has its own name: binge-watching."
+          }
+        ]
+      },
+      {
+        "id": "fragment-45",
+        "x": 358,
+        "y": 1649,
+        "width": 173,
+        "height": 31,
+        "runs": [
+          {
+            "text": "It allows you"
+          }
+        ]
+      },
+      {
+        "id": "fragment-46",
+        "x": 573,
+        "y": 637,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "to become completely absorbed in the"
+          }
+        ]
+      },
+      {
+        "id": "fragment-47",
+        "x": 573,
+        "y": 668,
+        "width": 298,
+        "height": 31,
+        "runs": [
+          {
+            "text": "world shown in the series."
+          }
+        ]
+      },
+      {
+        "id": "fragment-48",
+        "x": 826,
+        "y": 668,
+        "width": 334,
+        "height": 31,
+        "runs": [
+          {
+            "text": "In fact, you almost"
+          }
+        ]
+      },
+      {
+        "id": "fragment-49",
+        "x": 572,
+        "y": 698,
+        "width": 356,
+        "height": 31,
+        "runs": [
+          {
+            "text": "feel like you’re living in that world."
+          }
+        ]
+      },
+      {
+        "id": "fragment-50",
+        "x": 896,
+        "y": 698,
+        "width": 135,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This takes"
+          }
+        ]
+      },
+      {
+        "id": "fragment-51",
+        "x": 573,
+        "y": 728,
+        "width": 413,
+        "height": 31,
+        "runs": [
+          {
+            "text": "identification with the main characters to"
+          }
+        ]
+      },
+      {
+        "id": "fragment-52",
+        "x": 573,
+        "y": 758,
+        "width": 232,
+        "height": 31,
+        "runs": [
+          {
+            "text": "a whole new level."
+          }
+        ]
+      },
+      {
+        "id": "fragment-53",
+        "x": 752,
+        "y": 758,
+        "width": 272,
+        "height": 31,
+        "runs": [
+          {
+            "text": "To be fair, it must be said"
+          }
+        ]
+      },
+      {
+        "id": "fragment-54",
+        "x": 573,
+        "y": 788,
+        "width": 456,
+        "height": 31,
+        "runs": [
+          {
+            "text": "that binge-watching "
+          },
+          {
+            "text": "The Circle, On My Block",
+            "style": "italic"
+          }
+        ]
+      },
+      {
+        "id": "fragment-55",
+        "x": 573,
+        "y": 818,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "or "
+          },
+          {
+            "text": "Riverdale",
+            "style": "italic"
+          },
+          {
+            "text": " does less for our social life"
+          }
+        ]
+      },
+      {
+        "id": "fragment-56",
+        "x": 573,
+        "y": 848,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "than going out to watch a film with"
+          }
+        ]
+      },
+      {
+        "id": "fragment-57",
+        "x": 573,
+        "y": 878,
+        "width": 171,
+        "height": 31,
+        "runs": [
+          {
+            "text": "friends."
+          }
+        ]
+      },
+      {
+        "id": "fragment-58",
+        "x": 573,
+        "y": 928,
+        "width": 451,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Similarly, films also offer viewers the chance"
+          }
+        ]
+      },
+      {
+        "id": "fragment-59",
+        "x": 573,
+        "y": 958,
+        "width": 451,
+        "height": 31,
+        "runs": [
+          {
+            "text": "to identify with characters and situations."
+          }
+        ]
+      },
+      {
+        "id": "fragment-60",
+        "x": 573,
+        "y": 988,
+        "width": 451,
+        "height": 31,
+        "runs": [
+          {
+            "text": "However, they create a different viewing"
+          }
+        ]
+      },
+      {
+        "id": "fragment-61",
+        "x": 573,
+        "y": 1018,
+        "width": 162,
+        "height": 31,
+        "runs": [
+          {
+            "text": "experience."
+          }
+        ]
+      },
+      {
+        "id": "fragment-62",
+        "x": 686,
+        "y": 1018,
+        "width": 332,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Firstly, films tell a story from start"
+          }
+        ]
+      },
+      {
+        "id": "fragment-63",
+        "x": 573,
+        "y": 1048,
+        "width": 228,
+        "height": 31,
+        "runs": [
+          {
+            "text": "to finish very quickly."
+          }
+        ]
+      },
+      {
+        "id": "fragment-64",
+        "x": 782,
+        "y": 1048,
+        "width": 228,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This means that"
+          }
+        ]
+      },
+      {
+        "id": "fragment-65",
+        "x": 573,
+        "y": 1078,
+        "width": 435,
+        "height": 31,
+        "runs": [
+          {
+            "text": "background details have to be left out for"
+          }
+        ]
+      },
+      {
+        "id": "fragment-66",
+        "x": 573,
+        "y": 1108,
+        "width": 338,
+        "height": 31,
+        "runs": [
+          {
+            "text": "the plot to unfold much quicker."
+          }
+        ]
+      },
+      {
+        "id": "fragment-67",
+        "x": 882,
+        "y": 1108,
+        "width": 148,
+        "height": 31,
+        "runs": [
+          {
+            "text": "This creates"
+          }
+        ]
+      },
+      {
+        "id": "fragment-68",
+        "x": 573,
+        "y": 1138,
+        "width": 428,
+        "height": 31,
+        "runs": [
+          {
+            "text": "a feeling of intensity as every scene is"
+          }
+        ]
+      },
+      {
+        "id": "fragment-69",
+        "x": 573,
+        "y": 1168,
+        "width": 428,
+        "height": 31,
+        "runs": [
+          {
+            "text": "squeezed into a very short amount of time."
+          }
+        ]
+      },
+      {
+        "id": "fragment-70",
+        "x": 573,
+        "y": 1198,
+        "width": 428,
+        "height": 31,
+        "runs": [
+          {
+            "text": "In order for this to happen, dialogues have"
+          }
+        ]
+      },
+      {
+        "id": "fragment-71",
+        "x": 573,
+        "y": 1228,
+        "width": 440,
+        "height": 31,
+        "runs": [
+          {
+            "text": "to be very clear, sub-plots have to be cut and"
+          }
+        ]
+      },
+      {
+        "id": "fragment-72",
+        "x": 573,
+        "y": 1258,
+        "width": 440,
+        "height": 31,
+        "runs": [
+          {
+            "text": "visuals become much more important in"
+          }
+        ]
+      },
+      {
+        "id": "fragment-73",
+        "x": 573,
+        "y": 1288,
+        "width": 236,
+        "height": 31,
+        "runs": [
+          {
+            "text": "telling the story."
+          }
+        ]
+      },
+      {
+        "id": "fragment-74",
+        "x": 567,
+        "y": 1338,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Having said that, the film industry has created"
+          }
+        ]
+      },
+      {
+        "id": "fragment-75",
+        "x": 567,
+        "y": 1368,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "its own version of series with film franchises."
+          }
+        ]
+      },
+      {
+        "id": "fragment-76",
+        "x": 567,
+        "y": 1398,
+        "width": 448,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Think "
+          },
+          {
+            "text": "Harry Potter",
+            "style": "italic"
+          },
+          {
+            "text": ", "
+          },
+          {
+            "text": "The Hunger Games",
+            "style": "italic"
+          },
+          {
+            "text": " and"
+          }
+        ]
+      },
+      {
+        "id": "fragment-77",
+        "x": 567,
+        "y": 1428,
+        "width": 159,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Spider-Man",
+            "style": "italic"
+          },
+          {
+            "text": "."
+          }
+        ]
+      },
+      {
+        "id": "fragment-78",
+        "x": 696,
+        "y": 1428,
+        "width": 314,
+        "height": 31,
+        "runs": [
+          {
+            "text": "These are just a few popular"
+          }
+        ]
+      },
+      {
+        "id": "fragment-79",
+        "x": 567,
+        "y": 1458,
+        "width": 445,
+        "height": 31,
+        "runs": [
+          {
+            "text": "franchises that tell stories over two or more"
+          }
+        ]
+      },
+      {
+        "id": "fragment-80",
+        "x": 567,
+        "y": 1488,
+        "width": 445,
+        "height": 31,
+        "runs": [
+          {
+            "text": "full-length feature films."
+          }
+        ]
+      },
+      {
+        "id": "fragment-81",
+        "x": 799,
+        "y": 1488,
+        "width": 240,
+        "height": 31,
+        "runs": [
+          {
+            "text": "In a way, they"
+          }
+        ]
+      },
+      {
+        "id": "fragment-82",
+        "x": 567,
+        "y": 1518,
+        "width": 445,
+        "height": 31,
+        "runs": [
+          {
+            "text": "combine all the benefits of films and series."
+          }
+        ]
+      },
+      {
+        "id": "fragment-83",
+        "x": 564,
+        "y": 1568,
+        "width": 445,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Streaming services like Netflix, Apple TV and"
+          }
+        ]
+      },
+      {
+        "id": "fragment-84",
+        "x": 564,
+        "y": 1598,
+        "width": 445,
+        "height": 31,
+        "runs": [
+          {
+            "text": "YouTube have revolutionised how we watch"
+          }
+        ]
+      },
+      {
+        "id": "fragment-85",
+        "x": 564,
+        "y": 1628,
+        "width": 185,
+        "height": 31,
+        "runs": [
+          {
+            "text": "films and series."
+          }
+        ]
+      },
+      {
+        "id": "fragment-86",
+        "x": 727,
+        "y": 1628,
+        "width": 298,
+        "height": 31,
+        "runs": [
+          {
+            "text": "The past decade saw a big"
+          }
+        ]
+      },
+      {
+        "id": "fragment-87",
+        "x": 564,
+        "y": 1658,
+        "width": 454,
+        "height": 31,
+        "runs": [
+          {
+            "text": "wave of creativity and a very high number of"
+          }
+        ]
+      },
+      {
+        "id": "fragment-88",
+        "x": 564,
+        "y": 1688,
+        "width": 292,
+        "height": 31,
+        "runs": [
+          {
+            "text": "series being produced."
+          }
+        ]
+      },
+      {
+        "id": "fragment-98",
+        "x": 786,
+        "y": 1688,
+        "width": 242,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Consequently, we have"
+          }
+        ]
+      },
+      {
+        "id": "fragment-89",
+        "x": 564,
+        "y": 1718,
+        "width": 457,
+        "height": 31,
+        "runs": [
+          {
+            "text": "unlimited choice about what to watch and"
+          }
+        ]
+      },
+      {
+        "id": "fragment-90",
+        "x": 564,
+        "y": 1748,
+        "width": 221,
+        "height": 31,
+        "runs": [
+          {
+            "text": "when to watch it."
+          }
+        ]
+      },
+      {
+        "id": "fragment-91",
+        "x": 732,
+        "y": 1748,
+        "width": 293,
+        "height": 31,
+        "runs": [
+          {
+            "text": "As a result, TV audiences are"
+          }
+        ]
+      },
+      {
+        "id": "fragment-92",
+        "x": 564,
+        "y": 1778,
+        "width": 446,
+        "height": 31,
+        "runs": [
+          {
+            "text": "growing continually as shows like "
+          },
+          {
+            "text": "Stranger",
+            "style": "italic"
+          }
+        ]
+      },
+      {
+        "id": "fragment-93",
+        "x": 564,
+        "y": 1808,
+        "width": 398,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Things",
+            "style": "italic"
+          },
+          {
+            "text": " are released at a constant rate."
+          }
+        ]
+      },
+      {
+        "id": "fragment-94",
+        "x": 932,
+        "y": 1808,
+        "width": 100,
+        "height": 31,
+        "runs": [
+          {
+            "text": "Despite"
+          }
+        ]
+      },
+      {
+        "id": "fragment-95",
+        "x": 564,
+        "y": 1838,
+        "width": 458,
+        "height": 31,
+        "runs": [
+          {
+            "text": "the benefits of films and film franchises, it"
+          }
+        ]
+      },
+      {
+        "id": "fragment-96",
+        "x": 564,
+        "y": 1868,
+        "width": 458,
+        "height": 31,
+        "runs": [
+          {
+            "text": "looks like most of us consider watching TV"
+          }
+        ]
+      },
+      {
+        "id": "fragment-97",
+        "x": 564,
+        "y": 1898,
+        "width": 458,
+        "height": 31,
+        "runs": [
+          {
+            "text": "series as the ultimate viewing experience."
+          }
+        ]
+      }
+    ],
+    "cues": [
+      {
+        "id": "cue-1",
+        "startMs": 26629,
+        "endMs": 30790,
+        "fragmentIds": [
+          "fragment-1"
+        ]
+      },
+      {
+        "id": "cue-2",
+        "startMs": 30928,
+        "endMs": 39203,
+        "fragmentIds": [
+          "fragment-2",
+          "fragment-3",
+          "fragment-4",
+          "fragment-5"
+        ]
+      },
+      {
+        "id": "cue-3",
+        "startMs": 39342,
+        "endMs": 45861,
+        "fragmentIds": [
+          "fragment-6",
+          "fragment-7",
+          "fragment-8"
+        ]
+      },
+      {
+        "id": "cue-4",
+        "startMs": 45999,
+        "endMs": 51547,
+        "fragmentIds": [
+          "fragment-9",
+          "fragment-10"
+        ]
+      },
+      {
+        "id": "cue-5",
+        "startMs": 51871,
+        "endMs": 55338,
+        "fragmentIds": [
+          "fragment-11"
+        ]
+      },
+      {
+        "id": "cue-6",
+        "startMs": 55523,
+        "endMs": 61117,
+        "fragmentIds": [
+          "fragment-12",
+          "fragment-13",
+          "fragment-14"
+        ]
+      },
+      {
+        "id": "cue-7",
+        "startMs": 61348,
+        "endMs": 66202,
+        "fragmentIds": [
+          "fragment-15",
+          "fragment-16"
+        ]
+      },
+      {
+        "id": "cue-8",
+        "startMs": 66387,
+        "endMs": 72443,
+        "fragmentIds": [
+          "fragment-17",
+          "fragment-18"
+        ]
+      },
+      {
+        "id": "cue-9",
+        "startMs": 72582,
+        "endMs": 82891,
+        "fragmentIds": [
+          "fragment-19",
+          "fragment-20",
+          "fragment-21"
+        ]
+      },
+      {
+        "id": "cue-10",
+        "startMs": 83492,
+        "endMs": 88809,
+        "fragmentIds": [
+          "fragment-22",
+          "fragment-23"
+        ]
+      },
+      {
+        "id": "cue-11",
+        "startMs": 88994,
+        "endMs": 97639,
+        "fragmentIds": [
+          "fragment-24",
+          "fragment-25",
+          "fragment-26"
+        ]
+      },
+      {
+        "id": "cue-12",
+        "startMs": 97824,
+        "endMs": 104435,
+        "fragmentIds": [
+          "fragment-27",
+          "fragment-28"
+        ]
+      },
+      {
+        "id": "cue-13",
+        "startMs": 104712,
+        "endMs": 114513,
+        "fragmentIds": [
+          "fragment-29",
+          "fragment-30",
+          "fragment-31",
+          "fragment-32"
+        ]
+      },
+      {
+        "id": "cue-14",
+        "startMs": 114883,
+        "endMs": 121540,
+        "fragmentIds": [
+          "fragment-33",
+          "fragment-34",
+          "fragment-35"
+        ]
+      },
+      {
+        "id": "cue-15",
+        "startMs": 122095,
+        "endMs": 126857,
+        "fragmentIds": [
+          "fragment-36",
+          "fragment-37"
+        ]
+      },
+      {
+        "id": "cue-16",
+        "startMs": 127088,
+        "endMs": 132820,
+        "fragmentIds": [
+          "fragment-38",
+          "fragment-39"
+        ]
+      },
+      {
+        "id": "cue-17",
+        "startMs": 133283,
+        "endMs": 142436,
+        "fragmentIds": [
+          "fragment-40",
+          "fragment-41",
+          "fragment-42"
+        ]
+      },
+      {
+        "id": "cue-18",
+        "startMs": 142575,
+        "endMs": 147106,
+        "fragmentIds": [
+          "fragment-43",
+          "fragment-44"
+        ]
+      },
+      {
+        "id": "cue-19",
+        "startMs": 147429,
+        "endMs": 152376,
+        "fragmentIds": [
+          "fragment-45",
+          "fragment-46",
+          "fragment-47"
+        ]
+      },
+      {
+        "id": "cue-20",
+        "startMs": 152607,
+        "endMs": 156629,
+        "fragmentIds": [
+          "fragment-48",
+          "fragment-49"
+        ]
+      },
+      {
+        "id": "cue-21",
+        "startMs": 156814,
+        "endMs": 162177,
+        "fragmentIds": [
+          "fragment-50",
+          "fragment-51",
+          "fragment-52"
+        ]
+      },
+      {
+        "id": "cue-22",
+        "startMs": 162408,
+        "endMs": 173318,
+        "fragmentIds": [
+          "fragment-53",
+          "fragment-54",
+          "fragment-55",
+          "fragment-56",
+          "fragment-57"
+        ]
+      },
+      {
+        "id": "cue-23",
+        "startMs": 173781,
+        "endMs": 180392,
+        "fragmentIds": [
+          "fragment-58",
+          "fragment-59"
+        ]
+      },
+      {
+        "id": "cue-24",
+        "startMs": 180530,
+        "endMs": 184691,
+        "fragmentIds": [
+          "fragment-60",
+          "fragment-61"
+        ]
+      },
+      {
+        "id": "cue-25",
+        "startMs": 184922,
+        "endMs": 189730,
+        "fragmentIds": [
+          "fragment-62",
+          "fragment-63"
+        ]
+      },
+      {
+        "id": "cue-26",
+        "startMs": 190100,
+        "endMs": 196156,
+        "fragmentIds": [
+          "fragment-64",
+          "fragment-65",
+          "fragment-66"
+        ]
+      },
+      {
+        "id": "cue-27",
+        "startMs": 196434,
+        "endMs": 203368,
+        "fragmentIds": [
+          "fragment-67",
+          "fragment-68",
+          "fragment-69"
+        ]
+      },
+      {
+        "id": "cue-28",
+        "startMs": 203646,
+        "endMs": 214279,
+        "fragmentIds": [
+          "fragment-70",
+          "fragment-71",
+          "fragment-72",
+          "fragment-73"
+        ]
+      },
+      {
+        "id": "cue-29",
+        "startMs": 214556,
+        "endMs": 221583,
+        "fragmentIds": [
+          "fragment-74",
+          "fragment-75"
+        ]
+      },
+      {
+        "id": "cue-30",
+        "startMs": 221722,
+        "endMs": 225698,
+        "fragmentIds": [
+          "fragment-76",
+          "fragment-77"
+        ]
+      },
+      {
+        "id": "cue-31",
+        "startMs": 225929,
+        "endMs": 232817,
+        "fragmentIds": [
+          "fragment-78",
+          "fragment-79",
+          "fragment-80"
+        ]
+      },
+      {
+        "id": "cue-32",
+        "startMs": 232956,
+        "endMs": 237810,
+        "fragmentIds": [
+          "fragment-81",
+          "fragment-82"
+        ]
+      },
+      {
+        "id": "cue-33",
+        "startMs": 238134,
+        "endMs": 246085,
+        "fragmentIds": [
+          "fragment-83",
+          "fragment-84",
+          "fragment-85"
+        ]
+      },
+      {
+        "id": "cue-34",
+        "startMs": 246409,
+        "endMs": 253713,
+        "fragmentIds": [
+          "fragment-86",
+          "fragment-87",
+          "fragment-88"
+        ]
+      },
+      {
+        "id": "cue-35",
+        "startMs": 254037,
+        "endMs": 260047,
+        "fragmentIds": [
+          "fragment-98",
+          "fragment-89",
+          "fragment-90"
+        ]
+      },
+      {
+        "id": "cue-36",
+        "startMs": 260417,
+        "endMs": 268923,
+        "fragmentIds": [
+          "fragment-91",
+          "fragment-92",
+          "fragment-93"
+        ]
+      },
+      {
+        "id": "cue-37",
+        "startMs": 269339,
+        "endMs": 279001,
+        "fragmentIds": [
+          "fragment-94",
+          "fragment-95",
+          "fragment-96",
+          "fragment-97"
+        ]
+      }
+    ],
+    "scrollTimeline": [
+      {
+        "startMs": 0,
+        "endMs": 22930,
+        "sourceTimingParts": [
+          0,
+          22930,
+          300001
+        ],
+        "scrollY": 0
+      },
+      {
+        "startMs": 22930,
+        "endMs": 51547,
+        "sourceTimingParts": [
+          22930,
+          51547
+        ],
+        "scrollY": 365
+      },
+      {
+        "startMs": 51547,
+        "endMs": 82891,
+        "sourceTimingParts": [
+          51547,
+          82891
+        ],
+        "scrollY": 876
+      },
+      {
+        "startMs": 82891,
+        "endMs": 148724,
+        "sourceTimingParts": [
+          82891,
+          148724
+        ],
+        "scrollY": 1127
+      },
+      {
+        "startMs": 148724,
+        "endMs": 173318,
+        "sourceTimingParts": [
+          148724,
+          173318
+        ],
+        "scrollY": 610
+      },
+      {
+        "startMs": 173318,
+        "endMs": 214279,
+        "sourceTimingParts": [
+          173318,
+          214279
+        ],
+        "scrollY": 881
+      },
+      {
+        "startMs": 214279,
+        "endMs": 237810,
+        "sourceTimingParts": [
+          214279,
+          237810
+        ],
+        "scrollY": 1334
+      },
+      {
+        "startMs": 237810,
+        "endMs": 279001,
+        "sourceTimingParts": [
+          237810,
+          279001
+        ],
+        "scrollY": 1427
+      }
+    ]
+  }
+}
