@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p1-o1",
+  "instructionText": "Read the quote and discuss these questions with a partner.",
+  "instructionArtworkBinding": "unit1.page5.exercise1.instruction",
+  "quoteArtworkBinding": "unit1.page5.exercise1.quote",
+  "questions": [
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q1",
+      "prompt": "In what ways are films an art form?"
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q2",
+      "prompt": "Why is theatre life?"
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q3",
+      "prompt": "Do you agree that TV is furniture?"
+    }
+  ]
+}

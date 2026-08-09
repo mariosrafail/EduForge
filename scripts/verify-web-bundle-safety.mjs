@@ -26,6 +26,7 @@ const prohibitedPatterns = [
   ["hardcoded accepted-answer array", /\bacceptedAnswers\s*:\s*\[\s*(?:`[^`]+`|"[^"]+"|'[^']+')/g],
   ["known legacy listening answer", /three point five/gi],
   ["known legacy quiz answer", /C\. producer|D\. radar/gi],
+  ["known Teacher-only Page 5 model answer", /Films are an art form which involve many artistic processes/gi],
 ];
 
 async function filesUnder(root) {

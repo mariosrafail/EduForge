@@ -1,5 +1,8 @@
-export const ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS = Object.freeze({
-  "ultimate-b2-sb-u1-p1-o1-q1": "Films are an art form which involve many artistic processes; for example, the script, the sets, the acting, photography, etc. are all creative forms of expression. When they come together, it is art.",
-  "ultimate-b2-sb-u1-p1-o1-q2": "Theatre is life because good actors do more than deliver their lines. They react to the other actors and the audience around them, so they never give the same performance twice. As in real life, every theatre moment is unique.",
-  "ultimate-b2-sb-u1-p1-o1-q3": "No, because watching TV is not just something you do passively. TV entertains and informs viewers so it does more than take up space in a room. / Yes, because in most homes it is the focal point of a room and everything else is organised around it.",
-});
+import authoring from "./_ultimate-b2-unit1-opener-model-answers.json" with { type: "json" };
+import { normalizeUltimateB2Page5TeacherAnswers } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
+
+const normalized = normalizeUltimateB2Page5TeacherAnswers(authoring);
+
+export const ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS = Object.freeze(
+  Object.fromEntries(normalized.modelAnswers.map((answer) => [answer.questionId, answer.text])),
+);

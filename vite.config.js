@@ -6,6 +6,8 @@ import { legacyFlashProofPlugin } from "./scripts/ultimate-b2/legacy-flash-vite-
 import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
 import { ultimateB2HotspotBuilderPlugin } from "./scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs";
 import { ultimateB2ListeningBuilderPlugin } from "./scripts/ultimate-b2/listening-builder-vite-plugin.mjs";
+import { ultimateB2MultipleChoiceBuilderPlugin } from "./scripts/ultimate-b2/multiple-choice-builder-vite-plugin.mjs";
+import { ultimateB2Page5BuilderPlugin } from "./scripts/ultimate-b2/page5-builder-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
@@ -105,6 +107,8 @@ export default defineConfig(({ mode }) => {
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
       !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin() : null,
       !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
       !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
     ].filter(Boolean),

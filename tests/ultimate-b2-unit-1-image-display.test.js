@@ -38,16 +38,19 @@ test("the recovered publisher display is enabled as an unscored image activity",
 });
 
 test("the image display renderer uses the tracked image and exact recovered publisher lines", async () => {
-  const [displaySource, rendererSource, normalizedSource, recoveredActivityStyles] = await Promise.all([
+  const [displaySource, authoringSource, authoringDataSource, rendererSource, normalizedSource, recoveredActivityStyles] = await Promise.all([
     readFile("src/data/ultimate-b2/unit1Part1Exercise2Display.js", "utf8"),
+    readFile("src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.publisher-display.json", "utf8"),
+    readFile("src/data/ultimate-b2/page5AuthoringData.js", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2PublisherImageDisplayActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
     readFile("src/styles/ultimate-b2-recovered-activities.css", "utf8"),
   ]);
-  assert.match(displaySource, /obj2\/image_2\.png/);
-  assert.match(displaySource, /your favourite form of entertainment/);
-  assert.match(displaySource, /how often you watch films, plays and TV programmes/);
-  assert.match(displaySource, /where you watch them/);
+  assert.match(authoringDataSource, /obj2\/image_2\.png/);
+  assert.match(authoringSource, /your favourite form of entertainment/);
+  assert.match(authoringSource, /how often you watch films, plays and TV programmes/);
+  assert.match(authoringSource, /where you watch them/);
+  assert.match(displaySource, /headingArtworkBinding/);
   assert.match(rendererSource, /data-publisher-image-display-activity/);
   assert.match(rendererSource, /<img src=\{display\.image\}/);
   assert.match(normalizedSource, /isUltimateB2PublisherImageDisplay\(activity\)/);

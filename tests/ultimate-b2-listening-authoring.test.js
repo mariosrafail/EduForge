@@ -129,16 +129,18 @@ test("local Listening endpoint validates, atomically saves, and reloads isolated
 });
 
 test("Builder shell keeps Hotspot authoring separate and exposes Listening editor sections", async () => {
-  const [entry, shell, activityBuilder, listeningBuilder] = await Promise.all([
+  const [entry, shell, activityBuilder, registry, listeningBuilder] = await Promise.all([
     readFile("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx", "utf8"),
     readFile("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx", "utf8"),
     readFile("src/apps/ultimate-b2-builder/UltimateB2ActivityBuilder.jsx", "utf8"),
+    readFile("src/apps/ultimate-b2-builder/activityEditorRegistry.js", "utf8"),
     readFile("src/apps/ultimate-b2-builder/UltimateB2ListeningBuilder.jsx", "utf8"),
   ]);
   assert.match(entry, /UltimateB2BuilderApp/);
   assert.match(shell, /Hotspot Builder[\s\S]*Activity Builder/);
   assert.match(shell, /UltimateB2HotspotBuilder/);
-  assert.match(activityBuilder, /Listening/);
+  assert.match(activityBuilder, /ultimateB2ActivityEditorRegistry/);
+  assert.match(registry, /Listening/);
   for (const section of sectionNames) assert.match(listeningBuilder, new RegExp(section));
   assert.match(listeningBuilder, /Unsaved changes/);
   assert.match(listeningBuilder, /beforeunload/);

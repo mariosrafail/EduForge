@@ -10,6 +10,7 @@ const forbidden = [
   ["teacher answer controls", /teacher-presentation-answer-controls|Presentation answer controls|Show all answers|Hide answers/gi],
   ["authoring answer-key payload", /correctAnswers\s*:/gi],
   ["publisher answer reveal", /Publisher answer|Show publisher model answer/gi],
+  ["Teacher-only Page 5 model answer", /Films are an art form which involve many artistic processes/gi],
 ];
 
 async function filesUnder(root) {

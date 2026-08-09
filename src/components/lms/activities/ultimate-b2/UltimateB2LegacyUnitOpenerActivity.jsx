@@ -1,4 +1,6 @@
-import { ultimateB2Unit1LegacyOpenerImages } from "../../../../data/ultimate-b2/unit1Part1LegacyOpenerAssets.js";
+import { getUltimateB2Page5OpenResponseAuthoring, resolveUltimateB2Page5Artwork } from "../../../../data/ultimate-b2/page5AuthoringData.js";
+import fallbackQuoteArtwork from "../../../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_1.png";
+import fallbackInstructionArtwork from "../../../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_2.png";
 import { TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
 
 export function UltimateB2LegacyUnitOpenerActivity({
@@ -12,13 +14,17 @@ export function UltimateB2LegacyUnitOpenerActivity({
   solutionsLoading,
   revealQuestion,
   actions,
+  authoring: authoringOverride = null,
 }) {
-  const questions = activity.runtime?.questions || [];
+  const authoring = authoringOverride || getUltimateB2Page5OpenResponseAuthoring(activity);
+  const questions = authoring?.questions || activity.runtime?.questions || [];
+  const instructionArtwork = resolveUltimateB2Page5Artwork(authoring?.instructionArtworkBinding) || fallbackInstructionArtwork;
+  const quoteArtwork = resolveUltimateB2Page5Artwork(authoring?.quoteArtworkBinding) || fallbackQuoteArtwork;
 
   return (
     <section className="ultimate-b2-legacy-unit-opener" data-legacy-unit-opener-activity={activity.stableNormalizedId}>
       <div className="legacy-unit-opener-paper">
-        <img className="legacy-unit-opener-instruction" src={ultimateB2Unit1LegacyOpenerImages.instructionArtwork} alt={activity.visibleInstructionText} />
+        <img className="legacy-unit-opener-instruction" src={instructionArtwork} alt={authoring?.instructionText || activity.visibleInstructionText} />
         <div className="legacy-unit-opener-layout">
           <div className="legacy-unit-opener-questions">
             {questions.map((question, index) => {
@@ -43,7 +49,7 @@ export function UltimateB2LegacyUnitOpenerActivity({
               );
             })}
           </div>
-          <img className="legacy-unit-opener-quote-art" src={ultimateB2Unit1LegacyOpenerImages.quoteArtwork} alt="Who said it? Film is art, theatre is life and television is furniture — Kenny Leon" />
+          <img className="legacy-unit-opener-quote-art" src={quoteArtwork} alt="Who said it? Film is art, theatre is life and television is furniture — Kenny Leon" />
         </div>
       </div>
       {actions}

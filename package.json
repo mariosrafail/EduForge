@@ -58,6 +58,8 @@
     "test:ultimate-b2:legacy-pilot:assets": "node --test tests/ultimate-b2-unit-1-part-2-legacy-pilot.test.js",
     "test:ultimate-b2:legacy-pilot:visual": "node scripts/ultimate-b2/legacy-pilot-visual.mjs",
     "test:ultimate-b2:legacy-pilot:modes": "node scripts/ultimate-b2/legacy-pilot-modes.mjs",
+    "test:ultimate-b2:multiple-choice-builder:visual": "node scripts/ultimate-b2/multiple-choice-builder-visual.mjs",
+    "test:ultimate-b2:activity-builder:visual": "node scripts/ultimate-b2/multiple-choice-builder-visual.mjs",
     "test:android-teacher-device": "node scripts/android-teacher/device-smoke.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 8000",
     "android:init": "npx cap add android",
@@ -104,6 +106,7 @@
     "ultimate-b2:audit:legacy-flash": "node scripts/ultimate-b2/legacy-flash-audit.mjs",
     "ultimate-b2:recover:startup-intro": "node scripts/ultimate-b2/recover-startup-intro.mjs",
     "ultimate-b2:extract:listening": "node scripts/ultimate-b2/extract-listening-authoring.mjs",
+    "ultimate-b2:extract:multiple-choice": "node scripts/ultimate-b2/extract-multiple-choice-authoring.mjs",
     "ultimate-b2:test:legacy-flash": "node scripts/ultimate-b2/run-legacy-flash-proof.mjs"
   },
   "dependencies": {
