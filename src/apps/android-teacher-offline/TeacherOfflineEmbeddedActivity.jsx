@@ -9,6 +9,8 @@ import multipleChoiceAuthoring from "../../data/ultimate-b2/authoring/unit-01-re
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
   "ultimate-b2-sb-u1-p2-o3": Object.freeze({ width: 1280, height: 728 }),
+  "ultimate-b2-sb-u1-p2-o4": Object.freeze({ width: 1024, height: 582 }),
+  "ultimate-b2-sb-u1-p2-o5": Object.freeze({ width: 1024, height: 582 }),
 });
 
 export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange }) {

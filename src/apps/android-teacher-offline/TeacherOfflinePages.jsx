@@ -19,6 +19,7 @@ import {
   getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
 } from "../../data/ultimate-b2/studentsBookHotspots.js";
+import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseAuthoringData.js";
 
 const minimumZoom = 1;
 const maximumZoom = 4;
@@ -77,6 +78,9 @@ export default function TeacherOfflinePages({
   ));
   const listeningAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o2";
   const multipleChoiceAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o3";
+  const readingPresentationFeatures = getUltimateB2ReadingExercisePresentationFeatures(embeddedActivityId);
+  const showTextAvailable = readingPresentationFeatures.showTextEnabled;
+  const internalPartsAvailable = readingPresentationFeatures.internalPartCount > 1;
   const classroomSurfaceKey = activityActive
     ? `students-book:activity:${embeddedActivityId}`
     : page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -108,9 +112,13 @@ export default function TeacherOfflinePages({
     setActivityVideoOpen(false);
     setListeningView("questions");
     setListeningShowTextCommand(0);
-    setActivityPresentationState({ view: "questions", panelIndex: 0, panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : 0 });
+    setActivityPresentationState({
+      view: "questions",
+      panelIndex: 0,
+      panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
+    });
     setActivityPresentationCommand(null);
-  }, [activityActive, embeddedActivityId, page?.id, selectedPageId]);
+  }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -298,7 +306,7 @@ export default function TeacherOfflinePages({
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => setListeningShowTextCommand((command) => command + 1),
-  }] : multipleChoiceAvailable ? [{
+  }] : multipleChoiceAvailable || showTextAvailable ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
@@ -308,7 +316,7 @@ export default function TeacherOfflinePages({
     activeIconName: "showTextPressed",
     onClick: () => sendActivityCommand("toggle-text"),
   }] : [];
-  const internalNavigation = multipleChoiceAvailable ? {
+  const internalNavigation = multipleChoiceAvailable || internalPartsAvailable ? {
     previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,
     nextDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
     onPrevious: () => sendActivityCommand("previous-panel"),

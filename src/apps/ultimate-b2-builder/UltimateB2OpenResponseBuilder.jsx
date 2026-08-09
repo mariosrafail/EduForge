@@ -3,10 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { UltimateB2LegacyUnitOpenerActivity } from "../../components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx";
 import { normalizeUltimateB2Page5OpenResponseAuthoring, normalizeUltimateB2Page5TeacherAnswers } from "../../data/ultimate-b2/page5AuthoringSchema.js";
+import { UltimateB2ExerciseVisualCapabilitiesEditor } from "./UltimateB2ExerciseVisualCapabilitiesEditor.jsx";
 
 const activityId = "ultimate-b2-sb-u1-p1-o1";
 const endpoint = `/__hhplms/ultimate-b2-page-5-authoring?activityId=${activityId}`;
 const sections = ["Content", "Teacher Answers", "Preview"];
+const instructionOptions = [{ value: "unit1.page5.exercise1.instruction", label: "Page 5 Exercise 1 publisher instruction" }];
 
 export function UltimateB2OpenResponseBuilder() {
   const [payload, setPayload] = useState(null);
@@ -69,7 +71,6 @@ export function UltimateB2OpenResponseBuilder() {
   const previewActivity = useMemo(() => payload ? ({
     stableNormalizedId: activityId,
     title: "Unit opener · Exercise 1",
-    visibleInstructionText: payload.publicAuthoring.instructionText,
     runtime: { questions: payload.publicAuthoring.questions },
   }) : null, [payload]);
   const previewSolutions = useMemo(() => payload ? ({
@@ -86,9 +87,9 @@ export function UltimateB2OpenResponseBuilder() {
       </header>
       <nav className="listening-builder-sections" aria-label="Open-response editor sections">{sections.map((name) => <button type="button" key={name} aria-selected={section === name} onClick={() => setSection(name)}>{name}</button>)}</nav>
       {section === "Content" && <div className="page5-builder-form">
-        <label>Visible instruction text<textarea value={payload.publicAuthoring.instructionText} onChange={(event) => change((next) => { next.publicAuthoring.instructionText = event.target.value; })} /></label>
+        <UltimateB2ExerciseVisualCapabilitiesEditor visualCapabilities={payload.publicAuthoring.visualCapabilities} instructionOptions={instructionOptions} showTextOptions={[]} onChange={(updater) => change((next) => updater(next.publicAuthoring.visualCapabilities))} />
+        <label>Instruction image alternative text<textarea value={payload.publicAuthoring.instructionImageAlt} onChange={(event) => change((next) => { next.publicAuthoring.instructionImageAlt = event.target.value; })} /></label>
         <div className="page5-builder-binding-grid">
-          <label>Instruction artwork<select value={payload.publicAuthoring.instructionArtworkBinding} onChange={(event) => change((next) => { next.publicAuthoring.instructionArtworkBinding = event.target.value; })}><option value="unit1.page5.exercise1.instruction">Page 5 Exercise 1 instruction artwork</option></select></label>
           <label>Quote artwork<select value={payload.publicAuthoring.quoteArtworkBinding} onChange={(event) => change((next) => { next.publicAuthoring.quoteArtworkBinding = event.target.value; })}><option value="unit1.page5.exercise1.quote">Page 5 Exercise 1 quote artwork</option></select></label>
         </div>
         {payload.publicAuthoring.questions.map((question, index) => <label key={question.id}>Question {index + 1}<textarea aria-label={`Question ${index + 1} text`} value={question.prompt} onChange={(event) => change((next) => { next.publicAuthoring.questions[index].prompt = event.target.value; })} /><code>{question.id}</code></label>)}

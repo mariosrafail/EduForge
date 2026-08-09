@@ -82,6 +82,7 @@ function readableActivityType(value = "") {
     media_video: "Video",
     media_audio: "Audio",
     "publisher-image-display": "Publisher image",
+    image: "Image",
     multiple_choice: "Multiple choice",
     normalized_students_book: "Interactive exercise",
     teacher_reviewed_response: "Written response",

@@ -14,7 +14,7 @@ export const unit1Exercise2ImageDisplaySourceActivity = Object.freeze({
   physicalPageNumber: 5,
   spread: "5",
   activityOrder: 2,
-  activityType: "publisher-image-display",
+  activityType: "image",
   publisherInteractionTypes: ["display"],
   title: "Unit 1 / Part 1 / Object 2",
   titleSource: "application-generated-diagnostic",
@@ -37,11 +37,11 @@ export const unit1Exercise2ImageDisplaySourceActivity = Object.freeze({
   extractionConfidence: "confirmed-structural",
   editorialStatus: "manual-review-required",
   publicationStatus: "disabled",
-  qualityCategories: ["publisher-display-object"],
+  qualityCategories: ["image-activity"],
   implementationStatus: "not-implemented",
   unsupportedSourceFields: [],
   extractionWarnings: [],
-  presentationData: { layout: "publisher-image-display" },
+  presentationData: { layout: "image" },
 });
 
 export function withUnit1Exercise2ImageDisplayActivity(activities = []) {

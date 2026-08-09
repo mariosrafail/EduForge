@@ -1,8 +1,14 @@
 {
   "schemaVersion": 1,
   "activityId": "ultimate-b2-sb-u1-p1-o1",
-  "instructionText": "Read the quote and discuss these questions with a partner.",
-  "instructionArtworkBinding": "unit1.page5.exercise1.instruction",
+  "visualCapabilities": {
+    "instructionImage": "unit1.page5.exercise1.instruction",
+    "showText": {
+      "enabled": false,
+      "showTextImage": null
+    }
+  },
+  "instructionImageAlt": "Read the quote and discuss these questions with a partner.",
   "quoteArtworkBinding": "unit1.page5.exercise1.quote",
   "questions": [
     {

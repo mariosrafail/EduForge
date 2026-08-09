@@ -12,6 +12,8 @@ import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js
 import { TeacherLegacyQuestionFeedback, TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
 import { TeacherLegacyListeningActivity } from "./TeacherLegacyListeningActivity.jsx";
 import { TeacherLegacyMultipleChoiceActivity } from "./TeacherLegacyMultipleChoiceActivity.jsx";
+import { UltimateB2CompleteSentencesActivity } from "./UltimateB2CompleteSentencesActivity.jsx";
+import { UltimateB2DebateClubActivity } from "./UltimateB2DebateClubActivity.jsx";
 
 const PdfSaver = registerPlugin("PdfSaver");
 
@@ -328,41 +330,6 @@ function ObjectThree({ images, questionProps, activityPresentation }) {
   );
 }
 
-function ObjectFour({ images, questionProps }) {
-  return (
-    <>
-      <LegacyInstruction src={images.instruction} alt="Exercise 4. Complete the sentences with words from the text." />
-      <div className="legacy-pilot-object-four-grid">
-        <details className="legacy-pilot-reference-text">
-          <summary><Eye size={19} /> Reading text</summary>
-          <img src={images.readingText} alt="Original publisher reading text with highlighted words" loading="lazy" />
-        </details>
-        <LegacyQuestions {...questionProps} />
-      </div>
-    </>
-  );
-}
-
-function ObjectFive({ images, questionProps }) {
-  return (
-    <>
-      <div className="legacy-pilot-debate-heading">
-        <img src={images.badge} alt="Debate club" draggable="false" />
-        <LegacyInstruction src={images.instruction} alt="Discuss the question using the ideas given, then present your arguments." />
-      </div>
-      <div className="legacy-pilot-debate-evidence">
-        {images.photos.map((photo, index) => (
-          <figure key={photo}>
-            <img className="legacy-pilot-debate-photo" src={photo} alt={index === 0 ? "Watching a film at home" : "Watching a film at the cinema"} draggable="false" />
-            <img className="legacy-pilot-debate-bubble" src={images.argumentBubbles[index]} alt={index === 0 ? "Example argument for watching at home" : "Example argument for going to the cinema"} draggable="false" />
-          </figure>
-        ))}
-      </div>
-      <LegacyQuestions {...questionProps} />
-    </>
-  );
-}
-
 export function UltimateB2LegacyPilotActivity({
   activity,
   capabilities,
@@ -397,6 +364,9 @@ export function UltimateB2LegacyPilotActivity({
   const teacherListening = objectNumber === 2 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
   const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
 
+  if (objectNumber === 4) return <UltimateB2CompleteSentencesActivity activity={activity} presentation={activityPresentation} />;
+  if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} presentation={activityPresentation} />;
+
   return (
     <article
       className={`unit2-normalized-activity ultimate-b2-legacy-pilot legacy-pilot--object-${objectNumber} ${capabilities.isPresentation ? "teacher-presentation-activity" : ""}`}
@@ -413,8 +383,6 @@ export function UltimateB2LegacyPilotActivity({
         {objectNumber === 1 && <ObjectOne {...bodyProps} />}
         {objectNumber === 2 && <ObjectTwo {...bodyProps} />}
         {objectNumber === 3 && <ObjectThree {...bodyProps} />}
-        {objectNumber === 4 && <ObjectFour {...bodyProps} />}
-        {objectNumber === 5 && <ObjectFive {...bodyProps} />}
       </section>
       {actions && <footer className="legacy-pilot-actions">{actions}</footer>}
     </article>

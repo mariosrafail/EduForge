@@ -213,7 +213,7 @@ async function assertEmbeddedActivity(page, label) {
 }
 
 async function assertPublisherImageCanvas(page, label) {
-  const styles = await page.locator(".ultimate-b2-publisher-image-display, .ultimate-b2-publisher-image-display-sheet").evaluateAll((elements) => elements.map((element) => {
+  const styles = await page.locator(".ultimate-b2-image-activity, .ultimate-b2-image-activity-sheet").evaluateAll((elements) => elements.map((element) => {
     const style = getComputedStyle(element);
     return { background: style.backgroundColor, border: style.borderWidth, radius: style.borderRadius, shadow: style.boxShadow };
   }));

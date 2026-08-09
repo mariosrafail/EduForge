@@ -22,8 +22,8 @@ import { isUltimateB2Unit1Part2LegacyPilot } from "../../../../data/ultimate-b2/
 import { UltimateB2LegacyPilotActivity } from "./UltimateB2LegacyPilotActivity.jsx";
 import { isUltimateB2Unit1LegacyOpener } from "../../../../data/ultimate-b2/unit1Part1LegacyOpener.js";
 import { UltimateB2LegacyUnitOpenerActivity } from "./UltimateB2LegacyUnitOpenerActivity.jsx";
-import { isUltimateB2PublisherImageDisplay } from "../../../../data/ultimate-b2/unit1Part1Exercise2Display.js";
-import { UltimateB2PublisherImageDisplayActivity } from "./UltimateB2PublisherImageDisplayActivity.jsx";
+import { isUltimateB2ImageActivity } from "../../../../data/ultimate-b2/unit1Part1Exercise2Image.js";
+import { UltimateB2ImageActivity } from "./UltimateB2ImageActivity.jsx";
 import { TeacherPresentationControls, TeacherQuestionFeedback } from "virtual:teacher-answer-ui";
 
 const studentAndroidBuild = import.meta.env.VITE_APP_MODE === "android-offline";
@@ -216,7 +216,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   const legacyPilotObjectTwo = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o2";
   const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
   const teacherOfflineMultipleChoice = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o3" && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
-  const publisherImageDisplay = isUltimateB2PublisherImageDisplay(activity);
+  const imageActivity = isUltimateB2ImageActivity(activity);
   const media = (activity.mediaDependencies || []).filter((dependency) => dependency.logicalKey);
   const frozen = submitted || completed || !capabilities.canEditAnswers;
   const updateAnswer = (questionId, value) => {
@@ -364,7 +364,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
       {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
       {submitError && <div className="inline-status error">{submitError}</div>}
-      {capabilities.isPresentation && !legacyUnitOpener && !legacyPilotObjectOne && !teacherOfflineListening && !teacherOfflineMultipleChoice && !publisherImageDisplay && <TeacherPresentationControls solutionsLoading={solutionsLoading} solutions={solutions} revealedCount={revealedQuestionIds.length} onCheck={checkAnswers} onReset={reset} onRevealAll={revealAll} onHide={() => setRevealedQuestionIds(hidePresentationAnswers())} />}
+      {capabilities.isPresentation && !legacyUnitOpener && !legacyPilotObjectOne && !teacherOfflineListening && !teacherOfflineMultipleChoice && !imageActivity && <TeacherPresentationControls solutionsLoading={solutionsLoading} solutions={solutions} revealedCount={revealedQuestionIds.length} onCheck={checkAnswers} onReset={reset} onRevealAll={revealAll} onHide={() => setRevealedQuestionIds(hidePresentationAnswers())} />}
       {!studentAndroidBuild && solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
       {!studentAndroidBuild && solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
       {!studentAndroidBuild && solutionError && <div className="inline-status error">{solutionError}</div>}
@@ -389,8 +389,8 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     );
   }
 
-  if (publisherImageDisplay) {
-    return <UltimateB2PublisherImageDisplayActivity activity={activity} />;
+  if (imageActivity) {
+    return <UltimateB2ImageActivity activity={activity} />;
   }
 
   if (isUltimateB2Unit1Part2LegacyPilot(activity)) {

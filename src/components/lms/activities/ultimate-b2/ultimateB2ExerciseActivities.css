@@ -1,0 +1,189 @@
+.ultimate-b2-complete-sentences,
+.ultimate-b2-debate-club,
+.ultimate-b2-show-text-shell {
+  position: relative;
+  width: 1024px;
+  height: 582px;
+  overflow: hidden;
+  color: #111827;
+  background: #fff;
+  font-family: "Fira Sans", Arial, sans-serif;
+}
+
+.ultimate-b2-exercise-instruction {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 50%;
+  display: block;
+  max-width: calc(100% - 80px);
+  max-height: 66px;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+.ultimate-b2-complete-sentences-example,
+.ultimate-b2-complete-sentence {
+  position: absolute;
+  left: 57px;
+  display: flex;
+  width: 920px;
+  min-height: 34px;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 21px;
+  line-height: 29px;
+}
+
+.ultimate-b2-complete-sentences-example > b,
+.ultimate-b2-complete-sentence > b {
+  width: 22px;
+  flex: 0 0 auto;
+}
+
+.ultimate-b2-complete-sentences-example strong {
+  color: #00aeef;
+  font-weight: 700;
+}
+
+.ultimate-b2-complete-sentence--long > span:first-of-type {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.ultimate-b2-inline-blank {
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 24px;
+  border-bottom: 2px solid #111827;
+}
+
+.ultimate-b2-complete-sentence button {
+  position: absolute;
+  z-index: 3;
+  padding: 0 4px;
+  color: transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  font: 700 21px/29px "Fira Sans", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.ultimate-b2-complete-sentence button:hover,
+.ultimate-b2-complete-sentence button:focus-visible {
+  background: rgb(0 174 239 / 12%);
+  outline: 2px solid rgb(0 174 239 / 45%);
+}
+
+.ultimate-b2-complete-sentence button.revealed {
+  color: #00aeef;
+  background: #fff;
+}
+
+.ultimate-b2-show-text-shell {
+  padding: 12px;
+}
+
+.ultimate-b2-show-text-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #eef7fa;
+  scrollbar-gutter: stable;
+}
+
+.ultimate-b2-show-text-viewport img {
+  display: block;
+  width: min(100%, 1000px);
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.ultimate-b2-debate-badge {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 225px;
+  height: auto;
+  object-fit: contain;
+}
+
+.ultimate-b2-debate-club .ultimate-b2-exercise-instruction {
+  top: 28px;
+  left: 265px;
+  width: 646px;
+  max-width: 646px;
+  transform: none;
+}
+
+.ultimate-b2-debate-club h2 {
+  position: absolute;
+  top: 118px;
+  left: 75px;
+  width: 875px;
+  margin: 0;
+  color: #69194f;
+  font-size: 24px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.ultimate-b2-debate-part-image {
+  position: absolute;
+  top: 170px;
+  right: 58px;
+  width: 250px;
+  max-height: 172px;
+  object-fit: contain;
+}
+
+.ultimate-b2-debate-argument-image {
+  position: absolute;
+  top: 172px;
+  left: 70px;
+  width: 310px;
+  max-height: 125px;
+  object-fit: contain;
+}
+
+.ultimate-b2-debate-club[data-debate-part="2"] .ultimate-b2-debate-part-image {
+  right: auto;
+  left: 58px;
+}
+
+.ultimate-b2-debate-club[data-debate-part="2"] .ultimate-b2-debate-argument-image {
+  right: 70px;
+  left: auto;
+}
+
+.ultimate-b2-debate-hotspot {
+  position: absolute;
+  z-index: 3;
+  padding: 18px 22px;
+  overflow: auto;
+  color: transparent;
+  background-color: rgb(255 255 255 / 20%);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 28px, #334155 29px, transparent 30px);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ultimate-b2-debate-hotspot:hover,
+.ultimate-b2-debate-hotspot:focus-visible {
+  border-color: rgb(105 25 79 / 45%);
+  outline: 3px solid rgb(105 25 79 / 14%);
+}
+
+.ultimate-b2-debate-hotspot.revealed {
+  color: #111827;
+  background-color: #fff;
+}
+
+.ultimate-b2-debate-hotspot span {
+  font: 600 18px/29px "Fira Sans", Arial, sans-serif;
+}

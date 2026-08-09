@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p2-o5",
+  "source": {
+    "objectNumber": 5,
+    "iwbSha256": "2a2be60f99bb5efbc9291eed7f5895b31af39c38c164b97edf88f52d93c44da4",
+    "decodedSha256": "b4e93379285d760ea630abc16d6239154a4f990bef48b33a62551d80ec3089bc",
+    "assetSha256": {
+      "image_1.png": "54eb94bf8b117920e3da784ddf77126abc873bc5967da8d12334c7b0557be373",
+      "image_2.png": "034bc5948ec05143e8298bb58a5697e8317da92bbd21ca5cc84d3b2140e8d8d8",
+      "image_3.png": "3beb3146e169bd5fb0541318212406ff24434734ad679fdc4a7bc3e6b1b9aba2",
+      "image_4.png": "e4155f309f4262da5607617bc5d6ed37972eab132d4bac81b502b364bd38ffc2",
+      "image_5.png": "d711ceb3fd6d15cb144993ba8bd5cd8faf3c53b365f58a5524025d49c6b458b7",
+      "image_6.png": "15c359a68627689c7d64b210c0774a96e403dff1eb99246df87f30d76cd97e3c"
+    }
+  },
+  "surface": {
+    "width": 1024,
+    "height": 582
+  },
+  "visualCapabilities": {
+    "instructionImage": "unit1.reading.debate-club.instruction",
+    "showText": {
+      "enabled": false,
+      "showTextImage": null
+    }
+  },
+  "badgeImage": "unit1.reading.debate-club.badge",
+  "parts": [
+    {
+      "id": "part-1",
+      "number": 1,
+      "prompt": "Watching a film at home is better than going to the cinema. Agree or disagree?",
+      "partImage": "unit1.reading.debate-club.part-1-photo",
+      "partImageAlt": "Watching a film at home",
+      "argumentImage": "unit1.reading.debate-club.part-1-argument",
+      "hotspot": {
+        "id": "debate-reveal-1",
+        "area": { "x": 55, "y": 255, "width": 755, "height": 310 },
+        "ariaLabel": "Reveal the argument for watching a film at home",
+        "revealText": "In my opinion, watching a film at home is better than watching it at the cinema. To begin with, it is much cheaper to stream films at home, so why go to the expense of going to the cinema? Although people generally consider going to the cinema an entertaining social event, it is more convenient to watch a film in the comfort of your own home than in a crowded cinema. Furthermore, you can pause the film whenever you need to, and you won’t have to put up with noise from other spectators. For these reasons, I believe that it’s better to watch a film at home."
+      }
+    },
+    {
+      "id": "part-2",
+      "number": 2,
+      "prompt": "Watching a film at home is better than going to the cinema. Agree or disagree?",
+      "partImage": "unit1.reading.debate-club.part-2-photo",
+      "partImageAlt": "Watching a film at the cinema",
+      "argumentImage": "unit1.reading.debate-club.part-2-argument",
+      "hotspot": {
+        "id": "debate-reveal-2",
+        "area": { "x": 375, "y": 230, "width": 625, "height": 300 },
+        "ariaLabel": "Reveal the argument for going to the cinema",
+        "revealText": "Many people say that watching films at home is cheaper and more convenient. However, I believe that going to the cinema is much more entertaining than streaming films at home. Being at the cinema with others can be a wonderful experience and an opportunity to socialise with others. It allows us to feel connected with other people, which is very important in life. Although watching a film at home is great, in my view it doesn’t compare with going to the cinema."
+      }
+    }
+  ]
+}

@@ -147,9 +147,15 @@ async function screenshot(page, target, objectNumber, state) {
   });
 }
 
+function activitySelector(id) {
+  if (id.endsWith("-o4")) return `[data-complete-sentences-activity="${id}"]`;
+  if (id.endsWith("-o5")) return `[data-debate-club-activity="${id}"]`;
+  return `[data-legacy-pilot-activity="${id}"]`;
+}
+
 async function assertPilotLayout(page, target, id) {
   await page.waitForFunction((activityId) => {
-    const root = document.querySelector(`[data-legacy-pilot-activity="${activityId}"]`);
+    const root = document.querySelector(`[data-legacy-pilot-activity="${activityId}"], [data-complete-sentences-activity="${activityId}"], [data-debate-club-activity="${activityId}"]`);
     if (!root) return false;
     return [...root.querySelectorAll("img")]
       .filter((image) => {
@@ -158,7 +164,7 @@ async function assertPilotLayout(page, target, id) {
       })
       .every((image) => image.complete);
   }, id);
-  const metrics = await page.locator(".ultimate-b2-legacy-pilot").evaluate((root) => {
+  const metrics = await page.locator(activitySelector(id)).evaluate((root) => {
     const rect = root.getBoundingClientRect();
     const stageScale = Number(document.querySelector("[data-teacher-stage-scale]")?.dataset.teacherStageScale);
     const fitViewport = root.closest(".teacher-offline-embedded-activity");
@@ -199,7 +205,7 @@ async function assertPilotLayout(page, target, id) {
     const viewportStyle = fitViewport ? getComputedStyle(fitViewport) : null;
     const viewportRect = fitViewport?.getBoundingClientRect();
     return {
-      activityId: root.dataset.legacyPilotActivity,
+      activityId: root.dataset.legacyPilotActivity || root.dataset.completeSentencesActivity || root.dataset.debateClubActivity,
       stageScale,
       presentationScale,
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -317,9 +323,9 @@ try {
       let videoGeometry = null;
       const row = page.locator(".teacher-offline-lessons article").filter({ hasText: activity.label }).first();
       await row.getByRole("button", { name: "Present" }).click();
-      await page.locator(`[data-legacy-pilot-activity="${activity.id}"]`).waitFor();
+      await page.locator(activitySelector(activity.id)).waitFor();
       const initial = await assertPilotLayout(page, target, activity.id);
-      assert.equal(await page.getByRole("button", { name: /activity part/ }).count(), objectNumber === 3 ? 2 : 0, `${target.name} Object ${objectNumber} internal navigation visibility`);
+      assert.equal(await page.getByRole("button", { name: /activity part/ }).count(), [3, 5].includes(objectNumber) ? 2 : 0, `${target.name} Object ${objectNumber} internal navigation visibility`);
       stableChrome ||= await readChromeGeometry(page, `${target.name} object ${objectNumber} initial`);
       await assertStableChromeGeometry(page, stableChrome, `${target.name} object ${objectNumber} initial`);
       await screenshot(page, target, objectNumber, "initial");
@@ -358,7 +364,7 @@ try {
         await screenshot(page, target, objectNumber, "media");
         await video.evaluate((element) => element.pause());
         await overlay.getByRole("button", { name: "Close video" }).click();
-        await page.locator(`[data-legacy-pilot-activity="${activity.id}"]`).waitFor();
+        await page.locator(activitySelector(activity.id)).waitFor();
       }
 
       if (objectNumber === 2) {
@@ -433,23 +439,34 @@ try {
       }
 
       if (objectNumber === 4) {
-        await page.locator(".legacy-pilot-write-question input").first().fill("not the answer");
-        await screenshot(page, target, objectNumber, "partial");
-        await page.getByRole("button", { name: "Check", exact: true }).click();
-        await page.locator(".legacy-pilot-result").first().waitFor();
-        await screenshot(page, target, objectNumber, "feedback");
-        await page.getByRole("button", { name: "Show all answers" }).click();
-        await page.getByText("Publisher answer", { exact: true }).first().waitFor();
-        await screenshot(page, target, objectNumber, "teacher-reveal");
+        const firstBlank = page.locator(".ultimate-b2-complete-sentence button").first();
+        assert.equal(await firstBlank.getAttribute("aria-label"), "Reveal sentence 2 blank");
+        await firstBlank.click();
+        assert.equal(await firstBlank.getAttribute("aria-pressed"), "true", `${target.name} Object 4 blank stays revealed`);
+        assert.equal(await firstBlank.textContent(), "binge-watching");
+        await screenshot(page, target, objectNumber, "click-reveal");
+        await page.getByRole("button", { name: "Show Text" }).click();
+        await page.locator('[data-show-text-view="open"]').waitFor();
+        await screenshot(page, target, objectNumber, "show-text");
+        await page.getByRole("button", { name: "Return to questions" }).click();
+        await page.locator('[data-complete-sentences-view="questions"]').waitFor();
+        assert.equal(await firstBlank.getAttribute("aria-pressed"), "true", `${target.name} Object 4 reveal persists after Show Text`);
       }
 
       if (objectNumber === 5) {
-        await page.locator(".legacy-pilot-write-question textarea").fill("I agree because…");
-        await screenshot(page, target, objectNumber, "partial");
-        await page.getByRole("button", { name: "Check", exact: true }).click();
-        await page.getByText("Open response — no single correct answer.", { exact: true }).waitFor();
-        assert.ok(await page.getByRole("button", { name: "Check", exact: true }).isDisabled(), "Open response must not auto-score");
-        await screenshot(page, target, objectNumber, "teacher-open-response");
+        const previousPart = page.getByRole("button", { name: "Previous activity part" });
+        const nextPart = page.getByRole("button", { name: "Next activity part" });
+        const partOneReveal = page.getByRole("button", { name: "Reveal the argument for watching a film at home" });
+        await partOneReveal.click();
+        assert.equal(await partOneReveal.getAttribute("aria-pressed"), "true");
+        await screenshot(page, target, objectNumber, "part-1-reveal");
+        await nextPart.click();
+        await page.locator('[data-debate-part="2"]').waitFor();
+        await page.getByRole("button", { name: "Reveal the argument for going to the cinema" }).click();
+        await screenshot(page, target, objectNumber, "part-2-reveal");
+        await previousPart.click();
+        await page.locator('[data-debate-part="1"]').waitFor();
+        assert.equal(await partOneReveal.getAttribute("aria-pressed"), "true", `${target.name} Object 5 reveal persists across parts`);
       }
 
       results.push({

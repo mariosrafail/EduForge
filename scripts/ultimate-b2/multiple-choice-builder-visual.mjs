@@ -9,7 +9,7 @@ const baseURL = "http://127.0.0.1:4182";
 const artifactRoot = "test-results/ultimate-b2-multiple-choice-builder";
 const page5AuthoringPaths = [
   "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-1.open-response.json",
-  "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.publisher-display.json",
+  "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.image.json",
   "netlify/functions/_ultimate-b2-unit1-opener-model-answers.json",
 ];
 const page5AuthoringOriginals = await Promise.all(page5AuthoringPaths.map((filePath) => readFile(filePath)));
@@ -35,6 +35,7 @@ try {
   await waitForServer();
   browser = await chromium.launch(localPlaywrightLaunchOptions());
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  page.setDefaultNavigationTimeout(120_000);
   const consoleErrors = [];
   page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
   await page.goto(`${baseURL}/ultimate-b2-builder.html`, { waitUntil: "networkidle" });
@@ -43,7 +44,7 @@ try {
   assert.equal(await page.getByText("Unit → Page / Spread → Exercise", { exact: true }).count(), 1);
   assert.equal(await page.getByRole("button", { name: /Page 5.*Unit opener/ }).count(), 1);
   assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Open response" }).count(), 1);
-  assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Publisher display" }).count(), 1);
+  assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).count(), 1);
   await page.screenshot({ path: `${artifactRoot}/book-hierarchy.png`, animations: "disabled" });
 
   const openQuestion = page.getByLabel("Question 1 text");
@@ -62,17 +63,27 @@ try {
   assert.deepEqual(await page.locator(".ultimate-b2-legacy-unit-opener img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[606, 34], [317, 507]]);
   await page.screenshot({ path: `${artifactRoot}/open-response-preview.png`, animations: "disabled" });
 
-  await page.locator(".activity-builder-exercise").filter({ hasText: "Publisher display" }).click();
-  await page.getByRole("heading", { name: "Publisher display", exact: true }).waitFor();
-  await page.getByLabel("Bullet 1 text").fill("visual draft favourite point");
-  await page.getByRole("button", { name: "Add bullet", exact: true }).click();
-  await page.getByRole("button", { name: "Move bullet 4 up" }).click();
-  await page.getByRole("button", { name: "Delete bullet 2" }).click();
+  await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).click();
+  await page.getByRole("heading", { name: "Image activity", exact: true }).waitFor();
+  await page.getByLabel("Main image alternative text").fill("Visual draft discussion prompts");
   await page.getByRole("button", { name: "Preview", exact: true }).click();
-  await page.getByText("visual draft favourite point", { exact: true }).waitFor();
-  await page.waitForFunction(() => [...document.querySelectorAll(".ultimate-b2-publisher-image-display img")].every((image) => image.complete && image.naturalWidth > 0));
-  assert.deepEqual(await page.locator(".ultimate-b2-publisher-image-display img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[807, 114]]);
-  await page.screenshot({ path: `${artifactRoot}/publisher-display-preview.png`, animations: "disabled" });
+  await page.waitForFunction(() => [...document.querySelectorAll(".ultimate-b2-image-activity img")].every((image) => image.complete && image.naturalWidth > 0));
+  assert.deepEqual(await page.locator(".ultimate-b2-image-activity img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[807, 114], [1200, 460]]);
+  assert.equal(await page.locator(".ultimate-b2-image-activity li").count(), 0);
+  await page.screenshot({ path: `${artifactRoot}/image-activity-preview.png`, animations: "disabled" });
+
+  await page.locator(".activity-builder-exercise").filter({ hasText: "Complete the Sentences" }).click();
+  await page.getByRole("heading", { name: "Complete the Sentences", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Reveal sentence 2 blank" }).click();
+  await page.getByText("binge-watching", { exact: true }).waitFor();
+  await page.screenshot({ path: `${artifactRoot}/complete-sentences-preview.png`, animations: "disabled" });
+
+  await page.locator(".activity-builder-exercise").filter({ hasText: "Open Answer" }).click();
+  await page.getByRole("heading", { name: "Debate Club", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Reveal the argument for watching a film at home" }).click();
+  await page.screenshot({ path: `${artifactRoot}/debate-club-preview.png`, animations: "disabled" });
 
   await page.locator(".activity-builder-exercise").filter({ hasText: "Multiple Choice" }).click();
   await page.getByRole("heading", { name: "Multiple Choice · Reading Exercise 3" }).waitFor();
@@ -100,7 +111,7 @@ try {
   await preview.locator('[data-multiple-choice-panel="2"]').waitFor();
   await page.screenshot({ path: `${artifactRoot}/preview-panel-2.png`, animations: "disabled" });
   assert.deepEqual(consoleErrors, []);
-  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open response", "Publisher display"], unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
+  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open response", "Image"], readingEditors: ["Complete the Sentences", "Open Answer"], unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
   await writeFile(`${artifactRoot}/report.json`, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
 } finally {

@@ -103,11 +103,24 @@ try {
   for (const mode of modes) {
     for (const activityId of activities) {
       await page.goto(harnessUrl(activityId, mode), { waitUntil: "domcontentloaded" });
-      const root = page.locator(`[data-legacy-pilot-activity="${activityId}"]`);
+      const root = page.locator(`[data-legacy-pilot-activity="${activityId}"], [data-complete-sentences-activity="${activityId}"], [data-debate-club-activity="${activityId}"]`);
       await root.waitFor();
       assert.equal(await root.count(), 1, `${mode} ${activityId} renderer`);
-      assert.equal(await page.locator(".ultimate-b2-legacy-pilot").count(), 1, `${mode} ${activityId} exact pilot root`);
+      assert.equal(await page.locator(".ultimate-b2-legacy-pilot, .ultimate-b2-complete-sentences, .ultimate-b2-debate-club").count(), 1, `${mode} ${activityId} exact activity root`);
       assert.ok((await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 1);
+
+      if (activityId.endsWith("-o4") || activityId.endsWith("-o5")) {
+        assert.equal(await page.getByRole("button", { name: "Submit", exact: true }).count(), 0, `${activityId} has no form submission`);
+        assert.equal(await page.getByRole("button", { name: "Check", exact: true }).count(), 0, `${activityId} has no auto-scoring`);
+        assert.equal(await page.locator("input, textarea").count(), 0, `${activityId} has no typing fields`);
+        const reveal = activityId.endsWith("-o4")
+          ? page.locator(".ultimate-b2-complete-sentence button").first()
+          : page.getByRole("button", { name: "Reveal the argument for watching a film at home" });
+        await reveal.click();
+        assert.equal(await reveal.getAttribute("aria-pressed"), "true", `${activityId} click reveal persists`);
+        results.push({ mode, activityId, status: "passed" });
+        continue;
+      }
 
       if (mode === "student") {
         assert.equal(await page.getByRole("button", { name: "Show answer" }).count(), 0, `${activityId} student Show answer`);

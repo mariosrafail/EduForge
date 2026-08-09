@@ -145,7 +145,7 @@
       "partNumber": 1,
       "printedPage": 5,
       "printedSpread": "5",
-      "activityType": "publisher-image-display",
+      "activityType": "image",
       "sourceInteractionType": [
         "display"
       ],

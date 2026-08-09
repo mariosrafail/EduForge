@@ -1,6 +1,5 @@
 import { getUltimateB2Page5OpenResponseAuthoring, resolveUltimateB2Page5Artwork } from "../../../../data/ultimate-b2/page5AuthoringData.js";
 import fallbackQuoteArtwork from "../../../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_1.png";
-import fallbackInstructionArtwork from "../../../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj1/image_2.png";
 import { TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
 
 export function UltimateB2LegacyUnitOpenerActivity({
@@ -18,13 +17,13 @@ export function UltimateB2LegacyUnitOpenerActivity({
 }) {
   const authoring = authoringOverride || getUltimateB2Page5OpenResponseAuthoring(activity);
   const questions = authoring?.questions || activity.runtime?.questions || [];
-  const instructionArtwork = resolveUltimateB2Page5Artwork(authoring?.instructionArtworkBinding) || fallbackInstructionArtwork;
+  const instructionArtwork = resolveUltimateB2Page5Artwork(authoring?.visualCapabilities?.instructionImage) || null;
   const quoteArtwork = resolveUltimateB2Page5Artwork(authoring?.quoteArtworkBinding) || fallbackQuoteArtwork;
 
   return (
     <section className="ultimate-b2-legacy-unit-opener" data-legacy-unit-opener-activity={activity.stableNormalizedId}>
       <div className="legacy-unit-opener-paper">
-        <img className="legacy-unit-opener-instruction" src={instructionArtwork} alt={authoring?.instructionText || activity.visibleInstructionText} />
+        {instructionArtwork && <img className="legacy-unit-opener-instruction" src={instructionArtwork} alt={authoring?.instructionImageAlt || activity.visibleInstructionText} />}
         <div className="legacy-unit-opener-layout">
           <div className="legacy-unit-opener-questions">
             {questions.map((question, index) => {

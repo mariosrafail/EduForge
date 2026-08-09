@@ -1,5 +1,7 @@
+import { normalizeUltimateB2ExerciseVisualCapabilities } from "./exerciseVisualCapabilities.js";
+
 export const ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID = "ultimate-b2-sb-u1-p1-o1";
-export const ULTIMATE_B2_PAGE5_PUBLISHER_DISPLAY_ID = "ultimate-b2-sb-u1-p1-o2";
+export const ULTIMATE_B2_PAGE5_IMAGE_ID = "ultimate-b2-sb-u1-p1-o2";
 
 const questionIds = Object.freeze([
   `${ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID}-q1`,
@@ -8,9 +10,10 @@ const questionIds = Object.freeze([
 ]);
 
 const artworkBindings = Object.freeze({
-  instruction: "unit1.page5.exercise1.instruction",
+  openResponseInstruction: "unit1.page5.exercise1.instruction",
   quote: "unit1.page5.exercise1.quote",
-  heading: "unit1.page5.exercise2.heading",
+  imageInstruction: "unit1.page5.exercise2.instruction",
+  imageContent: "unit1.page5.exercise2.main-content",
 });
 
 export const ultimateB2Page5AuthoringLimits = Object.freeze({
@@ -18,8 +21,6 @@ export const ultimateB2Page5AuthoringLimits = Object.freeze({
   questionCount: 3,
   textLength: 1_000,
   modelAnswerLength: 3_000,
-  bulletCount: 8,
-  bulletTextLength: 500,
 });
 
 function record(value, label) {
@@ -30,31 +31,30 @@ function record(value, label) {
 function exactKeys(value, allowed, label) {
   const keys = Object.keys(record(value, label));
   const allowedSet = new Set(allowed);
-  if (keys.some((key) => !allowedSet.has(key)) || allowed.some((key) => !keys.includes(key))) {
-    throw new Error(`${label} has missing or unknown fields.`);
-  }
+  if (keys.some((key) => !allowedSet.has(key)) || allowed.some((key) => !keys.includes(key))) throw new Error(`${label} has missing or unknown fields.`);
 }
 
-function boundedText(value, label, maximum, { allowEmpty = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || (!allowEmpty && !value.trim())) {
-    throw new Error(`${label} must be ${allowEmpty ? "a" : "a non-empty"} string no longer than ${maximum} characters.`);
-  }
+function boundedText(value, label, maximum) {
+  if (typeof value !== "string" || value.length > maximum || !value.trim()) throw new Error(`${label} must be a non-empty string no longer than ${maximum} characters.`);
   if (/[<>]/.test(value)) throw new Error(`${label} must not contain HTML markup.`);
   return value.trim();
 }
 
 function assertPayloadSize(value) {
-  const bytes = new TextEncoder().encode(JSON.stringify(value)).byteLength;
-  if (bytes > ultimateB2Page5AuthoringLimits.payloadBytes) throw new Error("Page 5 authoring payload is too large.");
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > ultimateB2Page5AuthoringLimits.payloadBytes) throw new Error("Page 5 authoring payload is too large.");
 }
 
 export function normalizeUltimateB2Page5OpenResponseAuthoring(input) {
   assertPayloadSize(input);
   const value = structuredClone(record(input, "Open-response authoring"));
-  exactKeys(value, ["schemaVersion", "activityId", "instructionText", "instructionArtworkBinding", "quoteArtworkBinding", "questions"], "Open-response authoring");
+  exactKeys(value, ["schemaVersion", "activityId", "visualCapabilities", "instructionImageAlt", "quoteArtworkBinding", "questions"], "Open-response authoring");
   if (value.schemaVersion !== 1) throw new Error("Unsupported open-response schema version.");
   if (value.activityId !== ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) throw new Error("Unexpected open-response activity ID.");
-  if (value.instructionArtworkBinding !== artworkBindings.instruction || value.quoteArtworkBinding !== artworkBindings.quote) throw new Error("Unknown open-response artwork binding.");
+  const visualCapabilities = normalizeUltimateB2ExerciseVisualCapabilities(value.visualCapabilities, {
+    instructionImages: [artworkBindings.openResponseInstruction],
+    showTextImages: [],
+  });
+  if (value.quoteArtworkBinding !== artworkBindings.quote) throw new Error("Unknown open-response artwork binding.");
   if (!Array.isArray(value.questions) || value.questions.length !== questionIds.length) throw new Error("Open-response authoring must contain exactly three questions.");
   const questions = value.questions.map((question, index) => {
     exactKeys(question, ["id", "prompt"], `questions[${index}]`);
@@ -64,8 +64,8 @@ export function normalizeUltimateB2Page5OpenResponseAuthoring(input) {
   return {
     schemaVersion: 1,
     activityId: value.activityId,
-    instructionText: boundedText(value.instructionText, "instructionText", ultimateB2Page5AuthoringLimits.textLength),
-    instructionArtworkBinding: value.instructionArtworkBinding,
+    visualCapabilities,
+    instructionImageAlt: boundedText(value.instructionImageAlt, "instructionImageAlt", ultimateB2Page5AuthoringLimits.textLength),
     quoteArtworkBinding: value.quoteArtworkBinding,
     questions,
   };
@@ -89,28 +89,24 @@ export function normalizeUltimateB2Page5TeacherAnswers(input) {
   };
 }
 
-export function normalizeUltimateB2Page5PublisherDisplayAuthoring(input) {
+export function normalizeUltimateB2Page5ImageAuthoring(input) {
   assertPayloadSize(input);
-  const value = structuredClone(record(input, "Publisher-display authoring"));
-  exactKeys(value, ["schemaVersion", "activityId", "headingArtworkBinding", "imageAlt", "bullets"], "Publisher-display authoring");
-  if (value.schemaVersion !== 1) throw new Error("Unsupported publisher-display schema version.");
-  if (value.activityId !== ULTIMATE_B2_PAGE5_PUBLISHER_DISPLAY_ID) throw new Error("Unexpected publisher-display activity ID.");
-  if (value.headingArtworkBinding !== artworkBindings.heading) throw new Error("Unknown publisher-display artwork binding.");
-  if (!Array.isArray(value.bullets) || value.bullets.length < 1 || value.bullets.length > ultimateB2Page5AuthoringLimits.bulletCount) throw new Error("Publisher display must contain 1–8 bullets.");
-  const ids = new Set();
-  const bullets = value.bullets.map((bullet, index) => {
-    exactKeys(bullet, ["id", "text"], `bullets[${index}]`);
-    const id = boundedText(bullet.id, `bullets[${index}].id`, 80);
-    if (!/^bullet-[1-9][0-9]*$/.test(id) || ids.has(id)) throw new Error(`bullets[${index}].id is invalid or duplicated.`);
-    ids.add(id);
-    return { id, text: boundedText(bullet.text, `bullets[${index}].text`, ultimateB2Page5AuthoringLimits.bulletTextLength) };
+  const value = structuredClone(record(input, "Image activity authoring"));
+  exactKeys(value, ["schemaVersion", "activityId", "visualCapabilities", "instructionImageAlt", "mainImage", "mainImageAlt"], "Image activity authoring");
+  if (value.schemaVersion !== 1) throw new Error("Unsupported image activity schema version.");
+  if (value.activityId !== ULTIMATE_B2_PAGE5_IMAGE_ID) throw new Error("Unexpected image activity ID.");
+  const visualCapabilities = normalizeUltimateB2ExerciseVisualCapabilities(value.visualCapabilities, {
+    instructionImages: [artworkBindings.imageInstruction],
+    showTextImages: [],
   });
+  if (value.mainImage !== artworkBindings.imageContent) throw new Error("Unknown main image binding.");
   return {
     schemaVersion: 1,
     activityId: value.activityId,
-    headingArtworkBinding: value.headingArtworkBinding,
-    imageAlt: boundedText(value.imageAlt, "imageAlt", ultimateB2Page5AuthoringLimits.textLength),
-    bullets,
+    visualCapabilities,
+    instructionImageAlt: boundedText(value.instructionImageAlt, "instructionImageAlt", ultimateB2Page5AuthoringLimits.textLength),
+    mainImage: value.mainImage,
+    mainImageAlt: boundedText(value.mainImageAlt, "mainImageAlt", ultimateB2Page5AuthoringLimits.textLength),
   };
 }
 
