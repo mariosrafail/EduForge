@@ -221,6 +221,13 @@ async function assertPublisherImageCanvas(page, label) {
     { background: "rgb(255, 255, 255)", border: "0px", radius: "0px", shadow: "none" },
     { background: "rgb(255, 255, 255)", border: "0px", radius: "0px", shadow: "none" },
   ], `${label} uses a continuous white canvas`);
+  const fit = await page.locator(".ultimate-b2-image-activity-main").evaluate((image) => {
+    const imageBox = image.getBoundingClientRect();
+    const sheetBox = image.closest(".ultimate-b2-image-activity-sheet").getBoundingClientRect();
+    return { widthRatio: imageBox.width / sheetBox.width, heightRatio: imageBox.height / sheetBox.height, objectFit: getComputedStyle(image).objectFit };
+  });
+  assert.ok(fit.widthRatio > .95 && fit.heightRatio > .95, `${label} lets 16:9 artwork dominate the available activity viewport: ${JSON.stringify(fit)}`);
+  assert.equal(fit.objectFit, "contain", `${label} preserves the complete image without crop or stretch`);
 }
 
 async function assertScreen(page, label) {
@@ -298,7 +305,7 @@ async function assertLegacyLauncher(page, label) {
     units: 10,
     lockedUnits: 0,
     disabledUnits: 0,
-    books: 3,
+    books: 4,
     lockedBooks: 0,
     disabledBooks: 0,
     toolbar: false,
@@ -543,6 +550,19 @@ try {
     await page.getByRole("button", { name: "Close settings" }).click();
     await assertScreen(page, "legacy-home-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-home-1920x1080.png` });
+    assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Students Book");
+    const editionArtwork = await page.locator(".legacy-home-book-button").evaluateAll((buttons) => buttons.map((button) => [...button.querySelectorAll("img")].map((image) => image.src)));
+    assert.deepEqual(editionArtwork[0], editionArtwork[1], "Workbook aliases the Students Book normal/active artwork");
+    assert.deepEqual(editionArtwork[0], editionArtwork[2], "Grammar Book aliases the Students Book normal/active artwork");
+    assert.notDeepEqual(editionArtwork[0], editionArtwork[3], "Extras retains its distinct publisher artwork");
+    await page.getByRole("button", { name: "Extras", exact: true }).click();
+    assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Extras");
+    assert.equal(await page.locator(".legacy-home-extras-column.is-left .legacy-home-extra-button").count(), 7);
+    assert.equal(await page.locator(".legacy-home-extras-column.is-right .legacy-home-extra-button").count(), 7);
+    await assertScreen(page, "legacy-extras-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/legacy-extras-1920x1080.png` });
+    await page.getByRole("button", { name: "Students Book", exact: true }).click();
+    assert.equal(await page.locator(".legacy-home-unit").count(), 10);
     await openBook(page);
     await selectOverviewUnit(page, 1);
     await waitForUnitOverview(page);
@@ -554,8 +574,11 @@ try {
     await page.screenshot({ path: `${artifactRoot}/legacy-page-viewer-1920x1080.png` });
     const chromeBaseline = await captureChromeGeometry(page, "normal page");
     await openActivity(page, 1, "Unit opener · Exercise 1");
-    await page.getByRole("button", { name: "Show publisher model answer for question 1" }).click();
-    await page.getByRole("button", { name: "Publisher model answer for question 1" }).waitFor();
+    const page5ResponseRegions = page.locator(".legacy-unit-opener-response-region");
+    assert.equal(await page5ResponseRegions.count(), 3, "Page 5 Exercise 1 exposes three lined Response Regions");
+    assert.deepEqual(await page5ResponseRegions.evaluateAll((regions) => regions.map((region) => region.getAttribute("aria-label"))), ["Show model response for question 1", "Show model response for question 2", "Show model response for question 3"]);
+    await page5ResponseRegions.first().click();
+    await page.locator('.legacy-unit-opener-response-region[data-revealed="true"]').waitFor();
     await assertEmbeddedActivity(page, "open-response-1920x1080");
     await captureChromeGeometry(page, "Page 5 Exercise 1", chromeBaseline);
     await page.screenshot({ path: `${artifactRoot}/open-response-1920x1080.png` });
@@ -615,18 +638,18 @@ try {
     assert.equal(await page.getByRole("button", { name: "Library" }).count(), 0, "embedded activity has no redundant library button");
     assert.equal(await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).count(), 1, "embedded activity keeps one logical Back button");
     assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Unit opener", "unit opener keeps its parent page title");
-    for (const question of [1, 2, 3]) {
-      await page.getByRole("button", { name: `Show publisher model answer for question ${question}` }).click();
-    }
-    await page.getByRole("button", { name: "Publisher model answer for question 3" }).waitFor();
+    const compactResponseRegions = page.locator(".legacy-unit-opener-response-region");
+    assert.equal(await compactResponseRegions.count(), 3);
+    for (let index = 0; index < 3; index += 1) await compactResponseRegions.nth(index).click();
+    await page.locator('.legacy-unit-opener-response-region[data-response-region-id$="q3-response"][data-revealed="true"]').waitFor();
     const unitOpenerFonts = await page.evaluate(() => ({
       question: getComputedStyle(document.querySelector(".legacy-unit-opener-question h3")).fontFamily,
-      answer: getComputedStyle(document.querySelector(".legacy-unit-opener-answer-lines.revealed > span")).fontFamily,
-      answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-answer-lines.revealed > span")).fontWeight,
+      answer: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed")).fontFamily,
+      answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed")).fontWeight,
     }));
     assert.match(unitOpenerFonts.question, /Fira Sans/, "unit opener question uses the recovered Fira Sans family");
-    assert.match(unitOpenerFonts.answer, /ITC Flora Std Medium/, "unit opener answer uses the recovered ITC Flora family");
-    assert.equal(unitOpenerFonts.answerWeight, "400", "unit opener answer keeps publisher normal weight");
+    assert.match(unitOpenerFonts.answer, /Georgia/, "unit opener Response Region uses the configured reveal family");
+    assert.equal(unitOpenerFonts.answerWeight, "700", "unit opener Response Region remains visually distinct");
     await page.screenshot({ path: `${artifactRoot}/embedded-unit-opener-1366x768.png` });
     await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
     await waitForPageImage(page);

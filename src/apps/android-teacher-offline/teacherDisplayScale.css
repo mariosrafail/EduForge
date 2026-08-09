@@ -53,6 +53,15 @@
     grid-template-rows: repeat(5, calc(93px * var(--teacher-ui-scale)));
     gap: clamp(calc(7px * var(--teacher-ui-scale)), 1vh, calc(13px * var(--teacher-ui-scale)));
   }
+  .legacy-home-extras-column {
+    grid-template-rows: repeat(7, calc(81px * var(--teacher-ui-scale)));
+    gap: calc(4px * var(--teacher-ui-scale));
+  }
+  .legacy-home-extra-button {
+    width: min(100%, calc(320px * var(--teacher-ui-scale)));
+    min-height: calc(38px * var(--teacher-ui-scale));
+    border-radius: calc(15px * var(--teacher-ui-scale));
+  }
   .legacy-home-unit {
     width: min(100%, calc(360px * var(--teacher-ui-scale)));
     min-height: calc(44px * var(--teacher-ui-scale));
@@ -79,7 +88,7 @@
   }
   .teacher-offline-settings-surface .legacy-home-identity p { margin: calc(7px * var(--teacher-ui-scale)) 0 calc(1px * var(--teacher-ui-scale)); font-size: calc(15.2px * var(--teacher-ui-scale)); }
   .teacher-offline-settings-surface .legacy-home-identity > small { margin-top: calc(3px * var(--teacher-ui-scale)); font-size: calc(13.12px * var(--teacher-ui-scale)); }
-  .legacy-home-book-row { width: min(calc(920px * var(--teacher-ui-scale)), 70vw); gap: clamp(calc(8px * var(--teacher-ui-scale)), 1.2vw, calc(20px * var(--teacher-ui-scale))); }
+  .legacy-home-book-row { width: min(calc(1240px * var(--teacher-ui-scale)), 80vw); gap: clamp(calc(6px * var(--teacher-ui-scale)), .8vw, calc(12px * var(--teacher-ui-scale))); }
   .teacher-offline-settings-surface .legacy-home-book-button {
     min-height: calc(44px * var(--teacher-ui-scale));
     padding: 0;

@@ -285,7 +285,9 @@ export default function TeacherOfflineApp() {
     content = (
       <TeacherOfflineLibrary
         menuSkin={menuSkin}
-        onOpenBook={openBook}
+        onOpenUnit={(editionId, unitNumber) => {
+          if (editionId === "students-book") openBook(unitNumber);
+        }}
         animationsActive={animationsActive}
       />
     );

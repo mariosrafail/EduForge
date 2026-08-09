@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
 import {
   normalizeUltimateB2Page5ImageAuthoring,
@@ -11,11 +13,15 @@ import {
 } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
 
 export const page5AuthoringEndpoint = "/__hhplms/ultimate-b2-page-5-authoring";
+export const page5ImageAssetEndpoint = "/__hhplms/ultimate-b2-page-5-image-asset";
 
 const defaultOpenResponsePath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-page-5-exercise-1.open-response.json");
 const defaultImagePath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.image.json");
 const defaultTeacherAnswersPath = path.resolve(import.meta.dirname, "../../netlify/functions/_ultimate-b2-unit1-opener-model-answers.json");
+const defaultImageAssetPath = path.resolve(import.meta.dirname, "../../src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj2/discussion-prompts.svg");
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+const acceptedImageTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+const maximumImageBytes = 12 * 1024 * 1024;
 
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -39,10 +45,42 @@ async function readBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+async function readImageBody(request) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > maximumImageBytes) throw new Error("Image file is larger than 12 MB.");
+    chunks.push(chunk);
+  }
+  if (!size) throw new Error("Image file is empty.");
+  return Buffer.concat(chunks);
+}
+
 async function atomicWrite(outputPath, value) {
   const temporaryPath = `${outputPath}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
   await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
   await rename(temporaryPath, outputPath);
+}
+
+async function atomicWriteBytes(outputPath, bytes) {
+  const temporaryPath = `${outputPath}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
+  await writeFile(temporaryPath, bytes, { flag: "wx" });
+  await rename(temporaryPath, outputPath);
+}
+
+async function normalizeImageAsset(bytes, contentType) {
+  const metadata = await sharp(bytes, { failOn: "warning", limitInputPixels: 40_000_000 }).metadata();
+  const expectedFormat = { "image/png": "png", "image/jpeg": "jpeg", "image/webp": "webp" }[contentType];
+  if (metadata.format !== expectedFormat) throw new Error("Image bytes do not match the declared file type.");
+  if ((metadata.pages || 1) !== 1) throw new Error("Animated images are not supported.");
+  const { data, info } = await sharp(bytes, { failOn: "warning", limitInputPixels: 40_000_000 })
+    .rotate()
+    .webp({ quality: 92, effort: 6 })
+    .toBuffer({ resolveWithObject: true });
+  if (!info.width || !info.height || info.width < 16 || info.height < 16 || info.width > 8192 || info.height > 8192) throw new Error("Image dimensions must be between 16 and 8192 pixels.");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${info.width}" height="${info.height}" viewBox="0 0 ${info.width} ${info.height}" role="img" aria-label="Custom image activity artwork"><image width="${info.width}" height="${info.height}" href="data:image/webp;base64,${data.toString("base64")}"/></svg>\n`;
+  return { bytes: Buffer.from(svg), width: info.width, height: info.height, sha256: createHash("sha256").update(data).digest("hex") };
 }
 
 function exactEnvelope(value, activityId) {
@@ -56,6 +94,7 @@ export function ultimateB2Page5BuilderPlugin({
   openResponsePath = defaultOpenResponsePath,
   imagePath = defaultImagePath,
   teacherAnswersPath = defaultTeacherAnswersPath,
+  imageAssetPath = defaultImageAssetPath,
 } = {}) {
   return {
     name: "hhplms-ultimate-b2-page-5-builder",
@@ -63,10 +102,26 @@ export function ultimateB2Page5BuilderPlugin({
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const url = new URL(request.url || "/", "http://localhost");
-        if (url.pathname !== page5AuthoringEndpoint) return next();
+        if (![page5AuthoringEndpoint, page5ImageAssetEndpoint].includes(url.pathname)) return next();
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return sendJson(response, 403, { error: "The authoring endpoint is local-only." });
           const activityId = url.searchParams.get("activityId");
+          if (url.pathname === page5ImageAssetEndpoint) {
+            if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_PAGE5_IMAGE_ID) return sendJson(response, 404, { error: "Unknown Image activity asset." });
+            if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
+            const contentType = String(request.headers["content-type"] || "").toLowerCase().split(";", 1)[0].trim();
+            if (!acceptedImageTypes.has(contentType)) return sendJson(response, 415, { error: "Choose a PNG, JPEG or WebP image." });
+            const normalized = await normalizeImageAsset(await readImageBody(request), contentType);
+            await atomicWriteBytes(imageAssetPath, normalized.bytes);
+            return sendJson(response, 200, {
+              activityId,
+              binding: "unit1.page5.exercise2.main-content",
+              mimeType: "image/webp",
+              width: normalized.width,
+              height: normalized.height,
+              sha256: normalized.sha256,
+            });
+          }
           if (![ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID, ULTIMATE_B2_PAGE5_IMAGE_ID].includes(activityId)) return sendJson(response, 404, { error: "Unknown Page 5 activity." });
           if (request.method === "GET") {
             if (activityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return sendJson(response, 200, { activityId, publicAuthoring: normalizeUltimateB2Page5OpenResponseAuthoring(await readJson(openResponsePath)), teacherAuthoring: normalizeUltimateB2Page5TeacherAnswers(await readJson(teacherAnswersPath)) });

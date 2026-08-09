@@ -1,22 +1,24 @@
-import studentsBookRuntime from "./generated/students-book.runtime.json" with { type: "json" };
 import { enabledStudentsBookActivitySequence } from "./studentsBookCatalog.js";
+import { ultimateB2TeacherAppAuthoring } from "./teacherAppAuthoring.js";
 
 const AUTHORING_UNITS = new Set([1, 2]);
 
 export const ultimateB2StudentsBookAuthoringPages = Object.freeze(
-  (studentsBookRuntime.units || [])
-    .filter((unit) => AUTHORING_UNITS.has(Number(unit.number)))
-    .flatMap((unit) => (unit.pages || []).map((page) => Object.freeze({
+  ultimateB2TeacherAppAuthoring.pages
+    .filter((page) => AUTHORING_UNITS.has(Number(page.unitNumber)))
+    .map((page) => Object.freeze({
       id: page.id,
-      unitNumber: Number(unit.number),
-      unitTitle: unit.title,
+      unitNumber: Number(page.unitNumber),
+      unitTitle: page.unitTitle,
       partNumber: Number(page.partNumber),
       pageNumber: Number(page.physicalPageNumber),
-      pageNumbers: Object.freeze([...(page.pageNumbers || [page.physicalPageNumber])].map(Number)),
-      spreadNumber: String(page.spreadNumber || page.physicalPageNumber),
+      pageNumbers: page.pageNumbers,
+      spreadNumber: page.spreadNumber,
       sectionTitle: page.sectionTitle,
-      pageImageLogicalKey: page.pageImage?.identity || null,
-    }))),
+      navigationOrder: page.navigationOrder,
+      pageImageLogicalKey: page.logicalAssetIdentity,
+      assetBindingId: page.assetBindingId,
+    })),
 );
 
 export const ultimateB2StudentsBookAuthoringActivities = Object.freeze(

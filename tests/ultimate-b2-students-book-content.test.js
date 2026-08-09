@@ -140,7 +140,13 @@ test("shared page model resolves every web/Android page and preserves Unit 2 hot
   assert.equal(unit2Spread.actions.find((action) => action.id === "exercise-3").left, "53.2%");
   assert.equal(unit2Spread.actions.find((action) => action.id === "exercise-4").height, "29%");
   const offlineAssets = await readFile("src/data/ultimate-b2/ultimateB2PageAssets.offline.js", "utf8");
+  const teacherAssets = await readFile("src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js", "utf8");
+  const authoredUrls = await readFile("src/data/ultimate-b2/ultimateB2AuthoredAssetUrls.js", "utf8");
   const androidViewer = await readFile("src/apps/android-offline/AndroidBookViewer.jsx", "utf8");
-  assert.match(offlineAssets, /import\.meta\.glob\("\.\.\/\.\.\/\.\.\/unit\/\*\/parts\/HD\/parts_part_\*\.png"/);
+  assert.match(offlineAssets, /ultimateB2PageAssets\.teacher-offline\.js/);
+  assert.match(teacherAssets, /getUltimateB2TeacherAppPageByPart/);
+  assert.match(teacherAssets, /resolveUltimateB2AuthoredAssetUrl/);
+  assert.match(authoredUrls, /unit\/\{1,2\}\/parts\/HD/);
+  assert.match(authoredUrls, /authoring\/teacher-app/);
   assert.match(androidViewer, /<BookPackageBrowser/);
 });

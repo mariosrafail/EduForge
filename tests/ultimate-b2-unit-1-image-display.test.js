@@ -51,6 +51,9 @@ test("the image renderer uses optional instruction artwork and one horizontal co
   assert.doesNotMatch(rendererSource, /<ul|<li/);
   assert.match(normalizedSource, /isUltimateB2ImageActivity\(activity\)/);
   assert.match(styles, /\.ultimate-b2-image-activity-sheet/);
+  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\)/);
+  assert.match(styles, /width: 100%;[\s\S]*height: 100%;[\s\S]*object-fit: contain/);
+  assert.doesNotMatch(styles, /max-height: min\(52vh, 460px\)/);
 });
 
 test("the authored Page 5 hotspot still opens Exercise 2", () => {

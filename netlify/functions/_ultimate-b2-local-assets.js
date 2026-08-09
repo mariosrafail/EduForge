@@ -1,5 +1,6 @@
 import { realpath } from "node:fs/promises";
 import path from "node:path";
+import { ultimateB2TeacherAppAuthoring } from "../../src/data/ultimate-b2/teacherAppAuthoring.js";
 
 const sourceAssets = new Map([
   ["ultimate-b2.students-book.cover", { type: "image/jpeg", role: "cover", path: "src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg" }],
@@ -46,36 +47,20 @@ const mediaAssets = new Map([
   ["ultimate-b2.students-book.unit-2.practice.tristan-da-cunha", { type: "audio/mpeg", role: "audio", path: "Contents/Resources/assets/books/book1/unit/2/part10/obj3/audio.mp3" }],
 ]);
 
-const unit2PageParts = new Map([
-  ["page-19", 1], ["page-20-21", 2], ["page-22-23", 3], ["page-24-25", 4],
-  ["page-26", 5], ["page-27", 6], ["page-28-29", 7], ["page-30", 8],
-  ["page-31", 9], ["page-32", 10], ["page-33", 11], ["page-34", 12],
-]);
+const authoredPagesByLogicalKey = new Map(ultimateB2TeacherAppAuthoring.pages.map((page) => [page.logicalAssetIdentity, page]));
 
 export function getUltimateB2LocalAsset(logicalKey) {
   const key = String(logicalKey || "");
   if (sourceAssets.has(key)) return { ...sourceAssets.get(key), logicalKey: key, endpoint: "source" };
   if (mediaAssets.has(key)) return { ...mediaAssets.get(key), logicalKey: key, endpoint: "media" };
 
-  const unit1 = key.match(/^ultimate-b2\.students-book\.unit-1\.part-(\d+)\.page-image$/);
-  if (unit1 && Number(unit1[1]) >= 1 && Number(unit1[1]) <= 10) {
+  const page = authoredPagesByLogicalKey.get(key);
+  if (page) {
     return {
       logicalKey: key,
-      type: "image/png",
+      type: page.image.mediaType,
       role: "page_image",
-      path: `unit/1/parts/HD/parts_part_${Number(unit1[1])}.png`,
-      endpoint: "source",
-    };
-  }
-
-  const unit2 = key.match(/^ultimate-b2\.students-book\.unit-2\.(page-[0-9-]+)$/);
-  const partNumber = unit2 ? unit2PageParts.get(unit2[1]) : null;
-  if (partNumber) {
-    return {
-      logicalKey: key,
-      type: "image/png",
-      role: "page_image",
-      path: `unit/2/parts/HD/parts_part_${partNumber}.png`,
+      path: page.image.repositoryPath,
       endpoint: "source",
     };
   }

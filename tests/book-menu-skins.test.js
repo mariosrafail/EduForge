@@ -48,3 +48,19 @@ test("Teacher runtime resolves menu visuals by package without exposing assets t
   assert.doesNotMatch(library, /legacyClassroomAssets/);
   assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);
 });
+
+test("Students, Workbook, and Grammar share one Unit launcher while navigation stays edition-aware", async () => {
+  const [library, app, projectShell, projectPresentation] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-project/TeacherProjectShell.jsx", "utf8"),
+    readFile("src/apps/android-teacher-project/TeacherProjectPresentation.jsx", "utf8"),
+  ]);
+  assert.match(library, /!extrasSelected \? <UnitColumn[\s\S]*items=\{units\.slice\(0, 5\)\}/);
+  assert.match(library, /!extrasSelected \? <UnitColumn[\s\S]*items=\{units\.slice\(5\)\}/);
+  assert.match(library, /onOpenUnit\?\.\(editionId, unit\.number\)/);
+  assert.match(app, /if \(editionId === "students-book"\) openBook\(unitNumber\)/);
+  assert.match(projectShell, /const showUnits = !showExtras/);
+  assert.match(projectShell, /onOpenUnit\?\.\(editionId, unit\.id\)/);
+  assert.match(projectPresentation, /if \(editionId !== "students-book"\) return/);
+});

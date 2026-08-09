@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import sharp from "sharp";
 import { createServer } from "vite";
 
 import { buildUltimateB2TeacherSolutionPayload } from "../netlify/functions/_ultimate-b2-teacher-solutions.js";
@@ -27,14 +28,16 @@ async function fixtureServer() {
   const openResponsePath = path.join(directory, "open-response.json");
   const imagePath = path.join(directory, "image.json");
   const teacherAnswersPath = path.join(directory, "teacher-answers.json");
+  const imageAssetPath = path.join(directory, "custom-image.svg");
   await Promise.all([
     writeFile(openResponsePath, `${JSON.stringify(openResponse, null, 2)}\n`),
     writeFile(imagePath, `${JSON.stringify(imageActivity, null, 2)}\n`),
     writeFile(teacherAnswersPath, `${JSON.stringify(teacherAnswers, null, 2)}\n`),
+    writeFile(imageAssetPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"/>\n"),
   ]);
-  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath })], server: { host: "127.0.0.1", port: 0 } });
+  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath })], server: { host: "127.0.0.1", port: 0 } });
   await server.listen();
-  return { directory, server, base: `http://127.0.0.1:${server.httpServer.address().port}`, imagePath, teacherAnswersPath };
+  return { directory, server, base: `http://127.0.0.1:${server.httpServer.address().port}`, openResponsePath, imagePath, imageAssetPath, teacherAnswersPath };
 }
 
 test("Activity Builder navigation follows authoritative Unit to Page to Exercise order", () => {
@@ -44,7 +47,7 @@ test("Activity Builder navigation follows authoritative Unit to Page to Exercise
   assert.equal(unit1.pages[0].pageLabel, "Page 5");
   assert.deepEqual(unit1.pages[0].activities.map((activity) => activity.activityKey), [openResponseId, imageActivityId]);
   const reading = unit1.pages.find((page) => page.pageSpread === "6-7" && page.sectionTitle === "Reading");
-  assert.deepEqual(reading.activities.slice(0, 5).map((activity) => activity.editorLabel), ["Video", "Listening", "Multiple Choice", "Complete the Sentences", "Open Answer"]);
+  assert.deepEqual(reading.activities.slice(0, 5).map((activity) => activity.editorLabel), ["Video", "Listening", "Multiple Choice", "Complete the Sentences", "Open Response"]);
   assert.ok(reading.activities.slice(0, 5).every((activity) => activity.configurable));
 });
 
@@ -56,6 +59,10 @@ test("Page 5 schemas keep stable identities, allowlisted bindings, and exact fie
   assert.throws(() => normalizeUltimateB2Page5ImageAuthoring({ ...imageActivity, mainImage: "../../escape.png" }), /Unknown/);
   assert.throws(() => normalizeUltimateB2Page5ImageAuthoring({ ...imageActivity, bullets: [] }), /unknown fields/);
   assert.throws(() => normalizeUltimateB2Page5TeacherAnswers({ ...teacherAnswers, modelAnswers: [] }), /three model answers/);
+  const outside = structuredClone(openResponse);
+  outside.questions[0].responseRegion.area.left = 95;
+  outside.questions[0].responseRegion.area.width = 10;
+  assert.throws(() => normalizeUltimateB2Page5OpenResponseAuthoring(outside), /inside the activity surface/);
 });
 
 test("Page 5 endpoint saves and reloads open-response public prompts and Teacher-private answers", async () => {
@@ -65,10 +72,12 @@ test("Page 5 endpoint saves and reloads open-response public prompts and Teacher
     const loaded = await fetch(url).then((response) => response.json());
     const ids = loaded.publicAuthoring.questions.map((question) => question.id);
     loaded.publicAuthoring.questions[0].prompt = "Edited isolated question?";
+    loaded.publicAuthoring.questions[0].responseRegion.area.left = 7.5;
     loaded.teacherAuthoring.modelAnswers[0].text = "Edited isolated Teacher model answer.";
     assert.equal((await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(loaded) })).status, 200);
     const reloaded = await fetch(url).then((response) => response.json());
     assert.equal(reloaded.publicAuthoring.questions[0].prompt, "Edited isolated question?");
+    assert.equal(reloaded.publicAuthoring.questions[0].responseRegion.area.left, 7.5);
     assert.equal(reloaded.teacherAuthoring.modelAnswers[0].text, "Edited isolated Teacher model answer.");
     assert.deepEqual(reloaded.publicAuthoring.questions.map((question) => question.id), ids);
     assert.equal(JSON.parse(await readFile(fixture.teacherAnswersPath, "utf8")).modelAnswers[0].text, "Edited isolated Teacher model answer.");
@@ -93,6 +102,26 @@ test("Page 5 Exercise 2 is a generic image activity with no bullet authoring", a
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
+test("Image activity accepts a local raster upload, normalizes it to the managed asset, and rejects unsafe formats", async () => {
+  const fixture = await fixtureServer();
+  try {
+    const imageBytes = await sharp({ create: { width: 640, height: 360, channels: 4, background: "#3467a3" } }).jpeg().toBuffer();
+    const assetUrl = `${fixture.base}/__hhplms/ultimate-b2-page-5-image-asset?activityId=${imageActivityId}`;
+    const upload = await fetch(assetUrl, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: imageBytes });
+    assert.equal(upload.status, 200);
+    const result = await upload.json();
+    assert.equal(result.binding, "unit1.page5.exercise2.main-content");
+    assert.deepEqual([result.width, result.height, result.mimeType], [640, 360, "image/webp"]);
+    const stored = await readFile(fixture.imageAssetPath, "utf8");
+    assert.match(stored, /^<svg[^>]+width="640"[^>]+height="360"/);
+    assert.match(stored, /data:image\/webp;base64,/);
+    assert.equal((await fetch(`${assetUrl}&path=C:/escape`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: imageBytes })).status, 404);
+    assert.equal((await fetch(assetUrl, { method: "POST", headers: { "Content-Type": "image/svg+xml" }, body: "<svg/>" })).status, 415);
+    assert.equal((await fetch(assetUrl, { method: "POST", headers: { "Content-Type": "image/png" }, body: imageBytes })).status, 400);
+    assert.equal((await fetch(assetUrl, { method: "POST", headers: { "Content-Type": "image/png" }, body: "not-an-image" })).status, 400);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
+});
+
 test("Page 5 model answers stay in Teacher payload and out of public authoring", async () => {
   const distinctive = "Films are an art form which involve many artistic processes";
   const sources = await Promise.all([
@@ -114,11 +143,32 @@ test("Builder registry exposes focused Page 5 and Reading editors", async () => 
     readFile("src/apps/ultimate-b2-builder/UltimateB2CompleteSentencesBuilder.jsx", "utf8"),
     readFile("src/apps/ultimate-b2-builder/UltimateB2DebateClubBuilder.jsx", "utf8"),
   ]);
-  for (const label of ["Open response", "Image", "Video", "Listening", "Multiple Choice", "Complete the Sentences", "Open Answer"]) assert.match(metadata, new RegExp(label));
-  assert.match(openBuilder, /Content[\s\S]*Teacher Answers[\s\S]*Preview/);
-  assert.match(imageBuilder, /Main horizontal image/);
+  for (const label of ["Open Response", "Image", "Video", "Listening", "Multiple Choice", "Complete the Sentences"]) assert.match(metadata, new RegExp(label));
+  assert.doesNotMatch(metadata, /Open Answer|kind: "open-answer"/);
+  assert.match(openBuilder, /Content[\s\S]*Response Regions[\s\S]*Preview/);
+  assert.match(openBuilder, /EditableResponseRegionLayer[\s\S]*Text shown after click/);
+  assert.match(imageBuilder, /type="file"[\s\S]*image\/png,image\/jpeg,image\/webp/);
+  assert.match(imageBuilder, /ultimate-b2-page-5-image-asset/);
+  assert.match(imageBuilder, /Recommended main image: 16:9 landscape/);
+  assert.match(imageBuilder, /createImageBitmap/);
+  assert.match(imageBuilder, /This image is not 16:9[\s\S]*contain/);
   assert.doesNotMatch(imageBuilder, /bullet/i);
   assert.match(completeBuilder, /Content[\s\S]*Blanks[\s\S]*Preview/);
-  assert.match(debateBuilder, /Parts[\s\S]*Preview/);
+  assert.match(debateBuilder, /Response Regions[\s\S]*Preview/);
   assert.match(registry, /UltimateB2CompleteSentencesBuilder[\s\S]*UltimateB2DebateClubBuilder/);
+});
+
+test("shared Response Regions keep visible writing lines before and after reveal", async () => {
+  const [component, styles] = await Promise.all([
+    readFile("src/components/lms/activities/ultimate-b2/ResponseRegion.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/responseRegion.css", "utf8"),
+  ]);
+  assert.match(component, /data-response-region-id/);
+  assert.match(component, /aria-pressed/);
+  assert.match(component, /revealed \? revealText : ""/);
+  assert.match(styles, /repeating-linear-gradient/);
+  assert.match(styles, /border: 2px solid rgb\(100 116 139 \/ 42%\)/);
+  assert.match(styles, /overflow: auto/);
+  assert.match(styles, /overflow-wrap: anywhere/);
+  assert.doesNotMatch(styles, /\.response-region\.is-revealed[^}]*background-image:\s*none/s);
 });

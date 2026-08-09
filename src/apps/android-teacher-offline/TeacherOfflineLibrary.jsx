@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
@@ -13,9 +15,9 @@ function LegacyMenuArtwork({ artwork }) {
   );
 }
 
-function UnitColumn({ label, items, artwork, onOpenBook }) {
+function UnitColumn({ label, items, artwork, editionId, onOpenUnit, position }) {
   return (
-    <div className="legacy-home-unit-column" aria-label={label}>
+    <div className={`legacy-home-unit-column is-${position}`} aria-label={label}>
       {items.map((unit) => (
         <button
           key={unit.number}
@@ -23,7 +25,7 @@ function UnitColumn({ label, items, artwork, onOpenBook }) {
           className={`legacy-home-unit${unit.available ? " available" : ""}`}
           aria-disabled={unit.available ? undefined : "true"}
           aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title}`}
-          onClick={unit.available ? () => onOpenBook(unit.number) : undefined}
+          onClick={unit.available ? () => onOpenUnit?.(editionId, unit.number) : undefined}
         >
           <LegacyMenuArtwork artwork={artwork[unit.number - 1]} />
         </button>
@@ -32,12 +34,36 @@ function UnitColumn({ label, items, artwork, onOpenBook }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, animationsActive }) {
+function ExtrasColumn({ label, items, position }) {
+  return (
+    <div className={`legacy-home-extras-column is-${position}`} aria-label={label}>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className="legacy-home-extra-button"
+          data-teacher-control-id={item.controlId}
+          data-sound-category="button"
+          aria-disabled={item.destination ? undefined : "true"}
+          aria-label={item.label}
+        >
+          <LegacyMenuArtwork artwork={item} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive }) {
+  const [selectedEdition, setSelectedEdition] = useState("students-book");
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
+  const extrasSelected = selectedEdition === "extras";
+  const extrasLeft = menuSkin.extras.filter((item) => item.column === "left").sort((left, right) => left.order - right.order);
+  const extrasRight = menuSkin.extras.filter((item) => item.column === "right").sort((left, right) => left.order - right.order);
 
   return (
-    <main className="teacher-offline-library has-classroom-tools" data-book-menu-skin={menuSkin.id} style={{ "--legacy-classroom-background": `url(${menuSkin.background})` }}>
+    <main className="teacher-offline-library has-classroom-tools" data-book-menu-skin={menuSkin.id} data-selected-edition={selectedEdition} style={{ "--legacy-classroom-background": `url(${menuSkin.background})` }}>
       <header className="legacy-home-floating-chrome">
         <img className="legacy-home-publisher-logo" src={menuSkin.publisherLogo} alt={menuSkin.publisherLogoAlt} />
       </header>
@@ -45,18 +71,16 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenBook, animations
       <section className="legacy-home-classroom-surface" data-classroom-surface-id={surfaceKey} tabIndex={-1} aria-label={`${menuSkin.title.accessibleLabel} classroom launcher`}>
         <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="legacy-home-launcher">
-            <UnitColumn label="Units 1 to 5" items={units.slice(0, 5)} artwork={menuSkin.units} onOpenBook={onOpenBook} />
+            {!extrasSelected ? <UnitColumn label="Units 1 to 5" position="left" items={units.slice(0, 5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} />
+              : <ExtrasColumn label="Extras left column" position="left" items={extrasLeft} />}
             {menuSkin.title.kind === "legacy-gaf" && <LegacyMenuTitleAnimation animate={animationsActive} />}
-            <UnitColumn label="Units 6 to 10" items={units.slice(5)} artwork={menuSkin.units} onOpenBook={onOpenBook} />
+            {!extrasSelected ? <UnitColumn label="Units 6 to 10" position="right" items={units.slice(5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} />
+              : <ExtrasColumn label="Extras right column" position="right" items={extrasRight} />}
 
-            <div className="legacy-home-book-row" aria-label="Additional book editions">
-              {[
-                ["Workbook", "workbook"],
-                ["Grammar Book", "grammarBook"],
-                ["Extras", "extras"],
-              ].map(([label, assetKey]) => (
-                <button key={label} type="button" className="legacy-home-book-button" aria-disabled="true" aria-label={label}>
-                  <LegacyMenuArtwork artwork={menuSkin.editions[assetKey]} />
+            <div className="legacy-home-book-row" aria-label="Book editions">
+              {menuSkin.editions.map((edition) => (
+                <button key={edition.id} type="button" className="legacy-home-book-button" data-teacher-control-id={edition.controlId} data-sound-category="button" aria-label={edition.label} aria-pressed={selectedEdition === edition.id} onClick={() => setSelectedEdition(edition.id)}>
+                  <LegacyMenuArtwork artwork={edition} />
                 </button>
               ))}
             </div>

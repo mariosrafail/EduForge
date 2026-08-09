@@ -35,7 +35,8 @@ const TeacherProjectPresentation = forwardRef(function TeacherProjectPresentatio
   if (navigation.view === "page" && selectedUnit && entryIndex >= 0) {
     return <TeacherProjectPageViewer key={selectedUnit.entries[entryIndex].id} config={config} unit={selectedUnit} entryIndex={entryIndex} onHome={home} onBack={back} onSelectIndex={(index) => navigate({ view: "page", unitId: selectedUnit.id, entryId: selectedUnit.entries[index].id })} />;
   }
-  return <TeacherProjectShell config={config} animationsActive={animationsActive} editing={editing} onOpenUnit={(unitId) => {
+  return <TeacherProjectShell config={config} animationsActive={animationsActive} editing={editing} onOpenUnit={(editionId, unitId) => {
+    if (editionId !== "students-book") return;
     const unit = config.content.studentsBook.units.find((candidate) => candidate.id === unitId);
     if (unit?.entries.length) navigate({ view: "overview", unitId, entryId: "" });
   }} />;

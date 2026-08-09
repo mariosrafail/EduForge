@@ -1,0 +1,53 @@
+.b2-teacher-app-builder { min-height: calc(100vh - 60px); background: #eef2f6; color: #172033; }
+.b2-teacher-app-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 30px; background: #15243b; color: #fff; }
+.b2-teacher-app-header span { color: #94d6ff; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.b2-teacher-app-header h1 { margin: 3px 0 5px; font-size: 28px; }
+.b2-teacher-app-header p { max-width: 760px; margin: 0; color: #cdd8e7; }
+.b2-teacher-save-state { min-width: 190px; display: grid; justify-items: end; gap: 5px; }
+.b2-teacher-save-state small { max-width: 340px; color: #ffb6b6; text-align: right; }
+.b2-teacher-save-state button, .b2-teacher-browse { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 14px; border: 0; border-radius: 8px; background: #1f9add; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.b2-teacher-save-state button:disabled { opacity: .45; cursor: default; }
+.b2-teacher-section-tabs { display: flex; gap: 4px; padding: 10px 22px; overflow-x: auto; border-bottom: 1px solid #cad3df; background: #fff; }
+.b2-teacher-section-tabs button { white-space: nowrap; padding: 9px 12px; border: 0; border-radius: 7px; background: transparent; color: #41516a; font: inherit; font-weight: 750; cursor: pointer; }
+.b2-teacher-section-tabs button[aria-selected="true"] { background: #dff2ff; color: #086caa; }
+.b2-teacher-layout { display: grid; grid-template-columns: minmax(520px, 1fr) 660px; gap: 18px; padding: 18px; align-items: start; }
+.b2-teacher-editor-panel, .b2-teacher-live-preview { min-width: 0; border: 1px solid #d3dce7; border-radius: 12px; background: #fff; box-shadow: 0 5px 18px rgba(36,55,80,.08); }
+.b2-teacher-editor-panel { max-height: calc(100vh - 190px); padding: 20px; overflow: auto; }
+.b2-teacher-editor-panel h2 { margin: 0 0 16px; }
+.b2-teacher-editor-panel h3 { margin: 22px 0 10px; color: #1c6190; }
+.b2-teacher-assets { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.b2-teacher-assets > h2, .b2-teacher-assets > p { grid-column: 1 / -1; }
+.b2-teacher-asset-group { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.b2-teacher-asset-group > h3 { grid-column: 1 / -1; }
+.b2-teacher-asset-slot { min-width: 0; display: grid; grid-template-columns: 74px minmax(0,1fr); gap: 10px; padding: 10px; border: 1px solid #dce3eb; border-radius: 10px; background: #f8fafc; }
+.b2-teacher-asset-preview { width: 74px; height: 66px; display: grid; place-items: center; overflow: hidden; border-radius: 7px; background: #dbe4ec; color: #657389; }
+.b2-teacher-asset-preview img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.b2-teacher-asset-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.b2-teacher-asset-copy strong, .b2-teacher-asset-copy span, .b2-teacher-asset-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b2-teacher-asset-copy small { color: #64748b; font-family: ui-monospace,monospace; font-size: 10px; }
+.b2-teacher-asset-copy span { color: #48586e; font-size: 12px; }
+.b2-teacher-asset-copy em { display: flex; gap: 4px; margin-top: 3px; color: #a25700; font-size: 11px; font-style: normal; }
+.b2-teacher-browse { grid-column: 1 / -1; min-height: 32px; padding: 6px 10px; background: #e3edf5; color: #17618f; font-size: 12px; }
+.b2-teacher-browse input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.b2-teacher-page-row { margin-bottom: 10px; padding: 5px; border: 2px solid transparent; border-radius: 12px; background: #f4f7fa; }
+.b2-teacher-page-row[data-selected="true"] { border-color: #43a7df; }
+.b2-teacher-page-row .b2-teacher-asset-slot { grid-template-columns: 110px minmax(0,1fr); }
+.b2-teacher-page-row .b2-teacher-asset-preview { width: 110px; height: 96px; }
+.b2-teacher-page-row dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 8px; }
+.b2-teacher-page-row dl div, .b2-teacher-overview dl div { min-width: 0; padding: 8px; border-radius: 7px; background: #eaf0f5; }
+.b2-teacher-page-row dt, .b2-teacher-overview dt { color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.b2-teacher-page-row dd, .b2-teacher-overview dd { margin: 3px 0 0; overflow: hidden; text-overflow: ellipsis; }
+.b2-teacher-overview dl { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.b2-teacher-overview dd { font-size: 25px; font-weight: 850; }
+.b2-teacher-live-preview { position: sticky; top: 12px; padding: 12px; }
+.b2-teacher-live-preview > header { display: flex; justify-content: space-between; padding: 2px 2px 10px; }
+.b2-teacher-live-preview > header span { padding: 2px 8px; border-radius: 20px; background: #e3f3ff; color: #086caa; font-size: 12px; font-weight: 800; }
+.b2-teacher-preview-viewport { width: 640px; height: 360px; position: relative; overflow: hidden; border-radius: 9px; background: #18202a; }
+.b2-teacher-preview-stage { width: 1920px; height: 1080px; transform: scale(.333333); transform-origin: 0 0; }
+.b2-teacher-preview-stage > .teacher-project-shell { width: 1920px !important; height: 1080px !important; min-height: 1080px !important; }
+.b2-teacher-live-preview > label { display: grid; gap: 5px; margin: 12px 0 8px; color: #516177; font-size: 12px; font-weight: 800; }
+.b2-teacher-live-preview select { min-height: 36px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; }
+.b2-teacher-page-preview { height: 240px; display: grid; place-items: center; overflow: hidden; border-radius: 9px; background: #1c3047; }
+.b2-teacher-page-preview img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; object-fit: contain; }
+.b2-teacher-live-preview > small { display: flex; align-items: center; gap: 5px; margin-top: 8px; color: #627188; }
+@media (max-width: 1250px) { .b2-teacher-layout { grid-template-columns: 1fr; } .b2-teacher-live-preview { position: static; } }

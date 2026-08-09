@@ -22,7 +22,7 @@
         "unitNumber": 1,
         "pageId": "ub2-sb-unit-1-part-1",
         "pageNumber": 5,
-        "left": 10.4475,
+        "left": 10.6196,
         "top": 74.0806,
         "width": 25.7487,
         "height": 20.2519,
@@ -63,10 +63,10 @@
         "unitNumber": 1,
         "pageId": "ub2-sb-unit-1-part-2",
         "pageNumber": 6,
-        "left": 52.7145,
+        "left": 52.8021,
         "top": 3.7531,
-        "width": 25.289,
-        "height": 49.5718,
+        "width": 42.1892,
+        "height": 49.068,
         "label": "Reading · Exercise 3",
         "actionType": "normalized_activity",
         "activityKey": "ultimate-b2-sb-u1-p2-o3"
@@ -150,6 +150,45 @@
         "label": "Vocabulary in Use · Exercise 4",
         "actionType": "normalized_activity",
         "activityKey": "ultimate-b2-sb-u1-p3-o4"
+      },
+      {
+        "id": "hotspot-e70e4b3c-1faa-4c21-9988-23f0a910c919",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-3",
+        "pageNumber": 8,
+        "left": 52.627,
+        "top": 20.7809,
+        "width": 23.7303,
+        "height": 30.6045,
+        "label": "Vocabulary in Use · Exercise 5",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p3-o5"
+      },
+      {
+        "id": "hotspot-219a5628-c83c-45b0-8cc7-412c6c436ae9",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-3",
+        "pageNumber": 8,
+        "left": 76.7951,
+        "top": 20.9068,
+        "width": 19.8774,
+        "height": 30.3526,
+        "label": "Vocabulary in Use · Exercise 6",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p3-o6"
+      },
+      {
+        "id": "hotspot-eeff2831-20d7-4c74-958d-c0d56b4f7862",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-3",
+        "pageNumber": 8,
+        "left": 52.7145,
+        "top": 53.6524,
+        "width": 43.6953,
+        "height": 40.6801,
+        "label": "Vocabulary in Use · Exercise 7",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p3-o7"
       }
     ],
     "ub2-sb-unit-1-part-4": [
@@ -217,6 +256,73 @@
         "label": "Grammar in Use · Exercise 8",
         "actionType": "normalized_activity",
         "activityKey": "ultimate-b2-sb-u1-p4-o8"
+      },
+      {
+        "id": "hotspot-ddf45d8c-86db-4750-87a2-db5f152ca6bb",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-4",
+        "pageNumber": 10,
+        "left": 2.8897,
+        "top": 48.4887,
+        "width": 22.3292,
+        "height": 46.0957,
+        "label": "Grammar in Use · Exercise 3",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p4-o3"
+      },
+      {
+        "id": "hotspot-259a4b8a-f158-4568-9413-df775516f417",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-4",
+        "pageNumber": 10,
+        "left": 25.8319,
+        "top": 70.529,
+        "width": 21.0158,
+        "height": 24.6851,
+        "label": "Grammar in Use · Exercise 4",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p4-o4"
+      },
+      {
+        "id": "hotspot-dee85a7d-78a2-4050-84f0-3f6532de0dcf",
+        "unitNumber": 1,
+        "pageId": "ub2-sb-unit-1-part-4",
+        "pageNumber": 10,
+        "left": 52.3643,
+        "top": 9.194,
+        "width": 21.8914,
+        "height": 51.0076,
+        "label": "Grammar in Use · Exercise 4",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p4-o4"
+      }
+    ],
+    "review-30": [
+      {
+        "id": "hotspot-d13a00d3-fa9e-4555-b12c-c89b58bad81d",
+        "unitNumber": 2,
+        "pageId": "review-30",
+        "pageNumber": 30,
+        "left": 5.4217,
+        "top": 9.6977,
+        "width": 43.8898,
+        "height": 85.6423,
+        "label": "Practice 2 · Exercise 1",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u2-p9-o1"
+      },
+      {
+        "id": "hotspot-c8a6b46f-38bf-45d5-9571-07a7298ebf15",
+        "unitNumber": 2,
+        "pageId": "review-30",
+        "pageNumber": 30,
+        "left": 50.5164,
+        "top": 9.8237,
+        "width": 44.5783,
+        "height": 86.1461,
+        "label": "Unit opener · Exercise 2",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u1-p1-o2"
       }
     ]
   }

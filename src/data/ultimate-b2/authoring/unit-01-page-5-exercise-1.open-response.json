@@ -13,15 +13,48 @@
   "questions": [
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q1",
-      "prompt": "In what ways are films an art form?"
+      "prompt": "In what ways are films an art form?",
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q1-response",
+        "ariaLabel": "Show model response for question 1",
+        "area": {
+          "left": 4.4545,
+          "top": 16.6233,
+          "width": 63,
+          "height": 17.5222
+        },
+        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+      }
     },
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q2",
-      "prompt": "Why is theatre life?"
+      "prompt": "Why is theatre life?",
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q2-response",
+        "ariaLabel": "Show model response for question 2",
+        "area": {
+          "left": 0,
+          "top": 41.5,
+          "width": 61,
+          "height": 17.5
+        },
+        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+      }
     },
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q3",
-      "prompt": "Do you agree that TV is furniture?"
+      "prompt": "Do you agree that TV is furniture?",
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q3-response",
+        "ariaLabel": "Show model response for question 3",
+        "area": {
+          "left": 2.5,
+          "top": 70.5,
+          "width": 61,
+          "height": 21.5
+        },
+        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+      }
     }
   ]
 }

@@ -159,31 +159,4 @@
   left: auto;
 }
 
-.ultimate-b2-debate-hotspot {
-  position: absolute;
-  z-index: 3;
-  padding: 18px 22px;
-  overflow: auto;
-  color: transparent;
-  background-color: rgb(255 255 255 / 20%);
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 28px, #334155 29px, transparent 30px);
-  border: 2px solid transparent;
-  border-radius: 10px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.ultimate-b2-debate-hotspot:hover,
-.ultimate-b2-debate-hotspot:focus-visible {
-  border-color: rgb(105 25 79 / 45%);
-  outline: 3px solid rgb(105 25 79 / 14%);
-}
-
-.ultimate-b2-debate-hotspot.revealed {
-  color: #111827;
-  background-color: #fff;
-}
-
-.ultimate-b2-debate-hotspot span {
-  font: 600 18px/29px "Fira Sans", Arial, sans-serif;
-}
+.ultimate-b2-debate-response-region { border-radius: 10px; }

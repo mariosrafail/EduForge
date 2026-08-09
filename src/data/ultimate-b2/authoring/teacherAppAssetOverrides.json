@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "packageId": "ultimate-b2-students-book",
+  "assets": {
+    "edition.workbook.normal": {
+      "repositoryPath": "src/assets/books/ultimate-b2/authoring/teacher-app/b6bd205580d2a1e54d61bd5992b4a4849b440560b60a04cf1789877886f6ded8.png",
+      "mediaType": "image/png",
+      "sha256": "b6bd205580d2a1e54d61bd5992b4a4849b440560b60a04cf1789877886f6ded8",
+      "sizeBytes": 22522,
+      "width": 301,
+      "height": 99,
+      "originalFilename": "workbook-normal.png"
+    },
+    "edition.workbook.active": {
+      "repositoryPath": "src/assets/books/ultimate-b2/authoring/teacher-app/7b2b66fc0a26ff2eb52c33e787535c33d52b13a9b7097260d2070a86a6501703.png",
+      "mediaType": "image/png",
+      "sha256": "7b2b66fc0a26ff2eb52c33e787535c33d52b13a9b7097260d2070a86a6501703",
+      "sizeBytes": 21451,
+      "width": 301,
+      "height": 99,
+      "originalFilename": "workbook-hover-pressed.png"
+    },
+    "edition.grammar-book.normal": {
+      "repositoryPath": "src/assets/books/ultimate-b2/authoring/teacher-app/7e1d023bb633920657097f793361b40858effa39c5e587b81699fca42b8c9fdd.png",
+      "mediaType": "image/png",
+      "sha256": "7e1d023bb633920657097f793361b40858effa39c5e587b81699fca42b8c9fdd",
+      "sizeBytes": 22641,
+      "width": 301,
+      "height": 99,
+      "originalFilename": "grammar-book-normal.png"
+    },
+    "edition.grammar-book.active": {
+      "repositoryPath": "src/assets/books/ultimate-b2/authoring/teacher-app/dbdec2d45812bf97038ba0997055810625fef62c3f7ba558543fbe4dc6ebe790.png",
+      "mediaType": "image/png",
+      "sha256": "dbdec2d45812bf97038ba0997055810625fef62c3f7ba558543fbe4dc6ebe790",
+      "sizeBytes": 21646,
+      "width": 301,
+      "height": 99,
+      "originalFilename": "grammar-book-hover-pressed.png"
+    }
+  }
+}

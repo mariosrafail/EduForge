@@ -1,4 +1,5 @@
 import path from "node:path";
+import { ultimateB2TeacherAppAuthoring } from "../../src/data/ultimate-b2/teacherAppAuthoring.js";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 
@@ -34,33 +35,12 @@ export function teacherPackAssetSources() {
     sourcePath: source("src/assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg"),
   }];
 
-  for (let partNumber = 1; partNumber <= 10; partNumber += 1) {
+  for (const page of ultimateB2TeacherAppAuthoring.pages) {
     assets.push({
-      logicalKey: `ultimate-b2.students-book.unit-1.part-${partNumber}.page-image`,
+      pageId: page.id,
+      logicalKey: page.logicalAssetIdentity,
       type: "page",
-      sourcePath: source(`unit/1/parts/HD/parts_part_${partNumber}.png`),
-    });
-  }
-
-  const unit2PageKeys = [
-    "page-19",
-    "page-20-21",
-    "page-22-23",
-    "page-24-25",
-    "page-26",
-    "page-27",
-    "page-28-29",
-    "page-30",
-    "page-31",
-    "page-32",
-    "page-33",
-    "page-34",
-  ];
-  for (const [index, pageKey] of unit2PageKeys.entries()) {
-    assets.push({
-      logicalKey: `ultimate-b2.students-book.unit-2.${pageKey}`,
-      type: "page",
-      sourcePath: source(`unit/2/parts/HD/parts_part_${index + 1}.png`),
+      sourcePath: source(page.image.repositoryPath),
     });
   }
 

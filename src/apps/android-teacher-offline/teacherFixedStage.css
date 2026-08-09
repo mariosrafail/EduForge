@@ -149,6 +149,20 @@ html[data-app-mode="android-teacher-offline"] .legacy-home-unit-column {
   gap: 11px;
 }
 
+html[data-app-mode="android-teacher-offline"] .legacy-home-extras-column {
+  grid-template-rows: repeat(7, 81px);
+  align-content: center;
+  gap: 4px;
+}
+
+html[data-app-mode="android-teacher-offline"] .legacy-home-extra-button {
+  justify-self: center;
+  width: 320px;
+  height: 81px;
+  min-height: 38px;
+  aspect-ratio: 320 / 81;
+}
+
 html[data-app-mode="android-teacher-offline"] .legacy-home-unit {
   justify-self: start;
   width: min(100%, 360px);
@@ -170,9 +184,9 @@ html[data-app-mode="android-teacher-offline"] .legacy-home-book-row {
   grid-column: 1 / -1;
   grid-row: auto;
   align-self: auto;
-  width: 920px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  width: 1240px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
 html[data-app-mode="android-teacher-offline"] .legacy-home-book-button {

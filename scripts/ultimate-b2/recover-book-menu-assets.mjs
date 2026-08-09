@@ -26,13 +26,36 @@ const selectedRegions = [
       role: `Students Book Unit ${Number(number)} menu button`,
       state: state === "a" ? "normal" : "hover-pressed",
     }))),
-  ...[["12", "workbook", "Workbook"], ["13", "grammar-book", "Grammar Book"], ["14", "extras", "Extras"]]
+  ...[["12", "workbook", "Workbook"], ["13", "grammar-book", "Grammar Book"], ["14", "extras", "Extras"], ["15", "students-book", "Students Book"]]
     .flatMap(([number, slug, label]) => ["a", "b"].map((state) => ({
       name: `button_${number}${state}`,
       outputPath: `book-menu/editions/${slug}-${state === "a" ? "normal" : "hover-pressed"}.png`,
       role: `${label} menu button`,
       state: state === "a" ? "normal" : "hover-pressed",
     }))),
+  ...[
+    ["01", "progress-checks", "Progress Checks"],
+    ["04", "reviews", "Reviews"],
+    ["05", "practice", "Practice"],
+    ["06", "videos", "Videos"],
+    ["07", "extra-videos", "Extra Videos"],
+    ["08", "word-lists", "Word Lists"],
+    ["09", "companion-exercises", "Companion Exercises", true],
+    ["10", "tests", "Tests"],
+    ["12", "games", "Games"],
+    ["13", "grammar-reference", "Grammar Reference"],
+    ["14", "irregular-verbs", "Irregular Verbs"],
+    ["15", "writing-bank", "Writing Bank"],
+    ["16", "speaking-bank", "Speaking Bank"],
+    ["17", "extra-tasks-for-early-finishers", "Extra Tasks for Early Finishers"],
+    ["18", "worksheets-for-videos", "Worksheets for Videos"],
+  ].flatMap(([number, slug, label, catalogOnly = false]) => ["a", "b"].map((state) => ({
+    name: `extra_${number}${state}`,
+    outputPath: `book-menu/units-extras/${slug}-${state === "a" ? "normal" : "hover-pressed"}.png`,
+    role: `${label} Extras menu button`,
+    state: state === "a" ? "normal" : "hover-pressed",
+    catalogOnly,
+  }))),
 ];
 
 function sha256(bytes) { return crypto.createHash("sha256").update(bytes).digest("hex"); }
@@ -69,12 +92,22 @@ if (missing.length) throw new Error(`Missing required atlas regions: ${missing.m
 const entries = [];
 for (const selection of selectedRegions) {
   const region = parsed.regions.get(selection.name);
-  const bytes = await sharp(atlasBytes).extract({ left: region.x, top: region.y, width: region.width, height: region.height }).png().toBuffer();
+  let bytes = await sharp(atlasBytes).extract({ left: region.x, top: region.y, width: region.width, height: region.height }).png().toBuffer();
   const output = path.join(assetRoot, ...selection.outputPath.split("/"));
   if (write) {
     ensureOutsideSource(output);
-    fs.mkdirSync(path.dirname(output), { recursive: true });
-    fs.writeFileSync(output, bytes);
+    if (fs.existsSync(output)) {
+      const existing = fs.readFileSync(output);
+      const [existingPixels, recoveredPixels] = await Promise.all([
+        sharp(existing).ensureAlpha().raw().toBuffer(),
+        sharp(bytes).ensureAlpha().raw().toBuffer(),
+      ]);
+      if (!existingPixels.equals(recoveredPixels)) throw new Error(`Existing recovered artwork differs from publisher atlas pixels: ${selection.outputPath}`);
+      bytes = existing;
+    } else {
+      fs.mkdirSync(path.dirname(output), { recursive: true });
+      fs.writeFileSync(output, bytes);
+    }
   }
   const baseName = selection.name.slice(0, -1);
   entries.push({
@@ -86,7 +119,7 @@ for (const selection of selectedRegions) {
     width: region.width, height: region.height, hasAlpha: true, format: "PNG",
     functionalRole: selection.role, state: selection.state, audience: "shared",
     intendedConsumer: "Teacher book-menu skin; recovered asset remains benign shared artwork",
-    usedBy: ["TeacherOfflineLibrary"],
+    usedBy: selection.catalogOnly ? [] : ["TeacherOfflineLibrary"],
     evidence: `Machine-readable atlas region ${selection.name}; decoded book1_params.iwb declares ${baseName}a, ${baseName}b, ${baseName}b as normal, hover, and pressed textures`,
     confidence: "high", sourceKind: "atlas-crop",
     extractionDetails: {
@@ -110,7 +143,7 @@ if (write) {
     return existing ? {
       ...entry,
       intendedConsumer: existing.intendedConsumer,
-      usedBy: existing.usedBy?.length ? existing.usedBy : entry.usedBy,
+      usedBy: entry.usedBy.length === 0 ? [] : existing.usedBy?.length ? existing.usedBy : entry.usedBy,
       recommendedAction: existing.recommendedAction,
     } : entry;
   });

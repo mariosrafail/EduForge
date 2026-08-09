@@ -7,6 +7,7 @@ import path from "node:path";
 import test from "node:test";
 import sharp from "sharp";
 import { parseGaf } from "../src/apps/android-teacher-offline/legacyGaf.js";
+import { ultimateB2TeacherAppDefaultAssets } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 
 const assetRoot = path.resolve("src/assets/books/ultimate-b2/legacy-classroom-ui");
 const manifestPath = path.join(assetRoot, "asset-manifest.json");
@@ -155,13 +156,29 @@ test("source-present validation reproduces exact copies and every atlas crop", a
 test("teacher registry imports only in-use baseline and catalog remains outside Student source", async () => {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const registryPath = path.resolve("src/apps/android-teacher-offline/legacyClassroomAssets.js");
+  const canonicalRegistryPath = path.resolve("src/data/ultimate-b2/teacherAppAuthoring.js");
+  const canonicalResolverPath = path.resolve("src/data/ultimate-b2/ultimateB2AuthoredAssetUrls.js");
   const registry = await readFile(registryPath, "utf8");
-  const importedOutputs = [...registry.matchAll(/legacy-classroom-ui\/([^"']+)/g)].map((match) => path.normalize(match[1].split("?")[0]));
-  const inUse = manifest.assets.filter((asset) => asset.usedBy?.length).map((asset) => path.normalize(asset.outputPath));
+  const legacyPrefix = "src/assets/books/ultimate-b2/legacy-classroom-ui/";
+  const importedOutputs = Object.values(ultimateB2TeacherAppDefaultAssets)
+    .filter((asset) => asset.repositoryPath.startsWith(legacyPrefix))
+    .map((asset) => path.normalize(asset.repositoryPath.slice(legacyPrefix.length)));
+  const editionArtworkNowAliasedToStudentsBook = new Set([
+    "book-menu/editions/workbook-normal.png",
+    "book-menu/editions/workbook-hover-pressed.png",
+    "book-menu/editions/grammar-book-normal.png",
+    "book-menu/editions/grammar-book-hover-pressed.png",
+  ].map((outputPath) => path.normalize(outputPath)));
+  const inUse = manifest.assets
+    .filter((asset) => asset.usedBy?.length && !editionArtworkNowAliasedToStudentsBook.has(path.normalize(asset.outputPath)))
+    .map((asset) => path.normalize(asset.outputPath));
   assert.deepEqual(new Set(importedOutputs), new Set(inUse));
+  assert.match(registry, /teacherAppAuthoring/);
+  assert.doesNotMatch(registry, /legacy-classroom-ui\//);
   const sourceFiles = await filesBelow(path.resolve("src"));
   for (const sourceFile of sourceFiles) {
     if (sourceFile.startsWith(`${path.resolve("src/apps/android-teacher-offline")}${path.sep}`)) continue;
+    if (sourceFile === canonicalRegistryPath || sourceFile === canonicalResolverPath) continue;
     if (!/\.(?:js|jsx|ts|tsx|css)$/.test(sourceFile)) continue;
     assert.doesNotMatch(await readFile(sourceFile, "utf8"), /legacyClassroomAssets|legacy-classroom-ui/);
   }
@@ -171,17 +188,26 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
 test("recovered Ultimate B2 book-menu controls preserve every required HD atlas region", async () => {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const controls = manifest.assets.filter((asset) => asset.id.startsWith("book-menu-button-"));
-  assert.equal(controls.length, 26);
+  const extras = manifest.assets.filter((asset) => asset.id.startsWith("book-menu-extra-"));
+  assert.equal(controls.length, 28);
+  assert.equal(extras.length, 30);
   assert.deepEqual(new Set(controls.map((asset) => asset.state)), new Set(["normal", "hover-pressed"]));
   assert.equal(controls.filter((asset) => asset.category === "book-menu/units").length, 20);
-  assert.equal(controls.filter((asset) => asset.category === "book-menu/editions").length, 6);
+  assert.equal(controls.filter((asset) => asset.category === "book-menu/editions").length, 8);
   for (const asset of controls) {
     assert.equal(asset.extractionDetails.atlasMetadataPath, "Contents/Resources/assets/books/book1/book_menu/HD/book_atlas.xml");
     assert.equal(asset.extractionDetails.atlasImageSha256, "1f776a9c6b452ab677e5afb4c1dbb2084f44a7e27121b59e5fa23dd297744ed7");
-    assert.match(asset.extractionDetails.regionName, /^button_(?:0[1-9]|10|1[234])[ab]$/);
+    assert.match(asset.extractionDetails.regionName, /^button_(?:0[1-9]|10|1[2345])[ab]$/);
     assert.equal(asset.width, asset.category.endsWith("units") ? 360 : 301);
     assert.equal(asset.height, asset.category.endsWith("units") ? 93 : 99);
   }
+  for (const asset of extras) {
+    assert.equal(asset.category, "book-menu/units-extras");
+    assert.equal(asset.width, 320);
+    assert.equal(asset.height, 81);
+    assert.match(asset.extractionDetails.regionName, /^extra_(?:01|04|05|06|07|08|09|10|12|13|14|15|16|17|18)[ab]$/);
+  }
+  assert.equal(extras.filter((asset) => asset.extractionDetails.regionName.startsWith("extra_09")).every((asset) => asset.usedBy.length === 0), true, "Companion Exercises remains cataloged but outside the requested Extras launcher");
 });
 
 test("recovered central menu GAF is parseable as the exact authored timeline", async () => {

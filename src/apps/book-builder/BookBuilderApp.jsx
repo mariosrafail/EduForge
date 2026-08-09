@@ -10,6 +10,7 @@ import { StudioError, StudioLoading } from "./components/StudioStates.jsx";
 
 export function BookBuilderApp() {
   const route = useBookBuilderRoute();
+  const redirectsB3 = route.kind === "teacher-project" && route.projectId === "b3";
   const [state, setState] = useState({ status: "loading", bootstrap: null, projects: null, error: null });
   const load = useCallback(() => {
     const controller = new AbortController();
@@ -27,6 +28,9 @@ export function BookBuilderApp() {
     return () => controller.abort();
   }, []);
   useEffect(() => load(), [load]);
+  useEffect(() => {
+    if (redirectsB3) window.location.replace("/ultimate-b2-builder.html#teacher-app");
+  }, [redirectsB3]);
   return (
     <div className="book-builder-studio">
       <a className="studio-skip-link" href="#main-content">Skip to main content</a>
@@ -35,11 +39,12 @@ export function BookBuilderApp() {
         <div className={`studio-readonly-chip ${state.bootstrap?.writeEnabled ? "editing" : ""}`}>{state.bootstrap?.writeEnabled ? <ShieldAlert aria-hidden="true" /> : <ShieldCheck aria-hidden="true" />}<span>{state.bootstrap?.writeEnabled ? "Local editing" : "Read-only review"}</span></div>
       </header>
       <div className={`studio-readonly-banner ${state.bootstrap?.writeEnabled ? "editing" : ""}`} role="status">{state.bootstrap?.writeEnabled ? "Local editing enabled — durable decisions change only this persistent Book Project copy." : "Read-only review — start the explicit local authoring command to create decisions."}</div>
-      {state.status === "loading" && <main id="main-content"><StudioLoading label="Connecting to the local Book Builder workspace…" /></main>}
+      {state.status === "loading" && !redirectsB3 && <main id="main-content"><StudioLoading label="Connecting to the local Book Builder workspace…" /></main>}
       {state.status === "error" && <main id="main-content"><StudioError error={state.error} onRetry={load} title="Publisher Review Studio could not connect" /></main>}
       {state.status === "ready" && route.kind === "dashboard" && <BookBuilderDashboard projects={state.projects.projects} diagnostics={state.projects.diagnostics} teacherProjects={state.teacherProjects} workspaceLabel={state.bootstrap.workspaceLabel} writeEnabled={state.bootstrap.writeEnabled} />}
       {state.status === "ready" && route.kind === "project" && <BookProjectReview route={route} writeEnabled={state.bootstrap.writeEnabled} />}
-      {state.status === "ready" && route.kind === "teacher-project" && <TeacherProjectEditor projectId={route.projectId} writeEnabled={state.bootstrap.writeEnabled} />}
+      {redirectsB3 && <main id="main-content"><StudioLoading label="Opening the canonical Ultimate B2 Teacher App editor…" /></main>}
+      {state.status === "ready" && route.kind === "teacher-project" && !redirectsB3 && <TeacherProjectEditor projectId={route.projectId} writeEnabled={state.bootstrap.writeEnabled} />}
       {state.status === "ready" && route.kind === "invalid" && <main id="main-content"><StudioLoading label="Returning to the project dashboard…" /></main>}
     </div>
   );

@@ -68,15 +68,15 @@ test("Complete the Sentences matches the Object 4 source contract and exact eigh
   assert.throws(() => normalizeUltimateB2CompleteSentencesAuthoring({ ...completeSentences, arbitraryPath: "C:/escape" }), /unknown fields/);
 });
 
-test("Debate Club is one Open Answer family with exactly two internal parts and one hotspot each", () => {
+test("Debate Club is an Open Response variant with exactly two internal parts and one response region each", () => {
   assert.deepEqual(normalizeUltimateB2DebateClubAuthoring(debateClub), debateClub);
   assert.equal(debateClub.source.objectNumber, 5);
   assert.equal(debateClub.parts.length, 2);
-  assert.ok(debateClub.parts.every((part) => part.hotspot && !Array.isArray(part.hotspot)));
-  assert.ok(debateClub.parts.every((part) => part.hotspot.revealText.length > 300));
+  assert.ok(debateClub.parts.every((part) => part.responseRegion && !Array.isArray(part.responseRegion)));
+  assert.ok(debateClub.parts.every((part) => part.responseRegion.revealText.length > 300));
   assert.throws(() => normalizeUltimateB2DebateClubAuthoring({ ...debateClub, parts: debateClub.parts.slice(0, 1) }), /exactly two/);
   const outside = structuredClone(debateClub);
-  outside.parts[0].hotspot.area.x = 1000;
+  outside.parts[0].responseRegion.area.x = 1000;
   assert.throws(() => normalizeUltimateB2DebateClubAuthoring(outside), /inside the activity surface/);
 });
 
@@ -97,12 +97,12 @@ test("Reading authoring endpoint round-trips editable content and geometry while
 
     const debateUrl = `${fixture.base}/__hhplms/ultimate-b2-reading-exercise-authoring?activityId=${ULTIMATE_B2_DEBATE_CLUB_ID}`;
     const debate = await fetch(debateUrl).then((result) => result.json());
-    debate.parts[1].hotspot.revealText += " Edited.";
-    debate.parts[1].hotspot.area.y = 225;
+    debate.parts[1].responseRegion.revealText += " Edited.";
+    debate.parts[1].responseRegion.area.y = 225;
     assert.equal((await fetch(debateUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activityId: ULTIMATE_B2_DEBATE_CLUB_ID, authoring: debate }) })).status, 200);
     const savedDebate = JSON.parse(await readFile(fixture.debatePath, "utf8"));
-    assert.match(savedDebate.parts[1].hotspot.revealText, /Edited\.$/);
-    assert.equal(savedDebate.parts[1].hotspot.area.y, 225);
+    assert.match(savedDebate.parts[1].responseRegion.revealText, /Edited\.$/);
+    assert.equal(savedDebate.parts[1].responseRegion.area.y, 225);
 
     assert.equal((await fetch(completeUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activityId: ULTIMATE_B2_COMPLETE_SENTENCES_ID, authoring: complete, path: "C:/escape" }) })).status, 400);
     assert.equal((await fetch(completeUrl, { method: "POST", body: "{}" })).status, 415);

@@ -9,6 +9,7 @@ import { ultimateB2ListeningBuilderPlugin } from "./scripts/ultimate-b2/listenin
 import { ultimateB2MultipleChoiceBuilderPlugin } from "./scripts/ultimate-b2/multiple-choice-builder-vite-plugin.mjs";
 import { ultimateB2Page5BuilderPlugin } from "./scripts/ultimate-b2/page5-builder-vite-plugin.mjs";
 import { ultimateB2ReadingExerciseBuilderPlugin } from "./scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
+import { ultimateB2TeacherAppBuilderPlugin } from "./scripts/ultimate-b2/teacher-app-builder-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
@@ -111,6 +112,7 @@ export default defineConfig(({ mode }) => {
       !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2ReadingExerciseBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2TeacherAppBuilderPlugin() : null,
       !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
       !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
     ].filter(Boolean),

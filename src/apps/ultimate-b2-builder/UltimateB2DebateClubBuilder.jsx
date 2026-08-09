@@ -1,7 +1,8 @@
-import { Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Save, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { UltimateB2DebateClubActivity } from "../../components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx";
+import { EditableResponseRegionLayer } from "../../components/lms/activities/ultimate-b2/ResponseRegion.jsx";
 import { normalizeUltimateB2DebateClubAuthoring, ULTIMATE_B2_DEBATE_CLUB_ID } from "../../data/ultimate-b2/readingExerciseAuthoringSchema.js";
 import { UltimateB2ExerciseVisualCapabilitiesEditor } from "./UltimateB2ExerciseVisualCapabilitiesEditor.jsx";
 
@@ -11,11 +12,12 @@ const instructionOptions = [{ value: "unit1.reading.debate-club.instruction", la
 
 export function UltimateB2DebateClubBuilder() {
   const [authoring, setAuthoring] = useState(null);
-  const [section, setSection] = useState("Parts");
+  const [section, setSection] = useState("Response Regions");
   const [status, setStatus] = useState("Loading...");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [command, setCommand] = useState(null);
+  const [editingPartIndex, setEditingPartIndex] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -41,14 +43,36 @@ export function UltimateB2DebateClubBuilder() {
     } catch (requestError) { setStatus("Save failed"); setError(requestError.message); }
   };
   const send = (type) => setCommand({ type, token: `${Date.now()}-${Math.random()}` });
+  const editingPart = authoring?.parts[editingPartIndex] || null;
+  const editingRegions = useMemo(() => {
+    if (!authoring || !editingPart?.responseRegion?.area) return [];
+    const area = editingPart.responseRegion.area;
+    return [{ id: editingPart.responseRegion.id, label: `Part ${editingPart.number} response region`, left: area.x / authoring.surface.width * 100, top: area.y / authoring.surface.height * 100, width: area.width / authoring.surface.width * 100, height: area.height / authoring.surface.height * 100 }];
+  }, [authoring, editingPart]);
+  const updateEditingRegions = (regions) => change((next) => {
+    const region = regions.find((candidate) => candidate.id === next.parts[editingPartIndex].responseRegion.id);
+    next.parts[editingPartIndex].responseRegion.area = region ? {
+      x: Math.round(region.left / 100 * next.surface.width), y: Math.round(region.top / 100 * next.surface.height),
+      width: Math.max(1, Math.round(region.width / 100 * next.surface.width)), height: Math.max(1, Math.round(region.height / 100 * next.surface.height)),
+    } : null;
+  });
 
   if (!authoring) return <section className="listening-builder"><p className="page5-builder-loading">{error || status}</p></section>;
   return <section className="listening-builder reading-exercise-builder">
     <header className="listening-builder-header"><div><span>Ultimate B2 · Reading authoring</span><h1>Debate Club</h1><code>{activityId}</code></div><div className="builder-save-state" role="status" data-dirty={dirty || undefined}><strong>{status}</strong>{error && <small>{error}</small>}<button type="button" disabled={!dirty || status === "Saving"} onClick={save}><Save size={17} /> Save</button></div></header>
-    <nav className="listening-builder-sections" aria-label="Debate Club editor sections">{["Parts", "Preview"].map((name) => <button type="button" key={name} aria-selected={section === name} onClick={() => setSection(name)}>{name}</button>)}</nav>
-    {section === "Parts" && <div className="page5-builder-form">
-      <UltimateB2ExerciseVisualCapabilitiesEditor visualCapabilities={authoring.visualCapabilities} instructionOptions={instructionOptions} showTextOptions={[]} onChange={(updater) => change((next) => updater(next.visualCapabilities))} />
-      {authoring.parts.map((part, index) => <article className="reading-builder-part" key={part.id}><h2>Part {part.number}</h2><label>Prompt<textarea value={part.prompt} onChange={(event) => change((next) => { next.parts[index].prompt = event.target.value; })} /></label><label>Photo alternative text<input value={part.partImageAlt} onChange={(event) => change((next) => { next.parts[index].partImageAlt = event.target.value; })} /></label><label>Reveal button label<input value={part.hotspot.ariaLabel} onChange={(event) => change((next) => { next.parts[index].hotspot.ariaLabel = event.target.value; })} /></label><label>Reveal text<textarea className="reading-builder-model-text" value={part.hotspot.revealText} onChange={(event) => change((next) => { next.parts[index].hotspot.revealText = event.target.value; })} /></label><div className="reading-builder-geometry-fields">{["x", "y", "width", "height"].map((key) => <label key={key}>Hotspot {key}<input type="number" value={part.hotspot.area[key]} onChange={(event) => change((next) => { next.parts[index].hotspot.area[key] = Number(event.target.value); })} /></label>)}</div></article>)}
+    <nav className="listening-builder-sections" aria-label="Debate Club editor sections">{["Response Regions", "Preview"].map((name) => <button type="button" key={name} aria-selected={section === name} onClick={() => setSection(name)}>{name}</button>)}</nav>
+    {section === "Response Regions" && <div className="open-response-region-workspace debate-response-region-workspace">
+      <div className="open-response-region-canvas"><p>Choose a part, then drag its lined Response Region to move it or use the handle to resize it.</p><div className="open-response-region-editor-stage debate-response-region-stage">
+        <UltimateB2DebateClubActivity key={`editor-part-${editingPartIndex}`} activity={{ stableNormalizedId: activityId }} authoring={authoring} presentation={{ command: editingPartIndex === 1 ? { type: "next-panel", token: "show-part-2" } : null }} />
+        <EditableResponseRegionLayer regions={editingRegions} selectedRegionId={editingPart?.responseRegion.id} onSelectRegion={() => undefined} onChangeRegions={updateEditingRegions} createRegion={(geometry) => ({ id: editingPart.responseRegion.id, label: `Part ${editingPart.number} response region`, ...geometry })} />
+      </div></div>
+      <aside className="open-response-region-properties"><h2>Response Region properties</h2><label>Part<select value={editingPartIndex} onChange={(event) => setEditingPartIndex(Number(event.target.value))}>{authoring.parts.map((part, index) => <option key={part.id} value={index}>Part {part.number}</option>)}</select></label>
+        <UltimateB2ExerciseVisualCapabilitiesEditor visualCapabilities={authoring.visualCapabilities} instructionOptions={instructionOptions} showTextOptions={[]} onChange={(updater) => change((next) => updater(next.visualCapabilities))} />
+        {editingPart && <div className="open-response-selected-region"><code>{editingPart.responseRegion.id}</code><label>Prompt<textarea value={editingPart.prompt} onChange={(event) => change((next) => { next.parts[editingPartIndex].prompt = event.target.value; })} /></label><label>Photo alternative text<input value={editingPart.partImageAlt} onChange={(event) => change((next) => { next.parts[editingPartIndex].partImageAlt = event.target.value; })} /></label><label>Accessibility label<input value={editingPart.responseRegion.ariaLabel} onChange={(event) => change((next) => { next.parts[editingPartIndex].responseRegion.ariaLabel = event.target.value; })} /></label><label>Reveal text<textarea className="reading-builder-model-text" value={editingPart.responseRegion.revealText} onChange={(event) => change((next) => { next.parts[editingPartIndex].responseRegion.revealText = event.target.value; })} /></label>
+          <div className="response-region-layout-fields">{[["paddingX", "Horizontal padding"], ["paddingY", "Vertical padding"], ["lineSpacing", "Line spacing"], ["fontScale", "Font scale"]].map(([key, label]) => <label key={key}>{label}<input type="number" step={key === "fontScale" ? .05 : 1} value={editingPart.responseRegion.presentation[key]} onChange={(event) => change((next) => { next.parts[editingPartIndex].responseRegion.presentation[key] = Number(event.target.value); })} /></label>)}</div>
+          {!editingPart.responseRegion.area && <p className="response-region-warning">Draw a replacement region before saving.</p>}<button className="builder-delete" type="button" onClick={() => updateEditingRegions([])}><Trash2 size={16} /> Delete selected region</button>
+        </div>}
+      </aside>
     </div>}
     {section === "Preview" && <div className="reading-builder-preview"><div className="reading-builder-preview-controls"><button type="button" onClick={() => send("previous-panel")}>Previous part</button><button type="button" onClick={() => send("next-panel")}>Next part</button></div><div className="reading-builder-preview-stage"><UltimateB2DebateClubActivity activity={{ stableNormalizedId: activityId }} authoring={authoring} presentation={{ command }} /></div></div>}
   </section>;

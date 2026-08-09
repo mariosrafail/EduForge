@@ -34,11 +34,17 @@
       "partImage": "unit1.reading.debate-club.part-1-photo",
       "partImageAlt": "Watching a film at home",
       "argumentImage": "unit1.reading.debate-club.part-1-argument",
-      "hotspot": {
+      "responseRegion": {
         "id": "debate-reveal-1",
-        "area": { "x": 55, "y": 255, "width": 755, "height": 310 },
+        "area": {
+          "x": 0,
+          "y": 255,
+          "width": 755,
+          "height": 310
+        },
         "ariaLabel": "Reveal the argument for watching a film at home",
-        "revealText": "In my opinion, watching a film at home is better than watching it at the cinema. To begin with, it is much cheaper to stream films at home, so why go to the expense of going to the cinema? Although people generally consider going to the cinema an entertaining social event, it is more convenient to watch a film in the comfort of your own home than in a crowded cinema. Furthermore, you can pause the film whenever you need to, and you won’t have to put up with noise from other spectators. For these reasons, I believe that it’s better to watch a film at home."
+        "revealText": "In my opinion, watching a film at home is better than watching it at the cinema. To begin with, it is much cheaper to stream films at home, so why go to the expense of going to the cinema? Although people generally consider going to the cinema an entertaining social event, it is more convenient to watch a film in the comfort of your own home than in a crowded cinema. Furthermore, you can pause the film whenever you need to, and you won’t have to put up with noise from other spectators. For these reasons, I believe that it’s better to watch a film at home.",
+        "presentation": { "paddingX": 22, "paddingY": 18, "lineSpacing": 29, "fontScale": 1 }
       }
     },
     {
@@ -48,11 +54,17 @@
       "partImage": "unit1.reading.debate-club.part-2-photo",
       "partImageAlt": "Watching a film at the cinema",
       "argumentImage": "unit1.reading.debate-club.part-2-argument",
-      "hotspot": {
+      "responseRegion": {
         "id": "debate-reveal-2",
-        "area": { "x": 375, "y": 230, "width": 625, "height": 300 },
+        "area": {
+          "x": 100,
+          "y": 230,
+          "width": 625,
+          "height": 300
+        },
         "ariaLabel": "Reveal the argument for going to the cinema",
-        "revealText": "Many people say that watching films at home is cheaper and more convenient. However, I believe that going to the cinema is much more entertaining than streaming films at home. Being at the cinema with others can be a wonderful experience and an opportunity to socialise with others. It allows us to feel connected with other people, which is very important in life. Although watching a film at home is great, in my view it doesn’t compare with going to the cinema."
+        "revealText": "Many people say that watching films at home is cheaper and more convenient. However, I believe that going to the cinema is much more entertaining than streaming films at home. Being at the cinema with others can be a wonderful experience and an opportunity to socialise with others. It allows us to feel connected with other people, which is very important in life. Although watching a film at home is great, in my view it doesn’t compare with going to the cinema.",
+        "presentation": { "paddingX": 22, "paddingY": 18, "lineSpacing": 29, "fontScale": 1 }
       }
     }
   ]

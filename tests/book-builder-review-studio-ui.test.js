@@ -14,7 +14,7 @@ test("builder.html loads the generic Publisher Review Studio entry", async () =>
   assert.doesNotMatch(html, /ultimate-b2-builder\/builderEntry/);
 });
 
-test("Ultimate B2 tabbed shell retains the existing tracked Hotspot utility byte-for-byte", async () => {
+test("Ultimate B2 tabbed shell connects the existing Hotspot utility to canonical page assets", async () => {
   const [html, component, entry, plugin, activityEntry] = await Promise.all([
     read("ultimate-b2-builder.html"),
     read("src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"),
@@ -29,7 +29,7 @@ test("Ultimate B2 tabbed shell retains the existing tracked Hotspot utility byte
   const sha256 = (value) => createHash("sha256").update(value.replaceAll("\r\n", "\n")).digest("hex");
   assert.match(html, /src\/apps\/ultimate-b2-builder\/activityBuilderEntry\.jsx/);
   assert.match(html, /Ultimate B2 Students Book hotspot builder/);
-  assert.equal(sha256(component), "23bc859bd305541433bd3352e46281b980bb31a7b52ac0af507bd28f55517ad3");
+  assert.match(component, /ultimateB2TeacherAppAssetUrl\(page\.assetBindingId/);
   assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");
   assert.equal(sha256(plugin), "37df07b4a0db138fcd8166189f0cd2167b262bdafeaf9739dc412239bda91e6f");
   assert.match(activityEntry, /UltimateB2BuilderApp/);
@@ -43,6 +43,13 @@ test("Review Studio routing is hash-based, path-free and covers every required p
   assert.match(router, /#\/projects\/\$\{encodeURIComponent\(projectId\)\}/);
   assert.match(router, /hashchange/);
   assert.doesNotMatch(router, /workspace|filesystem|absolutePath/i);
+});
+
+test("legacy local b3 route redirects to the one canonical Ultimate B2 Teacher App editor", async () => {
+  const app = await read("src/apps/book-builder/BookBuilderApp.jsx");
+  assert.match(app, /route\.projectId === "b3"/);
+  assert.match(app, /ultimate-b2-builder\.html#teacher-app/);
+  assert.match(app, /route\.kind === "teacher-project" && !redirectsB3/);
 });
 
 test("read-only remains default while explicit authoring UI keeps source and menu evidence immutable", async () => {

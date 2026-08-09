@@ -6,7 +6,7 @@ export function UltimateB2ImageActivity({ activity, display: displayOverride = n
 
   return (
     <section className="ultimate-b2-image-activity" data-image-activity={display.activityId} aria-label={activity.title}>
-      <div className="ultimate-b2-image-activity-sheet">
+      <div className={`ultimate-b2-image-activity-sheet ${display.instructionImage ? "has-instruction" : "without-instruction"}`}>
         {display.instructionImage && <img className="ultimate-b2-image-activity-instruction" src={display.instructionImage} alt={display.instructionImageAlt} />}
         <img className="ultimate-b2-image-activity-main" src={display.image} alt={display.mainImageAlt} />
       </div>

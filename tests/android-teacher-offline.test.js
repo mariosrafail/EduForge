@@ -538,12 +538,14 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(toolsContext, /drawings:[\s\S]*overlays:/);
   assert.match(toolsContext, /clearCovers[\s\S]*setSpotlight[\s\S]*clearAllMarkup/);
   for (const title of ["Respect Our Planet", "Fit For Life", "Law and Order", "You're Hired!", "Add to Cart", "Making the Grade", "Better Together", "It's Just Science!"]) assert.match(unitMetadata, new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(library, /\["Workbook", "workbook"\]/);
-  assert.match(library, /\["Grammar Book", "grammarBook"\]/);
-  assert.match(library, /\["Extras", "extras"\]/);
+  assert.match(library, /useState\("students-book"\)/);
+  assert.match(library, /menuSkin\.editions\.map/);
+  assert.match(library, /aria-pressed=\{selectedEdition === edition\.id\}/);
+  assert.match(library, /menuSkin\.extras/);
+  assert.match(library, /ExtrasColumn/);
   assert.doesNotMatch(library, /LockKeyhole|legacy-home-lock|Locked|\sdisabled(?:=|\s|>)/);
   assert.match(library, /aria-disabled=\{unit\.available \? undefined : "true"\}/);
-  assert.match(library, /aria-disabled="true" aria-label=\{label\}/);
+  assert.match(library, /aria-disabled=\{item\.destination \? undefined : "true"\}/);
   assert.match(library, /onClick=\{unit\.available \?/);
   assert.match(library, /menuSkin\.publisherLogo/);
   assert.match(library, /menuSkin\.units/);

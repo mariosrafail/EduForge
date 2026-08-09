@@ -1,0 +1,27 @@
+.response-region {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: var(--response-region-padding-y) var(--response-region-padding-x);
+  color: transparent;
+  text-align: left;
+  background-color: rgb(255 255 255 / 38%);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--response-region-line-spacing) - 2px), #475569 calc(var(--response-region-line-spacing) - 1px), transparent var(--response-region-line-spacing));
+  background-position: 0 var(--response-region-padding-y);
+  border: 2px solid rgb(100 116 139 / 42%);
+  border-radius: 7px;
+}
+
+button.response-region { cursor: pointer; }
+button.response-region:hover,
+button.response-region:focus-visible { border-color: rgb(105 25 79 / 62%); outline: 3px solid rgb(105 25 79 / 14%); outline-offset: 1px; }
+.response-region.is-revealed { color: #111827; background-color: rgb(255 255 255 / 88%); }
+.response-region-text { display: block; max-width: 100%; overflow-wrap: anywhere; font: 600 var(--response-region-font-size)/var(--response-region-line-spacing) "Fira Sans", Arial, sans-serif; }
+
+.editable-response-region-layer { position: absolute; inset: 0; z-index: 5; cursor: crosshair; touch-action: none; }
+.editable-response-region { position: absolute; z-index: 1; min-width: 0; min-height: 0; padding: 5px; color: #5b1747; text-align: left; background: rgb(196 54 142 / 18%); border: 2px solid rgb(145 26 108 / 82%); border-radius: 7px; cursor: move; }
+.editable-response-region:is(:hover, :focus-visible, .is-selected) { background: rgb(196 54 142 / 28%); border-color: #6b164f; box-shadow: 0 0 0 4px rgb(145 26 108 / 17%); outline: none; }
+.editable-response-region > span:first-child { display: inline-block; max-width: 100%; overflow: hidden; padding: 3px 6px; color: #5b1747; background: rgb(255 255 255 / 92%); border-radius: 999px; font-size: 11px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.editable-response-region-handle { position: absolute; right: -8px; bottom: -8px; width: 18px; height: 18px; background: #fff; border: 3px solid #911a6c; border-radius: 50%; box-shadow: 0 4px 12px rgb(15 23 42 / 30%); cursor: nwse-resize; }
+.editable-response-region.is-draft { pointer-events: none; }

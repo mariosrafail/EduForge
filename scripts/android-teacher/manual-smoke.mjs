@@ -180,11 +180,11 @@ try {
     }), { opacity: "1", filter: "none", notAllowed: false }, `Unit ${unit} must render at full visual strength`);
   }
   assert.equal(await page.locator(".legacy-home-unit.locked, .legacy-home-unit .legacy-home-lock").count(), 0);
-  for (const book of ["Workbook", "Grammar Book", "Extras"]) {
-    const placeholderBook = page.getByRole("button", { name: book, exact: true });
-    assert.equal(await placeholderBook.getAttribute("disabled"), null, `${book} must retain full-strength native button artwork`);
-    assert.equal(await placeholderBook.getAttribute("aria-disabled"), "true", `${book} must remain an inert placeholder`);
-    assert.deepEqual(await placeholderBook.evaluate((button) => {
+  for (const book of ["Students Book", "Workbook", "Grammar Book", "Extras"]) {
+    const editionButton = page.getByRole("button", { name: book, exact: true });
+    assert.equal(await editionButton.getAttribute("disabled"), null, `${book} must remain an interactive edition selector`);
+    assert.equal(await editionButton.getAttribute("aria-disabled"), null, `${book} must expose its selectable edition state`);
+    assert.deepEqual(await editionButton.evaluate((button) => {
       const style = getComputedStyle(button);
       return { opacity: style.opacity, filter: style.filter, notAllowed: style.cursor === "not-allowed" };
     }), { opacity: "1", filter: "none", notAllowed: false }, `${book} must render at full visual strength`);
@@ -314,7 +314,44 @@ try {
   await page.getByRole("button", { name: "Close settings" }).click();
   const initialHash = await page.evaluate(() => location.hash);
   await page.getByRole("button", { name: /^Unit 3:/ }).evaluate((button) => button.click());
-  await page.getByRole("button", { name: "Workbook", exact: true }).evaluate((button) => button.click());
+  const editionButtons = page.locator(".legacy-home-book-row .legacy-home-book-button");
+  const unitLauncherSignature = () => page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => {
+    const box = button.getBoundingClientRect();
+    return { label: button.getAttribute("aria-label"), className: button.className, x: box.x, y: box.y, width: box.width, height: box.height, artwork: [...button.querySelectorAll("img")].map((image) => image.src) };
+  }));
+  const studentsBookUnitLauncher = await unitLauncherSignature();
+  assert.deepEqual(await editionButtons.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Students Book", "Workbook", "Grammar Book", "Extras"]);
+  assert.deepEqual(await editionButtons.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["true", "false", "false", "false"]);
+  const selectedArtworkOpacity = async () => page.locator('.legacy-home-book-button[aria-pressed="true"]').evaluate((button) => ({
+    normal: getComputedStyle(button.querySelector(".normal")).opacity,
+    active: getComputedStyle(button.querySelector(".hover-pressed")).opacity,
+  }));
+  assert.deepEqual(await selectedArtworkOpacity(), { normal: "0", active: "1" }, "Selected Students Book must persist its active green artwork");
+  await page.getByRole("button", { name: "Extras", exact: true }).click();
+  assert.deepEqual(await editionButtons.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["false", "false", "false", "true"]);
+  assert.deepEqual(await page.locator(".legacy-home-extras-column.is-left .legacy-home-extra-button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Progress Checks", "Reviews", "Practice", "Videos", "Extra Videos", "Word Lists", "Tests"]);
+  assert.deepEqual(await page.locator(".legacy-home-extras-column.is-right .legacy-home-extra-button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Games", "Grammar Reference", "Irregular Verbs", "Writing Bank", "Speaking Bank", "Extra Tasks for Early Finishers", "Worksheets for Videos"]);
+  assert.equal(await page.locator(".legacy-home-extra-button").count(), 14);
+  assert.equal(await page.locator('.legacy-home-extra-button[aria-disabled="true"]').count(), 14, "Extras without implemented pack destinations must remain truthful non-navigation controls");
+  await page.getByRole("button", { name: "Workbook", exact: true }).click();
+  assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Workbook");
+  assert.deepEqual(await selectedArtworkOpacity(), { normal: "0", active: "1" }, "Selected Workbook keeps the active green artwork");
+  assert.equal(await page.locator(".legacy-home-unit").count(), 10, "Workbook reuses the complete Unit 1–10 launcher");
+  assert.deepEqual(await unitLauncherSignature(), studentsBookUnitLauncher, "Workbook Unit launcher exactly matches Students Book artwork and geometry");
+  await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  assert.equal(await page.evaluate(() => location.hash), initialHash, "Workbook Unit clicks must not open Students Book content");
+  assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
+  await page.getByRole("button", { name: "Grammar Book", exact: true }).click();
+  assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Grammar Book");
+  assert.deepEqual(await selectedArtworkOpacity(), { normal: "0", active: "1" }, "Selected Grammar Book keeps the active green artwork");
+  assert.equal(await page.locator(".legacy-home-unit").count(), 10, "Grammar Book reuses the complete Unit 1–10 launcher");
+  assert.deepEqual(await unitLauncherSignature(), studentsBookUnitLauncher, "Grammar Book Unit launcher exactly matches Students Book artwork and geometry");
+  await page.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  assert.equal(await page.evaluate(() => location.hash), initialHash, "Grammar Book Unit clicks must not open Students Book content");
+  assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
+  await page.getByRole("button", { name: "Students Book", exact: true }).click();
+  assert.deepEqual(await editionButtons.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["true", "false", "false", "false"]);
+  assert.equal(await page.locator(".legacy-home-unit").count(), 10, "Students Book must restore the existing Unit launcher");
   assert.equal(await page.evaluate(() => location.hash), initialHash, "Placeholder launcher controls must not navigate");
   assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
   const coldStartupMs = Math.round(performance.now() - startupStartedAt);
@@ -570,8 +607,8 @@ try {
 
   await openExercises(page, 1);
   await exerciseRow(page, "Unit opener · Exercise 1").getByRole("button", { name: "Present" }).click();
-  await page.getByRole("button", { name: "Show publisher model answer for question 1" }).click();
-  await page.getByRole("button", { name: "Publisher model answer for question 1" }).waitFor();
+  await page.getByRole("button", { name: "Show model response for question 1" }).click();
+  await page.getByRole("button", { name: "Model response for question 1" }).waitFor();
   await backToBook(page);
 
   await openExercises(page, 1);

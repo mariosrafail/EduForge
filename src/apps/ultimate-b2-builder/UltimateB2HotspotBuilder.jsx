@@ -5,7 +5,7 @@ import {
   ultimateB2StudentsBookAuthoringActivities,
   ultimateB2StudentsBookAuthoringPages,
 } from "../../data/ultimate-b2/studentsBookAuthoringCatalog.js";
-import { getUltimateB2UnitPartAsset } from "../../data/ultimate-b2/ultimateB2PageAssets.offline.js";
+import { ultimateB2TeacherAppAssetUrl } from "../../data/ultimate-b2/teacherAppAuthoring.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
 import {
   listBookMenuSkinOptions,
@@ -39,7 +39,7 @@ function isTextEditingTarget(target) {
   );
 }
 
-export function UltimateB2HotspotBuilder() {
+export function UltimateB2HotspotBuilder({ assetRevision = "" }) {
   const [manifest, setManifest] = useState(emptyManifest);
   const [skinSelections, setSkinSelections] = useState(bookMenuSkinSelections);
   const [unitNumber, setUnitNumber] = useState(1);
@@ -57,7 +57,7 @@ export function UltimateB2HotspotBuilder() {
   const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.id === pageId) || unitPages[0];
   const hotspots = manifest.pages?.[page?.id] || [];
   const selectedHotspot = hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
-  const pageImage = page ? getUltimateB2UnitPartAsset(page.unitNumber, page.partNumber) : null;
+  const pageImage = page ? ultimateB2TeacherAppAssetUrl(page.assetBindingId, assetRevision) : null;
   const currentPageActivities = ultimateB2StudentsBookAuthoringActivities.filter((activity) => (
     activity.unitNumber === page?.unitNumber && activity.pageSpread === page?.spreadNumber
   ));

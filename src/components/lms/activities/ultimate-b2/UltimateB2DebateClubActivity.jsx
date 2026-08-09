@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getUltimateB2ReadingExerciseAuthoring, resolveUltimateB2ReadingExerciseAsset } from "../../../../data/ultimate-b2/readingExerciseAuthoringData.js";
 import { UltimateB2InstructionImage } from "./UltimateB2ExerciseVisuals.jsx";
+import { ResponseRegion } from "./ResponseRegion.jsx";
 import "./ultimateB2ExerciseActivities.css";
 
 export function UltimateB2DebateClubActivity({ activity, authoring: authoringOverride = null, presentation = null }) {
@@ -37,14 +38,14 @@ export function UltimateB2DebateClubActivity({ activity, authoring: authoringOve
       <h2>{part.prompt}</h2>
       <img className="ultimate-b2-debate-part-image" src={resolveUltimateB2ReadingExerciseAsset(part.partImage)} alt={part.partImageAlt} draggable="false" />
       <img className="ultimate-b2-debate-argument-image" src={resolveUltimateB2ReadingExerciseAsset(part.argumentImage)} alt="" aria-hidden="true" draggable="false" />
-      <button
-        type="button"
-        className={`ultimate-b2-debate-hotspot ${revealed ? "revealed" : ""}`}
-        style={{ left: part.hotspot.area.x, top: part.hotspot.area.y, width: part.hotspot.area.width, height: part.hotspot.area.height }}
-        aria-label={part.hotspot.ariaLabel}
-        aria-pressed={revealed}
-        onClick={() => setRevealedPartIds((current) => current.includes(part.id) ? current : [...current, part.id])}
-      ><span>{revealed ? part.hotspot.revealText : ""}</span></button>
+      <ResponseRegion
+        region={part.responseRegion}
+        surface={authoring.surface}
+        revealed={revealed}
+        revealText={part.responseRegion.revealText}
+        onReveal={() => setRevealedPartIds((current) => current.includes(part.id) ? current : [...current, part.id])}
+        className="ultimate-b2-debate-response-region"
+      />
     </section>
   );
 }

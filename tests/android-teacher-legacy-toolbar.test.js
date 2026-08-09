@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { ultimateB2TeacherAppDefaultAssets, ultimateB2TeacherToolbarDefinitions } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 
 const expectedOrder = [
   "mouse", "pencil", "marker", "eraser", "clear", "zoom", "hide", "show", "undo",
@@ -13,15 +14,15 @@ test("Ultimate B2 teacher toolbar keeps the recovered legacy order and assets", 
     readFile("src/apps/android-teacher-offline/ClassroomToolbar.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/UltimateB2ClassroomToolbar.jsx", "utf8"),
   ]);
-  const itemBlock = assets.match(/ultimateB2TeacherToolbarItems = Object\.freeze\(\[([\s\S]*?)\]\);/)?.[1] || "";
-  const actualOrder = [...itemBlock.matchAll(/id: "([^"]+)"/g)].map((match) => match[1]);
+  const actualOrder = ultimateB2TeacherToolbarDefinitions.map(([id]) => id);
 
   assert.deepEqual(actualOrder, expectedOrder);
   for (const id of expectedOrder) {
     const assetName = id === "annotations" ? "custom-page" : id === "load" ? "open" : id;
-    assert.match(assets, new RegExp(`button-${assetName}\\.png`));
-    assert.match(assets, new RegExp(`button-${assetName}-active\\.png`));
+    assert.match(ultimateB2TeacherAppDefaultAssets[`toolbar.${id}.normal`].repositoryPath, new RegExp(`button-${assetName}\\.png$`));
+    assert.match(ultimateB2TeacherAppDefaultAssets[`toolbar.${id}.active`].repositoryPath, new RegExp(`button-${assetName}-active\\.png$`));
   }
+  assert.match(assets, /ultimateB2TeacherAppAuthoring/);
   assert.match(toolbar, /useClassroomTools\(\)/);
   assert.match(toolbar, /pointer: "mouse"[\s\S]*pen: "pencil"[\s\S]*eraser: "eraser"[\s\S]*text: "text"[\s\S]*cover: "hide"[\s\S]*spotlight: "show"[\s\S]*"zoom-region": "zoom"/);
   assert.match(toolbar, /UI_ONLY_TOOLS = new Set\(\["marker", "annotations", "url", "save", "load"\]\)/);

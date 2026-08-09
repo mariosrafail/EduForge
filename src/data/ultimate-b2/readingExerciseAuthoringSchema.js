@@ -63,6 +63,18 @@ function area(value, label, bounds) {
   return normalized;
 }
 
+function responsePresentation(value, label) {
+  exactKeys(value, ["paddingX", "paddingY", "lineSpacing", "fontScale"], label);
+  const normalized = {
+    paddingX: integer(value.paddingX, `${label}.paddingX`, 0, 40),
+    paddingY: integer(value.paddingY, `${label}.paddingY`, 0, 40),
+    lineSpacing: integer(value.lineSpacing, `${label}.lineSpacing`, 16, 60),
+    fontScale: Number(value.fontScale),
+  };
+  if (!Number.isFinite(normalized.fontScale) || normalized.fontScale < 0.6 || normalized.fontScale > 1.6) throw new Error(`${label}.fontScale must be from 0.6 to 1.6.`);
+  return normalized;
+}
+
 function sourceEvidence(value, expectedObjectNumber) {
   exactKeys(value, ["objectNumber", "iwbSha256", "decodedSha256", "assetSha256"], "source");
   if (value.objectNumber !== expectedObjectNumber) throw new Error(`source.objectNumber must remain ${expectedObjectNumber}.`);
@@ -142,12 +154,12 @@ export function normalizeUltimateB2DebateClubAuthoring(input) {
   const partImages = [ultimateB2ReadingExerciseBindings.debatePartOne, ultimateB2ReadingExerciseBindings.debatePartTwo];
   const argumentImages = [ultimateB2ReadingExerciseBindings.debateArgumentOne, ultimateB2ReadingExerciseBindings.debateArgumentTwo];
   const parts = value.parts.map((part, index) => {
-    exactKeys(part, ["id", "number", "prompt", "partImage", "partImageAlt", "argumentImage", "hotspot"], `parts[${index}]`);
+    exactKeys(part, ["id", "number", "prompt", "partImage", "partImageAlt", "argumentImage", "responseRegion"], `parts[${index}]`);
     const number = index + 1;
     if (part.id !== `part-${number}` || part.number !== number) throw new Error(`parts[${index}] has a fixed publisher identity.`);
     if (part.partImage !== partImages[index] || part.argumentImage !== argumentImages[index]) throw new Error(`parts[${index}] uses an unknown image binding.`);
-    exactKeys(part.hotspot, ["id", "area", "ariaLabel", "revealText"], `parts[${index}].hotspot`);
-    if (part.hotspot.id !== `debate-reveal-${number}`) throw new Error(`parts[${index}].hotspot has a fixed publisher identity.`);
+    exactKeys(part.responseRegion, ["id", "area", "ariaLabel", "revealText", "presentation"], `parts[${index}].responseRegion`);
+    if (part.responseRegion.id !== `debate-reveal-${number}`) throw new Error(`parts[${index}].responseRegion has a fixed publisher identity.`);
     return {
       id: part.id,
       number,
@@ -155,11 +167,12 @@ export function normalizeUltimateB2DebateClubAuthoring(input) {
       partImage: part.partImage,
       partImageAlt: boundedText(part.partImageAlt, `parts[${index}].partImageAlt`, 500),
       argumentImage: part.argumentImage,
-      hotspot: {
-        id: part.hotspot.id,
-        area: area(part.hotspot.area, `parts[${index}].hotspot.area`, normalizedSurface),
-        ariaLabel: boundedText(part.hotspot.ariaLabel, `parts[${index}].hotspot.ariaLabel`, 300),
-        revealText: boundedText(part.hotspot.revealText, `parts[${index}].hotspot.revealText`, ultimateB2ReadingExerciseLimits.revealedTextLength),
+      responseRegion: {
+        id: part.responseRegion.id,
+        area: area(part.responseRegion.area, `parts[${index}].responseRegion.area`, normalizedSurface),
+        ariaLabel: boundedText(part.responseRegion.ariaLabel, `parts[${index}].responseRegion.ariaLabel`, 300),
+        revealText: boundedText(part.responseRegion.revealText, `parts[${index}].responseRegion.revealText`, ultimateB2ReadingExerciseLimits.revealedTextLength),
+        presentation: responsePresentation(part.responseRegion.presentation, `parts[${index}].responseRegion.presentation`),
       },
     };
   });

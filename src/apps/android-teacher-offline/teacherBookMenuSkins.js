@@ -14,6 +14,7 @@ const runtimeAssetsBySkinId = Object.freeze({
     title: Object.freeze({ kind: "legacy-gaf", accessibleLabel: "Ultimate English B2" }),
     units: legacyClassroomAssets.branding.bookMenu.units,
     editions: legacyClassroomAssets.branding.bookMenu.editions,
+    extras: legacyClassroomAssets.branding.bookMenu.extras,
     closeIcon: legacyClassroomAssets.icons.close,
     minimizeIcon: legacyClassroomAssets.icons.minimize,
     settingsIcon: legacyClassroomAssets.icons.settings,
