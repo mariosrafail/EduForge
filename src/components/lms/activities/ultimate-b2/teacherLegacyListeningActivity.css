@@ -1,0 +1,286 @@
+.legacy-pilot--object-2.teacher-presentation-activity {
+  width: 1024px;
+  max-width: none;
+  height: 582px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.legacy-pilot--object-2.teacher-presentation-activity .teacher-listening-paper {
+  width: 1024px;
+  height: 582px;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.teacher-listening-stage,
+.teacher-listening-questions,
+.teacher-listening-karaoke-shell {
+  position: relative;
+  width: 1024px;
+  height: 582px;
+  overflow: hidden;
+}
+
+.teacher-listening-instruction {
+  position: absolute;
+  top: 18px;
+  left: 177px;
+  max-width: 619px;
+  height: auto;
+  margin: 0;
+}
+
+.teacher-listening-question {
+  position: absolute;
+  left: 114px;
+  width: 802px;
+  margin: 0;
+}
+
+.teacher-listening-question.question-1 { top: 65px; height: 88px; }
+.teacher-listening-question.question-2 { top: 158px; height: 112px; }
+.teacher-listening-question.question-3 { top: 275px; height: 72px; }
+
+.teacher-listening-question h3 {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  right: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  color: #111;
+  font-family: "Fira Sans", "Trebuchet MS", Arial, sans-serif;
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 29px;
+}
+
+.teacher-listening-question h3 span { font-weight: 900; }
+
+.teacher-listening-segment-button {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  left: -8px;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #8444ad;
+  border-radius: 50%;
+  background: linear-gradient(#f1d4ff, #c98bea);
+  box-shadow: 0 2px 3px rgb(60 20 86 / 28%);
+  color: #52206f;
+}
+
+.teacher-listening-segment-button:active { transform: translateY(1px) scale(.96); }
+.teacher-listening-segment-button svg { width: 25px; height: 25px; }
+
+.teacher-listening-answer-lines {
+  position: absolute;
+  top: 34px;
+  left: 61px;
+  width: 741px;
+  height: calc(var(--answer-lines) * 24px);
+  min-height: 24px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 20px, #242424 21px, transparent 22px);
+  color: #e40083;
+  font-family: "ITC Flora Std Medium", Georgia, serif;
+  font-size: 18px;
+  line-height: 23px;
+  text-align: left;
+}
+
+.teacher-listening-answer-lines:hover,
+.teacher-listening-answer-lines:focus-visible {
+  background-color: rgb(228 0 131 / 5%);
+  outline: 2px solid rgb(228 0 131 / 32%);
+  outline-offset: 2px;
+}
+
+.teacher-listening-answer-lines.revealed { font-weight: 500; }
+.teacher-listening-answer-lines:disabled { opacity: .65; }
+
+.teacher-listening-error {
+  position: absolute;
+  left: 130px;
+  bottom: 22px;
+  max-width: 560px;
+  margin: 0;
+  color: #9d174d;
+  font-weight: 800;
+}
+
+.teacher-listening-question-player {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+}
+
+.teacher-listening-audio-player {
+  position: relative;
+  width: 266px;
+  height: 100px;
+  color: #37164e;
+  font-family: Arial, sans-serif;
+}
+
+.teacher-listening-player-background {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 266px;
+  height: 100px;
+  pointer-events: none;
+}
+
+.teacher-listening-player-seek {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: 8px;
+  width: 188px;
+  height: 18px;
+  margin: 0;
+  accent-color: #66308f;
+}
+
+.teacher-listening-player-controls {
+  position: absolute;
+  z-index: 2;
+  left: 7px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.teacher-listening-player-button,
+.teacher-listening-mute {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.teacher-listening-player-button img {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.teacher-listening-player-button img.pressed { display: none; }
+.teacher-listening-player-button:active img.normal { display: none; }
+.teacher-listening-player-button:active img.pressed { display: block; }
+.teacher-listening-player-button:disabled { opacity: .42; }
+
+.teacher-listening-mute {
+  width: 42px;
+  color: #542574;
+}
+
+.teacher-listening-mute svg { width: 22px; height: 22px; }
+
+.teacher-listening-player-time {
+  position: absolute;
+  z-index: 1;
+  top: 11px;
+  right: 9px;
+  width: 61px;
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.teacher-listening-text-viewport {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  width: 1008px;
+  height: 568px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #7d8590;
+  background: #fff;
+  scrollbar-color: #8752a7 #eadff0;
+}
+
+.teacher-listening-static-canvas,
+.teacher-listening-karaoke-canvas { position: relative; }
+
+.teacher-listening-static-canvas > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 1000px;
+  height: 1219px;
+}
+
+.teacher-listening-static-highlight {
+  position: absolute;
+  z-index: 1;
+  background: rgb(255 0 255 / 30%);
+  pointer-events: none;
+}
+
+.teacher-listening-karaoke-background {
+  position: absolute;
+  z-index: 0;
+  display: block;
+}
+
+.teacher-listening-fragment {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  padding: 0 1px;
+  color: #000;
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 31px;
+  white-space: nowrap;
+}
+
+.teacher-listening-fragment.active {
+  border-radius: 2px;
+  background: rgb(255 0 255 / 30%);
+  box-shadow: 0 0 0 1px rgb(188 0 188 / 22%);
+}
+
+.teacher-listening-karaoke-player {
+  position: absolute;
+  z-index: 4;
+  right: 24px;
+  bottom: 18px;
+  filter: drop-shadow(0 3px 5px rgb(33 15 44 / 25%));
+}
+
+.teacher-listening-hidden-audio { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .teacher-listening-segment-button:active { transform: none; }
+}

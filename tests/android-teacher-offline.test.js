@@ -233,7 +233,7 @@ test("modern Teacher unit selectors use shared titles and touch-safe interaction
   assert.match(modernCss, /\.teacher-unit-switch button::before[\s\S]*?border-radius: 13px/);
 });
 
-test("Teacher book screens use one canonical navigation row with contextual activity video", async () => {
+test("Teacher book screens use one canonical navigation row with code-controlled Video and Show Text context actions", async () => {
   const [navigation, navigationCore, shell, book, pages, overview, media, fixedCss, toolbarCss] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherBookNavigation.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherBookNavigationCore.jsx", "utf8"),
@@ -252,14 +252,14 @@ test("Teacher book screens use one canonical navigation row with contextual acti
     assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
     previousIndex = currentIndex;
   }
-  assert.ok(navigationCore.indexOf('"Open activity video"') > navigationCore.indexOf('aria-label="Next page"'));
-  assert.ok(navigationCore.indexOf('"Open activity video"') < navigationCore.indexOf('aria-label="Grammar Book"'));
+  assert.ok(navigationCore.indexOf("contextAction &&") > navigationCore.indexOf('aria-label="Next page"'));
+  assert.ok(navigationCore.indexOf("contextAction &&") < navigationCore.indexOf('aria-label="Grammar Book"'));
   assert.equal((navigationCore.match(/<button\b/g) || []).length, 7);
   assert.match(navigationCore, /previousDisabled = true/);
   assert.match(navigationCore, /nextDisabled = true/);
-  assert.match(navigationCore, /videoAvailable = false/);
-  assert.match(navigationCore, /aria-pressed=\{videoActive\}/);
-  assert.match(navigationCore, /renderIcon\("video"\)/);
+  assert.match(navigationCore, /contextAction = null/);
+  assert.match(navigationCore, /aria-pressed=\{contextAction\.active\}/);
+  assert.match(navigationCore, /contextAction\.activeIconName/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Grammar Book"/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Workbook"/);
   assert.match(navigation, /TeacherBookNavigationCore/);
@@ -272,8 +272,9 @@ test("Teacher book screens use one canonical navigation row with contextual acti
   assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
   assert.match(pages, /previousDisabled=\{activityActive \|\| selectedIndex <= 0\}/);
   assert.match(pages, /nextDisabled=\{activityActive \|\| selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
-  assert.match(pages, /videoAvailable=\{videoAvailable\}/);
-  assert.match(pages, /videoActive=\{activityVideoOpen\}/);
+  assert.match(pages, /id: "video"[\s\S]*iconName: "video"/);
+  assert.match(pages, /id: "show-text"[\s\S]*label: "Show Text"[\s\S]*iconName: "showText"/);
+  assert.match(pages, /contextAction=\{contextAction\}/);
   assert.match(overview, /<TeacherBookNavigation/);
   assert.match(media, /<TeacherBookNavigation onHome=\{onHome\} onBack=\{onBack\}/);
   for (const source of [book, pages, overview, media]) assert.doesNotMatch(source, /legacy-page-navigation|teacher-unit-side-navigation|legacy-overview-book-links/);

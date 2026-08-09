@@ -75,6 +75,7 @@ export default function TeacherOfflinePages({
   const videoAvailable = activityActive && Boolean(activeActivity?.mediaDependencies?.some(
     (dependency) => dependency.type === "video" && dependency.logicalKey,
   ));
+  const listeningAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o2";
   const classroomSurfaceKey = activityActive
     ? `students-book:activity:${embeddedActivityId}`
     : page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -92,6 +93,8 @@ export default function TeacherOfflinePages({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [actionsOpen, setActionsOpen] = useState(false);
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
+  const [listeningView, setListeningView] = useState("questions");
+  const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
 
   useEffect(() => {
     setAssetError("");
@@ -100,6 +103,8 @@ export default function TeacherOfflinePages({
     setPan({ x: 0, y: 0 });
     setActionsOpen(false);
     setActivityVideoOpen(false);
+    setListeningView("questions");
+    setListeningShowTextCommand(0);
   }, [activityActive, embeddedActivityId, page?.id, selectedPageId]);
 
   useEffect(() => {
@@ -270,6 +275,24 @@ export default function TeacherOfflinePages({
     onPointerUp: onPointerEnd,
     onPointerCancel: onPointerEnd,
   };
+  const contextAction = videoAvailable ? {
+    id: "video",
+    label: "Video",
+    title: "Video",
+    ariaLabel: activityVideoOpen ? "Close activity video" : "Open activity video",
+    active: activityVideoOpen,
+    iconName: "video",
+    onClick: () => setActivityVideoOpen((open) => !open),
+  } : listeningAvailable ? {
+    id: "show-text",
+    label: "Show Text",
+    title: "Show Text",
+    ariaLabel: listeningView === "questions" ? "Show Text" : "Return to questions",
+    active: listeningView !== "questions",
+    iconName: "showText",
+    activeIconName: "showTextPressed",
+    onClick: () => setListeningShowTextCommand((command) => command + 1),
+  } : null;
 
   if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
   if (!page) return (
@@ -308,6 +331,8 @@ export default function TeacherOfflinePages({
               title={activeActivity?.title}
               videoOpen={activityVideoOpen}
               onCloseVideo={() => setActivityVideoOpen(false)}
+              listeningShowTextCommand={listeningShowTextCommand}
+              onListeningStateChange={setListeningView}
             />
           ) : image && !assetError ? (
             <div
@@ -390,9 +415,7 @@ export default function TeacherOfflinePages({
         onNext={() => onSelectPage(pages[selectedIndex + 1].id)}
         previousDisabled={activityActive || selectedIndex <= 0}
         nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
-        videoAvailable={videoAvailable}
-        videoActive={activityVideoOpen}
-        onVideo={() => setActivityVideoOpen((open) => !open)}
+        contextAction={contextAction}
       />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />

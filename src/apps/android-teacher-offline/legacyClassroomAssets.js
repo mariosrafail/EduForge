@@ -42,6 +42,15 @@ import closeIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/
 import minimizeIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/dialogs/minimize-btn-enabled.png";
 import settingsIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-settings-active.png";
 import videoIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-video-active.png";
+import showTextIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-show-text-active.png";
+import showTextPressedIcon from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/navibar-show-text-pressed.png";
+import playerBackground from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-bg.png";
+import playerPlayActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-play-active.png";
+import playerPlayPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-play-pressed.png";
+import playerPauseActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-pause-active.png";
+import playerPausePressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-pause-pressed.png";
+import playerStopActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-stop-active.png";
+import playerStopPressed from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/media/player-stop-pressed.png";
 import clearTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-clear.png";
 import clearToolActive from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-clear-active.png";
 import eraserTool from "../../assets/books/ultimate-b2/legacy-classroom-ui/icons/teacher-tools/button-eraser.png";
@@ -137,8 +146,14 @@ export const legacyClassroomAssets = Object.freeze({
     }),
   }),
   controls: Object.freeze({ activityHotspot }),
+  mediaPlayer: Object.freeze({
+    background: playerBackground,
+    play: Object.freeze({ active: playerPlayActive, pressed: playerPlayPressed }),
+    pause: Object.freeze({ active: playerPauseActive, pressed: playerPausePressed }),
+    stop: Object.freeze({ active: playerStopActive, pressed: playerStopPressed }),
+  }),
   icons: Object.freeze({
-    back: backIcon, check: checkIcon, close: closeIcon, home: homeIcon, minimize: minimizeIcon, next: nextIcon, previous: previousIcon, settings: settingsIcon, video: videoIcon,
+    back: backIcon, check: checkIcon, close: closeIcon, home: homeIcon, minimize: minimizeIcon, next: nextIcon, previous: previousIcon, settings: settingsIcon, video: videoIcon, showText: showTextIcon, showTextPressed: showTextPressedIcon,
     teacherTools: Object.freeze({
       clear: Object.freeze({ normal: clearTool, active: clearToolActive }),
       eraser: Object.freeze({ normal: eraserTool, active: eraserToolActive }),

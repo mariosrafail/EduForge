@@ -35,6 +35,7 @@ import { runtimeReadySql } from "./_runtime-schema-test-helper.js";
 const enabledMultipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const enabledTypedId = "ultimate-b2-sb-u2-p3-o4";
 const openResponseId = "ultimate-b2-sb-u1-p1-o1";
+const listeningResponseId = "ultimate-b2-sb-u1-p2-o2";
 const missingSolutionId = "ultimate-b2-sb-u1-p7-o5";
 const disabledActivityId = "ultimate-b2-sb-u1-p8-o3";
 const packageId = "11111111-1111-4111-8111-111111111111";
@@ -133,11 +134,17 @@ test("solution payloads use stable IDs, correct option IDs, and all verified typ
 
 test("publisher model responses and missing evidence states are represented truthfully", () => {
   const openResponse = buildUltimateB2TeacherSolutionPayload(openResponseId);
+  const listeningResponse = buildUltimateB2TeacherSolutionPayload(listeningResponseId);
   const missing = buildUltimateB2TeacherSolutionPayload(missingSolutionId);
   assert.equal(openResponse.solutionAvailability, "model-response");
   assert.equal(openResponse.solutionType, "publisher-model-answer");
   assert.equal(Object.keys(openResponse.questions).length, 3);
   assert.match(openResponse.questions[`${openResponseId}-q1`].acceptedAnswers[0], /many artistic processes/);
+  assert.equal(listeningResponse.solutionAvailability, "model-response");
+  assert.equal(Object.keys(listeningResponse.questions).length, 3);
+  assert.match(listeningResponse.questions[`${listeningResponseId}-q1`].acceptedAnswers[0], /on-demand series have become more popular/);
+  assert.match(listeningResponse.questions[`${listeningResponseId}-q2`].acceptedAnswers[0], /binge-watching many episodes at a time/);
+  assert.match(listeningResponse.questions[`${listeningResponseId}-q3`].acceptedAnswers[0], /identify with characters and situations/);
   assert.equal(missing.solutionAvailability, "missing");
   assert.deepEqual(missing.questions, {});
 });
@@ -333,4 +340,9 @@ test("student-safe payloads and browser runtime remain answer-key free", async (
     await readFile("src/data/ultimate-b2/generated/unit-02.runtime.json", "utf8"),
   ].join("\n");
   assert.doesNotMatch(browserRuntime, /acceptedAnswers|correctOptionId|publisherAnswerValue|sourceProvenance/);
+  const publicListeningAuthoring = await readFile("src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json", "utf8");
+  for (const phrase of ["on-demand series have become more popular", "binge-watching many episodes at a time", "They both allow viewers to identify with characters and situations"]) {
+    assert.doesNotMatch(browserRuntime, new RegExp(phrase, "i"));
+    assert.doesNotMatch(publicListeningAuthoring, new RegExp(phrase, "i"));
+  }
 });

@@ -10,6 +10,7 @@ import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2-legacy-pilot-audio";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
 import { TeacherLegacyQuestionFeedback, TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
+import { TeacherLegacyListeningActivity } from "./TeacherLegacyListeningActivity.jsx";
 
 const PdfSaver = registerPlugin("PdfSaver");
 
@@ -274,7 +275,18 @@ function ObjectOne({ images, questionProps }) {
   );
 }
 
-function ObjectTwo({ images, mediaPlayers, questionProps }) {
+function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation }) {
+  if (questionProps.capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline") {
+    return (
+      <TeacherLegacyListeningActivity
+        activity={questionProps.activity}
+        images={images}
+        questionProps={questionProps}
+        showTextCommand={listeningPresentation?.showTextCommand}
+        onStateChange={listeningPresentation?.onStateChange}
+      />
+    );
+  }
   return (
     <>
       <LegacyInstruction src={images.instruction} alt="Exercise 2. Listen and read the text. Then answer the questions." />
@@ -360,6 +372,7 @@ export function UltimateB2LegacyPilotActivity({
   revealQuestion,
   mediaPlayers,
   actions,
+  listeningPresentation = null,
 }) {
   const images = ultimateB2Unit1Part2LegacyImages[activity.stableNormalizedId];
   const objectNumber = Number(activity.stableNormalizedId.at(-1));
@@ -375,21 +388,22 @@ export function UltimateB2LegacyPilotActivity({
     solutionsLoading,
     revealQuestion,
   };
-  const bodyProps = { images, mediaPlayers, questionProps };
+  const bodyProps = { images, mediaPlayers, questionProps, listeningPresentation };
+  const teacherListening = objectNumber === 2 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
 
   return (
     <article
       className={`unit2-normalized-activity ultimate-b2-legacy-pilot legacy-pilot--object-${objectNumber} ${capabilities.isPresentation ? "teacher-presentation-activity" : ""}`}
       data-legacy-pilot-activity={activity.stableNormalizedId}
     >
-      {objectNumber !== 1 && <header className="legacy-pilot-titlebar">
+      {objectNumber !== 1 && !teacherListening && <header className="legacy-pilot-titlebar">
         <div>
           <span>Unit 1 · Reading</span>
           <strong>Streaming now!</strong>
         </div>
         <b>Ultimate English B2</b>
       </header>}
-      <section className="legacy-pilot-paper">
+      <section className={`legacy-pilot-paper ${teacherListening ? "teacher-listening-paper" : ""}`}>
         {objectNumber === 1 && <ObjectOne {...bodyProps} />}
         {objectNumber === 2 && <ObjectTwo {...bodyProps} />}
         {objectNumber === 3 && <ObjectThree {...bodyProps} />}

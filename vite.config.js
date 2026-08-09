@@ -1,9 +1,11 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { legacyFlashProofPlugin } from "./scripts/ultimate-b2/legacy-flash-vite-plugin.mjs";
 import { unit2ProtectedMediaPlugin } from "./scripts/ultimate-b2/unit2-media-vite-plugin.mjs";
 import { ultimateB2HotspotBuilderPlugin } from "./scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs";
+import { ultimateB2ListeningBuilderPlugin } from "./scripts/ultimate-b2/listening-builder-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
@@ -25,6 +27,9 @@ export default defineConfig(({ mode }) => {
     : isAndroidOffline
       ? "src/apps/android-offline/NoTeacherAnswerUi.jsx"
       : "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx");
+  const teacherListeningPlayerAssets = path.resolve(process.cwd(), isAndroidTeacherOffline
+    ? "src/apps/android-teacher-offline/TeacherListeningPlayerAssets.js"
+    : "src/apps/android-offline/NoTeacherListeningPlayerAssets.js");
   const offlineSolutionProvider = path.resolve(
     process.cwd(),
     isAndroidTeacherOffline
@@ -60,6 +65,23 @@ export default defineConfig(({ mode }) => {
     process.cwd(),
     "src/components/lms/activities/ultimate-b2/content/webContent.js",
   );
+  const listeningAuthoringPath = path.resolve(
+    process.cwd(),
+    "src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json",
+  );
+  const listeningAuthoringModuleId = "\0ultimate-b2-listening-authoring";
+  const listeningAuthoringPlugin = {
+    name: "ultimate-b2-listening-authoring",
+    resolveId(id) {
+      return id === "virtual:ultimate-b2-listening-authoring" ? listeningAuthoringModuleId : null;
+    },
+    load(id) {
+      if (id !== listeningAuthoringModuleId) return null;
+      const authoring = JSON.parse(readFileSync(listeningAuthoringPath, "utf8"));
+      if (!isTeacherRuntime) delete authoring.source;
+      return `export default ${JSON.stringify(authoring)};`;
+    },
+  };
 
   return {
     server: {
@@ -79,8 +101,10 @@ export default defineConfig(({ mode }) => {
       : undefined,
     plugins: [
       react(),
+      listeningAuthoringPlugin,
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
       !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin() : null,
       !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
       !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
     ].filter(Boolean),
@@ -105,6 +129,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-legacy-content",
           replacement: ultimateB2LegacyContent,
+        },
+        {
+          find: "virtual:teacher-listening-player-assets",
+          replacement: teacherListeningPlayerAssets,
         },
         {
           find: "virtual:app-entry",

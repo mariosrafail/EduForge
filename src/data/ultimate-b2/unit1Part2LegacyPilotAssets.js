@@ -17,6 +17,7 @@ import obj5HomeArgument from "../../assets/books/ultimate-b2/legacy-pilot/unit-1
 import obj5CinemaArgument from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj5/image_4.png";
 import obj5HomePhoto from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj5/image_5.png";
 import obj5CinemaPhoto from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj5/image_6.png";
+import listeningAuthoring from "virtual:ultimate-b2-listening-authoring";
 
 export const ULTIMATE_B2_UNIT1_PART2_PILOT_IDS = Object.freeze([
   "ultimate-b2-sb-u1-p2-o1",
@@ -74,34 +75,12 @@ const region = (x, y, width, height) => ({
 });
 
 export const ultimateB2Unit1Part2HighlightGroups = Object.freeze({
-  "ultimate-b2-sb-u1-p2-o2": [
-    {
-      id: "obj2-highlight-1",
-      label: "Text highlight 1",
-      logicalKey: "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-1",
-      regions: [region(659, 998, 285, 19), region(516, 1019, 429, 19), region(516, 1040, 323, 19)],
-    },
-    {
-      id: "obj2-highlight-2",
-      label: "Text highlight 2",
-      logicalKey: "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-2",
-      regions: [
-        region(82, 729, 414, 19),
-        region(82, 750, 414, 19),
-        region(82, 770, 414, 19),
-        region(82, 790, 414, 19),
-        region(517, 266, 429, 19),
-        region(517, 287, 429, 19),
-        region(516, 308, 364, 19),
-      ],
-    },
-    {
-      id: "obj2-highlight-3",
-      label: "Text highlight 3",
-      logicalKey: "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-3",
-      regions: [region(516, 536, 429, 19), region(516, 557, 242, 19)],
-    },
-  ],
+  "ultimate-b2-sb-u1-p2-o2": listeningAuthoring.questionSegments.map((segment) => ({
+    id: `obj2-highlight-${segment.questionNumber}`,
+    label: `Text highlight ${segment.questionNumber}`,
+    logicalKey: segment.audioLogicalKey,
+    regions: segment.regions.map((item) => region(item.x, item.y, item.width, item.height)),
+  })),
   "ultimate-b2-sb-u1-p2-o3": [
     {
       id: "obj3-highlight-1",

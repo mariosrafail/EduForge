@@ -417,7 +417,7 @@ html[data-app-mode="android-teacher-offline"] .teacher-book-navigation .legacy-c
   height: 58px;
   flex-basis: 58px;
 }
-html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-video[aria-pressed="true"] {
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context[aria-pressed="true"] {
   transform: translateY(2px) scale(.96);
   filter: drop-shadow(0 1px 1px rgba(41, 20, 72, .28));
 }

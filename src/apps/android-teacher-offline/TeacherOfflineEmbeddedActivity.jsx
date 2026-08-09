@@ -5,7 +5,7 @@ import { NormalizedStudentsBookActivity } from "../../components/lms/activities/
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
 
-export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo }) {
+export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
@@ -95,6 +95,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           key={activityId}
           activityId={activityId}
           mode={ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE}
+          listeningPresentation={{ showTextCommand: listeningShowTextCommand, onStateChange: onListeningStateChange }}
         />
       </div>
       {videoOpen && <TeacherOfflineActivityVideoOverlay activityId={activityId} onClose={onCloseVideo} />}
