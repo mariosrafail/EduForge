@@ -1,3 +1,22 @@
+html[data-app-mode="android-teacher-offline"],
+html[data-app-mode="android-teacher-offline"] body,
+html[data-app-mode="android-teacher-offline"] #root {
+  background: #fefefe;
+}
+
+.teacher-fixed-stage-host[data-viewport-backdrop="intro"],
+.teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-fixed-stage,
+.teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-offline-settings-surface,
+.teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-offline-view-transition,
+.teacher-offline-pack-wait {
+  background: #fefefe;
+}
+
+.teacher-offline-pack-wait {
+  width: 100%;
+  height: 100%;
+}
+
 .teacher-startup-intro {
   position: fixed;
   inset: 0;
@@ -16,7 +35,7 @@
     max(16px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
   overflow: hidden;
-  background: #fff;
+  background: #fefefe;
   color: #172033;
 }
 
@@ -29,7 +48,7 @@
   min-width: 0;
   min-height: 0;
   object-fit: contain;
-  background: #fdfdfd;
+  background: #fefefe;
   opacity: 0;
   pointer-events: none;
 }

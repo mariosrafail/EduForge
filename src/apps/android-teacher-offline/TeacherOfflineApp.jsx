@@ -223,22 +223,12 @@ export default function TeacherOfflineApp() {
     };
   }, []);
 
-  if (packState.status === "loading") {
-    return <main className="teacher-offline-status" role="status"><h1>Checking classroom content…</h1></main>;
-  }
-  if (packState.status === "error") {
-    return (
-      <main className="teacher-offline-status damaged" role="alert">
-        <h1>Content pack unavailable or damaged</h1>
-        <p>{packState.error || "Reinstall the verified classroom application."}</p>
-      </main>
-    );
-  }
-
   const pack = packState.pack;
-  const selectedMenuSkinId = selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId);
-  const menuSkin = resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId);
+  const packReady = packState.status === "ready" && Boolean(pack);
+  const selectedMenuSkinId = packReady ? selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId) : "";
+  const menuSkin = packReady ? resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId) : null;
   const openBookActivity = (activityId, originLocation = null) => {
+    if (!packReady) return;
     const resolved = resolveTeacherOfflineActivityLocation({
       activityId,
       activities: pack.activities.activities,
@@ -259,6 +249,15 @@ export default function TeacherOfflineApp() {
   let content;
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
+  } else if (packState.status === "loading") {
+    content = <div className="teacher-offline-pack-wait" aria-hidden="true" />;
+  } else if (packState.status === "error") {
+    content = (
+      <main className="teacher-offline-status damaged" role="alert">
+        <h1>Content pack unavailable or damaged</h1>
+        <p>{packState.error || "Reinstall the verified classroom application."}</p>
+      </main>
+    );
   } else if (navigation.view === "media") {
     content = (
       <TeacherOfflineMedia
@@ -293,8 +292,14 @@ export default function TeacherOfflineApp() {
   }
   const userInterfaceScale = settings.graphics.interfaceScale / 100;
   const effectiveUiScale = Math.min(1.1, Math.max(0.9, userInterfaceScale));
+  const startupSurfacePending = startupIntroPending || packState.status === "loading";
+  const activeView = startupIntroPending
+    ? "intro"
+    : packState.status === "loading" ? "pack-wait"
+      : packState.status === "error" ? "pack-error"
+        : navigation.view;
   const viewportBackdrop = resolveViewportBackdrop({
-    startupIntroPending,
+    startupIntroPending: startupSurfacePending,
     navigation,
     classroomBackground: menuSkin?.background,
   });
@@ -319,10 +324,10 @@ export default function TeacherOfflineApp() {
           "--teacher-ui-scale": effectiveUiScale,
         }}
       >
-        <div key={startupIntroPending ? "intro" : navigation.view} className="teacher-offline-view-transition" data-teacher-view={startupIntroPending ? "intro" : navigation.view} data-book-activity={navigation.activityId || undefined}>
+        <div key={activeView} className="teacher-offline-view-transition" data-teacher-view={activeView} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
-        {!startupIntroPending && (
+        {!startupIntroPending && packReady && (
           <TeacherShellChrome
             menuSkin={menuSkin}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -330,7 +335,7 @@ export default function TeacherOfflineApp() {
             onClose={closeApplication}
           />
         )}
-        {!startupIntroPending && navigation.view === "media" && <button
+        {!startupIntroPending && packReady && navigation.view === "media" && <button
           type="button"
           className="legacy-classroom-sound-toggle"
           aria-label={classroomSound.enabled ? "Mute classroom interface sounds" : "Enable classroom interface sounds"}
@@ -341,7 +346,7 @@ export default function TeacherOfflineApp() {
           {classroomSound.enabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
         </button>}
         <TeacherOfflineSettingsDialog open={settingsOpen} onClose={closeSettings} />
-        {import.meta.env.DEV ? <TeacherViewportDiagnostics /> : null}
+        {import.meta.env.DEV && packReady && !startupIntroPending ? <TeacherViewportDiagnostics /> : null}
       </div>
       </TeacherFixedStage>
     </ClassroomToolsProvider>

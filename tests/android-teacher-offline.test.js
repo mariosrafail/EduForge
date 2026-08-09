@@ -605,7 +605,7 @@ test("teacher media mappings are checkout-local and never use raw publisher appl
   assert.match(runtimeAssets, /teacher-offline-media/);
 });
 
-test("Teacher startup intro is reproducible, centered, non-skippable, and WebView-safe", async () => {
+test("Teacher startup intro is first, reproducible, centered, non-skippable, and WebView-safe", async () => {
   const [introBytes, recovery, introComponent, introStyles, app, library, launcherStyles] = await Promise.all([
     readFile("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"),
     readFile("scripts/ultimate-b2/recover-startup-intro.mjs", "utf8"),
@@ -628,7 +628,11 @@ test("Teacher startup intro is reproducible, centered, non-skippable, and WebVie
   assert.match(introComponent, /videoRef\.current[\s\S]*await video\.play\(\)/);
   assert.match(introComponent, /Play intro/);
   assert.doesNotMatch(introComponent, /Skip intro|finish\("skipped"\)/);
-  assert.match(introStyles, /background:\s*#fff/);
+  assert.match(introStyles, /html\[data-app-mode="android-teacher-offline"\][\s\S]*background:\s*#fefefe/);
+  assert.match(introStyles, /\.teacher-fixed-stage-host\[data-viewport-backdrop="intro"\][\s\S]*background:\s*#fefefe/);
+  assert.match(introStyles, /\.teacher-startup-intro\s*\{[\s\S]*background:\s*#fefefe/);
+  assert.match(introStyles, /\.teacher-startup-intro video\s*\{[\s\S]*background:\s*#fefefe/);
+  assert.doesNotMatch(introStyles, /(?:teacher-startup-intro|teacher-offline-pack-wait)[^{]*\{[^}]*background:\s*#fff(?:\s|;|$)/);
   assert.match(introStyles, /place-items:\s*center/);
   assert.match(introStyles, /grid-template-rows:\s*minmax\(0, 1fr\)/);
   assert.match(introStyles, /width:\s*auto[\s\S]*height:\s*auto/);
@@ -637,6 +641,10 @@ test("Teacher startup intro is reproducible, centered, non-skippable, and WebVie
   assert.match(introStyles, /object-fit:\s*contain/);
   assert.doesNotMatch(introStyles, /teacher-startup-intro-skip|background:\s*#020711/);
   assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
+  assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*teacher-offline-pack-wait[\s\S]*else if \(packState\.status === "error"\)/);
+  assert.match(app, /teacherContentPackProvider\.load\(\)[\s\S]*setPackState\(\{ status: "ready"/);
+  assert.doesNotMatch(app, /Checking classroom content/);
+  assert.doesNotMatch(app, /if \(packState\.status === "loading"\)\s*\{\s*return/);
   assert.match(app, /if \(!animationsActive\) setStartupIntroPending\(false\)/);
   assert.match(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*return;\s*\}/);
   assert.doesNotMatch(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*setStartupIntroPending\(false\)/);

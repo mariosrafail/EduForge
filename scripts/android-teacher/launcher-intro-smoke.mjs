@@ -51,6 +51,33 @@ async function installBlockedAutoplay(context, { controllable = false } = {}) {
   }, controllable);
 }
 
+async function installDelayedPackValidation(context) {
+  await context.addInitScript(() => {
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    globalThis.__packValidationDigestCalls = 0;
+    globalThis.__releasePackValidation = () => release();
+    Object.defineProperty(crypto.subtle, "digest", {
+      configurable: true,
+      value: async (...args) => {
+        globalThis.__packValidationDigestCalls += 1;
+        await gate;
+        return digest(...args);
+      },
+    });
+  });
+}
+
+async function installInvalidPackValidation(context) {
+  await context.addInitScript(() => {
+    Object.defineProperty(crypto.subtle, "digest", {
+      configurable: true,
+      value: async () => new Uint8Array(32).buffer,
+    });
+  });
+}
+
 async function assertIntroGeometry(page, target) {
   const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
   const video = intro.locator("video");
@@ -69,6 +96,15 @@ async function assertIntroGeometry(page, target) {
     const videoStyle = getComputedStyle(element);
     return {
       viewport: { width: innerWidth, height: innerHeight },
+      startupBackgrounds: {
+        html: getComputedStyle(document.documentElement).backgroundColor,
+        body: getComputedStyle(document.body).backgroundColor,
+        root: getComputedStyle(document.querySelector("#root")).backgroundColor,
+        host: getComputedStyle(document.querySelector("[data-teacher-stage-host]")).backgroundColor,
+        fixedStage: getComputedStyle(document.querySelector("[data-teacher-stage]")).backgroundColor,
+        settingsSurface: getComputedStyle(document.querySelector(".teacher-offline-settings-surface")).backgroundColor,
+        view: getComputedStyle(document.querySelector(".teacher-offline-view-transition")).backgroundColor,
+      },
       stage: {
         left: stageBounds.left,
         top: stageBounds.top,
@@ -123,15 +159,16 @@ async function assertIntroGeometry(page, target) {
   const naturalRatio = metrics.video.naturalWidth / metrics.video.naturalHeight;
   const stageScale = Math.min(target.width / 1920, target.height / 1080);
   assert.deepEqual(metrics.viewport, { width: target.width, height: target.height }, `${target.name} viewport`);
-  assert.equal(metrics.stage.background, "rgb(255, 255, 255)", `${target.name} authored white stage`);
-  assert.equal(metrics.video.background, "rgb(253, 253, 253)", `${target.name} authored near-white video backing`);
+  assert.ok(Object.values(metrics.startupBackgrounds).every((background) => background === "rgb(254, 254, 254)"), `${target.name} physical startup layers: ${JSON.stringify(metrics.startupBackgrounds)}`);
+  assert.equal(metrics.stage.background, "rgb(254, 254, 254)", `${target.name} authored near-white stage`);
+  assert.equal(metrics.video.background, "rgb(254, 254, 254)", `${target.name} authored near-white video backing`);
   assert.equal(metrics.video.objectFit, "contain", `${target.name} contain fit`);
   assert.equal(metrics.video.naturalWidth, 1024, `${target.name} source width`);
   assert.equal(metrics.video.naturalHeight, 768, `${target.name} source height`);
   assert.ok(Math.abs(renderedRatio - naturalRatio) <= 0.01, `${target.name} aspect ratio: ${JSON.stringify(metrics)}`);
   assert.ok(Math.abs(horizontalCenter - target.width / 2) <= 2, `${target.name} horizontal center: ${JSON.stringify(metrics)}`);
   assert.ok(Math.abs(verticalCenter - target.height / 2) <= 2, `${target.name} vertical center: ${JSON.stringify(metrics)}`);
-  assert.ok(margins.every((margin) => margin >= 15), `${target.name} white margins: ${JSON.stringify(margins)}`);
+  assert.ok(margins.every((margin) => margin >= 15), `${target.name} near-white margins: ${JSON.stringify(margins)}`);
   assert.ok(metrics.video.width <= (1024 * stageScale) + 1, `${target.name} stage-scaled width bound`);
   assert.ok(metrics.video.height <= (768 * stageScale) + 1, `${target.name} stage-scaled height bound`);
   assert.ok(metrics.video.left >= 0 && metrics.video.right <= target.width, `${target.name} horizontal containment`);
@@ -140,6 +177,7 @@ async function assertIntroGeometry(page, target) {
   assert.equal(metrics.launcherCount, 0, `${target.name} launcher hidden`);
   assert.equal(metrics.toolbarCount, 0, `${target.name} toolbar hidden`);
   assert.equal(metrics.skipCount, 0, `${target.name} skip absent`);
+  assert.doesNotMatch(await page.locator("body").innerText(), /Checking classroom content/i, `${target.name} has no pre-intro pack message`);
   return metrics;
 }
 
@@ -160,6 +198,37 @@ try {
     geometryResults.push({ target: target.name, ...await assertIntroGeometry(page, target) });
     await context.close();
   }
+
+  const pendingPackContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await installDelayedPackValidation(pendingPackContext);
+  const pendingPackPage = await pendingPackContext.newPage();
+  await pendingPackPage.goto(baseURL, { waitUntil: "domcontentloaded" });
+  await pendingPackPage.waitForFunction(() => globalThis.__packValidationDigestCalls > 0);
+  const pendingIntro = pendingPackPage.getByRole("dialog", { name: "Ultimate B2 opening" });
+  await pendingIntro.waitFor();
+  assert.equal(await pendingPackPage.locator(".legacy-home-launcher").count(), 0, "Launcher must not render while intro and pack validation are pending.");
+  assert.doesNotMatch(await pendingPackPage.locator("body").innerText(), /Checking classroom content/i, "Pack validation must not replace the intro with a loading message.");
+  await pendingIntro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
+  await pendingPackPage.locator('[data-teacher-view="pack-wait"]').waitFor();
+  assert.equal((await pendingPackPage.locator("body").innerText()).trim(), "", "Post-intro pack wait must remain visually plain.");
+  assert.equal(await pendingPackPage.locator("[data-teacher-stage-host]").evaluate((host) => getComputedStyle(host).backgroundColor), "rgb(254, 254, 254)");
+  await pendingPackPage.evaluate(() => globalThis.__releasePackValidation());
+  await waitForLauncher(pendingPackPage);
+  await pendingPackContext.close();
+
+  const invalidPackContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await installInvalidPackValidation(invalidPackContext);
+  const invalidPackPage = await invalidPackContext.newPage();
+  await invalidPackPage.goto(baseURL, { waitUntil: "domcontentloaded" });
+  const invalidPackIntro = invalidPackPage.getByRole("dialog", { name: "Ultimate B2 opening" });
+  await invalidPackIntro.waitFor();
+  assert.equal(await invalidPackPage.getByRole("alert").count(), 0, "Pack failure must stay behind the intro.");
+  assert.doesNotMatch(await invalidPackPage.locator("body").innerText(), /Content pack unavailable or damaged/i);
+  await invalidPackIntro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
+  const packFailure = invalidPackPage.getByRole("alert");
+  await packFailure.waitFor();
+  assert.match(await packFailure.innerText(), /Content pack unavailable or damaged[\s\S]*Reinstall the verified classroom application/);
+  await invalidPackContext.close();
 
   const interactionContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   await installBlockedAutoplay(interactionContext, { controllable: true });
@@ -252,6 +321,9 @@ try {
     status: "passed",
     scenarios: [
       "responsive-geometry",
+      "intro-first-during-pack-validation",
+      "plain-post-intro-pack-wait",
+      "post-intro-pack-failure",
       "no-manual-bypass",
       "natural-completion",
       "in-session-return",
