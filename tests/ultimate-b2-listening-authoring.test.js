@@ -7,6 +7,7 @@ import test from "node:test";
 import sharp from "sharp";
 import { createServer } from "vite";
 
+import { buildUltimateB2TeacherSolutionPayload } from "../netlify/functions/_ultimate-b2-teacher-solutions.js";
 import authoring from "../src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json" with { type: "json" };
 import { validateUltimateB2ListeningAuthoring } from "../src/data/ultimate-b2/listeningAuthoringSchema.js";
 import { LISTENING_IWB_XOR_KEY, decodeListeningIwb, extractListeningAuthoring } from "../scripts/ultimate-b2/extract-listening-authoring.mjs";
@@ -146,14 +147,14 @@ test("Builder shell keeps Hotspot authoring separate and exposes Listening edito
 });
 
 test("Teacher Listening runtime keeps static segments, karaoke, answers, and contextual navigation distinct", async () => {
-  const [runtime, normalized, pages, navigation, css, offlineSolutions] = await Promise.all([
+  const [runtime, normalized, pages, navigation, css] = await Promise.all([
     readFile("src/components/lms/activities/ultimate-b2/TeacherLegacyListeningActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherBookNavigationCore.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/teacherLegacyListeningActivity.css", "utf8"),
-    readFile("android-content-packs/ultimate-b2-students-book/teacher-solutions.json", "utf8"),
   ]);
+  const offlineSolutions = JSON.stringify(buildUltimateB2TeacherSolutionPayload("ultimate-b2-sb-u1-p2-o2"));
   assert.match(runtime, /VIEW_QUESTIONS[\s\S]*VIEW_STATIC[\s\S]*VIEW_KARAOKE/);
   assert.match(runtime, /segment\?\.regions\.map/);
   assert.match(runtime, /findListeningCue/);

@@ -4,6 +4,7 @@
   height: 582px;
   border: 0;
   border-radius: 0;
+  padding: 0;
   background: #fff;
   box-shadow: none;
 }
@@ -44,7 +45,7 @@
 
 .teacher-listening-question.question-1 { top: 65px; height: 88px; }
 .teacher-listening-question.question-2 { top: 158px; height: 112px; }
-.teacher-listening-question.question-3 { top: 275px; height: 72px; }
+.teacher-listening-question.question-3 { top: 275px; height: 74px; }
 
 .teacher-listening-question h3 {
   position: absolute;
@@ -90,8 +91,8 @@
   top: 34px;
   left: 61px;
   width: 741px;
-  height: calc(var(--answer-lines) * 24px);
-  min-height: 24px;
+  height: max(40px, calc(var(--answer-lines) * 24px));
+  min-height: 40px;
   padding: 0 7px;
   overflow: hidden;
   border: 0;

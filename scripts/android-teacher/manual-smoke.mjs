@@ -584,9 +584,16 @@ try {
   await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
   await page.getByRole("button", { name: "Page activities" }).click();
   await page.getByRole("button", { name: "Reading · Exercise 1", exact: true }).last().click();
-  const video = page.locator("video").first();
+  const activityVideoButton = page.locator('[data-teacher-book-navigation] button[title="Video"]');
+  await activityVideoButton.waitFor();
+  await activityVideoButton.click();
+  const activityVideoOverlay = page.locator("[data-activity-video-overlay]");
+  await activityVideoOverlay.waitFor();
+  const video = activityVideoOverlay.locator("video");
   await video.waitFor();
   assert.match(await video.getAttribute("src"), /^(?:http:\/\/127\.0\.0\.1:4178)?\/assets\//);
+  await activityVideoOverlay.getByRole("button", { name: "Close video" }).click();
+  assert.equal(await activityVideoOverlay.count(), 0, "Activity video closes back to the exercise");
   await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
   await page.locator(".teacher-offline-book").waitFor();
   await page.getByRole("button", { name: "Page activities" }).click();
@@ -614,7 +621,7 @@ try {
 
   const forbiddenRequests = requests.filter(({ url, type }) => (
     !url.startsWith(baseURL)
-    || (["fetch", "xhr", "eventsource", "websocket"].includes(type) && !/^http:\/\/127\.0\.0\.1:4178\/assets\/logo-[\w-]+\.gaf$/.test(url))
+    || (["fetch", "xhr", "eventsource", "websocket"].includes(type) && !/^http:\/\/127\.0\.0\.1:4178\/assets\/(?:logo-[\w-]+\.gaf|obj1-[\w-]+\.vtt)$/.test(url))
     || /\.netlify\/functions|teacher-activity-solutions|submit-/i.test(url)
   ));
   const unexpectedConsoleErrors = consoleErrors.filter((message) => !/favicon|ERR_INTERNET_DISCONNECTED/i.test(message));

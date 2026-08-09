@@ -212,7 +212,7 @@ try {
     const introBackdrop = await readViewportBackdrop(page);
     assertBackdrop(introBackdrop, "intro", `${target.width}x${target.height} intro`);
     assert.equal(introBackdrop.image, "none", `${target.width}x${target.height} intro has no launcher image`);
-    assert.equal(introBackdrop.color, "rgb(255, 255, 255)", `${target.width}x${target.height} intro viewport is white`);
+    assert.equal(introBackdrop.color, "rgb(254, 254, 254)", `${target.width}x${target.height} intro viewport uses its authored near-white backing`);
     await completeStartupIntro(page);
     await assertShellControls(page, `${target.width}x${target.height} library`);
 

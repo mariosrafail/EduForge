@@ -115,7 +115,7 @@ test("Teacher fixed stage separates viewport fit from bounded Interface Size", a
   assert.doesNotMatch(app, /viewport\.displayScale \* userInterfaceScale/);
   assert.match(app, /"--teacher-display-scale": viewport\.displayScale/);
   assert.match(app, /"--teacher-ui-scale": effectiveUiScale/);
-  assert.match(app, /resolveViewportBackdrop[\s\S]*name: "intro", color: "#fff", image: "none"[\s\S]*name: "library"[\s\S]*name: "media"[\s\S]*"unit-overview"[\s\S]*<TeacherFixedStage[\s\S]*viewport=\{viewport\}[\s\S]*viewportBackdrop=\{viewportBackdrop\}/);
+  assert.match(app, /resolveViewportBackdrop[\s\S]*name: "intro", color: "#fefefe", image: "none"[\s\S]*name: "library"[\s\S]*name: "media"[\s\S]*"unit-overview"[\s\S]*<TeacherFixedStage[\s\S]*viewport=\{viewport\}[\s\S]*viewportBackdrop=\{viewportBackdrop\}/);
   assert.match(stage, /data-teacher-stage-scale/);
   assert.match(stage, /data-viewport-backdrop=\{viewportBackdrop\?\.name\}/);
   assert.match(stage, /backgroundColor: viewportBackdrop\?\.color[\s\S]*backgroundImage: viewportBackdrop\?\.image/);

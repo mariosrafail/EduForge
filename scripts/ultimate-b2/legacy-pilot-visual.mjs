@@ -64,6 +64,53 @@ async function openPilotBookFromLauncher(page, targetName) {
   await openInternalContents(page, targetUnit);
 }
 
+async function openNormalPage(page, unitNumber) {
+  await page.evaluate((selectedUnitNumber) => {
+    const current = window.history.state || {};
+    const next = {
+      teacherOffline: true,
+      view: "book",
+      location: { ...(current.location || {}), unitNumber: selectedUnitNumber, tab: "pages", pageId: "" },
+    };
+    window.history.replaceState(next, "", "#book");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: next }));
+  }, unitNumber);
+  const pageCard = page.locator(".teacher-unit-page-card").first();
+  await pageCard.waitFor();
+  await pageCard.click();
+  await page.locator(".teacher-offline-page-image img").waitFor();
+}
+
+async function readChromeGeometry(page, label) {
+  const geometry = await page.evaluate(() => {
+    const bounds = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect && rect.width && rect.height
+        ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+        : null;
+    };
+    return {
+      navigation: bounds("[data-teacher-book-navigation]"),
+      toolbar: bounds(".classroom-teaching-toolbar"),
+    };
+  });
+  assert.ok(geometry.navigation, `${label} navigation is visible`);
+  assert.ok(geometry.toolbar, `${label} toolbar is visible`);
+  return geometry;
+}
+
+async function assertStableChromeGeometry(page, expected, label) {
+  const actual = await readChromeGeometry(page, label);
+  for (const region of ["navigation", "toolbar"]) {
+    for (const dimension of ["x", "y", "width", "height"]) {
+      assert.ok(
+        Math.abs(actual[region][dimension] - expected[region][dimension]) <= 1,
+        `${label} ${region} ${dimension} moved by more than 1 physical px: ${JSON.stringify({ expected, actual })}`,
+      );
+    }
+  }
+}
+
 const preview = spawn(
   process.execPath,
   ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4181"],
@@ -152,6 +199,11 @@ async function assertPilotLayout(page, target, id) {
       presentationScale,
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       rootOverflow: root.scrollWidth - root.clientWidth,
+      overflowingElements: [...root.querySelectorAll("*")].filter((element) => element.getBoundingClientRect().right > rect.right + 1).map((element) => ({
+        selector: `${element.tagName.toLowerCase()}.${String(element.className || "").trim().split(/\s+/).join(".")}`,
+        right: element.getBoundingClientRect().right,
+        rootRight: rect.right,
+      })).slice(0, 10),
       rootWidth: rect.width,
       rootInViewport: rect.left >= -1 && rect.right <= innerWidth + 1,
       brokenImages: images.filter((image) => !image.complete || image.naturalWidth === 0).length,
@@ -182,7 +234,7 @@ async function assertPilotLayout(page, target, id) {
   });
   assert.equal(metrics.activityId, id, `${target.name} activity identity`);
   assert.ok(metrics.documentOverflow <= 1, `${target.name} document overflow ${metrics.documentOverflow}px`);
-  assert.ok(metrics.rootOverflow <= 1, `${target.name} pilot overflow ${metrics.rootOverflow}px`);
+  assert.ok(metrics.rootOverflow <= 1, `${target.name} pilot overflow ${metrics.rootOverflow}px: ${JSON.stringify(metrics)}`);
   assert.ok(metrics.rootInViewport, `${target.name} pilot root must remain in viewport`);
   assert.equal(metrics.brokenImages, 0, `${target.name} publisher images: ${JSON.stringify(metrics.brokenImageSources)}`);
   assert.ok(Number.isFinite(metrics.stageScale) && metrics.stageScale > 0, `${target.name} fixed-stage scale: ${metrics.stageScale}`);
@@ -227,6 +279,7 @@ try {
     await completeStartupIntro(page);
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} requires teacher offline build`);
     await openPilotBookFromLauncher(page, target.name);
+    let stableChrome = null;
     await page.locator(".teacher-offline-lessons").waitFor();
     assert.equal(await page.locator(".teacher-offline-lessons article").count(), 38, `${target.name} Unit 1 count`);
 
@@ -236,10 +289,16 @@ try {
       await row.getByRole("button", { name: "Present" }).click();
       await page.locator(`[data-legacy-pilot-activity="${activity.id}"]`).waitFor();
       const initial = await assertPilotLayout(page, target, activity.id);
+      stableChrome ||= await readChromeGeometry(page, `${target.name} object ${objectNumber} initial`);
+      await assertStableChromeGeometry(page, stableChrome, `${target.name} object ${objectNumber} initial`);
       await screenshot(page, target, objectNumber, "initial");
 
       if (objectNumber === 1) {
-        const video = page.locator(".ultimate-b2-legacy-pilot video");
+        await page.locator('[data-teacher-book-navigation] button[title="Video"]').click();
+        const overlay = page.locator("[data-activity-video-overlay]");
+        await overlay.waitFor();
+        await assertStableChromeGeometry(page, stableChrome, `${target.name} object 1 video overlay`);
+        const video = overlay.locator("video");
         await video.waitFor();
         await video.evaluate(async (element) => {
           element.muted = true;
@@ -249,24 +308,43 @@ try {
         await page.waitForTimeout(180);
         await screenshot(page, target, objectNumber, "media");
         await video.evaluate((element) => element.pause());
+        await overlay.getByRole("button", { name: "Close video" }).click();
+        await page.locator(`[data-legacy-pilot-activity="${activity.id}"]`).waitFor();
       }
 
       if (objectNumber === 2) {
-        await page.getByRole("button", { name: "Show text" }).click();
-        await page.locator(".legacy-pilot-reading-image").waitFor();
-        const segment = page.locator(".legacy-pilot-highlight-player audio").first();
-        await segment.evaluate(async (element) => {
-          element.muted = true;
-          await element.play();
-        });
-        await page.locator(".legacy-pilot-highlight-region").first().waitFor();
-        await screenshot(page, target, objectNumber, "text-and-highlight");
-        await segment.evaluate((element) => element.pause());
-        await page.locator(".legacy-pilot-write-question textarea").first().fill("A partially completed teacher response");
-        await screenshot(page, target, objectNumber, "partial");
-        await page.getByRole("button", { name: "Show answer" }).first().click();
-        await page.getByText("Open response — no single correct answer.", { exact: true }).waitFor();
-        await screenshot(page, target, objectNumber, "teacher-open-response");
+        for (const [questionIndex, expectedHighlights] of [3, 7, 2].entries()) {
+          const questionNumber = questionIndex + 1;
+          await page.getByRole("button", { name: `Play passage for question ${questionNumber}` }).click();
+          await page.locator('[data-listening-view="static-text"]').waitFor();
+          assert.equal(await page.locator(".teacher-listening-static-highlight").count(), expectedHighlights, `${target.name} question ${questionNumber} exact hotspot count`);
+          await assertStableChromeGeometry(page, stableChrome, `${target.name} object 2 question ${questionNumber} static text`);
+          await screenshot(page, target, objectNumber, `question-${questionNumber}-static-highlight`);
+          await page.locator(".teacher-listening-hidden-audio").last().evaluate((audio) => audio.dispatchEvent(new Event("ended")));
+          await page.locator('[data-listening-view="questions"]').waitFor();
+        }
+
+        await page.getByRole("button", { name: "Reveal model answer 1" }).click();
+        await page.getByRole("button", { name: "Model answer 1" }).waitFor();
+        await screenshot(page, target, objectNumber, "model-answer-1");
+
+        const fullAudio = page.locator(".teacher-listening-hidden-audio").first();
+        await fullAudio.evaluate((audio) => { audio.muted = true; });
+        await page.getByRole("button", { name: "Play full reading" }).click();
+        await page.locator('[data-listening-view="karaoke"]').waitFor();
+        await assertStableChromeGeometry(page, stableChrome, `${target.name} object 2 karaoke`);
+        for (const [state, seconds] of [["early", 27], ["middle", 149], ["late", 270]]) {
+          await fullAudio.evaluate((audio, time) => {
+            audio.currentTime = time;
+            audio.dispatchEvent(new Event("timeupdate"));
+          }, seconds);
+          await page.locator(".teacher-listening-fragment.active").first().waitFor();
+          await screenshot(page, target, objectNumber, `karaoke-${state}`);
+        }
+        await page.getByRole("button", { name: "Pause full reading" }).click();
+        await screenshot(page, target, objectNumber, "karaoke-paused");
+        await page.getByRole("button", { name: "Stop full reading" }).click();
+        await page.locator('[data-listening-view="questions"]').waitFor();
       }
 
       if (objectNumber === 3) {
@@ -309,6 +387,9 @@ try {
       });
       await openInternalContents(page, legacyPilotActivityUnit(activity.id));
     }
+
+    await openNormalPage(page, targetUnitsFromActivities()[0]);
+    await assertStableChromeGeometry(page, stableChrome, `${target.name} normal page`);
 
     assert.deepEqual(consoleErrors, [], `${target.name} console errors`);
     assert.deepEqual(externalRequests, [], `${target.name} external requests`);

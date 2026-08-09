@@ -1,0 +1,3 @@
+*.vtt text eol=lf
+*.pdf binary
+android-content-packs/**/*.json text eol=lf

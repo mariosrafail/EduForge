@@ -123,8 +123,8 @@ async function assertIntroGeometry(page, target) {
   const naturalRatio = metrics.video.naturalWidth / metrics.video.naturalHeight;
   const stageScale = Math.min(target.width / 1920, target.height / 1080);
   assert.deepEqual(metrics.viewport, { width: target.width, height: target.height }, `${target.name} viewport`);
-  assert.equal(metrics.stage.background, "rgb(255, 255, 255)", `${target.name} white stage`);
-  assert.equal(metrics.video.background, "rgb(255, 255, 255)", `${target.name} white video backing`);
+  assert.equal(metrics.stage.background, "rgb(255, 255, 255)", `${target.name} authored white stage`);
+  assert.equal(metrics.video.background, "rgb(253, 253, 253)", `${target.name} authored near-white video backing`);
   assert.equal(metrics.video.objectFit, "contain", `${target.name} contain fit`);
   assert.equal(metrics.video.naturalWidth, 1024, `${target.name} source width`);
   assert.equal(metrics.video.naturalHeight, 768, `${target.name} source height`);

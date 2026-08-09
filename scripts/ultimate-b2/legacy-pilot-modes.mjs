@@ -113,7 +113,9 @@ try {
         assert.equal(await page.getByRole("button", { name: "Show answer" }).count(), 0, `${activityId} student Show answer`);
         assert.equal(await page.getByRole("button", { name: "Check", exact: true }).count(), 0, `${activityId} student Check`);
         assert.ok(await page.getByRole("button", { name: "Submit", exact: true }).count() > 0, `${activityId} student Submit`);
-        const editable = page.locator(".legacy-pilot-question input:not([type=radio]), .legacy-pilot-question textarea, .legacy-pilot-question input[type=radio]").first();
+        const editable = activityId.endsWith("-o1")
+          ? page.locator(".legacy-pilot-object-one-question textarea").first()
+          : page.locator(".legacy-pilot-question input:not([type=radio]), .legacy-pilot-question textarea, .legacy-pilot-question input[type=radio]").first();
         assert.equal(await editable.isDisabled(), false, `${activityId} student editing`);
 
         if (activityId.endsWith("-o3")) {
@@ -151,16 +153,29 @@ try {
       if (mode === "teacher-preview") {
         assert.equal(await page.getByRole("button", { name: "Submit", exact: true }).count(), 0);
         assert.equal(await page.getByRole("button", { name: "Show answer" }).count(), 0);
-        const input = page.locator(".legacy-pilot-question input, .legacy-pilot-question textarea").first();
-        assert.equal(await input.isDisabled(), true, `${activityId} teacher preview read only`);
+        if (activityId.endsWith("-o1")) {
+          assert.equal(await page.locator(".legacy-pilot-object-one-question input, .legacy-pilot-object-one-question textarea").count(), 0, `${activityId} teacher preview has no editable controls`);
+          assert.equal(await page.locator(".legacy-unit-opener-answer-lines").count(), 2, `${activityId} teacher preview keeps answer lines`);
+        } else {
+          const input = page.locator(".legacy-pilot-question input, .legacy-pilot-question textarea").first();
+          assert.equal(await input.isDisabled(), true, `${activityId} teacher preview read only`);
+        }
       }
 
       if (mode === "teacher-presentation") {
         assert.equal(await page.getByRole("button", { name: "Submit", exact: true }).count(), 0);
-        assert.ok(await page.getByRole("button", { name: "Check", exact: true }).count() > 0);
-        assert.ok(await page.getByRole("button", { name: "Reset", exact: true }).count() > 0);
-        assert.ok(await page.getByRole("button", { name: "Show all answers" }).count() > 0);
-        assert.ok(await page.getByRole("button", { name: "Hide answers" }).count() > 0);
+        if (activityId.endsWith("-o1")) {
+          assert.equal(await page.getByRole("button", { name: "Check", exact: true }).count(), 0);
+          assert.equal(await page.getByRole("button", { name: "Reset", exact: true }).count(), 0);
+          assert.equal(await page.getByRole("button", { name: "Show all answers" }).count(), 0);
+          await page.getByRole("button", { name: "Show publisher model answer for question 1" }).click();
+          await page.getByRole("button", { name: "Publisher model answer for question 1" }).waitFor();
+        } else {
+          assert.ok(await page.getByRole("button", { name: "Check", exact: true }).count() > 0);
+          assert.ok(await page.getByRole("button", { name: "Reset", exact: true }).count() > 0);
+          assert.ok(await page.getByRole("button", { name: "Show all answers" }).count() > 0);
+          assert.ok(await page.getByRole("button", { name: "Hide answers" }).count() > 0);
+        }
         if (activityId.endsWith("-o3")) {
           await page.getByRole("button", { name: "Show all answers" }).click();
           await page.getByText("Publisher answer", { exact: true }).first().waitFor();

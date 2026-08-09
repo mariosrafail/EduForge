@@ -141,7 +141,7 @@ async function assertEmbeddedActivity(page, label) {
     return {
       heading: visible(".legacy-page-heading"),
       reader: visible(".teacher-offline-page-reader"),
-      backgroundSize: document.querySelector(".teacher-offline-page-reader") ? getComputedStyle(document.querySelector(".teacher-offline-page-reader")).backgroundSize : "",
+      readerBackground: document.querySelector(".teacher-offline-page-reader") ? getComputedStyle(document.querySelector(".teacher-offline-page-reader")).backgroundColor : "",
       navigation: visible(".teacher-book-navigation"),
       toolbarCount: document.querySelectorAll(".teacher-offline-pages-viewer .classroom-teaching-toolbar").length,
       standaloneChrome: document.querySelectorAll(".teacher-offline-presentation").length,
@@ -165,8 +165,8 @@ async function assertEmbeddedActivity(page, label) {
     };
   });
   assert.equal(metrics.heading, true, `${label} keeps unit heading`);
-  assert.equal(metrics.reader, true, `${label} keeps purple reader`);
-  assert.equal(metrics.backgroundSize, "cover", `${label} activity background matches overview cover fitting`);
+  assert.equal(metrics.reader, true, `${label} keeps the reader`);
+  assert.equal(metrics.readerBackground, "rgb(255, 255, 255)", `${label} uses the neutral embedded-activity backing`);
   assert.equal(metrics.navigation, true, `${label} keeps legacy navigation`);
   assert.equal(metrics.toolbarCount, 1, `${label} has one toolbar`);
   assert.equal(metrics.standaloneChrome, 0, `${label} removes standalone presentation chrome`);
