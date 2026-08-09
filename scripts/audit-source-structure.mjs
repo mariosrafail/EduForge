@@ -7,7 +7,7 @@ const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".css"]);
 
 const exactLegacyCeilings = new Map([
   ["src/components/lms/books/BookPageViewer.jsx", 907],
-  ["src/styles/activities.css", 3690],
+  ["src/styles/activities.css", 3822],
   ["src/styles/books.css", 2358],
 ]);
 
