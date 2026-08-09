@@ -11,7 +11,7 @@ const artifactRoot = "test-results/ultimate-b2-legacy-pilot/web-modes";
 const activities = [1, 2, 3, 4, 5].map((number) => `ultimate-b2-sb-u1-p2-o${number}`);
 const modes = ["student", "teacher-preview", "teacher-presentation"];
 const mediaPaths = {
-  "ultimate-b2.students-book.unit-1.reading.video-intro": "/src/assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-intro.mp4",
+  "ultimate-b2.students-book.unit-1.reading.video-intro": "/src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.mp4",
   "ultimate-b2.students-book.unit-1.reading.text-audio": "/src/assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-text.mp3",
 };
 

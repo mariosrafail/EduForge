@@ -54,6 +54,30 @@
       "preserveOriginalBytes": true
     },
     {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro",
+      "activityId": "ultimate-b2-sb-u1-p2-o1",
+      "classification": "content video",
+      "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/1/part2/obj1.mp4",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.mp4",
+      "fileType": "mp4",
+      "bytes": 61715797,
+      "sha256": "7817dc0361571c6c5e6f3837b9368835ea7de3fe7df24f4e0d58fd3d37932574",
+      "requiredByPilot": true,
+      "preserveOriginalBytes": true
+    },
+    {
+      "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj1.captions-source",
+      "activityId": "ultimate-b2-sb-u1-p2-o1",
+      "classification": "English captions source",
+      "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/1/part2/obj1.srt",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.srt",
+      "fileType": "srt",
+      "bytes": 4032,
+      "sha256": "65431348feb713bf6e8430d3e5f7fccffe528ec5ceacaa76459d13d79b83e586",
+      "requiredByPilot": true,
+      "preserveOriginalBytes": true
+    },
+    {
       "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj2.highlight-1",
       "activityId": "ultimate-b2-sb-u1-p2-o2",
       "classification": "content audio segment",
@@ -417,6 +441,31 @@
       "preserveOriginalBytes": true
     }
   ],
+  "derivedAssets": [
+    {
+      "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj1.captions",
+      "activityId": "ultimate-b2-sb-u1-p2-o1",
+      "classification": "browser-compatible English captions",
+      "derivedFrom": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.srt",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.vtt",
+      "fileType": "vtt",
+      "bytes": 3432,
+      "sha256": "e045fbad4be425a341fbd3c44631fca57fd5791bdfe2422af6cf345b152b4c54",
+      "requiredByPilot": true
+    },
+    {
+      "logicalKey": "ultimate-b2.legacy-pilot.unit-1.part-2.obj1.video-worksheet-pdf",
+      "activityId": "ultimate-b2-sb-u1-p2-o1",
+      "classification": "downloadable video worksheet",
+      "derivedFrom": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/page_1.jpg",
+      "trackedPath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video-worksheet.pdf",
+      "fileType": "pdf",
+      "bytes": 1034226,
+      "sha256": "b003391bbd9748f93944438a05f7c8aab94df85a546f29d9898df18a3df505c9",
+      "pageCount": 1,
+      "requiredByPilot": true
+    }
+  ],
   "reusedAssets": [
     {
       "logicalKey": "ultimate-b2.students-book.unit-1.part-2.page-image",
@@ -440,17 +489,6 @@
       "fileType": "mp3",
       "bytes": 6727622,
       "sha256": "3426d3b935092cc05bb85ea5c38d516f17d7dd23904ec67c78ca1e651e2b46b3",
-      "requiredByPilot": true,
-      "reusedExistingTrackedAsset": true
-    },
-    {
-      "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro",
-      "classification": "content video",
-      "sourceRelativePath": "Contents/Resources/assets/videos/book1/unit/1/part2/obj1.mp4",
-      "trackedPath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-intro.mp4",
-      "fileType": "mp4",
-      "bytes": 61715797,
-      "sha256": "7817dc0361571c6c5e6f3837b9368835ea7de3fe7df24f4e0d58fd3d37932574",
       "requiredByPilot": true,
       "reusedExistingTrackedAsset": true
     }

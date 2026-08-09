@@ -3,8 +3,9 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
+import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
 
-export default function TeacherOfflineEmbeddedActivity({ activityId, title }) {
+export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
@@ -96,6 +97,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title }) {
           mode={ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE}
         />
       </div>
+      {videoOpen && <TeacherOfflineActivityVideoOverlay activityId={activityId} onClose={onCloseVideo} />}
     </div>
   );
 }

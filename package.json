@@ -95,6 +95,8 @@
     "teacher-project:export-apk": "node scripts/teacher-project-builder/cli.mjs export-apk",
     "test:teacher-project-builder": "node --test tests/teacher-project-*.test.js",
     "ultimate-b2:scan:students-book": "node scripts/ultimate-b2/scan-students-book.mjs",
+    "ultimate-b2:images:inventory": "node scripts/ultimate-b2/import-all-images.mjs",
+    "ultimate-b2:images:import": "node scripts/ultimate-b2/import-all-images.mjs --write",
     "ultimate-b2:extract:activities": "node scripts/ultimate-b2/extract-activities.mjs",
     "ultimate-b2:build:unit-01": "node scripts/ultimate-b2/build-unit-01-implementation.mjs",
     "ultimate-b2:build:unit-02": "node scripts/ultimate-b2/build-unit-02-implementation.mjs",

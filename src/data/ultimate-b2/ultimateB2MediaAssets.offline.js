@@ -8,7 +8,7 @@ import fjordsAudio from "../../assets/books/ultimate-b2/teacher-offline-media/un
 import icelandTripAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-iceland-trip.mp3";
 import photoComparisonAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-photo-comparison.mp3";
 import tristanDaCunhaAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-2-tristan-da-cunha.mp3";
-import unit1ReadingVideo from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-intro.mp4";
+import unit1ReadingVideo from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.mp4";
 import unit1ReadingAudio from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-text.mp3";
 import unit1ExtraVideo1 from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-1.mp4";
 import unit1ExtraVideo2 from "../../assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-2.mp4";

@@ -36,7 +36,7 @@ const classroomBackdropGradients = Object.freeze({
 });
 
 function resolveViewportBackdrop({ startupIntroPending, navigation, classroomBackground }) {
-  if (startupIntroPending) return { name: "intro", color: "#fff", image: "none" };
+  if (startupIntroPending) return { name: "intro", color: "#fefefe", image: "none" };
   if (navigation.view === "library") {
     return {
       name: "library",

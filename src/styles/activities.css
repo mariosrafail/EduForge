@@ -2734,6 +2734,98 @@
   grid-template-columns: minmax(420px, 1.25fr) minmax(350px, 0.75fr);
 }
 
+.legacy-pilot--object-1 {
+  height: 100%;
+  border: 10px solid #8bc5dd;
+  border-radius: 30px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #dff5ff;
+}
+
+.legacy-pilot--object-1 .legacy-pilot-paper {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  padding: clamp(22px, 3.2vh, 48px) clamp(70px, 8vw, 150px) clamp(20px, 3vh, 44px);
+  overflow: hidden;
+  background: #fff;
+}
+
+.legacy-pilot--object-1 .legacy-pilot-instruction {
+  width: min(100%, 554px);
+  margin: 0 0 clamp(28px, 5vh, 68px) 5%;
+}
+
+.legacy-pilot-object-one-questions {
+  display: grid;
+  gap: clamp(22px, 3.2vh, 46px);
+}
+
+.legacy-pilot-object-one-question {
+  margin: 0;
+}
+
+.legacy-pilot-object-one-question h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 0 4px;
+  color: #151515;
+  font-size: clamp(18px, 1.55vw, 28px);
+  line-height: 1.25;
+}
+
+.legacy-pilot-object-one-question h3 span {
+  flex: 0 0 auto;
+  font-weight: 900;
+}
+
+.legacy-pilot-object-one-question .legacy-unit-opener-answer-lines,
+.legacy-pilot-object-one-question textarea {
+  width: calc(100% - 36px);
+  min-height: clamp(94px, 13.5vh, 138px);
+  height: clamp(94px, 13.5vh, 138px);
+  margin-left: 36px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 29px, #272727 30px, transparent 31px);
+  color: #e40759;
+  font-family: "ITC Flora Std Medium", "Times New Roman", serif;
+  font-size: clamp(17px, 1.4vw, 25px);
+  line-height: 30px;
+  text-align: left;
+  resize: none;
+}
+
+.legacy-pilot-worksheet-download {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  align-self: flex-start;
+  justify-content: center;
+  gap: 8px;
+  margin: auto 0 0 3%;
+  padding: 9px 20px;
+  border: 2px solid #7530b2;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #bd72ff, #8d3bd7);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 35%), 0 2px 4px rgb(42 19 64 / 28%);
+  color: #fff;
+  font-size: clamp(17px, 1.45vw, 25px);
+  line-height: 1;
+  text-decoration: none;
+}
+
+.legacy-pilot-worksheet-download:hover,
+.legacy-pilot-worksheet-download:focus-visible {
+  filter: brightness(1.08);
+  outline: 3px solid rgb(143 64 210 / 25%);
+  outline-offset: 3px;
+}
+
 .legacy-pilot-video-frame {
   position: relative;
   padding: 12px;
@@ -3334,6 +3426,46 @@
   .legacy-pilot-paper {
     min-height: 0;
     padding: 10px;
+  }
+
+  .legacy-pilot--object-1 {
+    border-width: 5px;
+    border-radius: 16px;
+  }
+
+  .legacy-pilot--object-1 .legacy-pilot-paper {
+    padding: 12px 28px 10px;
+  }
+
+  .legacy-pilot--object-1 .legacy-pilot-instruction {
+    width: min(70%, 554px);
+    margin-bottom: 12px;
+  }
+
+  .legacy-pilot-object-one-questions {
+    gap: 10px;
+  }
+
+  .legacy-pilot-object-one-question h3 {
+    gap: 8px;
+    font-size: 15px;
+  }
+
+  .legacy-pilot-object-one-question .legacy-unit-opener-answer-lines,
+  .legacy-pilot-object-one-question textarea {
+    min-height: 76px;
+    height: 76px;
+    margin-left: 20px;
+    font-size: 14px;
+    line-height: 20px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 19px, #272727 20px, transparent 21px);
+  }
+
+  .legacy-pilot-worksheet-download {
+    min-height: 38px;
+    margin-left: 0;
+    padding: 6px 13px;
+    font-size: 14px;
   }
 
   .legacy-pilot-instruction {

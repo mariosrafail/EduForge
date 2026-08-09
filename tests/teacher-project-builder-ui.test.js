@@ -24,6 +24,9 @@ test("Teacher editor uses accessible top tabs, optional shared preview, and focu
   assert.doesNotMatch(css, /grid-template-columns: 180px/); assert.doesNotMatch(css, /teacher-project-navigation/); assert.match(css, /teacher-project-top-tabs/); assert.match(css, /teacher-pages-unit-tabs/); assert.match(css, /min-width: 1600px/); assert.match(css, /@media \(max-width: 980px\)/); assert.match(css, /focus-visible/); assert.match(css, /teacher-visually-hidden-file/);
   assert.match(bulk, /webkitdirectory/); assert.match(bulk, /Nothing is uploaded until/); assert.match(bulk, /Apply mappings/); assert.match(bulk, /Importing/); assert.match(bulk, /Needs review/); assert.match(bulk, /event\.key !== "Tab"/); assert.match(bulk, /restoreFocus/); assert.doesNotMatch(bulk, /scan-directory|open-path|absolutePath/);
   assert.doesNotMatch(editor, /PDF import|hotspot authoring|teacher answer/i);
+  assert.match(editor, /missing graphics use grey placeholders/);
+  assert.match(editor, /disabled=\{!writeEnabled \|\| dirty \|\| buildBusy\}/);
+  assert.doesNotMatch(editor, /dirty \|\| !progress\.complete|dirty \|\| !contentProgress\.valid/);
 });
 
 test("Teacher project routes remain opaque and separate from scanned Book Projects", () => {

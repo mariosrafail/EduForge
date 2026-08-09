@@ -233,7 +233,7 @@ test("modern Teacher unit selectors use shared titles and touch-safe interaction
   assert.match(modernCss, /\.teacher-unit-switch button::before[\s\S]*?border-radius: 13px/);
 });
 
-test("Teacher book screens use one canonical six-control navigation row", async () => {
+test("Teacher book screens use one canonical navigation row with contextual activity video", async () => {
   const [navigation, navigationCore, shell, book, pages, overview, media, fixedCss, toolbarCss] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherBookNavigation.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherBookNavigationCore.jsx", "utf8"),
@@ -252,9 +252,14 @@ test("Teacher book screens use one canonical six-control navigation row", async 
     assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
     previousIndex = currentIndex;
   }
-  assert.equal((navigationCore.match(/<button\b/g) || []).length, 6);
+  assert.ok(navigationCore.indexOf('"Open activity video"') > navigationCore.indexOf('aria-label="Next page"'));
+  assert.ok(navigationCore.indexOf('"Open activity video"') < navigationCore.indexOf('aria-label="Grammar Book"'));
+  assert.equal((navigationCore.match(/<button\b/g) || []).length, 7);
   assert.match(navigationCore, /previousDisabled = true/);
   assert.match(navigationCore, /nextDisabled = true/);
+  assert.match(navigationCore, /videoAvailable = false/);
+  assert.match(navigationCore, /aria-pressed=\{videoActive\}/);
+  assert.match(navigationCore, /renderIcon\("video"\)/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Grammar Book"/);
   assert.match(navigationCore, /onClick=\{noOp\} aria-label="Workbook"/);
   assert.match(navigation, /TeacherBookNavigationCore/);
@@ -267,6 +272,8 @@ test("Teacher book screens use one canonical six-control navigation row", async 
   assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
   assert.match(pages, /previousDisabled=\{activityActive \|\| selectedIndex <= 0\}/);
   assert.match(pages, /nextDisabled=\{activityActive \|\| selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
+  assert.match(pages, /videoAvailable=\{videoAvailable\}/);
+  assert.match(pages, /videoActive=\{activityVideoOpen\}/);
   assert.match(overview, /<TeacherBookNavigation/);
   assert.match(media, /<TeacherBookNavigation onHome=\{onHome\} onBack=\{onBack\}/);
   for (const source of [book, pages, overview, media]) assert.doesNotMatch(source, /legacy-page-navigation|teacher-unit-side-navigation|legacy-overview-book-links/);
@@ -277,6 +284,48 @@ test("Teacher book screens use one canonical six-control navigation row", async 
   assert.doesNotMatch(fixedCss, /\.teacher-book-navigation[\s\S]*margin: -7px/);
   assert.match(toolbarCss, /\.classroom-teaching-toolbar[\s\S]*height: var\(--classroom-toolbar-height\)/);
   assert.match(toolbarCss, /\.legacy-teacher-tool-icon-stack[\s\S]*transform: none/);
+});
+
+test("contextual activity video overlay keeps captions reliable in Android WebView", async () => {
+  const [overlay, embedded, player, css] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineActivityVideoOverlay.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/teacherOfflinePageViewer.css", "utf8"),
+  ]);
+  assert.match(overlay, /parseWebVtt/);
+  assert.match(overlay, /teacher-activity-video-caption/);
+  assert.match(overlay, /Subtitles on/);
+  assert.match(overlay, /controls\s*\/>|controls[\s\S]*mediaElementRef/);
+  assert.match(overlay, /teacher-activity-video-controls/);
+  assert.match(overlay, /Pause video/);
+  assert.match(overlay, /Video position/);
+  assert.match(overlay, /Video volume/);
+  assert.match(overlay, /aria-label="Close video"/);
+  assert.match(embedded, /videoOpen && <TeacherOfflineActivityVideoOverlay/);
+  assert.ok(embedded.lastIndexOf("TeacherOfflineActivityVideoOverlay") > embedded.indexOf("teacher-offline-embedded-activity-content"));
+  assert.match(player, /onTimeUpdate/);
+  assert.match(player, /controlsList="nofullscreen nodownload noremoteplayback"/);
+  assert.match(player, /kind="captions"/);
+  assert.match(css, /\.teacher-activity-video-overlay[\s\S]*position: absolute/);
+  assert.match(css, /\.teacher-activity-video-overlay[\s\S]*padding: 0/);
+  assert.match(css, /\.teacher-activity-video-panel[\s\S]*width: 100%[\s\S]*height: 100%/);
+  assert.match(css, /\.teacher-offline-pages-viewer \.teacher-offline-page-reader\.has-embedded-activity[\s\S]*background: #fff/);
+  assert.match(css, /\.teacher-activity-video-caption/);
+});
+
+test("Android Teacher saves the video worksheet through the native document picker", async () => {
+  const [activity, mainActivity, pdfSaver] = await Promise.all([
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2LegacyPilotActivity.jsx", "utf8"),
+    readFile("android/app/src/main/java/com/eduforge/offlinebooks/MainActivity.java", "utf8"),
+    readFile("android/app/src/main/java/com/eduforge/offlinebooks/PdfSaverPlugin.java", "utf8"),
+  ]);
+  assert.match(activity, /registerPlugin\("PdfSaver"\)/);
+  assert.match(activity, /PdfSaver\.savePdf/);
+  assert.match(mainActivity, /registerPlugin\(PdfSaverPlugin\.class\)/);
+  assert.match(pdfSaver, /Intent\.ACTION_CREATE_DOCUMENT/);
+  assert.match(pdfSaver, /setType\("application\/pdf"\)/);
+  assert.match(pdfSaver, /getAssets\(\)\.open\("public\/" \+ cleanPath\)/);
 });
 
 test("teacher-presentation-offline is a distinct centralized non-submitting mode", () => {
@@ -371,6 +420,11 @@ test("offline teacher solutions preserve verified, model-response, and missing-e
   assert.equal(checkPresentationAnswers({ [typedQuestion.questionId]: " off. " }, typed)[typedQuestion.questionId], "correct");
   assert.equal(teacherSolutions.solutions[openResponseId].solutionAvailability, "model-response");
   assert.equal(Object.keys(teacherSolutions.solutions[openResponseId].questions).length, 3);
+  const videoActivity = teacherSolutions.solutions["ultimate-b2-sb-u1-p2-o1"];
+  assert.equal(videoActivity.solutionAvailability, "model-response");
+  assert.equal(Object.keys(videoActivity.questions).length, 2);
+  assert.match(videoActivity.questions["ultimate-b2-sb-u1-p2-o1-q1"].acceptedAnswers[0], /viewer in control/);
+  assert.match(videoActivity.questions["ultimate-b2-sb-u1-p2-o1-q2"].acceptedAnswers[0], /physically and mentally/);
   assert.equal(teacherSolutions.solutions[missingSolutionId].solutionAvailability, "missing");
 });
 

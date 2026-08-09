@@ -63,7 +63,7 @@ export default function TeacherProjectTitleAnimation({ bundle, animate = true, e
 
   return (
     <div className={`legacy-menu-title-animation teacher-project-title${ready ? "" : " is-placeholder"}`} role="img" aria-label={bundle?.accessibleLabel || "Teacher project title animation"}>
-      {ready ? <canvas ref={canvasRef} aria-hidden="true" /> : editing ? <span className="teacher-project-asset-placeholder">GAF title animation</span> : null}
+      {ready ? <canvas ref={canvasRef} aria-hidden="true" /> : <span className="teacher-project-asset-placeholder">{editing ? "GAF title animation" : bundle?.accessibleLabel || "Title"}</span>}
       {error && <span className="legacy-menu-title-fallback">{error}</span>}
     </div>
   );

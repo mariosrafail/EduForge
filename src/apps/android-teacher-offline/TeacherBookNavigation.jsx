@@ -10,6 +10,9 @@ export default function TeacherBookNavigation({
   onNext = noOp,
   previousDisabled = true,
   nextDisabled = true,
+  videoAvailable = false,
+  videoActive = false,
+  onVideo = noOp,
 }) {
-  return <TeacherBookNavigationCore {...{ onHome, onBack, onPrevious, onNext, previousDisabled, nextDisabled }} renderIcon={(name) => <LegacyClassroomIcon name={name} />} />;
+  return <TeacherBookNavigationCore {...{ onHome, onBack, onPrevious, onNext, previousDisabled, nextDisabled, videoAvailable, videoActive, onVideo }} renderIcon={(name) => <LegacyClassroomIcon name={name} />} />;
 }

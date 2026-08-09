@@ -68,7 +68,6 @@ test("Ultimate B2 offline media imports use the exact committed teacher-pack cop
     icelandTripAudio: "unit-2-iceland-trip.mp3",
     photoComparisonAudio: "unit-2-photo-comparison.mp3",
     tristanDaCunhaAudio: "unit-2-tristan-da-cunha.mp3",
-    unit1ReadingVideo: "unit-1-reading-intro.mp4",
     unit1ReadingAudio: "unit-1-reading-text.mp3",
     unit1ExtraVideo1: "unit-1-extra-1.mp4",
     unit1ExtraVideo2: "unit-1-extra-2.mp4",
@@ -87,5 +86,9 @@ test("Ultimate B2 offline media imports use the exact committed teacher-pack cop
       new RegExp(`import ${variable} from "../../assets/books/ultimate-b2/teacher-offline-media/${fileName.replace(".", "\\.")}";`),
     );
   }
+  assert.match(
+    source,
+    /import unit1ReadingVideo from "\.\.\/\.\.\/assets\/books\/ultimate-b2\/legacy-pilot\/unit-1\/part-2\/obj1\/video\/obj1\.mp4";/,
+  );
   assert.doesNotMatch(source, forbiddenPublisherBundlePattern);
 });

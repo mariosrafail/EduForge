@@ -26,9 +26,9 @@
     "font": 0
   },
   "assetCount": 41,
-  "totalContentSizeBytes": 448997073,
+  "totalContentSizeBytes": 448998099,
   "totalAssetBytes": 448515130,
-  "totalMetadataBytes": 481943,
+  "totalMetadataBytes": 482969,
   "files": {
     "catalog.json": {
       "sizeBytes": 59766,
@@ -41,9 +41,9 @@
       "semanticSha256": "9e1433ecf12e5ee4b2040bac00ce474050c8e10d9bc6946eab3510d69ef2abeb"
     },
     "teacher-solutions.json": {
-      "sizeBytes": 109898,
-      "sha256": "f05de91ae59eea1dd39193e2427d4ec12fc6489df7daf9b5f2ea52edec92ec80",
-      "semanticSha256": "23c1adcdb272690ff7c5622127b9a08a66b519d91ed942b3dfc4c70c3b0bc2aa"
+      "sizeBytes": 110924,
+      "sha256": "22eef8a62e3196abadc648caae8839d6855e15850794e91fa8cd96a9e6486d64",
+      "semanticSha256": "5cec9cf01f25df967a87e29a4dd62507ef43d44cff4d73f71ff2522588129701"
     },
     "assets-manifest.json": {
       "sizeBytes": 13014,

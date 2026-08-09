@@ -33,20 +33,23 @@ test("legacy pilot manifest is exactly scoped to Unit 1 Part 2", () => {
     part: 2,
     activityIds: expectedIds,
   });
-  assert.equal(manifest.copiedAssets.length, 26);
-  assert.equal(manifest.reusedAssets.length, 3);
+  assert.equal(manifest.copiedAssets.length, 28);
+  assert.equal(manifest.derivedAssets.length, 2);
+  assert.equal(manifest.reusedAssets.length, 2);
   assert.ok(manifest.copiedAssets.every((asset) => expectedIds.includes(asset.activityId)));
   assert.ok(manifest.copiedAssets.every((asset) => asset.sourceRelativePath.includes("/unit/1/part2/")));
   assert.ok(manifest.copiedAssets.every((asset) => asset.trackedPath.startsWith("src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/")));
-  assert.ok(manifest.copiedAssets.every((asset) => [".png", ".jpg", ".mp3"].includes(path.extname(asset.trackedPath))));
+  assert.ok(manifest.copiedAssets.every((asset) => [".png", ".jpg", ".mp3", ".mp4", ".srt"].includes(path.extname(asset.trackedPath))));
+  assert.ok(manifest.derivedAssets.every((asset) => [".vtt", ".pdf"].includes(path.extname(asset.trackedPath))));
 });
 
 test("every copied pilot asset resolves and matches its recorded SHA-256", async () => {
-  const expectedTrackedPaths = new Set(manifest.copiedAssets.map((asset) => path.resolve(repositoryRoot, asset.trackedPath)));
+  const trackedAssets = [...manifest.copiedAssets, ...manifest.derivedAssets];
+  const expectedTrackedPaths = new Set(trackedAssets.map((asset) => path.resolve(repositoryRoot, asset.trackedPath)));
   const actualTrackedPaths = new Set(await walk(pilotRoot));
   assert.deepEqual(actualTrackedPaths, expectedTrackedPaths);
 
-  for (const asset of manifest.copiedAssets) {
+  for (const asset of trackedAssets) {
     const trackedFile = path.resolve(repositoryRoot, asset.trackedPath);
     assert.equal(await sha256(trackedFile), asset.sha256, asset.trackedPath);
     assert.equal((await readFile(trackedFile)).length, asset.bytes, asset.trackedPath);
@@ -87,6 +90,12 @@ test("pilot activation and styles are restricted to the five exact activities", 
   for (const id of expectedIds) assert.match(assetsModule, new RegExp(id));
   assert.match(normalizedRenderer, /isUltimateB2Unit1Part2LegacyPilot\(activity\)/);
   assert.match(renderer, /data-legacy-pilot-activity/);
+  assert.match(renderer, /Video Worksheet/);
+  assert.match(renderer, /PdfSaver\.savePdf/);
+  assert.match(renderer, /Capacitor\.isNativePlatform/);
+  assert.match(renderer, /TeacherLegacyUnitOpenerAnswer/);
+  assert.match(assetsModule, /obj1\.vtt\?url/);
+  assert.match(assetsModule, /video-worksheet\.pdf\?url/);
   assert.match(css, /\.ultimate-b2-legacy-pilot/);
   assert.doesNotMatch(renderer, /acceptedAnswers\s*:\s*\[/);
 });

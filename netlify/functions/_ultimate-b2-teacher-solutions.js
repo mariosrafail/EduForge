@@ -1,6 +1,7 @@
 import unit1Matrix from "../../books/ultimate-b2/generated/editorial/unit-01.implementation-matrix.json" with { type: "json" };
 import unit2Matrix from "../../books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json" with { type: "json" };
 import { ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS } from "./_ultimate-b2-unit1-opener-model-answers.js";
+import { ULTIMATE_B2_UNIT1_PART2_OBJECT1_MODEL_ANSWERS } from "./_ultimate-b2-unit1-part2-object1-model-answers.js";
 
 const activities = [...(unit1Matrix.activities || []), ...(unit2Matrix.activities || [])];
 const activitiesById = new Map(activities.map((activity) => [activity.stableNormalizedId, activity]));
@@ -54,8 +55,13 @@ export function buildUltimateB2TeacherSolutionPayload(activityId) {
   const activity = getUltimateB2TeacherSolutionRecord(activityId);
   if (!activity) return null;
 
-  const modelAnswerQuestions = activity.stableNormalizedId === "ultimate-b2-sb-u1-p1-o1"
-    ? Object.fromEntries(Object.entries(ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS).map(([questionId, answer]) => [questionId, {
+  const modelAnswers = activity.stableNormalizedId === "ultimate-b2-sb-u1-p1-o1"
+    ? ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS
+    : activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o1"
+      ? ULTIMATE_B2_UNIT1_PART2_OBJECT1_MODEL_ANSWERS
+      : null;
+  const modelAnswerQuestions = modelAnswers
+    ? Object.fromEntries(Object.entries(modelAnswers).map(([questionId, answer]) => [questionId, {
       questionId,
       acceptedAnswers: [answer],
       correctOptionIds: [],

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { teacherProjectCompleteness } from "../lib/teacher-project-builder/schema.js";
-import { materializeTeacherProjectRuntime } from "../src/apps/android-teacher-project/teacherProjectRuntimeContract.js";
+import { createBlankTeacherProject, teacherProjectCompleteness } from "../lib/teacher-project-builder/schema.js";
+import { materializeTeacherProjectRuntime, TEACHER_PROJECT_PLACEHOLDER_IMAGE } from "../src/apps/android-teacher-project/teacherProjectRuntimeContract.js";
 import { createCompleteTeacherProjectFixture } from "./helpers/teacher-project-fixture.mjs";
 
 test("generic Teacher project runtime materializes shell controls and ordered page content", async (t) => {
@@ -19,6 +19,25 @@ test("generic Teacher project runtime materializes shell controls and ordered pa
   assert.deepEqual(Object.keys(runtime.chrome), ["settings", "minimize", "close"]);
   assert.deepEqual(runtime.content.studentsBook.units[0].entries.map(({ pageLabel }) => pageLabel), ["5", "6-7", "8-9"]);
   assert.equal(runtime.content.studentsBook.units[0].entries[2].layout, "double-pair");
+});
+
+test("generic Teacher runtime substitutes compact grey images and silence for missing assignments", () => {
+  const project = createBlankTeacherProject({ projectId: "placeholder-project", displayName: "Placeholder Project" });
+  project.content.studentsBook.units[0].entries.push({
+    id: "entry-00000000-0000-4000-8000-000000000099",
+    sectionTitle: "Draft page",
+    pageLabel: "1",
+    layout: "single-page",
+    image: null,
+  });
+  const runtime = materializeTeacherProjectRuntime(project, () => null);
+  assert.equal(runtime.background, TEACHER_PROJECT_PLACEHOLDER_IMAGE);
+  assert.equal(runtime.chrome.settings.image, TEACHER_PROJECT_PLACEHOLDER_IMAGE);
+  assert.equal(runtime.units[0].normal, TEACHER_PROJECT_PLACEHOLDER_IMAGE);
+  assert.equal(runtime.units[0].active, TEACHER_PROJECT_PLACEHOLDER_IMAGE);
+  assert.equal(runtime.content.studentsBook.units[0].entries[0].image, TEACHER_PROJECT_PLACEHOLDER_IMAGE);
+  assert.deepEqual(runtime.soundMap, {});
+  assert.match(TEACHER_PROJECT_PLACEHOLDER_IMAGE, /^data:image\/svg\+xml,/);
 });
 
 test("generic runtime source graph has no static Ultimate B2 pack, content, solution, or monolithic asset import", async () => {

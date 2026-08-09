@@ -1,5 +1,6 @@
-import { Eye, EyeOff, Headphones, Play, Volume2 } from "lucide-react";
+import { Download, Eye, EyeOff, Headphones, Volume2 } from "lucide-react";
 import { useRef, useState } from "react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 
 import {
   ultimateB2Unit1Part2HighlightGroups,
@@ -8,7 +9,9 @@ import {
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2-legacy-pilot-audio";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
-import { TeacherLegacyQuestionFeedback } from "virtual:teacher-answer-ui";
+import { TeacherLegacyQuestionFeedback, TeacherLegacyUnitOpenerAnswer } from "virtual:teacher-answer-ui";
+
+const PdfSaver = registerPlugin("PdfSaver");
 
 function LegacyInstruction({ src, alt }) {
   return <img className="legacy-pilot-instruction" src={src} alt={alt} draggable="false" />;
@@ -204,21 +207,69 @@ function LegacyQuestions(props) {
   );
 }
 
-function ObjectOne({ images, mediaPlayers, questionProps }) {
+function ObjectOne({ images, questionProps }) {
+  const {
+    activity,
+    capabilities,
+    answers,
+    frozen,
+    updateAnswer,
+    revealedQuestionIds,
+    solutions,
+    solutionsLoading,
+    revealQuestion,
+  } = questionProps;
+  const worksheetFilename = "ultimate-b2-unit-1-video-worksheet.pdf";
+  const saveWorksheet = async (event) => {
+    if (!Capacitor.isNativePlatform()) return;
+    event.preventDefault();
+    await PdfSaver.savePdf({
+      assetPath: new URL(images.worksheetPdf, globalThis.location.href).pathname,
+      filename: worksheetFilename,
+    });
+  };
+
   return (
     <>
       <LegacyInstruction src={images.instruction} alt="Exercise 1. Watch the video and answer the questions." />
-      <div className="legacy-pilot-object-one-grid">
-        <div className="legacy-pilot-video-frame">
-          <div className="legacy-pilot-video-label"><Play size={17} fill="currentColor" /> Video</div>
-          {mediaPlayers}
-        </div>
-        <LegacyQuestions {...questionProps} />
+      <div className="legacy-pilot-object-one-questions">
+        {activity.runtime.questions.map((question, index) => {
+          const revealed = revealedQuestionIds.includes(question.id);
+          const modelAnswer = solutions?.questions?.[question.id]?.acceptedAnswers?.[0] || "";
+          return (
+            <article className={`legacy-pilot-object-one-question question-${index + 1}`} key={question.id}>
+              <h3><span>{index + 1}</span>{question.prompt}</h3>
+              {capabilities.canEditAnswers && !capabilities.isPresentation ? (
+                <textarea
+                  aria-label={`Answer question ${index + 1}`}
+                  rows={4}
+                  value={answers[question.id] || ""}
+                  disabled={frozen}
+                  onChange={(event) => updateAnswer(question.id, event.target.value)}
+                />
+              ) : capabilities.canRevealSolutions ? (
+                <TeacherLegacyUnitOpenerAnswer
+                  index={index}
+                  revealed={revealed}
+                  modelAnswer={modelAnswer}
+                  solutionsLoading={solutionsLoading}
+                  revealQuestion={revealQuestion}
+                  questionId={question.id}
+                />
+              ) : (
+                <div className="legacy-unit-opener-answer-lines" aria-hidden="true"><span /></div>
+              )}
+            </article>
+          );
+        })}
       </div>
-      <details className="legacy-pilot-worksheet">
-        <summary>Video worksheet</summary>
-        <img src={images.worksheet} alt="Original publisher video worksheet" loading="lazy" />
-      </details>
+      <a
+        className="legacy-pilot-worksheet-download"
+        href={images.worksheetPdf}
+        download={worksheetFilename}
+        type="application/pdf"
+        onClick={saveWorksheet}
+      ><Download size={20} /> Video Worksheet</a>
     </>
   );
 }
@@ -331,13 +382,13 @@ export function UltimateB2LegacyPilotActivity({
       className={`unit2-normalized-activity ultimate-b2-legacy-pilot legacy-pilot--object-${objectNumber} ${capabilities.isPresentation ? "teacher-presentation-activity" : ""}`}
       data-legacy-pilot-activity={activity.stableNormalizedId}
     >
-      <header className="legacy-pilot-titlebar">
+      {objectNumber !== 1 && <header className="legacy-pilot-titlebar">
         <div>
           <span>Unit 1 · Reading</span>
           <strong>Streaming now!</strong>
         </div>
         <b>Ultimate English B2</b>
-      </header>
+      </header>}
       <section className="legacy-pilot-paper">
         {objectNumber === 1 && <ObjectOne {...bodyProps} />}
         {objectNumber === 2 && <ObjectTwo {...bodyProps} />}
@@ -345,7 +396,7 @@ export function UltimateB2LegacyPilotActivity({
         {objectNumber === 4 && <ObjectFour {...bodyProps} />}
         {objectNumber === 5 && <ObjectFive {...bodyProps} />}
       </section>
-      <footer className="legacy-pilot-actions">{actions}</footer>
+      {actions && <footer className="legacy-pilot-actions">{actions}</footer>}
     </article>
   );
 }

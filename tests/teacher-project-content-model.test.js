@@ -108,7 +108,7 @@ test("empty content is valid while incomplete entries are saveable and block exp
   assert.deepEqual(status.issuesByUnit["unit-1"][0].issues, ["Page label missing", "Left page image missing", "Right page image missing"]);
 });
 
-test("build validation fails closed with actionable Unit content issues", async (t) => {
+test("incomplete projects build with grey visual placeholders while preserving QA issues", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hh-teacher-incomplete-build-")); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const workspace = path.join(root, "workspace"); await fs.mkdir(workspace);
   const store = new TeacherProjectStore({ workspace, now: () => "2026-08-09T10:00:00.000Z" });
@@ -116,11 +116,17 @@ test("build validation fails closed with actionable Unit content issues", async 
   const content = structuredClone(project.content);
   content.studentsBook.units[1].entries.push({ id: ids[0], sectionTitle: "Reading", pageLabel: "6-7", layout: "double-pair", leftImage: null, rightImage: null });
   project = await store.save(project.projectId, { displayName: project.displayName, expectedRevision: project.revision, shell: project.shell, content });
-  await assert.rejects(() => prepareTeacherProjectBuild({ store, projectId: project.projectId }), (error) => {
-    assert.equal(error.code, "incomplete_teacher_project");
-    assert.deepEqual(error.details.contentIssues["unit-2"][0].issues, ["Left page image missing", "Right page image missing"]);
-    return true;
-  });
+  const prepared = await prepareTeacherProjectBuild({ store, projectId: project.projectId });
+  const completeness = teacherProjectCompleteness(project);
+  assert.deepEqual(completeness.contentStatus.issuesByUnit["unit-2"][0].issues, ["Left page image missing", "Right page image missing"]);
+  assert.equal(prepared.manifest.placeholders.shellMissingCount, completeness.missingCount);
+  assert.equal(prepared.manifest.placeholders.incompleteEntryCount, 1);
+  assert.equal(prepared.manifest.placeholders.missingSoundsAreSilent, true);
+  assert.equal(prepared.manifest.gaf.mode, "placeholder");
+  assert.match(prepared.runtimeConfig.background, /^data:image\/svg\+xml,/);
+  assert.match(prepared.runtimeConfig.content.studentsBook.units[1].entries[0].leftImage, /^data:image\/svg\+xml,/);
+  assert.match(prepared.runtimeConfig.content.studentsBook.units[1].entries[0].rightImage, /^data:image\/svg\+xml,/);
+  assert.deepEqual(prepared.runtimeConfig.soundMap, {});
 });
 
 test("strict v1 manifests load in memory as v2 and persist only after a genuine mutation", async (t) => {

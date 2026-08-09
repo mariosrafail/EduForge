@@ -21,15 +21,15 @@
   display: grid;
   place-items: center;
   padding: 6px;
-  border: 2px dashed rgba(255, 255, 255, .85);
+  border: 2px dashed rgba(255, 255, 255, .72);
   border-radius: 14px;
   color: #fff;
-  background: rgba(27, 57, 82, .66);
+  background: #8b9298;
   font-size: 18px;
   font-weight: 900;
   text-align: center;
 }
-.teacher-project-title.is-placeholder { min-height: 220px; }
+.teacher-project-title.is-placeholder { min-height: 220px; background: #747b81; border-radius: 16px; }
 
 .teacher-project-content-screen {
   box-sizing: border-box;

@@ -39,7 +39,7 @@ test("ADB discovery output is sanitized and fixed serial install/launch argument
   await assert.rejects(() => installAndLaunchTeacherApk({ repositoryRoot: ".", apkPath: "x", serial: "bad serial;rm", environment, runProcess }), /invalid_android_device_serial/);
 });
 
-test("Teacher jobs expose sanitized progress, serialize export intent, and run only complete saved revisions", async (t) => {
+test("Teacher jobs expose sanitized progress, serialize export intent, and run saved revisions", async (t) => {
   const fixture = await createCompleteTeacherProjectFixture({ projectId: "job-fixture" });
   t.after(fixture.cleanup);
   const artifact = path.join(fixture.root, "fixture.apk");

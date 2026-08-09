@@ -7,7 +7,7 @@ function source(relativePath) {
 }
 
 const media = {
-  "ultimate-b2.students-book.unit-1.reading.video-intro": ["video", "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-intro.mp4"],
+  "ultimate-b2.students-book.unit-1.reading.video-intro": ["video", "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.mp4"],
   "ultimate-b2.students-book.unit-1.reading.text-audio": ["audio", "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-reading-text.mp3"],
   "ultimate-b2.students-book.unit-1.reading.extra-video-1": ["video", "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-1.mp4"],
   "ultimate-b2.students-book.unit-1.reading.extra-video-2": ["video", "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-2.mp4"],

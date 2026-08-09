@@ -29,7 +29,7 @@
   min-width: 0;
   min-height: 0;
   object-fit: contain;
-  background: #fff;
+  background: #fdfdfd;
   opacity: 0;
   pointer-events: none;
 }

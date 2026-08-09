@@ -5,17 +5,22 @@ export const TEACHER_PROJECT_CONTROL_IDS = Object.freeze({
   toolbar: (id) => `toolbar:${id}`,
 });
 
+const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="60" viewBox="0 0 96 60"><rect width="96" height="60" rx="6" fill="#8b9298"/><path d="M12 12h72v36H12z" fill="none" stroke="#aeb4b9" stroke-width="2"/></svg>`;
+
+export const TEACHER_PROJECT_PLACEHOLDER_IMAGE = `data:image/svg+xml,${encodeURIComponent(placeholderSvg)}`;
+
 export function materializeTeacherProjectRuntime(project, resolveAsset) {
   const asset = (assetId) => assetId ? resolveAsset(assetId, project.assets[assetId]) : null;
+  const image = (assetId) => asset(assetId) || TEACHER_PROJECT_PLACEHOLDER_IMAGE;
   const visual = (item, controlId) => ({
     ...item,
-    normal: asset(item.normal),
-    active: asset(item.active),
+    normal: image(item.normal),
+    active: image(item.active),
     sound: asset(item.sound),
     controlId,
   });
   const chrome = Object.fromEntries(Object.entries(project.shell.chrome).map(([id, item]) => [id, {
-    image: asset(item.image),
+    image: image(item.image),
     sound: asset(item.sound),
     controlId: TEACHER_PROJECT_CONTROL_IDS.chrome[id],
   }]));
@@ -24,7 +29,7 @@ export function materializeTeacherProjectRuntime(project, resolveAsset) {
     projectId: project.projectId,
     displayName: project.displayName,
     revision: project.revision,
-    background: asset(project.shell.background),
+    background: image(project.shell.background),
     titleAnimation: {
       gaf: asset(project.shell.titleAnimation.gaf),
       sdAtlases: project.shell.titleAnimation.sdAtlases.map(asset),
@@ -44,14 +49,14 @@ export function materializeTeacherProjectRuntime(project, resolveAsset) {
             sectionTitle: entry.sectionTitle,
             pageLabel: entry.pageLabel,
             layout: entry.layout,
-            leftImage: asset(entry.leftImage),
-            rightImage: asset(entry.rightImage),
+            leftImage: image(entry.leftImage),
+            rightImage: image(entry.rightImage),
           } : {
             id: entry.id,
             sectionTitle: entry.sectionTitle,
             pageLabel: entry.pageLabel,
             layout: entry.layout,
-            image: asset(entry.image),
+            image: image(entry.image),
           }),
         })),
       },

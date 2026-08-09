@@ -33,7 +33,22 @@ export function findUnit2Implementation(id) {
   return activity?.unitNumber === 2 ? activity : null;
 }
 
-export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-normalized-media" }) {
+export function StudentsBookMediaPlayer({
+  logicalKey,
+  type,
+  className = "unit2-normalized-media",
+  captionTrack = null,
+  captionLabel = "English",
+  captionsEnabled = false,
+  autoPlay = false,
+  controls = true,
+  mediaElementRef = null,
+  onTimeUpdate,
+  onDurationChange,
+  onPlayStateChange,
+  onVolumeChange,
+  onClick,
+}) {
   const mediaRef = useRef(null);
   const announcePlayback = useExclusiveMediaPlayback(mediaRef);
   const [mediaError, setMediaError] = useState("");
@@ -58,6 +73,17 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
       mediaElement.load();
     };
   }, [logicalKey]);
+  useEffect(() => {
+    const track = mediaRef.current?.textTracks?.[0];
+    if (track) track.mode = captionsEnabled ? "showing" : "hidden";
+  }, [captionTrack, captionsEnabled]);
+  useEffect(() => {
+    if (!mediaElementRef) return undefined;
+    mediaElementRef.current = mediaRef.current;
+    return () => {
+      if (mediaElementRef.current === mediaRef.current) mediaElementRef.current = null;
+    };
+  }, [mediaElementRef, asset.url]);
   if (asset.loading) return <div className="inline-status">Loading {type}…</div>;
   if (!asset.url) {
     return (
@@ -78,13 +104,35 @@ export function StudentsBookMediaPlayer({ logicalKey, type, className = "unit2-n
           <video
             ref={mediaRef}
             className={className}
-            controls
+            controls={controls}
+            controlsList="nofullscreen nodownload noremoteplayback"
+            disablePictureInPicture
+            autoPlay={autoPlay}
             playsInline
             preload="metadata"
             src={asset.url}
-            onPlay={announcePlayback}
+            onClick={onClick}
+            onPlay={() => {
+              announcePlayback();
+              onPlayStateChange?.(true);
+            }}
+            onPause={() => onPlayStateChange?.(false)}
+            onEnded={() => onPlayStateChange?.(false)}
+            onTimeUpdate={(event) => onTimeUpdate?.(event.currentTarget.currentTime)}
+            onDurationChange={(event) => onDurationChange?.(event.currentTarget.duration)}
+            onVolumeChange={(event) => onVolumeChange?.({
+              muted: event.currentTarget.muted,
+              volume: event.currentTarget.volume,
+            })}
+            onLoadedMetadata={(event) => {
+              const track = mediaRef.current?.textTracks?.[0];
+              if (track) track.mode = captionsEnabled ? "showing" : "hidden";
+              onDurationChange?.(event.currentTarget.duration);
+            }}
             onError={() => setMediaError("This local video format could not be played on this device.")}
-          />
+          >
+            {captionTrack && <track kind="captions" src={captionTrack} srcLang="en" label={captionLabel} default={captionsEnabled} />}
+          </video>
         )
         : (
           <audio
@@ -164,6 +212,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
 
   const questions = activity.runtime?.questions || [];
   const legacyUnitOpener = isUltimateB2Unit1LegacyOpener(activity);
+  const legacyPilotObjectOne = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o1";
   const publisherImageDisplay = isUltimateB2PublisherImageDisplay(activity);
   const media = (activity.mediaDependencies || []).filter((dependency) => dependency.logicalKey);
   const frozen = submitted || completed || !capabilities.canEditAnswers;
@@ -312,7 +361,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       {completed && <div className="inline-status success">Completed <small>Application feedback</small></div>}
       {reviewState?.status === "reviewed" && <div className="inline-status success">Reviewed{reviewState.teacherFeedback ? ` · ${reviewState.teacherFeedback}` : ""} <small>Teacher feedback</small></div>}
       {submitError && <div className="inline-status error">{submitError}</div>}
-      {capabilities.isPresentation && !legacyUnitOpener && !publisherImageDisplay && <TeacherPresentationControls solutionsLoading={solutionsLoading} solutions={solutions} revealedCount={revealedQuestionIds.length} onCheck={checkAnswers} onReset={reset} onRevealAll={revealAll} onHide={() => setRevealedQuestionIds(hidePresentationAnswers())} />}
+      {capabilities.isPresentation && !legacyUnitOpener && !legacyPilotObjectOne && !publisherImageDisplay && <TeacherPresentationControls solutionsLoading={solutionsLoading} solutions={solutions} revealedCount={revealedQuestionIds.length} onCheck={checkAnswers} onReset={reset} onRevealAll={revealAll} onHide={() => setRevealedQuestionIds(hidePresentationAnswers())} />}
       {!studentAndroidBuild && solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
       {!studentAndroidBuild && solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
       {!studentAndroidBuild && solutionError && <div className="inline-status error">{solutionError}</div>}
@@ -355,7 +404,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         solutionsLoading={solutionsLoading}
         revealQuestion={revealQuestion}
         mediaPlayers={mediaPlayers}
-        actions={activityActions}
+        actions={legacyPilotObjectOne && capabilities.isPresentation ? null : activityActions}
       />
     );
   }

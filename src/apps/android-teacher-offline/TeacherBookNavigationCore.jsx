@@ -8,6 +8,9 @@ export default function TeacherBookNavigationCore({
   onNext = noOp,
   previousDisabled = true,
   nextDisabled = true,
+  videoAvailable = false,
+  videoActive = false,
+  onVideo = noOp,
 }) {
   return (
     <nav className="teacher-book-navigation" aria-label="Book navigation" data-teacher-book-navigation="">
@@ -15,6 +18,16 @@ export default function TeacherBookNavigationCore({
       <button type="button" onClick={onBack} aria-label="Back" title="Back">{renderIcon("back")}</button>
       <button type="button" disabled={previousDisabled} onClick={onPrevious} aria-label="Previous page" title="Previous page">{renderIcon("previous")}</button>
       <button type="button" disabled={nextDisabled} onClick={onNext} aria-label="Next page" title="Next page">{renderIcon("next")}</button>
+      {videoAvailable && (
+        <button
+          type="button"
+          className="teacher-book-navigation-video"
+          onClick={onVideo}
+          aria-label={videoActive ? "Close activity video" : "Open activity video"}
+          aria-pressed={videoActive}
+          title="Video"
+        >{renderIcon("video")}</button>
+      )}
       <button type="button" className="teacher-book-navigation-edition" onClick={noOp} aria-label="Grammar Book" title="Grammar Book"><span>GB</span></button>
       <button type="button" className="teacher-book-navigation-edition" onClick={noOp} aria-label="Workbook" title="Workbook"><span>WB</span></button>
     </nav>

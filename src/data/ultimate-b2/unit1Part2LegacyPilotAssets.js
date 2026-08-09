@@ -1,5 +1,7 @@
 import obj1Instruction from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/image_2.png";
 import obj1Worksheet from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/page_1.jpg";
+import obj1WorksheetPdf from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video-worksheet.pdf?url";
+import obj1Captions from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.vtt?url";
 import obj2Background from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj2/image_1.png";
 import obj2Instruction from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj2/image_2.png";
 import obj2ReadingText from "../../assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj2/showText.png";
@@ -39,6 +41,8 @@ export const ultimateB2Unit1Part2LegacyImages = Object.freeze({
   "ultimate-b2-sb-u1-p2-o1": {
     instruction: obj1Instruction,
     worksheet: obj1Worksheet,
+    worksheetPdf: obj1WorksheetPdf,
+    captions: obj1Captions,
   },
   "ultimate-b2-sb-u1-p2-o2": {
     instruction: obj2Instruction,

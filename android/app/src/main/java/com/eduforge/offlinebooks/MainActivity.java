@@ -17,6 +17,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(PdfSaverPlugin.class);
         super.onCreate(savedInstanceState);
         enableImmersiveFullscreen();
         getWindow().getDecorView().post(this::enableImmersiveFullscreen);

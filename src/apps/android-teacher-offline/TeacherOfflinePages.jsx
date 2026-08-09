@@ -72,6 +72,9 @@ export default function TeacherOfflinePages({
   const pageContext = page?.title || "";
   const embeddedActivityId = activeActivity?.stableActivityId || activeActivityId || "";
   const activityActive = Boolean(embeddedActivityId);
+  const videoAvailable = activityActive && Boolean(activeActivity?.mediaDependencies?.some(
+    (dependency) => dependency.type === "video" && dependency.logicalKey,
+  ));
   const classroomSurfaceKey = activityActive
     ? `students-book:activity:${embeddedActivityId}`
     : page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -88,6 +91,7 @@ export default function TeacherOfflinePages({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [activityVideoOpen, setActivityVideoOpen] = useState(false);
 
   useEffect(() => {
     setAssetError("");
@@ -95,6 +99,7 @@ export default function TeacherOfflinePages({
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setActionsOpen(false);
+    setActivityVideoOpen(false);
   }, [activityActive, embeddedActivityId, page?.id, selectedPageId]);
 
   useEffect(() => {
@@ -287,7 +292,7 @@ export default function TeacherOfflinePages({
         <div aria-hidden="true" />
       </header>
 
-      <div className="teacher-offline-page-reader">
+      <div className={`teacher-offline-page-reader ${activityActive ? "has-embedded-activity" : ""}`.trim()}>
         <div
           ref={stageRef}
           className={`teacher-offline-page-stage ${!activityActive && canPan ? "can-pan" : ""} ${activityActive ? "has-embedded-activity" : ""}`.trim()}
@@ -298,7 +303,12 @@ export default function TeacherOfflinePages({
         >
           <ClassroomStageTransform surfaceKey={classroomSurfaceKey}>
           {activityActive ? (
-            <TeacherOfflineEmbeddedActivity activityId={embeddedActivityId} title={activeActivity?.title} />
+            <TeacherOfflineEmbeddedActivity
+              activityId={embeddedActivityId}
+              title={activeActivity?.title}
+              videoOpen={activityVideoOpen}
+              onCloseVideo={() => setActivityVideoOpen(false)}
+            />
           ) : image && !assetError ? (
             <div
               className="teacher-offline-page-image"
@@ -380,6 +390,9 @@ export default function TeacherOfflinePages({
         onNext={() => onSelectPage(pages[selectedIndex + 1].id)}
         previousDisabled={activityActive || selectedIndex <= 0}
         nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
+        videoAvailable={videoAvailable}
+        videoActive={activityVideoOpen}
+        onVideo={() => setActivityVideoOpen((open) => !open)}
       />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />
