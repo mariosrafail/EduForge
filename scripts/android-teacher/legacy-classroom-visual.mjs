@@ -8,6 +8,7 @@ import { localPlaywrightLaunchOptions } from "./playwright-launch-options.mjs";
 
 const baseURL = "http://127.0.0.1:4181";
 const artifactRoot = "test-results/legacy-classroom-visual";
+const chromeGeometryResults = [];
 const preview = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4181"], {
   cwd: process.cwd(),
   stdio: ["ignore", "inherit", "inherit"],
@@ -126,6 +127,33 @@ async function openActivity(page, unit, title) {
   await row.getByRole("button", { name: "Present" }).click();
   await page.locator(".teacher-offline-embedded-activity").waitFor();
   await assertEmbeddedActivity(page, `${title} embedded`);
+}
+
+function assertRectStable(actual, expected, label) {
+  for (const property of ["x", "y", "width", "height"]) {
+    assert.ok(Math.abs(actual[property] - expected[property]) <= 1, `${label} ${property} changed: ${actual[property]} vs ${expected[property]}`);
+  }
+}
+
+async function captureChromeGeometry(page, label, baseline = null) {
+  const geometry = await page.evaluate(() => {
+    const rect = (selector) => {
+      const value = document.querySelector(selector)?.getBoundingClientRect();
+      return value ? { x: value.x, y: value.y, width: value.width, height: value.height } : null;
+    };
+    return {
+      navigation: rect("[data-teacher-book-navigation]"),
+      toolbar: rect(".teacher-offline-pages-viewer .classroom-teaching-toolbar"),
+    };
+  });
+  assert.ok(geometry.navigation?.width && geometry.navigation?.height, `${label} bottom navigation must be visible`);
+  assert.ok(geometry.toolbar?.width && geometry.toolbar?.height, `${label} classroom toolbar must be visible`);
+  if (baseline) {
+    assertRectStable(geometry.navigation, baseline.navigation, `${label} bottom navigation`);
+    assertRectStable(geometry.toolbar, baseline.toolbar, `${label} classroom toolbar`);
+  }
+  chromeGeometryResults.push({ label, ...geometry });
+  return geometry;
 }
 
 async function assertEmbeddedActivity(page, label) {
@@ -524,15 +552,37 @@ try {
     await page.waitForFunction(() => document.querySelector(".teacher-offline-page-image img")?.getBoundingClientRect().width > innerWidth * 0.2);
     await assertScreen(page, "legacy-page-viewer-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/legacy-page-viewer-1920x1080.png` });
+    const chromeBaseline = await captureChromeGeometry(page, "normal page");
     await openActivity(page, 1, "Unit opener · Exercise 1");
     await page.getByRole("button", { name: "Show publisher model answer for question 1" }).click();
     await page.getByRole("button", { name: "Publisher model answer for question 1" }).waitFor();
     await assertEmbeddedActivity(page, "open-response-1920x1080");
+    await captureChromeGeometry(page, "Page 5 Exercise 1", chromeBaseline);
     await page.screenshot({ path: `${artifactRoot}/open-response-1920x1080.png` });
     await openActivity(page, 1, "Unit opener · Exercise 2");
     await assertEmbeddedActivity(page, "publisher-image-1920x1080");
     await assertPublisherImageCanvas(page, "publisher-image-1920x1080");
+    await captureChromeGeometry(page, "Page 5 Exercise 2", chromeBaseline);
     await page.screenshot({ path: `${artifactRoot}/publisher-image-1920x1080.png` });
+    await openActivity(page, 1, "Reading · Exercise 1");
+    await captureChromeGeometry(page, "Video", chromeBaseline);
+    await openActivity(page, 1, "Reading · Exercise 2");
+    await page.locator('[data-listening-view="questions"]').waitFor();
+    await captureChromeGeometry(page, "Listening Questions", chromeBaseline);
+    await page.getByRole("button", { name: "Show Text", exact: true }).click();
+    await page.locator('[data-listening-view="static-text"]').waitFor();
+    await captureChromeGeometry(page, "Listening Static Text", chromeBaseline);
+    await page.getByRole("button", { name: "Return to questions", exact: true }).click();
+    await page.locator('[data-listening-view="questions"]').waitFor();
+    await page.getByRole("button", { name: "Play full reading", exact: true }).click();
+    await page.locator('[data-listening-view="karaoke"]').waitFor();
+    await captureChromeGeometry(page, "Listening Karaoke", chromeBaseline);
+    await openActivity(page, 1, "Reading · Exercise 3");
+    await page.locator('[data-multiple-choice-panel="1"]').waitFor();
+    await captureChromeGeometry(page, "Multiple Choice panel 1", chromeBaseline);
+    await page.getByRole("button", { name: "Next activity part", exact: true }).click();
+    await page.locator('[data-multiple-choice-panel="2"]').waitFor();
+    await captureChromeGeometry(page, "Multiple Choice panel 2", chromeBaseline);
   });
 
   await capture({ width: 1280, height: 720 }, async (page) => {
@@ -656,7 +706,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 49, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 49, chromeGeometryResults, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();
