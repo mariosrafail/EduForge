@@ -14,23 +14,25 @@ test("builder.html loads the generic Publisher Review Studio entry", async () =>
   assert.doesNotMatch(html, /ultimate-b2-builder\/builderEntry/);
 });
 
-test("Ultimate B2 compatibility entry retains the existing tracked authoring utility byte-for-byte", async () => {
-  const [html, component, entry, plugin] = await Promise.all([
+test("Ultimate B2 tabbed shell retains the existing tracked Hotspot utility byte-for-byte", async () => {
+  const [html, component, entry, plugin, activityEntry] = await Promise.all([
     read("ultimate-b2-builder.html"),
     read("src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/builderEntry.jsx"),
     read("scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"),
+    read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
   ]);
   // Git stores these source files with LF endings, while a fresh Windows
   // worktree may materialize them as CRLF. Hash the canonical Git text so the
   // compatibility guard detects source changes without depending on checkout
   // line-ending policy.
   const sha256 = (value) => createHash("sha256").update(value.replaceAll("\r\n", "\n")).digest("hex");
-  assert.match(html, /src\/apps\/ultimate-b2-builder\/builderEntry\.jsx/);
+  assert.match(html, /src\/apps\/ultimate-b2-builder\/activityBuilderEntry\.jsx/);
   assert.match(html, /Ultimate B2 Students Book hotspot builder/);
   assert.equal(sha256(component), "23bc859bd305541433bd3352e46281b980bb31a7b52ac0af507bd28f55517ad3");
   assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");
   assert.equal(sha256(plugin), "37df07b4a0db138fcd8166189f0cd2167b262bdafeaf9739dc412239bda91e6f");
+  assert.match(activityEntry, /UltimateB2BuilderApp/);
 });
 
 test("Review Studio routing is hash-based, path-free and covers every required project view", async () => {
