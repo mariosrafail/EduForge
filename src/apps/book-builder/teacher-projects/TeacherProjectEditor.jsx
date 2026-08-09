@@ -1,4 +1,4 @@
-import { AppWindow, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, Expand, Import, Play, Save, Volume2, XCircle } from "lucide-react";
+import { AppWindow, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, Expand, Eye, EyeOff, Import, Play, Save, Volume2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ClassroomToolsProvider } from "../../android-teacher-offline/ClassroomToolsContext.jsx";
@@ -18,6 +18,7 @@ import TeacherProjectBulkImport from "./TeacherProjectBulkImport.jsx";
 import TeacherProjectPagesEditor from "./TeacherProjectPagesEditor.jsx";
 import { TeacherProjectAssetSlot, friendlyTeacherError } from "./TeacherProjectAssetSlot.jsx";
 import TeacherProjectQaPanel from "./TeacherProjectQaPanel.jsx";
+import TeacherProjectTopTabs from "./TeacherProjectTopTabs.jsx";
 import { assignSoundGroup, teacherAssetUsage, teacherContentProgress, teacherShellProgress, TEACHER_PROJECT_SECTIONS } from "./teacherProjectAuthoring.js";
 import "./teacherProjectEditor.css";
 
@@ -94,11 +95,12 @@ function Overview({ project, progress, contentProgress, dirty, buildState, onImp
 
 export function TeacherProjectEditor({ projectId, writeEnabled }) {
   const [state, setState] = useState({ status: "loading", project: null, draftName: "", draftShell: null, draftContent: null, error: null });
-  const [saveState, setSaveState] = useState({ pending: false, message: "" });
+  const [saveState, setSaveState] = useState({ pending: false, message: "", error: false });
   const [buildState, setBuildState] = useState({ job: null, error: "", devices: [], selectedSerial: "" });
   const [section, setSection] = useState("overview");
   const [viewport, setViewport] = useState(VIEWPORTS[0]);
   const [importOpen, setImportOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [qaFocus, setQaFocus] = useState("");
   const [qaActive, setQaActive] = useState("");
@@ -114,6 +116,11 @@ export function TeacherProjectEditor({ projectId, writeEnabled }) {
     const controller = new AbortController(); const timer = window.setTimeout(() => requestTeacherProjectJob(buildState.job.jobId, { signal: controller.signal }).then(({ job }) => setBuildState((current) => ({ ...current, job, error: job.error?.message || "" }))).catch((error) => { if (error.name !== "AbortError") setBuildState((current) => ({ ...current, error: friendlyTeacherError(error) })); }), 700);
     return () => { controller.abort(); window.clearTimeout(timer); };
   }, [buildState.job]);
+  useEffect(() => {
+    if (!saveState.message || saveState.error) return undefined;
+    const timer = window.setTimeout(() => setSaveState((current) => ({ ...current, message: "" })), 4200);
+    return () => window.clearTimeout(timer);
+  }, [saveState.message, saveState.error]);
   const urls = useTeacherAssetUrls(state.project);
   const audioAssets = useMemo(() => state.project ? Object.values(state.project.assets).filter((asset) => asset.mediaType.startsWith("audio/")).sort((a, b) => a.originalFilename.localeCompare(b.originalFilename)) : [], [state.project]);
   const runtime = useMemo(() => state.project && state.draftShell && state.draftContent ? materializeTeacherProjectRuntime({ ...state.project, displayName: state.draftName, shell: state.draftShell, content: state.draftContent }, (assetId) => urls[assetId] || null) : null, [state.project, state.draftName, state.draftShell, state.draftContent, urls]);
@@ -128,9 +135,9 @@ export function TeacherProjectEditor({ projectId, writeEnabled }) {
   const contentProgress = teacherContentProgress(draftContent);
   const usage = teacherAssetUsage(draftShell, draftContent);
   const save = async () => {
-    setSaveState({ pending: true, message: "" });
-    try { const result = await saveTeacherProject(project.projectId, { displayName: state.draftName, expectedRevision: project.revision, shell: draftShell, content: draftContent }); setState((current) => ({ ...current, project: result.project, draftName: result.project.displayName, draftShell: structuredClone(result.project.shell), draftContent: structuredClone(result.project.content) })); setSaveState({ pending: false, message: `Saved revision ${result.project.revision}` }); }
-    catch (error) { setSaveState({ pending: false, message: friendlyTeacherError(error) }); }
+    setSaveState({ pending: true, message: "", error: false });
+    try { const result = await saveTeacherProject(project.projectId, { displayName: state.draftName, expectedRevision: project.revision, shell: draftShell, content: draftContent }); setState((current) => ({ ...current, project: result.project, draftName: result.project.displayName, draftShell: structuredClone(result.project.shell), draftContent: structuredClone(result.project.content) })); setSaveState({ pending: false, message: `Saved revision ${result.project.revision}`, error: false }); }
+    catch (error) { setSaveState({ pending: false, message: friendlyTeacherError(error), error: true }); }
   };
   const updateArrayItem = (name, index, key, value) => updateShell((shell) => { shell[name][index][key] = value; });
   const startExport = async () => { setBuildState({ job: null, error: "", devices: [], selectedSerial: "" }); try { const { job } = await exportTeacherProject(project.projectId, project.revision); setBuildState((current) => ({ ...current, job })); } catch (error) { setBuildState((current) => ({ ...current, error: friendlyTeacherError(error) })); } };
@@ -139,7 +146,7 @@ export function TeacherProjectEditor({ projectId, writeEnabled }) {
   const removeUnused = async (asset) => {
     if (usage.has(asset.assetId) || !window.confirm(`Remove unused asset “${asset.originalFilename}”?`)) return;
     try { const result = await removeTeacherProjectAsset(project.projectId, asset.assetId, project.revision); setState((current) => ({ ...current, project: result.project })); }
-    catch (error) { setSaveState({ pending: false, message: friendlyTeacherError(error) }); }
+    catch (error) { setSaveState({ pending: false, message: friendlyTeacherError(error), error: true }); }
   };
   const moveAtlas = (key, index, direction) => updateShell((shell) => { const destination = index + direction; if (destination < 0 || destination >= shell.titleAnimation[key].length) return; [shell.titleAnimation[key][index], shell.titleAnimation[key][destination]] = [shell.titleAnimation[key][destination], shell.titleAnimation[key][index]]; });
   const buildBusy = ["queued", "running"].includes(buildState.job?.status);
@@ -153,24 +160,27 @@ export function TeacherProjectEditor({ projectId, writeEnabled }) {
     if (section === "assets") return <div className="teacher-project-section"><div className="teacher-sound-bulk"><h3>Group sound assignment</h3><SoundSelect label="Reusable sound" value={groupSound.assetId} audioAssets={audioAssets} urls={urls} disabled={!writeEnabled} onChange={(assetId) => setGroupSound((current) => ({ ...current, assetId }))} /><label><span>Apply to</span><select value={groupSound.section} onChange={(event) => setGroupSound((current) => ({ ...current, section: event.target.value }))}><option value="units">All Units</option><option value="editions">All Editions</option><option value="toolbar">All Toolbar controls</option><option value="chrome">All Window controls</option></select></label><label className="teacher-checkbox"><input type="checkbox" checked={groupSound.onlyEmpty} onChange={(event) => setGroupSound((current) => ({ ...current, onlyEmpty: event.target.checked }))} />Only empty assignments</label><button type="button" className="studio-button primary" disabled={!groupSound.assetId || !writeEnabled} onClick={() => updateShell((shell) => assignSoundGroup(shell, groupSound.section, groupSound.assetId, groupSound.onlyEmpty))}>Apply sound</button></div><div className="teacher-asset-library"><h3>Asset library · {Object.keys(project.assets).length}</h3>{Object.values(project.assets).sort((a, b) => a.originalFilename.localeCompare(b.originalFilename)).map((asset) => <article key={asset.assetId}><span><strong>{asset.originalFilename}</strong><small>{Math.ceil(asset.sizeBytes / 1024)} KB · {usage.get(asset.assetId)?.length || 0} uses</small></span>{asset.mediaType.startsWith("audio/") && <button type="button" className="studio-button secondary" disabled={!urls[asset.assetId]} onClick={() => new Audio(urls[asset.assetId]).play().catch(() => {})}>Test sound</button>}<button type="button" className="studio-button secondary danger" disabled={usage.has(asset.assetId) || !writeEnabled} title={usage.has(asset.assetId) ? "Asset is still being used" : "Remove unused asset"} onClick={() => removeUnused(asset)}>Remove unused</button></article>)}</div><TeacherProjectQaPanel shell={draftShell} urls={urls} focusId={qaFocus} activeId={qaActive} onFocus={setQaFocus} onActive={setQaActive} /></div>;
     return <div className="teacher-project-section"><p>Export validates the saved revision, builds the isolated generic Teacher runtime, syncs Capacitor, assembles and verifies a debug APK. Run installs and launches the fixed Teacher application ID.</p>{dirty && <p className="teacher-save-first" role="status">Save the current draft before Export APK or Run.</p>}{buildState.job && <div className={`teacher-build-job ${buildState.job.status}`} role="status"><strong>{buildState.job.stage}</strong><span>{buildState.job.status === "complete" ? buildState.job.result?.apkFilename : `Job ${buildState.job.jobId.slice(0, 8)} · ${buildState.job.status}`}</span></div>}{buildState.error && <p className="studio-validation-errors" role="alert">{buildState.error}</p>}{buildState.devices.length > 1 && <div className="teacher-device-picker"><label><span>Android target</span><select value={buildState.selectedSerial} onChange={(event) => setBuildState((current) => ({ ...current, selectedSerial: event.target.value }))}><option value="">Select an emulator/device</option>{buildState.devices.map((device) => <option value={device.serial} key={device.serial}>{device.model || device.device || "Android device"} · {device.serial}</option>)}</select></label><button type="button" className="studio-button primary" disabled={!buildState.selectedSerial} onClick={() => startRun(buildState.selectedSerial)}>Install and launch</button></div>}</div>;
   };
+  const tabStatus = (id) => {
+    const sectionProgress = progress.sections[id];
+    if (id === "assets") return `${Object.values(project.assets).filter((asset) => !usage.has(asset.assetId)).length} unused`;
+    if (id === "pages") return `${contentProgress.entryCount} ${contentProgress.entryCount === 1 ? "entry" : "entries"}${contentProgress.incompleteEntryCount ? ` · ${contentProgress.incompleteEntryCount} incomplete` : ""}`;
+    if (sectionProgress) return sectionProgress.complete ? "Complete" : `${sectionProgress.missingCount} missing`;
+    if (id === "overview") return `${progress.configuredCount}/${progress.requiredCount}`;
+    return dirty ? "Save first" : "Ready";
+  };
+  const closePreview = () => { setPreviewOpen(false); setPreviewExpanded(false); };
   return <main className="teacher-project-editor" id="main-content">
-    <header className="teacher-project-editor-header">
-      <div><a href="#/" className="studio-back-link"><ArrowLeft aria-hidden="true" />Back to projects</a><input aria-label="Project display name" value={state.draftName} disabled={!writeEnabled} onChange={(event) => setState((current) => ({ ...current, draftName: event.target.value }))} /><p>{project.projectId} · Revision {project.revision} · <strong>{dirty ? "Unsaved" : "Saved"}</strong></p><span>Shell {progress.configuredCount} / {progress.requiredCount} · Pages {contentProgress.completeEntryCount} / {contentProgress.entryCount} complete</span></div>
-      <div className="teacher-project-editor-actions"><button className="studio-button secondary" type="button" disabled={!writeEnabled} onClick={() => setImportOpen(true)}><Import aria-hidden="true" />Import Assets</button><button className="studio-button primary" type="button" disabled={!writeEnabled || saveState.pending || !dirty} onClick={save}><Save aria-hidden="true" />{saveState.pending ? "Saving…" : "Save"}</button><button className="studio-button secondary" type="button" disabled={!writeEnabled || dirty || !progress.complete || !contentProgress.valid || buildBusy} onClick={startExport} title={dirty ? "Save first" : !progress.complete ? "Complete all required shell assignments" : !contentProgress.valid ? "Complete every existing page / spread entry" : "Export debug APK"}><Download aria-hidden="true" />Export APK</button><button className="studio-button secondary" type="button" disabled={!writeEnabled || dirty || !progress.complete || !contentProgress.valid || buildBusy} onClick={chooseRunTarget} title={dirty ? "Save first" : !contentProgress.valid ? "Complete every existing page / spread entry" : "Install on Android"}><Play aria-hidden="true" />Run</button></div>
-    </header>
-    {saveState.message && <p className="teacher-project-save-status" role="status">{saveState.message}</p>}
-    <div className={`teacher-project-editor-layout ${previewExpanded ? "preview-expanded" : ""}`}>
-      <nav className="teacher-project-navigation" aria-label="Teacher Project sections">{TEACHER_PROJECT_SECTIONS.map(([id, label]) => {
-        const sectionProgress = progress.sections[id];
-        const note = id === "assets" ? `${Object.values(project.assets).filter((asset) => !usage.has(asset.assetId)).length} unused`
-          : id === "pages" ? `${contentProgress.entryCount} entries${contentProgress.incompleteEntryCount ? ` · ${contentProgress.incompleteEntryCount} incomplete` : ""}`
-            : sectionProgress ? sectionProgress.complete ? "Complete" : `${sectionProgress.missingCount} missing`
-              : id === "overview" ? `${progress.configuredCount}/${progress.requiredCount}` : dirty ? "Save first" : "Ready";
-        return <button type="button" key={id} aria-current={section === id ? "page" : undefined} onClick={() => setSection(id)}><span>{label}</span><small>{sectionProgress?.complete && <CheckCircle2 aria-hidden="true" />}{note}</small></button>;
-      })}</nav>
-      <section className="teacher-project-workspace" aria-labelledby="teacher-section-title"><header><div><span className="studio-eyebrow">Current section</span><h2 id="teacher-section-title">{TEACHER_PROJECT_SECTIONS.find(([id]) => id === section)?.[1]}</h2></div>{section !== "overview" && <span>{section === "pages" ? `${contentProgress.completeEntryCount} / ${contentProgress.entryCount} complete` : progress.sections[section] ? `${progress.sections[section].configured} / ${progress.sections[section].required}` : "Authoring tools"}</span>}</header>{renderSection()}</section>
-      <aside className="teacher-project-preview-panel"><div className="teacher-project-preview-heading"><div><AppWindow aria-hidden="true" /><span><strong>Live Teacher preview</strong><small>Shared runtime · 1920 × 1080</small></span></div><button type="button" className="studio-icon-button" aria-label={previewExpanded ? "Restore preview" : "Expand preview"} aria-pressed={previewExpanded} onClick={() => setPreviewExpanded((value) => !value)}><Expand aria-hidden="true" /></button><div role="group" aria-label="Preview viewport">{VIEWPORTS.map((item) => <button key={item.id} type="button" aria-pressed={viewport.id === item.id} onClick={() => setViewport(item)}>{item.id}</button>)}</div></div>{runtime && <PreviewCanvas config={runtime} viewport={viewport} qaFocus={qaFocus} qaActive={qaActive} />}</aside>
+    <div className="teacher-project-editor-top">
+      <header className="teacher-project-editor-header">
+        <div className="teacher-project-identity"><a href="#/" className="studio-back-link"><ArrowLeft aria-hidden="true" />Back</a><div><input aria-label="Project display name" value={state.draftName} disabled={!writeEnabled} onChange={(event) => setState((current) => ({ ...current, draftName: event.target.value }))} /><p>{project.projectId} · Revision {project.revision} · <strong className={dirty ? "is-unsaved" : "is-saved"}>{dirty ? "Unsaved" : "Saved"}</strong></p></div></div>
+        <div className="teacher-project-editor-actions"><button className="studio-button secondary" type="button" disabled={!writeEnabled} onClick={() => setImportOpen(true)}><Import aria-hidden="true" />Import Assets</button><span className={`teacher-project-inline-status ${saveState.error ? "is-error" : ""}`} role={saveState.error ? "alert" : "status"}>{saveState.message}</span><button className="studio-button primary" type="button" disabled={!writeEnabled || saveState.pending || !dirty} onClick={save}><Save aria-hidden="true" />{saveState.pending ? "Saving…" : "Save"}</button><button className="studio-button secondary teacher-preview-toggle" type="button" aria-pressed={previewOpen} onClick={() => previewOpen ? closePreview() : setPreviewOpen(true)}>{previewOpen ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}{previewOpen ? "Hide Preview" : "Preview"}</button><button className="studio-button secondary" type="button" disabled={!writeEnabled || dirty || !progress.complete || !contentProgress.valid || buildBusy} onClick={startExport} title={dirty ? "Save first" : !progress.complete ? "Complete all required shell assignments" : !contentProgress.valid ? "Complete every existing page / spread entry" : "Export debug APK"}><Download aria-hidden="true" />Export APK</button><button className="studio-button secondary" type="button" disabled={!writeEnabled || dirty || !progress.complete || !contentProgress.valid || buildBusy} onClick={chooseRunTarget} title={dirty ? "Save first" : !contentProgress.valid ? "Complete every existing page / spread entry" : "Install on Android"}><Play aria-hidden="true" />Run</button></div>
+      </header>
+      <TeacherProjectTopTabs sections={TEACHER_PROJECT_SECTIONS} selectedId={section} statusFor={tabStatus} onSelect={setSection} />
     </div>
-    <TeacherProjectBulkImport open={importOpen} project={project} shell={draftShell} writeEnabled={writeEnabled} onClose={() => setImportOpen(false)} onApplied={({ project: nextProject, shell, message }) => { setState((current) => ({ ...current, project: nextProject, draftShell: shell })); setSaveState({ pending: false, message }); }} />
+    <div className={`teacher-project-editor-layout ${previewOpen ? "preview-open" : "preview-closed"} ${previewExpanded ? "preview-expanded" : ""}`}>
+      <section className="teacher-project-workspace" id="teacher-section-panel" role="tabpanel" aria-labelledby={`teacher-tab-${section}`}><header><div><span className="studio-eyebrow">Current section</span><h2 id="teacher-section-title">{TEACHER_PROJECT_SECTIONS.find(([id]) => id === section)?.[1]}</h2></div>{section !== "overview" && <span>{section === "pages" ? `${contentProgress.completeEntryCount} / ${contentProgress.entryCount} complete` : progress.sections[section] ? `${progress.sections[section].configured} / ${progress.sections[section].required}` : "Authoring tools"}</span>}</header>{renderSection()}</section>
+      {previewOpen && <aside className="teacher-project-preview-panel" aria-label="Live Teacher preview"><div className="teacher-project-preview-heading"><div><AppWindow aria-hidden="true" /><span><strong>Live Teacher preview</strong><small>Shared runtime · 1920 × 1080</small></span></div><button type="button" className="studio-icon-button" aria-label={previewExpanded ? "Restore preview" : "Expand preview"} aria-pressed={previewExpanded} onClick={() => setPreviewExpanded((value) => !value)}><Expand aria-hidden="true" /></button><button type="button" className="studio-icon-button" aria-label="Close preview" onClick={closePreview}><EyeOff aria-hidden="true" /></button><div role="group" aria-label="Preview viewport">{VIEWPORTS.map((item) => <button key={item.id} type="button" aria-pressed={viewport.id === item.id} onClick={() => setViewport(item)}>{item.id}</button>)}</div></div>{runtime && <PreviewCanvas config={runtime} viewport={viewport} qaFocus={qaFocus} qaActive={qaActive} />}</aside>}
+    </div>
+    <TeacherProjectBulkImport open={importOpen} project={project} shell={draftShell} writeEnabled={writeEnabled} onClose={() => setImportOpen(false)} onApplied={({ project: nextProject, shell, message }) => { setState((current) => ({ ...current, project: nextProject, draftShell: shell })); setSaveState({ pending: false, message, error: false }); }} />
   </main>;
 }
