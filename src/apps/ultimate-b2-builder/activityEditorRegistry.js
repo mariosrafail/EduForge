@@ -17,4 +17,5 @@ export const ultimateB2ActivityEditorRegistry = Object.freeze({
   "ultimate-b2-sb-u1-p2-o3": Object.freeze({ ...ultimateB2ActivityEditorMetadata["ultimate-b2-sb-u1-p2-o3"], component: UltimateB2MultipleChoiceBuilder }),
   "ultimate-b2-sb-u1-p2-o4": Object.freeze({ ...ultimateB2ActivityEditorMetadata["ultimate-b2-sb-u1-p2-o4"], component: UltimateB2CompleteSentencesBuilder }),
   "ultimate-b2-sb-u1-p2-o5": Object.freeze({ ...ultimateB2ActivityEditorMetadata["ultimate-b2-sb-u1-p2-o5"], component: UltimateB2DebateClubBuilder }),
+  "ultimate-b2-sb-u2-p1-o1": Object.freeze({ ...ultimateB2ActivityEditorMetadata["ultimate-b2-sb-u2-p1-o1"], component: UltimateB2OpenResponseBuilder }),
 });

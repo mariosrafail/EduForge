@@ -27,7 +27,8 @@ export function UltimateB2ActivityBuilder() {
         <div className="activity-builder-editor-stack">
           {Object.entries(ultimateB2ActivityEditorRegistry).map(([activityKey, editor]) => {
             const Editor = editor.component;
-            return <div className="activity-builder-editor" key={activityKey} hidden={selectedActivityId !== activityKey}><Editor /></div>;
+            const editorActivity = ultimateB2StudentsBookAuthoringActivities.find((activity) => activity.activityKey === activityKey);
+            return <div className="activity-builder-editor" key={activityKey} hidden={selectedActivityId !== activityKey}><Editor activityId={activityKey} activity={editorActivity} /></div>;
           })}
         </div>
       </section>

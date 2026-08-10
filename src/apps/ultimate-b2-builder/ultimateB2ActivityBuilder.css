@@ -80,6 +80,11 @@
 .publisher-source-import dt { color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .publisher-source-import dd { margin: 3px 0 0; overflow-wrap: anywhere; color: #172033; font-size: 12px; }
 .publisher-source-import.is-report-only { margin: 0 auto 14px; width: min(1100px, 100%); }
+.open-response-source-drop { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 78px; padding: 16px; border: 2px dashed #60a5fa; border-radius: 9px; color: #174989; background: rgb(255 255 255 / 72%); font-weight: 800; cursor: pointer; }
+.open-response-source-drop input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.open-response-artwork-list { display: grid; gap: 12px; padding: 16px; border: 1px solid #d9e1ec; border-radius: 10px; }
+.open-response-artwork-list h2 { margin: 0; color: #172033; font-size: 15px; }
+.open-response-artwork-list label { display: grid; gap: 7px; color: #334155; font-size: 12px; font-weight: 850; }
 .open-response-selected-region { gap: 15px; }
 .open-response-selected-region dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .open-response-selected-region dl div { padding: 9px; background: #f1f5f9; border-radius: 7px; }

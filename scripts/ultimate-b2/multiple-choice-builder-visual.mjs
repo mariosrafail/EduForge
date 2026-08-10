@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 
 import { chromium } from "@playwright/test";
@@ -8,16 +8,36 @@ import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-laun
 
 const baseURL = "http://127.0.0.1:4182";
 const artifactRoot = "test-results/ultimate-b2-multiple-choice-builder";
+const openResponseOnly = process.argv.includes("--open-response-only");
 const page5AuthoringPaths = [
   "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-1.open-response.json",
   "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.image.json",
   "src/data/ultimate-b2/authoring/unit-01-reading-exercise-4.complete-sentences.json",
   "src/data/ultimate-b2/authoring/unit-01-reading-debate-club.open-answer.json",
   "netlify/functions/_ultimate-b2-unit1-opener-model-answers.json",
+  "netlify/functions/_ultimate-b2-open-response-model-answers.json",
   "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj2/discussion-prompts.svg",
 ];
 const page5AuthoringOriginals = await Promise.all(page5AuthoringPaths.map((filePath) => readFile(filePath)));
 const page5ImageOriginal = JSON.parse(page5AuthoringOriginals[1].toString("utf8"));
+const generatedOpenResponsePaths = [
+  "src/data/ultimate-b2/authoring/unit-02-page-19-exercise-1.open-response.json",
+];
+const generatedOpenResponseOriginals = await Promise.all(generatedOpenResponsePaths.map(async (filePath) => {
+  try { return await readFile(filePath); } catch (error) { if (error.code === "ENOENT") return null; throw error; }
+}));
+const generatedAssetDirectories = [
+  "src/assets/books/ultimate-b2/authoring/open-response/ultimate-b2-sb-u1-p1-o1",
+  "src/assets/books/ultimate-b2/authoring/open-response/ultimate-b2-sb-u2-p1-o1",
+];
+const backupRoot = await mkdtemp("tmp/open-response-visual-backup-");
+const generatedAssetDirectoryStates = await Promise.all(generatedAssetDirectories.map(async (directory, index) => {
+  try {
+    if (!(await stat(directory)).isDirectory()) return false;
+    await cp(directory, `${backupRoot}/${index}`, { recursive: true });
+    return true;
+  } catch (error) { if (error.code === "ENOENT") return false; throw error; }
+}));
 const server = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "4182"], {
   cwd: process.cwd(),
   env: { ...process.env, VITE_APP_MODE: "android-teacher-offline", VITE_ANDROID_APP_MODE: "teacher-presentation-offline", VITE_OFFLINE_BOOK_SLUG: "ultimate-b2" },
@@ -44,6 +64,7 @@ try {
   const consoleErrors = [];
   page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
   await page.goto(`${baseURL}/ultimate-b2-builder.html`, { waitUntil: "networkidle" });
+  if (!openResponseOnly) {
   await page.getByRole("button", { name: "UI Controller" }).click();
   await page.getByRole("heading", { name: "UI Controller", exact: true }).waitFor();
   await page.getByRole("button", { name: "Book Switch Controls", exact: true }).click();
@@ -82,6 +103,7 @@ try {
   await page.screenshot({ path: `${artifactRoot}/teacher-app-extras.png`, animations: "disabled" });
   await teacherPreview.getByRole("button", { name: "Students Book", exact: true }).click();
   assert.equal(await teacherPreview.locator(".legacy-home-unit").count(), 10);
+  }
   await page.getByRole("button", { name: "Activity Builder" }).click();
   await page.getByRole("heading", { name: "Open Response", exact: true }).waitFor();
   assert.equal(await page.getByText("Unit → Page / Spread → Exercise", { exact: true }).count(), 1);
@@ -90,7 +112,9 @@ try {
   assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).count(), 1);
   await page.screenshot({ path: `${artifactRoot}/book-hierarchy.png`, animations: "disabled" });
 
-  await page.getByRole("button", { name: "Import Publisher Source", exact: true }).click();
+  const page5SourceFiles = ["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"].map((name) => `tmp/page5-open-response-source/${name}`);
+  await page.locator(".activity-builder-editor:not([hidden])").getByLabel("Open Response publisher source files").setInputFiles(page5SourceFiles);
+  await page.getByRole("button", { name: "Validate and Import Publisher Source", exact: true }).click();
   await page.locator(".activity-builder-editor:not([hidden])").getByText("Publisher source imported and saved", { exact: true }).waitFor();
   const importReport = page.getByRole("region", { name: "Publisher source import report" });
   await importReport.getByText("1024 × 582", { exact: true }).waitFor();
@@ -144,6 +168,29 @@ try {
   assert.equal(revealVisual.clipped, false);
   await page.screenshot({ path: `${artifactRoot}/open-response-publisher-import.png`, animations: "disabled" });
 
+  await page.getByRole("button", { name: "Unit 2", exact: true }).click();
+  const unit2OpenerPage = page.locator(".activity-builder-page").filter({ hasText: /Page 19.*Reading/ });
+  await unit2OpenerPage.locator(".activity-builder-page-toggle").click();
+  await unit2OpenerPage.locator(".activity-builder-exercise").filter({ hasText: "Open Response" }).click();
+  await page.getByRole("heading", { name: "Open Response", exact: true }).waitFor();
+  await page.getByText("Source bundle required", { exact: true }).waitFor();
+  assert.equal(await page.getByText("Not configurable yet", { exact: true }).count(), 0);
+  await page.locator(".activity-builder-editor:not([hidden])").getByLabel("Open Response publisher source files").setInputFiles(page5SourceFiles);
+  await page.getByRole("button", { name: "Validate and Import Publisher Source", exact: true }).click();
+  await page.locator(".activity-builder-editor:not([hidden])").getByText("Publisher source imported and saved", { exact: true }).waitFor();
+  const unit2Canvas = page.locator('.activity-builder-editor:not([hidden]) .legacy-unit-opener-paper[data-source-canvas="1024x582"]');
+  await unit2Canvas.waitFor();
+  assert.equal(await unit2Canvas.locator(".legacy-unit-opener-artwork").count(), 2);
+  assert.equal(await unit2Canvas.locator("[data-response-region-id]").count(), 3);
+  assert.equal(await page.evaluate(() => Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, 0)), 0);
+  await page.screenshot({ path: `${artifactRoot}/unit2-open-response-generic-import.png`, animations: "disabled", fullPage: true });
+
+  const unit1Toggle = page.getByRole("button", { name: "Unit 1", exact: true });
+  if (await unit1Toggle.getAttribute("aria-expanded") === "false") await unit1Toggle.click();
+  const page5OpenerPage = page.locator(".activity-builder-page").filter({ hasText: /Page 5.*Unit opener/ });
+  if (await page5OpenerPage.locator(".activity-builder-page-toggle").getAttribute("aria-expanded") === "false") await page5OpenerPage.locator(".activity-builder-page-toggle").click();
+  await page5OpenerPage.locator(".activity-builder-exercise").filter({ hasText: "Open Response" }).click();
+
   await page.getByRole("button", { name: "Content", exact: true }).click();
 
   const openQuestion = page.getByLabel("Question 1 text");
@@ -175,8 +222,8 @@ try {
   assert.equal(await page5Region.getAttribute("data-revealed"), "true");
   assert.notEqual(await page5Region.evaluate((element) => getComputedStyle(element).backgroundImage), "none", "Writing lines remain after reveal");
   assert.deepEqual(await page5Region.evaluate((region) => { const style = getComputedStyle(region); return { overflowX: style.overflowX, overflowY: style.overflowY, documentOverflow: Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, 0) }; }), { overflowX: "hidden", overflowY: "hidden", documentOverflow: 0 }, "Manually resized reveal text remains contained inside its authored region");
-  await page.waitForFunction(() => [...document.querySelectorAll(".ultimate-b2-legacy-unit-opener img")].every((image) => image.complete && image.naturalWidth > 0));
-  assert.deepEqual(await page.locator(".ultimate-b2-legacy-unit-opener img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[606, 34], [317, 507]]);
+  await page.waitForFunction(() => [...document.querySelectorAll(".activity-builder-editor:not([hidden]) .ultimate-b2-legacy-unit-opener img")].every((image) => image.complete && image.naturalWidth > 0));
+  assert.deepEqual(await page.locator(".activity-builder-editor:not([hidden]) .ultimate-b2-legacy-unit-opener img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[606, 34], [317, 507]]);
   await page.screenshot({ path: `${artifactRoot}/open-response-preview.png`, animations: "disabled" });
 
   await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).click();
@@ -273,11 +320,17 @@ try {
   await preview.locator('[data-multiple-choice-panel="2"]').waitFor();
   await page.screenshot({ path: `${artifactRoot}/preview-panel-2.png`, animations: "disabled" });
   assert.deepEqual(consoleErrors, []);
-  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open Response", "Image"], readingEditors: ["Complete the Sentences", "Open Response"], publisherImport: { canvas: "1024x582", artwork: 2, prompts: 3, responseRegions: 3, lineCounts: [3, 4, 4], revealColor: "#e40083", clipping: false }, completeSentencesPublisherImport: { canvas: "1024x582", example: 1, interactiveSentences: 8, revealAnswers: 8, auxiliaryAssetsReused: 2, showTextWorks: true, maxGeometryDeviationSourcePx: 1.1 }, debateClubPublisherImport: { canvas: "1024x582", parts: 2, artwork: 6, responseRegions: 2, lineCounts: [10, 8], revealPrivacy: "public-presentation" }, responseRegionDrawing: true, linesBeforeAndAfterReveal: true, teacherOnlyRevealText: true, customImageUpload: true, imageFit: "contain-full-region", unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
+  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open Response", "Image"], readingEditors: ["Complete the Sentences", "Open Response"], publisherImport: { canvas: "1024x582", artwork: 2, prompts: 3, responseRegions: 3, lineCounts: [3, 4, 4], revealColor: "#e40083", clipping: false }, unit2OpenResponse: { configurable: true, genericEditor: true, sourceBundleUpload: true, canvas: "1024x582", artwork: 2, responseRegions: 3, documentOverflow: 0 }, completeSentencesPublisherImport: { canvas: "1024x582", example: 1, interactiveSentences: 8, revealAnswers: 8, auxiliaryAssetsReused: 2, showTextWorks: true, maxGeometryDeviationSourcePx: 1.1 }, debateClubPublisherImport: { canvas: "1024x582", parts: 2, artwork: 6, responseRegions: 2, lineCounts: [10, 8], revealPrivacy: "public-presentation" }, responseRegionDrawing: true, linesBeforeAndAfterReveal: true, teacherOnlyRevealText: true, customImageUpload: true, imageFit: "contain-full-region", unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
   await writeFile(`${artifactRoot}/report.json`, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
 } finally {
   await browser?.close();
   server.kill();
   await Promise.all(page5AuthoringPaths.map((filePath, index) => writeFile(filePath, page5AuthoringOriginals[index])));
+  await Promise.all(generatedOpenResponsePaths.map((filePath, index) => generatedOpenResponseOriginals[index] == null ? rm(filePath, { force: true }) : writeFile(filePath, generatedOpenResponseOriginals[index])));
+  await Promise.all(generatedAssetDirectories.map(async (directory, index) => {
+    await rm(directory, { recursive: true, force: true });
+    if (generatedAssetDirectoryStates[index]) await cp(`${backupRoot}/${index}`, directory, { recursive: true });
+  }));
+  await rm(backupRoot, { recursive: true, force: true });
 }

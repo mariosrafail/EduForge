@@ -124,7 +124,7 @@ test("local builder can select a validated book menu skin without placing Teache
   assert.deepEqual(JSON.parse(selections).selections, { "ultimate-b2-students-book": "ultimate-b2-legacy" });
 });
 
-test("Unit 1 opener special renderer activates only for its exact stable activity identity", async () => {
+test("authored Open Response renderer preserves the exact Unit 1 baseline identity", async () => {
   const opener = findStudentsBookImplementation(openerId);
   assert.equal(isUltimateB2Unit1LegacyOpener(opener), true);
   assert.equal(isUltimateB2Unit1LegacyOpener(findStudentsBookImplementation("ultimate-b2-sb-u1-p2-o1")), false);
@@ -136,7 +136,7 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
     readFile(path.join(repositoryRoot, "src/styles/activities.css"), "utf8"),
     readFile(path.join(repositoryRoot, "src/styles/ultimate-b2-recovered-activities.css"), "utf8"),
   ]);
-  assert.match(normalizedRenderer, /isUltimateB2Unit1LegacyOpener\(activity\)/);
+  assert.match(normalizedRenderer, /hasUltimateB2OpenResponseAuthoring\(activity\)/);
   assert.match(normalizedRenderer, /isUltimateB2Unit1Part2LegacyPilot\(activity\)/);
   assert.match(openerRenderer, /data-legacy-unit-opener-activity/);
   assert.match(openerRenderer, /capabilities\.canRevealSolutions/);
@@ -145,7 +145,7 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.match(openerRenderer, /capabilities\.canEditAnswers[\s\S]*textarea/);
   assert.doesNotMatch(openerRenderer, /many artistic processes|every theatre moment is unique/);
   assert.match(activityStyles, /@import "\.\/ultimate-b2-recovered-activities\.css"/);
-  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-paper[\s\S]*aspect-ratio:\s*1024\s*\/\s*582/);
+  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-paper[\s\S]*aspect-ratio:\s*var\(--publisher-surface-width, 1024\)\s*\/\s*var\(--publisher-surface-height, 582\)/);
   assert.match(recoveredActivityStyles, /\.legacy-unit-opener-response-region\.is-revealed/);
 });
 

@@ -6,4 +6,5 @@ export const ultimateB2ActivityEditorMetadata = Object.freeze({
   "ultimate-b2-sb-u1-p2-o3": Object.freeze({ kind: "multiple-choice", label: "Multiple Choice", status: "Configurable" }),
   "ultimate-b2-sb-u1-p2-o4": Object.freeze({ kind: "complete-sentences", label: "Complete the Sentences", status: "Configurable" }),
   "ultimate-b2-sb-u1-p2-o5": Object.freeze({ kind: "open-response", label: "Open Response", variant: "multi-part-response-regions", status: "Configurable" }),
+  "ultimate-b2-sb-u2-p1-o1": Object.freeze({ kind: "open-response", label: "Open Response", variant: "publisher-source-question-list", status: "Configurable" }),
 });

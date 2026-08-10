@@ -6,10 +6,10 @@ import openResponseSource from "./authoring/unit-01-page-5-exercise-1.open-respo
 import imageSource from "./authoring/unit-01-page-5-exercise-2.image.json" with { type: "json" };
 import {
   normalizeUltimateB2Page5ImageAuthoring,
-  normalizeUltimateB2Page5OpenResponseAuthoring,
   ULTIMATE_B2_PAGE5_IMAGE_ID,
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
 } from "./page5AuthoringSchema.js";
+import { normalizeUltimateB2OpenResponseAuthoring } from "./openResponseAuthoringSchema.js";
 
 const assetsByBinding = Object.freeze({
   "unit1.page5.exercise1.instruction": openResponseInstructionArtwork,
@@ -18,7 +18,7 @@ const assetsByBinding = Object.freeze({
   "unit1.page5.exercise2.main-content": imageMainArtwork,
 });
 
-const openResponse = Object.freeze(normalizeUltimateB2Page5OpenResponseAuthoring(openResponseSource));
+const openResponse = Object.freeze(normalizeUltimateB2OpenResponseAuthoring(openResponseSource, ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID));
 const imageActivity = Object.freeze(normalizeUltimateB2Page5ImageAuthoring(imageSource));
 
 export function resolveUltimateB2Page5Artwork(binding) {

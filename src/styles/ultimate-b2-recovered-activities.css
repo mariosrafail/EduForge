@@ -39,8 +39,8 @@
 .legacy-unit-opener-paper {
   position: relative;
   overflow: hidden;
-  width: min(100%, calc(100cqh * 1024 / 582));
-  aspect-ratio: 1024 / 582;
+  width: min(100%, calc(100cqh * var(--publisher-surface-width, 1024) / var(--publisher-surface-height, 582)));
+  aspect-ratio: var(--publisher-surface-width, 1024) / var(--publisher-surface-height, 582);
   padding: 0;
   background: #fff;
   border: 0;
@@ -58,6 +58,13 @@ button.legacy-unit-opener-response-region:is(:hover, :focus-visible) { border-co
   position: absolute;
   display: block;
   object-fit: contain;
+}
+
+.legacy-unit-opener-artwork {
+  position: absolute;
+  display: block;
+  object-fit: contain;
+  object-position: center;
 }
 
 .legacy-unit-opener-questions {
