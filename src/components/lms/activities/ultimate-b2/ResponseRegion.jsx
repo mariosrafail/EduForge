@@ -16,16 +16,47 @@ function percentageArea(region, surface) {
   };
 }
 
+export function sourceAreaStyle(area, surface) {
+  if (!area || !surface?.width || !surface?.height) return {};
+  return {
+    left: `${(area.x / surface.width) * 100}%`,
+    top: `${(area.y / surface.height) * 100}%`,
+    width: `${(area.width / surface.width) * 100}%`,
+    height: `${(area.height / surface.height) * 100}%`,
+  };
+}
+
 export function responseRegionStyle(region, surface = null) {
   const area = percentageArea(region, surface);
   const presentation = region?.presentation || {};
-  return {
+  const sourceArea = region?.area || {};
+  const style = {
     left: `${area.left}%`, top: `${area.top}%`, width: `${area.width}%`, height: `${area.height}%`,
     "--response-region-padding-x": `${presentation.paddingX ?? 10}px`,
     "--response-region-padding-y": `${presentation.paddingY ?? 7}px`,
     "--response-region-line-spacing": `${presentation.lineSpacing ?? 29}px`,
     "--response-region-font-size": `${18 * (presentation.fontScale ?? 1)}px`,
   };
+  if (surface?.width) {
+    style["--response-region-padding-x"] = `${((presentation.paddingX ?? 0) / surface.width) * 100}cqw`;
+    style["--response-region-padding-y"] = `${((presentation.paddingY ?? 0) / surface.width) * 100}cqw`;
+    style["--response-region-line-spacing"] = `${((presentation.lineSpacing ?? 29) / surface.width) * 100}cqw`;
+    if (presentation.fontSize) style["--response-region-font-size"] = `${(presentation.fontSize * (presentation.fontScale ?? 1) / surface.width) * 100}cqw`;
+    if (presentation.textWidth) style["--response-region-text-width"] = `${(presentation.textWidth / surface.width) * 100}cqw`;
+  }
+  if (presentation.fontFamily) style["--response-region-font-family"] = `"${presentation.fontFamily}"`;
+  if (presentation.color) style["--response-region-text-color"] = presentation.color;
+  if (Array.isArray(presentation.linePositions) && presentation.linePositions.length && sourceArea.height) {
+    const lineWidths = Array.isArray(presentation.lineWidths) && presentation.lineWidths.length === presentation.linePositions.length
+      ? presentation.lineWidths
+      : presentation.linePositions.map(() => presentation.lineWidth || sourceArea.width);
+    const layers = presentation.linePositions.map(() => "linear-gradient(to right, var(--response-region-line-color), var(--response-region-line-color))");
+    style.backgroundImage = layers.join(", ");
+    style.backgroundSize = lineWidths.map((width) => `${Math.min(100, (width / sourceArea.width) * 100)}% 1px`).join(", ");
+    style.backgroundPosition = presentation.linePositions.map((position) => `left ${(position / sourceArea.height) * 100}%`).join(", ");
+    style.backgroundRepeat = presentation.linePositions.map(() => "no-repeat").join(", ");
+  }
+  return style;
 }
 
 export function ResponseRegion({ region, surface = null, revealed = false, revealText = "", onReveal = null, disabled = false, className = "" }) {

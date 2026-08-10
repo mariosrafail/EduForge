@@ -35,7 +35,7 @@ async function fixtureServer() {
     writeFile(teacherAnswersPath, `${JSON.stringify(teacherAnswers, null, 2)}\n`),
     writeFile(imageAssetPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"/>\n"),
   ]);
-  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath })], server: { host: "127.0.0.1", port: 0 } });
+  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath, publisherSourceDirectory: path.resolve("tmp/page5-open-response-source") })], server: { host: "127.0.0.1", port: 0 } });
   await server.listen();
   return { directory, server, base: `http://127.0.0.1:${server.httpServer.address().port}`, openResponsePath, imagePath, imageAssetPath, teacherAnswersPath };
 }
@@ -60,9 +60,9 @@ test("Page 5 schemas keep stable identities, allowlisted bindings, and exact fie
   assert.throws(() => normalizeUltimateB2Page5ImageAuthoring({ ...imageActivity, bullets: [] }), /unknown fields/);
   assert.throws(() => normalizeUltimateB2Page5TeacherAnswers({ ...teacherAnswers, modelAnswers: [] }), /three model answers/);
   const outside = structuredClone(openResponse);
-  outside.questions[0].responseRegion.area.left = 95;
-  outside.questions[0].responseRegion.area.width = 10;
-  assert.throws(() => normalizeUltimateB2Page5OpenResponseAuthoring(outside), /inside the activity surface/);
+  outside.questions[0].responseRegion.area.x = 1000;
+  outside.questions[0].responseRegion.area.width = 100;
+  assert.throws(() => normalizeUltimateB2Page5OpenResponseAuthoring(outside), /inside the authored canvas/);
 });
 
 test("Page 5 endpoint saves and reloads open-response public prompts and Teacher-private answers", async () => {
@@ -72,12 +72,12 @@ test("Page 5 endpoint saves and reloads open-response public prompts and Teacher
     const loaded = await fetch(url).then((response) => response.json());
     const ids = loaded.publicAuthoring.questions.map((question) => question.id);
     loaded.publicAuthoring.questions[0].prompt = "Edited isolated question?";
-    loaded.publicAuthoring.questions[0].responseRegion.area.left = 7.5;
+    loaded.publicAuthoring.questions[0].responseRegion.area.x = 75;
     loaded.teacherAuthoring.modelAnswers[0].text = "Edited isolated Teacher model answer.";
     assert.equal((await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(loaded) })).status, 200);
     const reloaded = await fetch(url).then((response) => response.json());
     assert.equal(reloaded.publicAuthoring.questions[0].prompt, "Edited isolated question?");
-    assert.equal(reloaded.publicAuthoring.questions[0].responseRegion.area.left, 7.5);
+    assert.equal(reloaded.publicAuthoring.questions[0].responseRegion.area.x, 75);
     assert.equal(reloaded.teacherAuthoring.modelAnswers[0].text, "Edited isolated Teacher model answer.");
     assert.deepEqual(reloaded.publicAuthoring.questions.map((question) => question.id), ids);
     assert.equal(JSON.parse(await readFile(fixture.teacherAnswersPath, "utf8")).modelAnswers[0].text, "Edited isolated Teacher model answer.");
@@ -99,6 +99,29 @@ test("Page 5 Exercise 2 is a generic image activity with no bullet authoring", a
     assert.equal(reloaded.publicAuthoring.mainImage, "unit1.page5.exercise2.main-content");
     assert.equal("bullets" in reloaded.publicAuthoring, false);
     assert.deepEqual(JSON.parse(await readFile(fixture.imagePath, "utf8")), reloaded.publicAuthoring);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("Page 5 publisher import endpoint is fixed-scope and persists the public/private split", async () => {
+  const fixture = await fixtureServer();
+  try {
+    const url = `${fixture.base}/__hhplms/ultimate-b2-page-5-publisher-import?activityId=${openResponseId}`;
+    const response = await fetch(url, { method: "POST" });
+    assert.equal(response.status, 200);
+    const imported = await response.json();
+    assert.deepEqual(imported.report, {
+      sourceFilesFound: ["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"],
+      canvas: { width: 1024, height: 582 },
+      questionCount: 3,
+      responseRegionCount: 3,
+      imageCount: 2,
+      lineCounts: [3, 4, 4],
+      validation: "valid",
+    });
+    assert.deepEqual(JSON.parse(await readFile(fixture.openResponsePath, "utf8")), imported.publicAuthoring);
+    assert.deepEqual(JSON.parse(await readFile(fixture.teacherAnswersPath, "utf8")), imported.teacherAuthoring);
+    assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
+    assert.equal((await fetch(url)).status, 405);
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
@@ -146,6 +169,7 @@ test("Builder registry exposes focused Page 5 and Reading editors", async () => 
   for (const label of ["Open Response", "Image", "Video", "Listening", "Multiple Choice", "Complete the Sentences"]) assert.match(metadata, new RegExp(label));
   assert.doesNotMatch(metadata, /Open Answer|kind: "open-answer"/);
   assert.match(openBuilder, /Content[\s\S]*Response Regions[\s\S]*Preview/);
+  assert.match(openBuilder, /Import Publisher Source/);
   assert.match(openBuilder, /EditableResponseRegionLayer[\s\S]*Text shown after click/);
   assert.match(imageBuilder, /type="file"[\s\S]*image\/png,image\/jpeg,image\/webp/);
   assert.match(imageBuilder, /ultimate-b2-page-5-image-asset/);

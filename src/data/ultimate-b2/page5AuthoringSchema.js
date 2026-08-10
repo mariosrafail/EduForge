@@ -45,60 +45,104 @@ function assertPayloadSize(value) {
   if (new TextEncoder().encode(JSON.stringify(value)).byteLength > ultimateB2Page5AuthoringLimits.payloadBytes) throw new Error("Page 5 authoring payload is too large.");
 }
 
-function percentage(value, label) {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100) throw new Error(`${label} must be a number from 0 to 100.`);
+function finiteNumber(value, label, minimum = 0, maximum = 4096) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum) throw new Error(`${label} must be a number from ${minimum} to ${maximum}.`);
   return Math.round(value * 10_000) / 10_000;
 }
 
-function responseRegion(value, label, expectedId) {
+function pixelArea(value, label, surface) {
+  exactKeys(value, ["x", "y", "width", "height"], label);
+  const area = { x: finiteNumber(value.x, `${label}.x`), y: finiteNumber(value.y, `${label}.y`), width: finiteNumber(value.width, `${label}.width`, 1), height: finiteNumber(value.height, `${label}.height`, 1) };
+  if (area.x + area.width > surface.width || area.y + area.height > surface.height) throw new Error(`${label} must stay inside the authored canvas.`);
+  return area;
+}
+
+function textStyle(value, label) {
+  exactKeys(value, ["fontFamily", "fontSize", "color", "align"], label);
+  if (!/^#[0-9a-f]{6}$/i.test(value.color)) throw new Error(`${label}.color must be a six-digit hex color.`);
+  if (value.align !== "left") throw new Error(`${label}.align must be left for this publisher activity.`);
+  return { fontFamily: boundedText(value.fontFamily, `${label}.fontFamily`, 100), fontSize: finiteNumber(value.fontSize, `${label}.fontSize`, 8, 72), color: value.color.toLowerCase(), align: value.align };
+}
+
+function responseRegion(value, label, expectedId, surface) {
   exactKeys(value, ["id", "ariaLabel", "area", "presentation"], label);
   if (value.id !== expectedId) throw new Error(`${label}.id is fixed and cannot be changed.`);
-  exactKeys(value.area, ["left", "top", "width", "height"], `${label}.area`);
-  const area = {
-    left: percentage(value.area.left, `${label}.area.left`),
-    top: percentage(value.area.top, `${label}.area.top`),
-    width: percentage(value.area.width, `${label}.area.width`),
-    height: percentage(value.area.height, `${label}.area.height`),
-  };
-  if (area.width < 1 || area.height < 1 || area.left + area.width > 100 || area.top + area.height > 100) throw new Error(`${label}.area must stay inside the activity surface and have a visible size.`);
-  exactKeys(value.presentation, ["paddingX", "paddingY", "lineSpacing", "fontScale"], `${label}.presentation`);
+  const area = pixelArea(value.area, `${label}.area`, surface);
+  exactKeys(value.presentation, ["paddingX", "paddingY", "lineSpacing", "fontScale", "lineCount", "linePositions", "lineWidth", "fontFamily", "fontSize", "color", "align"], `${label}.presentation`);
   const presentation = {
-    paddingX: percentage(value.presentation.paddingX, `${label}.presentation.paddingX`),
-    paddingY: percentage(value.presentation.paddingY, `${label}.presentation.paddingY`),
-    lineSpacing: percentage(value.presentation.lineSpacing, `${label}.presentation.lineSpacing`),
-    fontScale: percentage(value.presentation.fontScale, `${label}.presentation.fontScale`),
+    paddingX: finiteNumber(value.presentation.paddingX, `${label}.presentation.paddingX`, 0, 40),
+    paddingY: finiteNumber(value.presentation.paddingY, `${label}.presentation.paddingY`, 0, 40),
+    lineSpacing: finiteNumber(value.presentation.lineSpacing, `${label}.presentation.lineSpacing`, 16, 60),
+    fontScale: finiteNumber(value.presentation.fontScale, `${label}.presentation.fontScale`, 0.6, 1.6),
+    lineCount: finiteNumber(value.presentation.lineCount, `${label}.presentation.lineCount`, 1, 12),
+    linePositions: value.presentation.linePositions,
+    lineWidth: finiteNumber(value.presentation.lineWidth, `${label}.presentation.lineWidth`, 1, surface.width),
+    ...textStyle({ fontFamily: value.presentation.fontFamily, fontSize: value.presentation.fontSize, color: value.presentation.color, align: value.presentation.align }, `${label}.presentation.textStyle`),
   };
-  if (presentation.paddingX > 40 || presentation.paddingY > 40 || presentation.lineSpacing < 16 || presentation.lineSpacing > 60 || presentation.fontScale < 0.6 || presentation.fontScale > 1.6) throw new Error(`${label}.presentation contains an unsupported text layout value.`);
+  if (!Number.isInteger(presentation.lineCount) || !Array.isArray(presentation.linePositions) || presentation.linePositions.length !== presentation.lineCount) throw new Error(`${label}.presentation line positions must match lineCount.`);
+  presentation.linePositions = presentation.linePositions.map((position, index) => finiteNumber(position, `${label}.presentation.linePositions[${index}]`, 0, area.height));
   return { id: value.id, ariaLabel: boundedText(value.ariaLabel, `${label}.ariaLabel`, ultimateB2Page5AuthoringLimits.responseRegionLabelLength), area, presentation };
 }
 
 export function normalizeUltimateB2Page5OpenResponseAuthoring(input) {
   assertPayloadSize(input);
   const value = structuredClone(record(input, "Open-response authoring"));
-  exactKeys(value, ["schemaVersion", "activityId", "visualCapabilities", "instructionImageAlt", "quoteArtworkBinding", "questions"], "Open-response authoring");
-  if (value.schemaVersion !== 1) throw new Error("Unsupported open-response schema version.");
+  exactKeys(value, ["schemaVersion", "activityId", "source", "surface", "visualCapabilities", "instructionImageAlt", "quoteArtworkBinding", "artwork", "questions"], "Open-response authoring");
+  if (value.schemaVersion !== 2) throw new Error("Unsupported open-response schema version.");
   if (value.activityId !== ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) throw new Error("Unexpected open-response activity ID.");
+  exactKeys(value.surface, ["width", "height"], "surface");
+  const surface = { width: finiteNumber(value.surface.width, "surface.width", 1), height: finiteNumber(value.surface.height, "surface.height", 1) };
+  if (surface.width !== 1024 || surface.height !== 582) throw new Error("Page 5 publisher canvas must be 1024×582.");
+  exactKeys(value.source, ["kind", "canvas", "files"], "source");
+  if (value.source.kind !== "decoded-publisher-iwb") throw new Error("Unknown Page 5 source kind.");
+  if (JSON.stringify(value.source.canvas) !== JSON.stringify(surface)) throw new Error("Source canvas must match the authored surface.");
+  if (!Array.isArray(value.source.files) || value.source.files.length !== 4) throw new Error("Source provenance must contain exactly four files.");
+  const expectedSourceFiles = ["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"];
+  const sourceFiles = value.source.files.map((file, index) => {
+    exactKeys(file, ["name", "sha256"], `source.files[${index}]`);
+    if (file.name !== expectedSourceFiles[index] || !/^[a-f0-9]{64}$/i.test(file.sha256)) throw new Error(`source.files[${index}] is invalid.`);
+    return { name: file.name, sha256: file.sha256.toLowerCase() };
+  });
   const visualCapabilities = normalizeUltimateB2ExerciseVisualCapabilities(value.visualCapabilities, {
     instructionImages: [artworkBindings.openResponseInstruction],
     showTextImages: [],
   });
   if (value.quoteArtworkBinding !== artworkBindings.quote) throw new Error("Unknown open-response artwork binding.");
+  exactKeys(value.artwork, ["instruction", "quote"], "artwork");
+  const normalizeArtwork = (artwork, label, binding, sourceFile) => {
+    exactKeys(artwork, ["binding", "sourceFile", "naturalSize", "area"], label);
+    if (artwork.binding !== binding || artwork.sourceFile !== sourceFile) throw new Error(`${label} binding is fixed.`);
+    exactKeys(artwork.naturalSize, ["width", "height"], `${label}.naturalSize`);
+    const naturalSize = { width: finiteNumber(artwork.naturalSize.width, `${label}.naturalSize.width`, 1), height: finiteNumber(artwork.naturalSize.height, `${label}.naturalSize.height`, 1) };
+    const area = pixelArea(artwork.area, `${label}.area`, surface);
+    if (area.width !== naturalSize.width || area.height !== naturalSize.height) throw new Error(`${label} must preserve its natural publisher size.`);
+    return { binding, sourceFile, naturalSize, area };
+  };
+  const artwork = {
+    instruction: normalizeArtwork(value.artwork.instruction, "artwork.instruction", artworkBindings.openResponseInstruction, "image_2.png"),
+    quote: normalizeArtwork(value.artwork.quote, "artwork.quote", artworkBindings.quote, "image_1.png"),
+  };
   if (!Array.isArray(value.questions) || value.questions.length !== questionIds.length) throw new Error("Open-response authoring must contain exactly three questions.");
   const questions = value.questions.map((question, index) => {
-    exactKeys(question, ["id", "prompt", "responseRegion"], `questions[${index}]`);
+    exactKeys(question, ["id", "prompt", "promptArea", "promptStyle", "responseRegion"], `questions[${index}]`);
     if (question.id !== questionIds[index]) throw new Error(`questions[${index}].id is fixed and cannot be changed.`);
     return {
       id: question.id,
       prompt: boundedText(question.prompt, `questions[${index}].prompt`, ultimateB2Page5AuthoringLimits.textLength),
-      responseRegion: responseRegion(question.responseRegion, `questions[${index}].responseRegion`, `${question.id}-response`),
+      promptArea: pixelArea(question.promptArea, `questions[${index}].promptArea`, surface),
+      promptStyle: textStyle(question.promptStyle, `questions[${index}].promptStyle`),
+      responseRegion: responseRegion(question.responseRegion, `questions[${index}].responseRegion`, `${question.id}-response`, surface),
     };
   });
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     activityId: value.activityId,
+    source: { kind: value.source.kind, canvas: surface, files: sourceFiles },
+    surface,
     visualCapabilities,
     instructionImageAlt: boundedText(value.instructionImageAlt, "instructionImageAlt", ultimateB2Page5AuthoringLimits.textLength),
     quoteArtworkBinding: value.quoteArtworkBinding,
+    artwork,
     questions,
   };
 }

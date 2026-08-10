@@ -1,6 +1,9 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { importUltimateB2CompleteSentencesPublisherSource } from "./complete-sentences-publisher-importer.mjs";
+import { importUltimateB2DebateClubPublisherSource } from "./debate-club-publisher-importer.mjs";
+
 import {
   normalizeUltimateB2ReadingExerciseAuthoring,
   ultimateB2ReadingExerciseLimits,
@@ -9,10 +12,14 @@ import {
 } from "../../src/data/ultimate-b2/readingExerciseAuthoringSchema.js";
 
 export const readingExerciseAuthoringEndpoint = "/__hhplms/ultimate-b2-reading-exercise-authoring";
+export const completeSentencesPublisherImportEndpoint = "/__hhplms/ultimate-b2-complete-sentences-publisher-import";
+export const debateClubPublisherImportEndpoint = "/__hhplms/ultimate-b2-debate-club-publisher-import";
 const defaultPaths = Object.freeze({
   [ULTIMATE_B2_COMPLETE_SENTENCES_ID]: path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-reading-exercise-4.complete-sentences.json"),
   [ULTIMATE_B2_DEBATE_CLUB_ID]: path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-reading-debate-club.open-answer.json"),
 });
+const defaultDebateClubPublisherSourceDirectory = path.resolve(import.meta.dirname, "../../tmp/debateclub");
+const defaultCompleteSentencesPublisherSourceFile = path.resolve(import.meta.dirname, "../../tmp/complete-sentences/obj_params.xml");
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
 function sendJson(response, statusCode, payload) {
@@ -46,19 +53,33 @@ function exactEnvelope(value, activityId) {
   if (value.activityId !== activityId) throw new Error("Request activity ID does not match the endpoint selection.");
 }
 
-export function ultimateB2ReadingExerciseBuilderPlugin({ authoringPaths = defaultPaths } = {}) {
+export function ultimateB2ReadingExerciseBuilderPlugin({ authoringPaths = defaultPaths, completeSentencesPublisherSourceFile = defaultCompleteSentencesPublisherSourceFile, debateClubPublisherSourceDirectory = defaultDebateClubPublisherSourceDirectory } = {}) {
   return {
     name: "hhplms-ultimate-b2-reading-exercise-builder",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const url = new URL(request.url || "/", "http://localhost");
-        if (url.pathname !== readingExerciseAuthoringEndpoint) return next();
+        if (![readingExerciseAuthoringEndpoint, completeSentencesPublisherImportEndpoint, debateClubPublisherImportEndpoint].includes(url.pathname)) return next();
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return sendJson(response, 403, { error: "The authoring endpoint is local-only." });
           const activityId = url.searchParams.get("activityId");
           const authoringPath = authoringPaths[activityId];
           if (!authoringPath) return sendJson(response, 404, { error: "Unknown Reading exercise activity." });
+          if (url.pathname === completeSentencesPublisherImportEndpoint) {
+            if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_COMPLETE_SENTENCES_ID) return sendJson(response, 404, { error: "Unknown publisher-source import target." });
+            if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
+            const imported = await importUltimateB2CompleteSentencesPublisherSource(completeSentencesPublisherSourceFile);
+            await atomicWrite(authoringPath, imported.authoring);
+            return sendJson(response, 200, imported);
+          }
+          if (url.pathname === debateClubPublisherImportEndpoint) {
+            if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_DEBATE_CLUB_ID) return sendJson(response, 404, { error: "Unknown publisher-source import target." });
+            if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
+            const imported = await importUltimateB2DebateClubPublisherSource(debateClubPublisherSourceDirectory);
+            await atomicWrite(authoringPath, imported.authoring);
+            return sendJson(response, 200, imported);
+          }
           if (request.method === "GET") return sendJson(response, 200, normalizeUltimateB2ReadingExerciseAuthoring(JSON.parse(await readFile(authoringPath, "utf8"))));
           if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return sendJson(response, 415, { error: "Expected an application/json request." });

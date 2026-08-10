@@ -3,7 +3,7 @@ import {
   Move,
   PlayCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
@@ -15,6 +15,7 @@ import TeacherOfflineUnitOverview from "./TeacherOfflineUnitOverview.jsx";
 import { useTeacherStage } from "./TeacherFixedStage.jsx";
 import { renderedDeltaToTeacherStage } from "./teacherStageGeometry.js";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
+import { normalizeTeacherActivityPresentationState } from "./teacherActivityPresentation.js";
 import {
   getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
@@ -100,10 +101,22 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
-  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0 });
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
+  const onActivityPresentationStateChange = useCallback((state) => {
+    const next = normalizeTeacherActivityPresentationState(state);
+    setActivityPresentationState((current) => (
+      current.view === next.view
+      && current.panelIndex === next.panelIndex
+      && current.panelCount === next.panelCount
+      && current.reveal?.supported === next.reveal?.supported
+      && current.reveal?.total === next.reveal?.total
+      && current.reveal?.revealed === next.reveal?.revealed
+      && current.reveal?.pristine === next.reveal?.pristine
+    ) ? current : next);
+  }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setAssetError("");
     setNaturalSize({ width: 0, height: 0 });
     setZoom(1);
@@ -116,6 +129,7 @@ export default function TeacherOfflinePages({
       view: "questions",
       panelIndex: 0,
       panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
+      reveal: null,
     });
     setActivityPresentationCommand(null);
   }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
@@ -289,7 +303,13 @@ export default function TeacherOfflinePages({
     onPointerCancel: onPointerEnd,
   };
   const sendActivityCommand = (type) => setActivityPresentationCommand((current) => ({ type, token: (current?.token || 0) + 1 }));
-  const contextActions = videoAvailable ? [{
+  const revealState = activityPresentationState.reveal;
+  const revealActions = revealState?.supported ? [
+    { id: "reload", controlId: "reveal:reload", label: "Reload", disabled: revealState.pristine, artwork: legacyClassroomAssets.revealControls.reload, onClick: () => sendActivityCommand("reset-activity") },
+    { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
+    { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
+  ] : [];
+  const standardContextActions = videoAvailable ? [{
     id: "video",
     label: "Video",
     title: "Video",
@@ -316,6 +336,7 @@ export default function TeacherOfflinePages({
     activeIconName: "showTextPressed",
     onClick: () => sendActivityCommand("toggle-text"),
   }] : [];
+  const contextActions = [...revealActions, ...standardContextActions];
   const internalNavigation = multipleChoiceAvailable || internalPartsAvailable ? {
     previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,
     nextDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
@@ -363,7 +384,7 @@ export default function TeacherOfflinePages({
               listeningShowTextCommand={listeningShowTextCommand}
               onListeningStateChange={setListeningView}
               activityPresentationCommand={activityPresentationCommand}
-              onActivityPresentationStateChange={setActivityPresentationState}
+              onActivityPresentationStateChange={onActivityPresentationStateChange}
             />
           ) : image && !assetError ? (
             <div

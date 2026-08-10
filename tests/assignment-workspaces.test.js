@@ -78,4 +78,5 @@ test("assignment results are routed to the full-page workspace instead of the re
   assert.match(workspace, /filterAssignmentResultRows/);
   const studentWorkspace = await readFile("src/components/lms/student/portal/StudentAssignmentWorkspace.jsx", "utf8");
   assert.match(studentWorkspace, /Practice here will not change the saved result/);
+  assert.match(studentWorkspace, /disableHighlightedActivityLaunch/);
 });

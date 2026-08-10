@@ -26,7 +26,7 @@ import {
   buildUltimateB2TeacherSolutionPayload,
   isUltimateB2PresentationActivityEnabled,
 } from "../_ultimate-b2-teacher-solutions.js";
-import { createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { isPhaseOneComponentVisible } from "../../../src/config/bookCatalogVisibility.js";
 
 export function badRequest(message) {
@@ -69,6 +69,20 @@ export function isValidUuid(value) {
 
 export function invalidUuidResponse(fieldName) {
   return badRequest(`${fieldName} must be a valid UUID`);
+}
+
+export async function withAssignmentLifecycleTransaction(sql, assignmentId, callback) {
+  if (typeof sql.assignmentLifecycleTransaction === "function") {
+    return sql.assignmentLifecycleTransaction(assignmentId, callback);
+  }
+  if (typeof sql.transaction === "function") {
+    const results = await sql.transaction((transactionSql) => [
+      transactionSql`select pg_advisory_xact_lock(hashtextextended(${"activity-assignment:" + assignmentId}, 0))`,
+      callback(transactionSql),
+    ]);
+    return results[1];
+  }
+  throw new Error("Assignment lifecycle mutations require transaction-capable PostgreSQL");
 }
 
 export function jsonArray(value) {
@@ -129,10 +143,10 @@ export function assignmentIdempotencyKey(body, teacherId, activityId, targetType
   if (supplied && !/^[A-Za-z0-9._:-]{8,128}$/.test(supplied)) {
     return { error: "idempotencyKey must be 8-128 safe characters" };
   }
-  const requestIdentity = supplied || createHash("sha256")
-    .update(JSON.stringify({ teacherId, activityId, dueAt, title, teacherNotes }))
-    .digest("hex");
-  return { value: `${supplied ? "request" : "payload"}:${requestIdentity}:${targetType}:${targetId}` };
+  // Idempotency identifies one create request, not the assignment content. Two
+  // intentional assignments may legitimately have byte-identical metadata.
+  const requestIdentity = supplied || randomUUID();
+  return { value: `request:${requestIdentity}:${targetType}:${targetId}` };
 }
 
 export function validateSubmittedAnswers(activity = {}, rawAnswers) {

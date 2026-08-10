@@ -1,10 +1,10 @@
 import { X } from "lucide-react";
 
-export default function Modal({ open, title, kicker, description, onClose, children, footer, className = "" }) {
+export default function Modal({ open, title, kicker, description, onClose, children, footer, className = "", backdropClassName = "" }) {
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={["modal-backdrop", backdropClassName].filter(Boolean).join(" ")} role="presentation" onMouseDown={onClose}>
       <div
         className={["modal card", className].filter(Boolean).join(" ")}
         role="dialog"

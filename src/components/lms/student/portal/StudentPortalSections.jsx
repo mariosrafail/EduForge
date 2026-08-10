@@ -260,9 +260,13 @@ export function StudentAssignments({ openActivity, currentUser = null, refreshKe
                 </div>
               )}
               {selectedAssignment.teacherFeedback && <div className="inline-status"><strong>Teacher feedback:</strong> {selectedAssignment.teacherFeedback}</div>}
-              <button className="primary-action" type="button" onClick={() => openActivity(selectedAssignment, "assignments")} data-sound-click="submit">
-                <Play size={17} /> {deriveStudentAssignmentPresentation(selectedAssignment).action}
-              </button>
+              {deriveStudentAssignmentPresentation(selectedAssignment).key === "closed" ? (
+                <div className="inline-status">This assignment has been closed and is no longer available for submission.</div>
+              ) : (
+                <button className="primary-action" type="button" onClick={() => openActivity(selectedAssignment, "assignments")} data-sound-click="submit">
+                  <Play size={17} /> {deriveStudentAssignmentPresentation(selectedAssignment).action}
+                </button>
+              )}
             </>
           ) : (
             <p>No assignments yet.</p>

@@ -1,14 +1,42 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "activityId": "ultimate-b2-sb-u1-p2-o4",
   "source": {
+    "kind": "decoded-publisher-iwb",
     "objectNumber": 4,
+    "canvas": {
+      "width": 1024,
+      "height": 582
+    },
+    "files": [
+      {
+        "name": "obj_params.xml",
+        "sha256": "dbb4266297982f0b01590adf051b6ccd5104cef2fff51cdcf10cbf5b05ca3e69"
+      }
+    ],
     "iwbSha256": "eff1d381a1eab943703845a72dea1913ae5f526ec283fea9c0349aac60a3fc90",
-    "decodedSha256": "dbb4266297982f0b01590adf051b6ccd5104cef2fff51cdcf10cbf5b05ca3e69",
-    "assetSha256": {
-      "image_2.png": "b44b28059951ce821ceb0588fef367138910b7ac48e01fdc388de32b4a7164ea",
-      "showText.png": "b988b55e3356aa41d88093606f6f495008dcc2987ff5cb5f63fdcc30d1a87732"
-    }
+    "assets": [
+      {
+        "binding": "unit1.reading.exercise4.instruction",
+        "sourceFile": "image_2.png",
+        "sha256": "b44b28059951ce821ceb0588fef367138910b7ac48e01fdc388de32b4a7164ea",
+        "naturalSize": {
+          "width": 873,
+          "height": 34
+        },
+        "role": "instruction"
+      },
+      {
+        "binding": "unit1.reading.exercise4.show-text",
+        "sourceFile": "showText.png",
+        "sha256": "b988b55e3356aa41d88093606f6f495008dcc2987ff5cb5f63fdcc30d1a87732",
+        "naturalSize": {
+          "width": 1000,
+          "height": 1219
+        },
+        "role": "show-text-auxiliary"
+      }
+    ]
   },
   "surface": {
     "width": 1024,
@@ -21,12 +49,50 @@
       "showTextImage": "unit1.reading.exercise4.show-text"
     }
   },
+  "instruction": {
+    "binding": "unit1.reading.exercise4.instruction",
+    "sourceFile": "image_2.png",
+    "naturalSize": {
+      "width": 873,
+      "height": 34
+    },
+    "area": {
+      "x": 93,
+      "y": 18,
+      "width": 873,
+      "height": 34
+    }
+  },
   "example": {
     "id": "sentence-1",
     "number": 1,
     "before": "",
     "answer": "On-demand",
-    "after": " programming makes it easier to watch older series."
+    "after": " programming makes it easier to watch older series.",
+    "textArea": {
+      "x": 57,
+      "y": 93,
+      "width": 730,
+      "height": 29
+    },
+    "answerArea": {
+      "x": 116,
+      "y": 92,
+      "width": 153,
+      "height": 29
+    },
+    "textStyle": {
+      "fontFamily": "Fira Sans",
+      "fontSize": 21,
+      "color": "#000000",
+      "align": "left"
+    },
+    "answerStyle": {
+      "fontFamily": "Fira Sans",
+      "fontSize": 21,
+      "color": "#00aeef",
+      "align": "left"
+    }
   },
   "sentences": [
     {
@@ -35,7 +101,20 @@
       "number": 2,
       "before": "I am planning to spend the whole weekend ",
       "blankId": "blank-2",
-      "after": " The Hunger Games!"
+      "after": " The Hunger Games!",
+      "textArea": {
+        "x": 57,
+        "y": 143,
+        "width": 834,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-3",
@@ -43,7 +122,20 @@
       "number": 3,
       "before": "They are cancelling the next ",
       "blankId": "blank-3",
-      "after": " of the series as it’s not popular anymore."
+      "after": " of the series as it’s not popular anymore.",
+      "textArea": {
+        "x": 57,
+        "y": 192,
+        "width": 903,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-4",
@@ -51,7 +143,20 @@
       "number": 4,
       "before": "Marvel Cinematic Universe is the most successful film ",
       "blankId": "blank-4",
-      "after": " of all time."
+      "after": " of all time.",
+      "textArea": {
+        "x": 57,
+        "y": 240,
+        "width": 849,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-5",
@@ -59,7 +164,20 @@
       "number": 5,
       "before": "The first and last ",
       "blankId": "blank-5",
-      "after": " in a season are usually the most important in the whole series."
+      "after": " in a season are usually the most important in the whole series.",
+      "textArea": {
+        "x": 57,
+        "y": 290,
+        "width": 953,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-6",
@@ -67,7 +185,20 @@
       "number": 6,
       "before": "Horror is a film ",
       "blankId": "blank-6",
-      "after": " that is inappropriate for very young viewers."
+      "after": " that is inappropriate for very young viewers.",
+      "textArea": {
+        "x": 57,
+        "y": 339,
+        "width": 862,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-7",
@@ -75,7 +206,25 @@
       "number": 7,
       "before": "Most series have a main story based on the main characters and ",
       "blankId": "blank-7",
-      "after": " based on less important characters."
+      "after": " based on less important characters.",
+      "textArea": {
+        "x": 57,
+        "y": 387,
+        "width": 864,
+        "height": 29
+      },
+      "continuationArea": {
+        "x": 84,
+        "y": 417,
+        "width": 495,
+        "height": 29
+      },
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-8",
@@ -83,7 +232,20 @@
       "number": 8,
       "before": "",
       "blankId": "blank-8",
-      "after": " to a news broadcast is a way to find out what is happening in the world."
+      "after": " to a news broadcast is a way to find out what is happening in the world.",
+      "textArea": {
+        "x": 57,
+        "y": 466,
+        "width": 912,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     },
     {
       "id": "sentence-9",
@@ -91,17 +253,222 @@
       "number": 9,
       "before": "",
       "blankId": "blank-9",
-      "after": " gives us access to online video content at any time no matter where we are."
+      "after": " gives us access to online video content at any time no matter where we are.",
+      "textArea": {
+        "x": 57,
+        "y": 515,
+        "width": 950,
+        "height": 29
+      },
+      "continuationArea": null,
+      "textStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      }
     }
   ],
   "blanks": [
-    { "id": "blank-2", "sentenceId": "sentence-2", "label": "Sentence 2 blank", "revealedWord": "binge-watching", "area": { "x": 498, "y": 143, "width": 165, "height": 27 } },
-    { "id": "blank-3", "sentenceId": "sentence-3", "label": "Sentence 3 blank", "revealedWord": "season", "area": { "x": 358, "y": 193, "width": 164, "height": 27 } },
-    { "id": "blank-4", "sentenceId": "sentence-4", "label": "Sentence 4 blank", "revealedWord": "franchise", "area": { "x": 603, "y": 240, "width": 164, "height": 27 } },
-    { "id": "blank-5", "sentenceId": "sentence-5", "label": "Sentence 5 blank", "revealedWord": "episodes", "area": { "x": 252, "y": 289, "width": 132, "height": 27 } },
-    { "id": "blank-6", "sentenceId": "sentence-6", "label": "Sentence 6 blank", "revealedWord": "genre", "area": { "x": 239, "y": 338, "width": 164, "height": 27 } },
-    { "id": "blank-7", "sentenceId": "sentence-7", "label": "Sentence 7 blank", "revealedWord": "sub-plots", "area": { "x": 702, "y": 387, "width": 164, "height": 27 } },
-    { "id": "blank-8", "sentenceId": "sentence-8", "label": "Sentence 8 blank", "revealedWord": "Tuning in", "area": { "x": 88, "y": 466, "width": 164, "height": 27 } },
-    { "id": "blank-9", "sentenceId": "sentence-9", "label": "Sentence 9 blank", "revealedWord": "Media streaming", "area": { "x": 88, "y": 514, "width": 164, "height": 27 } }
+    {
+      "id": "blank-2",
+      "sentenceId": "sentence-2",
+      "label": "Sentence 2 blank",
+      "revealedWord": "binge-watching",
+      "area": {
+        "x": 498,
+        "y": 143,
+        "width": 165,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 17
+      },
+      "button": {
+        "x": 7,
+        "y": 137
+      }
+    },
+    {
+      "id": "blank-3",
+      "sentenceId": "sentence-3",
+      "label": "Sentence 3 blank",
+      "revealedWord": "season",
+      "area": {
+        "x": 358,
+        "y": 193,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 9
+      },
+      "button": {
+        "x": 7,
+        "y": 187
+      }
+    },
+    {
+      "id": "blank-4",
+      "sentenceId": "sentence-4",
+      "label": "Sentence 4 blank",
+      "revealedWord": "franchise",
+      "area": {
+        "x": 603,
+        "y": 240,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 12
+      },
+      "button": {
+        "x": 7,
+        "y": 237
+      }
+    },
+    {
+      "id": "blank-5",
+      "sentenceId": "sentence-5",
+      "label": "Sentence 5 blank",
+      "revealedWord": "episodes",
+      "area": {
+        "x": 252,
+        "y": 289,
+        "width": 132,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 11
+      },
+      "button": {
+        "x": 7,
+        "y": 285
+      }
+    },
+    {
+      "id": "blank-6",
+      "sentenceId": "sentence-6",
+      "label": "Sentence 6 blank",
+      "revealedWord": "genre",
+      "area": {
+        "x": 239,
+        "y": 338,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 8
+      },
+      "button": {
+        "x": 7,
+        "y": 335
+      }
+    },
+    {
+      "id": "blank-7",
+      "sentenceId": "sentence-7",
+      "label": "Sentence 7 blank",
+      "revealedWord": "sub-plots",
+      "area": {
+        "x": 702,
+        "y": 387,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 12
+      },
+      "button": {
+        "x": 7,
+        "y": 383
+      }
+    },
+    {
+      "id": "blank-8",
+      "sentenceId": "sentence-8",
+      "label": "Sentence 8 blank",
+      "revealedWord": "Tuning in",
+      "area": {
+        "x": 88,
+        "y": 466,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 12
+      },
+      "button": {
+        "x": 7,
+        "y": 461
+      }
+    },
+    {
+      "id": "blank-9",
+      "sentenceId": "sentence-9",
+      "label": "Sentence 9 blank",
+      "revealedWord": "Media streaming",
+      "area": {
+        "x": 88,
+        "y": 514,
+        "width": 164,
+        "height": 27
+      },
+      "style": {
+        "fontFamily": "ITC Flora Std Medium",
+        "fontSize": 21,
+        "color": "#e40083",
+        "align": "center",
+        "wordWrap": false,
+        "verticalAlign": "middle",
+        "maxChars": 18
+      },
+      "button": {
+        "x": 7,
+        "y": 510
+      }
+    }
   ]
 }

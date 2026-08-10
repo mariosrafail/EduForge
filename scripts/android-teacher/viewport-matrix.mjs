@@ -91,7 +91,7 @@ async function openInternalBookLocation(page, patch) {
   }, patch);
 }
 
-const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
+const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"];
 
 let browser;
 try {

@@ -435,16 +435,36 @@ html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context[a
   transform: translateY(2px) scale(.96);
   filter: drop-shadow(0 1px 1px rgba(41, 20, 72, .28));
 }
-html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-edition {
-  border: 3px solid #fff !important;
-  background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099) !important;
-  box-shadow: 0 0 0 2px #59277f, inset 0 4px 8px rgba(255, 255, 255, .26) !important;
-  filter: none !important;
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context-icon-set,
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context-icon-set img {
+  display: block;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  pointer-events: none;
 }
-html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-edition span {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 950;
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context-icon-set { position: relative; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context-icon-set img:not([data-icon-state="active"]) {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context:active:not(:disabled) .teacher-book-navigation-context-icon-set img[data-icon-state="active"] { display: none; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context:active:not(:disabled) .teacher-book-navigation-context-icon-set img[data-icon-state="pressed"] { display: block; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context--reload:disabled,
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context--show-all:disabled,
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context--show-next:disabled {
+  opacity: 1;
+  filter: drop-shadow(0 2px 1px rgba(41, 20, 72, .2));
+}
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context:disabled .teacher-book-navigation-context-icon-set img[data-icon-state="active"] { display: none; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-context:disabled .teacher-book-navigation-context-icon-set img[data-icon-state="disabled"] { display: block; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-book-switch { overflow: hidden; }
+html[data-app-mode="android-teacher-offline"] .teacher-book-navigation-book-switch-image {
+  display: block;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
 }
 html[data-app-mode="android-teacher-offline"] :is(
   .teacher-offline-unit-overview-screen,

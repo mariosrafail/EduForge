@@ -48,6 +48,45 @@ const navigationFiles = Object.freeze({
   nextInternal: "navigation/navibar-next-internal-active.png",
   nextInternalDisabled: "navigation/navibar-next-internal-disabled.png",
 });
+const publisherNavibarFiles = Object.freeze([
+  "navibar-back-active.png", "navibar-back-disabled.png", "navibar-back-pressed.png",
+  "navibar-check-active.png", "navibar-check-disabled.png", "navibar-check-pressed.png",
+  "navibar-gb-active.png", "navibar-gb-disabled.png",
+  "navibar-grammar-active.png", "navibar-grammar-disabled.png", "navibar-grammar-pressed.png",
+  "navibar-home-active.png", "navibar-home-disabled.png", "navibar-home-pressed.png", "navibar-info.png",
+  "navibar-next-active.png", "navibar-next-disabled.png", "navibar-next-internal-active.png", "navibar-next-internal-disabled.png", "navibar-next-internal-pressed.png", "navibar-next-pressed.png",
+  "navibar-previous-active.png", "navibar-previous-disabled.png", "navibar-previous-internal-active.png", "navibar-previous-internal-disabled.png", "navibar-previous-internal-pressed.png", "navibar-previous-pressed.png",
+  "navibar-reload-active.png", "navibar-reload-disabled.png", "navibar-reload-pressed.png",
+  "navibar-sb-active.png", "navibar-sb-disabled.png",
+  "navibar-settings-active.png", "navibar-settings-disabled.png",
+  "navibar-show-all-active.png", "navibar-show-all-disabled.png", "navibar-show-all-pressed.png",
+  "navibar-show-next-active.png", "navibar-show-next-disabled.png", "navibar-show-next-pressed.png",
+  "navibar-show-text-active.png", "navibar-show-text-disabled.png", "navibar-show-text-pressed.png",
+  "navibar-tooltip.png",
+  "navibar-video-active.png", "navibar-video-disabled.png", "navibar-video-pressed.png",
+  "navibar-vocabulary-active.png", "navibar-vocabulary-disabled.png", "navibar-vocabulary-pressed.png",
+  "navibar-workbook-active.png", "navibar-workbook-disabled.png",
+]);
+export const ultimateB2TeacherRevealControlDefinitions = Object.freeze([
+  Object.freeze({ id: "reload", controlId: "reveal:reload", label: "Reload", activeAssetId: "navibar.reload.active", pressedAssetId: "navibar.reload.pressed", disabledAssetId: "navibar.reload.disabled" }),
+  Object.freeze({ id: "show-all", controlId: "reveal:show-all", label: "Show All", activeAssetId: "navibar.show.all.active", pressedAssetId: "navibar.show.all.pressed", disabledAssetId: "navibar.show.all.disabled" }),
+  Object.freeze({ id: "show-next", controlId: "reveal:show-next", label: "Show Next", activeAssetId: "navibar.show.next.active", pressedAssetId: "navibar.show.next.pressed", disabledAssetId: "navibar.show.next.disabled" }),
+]);
+const wiredNavibarAssetIds = new Set([
+  "navibar.sb.active", "navibar.gb.active", "navibar.workbook.active",
+  ...ultimateB2TeacherRevealControlDefinitions.flatMap(({ activeAssetId, pressedAssetId, disabledAssetId }) => [activeAssetId, pressedAssetId, disabledAssetId]),
+]);
+const navibarLabel = (file) => file.replace(/^navibar-|\.png$/g, "").split("-").map((part) => ({ sb: "Students Book", gb: "Grammar Book" }[part] || `${part[0].toUpperCase()}${part.slice(1)}`)).join(" ");
+export const ultimateB2TeacherNavibarAssetDefinitions = Object.freeze(publisherNavibarFiles.map((sourceFilename) => Object.freeze({
+  id: `navibar.${sourceFilename.replace(/^navibar-|\.png$/g, "").replaceAll("-", ".")}`,
+  label: navibarLabel(sourceFilename),
+  sourceFilename,
+})));
+export const ultimateB2TeacherBookSwitchDefinitions = Object.freeze([
+  Object.freeze({ id: "students-book", controlId: "book-switch:students-book", label: "Students Book", assetId: "navibar.sb.active" }),
+  Object.freeze({ id: "grammar-book", controlId: "book-switch:grammar-book", label: "Grammar Book", assetId: "navibar.gb.active" }),
+  Object.freeze({ id: "workbook", controlId: "book-switch:workbook", label: "Workbook", assetId: "navibar.workbook.active" }),
+]);
 const mediaPlayerFiles = Object.freeze({
   background: "player-bg.png", playActive: "player-play-active.png", playPressed: "player-play-pressed.png",
   pauseActive: "player-pause-active.png", pausePressed: "player-pause-pressed.png",
@@ -94,6 +133,7 @@ function buildDefaultAssets() {
     );
   }
   for (const [id, file] of Object.entries(navigationFiles)) entries.push(asset(`navigation.${id}`, "navigation", `${legacyRoot}/icons/${file}`));
+  for (const { id, sourceFilename } of ultimateB2TeacherNavibarAssetDefinitions) entries.push(asset(id, wiredNavibarAssetIds.has(id) ? (id.startsWith("navibar.reload.") || id.startsWith("navibar.show.") ? "navigation-control" : "book-switch") : "navibar-library", `${legacyRoot}/icons/navigation/publisher-navibar/${sourceFilename}`));
   for (const [id, file] of Object.entries(mediaPlayerFiles)) entries.push(asset(`media-player.${id}`, "media-player", `${legacyRoot}/icons/media/${file}`));
   for (const [id] of toolbarLabels) {
     const stem = toolbarFileStem[id] || id;
@@ -131,7 +171,10 @@ export function normalizeUltimateB2TeacherAppOverrides(candidate) {
     if (!definition) throw new Error(`Unknown Teacher App asset binding: ${id}`);
     assertExactKeys(binding, ["repositoryPath", "mediaType", "sha256", "sizeBytes", "width", "height", "originalFilename"], `Teacher App asset override ${id}`);
     const repositoryPath = String(binding.repositoryPath || "").replaceAll("\\", "/");
-    if (!/^src\/assets\/books\/ultimate-b2\/authoring\/teacher-app\/[a-f0-9]{64}\.(?:png|jpg|webp|mp3|wav|gaf)$/.test(repositoryPath)) throw new Error(`Unsafe repository path for Teacher App asset override: ${id}`);
+    const expectedOverridePath = definition.role === "navibar-library"
+      ? /^src\/assets\/books\/ultimate-b2\/authoring\/teacher-app\/library\/[a-f0-9]{64}\.(?:png|jpg|webp)$/
+      : /^src\/assets\/books\/ultimate-b2\/authoring\/teacher-app\/[a-f0-9]{64}\.(?:png|jpg|webp|mp3|wav|gaf)$/;
+    if (!expectedOverridePath.test(repositoryPath)) throw new Error(`Unsafe repository path for Teacher App asset override: ${id}`);
     if (/^(?:[A-Za-z]:|\/)|(?:^|\/)\.\.(?:\/|$)/.test(repositoryPath)) throw new Error(`Absolute or traversing Teacher App asset path: ${id}`);
     const mediaType = String(binding.mediaType || "");
     const allowedTypes = definition.mediaType === "audio/mpeg" ? ["audio/mpeg", "audio/wav"]
@@ -182,7 +225,10 @@ export function buildUltimateB2TeacherAppAuthoring(candidate = storedOverrides) 
   const editions = ultimateB2TeacherEditionDefinitions.map(({ id, label }) => Object.freeze({ id, controlId: `edition:${id}`, label, normal: authoredAsset(`edition.${id}.normal`, overrides), active: authoredAsset(`edition.${id}.active`, overrides) }));
   const extras = ultimateB2TeacherExtrasDefinitions.map(({ id, label, column, order }) => Object.freeze({ id, controlId: `extras:${id}`, label, column, order, destination: null, normal: authoredAsset(`extras.${id}.normal`, overrides), active: authoredAsset(`extras.${id}.active`, overrides) }));
   const toolbar = toolbarLabels.map(([id, label]) => Object.freeze({ id, controlId: `toolbar:${id}`, label, normal: authoredAsset(`toolbar.${id}.normal`, overrides), active: authoredAsset(`toolbar.${id}.active`, overrides), sound: authoredAsset("sound.button", overrides) }));
-  const controlIds = [...units, ...editions, ...extras, ...toolbar].map((item) => item.controlId);
+  const navibarAssets = ultimateB2TeacherNavibarAssetDefinitions.map(({ id, label, sourceFilename }) => Object.freeze({ id, label, sourceFilename, binding: authoredAsset(id, overrides) }));
+  const bookSwitches = ultimateB2TeacherBookSwitchDefinitions.map(({ id, controlId, label, assetId }) => Object.freeze({ id, controlId, label, asset: authoredAsset(assetId, overrides) }));
+  const revealControls = ultimateB2TeacherRevealControlDefinitions.map(({ id, controlId, label, activeAssetId, pressedAssetId, disabledAssetId }) => Object.freeze({ id, controlId, label, active: authoredAsset(activeAssetId, overrides), pressed: authoredAsset(pressedAssetId, overrides), disabled: authoredAsset(disabledAssetId, overrides) }));
+  const controlIds = [...units, ...editions, ...extras, ...toolbar, ...bookSwitches, ...revealControls].map((item) => item.controlId);
   if (new Set(controlIds).size !== controlIds.length) throw new Error("Duplicate canonical Ultimate B2 control IDs.");
   const assets = Object.freeze(Object.fromEntries(Object.keys(ultimateB2TeacherAppDefaultAssets).map((id) => [id, authoredAsset(id, overrides)])));
   return Object.freeze({
@@ -197,6 +243,7 @@ export function buildUltimateB2TeacherAppAuthoring(candidate = storedOverrides) 
       publisherLogo: authoredAsset("branding.publisher-logo", overrides),
       titleAnimation: Object.freeze({ gaf: authoredAsset("title.gaf", overrides), sd: Object.freeze([authoredAsset("title.sd.1", overrides), authoredAsset("title.sd.2", overrides)]), hd: Object.freeze([authoredAsset("title.hd.1", overrides), authoredAsset("title.hd.2", overrides)]) }),
       units: Object.freeze(units), editions: Object.freeze(editions), extras: Object.freeze(extras), toolbar: Object.freeze(toolbar),
+      bookSwitches: Object.freeze(bookSwitches), revealControls: Object.freeze(revealControls), navibarAssets: Object.freeze(navibarAssets),
       navigation: Object.freeze(Object.fromEntries(Object.keys(navigationFiles).map((id) => [id, authoredAsset(`navigation.${id}`, overrides)]))),
       mediaPlayer: Object.freeze(Object.fromEntries(Object.keys(mediaPlayerFiles).map((id) => [id, authoredAsset(`media-player.${id}`, overrides)]))),
       activityHotspot: authoredAsset("control.activity-hotspot", overrides),

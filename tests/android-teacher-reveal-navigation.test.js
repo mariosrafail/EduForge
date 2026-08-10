@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+import { normalizeTeacherActivityPresentationState } from "../src/apps/android-teacher-offline/teacherActivityPresentation.js";
+import {
+  ultimateB2TeacherAppAuthoring,
+  ultimateB2TeacherRevealControlDefinitions,
+} from "../src/data/ultimate-b2/teacherAppAuthoring.js";
+
+test("publisher reveal controls use canonical active, pressed and disabled UI Controller bindings", () => {
+  assert.deepEqual(ultimateB2TeacherRevealControlDefinitions.map(({ id, controlId }) => ({ id, controlId })), [
+    { id: "reload", controlId: "reveal:reload" },
+    { id: "show-all", controlId: "reveal:show-all" },
+    { id: "show-next", controlId: "reveal:show-next" },
+  ]);
+  for (const control of ultimateB2TeacherAppAuthoring.shell.revealControls) {
+    assert.equal(control.active.role, "navigation-control");
+    assert.equal(control.pressed.role, "navigation-control");
+    assert.equal(control.disabled.role, "navigation-control");
+    assert.match(control.active.repositoryPath, new RegExp(`navibar-${control.id}-active\\.png$`));
+    assert.match(control.pressed.repositoryPath, new RegExp(`navibar-${control.id}-pressed\\.png$`));
+    assert.match(control.disabled.repositoryPath, new RegExp(`navibar-${control.id}-disabled\\.png$`));
+  }
+});
+
+test("the Teacher runtime resolver eagerly bundles all nine reveal-control state images", async () => {
+  const resolver = await readFile("src/data/ultimate-b2/ultimateB2AuthoredAssetUrls.js", "utf8");
+  for (const control of ["reload", "show-all", "show-next"]) {
+    for (const state of ["active", "pressed", "disabled"]) assert.match(resolver, new RegExp(`navibar-${control}-${state}\\.png`));
+  }
+});
+
+test("the shell presentation contract exposes progress but strips answer-bearing activity data", () => {
+  assert.deepEqual(normalizeTeacherActivityPresentationState({
+    view: "text",
+    panelIndex: 9,
+    panelCount: 2,
+    reveal: { supported: true, total: 3, revealed: 8, pristine: false, answerText: "private", ids: ["q1"] },
+    solutions: { q1: "private" },
+  }), {
+    view: "text",
+    panelIndex: 1,
+    panelCount: 2,
+    reveal: { supported: true, total: 3, revealed: 3, pristine: false },
+  });
+  assert.equal(normalizeTeacherActivityPresentationState({ reveal: { supported: false, total: 9 } }).reveal, null);
+});
+
+test("only the three supported activity renderers implement the generic reveal command boundary", async () => {
+  const [page5, complete, debate, embedded] = await Promise.all([
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2CompleteSentencesActivity.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx", "utf8"),
+  ]);
+  for (const source of [page5, complete, debate]) {
+    assert.match(source, /command\.type === "reset-activity"/);
+    assert.match(source, /command\.type === "show-all"/);
+    assert.match(source, /command\.type === "show-next"/);
+    assert.match(source, /reveal: \{ supported: true, total:/);
+    assert.doesNotMatch(source, /onStateChange\?\.\([^)]*(?:answer|solution)/i);
+  }
+  assert.match(page5, /revealableQuestions\.find\(\(question\) => !revealedQuestionIds/);
+  assert.match(complete, /authoring\?\.blanks\.find\(\(blank\) => !current\.includes/);
+  assert.match(debate, /parts\.findIndex\(\(part\) => !revealedPartIds\.includes/);
+  assert.match(embedded, /activityPresentation=\{\{[\s\S]*command: activityPresentationCommand,[\s\S]*onStateChange: onActivityPresentationStateChange/);
+});

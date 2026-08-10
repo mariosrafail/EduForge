@@ -361,3 +361,36 @@
   .teacher-review-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .teacher-review-editor { grid-template-columns: 1fr; }
 }
+.assignment-lifecycle-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(9 30 51 / 62%);
+  backdrop-filter: blur(4px);
+}
+
+.assignment-lifecycle-modal {
+  width: min(540px, calc(100vw - 32px));
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #d8e2ef;
+  border-radius: 18px;
+  box-shadow: 0 28px 70px rgb(7 25 44 / 28%);
+}
+
+.assignment-lifecycle-modal .modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.assignment-lifecycle-modal .modal-head h2,
+.assignment-lifecycle-modal .modal-body p { margin: 0; }
+.assignment-lifecycle-modal .modal-head p { margin: 7px 0 0; color: #52647b; line-height: 1.5; }
+.assignment-lifecycle-modal .modal-body { padding: 18px 0; }
+.assignment-lifecycle-modal .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+.assignment-lifecycle-modal .icon-button { display: grid; place-items: center; width: 38px; height: 38px; color: #40566d; background: #f2f6fa; border: 1px solid #d8e2ef; border-radius: 10px; }

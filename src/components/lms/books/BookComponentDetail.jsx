@@ -60,7 +60,7 @@ function CustomBookActivitySection({ activities, loading, error, mode, onOpenAct
   );
 }
 
-export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview, highlightedActivityKey = null }) {
+export function BookComponentDetail({ component, bookPackage, mode, onStartExercise, onPreviewExercise, onPresentExercise, classOptions, classes, currentUser, completedActivities, selectedSubview, selectedPageUnitId, selectedPageId, selectedPageNumber, onSelectBookPage, onSelectSubview, highlightedActivityKey = null, disableHighlightedActivityLaunch = false }) {
   const activeCount = getActiveExercises(component).length;
   const recoveredStudentsBook = component.catalogKind === "recovered-students-book";
   const visibleUnitCount = component.units.filter((unit) => unit.lessons.some((lesson) => lesson.exercises.some(isExerciseActive))).length;
@@ -172,6 +172,7 @@ export function BookComponentDetail({ component, bookPackage, mode, onStartExerc
           onSelectPage={(pageUnitId, pageId, pageNumber) => onSelectBookPage?.(canonicalBookId, pageUnitId, pageId, pageNumber)}
           onClearSelectedPage={() => onSelectSubview?.(canonicalBookId, "pages")}
           highlightedActivityKey={highlightedActivityKey}
+          disableHighlightedActivityLaunch={disableHighlightedActivityLaunch}
         />
       ) : mode === "teacher" ? (
         <>

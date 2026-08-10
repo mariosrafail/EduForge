@@ -13,6 +13,9 @@ export function deriveStudentAssignmentPresentation(assignment = {}, now = Date.
   const score = assignment.scorePercent ?? assignment.score ?? null;
 
   if (!submitted) {
+    if (assignment.status === "closed") {
+      return { key: "closed", label: "Closed", action: "Closed", tone: "slate", canSubmit: false, score: null };
+    }
     const dueTime = assignment.dueAt ? new Date(assignment.dueAt).getTime() : Number.NaN;
     const overdue = Number.isFinite(dueTime) && dueTime <= now;
     return {

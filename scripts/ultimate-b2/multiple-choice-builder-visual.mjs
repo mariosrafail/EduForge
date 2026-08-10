@@ -11,6 +11,8 @@ const artifactRoot = "test-results/ultimate-b2-multiple-choice-builder";
 const page5AuthoringPaths = [
   "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-1.open-response.json",
   "src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.image.json",
+  "src/data/ultimate-b2/authoring/unit-01-reading-exercise-4.complete-sentences.json",
+  "src/data/ultimate-b2/authoring/unit-01-reading-debate-club.open-answer.json",
   "netlify/functions/_ultimate-b2-unit1-opener-model-answers.json",
   "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj2/discussion-prompts.svg",
 ];
@@ -43,7 +45,18 @@ try {
   page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
   await page.goto(`${baseURL}/ultimate-b2-builder.html`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "UI Controller" }).click();
-  await page.getByRole("heading", { name: "UI Controller / Book Setup" }).waitFor();
+  await page.getByRole("heading", { name: "UI Controller", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Book Switch Controls", exact: true }).click();
+  assert.deepEqual(await page.locator('.b2-teacher-editor-panel [data-asset-id^="navibar."]').evaluateAll((slots) => slots.map((slot) => slot.dataset.assetId)), [
+    "navibar.sb.active", "navibar.gb.active", "navibar.workbook.active",
+  ]);
+  await page.getByRole("button", { name: "Navibar Assets", exact: true }).click();
+  const librarySlots = page.locator('.b2-teacher-editor-panel [data-asset-id^="navibar."]');
+  assert.equal(await librarySlots.count(), 49);
+  assert.equal(new Set(await librarySlots.evaluateAll((slots) => slots.map((slot) => slot.dataset.assetId))).size, 49);
+  assert.equal(await librarySlots.locator('input[type="file"]').count(), 49);
+  await page.waitForFunction(() => [...document.querySelectorAll('.b2-teacher-editor-panel [data-asset-id^="navibar."] img')].every((image) => image.complete && image.naturalWidth > 0));
+  await page.screenshot({ path: `${artifactRoot}/ui-controller-navibar-assets.png`, animations: "disabled", fullPage: true });
   await page.getByRole("button", { name: "Editions", exact: true }).click();
   assert.deepEqual(await page.locator('.b2-teacher-editor-panel [data-asset-id^="edition."]').evaluateAll((slots) => slots.map((slot) => slot.dataset.assetId)), [
     "edition.students-book.normal", "edition.students-book.active", "edition.workbook.normal", "edition.workbook.active",
@@ -77,6 +90,62 @@ try {
   assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).count(), 1);
   await page.screenshot({ path: `${artifactRoot}/book-hierarchy.png`, animations: "disabled" });
 
+  await page.getByRole("button", { name: "Import Publisher Source", exact: true }).click();
+  await page.locator(".activity-builder-editor:not([hidden])").getByText("Publisher source imported and saved", { exact: true }).waitFor();
+  const importReport = page.getByRole("region", { name: "Publisher source import report" });
+  await importReport.getByText("1024 × 582", { exact: true }).waitFor();
+  assert.match(await importReport.innerText(), /obj_params\.xml[\s\S]*ebook_obj_params\.xml[\s\S]*image_1\.png[\s\S]*image_2\.png/);
+  assert.match(await importReport.innerText(), /3 questions · 3 response regions · 2 images/);
+  assert.match(await importReport.innerText(), /VALIDATION\s+valid/);
+  const importedCanvas = page.locator('.legacy-unit-opener-paper[data-source-canvas="1024x582"]');
+  await importedCanvas.waitFor();
+  await page.waitForFunction(() => [...document.querySelectorAll(".ultimate-b2-legacy-unit-opener img")].every((image) => image.complete && image.naturalWidth > 0));
+  const sourceMeasurements = await importedCanvas.evaluate((canvas) => {
+    const canvasBox = canvas.getBoundingClientRect();
+    const sourceBox = (selector) => {
+      const box = canvas.querySelector(selector).getBoundingClientRect();
+      return {
+        x: (box.left - canvasBox.left) / canvasBox.width * 1024,
+        y: (box.top - canvasBox.top) / canvasBox.height * 582,
+        width: box.width / canvasBox.width * 1024,
+        height: box.height / canvasBox.height * 582,
+      };
+    };
+    return {
+      canvasRatio: canvasBox.width / canvasBox.height,
+      instruction: sourceBox(".legacy-unit-opener-instruction"),
+      quote: sourceBox(".legacy-unit-opener-quote-art"),
+      prompts: [1, 2, 3].map((index) => sourceBox(`.legacy-unit-opener-question.question-${index}`)),
+      responses: [1, 2, 3].map((index) => sourceBox(`[data-response-region-id$="q${index}-response"]`)),
+      lineLayers: [1, 2, 3].map((index) => (getComputedStyle(canvas.querySelector(`[data-response-region-id$="q${index}-response"]`)).backgroundSize.match(/1px/g) || []).length),
+    };
+  });
+  const closeTo = (actual, expected, label) => assert.ok(Math.abs(actual - expected) <= 1.1, `${label}: expected ${expected}, got ${actual}`);
+  closeTo(sourceMeasurements.canvasRatio, 1024 / 582, "publisher canvas ratio");
+  for (const [key, expected] of Object.entries({ instruction: { x: 206, y: 18, width: 606, height: 34 }, quote: { x: 696, y: 75, width: 317, height: 507 } })) {
+    for (const dimension of Object.keys(expected)) closeTo(sourceMeasurements[key][dimension], expected[dimension], `${key}.${dimension}`);
+  }
+  const expectedPrompts = [{ x: 54, y: 79, width: 604, height: 29 }, { x: 54, y: 214, width: 571, height: 29 }, { x: 54, y: 372, width: 491, height: 29 }];
+  const expectedResponses = [{ x: 73, y: 117, width: 605, height: 73 }, { x: 73, y: 253, width: 605, height: 96 }, { x: 73, y: 410, width: 601, height: 96 }];
+  for (const [index, expected] of expectedPrompts.entries()) for (const dimension of Object.keys(expected)) closeTo(sourceMeasurements.prompts[index][dimension], expected[dimension], `prompt${index + 1}.${dimension}`);
+  for (const [index, expected] of expectedResponses.entries()) for (const dimension of Object.keys(expected)) closeTo(sourceMeasurements.responses[index][dimension], expected[dimension], `response${index + 1}.${dimension}`);
+  assert.deepEqual(sourceMeasurements.lineLayers, [3, 4, 4]);
+  const importedRegion = importedCanvas.locator('[data-response-region-id$="q2-response"]');
+  assert.equal(await importedRegion.locator(".response-region-text").textContent(), "");
+  await importedRegion.click();
+  const revealVisual = await importedRegion.evaluate((region) => {
+    const text = region.querySelector(".response-region-text");
+    const style = getComputedStyle(text);
+    return { color: getComputedStyle(region).color, fontFamily: style.fontFamily, fontSize: style.fontSize, whiteSpace: style.whiteSpace, clipped: text.scrollHeight > region.clientHeight + 1 || text.scrollWidth > region.clientWidth + 1 };
+  });
+  assert.equal(revealVisual.color, "rgb(228, 0, 131)");
+  assert.match(revealVisual.fontFamily, /ITC Flora Std Medium/);
+  assert.equal(revealVisual.whiteSpace, "pre-wrap");
+  assert.equal(revealVisual.clipped, false);
+  await page.screenshot({ path: `${artifactRoot}/open-response-publisher-import.png`, animations: "disabled" });
+
+  await page.getByRole("button", { name: "Content", exact: true }).click();
+
   const openQuestion = page.getByLabel("Question 1 text");
   await openQuestion.fill("Unsaved Builder draft question?");
   await page.getByText("Unsaved changes", { exact: true }).waitFor();
@@ -105,7 +174,7 @@ try {
   await page.getByText("A visual Response Region reveals this Teacher-only response.", { exact: true }).waitFor();
   assert.equal(await page5Region.getAttribute("data-revealed"), "true");
   assert.notEqual(await page5Region.evaluate((element) => getComputedStyle(element).backgroundImage), "none", "Writing lines remain after reveal");
-  assert.deepEqual(await page5Region.evaluate((region) => { const style = getComputedStyle(region); return { overflowX: style.overflowX, overflowY: style.overflowY, documentOverflow: Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, 0) }; }), { overflowX: "auto", overflowY: "auto", documentOverflow: 0 }, "Long reveal text remains contained and scrollable inside its authored region");
+  assert.deepEqual(await page5Region.evaluate((region) => { const style = getComputedStyle(region); return { overflowX: style.overflowX, overflowY: style.overflowY, documentOverflow: Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, 0) }; }), { overflowX: "hidden", overflowY: "hidden", documentOverflow: 0 }, "Manually resized reveal text remains contained inside its authored region");
   await page.waitForFunction(() => [...document.querySelectorAll(".ultimate-b2-legacy-unit-opener img")].every((image) => image.complete && image.naturalWidth > 0));
   assert.deepEqual(await page.locator(".ultimate-b2-legacy-unit-opener img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[606, 34], [317, 507]]);
   await page.screenshot({ path: `${artifactRoot}/open-response-preview.png`, animations: "disabled" });
@@ -129,14 +198,45 @@ try {
 
   await page.locator(".activity-builder-exercise").filter({ hasText: "Complete the Sentences" }).click();
   await page.getByRole("heading", { name: "Complete the Sentences", exact: true }).waitFor();
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Publisher Source", exact: true }).click();
+  await page.getByRole("button", { name: "Import Publisher Source", exact: true }).click();
+  await page.locator(".activity-builder-editor:not([hidden])").getByText("Publisher source imported and saved", { exact: true }).waitFor();
+  const completeImportReport = page.getByRole("region", { name: "Complete the Sentences publisher source import report" });
+  assert.match(await completeImportReport.innerText(), /obj_params\.xml[\s\S]*1024 × 582[\s\S]*1 example · 8 sentences · 8 reveal answers[\s\S]*Instruction matched · Show Text auxiliary matched[\s\S]*valid/);
+  const completeCanvas = page.locator('.ultimate-b2-complete-sentences[data-source-canvas="1024x582"]');
+  await completeCanvas.waitFor();
+  const completeMeasurements = await completeCanvas.evaluate((canvas) => {
+    const canvasBox = canvas.getBoundingClientRect();
+    const sourceBox = (element) => {
+      const box = element.getBoundingClientRect();
+      return { x: (box.left - canvasBox.left) / canvasBox.width * 1024, y: (box.top - canvasBox.top) / canvasBox.height * 582, width: box.width / canvasBox.width * 1024, height: box.height / canvasBox.height * 582 };
+    };
+    return {
+      instruction: sourceBox(canvas.querySelector(".ultimate-b2-exercise-instruction")),
+      example: sourceBox(canvas.querySelector(".ultimate-b2-complete-sentences-example-answer")),
+      blanks: [...canvas.querySelectorAll("button[data-blank-id]")].map(sourceBox),
+    };
+  });
+  for (const [dimension, expected] of Object.entries({ x: 93, y: 18, width: 873, height: 34 })) closeTo(completeMeasurements.instruction[dimension], expected, `Complete instruction.${dimension}`);
+  for (const [dimension, expected] of Object.entries({ x: 116, y: 92, width: 153, height: 29 })) closeTo(completeMeasurements.example[dimension], expected, `Complete example.${dimension}`);
+  const expectedCompleteBlanks = [{ x: 498, y: 143, width: 165, height: 27 }, { x: 358, y: 193, width: 164, height: 27 }, { x: 603, y: 240, width: 164, height: 27 }, { x: 252, y: 289, width: 132, height: 27 }, { x: 239, y: 338, width: 164, height: 27 }, { x: 702, y: 387, width: 164, height: 27 }, { x: 88, y: 466, width: 164, height: 27 }, { x: 88, y: 514, width: 164, height: 27 }];
+  completeMeasurements.blanks.forEach((blank, index) => Object.entries(expectedCompleteBlanks[index]).forEach(([dimension, expected]) => closeTo(blank[dimension], expected, `Complete blank ${index + 2}.${dimension}`)));
   await page.getByRole("button", { name: "Reveal sentence 2 blank" }).click();
   await page.getByText("binge-watching", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Reveal sentence 3 blank" }).textContent(), "", "unrelated Complete the Sentences blanks remain hidden");
+  await page.getByRole("button", { name: "Show Text / Questions", exact: true }).click();
+  await page.locator('[data-show-text-view="open"] img').waitFor();
+  await page.getByRole("button", { name: "Show Text / Questions", exact: true }).click();
+  await completeCanvas.waitFor();
   await page.screenshot({ path: `${artifactRoot}/complete-sentences-preview.png`, animations: "disabled" });
 
   await page.locator(".activity-builder-page").filter({ hasText: "Pages 6-7" }).locator(".activity-builder-exercise").filter({ hasText: "Open Response" }).click();
   await page.getByRole("heading", { name: "Debate Club", exact: true }).waitFor();
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Import Publisher Source", exact: true }).click();
+  await page.locator(".activity-builder-editor:not([hidden])").getByText("Publisher source imported and saved", { exact: true }).waitFor();
+  const debateImportReport = page.getByRole("region", { name: "Debate Club publisher source import report" });
+  assert.match(await debateImportReport.innerText(), /obj_params\.xml[\s\S]*ebook_obj_params\.xml[\s\S]*image_1\.png[\s\S]*image_6\.png/);
+  assert.match(await debateImportReport.innerText(), /1024 × 582[\s\S]*2 parts · 6 images · 2 response regions[\s\S]*valid/);
   const debateRegionOne = page.locator('.ultimate-b2-debate-response-region[data-response-region-id="debate-reveal-1"]');
   assert.equal(await debateRegionOne.getAttribute("data-revealed"), "false");
   assert.notEqual(await debateRegionOne.evaluate((element) => getComputedStyle(element).backgroundImage), "none");
@@ -173,7 +273,7 @@ try {
   await preview.locator('[data-multiple-choice-panel="2"]').waitFor();
   await page.screenshot({ path: `${artifactRoot}/preview-panel-2.png`, animations: "disabled" });
   assert.deepEqual(consoleErrors, []);
-  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open Response", "Image"], readingEditors: ["Complete the Sentences", "Open Response"], responseRegionDrawing: true, linesBeforeAndAfterReveal: true, teacherOnlyRevealText: true, customImageUpload: true, imageFit: "contain-full-region", unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
+  const report = { status: "passed", hierarchy: "Unit → Page / Spread → Exercise", page5Editors: ["Open Response", "Image"], readingEditors: ["Complete the Sentences", "Open Response"], publisherImport: { canvas: "1024x582", artwork: 2, prompts: 3, responseRegions: 3, lineCounts: [3, 4, 4], revealColor: "#e40083", clipping: false }, completeSentencesPublisherImport: { canvas: "1024x582", example: 1, interactiveSentences: 8, revealAnswers: 8, auxiliaryAssetsReused: 2, showTextWorks: true, maxGeometryDeviationSourcePx: 1.1 }, debateClubPublisherImport: { canvas: "1024x582", parts: 2, artwork: 6, responseRegions: 2, lineCounts: [10, 8], revealPrivacy: "public-presentation" }, responseRegionDrawing: true, linesBeforeAndAfterReveal: true, teacherOnlyRevealText: true, customImageUpload: true, imageFit: "contain-full-region", unsavedDraftPreserved: true, sections: 5, questionOneOptionAreas: 4, questionOneHighlightRegions: 2, previewFeedback: ["wrong", "correct"], previewPanel: 2, artifactRoot };
   await writeFile(`${artifactRoot}/report.json`, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));
 } finally {

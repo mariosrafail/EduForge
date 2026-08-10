@@ -23,13 +23,31 @@ const integrationEnabled = Boolean(testDatabaseUrl && confirmedIsolated);
 const { Pool } = pg;
 
 function postgresTemplate(pool) {
-  return async (strings, ...values) => {
+  const queryTemplate = (queryable) => async (strings, ...values) => {
     let text = strings[0];
     for (let index = 0; index < values.length; index += 1) {
       text += `$${index + 1}${strings[index + 1]}`;
     }
-    return (await pool.query(text, values)).rows;
+    return (await queryable.query(text, values)).rows;
   };
+  const template = queryTemplate(pool);
+  template.assignmentLifecycleTransaction = async (assignmentId, callback) => {
+    const client = await pool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`select pg_advisory_xact_lock(hashtextextended(${"activity-assignment:" + assignmentId}, 0))`;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+  return template;
 }
 
 function scopedDatabaseUrl(baseUrl, schema) {
@@ -100,11 +118,13 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   const schoolA = schools.rows.find((row) => row.name.endsWith("A")).id;
   const schoolB = schools.rows.find((row) => row.name.endsWith("B")).id;
   const adminId = await insertUser(pool, { schoolId: schoolA, name: "Admin A", email: "admin-a@integration.test", role: "admin" });
+  const otherAdminId = await insertUser(pool, { schoolId: schoolB, name: "Admin B", email: "admin-b@integration.test", role: "admin" });
   const teacherId = await insertUser(pool, { schoolId: schoolA, name: "Teacher A", email: "teacher-a@integration.test", role: "teacher" });
   const otherTeacherId = await insertUser(pool, { schoolId: schoolB, name: "Teacher B", email: "teacher-b@integration.test", role: "teacher" });
   const studentId = await insertUser(pool, { schoolId: schoolA, name: "Student A", email: "student-a@integration.test", role: "student" });
   const pausedStudentId = await insertUser(pool, { schoolId: schoolA, name: "Paused Student", email: "paused@integration.test", role: "student", status: "paused" });
   const adminCookie = await createSession(pool, adminId);
+  const otherAdminCookie = await createSession(pool, otherAdminId);
   const teacherCookie = await createSession(pool, teacherId);
   const otherTeacherCookie = await createSession(pool, otherTeacherId);
   const studentCookie = await createSession(pool, studentId);
@@ -524,13 +544,13 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   await t.test("assignment, results, review, hotspots and custom activities enforce owner/tenant", async () => {
     const createdAssignment = await call(bookContentHandler, {
       method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
-      body: { activityId: activity.id, classId: classA.id, title: "Assigned work" },
+      body: { activityId: activity.id, classId: classA.id, title: "Assigned work", idempotencyKey: `assignment-${schema}-a` },
     });
     assert.equal(createdAssignment.status, 200);
     const assignmentId = createdAssignment.body.assignment.id;
     const repeatedAssignment = await call(bookContentHandler, {
       method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
-      body: { activityId: activity.id, classId: classA.id, title: "Assigned work" },
+      body: { activityId: activity.id, classId: classA.id, title: "Assigned work", idempotencyKey: `assignment-${schema}-a` },
     });
     assert.equal(repeatedAssignment.status, 200);
     assert.equal(repeatedAssignment.body.assignment.id, assignmentId);
@@ -565,6 +585,24 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     assert.deepEqual(submittedRow?.answers, { [question.id]: "affirmative" });
     assert.equal(submittedRow?.answerDetails?.[0]?.prompt, "Answer yes");
     assert.equal(submittedRow?.answerDetails?.[0]?.answer, "affirmative");
+
+    const reassigned = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "create-assignment" },
+      body: { activityId: activity.id, classId: classA.id, title: "Assigned work", idempotencyKey: `assignment-${schema}-b` },
+    });
+    assert.equal(reassigned.status, 200);
+    const reassignmentId = reassigned.body.assignment.id;
+    assert.notEqual(reassignmentId, assignmentId);
+    const resubmitted = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId: reassignmentId, result: { answers: { [question.id]: "affirmative" } } },
+    });
+    assert.equal(resubmitted.status, 200);
+    assert.notEqual(resubmitted.body.submission.id, submissionId);
+    const reassignmentResults = await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId: reassignmentId } });
+    assert.equal(reassignmentResults.body.rows.find((row) => row.studentId === studentId)?.submissionId, resubmitted.body.submission.id);
+    const originalResultsAgain = await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId } });
+    assert.equal(originalResultsAgain.body.rows.find((row) => row.studentId === studentId)?.submissionId, submissionId);
     assert.equal((await call(bookContentHandler, { cookie: otherTeacherCookie, query: { action: "assignment-results", assignmentId } })).status, 403);
     const reviewed = await call(bookContentHandler, { method: "POST", cookie: teacherCookie, query: { action: "review-submission" }, body: { submissionId, teacherFeedback: "Good" } });
     assert.equal(reviewed.status, 200);
@@ -648,6 +686,130 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     });
     assert.equal(tamper.status, 404);
     assert.equal((await pool.query("select title from book_activities where id = $1", [customId])).rows[0].title, "Custom");
+  });
+
+  await t.test("assignment delete and close lifecycle is authorized, race-safe, and preserves submitted history", async () => {
+    const sameSchoolTeacherId = await insertUser(pool, {
+      schoolId: schoolA,
+      name: "Other Teacher A",
+      email: `other-teacher-a-${schema}@integration.test`,
+      role: "teacher",
+    });
+    const sameSchoolTeacherCookie = await createSession(pool, sameSchoolTeacherId);
+    const secondStudentId = await insertUser(pool, {
+      schoolId: schoolA,
+      name: "Lifecycle Student B",
+      email: `lifecycle-student-b-${schema}@integration.test`,
+      role: "student",
+    });
+    const secondStudentCookie = await createSession(pool, secondStudentId);
+    await pool.query("insert into class_students (class_id, student_id, status) values ($1, $2, 'active')", [classA.id, secondStudentId]);
+
+    const createLifecycleAssignment = async (title) => {
+      const response = await call(bookContentHandler, {
+        method: "POST",
+        cookie: teacherCookie,
+        query: { action: "create-assignment" },
+        body: { activityId: activity.id, classId: classA.id, title },
+      });
+      assert.equal(response.status, 200);
+      return response.body.assignment.id;
+    };
+    const mutate = (cookie, action, id) => call(bookContentHandler, {
+      method: "POST", cookie, query: { action }, body: { assignmentId: id },
+    });
+
+    const teacherDeleteId = await createLifecycleAssignment("Teacher delete zero submissions");
+    assert.equal((await mutate(sameSchoolTeacherCookie, "delete-assignment", teacherDeleteId)).status, 403);
+    assert.equal((await mutate(otherTeacherCookie, "delete-assignment", teacherDeleteId)).status, 403);
+    assert.equal((await mutate(otherAdminCookie, "delete-assignment", teacherDeleteId)).status, 403);
+    assert.equal((await mutate(studentCookie, "delete-assignment", teacherDeleteId)).status, 403);
+    assert.equal((await mutate(teacherCookie, "delete-assignment", teacherDeleteId)).status, 200);
+    assert.equal((await pool.query("select count(*)::int count from activity_assignments where id = $1", [teacherDeleteId])).rows[0].count, 0);
+    assert.equal((await call(bookContentHandler, { cookie: studentCookie, query: { action: "assignments" } })).body.assignments.some((row) => row.assignmentId === teacherDeleteId), false);
+    const deletedStaleSubmit = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId: teacherDeleteId, answers: { [question.id]: "affirmative" } },
+    });
+    assert.equal(deletedStaleSubmit.status, 404);
+    assert.match(deletedStaleSubmit.body.error, /no longer available/i);
+
+    const adminDeleteId = await createLifecycleAssignment("Admin delete zero submissions");
+    assert.equal((await mutate(adminCookie, "delete-assignment", adminDeleteId)).status, 200);
+    assert.equal((await pool.query("select count(*)::int count from activity_assignments where id = $1", [adminDeleteId])).rows[0].count, 0);
+
+    const closeId = await createLifecycleAssignment("Close submitted assignment");
+    const submitted = await call(bookContentHandler, {
+      method: "POST",
+      cookie: studentCookie,
+      query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId: closeId, answers: { [question.id]: "affirmative" } },
+    });
+    assert.equal(submitted.status, 200);
+    const submissionId = submitted.body.submission.id;
+    const feedback = await call(bookContentHandler, {
+      method: "POST", cookie: teacherCookie, query: { action: "review-submission" }, body: { submissionId, teacherFeedback: "Preserve this feedback." },
+    });
+    assert.equal(feedback.status, 200);
+    const beforeSubmission = (await pool.query("select answers, score, score_percent, correct_count, total_count, status, teacher_feedback from activity_submissions where id = $1", [submissionId])).rows[0];
+    const beforeAnswers = (await pool.query("select question_id, answer_text, is_correct, feedback_text from student_answers where submission_id = $1 order by question_id", [submissionId])).rows;
+
+    const deleteConflict = await mutate(teacherCookie, "delete-assignment", closeId);
+    assert.equal(deleteConflict.status, 409);
+    assert.equal(deleteConflict.body.conflict, "assignment-has-submissions");
+    assert.equal((await mutate(sameSchoolTeacherCookie, "close-assignment", closeId)).status, 403);
+    assert.equal((await mutate(otherTeacherCookie, "close-assignment", closeId)).status, 403);
+    assert.equal((await mutate(otherAdminCookie, "close-assignment", closeId)).status, 403);
+    assert.equal((await mutate(studentCookie, "close-assignment", closeId)).status, 403);
+    assert.equal((await mutate(teacherCookie, "close-assignment", closeId)).status, 200);
+    assert.equal((await mutate(adminCookie, "close-assignment", closeId)).status, 200);
+    assert.equal((await pool.query("select status from activity_assignments where id = $1", [closeId])).rows[0].status, "closed");
+    assert.deepEqual((await pool.query("select answers, score, score_percent, correct_count, total_count, status, teacher_feedback from activity_submissions where id = $1", [submissionId])).rows[0], beforeSubmission);
+    assert.deepEqual((await pool.query("select question_id, answer_text, is_correct, feedback_text from student_answers where submission_id = $1 order by question_id", [submissionId])).rows, beforeAnswers);
+
+    const staleSubmit = await call(bookContentHandler, {
+      method: "POST",
+      cookie: secondStudentCookie,
+      query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId: closeId, answers: { [question.id]: "affirmative" } },
+    });
+    assert.equal(staleSubmit.status, 409);
+    assert.match(staleSubmit.body.error, /closed.*no longer be submitted/i);
+    assert.equal((await pool.query("select count(*)::int count from activity_submissions where activity_assignment_id = $1 and student_id = $2", [closeId, secondStudentId])).rows[0].count, 0);
+    const submittedHistory = (await call(bookContentHandler, { cookie: studentCookie, query: { action: "assignments" } })).body.assignments.find((row) => row.assignmentId === closeId);
+    const closedHistory = (await call(bookContentHandler, { cookie: secondStudentCookie, query: { action: "assignments" } })).body.assignments.find((row) => row.assignmentId === closeId);
+    assert.equal(submittedHistory.status, "closed");
+    assert.equal(submittedHistory.submissionId, submissionId);
+    assert.equal(closedHistory.status, "closed");
+    assert.equal(closedHistory.submissionId, null);
+    const teacherHistory = (await call(bookContentHandler, { cookie: teacherCookie, query: { action: "teacher-assignments" } })).body.assignments.find((row) => row.id === closeId);
+    assert.equal(teacherHistory.status, "closed");
+    assert.equal(teacherHistory.submittedCount, 1);
+    assert.equal((await call(bookContentHandler, { cookie: teacherCookie, query: { action: "assignment-results", assignmentId: closeId } })).status, 200);
+
+    const raceId = await createLifecycleAssignment("Submission wins delete race");
+    const raceClient = await pool.connect();
+    try {
+      await raceClient.query("begin");
+      await raceClient.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [`activity-assignment:${raceId}`]);
+      await raceClient.query(
+        `insert into activity_submissions (school_id, activity_id, activity_assignment_id, student_id, answers, score, score_percent, correct_count, total_count, status, submitted_at, submission_slot)
+         values ($1, $2, $3, $4, '{}', 100, 100, 1, 1, 'submitted', now(), 1)`,
+        [schoolA, activity.id, raceId, studentId],
+      );
+      const racedDelete = mutate(teacherCookie, "delete-assignment", raceId);
+      await new Promise((resolve) => setImmediate(resolve));
+      await raceClient.query("commit");
+      const racedResponse = await racedDelete;
+      assert.equal(racedResponse.status, 409);
+      assert.equal((await pool.query("select count(*)::int count from activity_assignments where id = $1", [raceId])).rows[0].count, 1);
+      assert.equal((await pool.query("select count(*)::int count from activity_submissions where activity_assignment_id = $1", [raceId])).rows[0].count, 1);
+    } catch (error) {
+      await raceClient.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      raceClient.release();
+    }
   });
 
   await t.test("integrity checks allow official master content without a teacher creator and detect semantic custom gaps", async () => {

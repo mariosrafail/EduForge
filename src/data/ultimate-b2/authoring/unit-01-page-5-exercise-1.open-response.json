@@ -1,6 +1,35 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "activityId": "ultimate-b2-sb-u1-p1-o1",
+  "source": {
+    "kind": "decoded-publisher-iwb",
+    "canvas": {
+      "width": 1024,
+      "height": 582
+    },
+    "files": [
+      {
+        "name": "obj_params.xml",
+        "sha256": "7c243200496854ff284629367a98f8a7044c91e8dbca0210027f95f475e6ad26"
+      },
+      {
+        "name": "ebook_obj_params.xml",
+        "sha256": "06744d1fba7fc456e60bccb74da2be9bd5aa95ba2cb6afb21b35d494b6178581"
+      },
+      {
+        "name": "image_1.png",
+        "sha256": "3e24e7e908b41637127095445438cf4acf7ff206bc5589b1115b1e42099e531f"
+      },
+      {
+        "name": "image_2.png",
+        "sha256": "887988b23db4d47361a76bb0c0808ce471b4e99af60e92d155941b8009ed8489"
+      }
+    ]
+  },
+  "surface": {
+    "width": 1024,
+    "height": 582
+  },
   "visualCapabilities": {
     "instructionImage": "unit1.page5.exercise1.instruction",
     "showText": {
@@ -10,50 +39,166 @@
   },
   "instructionImageAlt": "Read the quote and discuss these questions with a partner.",
   "quoteArtworkBinding": "unit1.page5.exercise1.quote",
+  "artwork": {
+    "instruction": {
+      "binding": "unit1.page5.exercise1.instruction",
+      "sourceFile": "image_2.png",
+      "naturalSize": {
+        "width": 606,
+        "height": 34
+      },
+      "area": {
+        "x": 206,
+        "y": 18,
+        "width": 606,
+        "height": 34
+      }
+    },
+    "quote": {
+      "binding": "unit1.page5.exercise1.quote",
+      "sourceFile": "image_1.png",
+      "naturalSize": {
+        "width": 317,
+        "height": 507
+      },
+      "area": {
+        "x": 696,
+        "y": 75,
+        "width": 317,
+        "height": 507
+      }
+    }
+  },
   "questions": [
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q1",
       "prompt": "In what ways are films an art form?",
+      "promptArea": {
+        "x": 54,
+        "y": 79,
+        "width": 604,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
       "responseRegion": {
         "id": "ultimate-b2-sb-u1-p1-o1-q1-response",
         "ariaLabel": "Show model response for question 1",
         "area": {
-          "left": 4.4545,
-          "top": 16.6233,
-          "width": 63,
-          "height": 17.5222
+          "x": 73,
+          "y": 117,
+          "width": 605,
+          "height": 73
         },
-        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23,
+          "fontScale": 1,
+          "lineCount": 3,
+          "linePositions": [
+            23,
+            47,
+            69
+          ],
+          "lineWidth": 605,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
       }
     },
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q2",
       "prompt": "Why is theatre life?",
+      "promptArea": {
+        "x": 54,
+        "y": 214,
+        "width": 571,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
       "responseRegion": {
         "id": "ultimate-b2-sb-u1-p1-o1-q2-response",
         "ariaLabel": "Show model response for question 2",
         "area": {
-          "left": 0,
-          "top": 41.5,
-          "width": 61,
-          "height": 17.5
+          "x": 73,
+          "y": 253,
+          "width": 605,
+          "height": 96
         },
-        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23.3333,
+          "fontScale": 1,
+          "lineCount": 4,
+          "linePositions": [
+            21,
+            46,
+            69,
+            91
+          ],
+          "lineWidth": 605,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
       }
     },
     {
       "id": "ultimate-b2-sb-u1-p1-o1-q3",
       "prompt": "Do you agree that TV is furniture?",
+      "promptArea": {
+        "x": 54,
+        "y": 372,
+        "width": 491,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
       "responseRegion": {
         "id": "ultimate-b2-sb-u1-p1-o1-q3-response",
         "ariaLabel": "Show model response for question 3",
         "area": {
-          "left": 2.5,
-          "top": 70.5,
-          "width": 61,
-          "height": 21.5
+          "x": 73,
+          "y": 410,
+          "width": 601,
+          "height": 96
         },
-        "presentation": { "paddingX": 10, "paddingY": 7, "lineSpacing": 29, "fontScale": 1 }
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23,
+          "fontScale": 1,
+          "lineCount": 4,
+          "linePositions": [
+            23,
+            46,
+            69,
+            92
+          ],
+          "lineWidth": 601,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
       }
     }
   ]

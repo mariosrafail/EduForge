@@ -55,8 +55,9 @@ async function readOverrides(configPath) {
   return normalizeUltimateB2TeacherAppOverrides(JSON.parse(await readFile(configPath, "utf8")));
 }
 
-function repositoryRelativeAssetPath(sha256, extension) {
-  return `src/assets/books/ultimate-b2/authoring/teacher-app/${sha256}${extension}`;
+function repositoryRelativeAssetPath(definition, sha256, extension) {
+  const directory = definition.role === "navibar-library" ? "library/" : "";
+  return `src/assets/books/ultimate-b2/authoring/teacher-app/${directory}${sha256}${extension}`;
 }
 
 async function resolveInsideRepository(repositoryRoot, repositoryPath) {
@@ -122,9 +123,10 @@ export function ultimateB2TeacherAppBuilderPlugin({
             const inspected = await inspectTeacherAsset({ bytes, originalFilename, descriptor: importDescriptor(definition) });
             if (declaredType !== "application/octet-stream" && declaredType !== inspected.metadata.mediaType) throw new Error("Asset bytes do not match the declared media type.");
             if (definition.role === "animation-atlas" && inspected.metadata.mediaType !== "image/png") throw new Error("GAF title atlases must remain PNG images.");
-            const repositoryPath = repositoryRelativeAssetPath(inspected.metadata.sha256, inspected.inspection.extension);
+            const repositoryPath = repositoryRelativeAssetPath(definition, inspected.metadata.sha256, inspected.inspection.extension);
             const outputPath = path.resolve(repositoryRoot, repositoryPath);
-            if (path.dirname(outputPath) !== path.resolve(assetRoot)) throw new Error("Teacher App import target escaped its controlled asset directory.");
+            const expectedDirectory = path.resolve(assetRoot, definition.role === "navibar-library" ? "library" : ".");
+            if (path.dirname(outputPath) !== expectedDirectory) throw new Error("Teacher App import target escaped its controlled asset directory.");
             try { await stat(outputPath); } catch { await atomicWrite(outputPath, inspected.bytes); }
             const override = {
               repositoryPath,

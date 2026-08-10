@@ -101,7 +101,7 @@ async function assertLegacyUnitOverview(page, unit, label) {
   assert.equal(await page.getByRole("heading", { name: `Unit ${unit}`, exact: true }).isVisible(), true, `${label} centered unit title`);
   assert.equal(await page.getByRole("button", { name: /^(?:Previous|Next) unit$/, exact: true }).count(), 0, `${label} side unit arrows absent`);
   const navigation = page.locator("[data-teacher-book-navigation] button");
-  assert.deepEqual(await navigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], `${label} canonical navigation`);
+  assert.deepEqual(await navigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"], `${label} canonical navigation`);
   assert.equal(await navigation.nth(2).isDisabled(), true, `${label} Previous page disabled`);
   assert.equal(await navigation.nth(3).isDisabled(), true, `${label} Next page disabled`);
   await assertScreen(page, label);
@@ -203,7 +203,7 @@ async function assertEmbeddedActivity(page, label) {
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
   assert.deepEqual(metrics.navigationLabels.slice(0, 4), ["Home", "Back", "Previous page", "Next page"], `${label} keeps canonical leading navigation`);
-  assert.deepEqual(metrics.navigationLabels.slice(-2), ["Grammar Book", "Workbook"], `${label} keeps canonical edition navigation`);
+  assert.deepEqual(metrics.navigationLabels.slice(-3), ["Students Book", "Grammar Book", "Workbook"], `${label} keeps canonical book-switch navigation`);
   assert.ok(metrics.fitScale > 0, `${label} uses a positive fit scale`);
   assert.equal(metrics.hostContained, true, `${label} host remains inside the reader: ${JSON.stringify(metrics)}`);
   assert.equal(metrics.neutralHostCanvas, true, `${label} masks the reader background behind activity corners`);
@@ -366,7 +366,7 @@ async function assertLegacyPageViewer(page, label, expectedPageTitle = "Unit ope
   assert.equal(metrics.pageContext, expectedPageTitle, `${label} heading shows only the current page title`);
   assert.equal(metrics.locationPills, 0, `${label} removes the lower page location pill`);
   assert.equal(metrics.floatingControls, 0, `${label} has no floating controls`);
-  assert.deepEqual(metrics.navigationLabels, ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], `${label} canonical page navigation`);
+  assert.deepEqual(metrics.navigationLabels, ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"], `${label} canonical page navigation`);
   assert.equal(metrics.centered, true, `${label} page centered`);
   assert.equal(metrics.contained, true, `${label} page contained: ${JSON.stringify({ panel: metrics.panel, image: metrics.image })}`);
 }
@@ -648,8 +648,8 @@ try {
       answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed")).fontWeight,
     }));
     assert.match(unitOpenerFonts.question, /Fira Sans/, "unit opener question uses the recovered Fira Sans family");
-    assert.match(unitOpenerFonts.answer, /Georgia/, "unit opener Response Region uses the configured reveal family");
-    assert.equal(unitOpenerFonts.answerWeight, "700", "unit opener Response Region remains visually distinct");
+    assert.match(unitOpenerFonts.answer, /ITC Flora Std Medium/, "unit opener Response Region uses the publisher reveal family");
+    assert.equal(unitOpenerFonts.answerWeight, "400", "unit opener Response Region uses the publisher reveal weight");
     await page.screenshot({ path: `${artifactRoot}/embedded-unit-opener-1366x768.png` });
     await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
     await waitForPageImage(page);

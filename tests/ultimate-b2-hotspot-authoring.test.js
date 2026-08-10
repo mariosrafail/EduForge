@@ -145,8 +145,8 @@ test("Unit 1 opener special renderer activates only for its exact stable activit
   assert.match(openerRenderer, /capabilities\.canEditAnswers[\s\S]*textarea/);
   assert.doesNotMatch(openerRenderer, /many artistic processes|every theatre moment is unique/);
   assert.match(activityStyles, /@import "\.\/ultimate-b2-recovered-activities\.css"/);
-  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-layout/);
-  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-answer-lines\.revealed[\s\S]*#e40759/);
+  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-paper[\s\S]*aspect-ratio:\s*1024\s*\/\s*582/);
+  assert.match(recoveredActivityStyles, /\.legacy-unit-opener-response-region\.is-revealed/);
 });
 
 test("opener publisher assets preserve original bytes and exact scoped provenance", async (t) => {

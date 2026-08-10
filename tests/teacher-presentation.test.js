@@ -310,7 +310,7 @@ test("presentation state clears on activity changes and never enters student pro
       readFile("netlify/functions/_book-content/book-activity-actions.js", "utf8"),
     ]).then((parts) => parts.join("\n")),
   ]);
-  assert.match(renderer, /useEffect\(\(\) => \{[\s\S]*setSolutions\(null\)[\s\S]*setRevealedQuestionIds\(\[\]\)[\s\S]*setCheckResults\(\{\}\)[\s\S]*\}, \[activityId\]\)/);
+  assert.match(renderer, /useEffect\(\(\) => \{[\s\S]*setSolutions\(null\)[\s\S]*setRevealedQuestionIds\(\[\]\)[\s\S]*setCheckResults\(\{\}\)[\s\S]*\}, \[activityId,/);
   assert.match(renderer, /if \(!capabilities\.canSubmitStudentWork\) return;/);
   assert.match(renderer, /capabilities\.canSubmitStudentWork/);
   assert.match(presentationView, /mode="teacher-presentation"/);

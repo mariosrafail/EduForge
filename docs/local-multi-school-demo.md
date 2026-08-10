@@ -2,6 +2,8 @@
 
 The normal LMS is available at `http://127.0.0.1:8888/`.
 
+For normal daily work after setup, `npm run demo:all:start` starts this LMS together with the Ultimate B2 Teacher Offline viewer. The LMS keeps public port `8888`, its internal Vite target uses `8001`, and Teacher Offline uses `http://localhost:8000/#library`.
+
 The separate operator control plane is available at `http://127.0.0.1:8888/platform-admin/`. It is intentionally absent from normal LMS navigation.
 
 Fictional local Platform Admin:
@@ -39,6 +41,12 @@ Install Node.js 22+, npm, Docker Desktop, and the Playwright Chromium browser (`
 npm ci
 npm run demo:multi-school:setup
 npm run demo:multi-school:start
+```
+
+To start both local frontends together after the one-time setup:
+
+```bash
+npm run demo:all:start
 ```
 
 Open `http://127.0.0.1:8888/platform-admin/` for Platform Administration, or `http://127.0.0.1:8888/` for the normal LMS. Stop the server with `Ctrl+C`. The other lifecycle commands are:

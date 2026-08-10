@@ -1,4 +1,4 @@
-import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds } from "./shared.js";
+import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds, withAssignmentLifecycleTransaction } from "./shared.js";
 
 export async function listUserBookAccess(sql, userId) {
   if (!userId) return [];
@@ -83,6 +83,97 @@ export function assignmentRowToUi(row = {}) {
     completedCount: Number(row.completed_count || 0),
     implementationMode: row.implementation_mode || null,
   };
+}
+
+function assignmentLifecycleResponse(row, action) {
+  if (!row?.assignment_exists) return json(404, { error: "Assignment not found" });
+  if (!row.authorized) return forbidden();
+  if (action === "delete" && row.has_submissions) {
+    return json(409, { error: "This assignment now has submissions and cannot be deleted. Close it instead.", conflict: "assignment-has-submissions" });
+  }
+  if (action === "close" && !row.has_submissions) {
+    return json(409, { error: "This assignment has no submissions and can be deleted instead.", conflict: "assignment-has-no-submissions" });
+  }
+  if (action === "delete" && !row.mutated) return json(409, { error: "Assignment could not be deleted safely. Refresh and try again." });
+  if (action === "close" && !row.mutated && row.assignment_status !== "closed") return json(409, { error: "Assignment could not be closed safely. Refresh and try again." });
+  return null;
+}
+
+export async function deleteAssignment(sql, body, currentUser) {
+  const assignmentId = body.assignmentId || body.id;
+  if (!assignmentId) return badRequest("assignmentId is required");
+  if (!isValidUuid(assignmentId)) return invalidUuidResponse("assignmentId");
+  const rows = await withAssignmentLifecycleTransaction(sql, assignmentId, (transactionSql) => transactionSql`
+    with target as materialized (
+      select aa.id,
+             aa.status,
+             coalesce(aa.school_id, c.school_id, teacher.school_id, student.school_id) as effective_school_id,
+             aa.teacher_id,
+             exists (select 1 from activity_submissions s where s.activity_assignment_id = aa.id) as has_submissions
+      from activity_assignments aa
+      left join classes c on c.id = aa.class_id
+      left join app_users teacher on teacher.id = aa.teacher_id
+      left join app_users student on student.id = aa.student_id
+      where aa.id = ${assignmentId}
+    ), authorized_target as materialized (
+      select *, (
+        (${currentUser.role} = 'teacher' and teacher_id = ${currentUser.id} and effective_school_id = ${currentUser.school_id})
+        or (${currentUser.role} = 'admin' and effective_school_id = ${currentUser.school_id})
+      ) as authorized
+      from target
+    ), deleted as (
+      delete from activity_assignments aa
+      using authorized_target target
+      where aa.id = target.id and target.authorized and not target.has_submissions
+      returning aa.id
+    )
+    select exists(select 1 from target) as assignment_exists,
+           coalesce((select authorized from authorized_target), false) as authorized,
+           coalesce((select has_submissions from target), false) as has_submissions,
+           (select status from target) as assignment_status,
+           exists(select 1 from deleted) as mutated
+  `);
+  const conflict = assignmentLifecycleResponse(rows[0], "delete");
+  return conflict || json(200, { deletedAssignmentId: assignmentId });
+}
+
+export async function closeAssignment(sql, body, currentUser) {
+  const assignmentId = body.assignmentId || body.id;
+  if (!assignmentId) return badRequest("assignmentId is required");
+  if (!isValidUuid(assignmentId)) return invalidUuidResponse("assignmentId");
+  const rows = await withAssignmentLifecycleTransaction(sql, assignmentId, (transactionSql) => transactionSql`
+    with target as materialized (
+      select aa.id,
+             aa.status,
+             coalesce(aa.school_id, c.school_id, teacher.school_id, student.school_id) as effective_school_id,
+             aa.teacher_id,
+             exists (select 1 from activity_submissions s where s.activity_assignment_id = aa.id) as has_submissions
+      from activity_assignments aa
+      left join classes c on c.id = aa.class_id
+      left join app_users teacher on teacher.id = aa.teacher_id
+      left join app_users student on student.id = aa.student_id
+      where aa.id = ${assignmentId}
+    ), authorized_target as materialized (
+      select *, (
+        (${currentUser.role} = 'teacher' and teacher_id = ${currentUser.id} and effective_school_id = ${currentUser.school_id})
+        or (${currentUser.role} = 'admin' and effective_school_id = ${currentUser.school_id})
+      ) as authorized
+      from target
+    ), closed as (
+      update activity_assignments aa
+      set status = 'closed'
+      from authorized_target target
+      where aa.id = target.id and target.authorized and target.has_submissions and aa.status <> 'closed'
+      returning aa.id
+    )
+    select exists(select 1 from target) as assignment_exists,
+           coalesce((select authorized from authorized_target), false) as authorized,
+           coalesce((select has_submissions from target), false) as has_submissions,
+           (select status from target) as assignment_status,
+           exists(select 1 from closed) as mutated
+  `);
+  const conflict = assignmentLifecycleResponse(rows[0], "close");
+  return conflict || json(200, { assignment: { id: assignmentId, status: "closed" } });
 }
 
 export async function createAssignment(sql, body, currentUser = null) {

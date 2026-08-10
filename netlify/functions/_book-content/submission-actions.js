@@ -1,4 +1,4 @@
-import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds } from "./shared.js";
+import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds, withAssignmentLifecycleTransaction } from "./shared.js";
 
 import { assignmentRowToUi } from "./assignment-actions.js";
 
@@ -19,9 +19,9 @@ export async function submitActivity(sql, body, currentUser = null) {
       limit 1
     `;
     const assignment = assignmentRows[0];
-    if (!assignment) return json(404, { error: "Assignment not found" });
+    if (!assignment) return json(404, { error: "This assignment is no longer available." });
     if (!sameSchool(currentUser, assignment.school_id)) return forbidden();
-    if (assignment.status === "closed") return forbidden("This assignment is closed");
+    if (assignment.status === "closed") return json(409, { error: "This assignment has been closed and can no longer be submitted." });
     if (assignment.due_at && new Date(assignment.due_at).getTime() <= Date.now()) {
       return forbidden("The assignment deadline has passed");
     }
@@ -60,42 +60,61 @@ export async function submitActivity(sql, body, currentUser = null) {
   const scorePercent = !requiresTeacherReview && !unscoredPractice && totalCount ? Math.round((correctCount / totalCount) * 100) : null;
   const submissionStatus = requiresTeacherReview ? "awaiting_review" : unscoredPractice ? "completed" : "submitted";
 
-  const submissions = await sql`
-    insert into activity_submissions (
-      activity_assignment_id,
-      school_id,
-      activity_id,
-      student_id,
-      answers,
-      score,
-      score_percent,
-      correct_count,
-      total_count,
-      status,
-      submitted_at,
-      submission_slot
+  const submissionState = await withAssignmentLifecycleTransaction(sql, body.assignmentId, (transactionSql) => transactionSql`
+    with assignment_state as materialized (
+      select aa.id, aa.status, aa.due_at, aa.activity_id
+      from activity_assignments aa
+      where aa.id = ${body.assignmentId}
+        and aa.school_id = ${currentUser.school_id}
+    ), inserted as (
+      insert into activity_submissions (
+        activity_assignment_id,
+        school_id,
+        activity_id,
+        student_id,
+        answers,
+        score,
+        score_percent,
+        correct_count,
+        total_count,
+        status,
+        submitted_at,
+        submission_slot
+      )
+      select assignment_state.id,
+             ${currentUser.school_id},
+             ${body.activityId},
+             ${studentId},
+             ${JSON.stringify(answers)}::jsonb,
+             ${scorePercent},
+             ${scorePercent},
+             ${correctCount},
+             ${totalCount},
+             ${submissionStatus},
+             now(),
+             1
+      from assignment_state
+      where assignment_state.status = 'assigned'
+        and (assignment_state.due_at is null or assignment_state.due_at > now())
+        and assignment_state.activity_id = ${body.activityId}
+      on conflict (activity_assignment_id, student_id, submission_slot)
+        where activity_assignment_id is not null and submission_slot = 1
+      do nothing
+      returning *
     )
-    values (
-      ${body.assignmentId || null},
-      ${currentUser.school_id},
-      ${body.activityId},
-      ${studentId},
-      ${JSON.stringify(answers)}::jsonb,
-      ${scorePercent},
-      ${scorePercent},
-      ${correctCount},
-      ${totalCount},
-      ${submissionStatus},
-      now(),
-      1
-    )
-    on conflict (activity_assignment_id, student_id, submission_slot)
-      where activity_assignment_id is not null and submission_slot = 1
-    do nothing
-    returning *
-  `;
-  if (!submissions.length) return json(409, { error: "This assignment has already been submitted" });
-  const submission = submissions[0];
+    select exists(select 1 from assignment_state) as assignment_exists,
+           (select status from assignment_state) as assignment_status,
+           (select due_at from assignment_state) as due_at,
+           (select activity_id from assignment_state) as assignment_activity_id,
+           (select row_to_json(inserted) from inserted) as submission
+  `);
+  const lockedState = submissionState[0];
+  if (!lockedState?.assignment_exists) return json(404, { error: "This assignment is no longer available." });
+  if (lockedState.assignment_status === "closed") return json(409, { error: "This assignment has been closed and can no longer be submitted." });
+  if (lockedState.due_at && new Date(lockedState.due_at).getTime() <= Date.now()) return forbidden("The assignment deadline has passed");
+  if (String(lockedState.assignment_activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
+  if (!lockedState.submission) return json(409, { error: "This assignment has already been submitted" });
+  const submission = lockedState.submission;
 
   for (const row of rows) {
     await sql`

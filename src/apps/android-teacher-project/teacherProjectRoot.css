@@ -66,8 +66,6 @@
 .teacher-project-content-screen > .teacher-book-navigation button { box-sizing: border-box; width: 58px; height: 58px; min-height: 58px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: #fff; filter: drop-shadow(0 4px 2px rgba(41,20,72,.32)); }
 .teacher-project-content-screen > .teacher-book-navigation button:disabled { opacity: .34; filter: grayscale(.75) drop-shadow(0 2px 1px rgba(41,20,72,.2)); }
 .teacher-project-content-screen > .teacher-book-navigation .legacy-classroom-icon { width: 58px; height: 58px; flex-basis: 58px; }
-.teacher-project-content-screen > .teacher-book-navigation .teacher-book-navigation-edition { border: 3px solid #fff; background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099); box-shadow: 0 0 0 2px #59277f, inset 0 4px 8px rgba(255,255,255,.26); filter: none; }
-.teacher-project-content-screen > .teacher-book-navigation .teacher-book-navigation-edition span { color: #fff; font-size: 16px; font-weight: 950; }
 .teacher-project-content-screen > .classroom-teaching-toolbar { grid-row: 4; }
 .teacher-project-overview-panel {
   box-sizing: border-box;

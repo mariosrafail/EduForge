@@ -375,25 +375,10 @@
 
 .teacher-offline-embedded-activity .legacy-unit-opener-paper {
   box-sizing: border-box;
-  width: 100%;
-  height: 100%;
+  width: min(100%, calc(100cqh * 1024 / 582));
+  height: auto;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: auto;
-}
-
-.teacher-offline-embedded-activity .legacy-unit-opener-layout,
-.teacher-offline-embedded-activity .legacy-unit-opener-questions {
-  min-height: 0;
-}
-
-.teacher-offline-embedded-activity .legacy-unit-opener-questions {
-  height: 100%;
-}
-
-.teacher-offline-embedded-activity .legacy-unit-opener-quote-art {
-  max-height: 100%;
+  overflow: hidden;
 }
 
 /* Original Ultimate B2 activity source uses Fira Sans for body copy and

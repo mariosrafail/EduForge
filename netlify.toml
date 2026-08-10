@@ -5,7 +5,7 @@
 
 [dev]
   command = "node scripts/start-vite-loopback.mjs"
-  targetPort = 8000
+  targetPort = 8001
   port = 8888
   publish = "dist"
 

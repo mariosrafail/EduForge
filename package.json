@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8000",
     "dev:android-offline": "cross-env VITE_APP_MODE=android-offline vite --host 0.0.0.0 --port 8000",
-    "dev:android-teacher-offline": "node scripts/android-teacher/build-pack.mjs && cross-env VITE_APP_MODE=android-teacher-offline VITE_ANDROID_APP_MODE=teacher-presentation-offline VITE_OFFLINE_BOOK_SLUG=ultimate-b2 vite --host 0.0.0.0 --port 8000",
+    "dev:android-teacher-offline": "node scripts/android-teacher/build-pack.mjs && cross-env VITE_APP_MODE=android-teacher-offline VITE_ANDROID_APP_MODE=teacher-presentation-offline VITE_OFFLINE_BOOK_SLUG=ultimate-b2 vite --host 0.0.0.0 --port 8000 --strictPort",
     "dev:netlify": "node scripts/run-netlify-dev.mjs",
     "test": "node --test",
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
@@ -15,6 +15,7 @@
     "pilot:demo:seed": "node scripts/seed-local-pilot.mjs",
     "demo:multi-school:setup": "node scripts/local-multi-school-demo.mjs setup --confirm=isolated-local-multi-school-demo",
     "demo:multi-school:start": "node scripts/local-multi-school-demo.mjs start --confirm=isolated-local-multi-school-demo",
+    "demo:all:start": "node scripts/start-all-local-demos.mjs",
     "demo:multi-school:verify": "node scripts/local-multi-school-demo.mjs verify --confirm=isolated-local-multi-school-demo",
     "demo:multi-school:reset": "node scripts/local-multi-school-demo.mjs reset --confirm=isolated-local-multi-school-demo",
     "platform-admin:create": "node scripts/create-platform-admin.mjs",

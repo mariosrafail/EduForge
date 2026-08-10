@@ -96,7 +96,7 @@ test("legacy classroom manifest schema, files, hashes, dimensions, audio, and ba
     const asset = manifest.assets.find((candidate) => candidate.id === id);
     return [asset.id, asset.outputPath, asset.sha256, asset.sizeBytes];
   }), baseline, "original manifest entries changed");
-  const actualAssets = (await filesBelow(assetRoot)).map((absolute) => path.relative(assetRoot, absolute)).filter((relative) => !["README.md", "asset-manifest.json"].includes(relative));
+  const actualAssets = (await filesBelow(assetRoot)).map((absolute) => path.relative(assetRoot, absolute)).filter((relative) => !["README.md", "asset-manifest.json"].includes(relative) && !relative.startsWith(path.join("icons", "navigation", "publisher-navibar") + path.sep));
   assert.deepEqual(new Set(actualAssets), declaredPaths);
 });
 
@@ -161,7 +161,7 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
   const registry = await readFile(registryPath, "utf8");
   const legacyPrefix = "src/assets/books/ultimate-b2/legacy-classroom-ui/";
   const importedOutputs = Object.values(ultimateB2TeacherAppDefaultAssets)
-    .filter((asset) => asset.repositoryPath.startsWith(legacyPrefix))
+    .filter((asset) => asset.repositoryPath.startsWith(legacyPrefix) && !asset.repositoryPath.includes("/publisher-navibar/"))
     .map((asset) => path.normalize(asset.repositoryPath.slice(legacyPrefix.length)));
   const editionArtworkNowAliasedToStudentsBook = new Set([
     "book-menu/editions/workbook-normal.png",

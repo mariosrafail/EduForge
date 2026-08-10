@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -14,8 +15,11 @@ import {
   getUltimateB2TeacherAppPage,
   normalizeUltimateB2TeacherAppOverrides,
   ultimateB2TeacherAppAuthoring,
+  ultimateB2TeacherBookSwitchDefinitions,
   ultimateB2TeacherEditionDefinitions,
   ultimateB2TeacherExtrasDefinitions,
+  ultimateB2TeacherNavibarAssetDefinitions,
+  ultimateB2TeacherRevealControlDefinitions,
 } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 import { ultimateB2StudentsBookAuthoringActivities, ultimateB2StudentsBookAuthoringPages } from "../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 
@@ -37,6 +41,9 @@ test("canonical Teacher App model deterministically binds all current B2 pages a
   assert.equal(rebuilt.shell.extras.length, 14);
   assert.deepEqual(rebuilt.shell.extras.map(({ id, column, order }) => ({ id, column, order })), ultimateB2TeacherExtrasDefinitions.map(({ id, column, order }) => ({ id, column, order })));
   assert.equal(rebuilt.shell.toolbar.length, 18);
+  assert.equal(rebuilt.shell.navibarAssets.length, 52);
+  assert.deepEqual(rebuilt.shell.bookSwitches.map(({ id, controlId, asset }) => ({ id, controlId, assetId: asset.id })), ultimateB2TeacherBookSwitchDefinitions.map(({ id, controlId, assetId }) => ({ id, controlId, assetId })));
+  assert.deepEqual(rebuilt.shell.revealControls.map(({ id, controlId, active, pressed, disabled }) => ({ id, controlId, assetIds: [active.id, pressed.id, disabled.id] })), ultimateB2TeacherRevealControlDefinitions.map(({ id, controlId, activeAssetId, pressedAssetId, disabledAssetId }) => ({ id, controlId, assetIds: [activeAssetId, pressedAssetId, disabledAssetId] })));
   assert.ok(rebuilt.shell.background.repositoryPath.endsWith("classroom-glacier.png"));
   assert.ok(rebuilt.shell.titleAnimation.gaf.repositoryPath.endsWith("logo.gaf"));
   assert.ok(rebuilt.shell.navigation.previousInternalDisabled.repositoryPath.endsWith("navibar-previous-internal-disabled.png"));
@@ -48,6 +55,25 @@ test("canonical Teacher App model deterministically binds all current B2 pages a
     assert.ok(await readFile(path.join(root, page.image.repositoryPath)));
     assert.equal(path.isAbsolute(page.image.repositoryPath), false);
     assert.equal(page.image.id, `page.${page.id}`);
+  }
+});
+
+test("the actual publisher Navibar package is catalogued byte-identically with stable canonical bindings", async () => {
+  const sourceRoot = path.join(root, "tmp/navibar_pngs");
+  const canonicalRoot = path.join(root, "src/assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/publisher-navibar");
+  const actualFiles = (await readdir(sourceRoot)).filter((name) => name.toLowerCase().endsWith(".png")).sort();
+  const canonicalFiles = (await readdir(canonicalRoot)).filter((name) => name.toLowerCase().endsWith(".png")).sort();
+  assert.equal(actualFiles.length, 52);
+  assert.deepEqual(canonicalFiles, actualFiles);
+  assert.deepEqual(ultimateB2TeacherNavibarAssetDefinitions.map(({ sourceFilename }) => sourceFilename).sort(), actualFiles);
+  assert.equal(new Set(ultimateB2TeacherNavibarAssetDefinitions.map(({ id }) => id)).size, 52);
+  for (const name of actualFiles) {
+    const source = await readFile(path.join(sourceRoot, name));
+    const canonical = await readFile(path.join(canonicalRoot, name));
+    assert.equal(createHash("sha256").update(canonical).digest("hex"), createHash("sha256").update(source).digest("hex"), `${name} SHA-256`);
+    const metadata = await sharp(canonical).metadata();
+    const expected = name === "navibar-info.png" ? [44, 77] : name === "navibar-tooltip.png" ? [100, 68] : [60, 60];
+    assert.deepEqual([metadata.width, metadata.height], expected, `${name} dimensions`);
   }
 });
 
@@ -116,7 +142,16 @@ test("local import and save endpoint persists a validated replacement without ch
     const extrasId = "extras.progress-checks.active";
     const extrasFixture = await sharp({ create: { width: 320, height: 81, channels: 4, background: "#79c925" } }).png().toBuffer();
     const extrasImported = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=${encodeURIComponent(extrasId)}`, { method: "POST", headers: { "Content-Type": "image/png", "X-Original-Filename": encodeURIComponent("progress-checks-active.png") }, body: extrasFixture }).then((response) => response.json());
-    const savedCandidate = { ...emptyOverrides, assets: { [id]: imported.override, "background.main": shellImported.override, [extrasId]: extrasImported.override } };
+    const wiredNavibarId = "navibar.sb.active";
+    const revealNavibarId = "navibar.reload.active";
+    const libraryNavibarId = "navibar.back.active";
+    const wiredNavibarImported = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=${encodeURIComponent(wiredNavibarId)}`, { method: "POST", headers: { "Content-Type": "image/png", "X-Original-Filename": encodeURIComponent("sb-active.png") }, body: fixture }).then((response) => response.json());
+    const revealNavibarImported = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=${encodeURIComponent(revealNavibarId)}`, { method: "POST", headers: { "Content-Type": "image/png", "X-Original-Filename": encodeURIComponent("reload-active.png") }, body: fixture }).then((response) => response.json());
+    const libraryNavibarImported = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=${encodeURIComponent(libraryNavibarId)}`, { method: "POST", headers: { "Content-Type": "image/png", "X-Original-Filename": encodeURIComponent("back-active.png") }, body: fixture }).then((response) => response.json());
+    assert.match(wiredNavibarImported.override.repositoryPath, /authoring\/teacher-app\/[a-f0-9]{64}\.png$/);
+    assert.match(revealNavibarImported.override.repositoryPath, /authoring\/teacher-app\/[a-f0-9]{64}\.png$/);
+    assert.match(libraryNavibarImported.override.repositoryPath, /authoring\/teacher-app\/library\/[a-f0-9]{64}\.png$/);
+    const savedCandidate = { ...emptyOverrides, assets: { [id]: imported.override, "background.main": shellImported.override, [extrasId]: extrasImported.override, [wiredNavibarId]: wiredNavibarImported.override, [revealNavibarId]: revealNavibarImported.override, [libraryNavibarId]: libraryNavibarImported.override } };
     const savedResponse = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(savedCandidate) });
     assert.equal(savedResponse.status, 200);
     const reloaded = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app`).then((response) => response.json());
@@ -126,33 +161,53 @@ test("local import and save endpoint persists a validated replacement without ch
     assert.equal(reloaded.model.shell.extras.find((item) => item.id === "progress-checks").active.repositoryPath, extrasImported.override.repositoryPath);
     assert.equal(reloaded.model.shell.extras.find((item) => item.id === "progress-checks").controlId, "extras:progress-checks");
     assert.equal(reloaded.model.shell.units[0].controlId, "unit:unit-1");
+    assert.equal(reloaded.model.shell.bookSwitches.find((item) => item.id === "students-book").asset.repositoryPath, wiredNavibarImported.override.repositoryPath);
+    assert.equal(reloaded.model.shell.revealControls.find((item) => item.id === "reload").active.repositoryPath, revealNavibarImported.override.repositoryPath);
+    assert.equal(reloaded.model.shell.navibarAssets.find((item) => item.binding.id === libraryNavibarId).binding.repositoryPath, libraryNavibarImported.override.repositoryPath);
     assert.deepEqual(hotspotManifest.pages[knownPageId], hotspotManifest.pages[knownPageId]);
     const served = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-asset?id=${encodeURIComponent(id)}`);
     assert.equal(served.status, 200);
     assert.deepEqual(Buffer.from(await served.arrayBuffer()), fixture);
     const servedExtras = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-asset?id=${encodeURIComponent(extrasId)}`);
     assert.deepEqual(Buffer.from(await servedExtras.arrayBuffer()), extrasFixture);
+    const servedLibraryNavibar = await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-asset?id=${encodeURIComponent(libraryNavibarId)}`);
+    assert.deepEqual(Buffer.from(await servedLibraryNavibar.arrayBuffer()), fixture);
     assert.equal((await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=unknown`, { method: "POST", body: fixture })).status, 404);
     assert.equal((await fetch(`${base}/__hhplms/ultimate-b2-teacher-app-import?id=${encodeURIComponent(id)}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: fixture })).status, 400);
   } finally { await server.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
-test("runtime and Teacher pack resolve the same canonical page binding", async () => {
+test("runtime wires the book and reveal controls while the unused Navibar catalogue stays outside the Teacher pack", async () => {
   const page = ultimateB2TeacherAppAuthoring.pages.find((candidate) => candidate.id === knownPageId);
   const pack = teacherPackAssetSources().find((candidate) => candidate.pageId === knownPageId);
   assert.equal(pack.logicalKey, page.logicalAssetIdentity);
   assert.equal(path.normalize(pack.sourcePath), path.join(root, page.image.repositoryPath));
-  const [runtimeResolver, shellResolver, hotspotBuilder, builderShell] = await Promise.all([
+  const [runtimeResolver, shellResolver, hotspotBuilder, builderShell, controller, navigation, navigationCore] = await Promise.all([
     readFile(path.join(root, "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"), "utf8"),
     readFile(path.join(root, "src/apps/android-teacher-offline/legacyClassroomAssets.js"), "utf8"),
     readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"), "utf8"),
     readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"), "utf8"),
+    readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2TeacherAppBuilder.jsx"), "utf8"),
+    readFile(path.join(root, "src/apps/android-teacher-offline/TeacherBookNavigation.jsx"), "utf8"),
+    readFile(path.join(root, "src/apps/android-teacher-offline/TeacherBookNavigationCore.jsx"), "utf8"),
   ]);
   assert.match(runtimeResolver, /getUltimateB2TeacherAppPageByPart/);
   assert.match(shellResolver, /ultimateB2TeacherAppAuthoring/);
   assert.match(shellResolver, /authored\.shell\.extras/);
+  assert.match(shellResolver, /authored\.shell\.bookSwitches/);
+  assert.match(shellResolver, /authored\.shell\.revealControls/);
   assert.match(hotspotBuilder, /page\.assetBindingId/);
   assert.deepEqual([...builderShell.matchAll(/>(Hotspot Builder|Activity Builder|UI Controller)</g)].map((match) => match[1]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
   assert.doesNotMatch(builderShell, />Teacher App</);
   assert.match(builderShell, /hidden=\{tab !== "teacher-app"\}/);
+  assert.match(controller, /<h1>UI Controller<\/h1>/);
+  assert.doesNotMatch(controller, /UI Controller \/ Book Setup/);
+  assert.match(controller, /Book Switch Controls/);
+  assert.match(controller, /Reveal activity controls/);
+  assert.match(controller, /Navibar Assets/);
+  assert.match(navigation, /legacyClassroomAssets\.bookSwitches/);
+  assert.match(navigation, /renderContextIcon/);
+  assert.match(navigationCore, /onBookSwitch\(item\.id\)/);
+  assert.doesNotMatch(navigationCore, />GB<|>WB</);
+  assert.equal(teacherPackAssetSources().some(({ sourcePath }) => sourcePath.includes("publisher-navibar")), false);
 });

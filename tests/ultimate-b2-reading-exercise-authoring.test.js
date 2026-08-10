@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { createServer } from "vite";
 
-import { ultimateB2ReadingExerciseBuilderPlugin } from "../scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
+import { completeSentencesPublisherImportEndpoint, debateClubPublisherImportEndpoint, ultimateB2ReadingExerciseBuilderPlugin } from "../scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
 import completeSentences from "../src/data/ultimate-b2/authoring/unit-01-reading-exercise-4.complete-sentences.json" with { type: "json" };
 import debateClub from "../src/data/ultimate-b2/authoring/unit-01-reading-debate-club.open-answer.json" with { type: "json" };
 import { normalizeUltimateB2ExerciseVisualCapabilities, ultimateB2ExercisePresentationFeatures } from "../src/data/ultimate-b2/exerciseVisualCapabilities.js";
@@ -60,17 +60,38 @@ test("optional exercise images and Show Text controls render only from enabled c
 test("Complete the Sentences matches the Object 4 source contract and exact eight click-reveal blanks", () => {
   assert.deepEqual(normalizeUltimateB2CompleteSentencesAuthoring(completeSentences), completeSentences);
   assert.equal(completeSentences.source.objectNumber, 4);
+  assert.equal(completeSentences.schemaVersion, 2);
+  assert.equal(completeSentences.source.files[0].name, "obj_params.xml");
   assert.deepEqual(completeSentences.surface, { width: 1024, height: 582 });
   assert.equal(completeSentences.example.answer, "On-demand");
   assert.deepEqual(completeSentences.blanks.map((blank) => blank.revealedWord), ["binge-watching", "season", "franchise", "episodes", "genre", "sub-plots", "Tuning in", "Media streaming"]);
   assert.equal(completeSentences.visualCapabilities.showText.enabled, true);
+  assert.deepEqual(completeSentences.instruction.area, { x: 93, y: 18, width: 873, height: 34 });
+  assert.ok(completeSentences.blanks.every((blank) => blank.style.color === "#e40083"));
   assert.throws(() => normalizeUltimateB2CompleteSentencesAuthoring({ ...completeSentences, blanks: completeSentences.blanks.slice(1) }), /exactly eight blanks/);
   assert.throws(() => normalizeUltimateB2CompleteSentencesAuthoring({ ...completeSentences, arbitraryPath: "C:/escape" }), /unknown fields/);
+});
+
+test("Complete the Sentences publisher import endpoint is fixed-scope and persists the verified reconstruction", async () => {
+  const fixture = await fixtureServer();
+  try {
+    const url = `${fixture.base}${completeSentencesPublisherImportEndpoint}?activityId=${ULTIMATE_B2_COMPLETE_SENTENCES_ID}`;
+    const response = await fetch(url, { method: "POST" });
+    assert.equal(response.status, 200);
+    const imported = await response.json();
+    assert.deepEqual(imported.report.canvas, { width: 1024, height: 582 });
+    assert.deepEqual({ example: imported.report.exampleDetected, sentences: imported.report.interactiveSentenceCount, answers: imported.report.revealAnswerCount }, { example: true, sentences: 8, answers: 8 });
+    assert.deepEqual(JSON.parse(await readFile(fixture.completePath, "utf8")), imported.authoring);
+    assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
+    assert.equal((await fetch(url)).status, 405);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
 test("Debate Club is an Open Response variant with exactly two internal parts and one response region each", () => {
   assert.deepEqual(normalizeUltimateB2DebateClubAuthoring(debateClub), debateClub);
   assert.equal(debateClub.source.objectNumber, 5);
+  assert.equal(debateClub.schemaVersion, 2);
+  assert.deepEqual(debateClub.source.partMapping.map((part) => part.pagesIndex), [1, 2]);
   assert.equal(debateClub.parts.length, 2);
   assert.ok(debateClub.parts.every((part) => part.responseRegion && !Array.isArray(part.responseRegion)));
   assert.ok(debateClub.parts.every((part) => part.responseRegion.revealText.length > 300));
@@ -78,6 +99,22 @@ test("Debate Club is an Open Response variant with exactly two internal parts an
   const outside = structuredClone(debateClub);
   outside.parts[0].responseRegion.area.x = 1000;
   assert.throws(() => normalizeUltimateB2DebateClubAuthoring(outside), /inside the activity surface/);
+});
+
+test("Debate Club publisher import endpoint is fixed-scope and persists public presentation content", async () => {
+  const fixture = await fixtureServer();
+  try {
+    const url = `${fixture.base}${debateClubPublisherImportEndpoint}?activityId=${ULTIMATE_B2_DEBATE_CLUB_ID}`;
+    const response = await fetch(url, { method: "POST" });
+    assert.equal(response.status, 200);
+    const imported = await response.json();
+    assert.deepEqual(imported.report.canvas, { width: 1024, height: 582 });
+    assert.deepEqual({ parts: imported.report.partCount, images: imported.report.imageCount, regions: imported.report.responseRegionCount, lines: imported.report.lineCounts }, { parts: 2, images: 6, regions: 2, lines: [10, 8] });
+    assert.deepEqual(JSON.parse(await readFile(fixture.debatePath, "utf8")), imported.authoring);
+    assert.ok(imported.authoring.parts.every((part) => part.responseRegion.revealText.length > 300), "reveal content remains intentional public presentation authoring");
+    assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
+    assert.equal((await fetch(url)).status, 405);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
 test("Reading authoring endpoint round-trips editable content and geometry while preserving source evidence", async () => {
@@ -124,7 +161,8 @@ test("Teacher runtime exposes Show Text for Object 4 and two-part navigation for
   assert.match(pilot, /UltimateB2DebateClubActivity/);
   assert.match(completeRuntime, /revealedBlankIds/);
   assert.match(completeRuntime, /toggle-text/);
-  assert.doesNotMatch(completeRuntime, /textarea|updateAnswer|feedback/i);
+  assert.doesNotMatch(completeRuntime, /<textarea|updateAnswer|feedback/i);
   assert.match(debateRuntime, /previous-panel[\s\S]*next-panel/);
   assert.match(debateRuntime, /revealedPartIds/);
+  assert.match(debateRuntime, /sourceAreaStyle/);
 });

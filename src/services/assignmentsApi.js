@@ -36,6 +36,12 @@ async function request(path, options = {}) {
   return parseJsonResponse(response);
 }
 
+export function createAssignmentRequestKey() {
+  const id = globalThis.crypto?.randomUUID?.()
+    || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `assignment-${id}`;
+}
+
 export async function listTeacherAssignments(teacherId) {
   const query = new URLSearchParams({ action: "teacher-assignments" });
   if (teacherId) query.set("teacherId", teacherId);
@@ -49,6 +55,21 @@ export async function createAssignment(payload) {
     body: JSON.stringify(payload),
   });
   return response.assignments || (response.assignment ? [response.assignment] : []);
+}
+
+export async function deleteAssignment(assignmentId) {
+  return request("/.netlify/functions/book-content?action=delete-assignment", {
+    method: "POST",
+    body: JSON.stringify({ assignmentId }),
+  });
+}
+
+export async function closeAssignment(assignmentId) {
+  const response = await request("/.netlify/functions/book-content?action=close-assignment", {
+    method: "POST",
+    body: JSON.stringify({ assignmentId }),
+  });
+  return response.assignment;
 }
 
 export async function getAssignmentResults(assignmentId) {

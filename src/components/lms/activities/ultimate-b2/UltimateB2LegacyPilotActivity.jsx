@@ -13,6 +13,7 @@ import { TeacherLegacyQuestionFeedback, TeacherLegacyUnitOpenerAnswer } from "vi
 import { TeacherLegacyListeningActivity } from "./TeacherLegacyListeningActivity.jsx";
 import { TeacherLegacyMultipleChoiceActivity } from "./TeacherLegacyMultipleChoiceActivity.jsx";
 import { UltimateB2CompleteSentencesActivity } from "./UltimateB2CompleteSentencesActivity.jsx";
+import { UltimateB2CompleteSentencesStudentActivity } from "./UltimateB2CompleteSentencesStudentActivity.jsx";
 import { UltimateB2DebateClubActivity } from "./UltimateB2DebateClubActivity.jsx";
 
 const PdfSaver = registerPlugin("PdfSaver");
@@ -345,6 +346,7 @@ export function UltimateB2LegacyPilotActivity({
   actions,
   listeningPresentation = null,
   activityPresentation = null,
+  studentSubmission = null,
 }) {
   const images = ultimateB2Unit1Part2LegacyImages[activity.stableNormalizedId];
   const objectNumber = Number(activity.stableNormalizedId.at(-1));
@@ -364,7 +366,9 @@ export function UltimateB2LegacyPilotActivity({
   const teacherListening = objectNumber === 2 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
   const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
 
-  if (objectNumber === 4) return <UltimateB2CompleteSentencesActivity activity={activity} presentation={activityPresentation} />;
+  if (objectNumber === 4) return capabilities.isPresentation || capabilities.isReadOnly
+    ? <UltimateB2CompleteSentencesActivity activity={activity} presentation={activityPresentation} />
+    : <UltimateB2CompleteSentencesStudentActivity activity={activity} {...studentSubmission} />;
   if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} presentation={activityPresentation} />;
 
   return (

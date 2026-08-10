@@ -163,14 +163,27 @@ function responsePayload(activity, answers) {
   return payload;
 }
 
+function persistedSubmissionResult(submission) {
+  if (!(submission?.submissionId || submission?.submittedAt)) return null;
+  return {
+    status: submission.submissionStatus || submission.status || "submitted",
+    scorePercent: submission.scorePercent ?? submission.score ?? null,
+    correctCount: submission.correctCount ?? null,
+    totalCount: submission.totalCount ?? null,
+    teacherFeedback: submission.teacherFeedback || "",
+  };
+}
+
 export function NormalizedStudentsBookActivity({ activityId, mode = "student", onSubmit, submission = null, listeningPresentation = null, activityPresentation = null }) {
   const activity = findStudentsBookImplementation(activityId);
   const capabilities = getActivityModeCapabilities(mode);
+  const initialSubmissionResult = persistedSubmissionResult(submission);
+  const persistedSubmission = Boolean(initialSubmissionResult);
   const [answers, setAnswers] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(persistedSubmission);
   const [completed, setCompleted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [serverResult, setServerResult] = useState(null);
+  const [serverResult, setServerResult] = useState(initialSubmissionResult);
   const [submitError, setSubmitError] = useState("");
   const [solutions, setSolutions] = useState(null);
   const [solutionsLoading, setSolutionsLoading] = useState(false);
@@ -187,10 +200,10 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     solutionRequest.current = null;
     presentationStateVersion.current += 1;
     setAnswers({});
-    setSubmitted(false);
+    setSubmitted(persistedSubmission);
     setCompleted(false);
     setSubmitting(false);
-    setServerResult(null);
+    setServerResult(persistedSubmissionResult(submission));
     setSubmitError("");
     setSolutions(null);
     setSolutionsLoading(false);
@@ -201,7 +214,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       solutionRequest.current?.abort();
       solutionRequest.current = null;
     };
-  }, [activityId]);
+  }, [activityId, persistedSubmission, submission?.submissionId, submission?.submittedAt, submission?.submissionStatus, submission?.scorePercent, submission?.correctCount, submission?.totalCount, submission?.teacherFeedback]);
 
   if (!activity) return <Card><div className="inline-status error">Students Book activity data could not be loaded.</div></Card>;
   const teacherPreview = capabilities.isReadOnly;
@@ -229,12 +242,21 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       return next;
     });
   };
+  const replaceAnswers = (nextAnswers) => {
+    if (!capabilities.canEditAnswers) return;
+    setAnswers(nextAnswers);
+    setCheckResults({});
+  };
   const submit = async () => {
     if (!capabilities.canSubmitStudentWork) return;
+    if (typeof onSubmit !== "function") {
+      setSubmitError("This is independent practice. Open the activity from Assignments to submit work to your teacher.");
+      return false;
+    }
     setSubmitting(true);
     setSubmitError("");
     try {
-      const result = await onSubmit?.({
+      const result = await onSubmit({
         activityKey: activity.stableNormalizedId,
         activityId: activity.stableNormalizedId,
         answers: responsePayload(activity, answers),
@@ -244,21 +266,29 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       });
       setServerResult(result || null);
       setSubmitted(true);
+      return true;
     } catch (error) {
       setSubmitError(error.message || "Submission could not be saved.");
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
   const markComplete = async () => {
     if (!capabilities.canSubmitStudentWork) return;
+    if (typeof onSubmit !== "function") {
+      setSubmitError("This is independent practice. Open the activity from Assignments to save completion.");
+      return false;
+    }
     setSubmitting(true);
     setSubmitError("");
     try {
-      await onSubmit?.({ activityKey: activity.stableNormalizedId, activityId: activity.stableNormalizedId, answers: responsePayload(activity, answers), score: null, implementationMode: activity.implementationMode, status: "completed" });
+      await onSubmit({ activityKey: activity.stableNormalizedId, activityId: activity.stableNormalizedId, answers: responsePayload(activity, answers), score: null, implementationMode: activity.implementationMode, status: "completed" });
       setCompleted(true);
+      return true;
     } catch (error) {
       setSubmitError(error.message || "Completion could not be saved.");
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -368,7 +398,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
       {!studentAndroidBuild && solutionsLoading && <div className="inline-status">Loading verified teacher solutions…</div>}
       {!studentAndroidBuild && solutionMessage && <div className="inline-status warning">{solutionMessage}</div>}
       {!studentAndroidBuild && solutionError && <div className="inline-status error">{solutionError}</div>}
-      {(submitted || completed) && capabilities.canSubmitStudentWork && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
+      {(submitted || completed) && !persistedSubmission && capabilities.canSubmitStudentWork && <button className="secondary-action" type="button" onClick={reset}>Try again</button>}
     </>
   );
 
@@ -384,6 +414,9 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         solutions={solutions}
         solutionsLoading={solutionsLoading}
         revealQuestion={revealQuestion}
+        revealAll={revealAll}
+        resetReveals={() => { presentationStateVersion.current += 1; setRevealedQuestionIds([]); }}
+        activityPresentation={activityPresentation}
         actions={activityActions}
       />
     );
@@ -410,6 +443,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         actions={(legacyPilotObjectOne && capabilities.isPresentation) || teacherOfflineListening || teacherOfflineMultipleChoice ? null : activityActions}
         listeningPresentation={listeningPresentation}
         activityPresentation={activityPresentation}
+        studentSubmission={{ answers, frozen, submitting, submitted, serverResult, submitError, replaceAnswers, onSubmit: submit }}
       />
     );
   }

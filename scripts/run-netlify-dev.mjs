@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { connect } from "node:net";
+import { LOCAL_DEMO_PORTS } from "./_local-demo-ports.mjs";
 
 function portIsListening(port, host) {
   return new Promise((resolve) => {
@@ -12,10 +13,18 @@ function portIsListening(port, host) {
   });
 }
 
-if (await portIsListening(8888, "127.0.0.1")) {
+if (await portIsListening(LOCAL_DEMO_PORTS.lmsPublic, "127.0.0.1")) {
   console.error(
     "Port 8888 is already in use. First try the existing http://127.0.0.1:8888; "
     + "if it is stale, terminate that listening process before starting another demo server.",
+  );
+  process.exit(1);
+}
+
+if (await portIsListening(LOCAL_DEMO_PORTS.lmsVite, "127.0.0.1") || await portIsListening(LOCAL_DEMO_PORTS.lmsVite, "::1")) {
+  console.error(
+    "Port 8001 is already in use by another process. "
+    + "The LMS internal Vite server requires http://localhost:8001.",
   );
   process.exit(1);
 }

@@ -11,13 +11,16 @@
   background-position: 0 var(--response-region-padding-y);
   border: 2px solid rgb(100 116 139 / 42%);
   border-radius: 7px;
+  --response-region-font-family: "Fira Sans", Arial, sans-serif;
+  --response-region-text-color: #111827;
+  --response-region-line-color: #64748b;
 }
 
 button.response-region { cursor: pointer; }
 button.response-region:hover,
 button.response-region:focus-visible { border-color: rgb(105 25 79 / 62%); outline: 3px solid rgb(105 25 79 / 14%); outline-offset: 1px; }
-.response-region.is-revealed { color: #111827; background-color: rgb(255 255 255 / 88%); }
-.response-region-text { display: block; max-width: 100%; overflow-wrap: anywhere; font: 600 var(--response-region-font-size)/var(--response-region-line-spacing) "Fira Sans", Arial, sans-serif; }
+.response-region.is-revealed { color: var(--response-region-text-color); background-color: rgb(255 255 255 / 88%); }
+.response-region-text { display: block; width: var(--response-region-text-width, auto); max-width: 100%; overflow-wrap: anywhere; white-space: pre-wrap; font-family: var(--response-region-font-family); font-size: var(--response-region-font-size); font-weight: 400; line-height: var(--response-region-line-spacing); }
 
 .editable-response-region-layer { position: absolute; inset: 0; z-index: 5; cursor: crosshair; touch-action: none; }
 .editable-response-region { position: absolute; z-index: 1; min-width: 0; min-height: 0; padding: 5px; color: #5b1747; text-align: left; background: rgb(196 54 142 / 18%); border: 2px solid rgb(145 26 108 / 82%); border-radius: 7px; cursor: move; }

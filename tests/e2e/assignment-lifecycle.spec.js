@@ -9,9 +9,12 @@ const athens = MULTI_SCHOOL.find((school) => school.key === "athens");
 const teacher = athens.users.find((user) => user.role === "teacher");
 const targetClass = athens.classes.find((classItem) => classItem.teacherId === teacher.id && classItem.studentIds.length > 0);
 const student = athens.users.find((user) => user.id === targetClass.studentIds[0]);
+const unsubmittedStudent = athens.users.find((user) => user.id === targetClass.studentIds[1]);
 const autoTitle = "Assignment lifecycle auto score";
 const reviewTitle = "Assignment lifecycle teacher review";
-const testTitles = [autoTitle, reviewTitle];
+const deleteTitle = "Assignment lifecycle delete zero";
+const closeTitle = "Assignment lifecycle close submitted";
+const testTitles = [autoTitle, reviewTitle, deleteTitle, closeTitle];
 const lifecycleSubmissionIds = new Set();
 
 async function removeLifecycleRecords() {
@@ -44,20 +47,23 @@ async function signOut(page) {
   await expect(page).toHaveURL(/#\/?home/);
 }
 
-async function createVisibleAssignment(page, { activityLabel, title, dueDate, instructions }) {
-  await page.getByLabel("Exercise/activity").selectOption({ label: activityLabel });
+async function createVisibleAssignment(page, { activityLabel, activityPattern, title, dueDate, instructions }) {
+  const activitySelect = page.getByLabel("Exercise/activity");
+  if (activityPattern) {
+    const activityValue = await activitySelect.locator("option").filter({ hasText: activityPattern }).getAttribute("value");
+    await activitySelect.selectOption(activityValue);
+  } else {
+    await activitySelect.selectOption({ label: activityLabel });
+  }
   await page.getByLabel("Assignment title").fill(title);
   await page.getByLabel("Due date").fill(dueDate);
   await page.getByLabel("Instructions / teacher notes").fill(instructions);
 
-  for (const classItem of athens.classes.filter((item) => item.teacherId === teacher.id)) {
-    const checkbox = page.getByLabel(classItem.name, { exact: true });
-    if (classItem.id === targetClass.id) {
-      if (!await checkbox.isChecked()) await checkbox.check();
-    } else if (await checkbox.isChecked()) {
-      await checkbox.uncheck();
-    }
+  const classCheckboxes = page.locator('.teacher-checkbox-panel input[type="checkbox"]');
+  for (let index = 0; index < await classCheckboxes.count(); index += 1) {
+    if (await classCheckboxes.nth(index).isChecked()) await classCheckboxes.nth(index).uncheck();
   }
+  await page.getByLabel(targetClass.name, { exact: true }).check();
 
   const createResponse = page.waitForResponse((response) => (
     response.request().method() === "POST"
@@ -244,4 +250,94 @@ test("teacher creates assignments, student submits, and teacher results and revi
       contentType: "application/json",
     });
   }
+});
+
+test("zero-submission delete and submitted close use confirmations and preserve Student history", async ({ page, context }) => {
+  test.setTimeout(240_000);
+  test.skip(!marker, "Requires npm run demo:multi-school:setup");
+  test.skip(!unsubmittedStudent, "Requires a second Student in the isolated target class");
+
+  const dueDate = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+  await signIn(page, "teacher", teacher.email);
+  await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
+
+  await createVisibleAssignment(page, {
+    activityPattern: /^Ultimate B2 Students Book \/ Unit 1 \/ Reading.*Exercise 3$/,
+    title: deleteTitle,
+    dueDate,
+    instructions: "Temporary assignment used to verify safe deletion.",
+  });
+  const deleteRow = page.locator(".teacher-assignment-table article").filter({ hasText: deleteTitle });
+  await deleteRow.getByRole("button", { name: "Delete assignment", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("Delete assignment?");
+  await expect(page.getByRole("dialog")).toContainText("This assignment has no submissions and will be permanently deleted. This cannot be undone.");
+  await page.getByRole("dialog").getByRole("button", { name: "Delete assignment", exact: true }).click();
+  await expect(page.getByText("Assignment deleted.", { exact: true })).toBeVisible();
+  await expect(deleteRow).toHaveCount(0);
+
+  const closeAssignment = await createVisibleAssignment(page, {
+    activityPattern: /^Ultimate B2 Students Book \/ Unit 1 \/ Reading.*Exercise 3$/,
+    title: closeTitle,
+    dueDate,
+    instructions: "Submit this assignment before its lifecycle is closed.",
+  });
+  await signOut(page);
+  await context.clearCookies();
+
+  await signIn(page, "student", student.email);
+  await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
+  const submitted = await page.evaluate(async ({ activityId, assignmentId }) => {
+    const assignmentsResponse = await fetch("/.netlify/functions/book-content?action=assignments");
+    const assignmentsPayload = await assignmentsResponse.json();
+    const assignment = assignmentsPayload.assignments.find((item) => item.assignmentId === assignmentId);
+    const answers = Object.fromEntries(assignment.activity.questions.map((question) => {
+      const firstOption = question.options?.[0];
+      const value = typeof firstOption === "object"
+        ? firstOption.value ?? firstOption.label ?? firstOption.text
+        : firstOption;
+      return [question.id, value ?? "E2E response"];
+    }));
+    const response = await fetch("/.netlify/functions/book-content?action=submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activityId, assignmentId, answers }),
+    });
+    return { ok: response.ok, body: await response.json() };
+  }, { activityId: closeAssignment.assignment.activityId, assignmentId: closeAssignment.assignment.id });
+  expect(submitted.ok, JSON.stringify(submitted.body)).toBeTruthy();
+  const submission = submitted.body.submission;
+  lifecycleSubmissionIds.add(submission.id);
+  await signOut(page);
+  await context.clearCookies();
+
+  await signIn(page, "teacher", teacher.email);
+  await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
+  const closeRow = page.locator(".teacher-assignment-table article").filter({ hasText: closeTitle });
+  await expect(closeRow.getByRole("button", { name: "Delete assignment", exact: true })).toHaveCount(0);
+  await closeRow.getByRole("button", { name: "Close assignment", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("Close assignment?");
+  await expect(page.getByRole("dialog")).toContainText("Students who have not submitted will no longer be able to submit. Existing submissions, scores and feedback will be preserved.");
+  await page.getByRole("dialog").getByRole("button", { name: "Close assignment", exact: true }).click();
+  await expect(page.getByText("Assignment closed. Existing results were preserved.", { exact: true })).toBeVisible();
+  await expect(closeRow).toContainText("Closed");
+  await expect(closeRow.getByRole("button", { name: "View results", exact: true })).toBeVisible();
+  await signOut(page);
+  await context.clearCookies();
+
+  await signIn(page, "student", unsubmittedStudent.email);
+  await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: new RegExp(`^${closeTitle}`) }).click();
+  const closedDetail = page.locator(".student-assignment-detail");
+  await expect(closedDetail).toContainText("Closed");
+  await expect(closedDetail).toContainText("This assignment has been closed and is no longer available for submission.");
+  await expect(closedDetail.getByRole("button", { name: "Start exercise", exact: true })).toHaveCount(0);
+  await signOut(page);
+  await context.clearCookies();
+
+  await signIn(page, "student", student.email);
+  await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: new RegExp(`^${closeTitle}`) }).click();
+  await expect(page.locator(".student-assignment-detail")).toContainText(`${submission.scorePercent}%`);
+  await expect(page.locator(".student-assignment-detail").getByRole("button", { name: "View results", exact: true })).toBeVisible();
+  expect(closeAssignment.assignment.id).toBeTruthy();
 });

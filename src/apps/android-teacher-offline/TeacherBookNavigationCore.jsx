@@ -2,6 +2,7 @@ const noOp = () => {};
 
 export default function TeacherBookNavigationCore({
   renderIcon,
+  renderContextIcon = null,
   onHome,
   onBack,
   onPrevious = noOp,
@@ -11,6 +12,10 @@ export default function TeacherBookNavigationCore({
   contextAction = null,
   contextActions = null,
   internalNavigation = null,
+  bookSwitches = [],
+  selectedBookId = "students-book",
+  onBookSwitch = noOp,
+  renderBookSwitch = null,
 }) {
   const actions = contextActions || (contextAction ? [contextAction] : []);
   return (
@@ -28,14 +33,27 @@ export default function TeacherBookNavigationCore({
           key={action.id}
           type="button"
           className={`teacher-book-navigation-context teacher-book-navigation-context--${action.id}`}
+          data-teacher-control-id={action.controlId}
+          disabled={Boolean(action.disabled)}
           onClick={action.onClick}
           aria-label={action.ariaLabel || action.label}
-          aria-pressed={action.active}
+          aria-pressed={typeof action.active === "boolean" ? action.active : undefined}
           title={action.title || action.label}
-        >{renderIcon(action.activeIconName && action.active ? action.activeIconName : action.iconName)}</button>
+        >{renderContextIcon?.(action) || renderIcon(action.activeIconName && action.active ? action.activeIconName : action.iconName)}</button>
       ))}
-      <button type="button" className="teacher-book-navigation-edition" onClick={noOp} aria-label="Grammar Book" title="Grammar Book"><span>GB</span></button>
-      <button type="button" className="teacher-book-navigation-edition" onClick={noOp} aria-label="Workbook" title="Workbook"><span>WB</span></button>
+      {bookSwitches.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className="teacher-book-navigation-book-switch"
+          data-teacher-control-id={item.controlId}
+          data-book-id={item.id}
+          aria-label={item.label}
+          aria-current={selectedBookId === item.id ? "page" : undefined}
+          title={item.label}
+          onClick={() => onBookSwitch(item.id)}
+        >{renderBookSwitch?.(item)}</button>
+      ))}
     </nav>
   );
 }

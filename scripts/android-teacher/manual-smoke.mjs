@@ -365,7 +365,7 @@ try {
   assert.equal(await page.getByRole("heading", { name: "Unit 1", exact: true }).isVisible(), true, "Unit 1 title must remain visible");
   assert.equal(await page.getByRole("button", { name: /^(?:Previous|Next) unit$/, exact: true }).count(), 0, "Overview must not expose side unit arrows");
   const overviewNavigation = page.locator("[data-teacher-book-navigation] button");
-  assert.deepEqual(await overviewNavigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"], "Overview must expose the canonical navigation row");
+  assert.deepEqual(await overviewNavigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"], "Overview must expose the canonical navigation row");
   assert.equal(await overviewNavigation.nth(2).isDisabled(), true, "Overview Previous page must be disabled");
   assert.equal(await overviewNavigation.nth(3).isDisabled(), true, "Overview Next page must be disabled");
 

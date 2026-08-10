@@ -84,17 +84,20 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
   const activePage = selectedPage || context;
   const submitAssignedActivity = async (result) => {
     if (!presentation?.canSubmit) {
-      throw new Error(assignment?.submittedAt
+      throw new Error(assignment?.status === "closed"
+        ? "This assignment has been closed and can no longer be submitted."
+        : assignment?.submittedAt
         ? "This assignment has already been submitted. Practice here will not change the saved result."
         : "The deadline has passed. Practice here cannot be submitted for this assignment.");
     }
     setSubmitError("");
     setSubmitMessage("");
     try {
-      await submitStudentAssignment({ assignmentId: assignment.assignmentId, activityId: assignment.activityId, score: result.score, result });
+      const savedSubmission = await submitStudentAssignment({ assignmentId: assignment.assignmentId, activityId: assignment.activityId, score: result.score, result });
       setSubmitMessage("Assignment submission saved.");
       await reload();
       onAssignmentSubmitted?.();
+      return savedSubmission;
     } catch (submitFailure) {
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
       throw submitFailure;
@@ -138,6 +141,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
                 selectedPageId={activePage.pageId}
                 selectedPageNumber={activePage.pageNumber}
                 highlightedActivityKey={context.activityKey}
+                disableHighlightedActivityLaunch
                 onSelectBookPage={(_componentId, unitId, pageId, pageNumber) => setSelectedPage({ unitId, pageId, pageNumber })}
                 onSelectSubview={() => setSelectedPage(context)}
               />
@@ -148,19 +152,25 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
             <div className="student-assignment-panel-label"><strong>Assigned activity</strong><span>Only this activity submits against this assignment.</span></div>
             {!presentation.canSubmit && (
               <div className="inline-status">
-                {assignment.submittedAt
+                {assignment.status === "closed" && !assignment.submittedAt
+                  ? "This assignment has been closed and can no longer be submitted."
+                  : (assignment.submittedAt || assignment.submissionId)
                   ? "Your saved submission is read-only. You can revisit the activity for practice without changing the result."
                   : "The deadline has passed. You can view the activity for practice, but it cannot be submitted."}
               </div>
             )}
-            <UltimateB2ActivityRunner
-              activityKey={context.activityKey}
-              exerciseId={context.catalog?.exercise?.id || assignment.activityId}
-              activity={assignment.dbActivity}
-              mode="student"
-              hideBreadcrumb
-              onSubmit={submitAssignedActivity}
-            />
+            {(assignment.status !== "closed" || assignment.submissionId) && (
+              <UltimateB2ActivityRunner
+                key={assignment.assignmentId}
+                activityKey={context.activityKey}
+                exerciseId={context.catalog?.exercise?.id || assignment.activityId}
+                activity={assignment.dbActivity}
+                mode="student"
+                hideBreadcrumb
+                onSubmit={submitAssignedActivity}
+                submission={assignment}
+              />
+            )}
             {submitMessage && <div className="inline-status success">{submitMessage}</div>}
             {submitError && <div className="inline-status error">{submitError}</div>}
           </Card>

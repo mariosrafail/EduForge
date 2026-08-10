@@ -36,6 +36,20 @@ export const legacyClassroomAssets = Object.freeze({
     }),
   }),
   controls: Object.freeze({ activityHotspot: url(authored.shell.activityHotspot) }),
+  bookSwitches: Object.freeze(authored.shell.bookSwitches.map((item) => Object.freeze({
+    id: item.id,
+    controlId: item.controlId,
+    label: item.label,
+    source: url(item.asset),
+  }))),
+  revealControls: Object.freeze(Object.fromEntries(authored.shell.revealControls.map((item) => [item.id, Object.freeze({
+    id: item.id,
+    controlId: item.controlId,
+    label: item.label,
+    active: url(item.active),
+    pressed: url(item.pressed),
+    disabled: url(item.disabled),
+  })]))),
   mediaPlayer: Object.freeze({
     background: url(authored.shell.mediaPlayer.background),
     play: Object.freeze({ active: url(authored.shell.mediaPlayer.playActive), pressed: url(authored.shell.mediaPlayer.playPressed) }),

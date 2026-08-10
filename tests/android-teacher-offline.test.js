@@ -245,7 +245,7 @@ test("Teacher book screens use one canonical navigation row with code-controlled
     readFile("src/apps/android-teacher-offline/teacherFixedStage.css", "utf8"),
     readFile("src/apps/android-teacher-offline/legacyTeacherToolbar.css", "utf8"),
   ]);
-  const orderedLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
+  const orderedLabels = ["Home", "Back", "Previous page", "Next page"];
   let previousIndex = -1;
   for (const label of orderedLabels) {
     const currentIndex = navigationCore.indexOf(`aria-label="${label}"`);
@@ -253,21 +253,30 @@ test("Teacher book screens use one canonical navigation row with code-controlled
     previousIndex = currentIndex;
   }
   assert.ok(navigationCore.indexOf("internalNavigation &&") > navigationCore.indexOf('aria-label="Next page"'));
-  assert.ok(navigationCore.indexOf("actions.map") < navigationCore.indexOf('aria-label="Grammar Book"'));
-  assert.equal((navigationCore.match(/<button\b/g) || []).length, 9);
+  assert.ok(navigationCore.indexOf("actions.map") < navigationCore.indexOf("bookSwitches.map"));
   assert.match(navigationCore, /previousDisabled = true/);
   assert.match(navigationCore, /nextDisabled = true/);
   assert.match(navigationCore, /contextAction = null/);
   assert.match(navigationCore, /contextActions = null/);
   assert.match(navigationCore, /internalNavigation = null/);
-  assert.match(navigationCore, /aria-pressed=\{action\.active\}/);
+  assert.match(navigationCore, /aria-pressed=\{typeof action\.active === "boolean" \? action\.active : undefined\}/);
+  assert.match(navigationCore, /disabled=\{Boolean\(action\.disabled\)\}/);
   assert.match(navigationCore, /action\.activeIconName/);
+  assert.match(navigationCore, /renderContextIcon\?\.\(action\)/);
   assert.match(navigationCore, /Previous activity part/);
   assert.match(navigationCore, /Next activity part/);
-  assert.match(navigationCore, /onClick=\{noOp\} aria-label="Grammar Book"/);
-  assert.match(navigationCore, /onClick=\{noOp\} aria-label="Workbook"/);
+  assert.match(navigationCore, /bookSwitches\.map/);
+  assert.match(navigationCore, /data-teacher-control-id=\{item\.controlId\}/);
+  assert.match(navigationCore, /aria-current=\{selectedBookId === item\.id \? "page" : undefined\}/);
+  assert.match(navigationCore, /onClick=\{\(\) => onBookSwitch\(item\.id\)\}/);
+  assert.doesNotMatch(navigationCore, />GB<|>WB</);
   assert.match(navigation, /TeacherBookNavigationCore/);
   assert.match(navigation, /LegacyClassroomIcon/);
+  assert.match(navigation, /legacyClassroomAssets\.bookSwitches/);
+  assert.match(navigation, /data-icon-state="active"/);
+  assert.match(navigation, /data-icon-state="pressed"/);
+  assert.match(navigation, /data-icon-state="disabled"/);
+  assert.match(navigation, /teacher-book-navigation-book-switch-image/);
   assert.equal((shell.match(/<button\b/g) || []).length, 3);
   for (const label of ["Open classroom settings", "Minimize application", "Close application"]) assert.match(shell, new RegExp(`aria-label="${label}"`));
   assert.match(book, /availableUnitNumbers = \(pageUnits \|\| \[\]\)/);
@@ -279,6 +288,10 @@ test("Teacher book screens use one canonical navigation row with code-controlled
   assert.match(pages, /id: "video"[\s\S]*iconName: "video"/);
   assert.match(pages, /id: "show-text"[\s\S]*label: "Show Text"[\s\S]*iconName: "showText"/);
   assert.match(pages, /contextActions=\{contextActions\}/);
+  assert.match(pages, /id: "reload"[\s\S]*id: "show-all"[\s\S]*id: "show-next"/);
+  assert.match(pages, /sendActivityCommand\("reset-activity"\)/);
+  assert.match(pages, /sendActivityCommand\("show-all"\)/);
+  assert.match(pages, /sendActivityCommand\("show-next"\)/);
   assert.match(pages, /internalNavigation=\{internalNavigation\}/);
   assert.match(overview, /<TeacherBookNavigation/);
   assert.match(media, /<TeacherBookNavigation onHome=\{onHome\} onBack=\{onBack\}/);
@@ -286,6 +299,7 @@ test("Teacher book screens use one canonical navigation row with code-controlled
   assert.doesNotMatch(overview, /Previous unit|Next unit|Grid2X2|Minimize2/);
   assert.match(overview, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.match(fixedCss, /\.teacher-book-navigation[\s\S]*height: 66px/);
+  assert.match(fixedCss, /\.teacher-book-navigation-book-switch-image[\s\S]*width: 58px;[\s\S]*height: 58px;[\s\S]*object-fit: contain/);
   assert.match(fixedCss, /\.teacher-book-navigation[\s\S]*position: absolute;[\s\S]*bottom: calc\(var\(--teacher-presentation-screen-padding-bottom\) \+ var\(--teacher-fixed-classroom-toolbar-height\) \+ var\(--teacher-presentation-grid-gap\)\)/);
   assert.doesNotMatch(fixedCss, /\.teacher-book-navigation[\s\S]*margin: -7px/);
   assert.match(toolbarCss, /\.classroom-teaching-toolbar[\s\S]*height: var\(--classroom-toolbar-height\)/);

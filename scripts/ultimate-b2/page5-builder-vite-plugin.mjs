@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import { importUltimateB2Page5OpenResponsePublisherSource } from "./page5-open-response-publisher-importer.mjs";
 
 import {
   normalizeUltimateB2Page5ImageAuthoring,
@@ -14,11 +15,13 @@ import {
 
 export const page5AuthoringEndpoint = "/__hhplms/ultimate-b2-page-5-authoring";
 export const page5ImageAssetEndpoint = "/__hhplms/ultimate-b2-page-5-image-asset";
+export const page5OpenResponsePublisherImportEndpoint = "/__hhplms/ultimate-b2-page-5-publisher-import";
 
 const defaultOpenResponsePath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-page-5-exercise-1.open-response.json");
 const defaultImagePath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-page-5-exercise-2.image.json");
 const defaultTeacherAnswersPath = path.resolve(import.meta.dirname, "../../netlify/functions/_ultimate-b2-unit1-opener-model-answers.json");
 const defaultImageAssetPath = path.resolve(import.meta.dirname, "../../src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-1/obj2/discussion-prompts.svg");
+const defaultPublisherSourceDirectory = path.resolve(import.meta.dirname, "../../tmp/page5-open-response-source");
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const acceptedImageTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 const maximumImageBytes = 12 * 1024 * 1024;
@@ -95,6 +98,7 @@ export function ultimateB2Page5BuilderPlugin({
   imagePath = defaultImagePath,
   teacherAnswersPath = defaultTeacherAnswersPath,
   imageAssetPath = defaultImageAssetPath,
+  publisherSourceDirectory = defaultPublisherSourceDirectory,
 } = {}) {
   return {
     name: "hhplms-ultimate-b2-page-5-builder",
@@ -102,10 +106,17 @@ export function ultimateB2Page5BuilderPlugin({
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const url = new URL(request.url || "/", "http://localhost");
-        if (![page5AuthoringEndpoint, page5ImageAssetEndpoint].includes(url.pathname)) return next();
+        if (![page5AuthoringEndpoint, page5ImageAssetEndpoint, page5OpenResponsePublisherImportEndpoint].includes(url.pathname)) return next();
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return sendJson(response, 403, { error: "The authoring endpoint is local-only." });
           const activityId = url.searchParams.get("activityId");
+          if (url.pathname === page5OpenResponsePublisherImportEndpoint) {
+            if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return sendJson(response, 404, { error: "Unknown publisher-source import target." });
+            if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
+            const imported = await importUltimateB2Page5OpenResponsePublisherSource(publisherSourceDirectory);
+            await Promise.all([atomicWrite(openResponsePath, imported.publicAuthoring), atomicWrite(teacherAnswersPath, imported.teacherAuthoring)]);
+            return sendJson(response, 200, imported);
+          }
           if (url.pathname === page5ImageAssetEndpoint) {
             if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_PAGE5_IMAGE_ID) return sendJson(response, 404, { error: "Unknown Image activity asset." });
             if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });

@@ -210,6 +210,7 @@ export function BookPagesView({
   onSelectPage,
   onClearSelectedPage,
   highlightedActivityKey = null,
+  disableHighlightedActivityLaunch = false,
 }) {
   const sections = useMemo(() => normalizeBookPageSections(component), [component]);
   const [navigationDirection, setNavigationDirection] = useState(1);
@@ -220,6 +221,14 @@ export function BookPagesView({
   const [draftHotspots, setDraftHotspots] = useState([]);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
   const [hotspotMessage, setHotspotMessage] = useState("");
+  const openPageAction = (action) => {
+    if (disableHighlightedActivityLaunch && action?.activityKey === highlightedActivityKey) {
+      setHotspotMessage("Use the Assigned activity below to submit this exercise.");
+      return;
+    }
+    setHotspotMessage("");
+    setActiveAction(action);
+  };
   const [hotspotsLoading, setHotspotsLoading] = useState(false);
   const [hotspotsSaving, setHotspotsSaving] = useState(false);
   const [hotspotLoadError, setHotspotLoadError] = useState("");
@@ -650,7 +659,7 @@ export function BookPagesView({
                 <button className="secondary-action compact-action" type="button" onClick={() => { setFitToScreen(false); setZoom((value) => Math.min(2.4, value + 0.2)); }} disabled={zoom >= 2.4} aria-label="Zoom in"><ZoomIn size={16} /></button>
                 {typeof document !== "undefined" && document.fullscreenEnabled && <button className="secondary-action compact-action" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>}
               </div>
-              {enableBookHotspotEditor && hotspotMessage && <span className="editable-hotspot-click-message">{hotspotMessage}</span>}
+              {hotspotMessage && <span className="editable-hotspot-click-message">{hotspotMessage}</span>}
               {enableBookHotspotEditor && hotspotsLoading && <span className="editable-hotspot-click-message">Loading areas...</span>}
               {enableBookHotspotEditor && hotspotLoadError && <span className="editable-hotspot-click-message warning">{hotspotLoadError}</span>}
               {enableBookHotspotEditor && hotspotSaveError && <span className="editable-hotspot-click-message warning">{hotspotSaveError}</span>}
@@ -714,7 +723,7 @@ export function BookPagesView({
                   fitToScreen={fitToScreen}
                   hotspotEditingActive={hotspotEditingActive}
                   onActivateArea={activateCustomHotspot}
-                  onAction={setActiveAction}
+                  onAction={openPageAction}
                   onChangeAreas={setDraftHotspots}
                   onRetry={() => setPageAssetAttempt((value) => value + 1)}
                   onSelectArea={setSelectedHotspotId}

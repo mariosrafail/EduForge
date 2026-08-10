@@ -1,13 +1,17 @@
-import { BookOpen, ListChecks } from "lucide-react";
+import { BookOpen, ListChecks, LockKeyhole, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
 import {
+  closeAssignment as closeLiveAssignment,
   createAssignment,
+  createAssignmentRequestKey,
+  deleteAssignment as deleteLiveAssignment,
   exportAssignmentResultsCsv,
   listTeacherAssignments,
 } from "../../../../services/assignmentsApi.js";
 import { buildTeacherAssignmentReviewHash } from "../../../../utils/hashRoutes.js";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
+import Modal from "../../../ui/Modal.jsx";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
 import { assignmentReviewAction } from "../assignmentReviewPresentation.js";
 import { TeacherAssignmentReviewWorkspace } from "../components/TeacherAssignmentReviewWorkspace.jsx";
@@ -25,6 +29,9 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
   const [worksheetLinks, setWorksheetLinks] = useState("");
   const [assigned, setAssigned] = useState("");
   const [savingAssignment, setSavingAssignment] = useState(false);
+  const [lifecycleAction, setLifecycleAction] = useState(null);
+  const [savingLifecycle, setSavingLifecycle] = useState(false);
+  const [lifecycleStatus, setLifecycleStatus] = useState("");
   const visibleAssignments = assignments;
 
   const loadAssignments = async () => {
@@ -117,6 +124,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     try {
       const selectedActivity = activityOptions.find((item) => item.id === selectedActivityId);
       await createAssignment({
+        idempotencyKey: createAssignmentRequestKey(),
         activityId: selectedActivityId,
         teacherId: currentUser.id,
         classIds,
@@ -153,6 +161,33 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
     }
   };
 
+  const confirmLifecycleAction = async () => {
+    if (!lifecycleAction?.assignment?.id) return;
+    setSavingLifecycle(true);
+    setAssignmentError("");
+    setLifecycleStatus("");
+    const { assignment, type } = lifecycleAction;
+    try {
+      if (type === "delete") {
+        await deleteLiveAssignment(assignment.id);
+        setAssignments((current) => current.filter((item) => item.id !== assignment.id));
+        setLifecycleStatus("Assignment deleted.");
+      } else {
+        await closeLiveAssignment(assignment.id);
+        setAssignments((current) => current.map((item) => item.id === assignment.id ? { ...item, status: "closed" } : item));
+        setLifecycleStatus("Assignment closed. Existing results were preserved.");
+      }
+      setLifecycleAction(null);
+      await loadAssignments();
+    } catch (error) {
+      setLifecycleAction(null);
+      setAssignmentError(error.message || `Assignment could not be ${type === "delete" ? "deleted" : "closed"}.`);
+      await loadAssignments();
+    } finally {
+      setSavingLifecycle(false);
+    }
+  };
+
   if (routeAction === "review" && selectedAssignmentId) {
     return <TeacherAssignmentReviewWorkspace assignmentId={selectedAssignmentId} currentUser={currentUser} navigateTo={navigateTo} />;
   }
@@ -174,6 +209,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
           <Tag tone={assignmentError ? "gold" : "green"}>{assignmentError ? "Unavailable" : "Database"}</Tag>
         </div>
         {assignmentError && <div className="inline-status error">{assignmentError}</div>}
+        {lifecycleStatus && <div className="inline-status success">{lifecycleStatus}</div>}
         {loadingAssignments && <div className="teacher-loading-state">Loading assignments...</div>}
         <div className="teacher-assignment-table">
           {!loadingAssignments && visibleAssignments.length === 0 && <div className="teacher-loading-state">No assignments yet. Create one below.</div>}
@@ -184,9 +220,11 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
                 <small>{assignment.component} / {assignment.className}</small>
                 <small>Assigned {assignment.assignedDate || (assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : "Today")} / Due {assignment.dueDate || assignment.dueAt ? new Date(assignment.dueDate || assignment.dueAt).toLocaleDateString() : "No due date"}</small>
               </div>
-              <Tag tone={dueDateTone(assignment.dueDate || assignment.dueAt) === "overdue" ? "red" : dueDateTone(assignment.dueDate || assignment.dueAt) === "soon" ? "gold" : "green"}>
-                {dueDateLabel(assignment.dueDate || assignment.dueAt)}
-              </Tag>
+              {assignment.status === "closed" ? <Tag tone="slate">Closed</Tag> : (
+                <Tag tone={dueDateTone(assignment.dueDate || assignment.dueAt) === "overdue" ? "red" : dueDateTone(assignment.dueDate || assignment.dueAt) === "soon" ? "gold" : "green"}>
+                  {dueDateLabel(assignment.dueDate || assignment.dueAt)}
+                </Tag>
+              )}
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.awaitingReviewCount} awaiting · {assignment.reviewedCount} reviewed · {assignment.missingCount} missing</span>
               <span>{assignment.averageScore == null ? "Unscored" : `${assignment.averageScore}% average`}</span>
@@ -199,6 +237,16 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
                 {assignmentReviewAction(assignment)}
               </button>
               <button className="secondary-action compact-action" type="button" onClick={() => exportResults(assignment)} data-sound-click="submit">Export CSV</button>
+              {assignment.status !== "closed" && Number(assignment.submittedCount ?? assignment.submitted ?? 0) === 0 && (
+                <button className="danger-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "delete", assignment })}>
+                  <Trash2 size={15} /> Delete assignment
+                </button>
+              )}
+              {assignment.status !== "closed" && Number(assignment.submittedCount ?? assignment.submitted ?? 0) > 0 && (
+                <button className="warning-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "close", assignment })}>
+                  <LockKeyhole size={15} /> Close assignment
+                </button>
+              )}
             </article>
           ))}
         </div>
@@ -253,6 +301,24 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
         {assigned && <div className="inline-status success">{assigned}</div>}
         </form>
       </Card>
+      <Modal
+        open={Boolean(lifecycleAction)}
+        title={lifecycleAction?.type === "delete" ? "Delete assignment?" : "Close assignment?"}
+        description={lifecycleAction?.type === "delete"
+          ? "This assignment has no submissions and will be permanently deleted. This cannot be undone."
+          : "Students who have not submitted will no longer be able to submit. Existing submissions, scores and feedback will be preserved."}
+        onClose={() => { if (!savingLifecycle) setLifecycleAction(null); }}
+        className="assignment-lifecycle-modal"
+        backdropClassName="assignment-lifecycle-modal-backdrop"
+        footer={<>
+          <button className="secondary-action" type="button" disabled={savingLifecycle} onClick={() => setLifecycleAction(null)}>Cancel</button>
+          <button className={lifecycleAction?.type === "delete" ? "danger-action" : "warning-action"} type="button" disabled={savingLifecycle} onClick={confirmLifecycleAction}>
+            {savingLifecycle ? "Saving..." : lifecycleAction?.type === "delete" ? "Delete assignment" : "Close assignment"}
+          </button>
+        </>}
+      >
+        <p><strong>{lifecycleAction?.assignment?.title || "Assignment"}</strong></p>
+      </Modal>
     </section>
   );
 }

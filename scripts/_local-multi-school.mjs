@@ -3,6 +3,7 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 import pg from "pg";
 import { DEMO_ACCOUNT_PASSWORD } from "./_demo-credentials.mjs";
+import { LOCAL_DEMO_PORTS } from "./_local-demo-ports.mjs";
 import {
   loadProductionMigrationManifest,
   migrationChecksumMatches,
@@ -13,7 +14,7 @@ export const LOCAL_MULTI_SCHOOL = Object.freeze({
   databaseName: "hhplms_multi_school_demo",
   containerName: "hhplms-multi-school-postgres",
   host: "127.0.0.1",
-  port: 55433,
+  port: LOCAL_DEMO_PORTS.postgres,
   user: "postgres",
   password: "hhplms_multi_school_dev_only",
   markerPath: ".codex/local-multi-school-demo.json",

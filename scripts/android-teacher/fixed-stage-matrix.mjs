@@ -148,7 +148,7 @@ function assertSameLogicalRect(actual, expected, label) {
 }
 
 const shellControlLabels = ["Open classroom settings", "Minimize application", "Close application"];
-const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Grammar Book", "Workbook"];
+const bookNavigationLabels = ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"];
 
 async function waitForBookNavigation(page) {
   await page.waitForFunction(() => {
@@ -397,8 +397,7 @@ try {
       await assertBookNavigation(page, "activity return to page", { previousDisabled: true, nextDisabled: false });
 
       const beforeEditionButtons = await page.evaluate(() => JSON.stringify(window.history.state));
-      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Grammar Book", exact: true }).click();
-      await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Workbook", exact: true }).click();
+      for (const label of ["Students Book", "Grammar Book", "Workbook"]) await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: label, exact: true }).click();
       assert.equal(await page.evaluate(() => JSON.stringify(window.history.state)), beforeEditionButtons, "GB and WB are intentional no-ops");
 
       const pageNavigation = page.locator("[data-teacher-book-navigation]");
