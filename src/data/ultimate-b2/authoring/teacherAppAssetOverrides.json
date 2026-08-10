@@ -37,6 +37,15 @@
       "width": 301,
       "height": 99,
       "originalFilename": "grammar-book-hover-pressed.png"
+    },
+    "unit.1.normal": {
+      "repositoryPath": "src/assets/books/ultimate-b2/authoring/teacher-app/8737b4471af8e3c3308934c7ec10ac15caf890cd003ae2bd9b0c805cb322db6c.png",
+      "mediaType": "image/png",
+      "sha256": "8737b4471af8e3c3308934c7ec10ac15caf890cd003ae2bd9b0c805cb322db6c",
+      "sizeBytes": 7444,
+      "width": 60,
+      "height": 60,
+      "originalFilename": "navibar-back-active.png"
     }
   }
 }

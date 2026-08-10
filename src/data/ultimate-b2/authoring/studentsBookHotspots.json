@@ -297,6 +297,21 @@
         "activityKey": "ultimate-b2-sb-u1-p4-o4"
       }
     ],
+    "reading-19": [
+      {
+        "id": "hotspot-9fb35e28-9319-4493-80b9-05236f41b8f6",
+        "unitNumber": 2,
+        "pageId": "reading-19",
+        "pageNumber": 19,
+        "left": 30.4131,
+        "top": 1.9899,
+        "width": 63.6145,
+        "height": 32.5441,
+        "label": "Unit opener · Exercise 1",
+        "actionType": "normalized_activity",
+        "activityKey": "ultimate-b2-sb-u2-p1-o1"
+      }
+    ],
     "review-30": [
       {
         "id": "hotspot-d13a00d3-fa9e-4555-b12c-c89b58bad81d",
