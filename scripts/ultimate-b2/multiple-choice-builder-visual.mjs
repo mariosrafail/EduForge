@@ -112,6 +112,26 @@ try {
   assert.equal(await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).count(), 1);
   await page.screenshot({ path: `${artifactRoot}/book-hierarchy.png`, animations: "disabled" });
 
+  const visiblePageHeadings = page.locator(".activity-builder-page-heading");
+  assert.ok(await visiblePageHeadings.count() > 0);
+  assert.equal(await visiblePageHeadings.locator(".activity-builder-page-add").count(), await visiblePageHeadings.count(), "every rendered page row has its own add button");
+  const page5CreationRow = page.locator(".activity-builder-page").filter({ hasText: /Page 5.*Unit opener/ });
+  const page5ActivityCount = await page5CreationRow.locator(".activity-builder-exercise").count();
+  await page5CreationRow.getByRole("button", { name: "Add activity to Page 5", exact: true }).click();
+  assert.deepEqual(await page5CreationRow.getByRole("menuitem").allTextContents(), ["Image", "Open Response"]);
+  await page.keyboard.press("Escape");
+  assert.equal(await page5CreationRow.getByRole("menu").count(), 0);
+  assert.equal(await page5CreationRow.locator(".activity-builder-exercise").count(), page5ActivityCount, "closing the menu creates no activity");
+  await page5CreationRow.getByRole("button", { name: "Add activity to Page 5", exact: true }).click();
+  await page5CreationRow.getByRole("menuitem", { name: "Open Response", exact: true }).click();
+  await page.locator('.activity-builder-editor:not([hidden]) code').filter({ hasText: "ultimate-b2-sb-u1-p1-o3" }).waitFor();
+  await page5CreationRow.getByRole("button", { name: "Add activity to Page 5", exact: true }).click();
+  await page5CreationRow.getByRole("menuitem", { name: "Image", exact: true }).click();
+  await page.locator('.activity-builder-editor:not([hidden]) code').filter({ hasText: "ultimate-b2-sb-u1-p1-o4" }).waitFor();
+  assert.equal(await page5CreationRow.locator(".activity-builder-exercise").count(), page5ActivityCount + 2);
+  await page.screenshot({ path: `${artifactRoot}/publisher-activity-creation-drafts.png`, animations: "disabled", fullPage: true });
+  await page5CreationRow.locator(".activity-builder-exercise").filter({ hasText: "Exercise 1" }).click();
+
   const page5SourceFiles = ["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"].map((name) => `tmp/page5-open-response-source/${name}`);
   await page.locator(".activity-builder-editor:not([hidden])").getByLabel("Open Response publisher source files").setInputFiles(page5SourceFiles);
   await page.getByRole("button", { name: "Validate and Import Publisher Source", exact: true }).click();
@@ -189,7 +209,7 @@ try {
   if (await unit1Toggle.getAttribute("aria-expanded") === "false") await unit1Toggle.click();
   const page5OpenerPage = page.locator(".activity-builder-page").filter({ hasText: /Page 5.*Unit opener/ });
   if (await page5OpenerPage.locator(".activity-builder-page-toggle").getAttribute("aria-expanded") === "false") await page5OpenerPage.locator(".activity-builder-page-toggle").click();
-  await page5OpenerPage.locator(".activity-builder-exercise").filter({ hasText: "Open Response" }).click();
+  await page5OpenerPage.locator(".activity-builder-exercise").filter({ hasText: "Exercise 1" }).click();
 
   await page.getByRole("button", { name: "Content", exact: true }).click();
 
@@ -226,7 +246,7 @@ try {
   assert.deepEqual(await page.locator(".activity-builder-editor:not([hidden]) .ultimate-b2-legacy-unit-opener img").evaluateAll((images) => images.map((image) => [image.naturalWidth, image.naturalHeight])), [[606, 34], [317, 507]]);
   await page.screenshot({ path: `${artifactRoot}/open-response-preview.png`, animations: "disabled" });
 
-  await page.locator(".activity-builder-exercise").filter({ hasText: "Image" }).click();
+  await page5OpenerPage.locator(".activity-builder-exercise").filter({ hasText: "Exercise 2" }).click();
   await page.getByRole("heading", { name: "Image activity", exact: true }).waitFor();
   const customImage = await sharp({ create: { width: 640, height: 360, channels: 4, background: "#315f9d" } }).webp().toBuffer();
   await page.getByLabel("Browse your own image").setInputFiles({ name: "custom-landscape.webp", mimeType: "image/webp", buffer: customImage });

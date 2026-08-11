@@ -188,7 +188,7 @@ function normalizeFiles(files) {
   return normalized;
 }
 
-export async function importUltimateB2OpenResponsePublisherBundle({ activityId, files }) {
+export async function importUltimateB2OpenResponsePublisherBundle({ activityId, files, allowUnregisteredDraft = false }) {
   const supplied = normalizeFiles(files);
   const byLogicalParameterName = Object.fromEntries(OPEN_RESPONSE_PARAMETER_BASENAMES.map((base) => [base, supplied.find((file) => path.parse(file.name).name.toLowerCase() === base)]));
   const primary = parseUltimateB2OpenResponsePublisherXml(byLogicalParameterName.obj_params.bytes.toString("utf8"), byLogicalParameterName.obj_params.name);
@@ -273,12 +273,12 @@ export async function importUltimateB2OpenResponsePublisherBundle({ activityId, 
     visualCapabilities: { instructionImage: null, showText: { enabled: false, showTextImage: null } },
     artworkLayers: importedImages.map(({ layer }) => layer),
     questions,
-  }, activityId);
+  }, activityId, { allowUnregisteredDraft });
   const teacherAuthoring = normalizeUltimateB2OpenResponseTeacherAnswers({
     schemaVersion: 1,
     activityId,
     modelAnswers: primary.answers.map((answer, index) => ({ questionId: questions[index].id, text: answer.text })),
-  }, activityId, questions.map((question) => question.id));
+  }, activityId, questions.map((question) => question.id), { allowUnregisteredDraft });
   const unreferencedImages = suppliedRasters.filter((raster) => !referencedNames.has(path.parse(raster.name).name.toLowerCase())).map((raster) => raster.name);
   return {
     activityId,

@@ -1,11 +1,19 @@
 import unit1Matrix from "../../books/ultimate-b2/generated/editorial/unit-01.implementation-matrix.json" with { type: "json" };
 import unit2Matrix from "../../books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json" with { type: "json" };
 import openResponseModelAnswerRegistry from "./_ultimate-b2-open-response-model-answers.json" with { type: "json" };
+import publisherActivityRegistry from "../../src/data/ultimate-b2/authoring/publisher-created-activities.json" with { type: "json" };
 import { ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS } from "./_ultimate-b2-unit1-opener-model-answers.js";
 import { ULTIMATE_B2_UNIT1_PART2_OBJECT1_MODEL_ANSWERS } from "./_ultimate-b2-unit1-part2-object1-model-answers.js";
 import { ULTIMATE_B2_UNIT1_PART2_OBJECT2_MODEL_ANSWERS } from "./_ultimate-b2-unit1-part2-object2-model-answers.js";
 
-const activities = [...(unit1Matrix.activities || []), ...(unit2Matrix.activities || [])];
+const publisherCreatedActivities = (publisherActivityRegistry.activities || []).map((record) => ({
+  ...record,
+  availability: "enabled",
+  implementationMode: record.runtime.implementationMode,
+  implementationStatus: "implemented-publisher-authored-react",
+  runtime: { ...record.runtime, questions: [] },
+}));
+const activities = [...(unit1Matrix.activities || []), ...(unit2Matrix.activities || []), ...publisherCreatedActivities];
 const activitiesById = new Map(activities.map((activity) => [activity.stableNormalizedId, activity]));
 
 function normalizeAnswer(value) {

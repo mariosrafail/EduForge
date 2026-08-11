@@ -8,6 +8,8 @@ import { ultimateB2HotspotBuilderPlugin } from "./scripts/ultimate-b2/hotspot-bu
 import { ultimateB2ListeningBuilderPlugin } from "./scripts/ultimate-b2/listening-builder-vite-plugin.mjs";
 import { ultimateB2MultipleChoiceBuilderPlugin } from "./scripts/ultimate-b2/multiple-choice-builder-vite-plugin.mjs";
 import { ultimateB2OpenResponseBuilderPlugin } from "./scripts/ultimate-b2/open-response-builder-vite-plugin.mjs";
+import { ultimateB2ImageBuilderPlugin } from "./scripts/ultimate-b2/image-builder-vite-plugin.mjs";
+import { ultimateB2PublisherActivityBuilderPlugin } from "./scripts/ultimate-b2/publisher-activity-builder-vite-plugin.mjs";
 import { ultimateB2Page5BuilderPlugin } from "./scripts/ultimate-b2/page5-builder-vite-plugin.mjs";
 import { ultimateB2ReadingExerciseBuilderPlugin } from "./scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
 import { ultimateB2TeacherAppBuilderPlugin } from "./scripts/ultimate-b2/teacher-app-builder-vite-plugin.mjs";
@@ -112,6 +114,8 @@ export default defineConfig(({ mode }) => {
       !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2OpenResponseBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2ImageBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2PublisherActivityBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2ReadingExerciseBuilderPlugin() : null,
       !isAndroidTeacherProject ? ultimateB2TeacherAppBuilderPlugin() : null,

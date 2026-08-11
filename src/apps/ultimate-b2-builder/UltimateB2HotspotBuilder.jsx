@@ -39,7 +39,7 @@ function isTextEditingTarget(target) {
   );
 }
 
-export function UltimateB2HotspotBuilder({ assetRevision = "" }) {
+export function UltimateB2HotspotBuilder({ assetRevision = "", activities = ultimateB2StudentsBookAuthoringActivities }) {
   const [manifest, setManifest] = useState(emptyManifest);
   const [skinSelections, setSkinSelections] = useState(bookMenuSkinSelections);
   const [unitNumber, setUnitNumber] = useState(1);
@@ -58,10 +58,10 @@ export function UltimateB2HotspotBuilder({ assetRevision = "" }) {
   const hotspots = manifest.pages?.[page?.id] || [];
   const selectedHotspot = hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
   const pageImage = page ? ultimateB2TeacherAppAssetUrl(page.assetBindingId, assetRevision) : null;
-  const currentPageActivities = ultimateB2StudentsBookAuthoringActivities.filter((activity) => (
+  const currentPageActivities = activities.filter((activity) => (
     activity.unitNumber === page?.unitNumber && activity.pageSpread === page?.spreadNumber
   ));
-  const otherActivities = ultimateB2StudentsBookAuthoringActivities.filter((activity) => !currentPageActivities.includes(activity));
+  const otherActivities = activities.filter((activity) => !currentPageActivities.includes(activity));
   const menuSkinId = selectedBookMenuSkinId(skinSelections, packageId);
   const dirty = hotspotsDirty || menuSkinDirty;
 
@@ -145,8 +145,8 @@ export function UltimateB2HotspotBuilder({ assetRevision = "" }) {
   };
 
   const selectActivity = (activityKey) => {
-    const activity = ultimateB2StudentsBookAuthoringActivities.find((candidate) => candidate.activityKey === activityKey);
-    const previous = ultimateB2StudentsBookAuthoringActivities.find((candidate) => candidate.activityKey === selectedHotspot.activityKey);
+    const activity = activities.find((candidate) => candidate.activityKey === activityKey);
+    const previous = activities.find((candidate) => candidate.activityKey === selectedHotspot.activityKey);
     const shouldFillLabel = !customLabels.has(selectedHotspot.id)
       && (!selectedHotspot.label || selectedHotspot.label === "Clickable area" || selectedHotspot.label === previous?.title);
     updateSelectedHotspot({

@@ -4,7 +4,7 @@ import {
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
 } from "./openResponseAuthoringSchema.js";
 
-const genericAuthoringModules = import.meta.glob("./authoring/*.open-response.json", { eager: true, import: "default" });
+const genericAuthoringModules = import.meta.glob("./authoring/**/*.open-response.json", { eager: true, import: "default" });
 const genericArtworkModules = import.meta.glob("../../assets/books/ultimate-b2/authoring/open-response/**/*.{png,jpg,jpeg,webp}", { eager: true, query: "?url", import: "default" });
 
 const authoredByActivityId = new Map();

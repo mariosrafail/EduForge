@@ -8,11 +8,18 @@
 .activity-builder-unit-toggle { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 9px 10px; background: #273a58; color: #fff; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
 .activity-builder-unit-toggle svg, .activity-builder-page-toggle svg { width: 17px; height: 17px; flex: 0 0 auto; }
 .activity-builder-pages { display: grid; gap: 6px; padding: 7px 0 0 9px; }
-.activity-builder-page { overflow: hidden; border-left: 1px solid #4b6080; }
+.activity-builder-page { position: relative; overflow: visible; border-left: 1px solid #4b6080; }
+.activity-builder-page-heading { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; }
 .activity-builder-page-toggle { display: flex; min-height: 44px; align-items: center; gap: 6px; padding: 7px 8px; background: transparent; color: #fff; }
 .activity-builder-page-toggle > span { display: grid; gap: 1px; }
 .activity-builder-page-toggle strong { font-size: 12px; }
 .activity-builder-page-toggle small { color: #aebed3; font-size: 11px; }
+.activity-builder-page-add { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; color: #dbeafe; background: #314a70; border: 1px solid #5f7698; border-radius: 7px; cursor: pointer; }
+.activity-builder-page-add:hover, .activity-builder-page-add:focus-visible, .activity-builder-page-add[aria-expanded="true"] { color: #fff; background: #175cd3; border-color: #8bb7ff; }
+.activity-builder-page-add svg { width: 17px; height: 17px; }
+.activity-builder-create-menu { position: absolute; z-index: 20; top: calc(100% - 2px); right: 4px; display: grid; width: 168px; padding: 6px; background: #fff; border: 1px solid #b9c7da; border-radius: 9px; box-shadow: 0 14px 30px rgb(15 23 42 / 28%); }
+.activity-builder-create-menu button { min-height: 38px; padding: 8px 10px; color: #172033; background: transparent; border: 0; border-radius: 6px; text-align: left; font-weight: 800; cursor: pointer; }
+.activity-builder-create-menu button:hover, .activity-builder-create-menu button:focus-visible { color: #174989; background: #dbeafe; }
 .activity-builder-exercises { display: grid; gap: 5px; padding: 3px 4px 8px 18px; }
 .activity-builder-exercise { display: grid; gap: 5px; min-height: 60px; padding: 8px 9px; background: #22334d; color: #fff; }
 .activity-builder-exercise > span { display: grid; gap: 2px; }

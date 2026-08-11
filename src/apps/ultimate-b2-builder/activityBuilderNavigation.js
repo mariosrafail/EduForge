@@ -20,6 +20,10 @@ export function buildUltimateB2ActivityNavigation(activities, editorMetadata = {
     if (!page) {
       page = {
         key: pageKey,
+        pageId: activity.pageId,
+        unitNumber: activity.unitNumber,
+        partNumber: activity.partNumber,
+        pageNumber: activity.pageNumber,
         pageLabel: activity.pageLabel,
         pageSpread: activity.pageSpread,
         sectionTitle: activity.sectionTitle,
@@ -27,7 +31,7 @@ export function buildUltimateB2ActivityNavigation(activities, editorMetadata = {
       };
       unit.pages.push(page);
     }
-    const editor = editorMetadata[activity.activityKey] || null;
+    const editor = typeof editorMetadata === "function" ? editorMetadata(activity) : editorMetadata[activity.activityKey] || null;
     page.activities.push({
       ...activity,
       exerciseLabel: ultimateB2ExerciseLabel(activity),

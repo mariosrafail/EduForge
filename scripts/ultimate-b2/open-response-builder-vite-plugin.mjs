@@ -7,8 +7,11 @@ import {
   ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS,
   ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID,
 } from "../../src/data/ultimate-b2/openResponseAuthoringSchema.js";
+import { normalizeUltimateB2PublisherActivityRegistry } from "../../src/data/ultimate-b2/publisherCreatedActivities.js";
+import { ultimateB2StudentsBookAuthoringPages } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
 import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
+import { markUltimateB2PublisherActivityFilesystemSynced, projectUltimateB2PublisherActivity } from "./publisher-activity-projection.mjs";
 
 export const openResponseAuthoringEndpoint = "/__hhplms/ultimate-b2-open-response-authoring";
 export const openResponsePublisherImportEndpoint = "/__hhplms/ultimate-b2-open-response-publisher-import";
@@ -18,6 +21,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../..");
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const requestLimitBytes = 90 * 1024 * 1024;
 const defaultTeacherRegistryPath = path.join(repositoryRoot, "netlify/functions/_ultimate-b2-open-response-model-answers.json");
+const publisherActivityRegistryPath = path.join(repositoryRoot, "src/data/ultimate-b2/authoring/publisher-created-activities.json");
 
 function defaultTargets() {
   return {
@@ -31,6 +35,19 @@ function defaultTargets() {
       teacherRegistryPath: defaultTeacherRegistryPath,
       assetDirectory: path.join(repositoryRoot, `src/assets/books/ultimate-b2/authoring/open-response/${ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID}`),
     },
+  };
+}
+
+async function dynamicTarget(activityId) {
+  const registry = normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(publisherActivityRegistryPath, "utf8")));
+  const record = registry.activities.find((activity) => activity.activityId === activityId && activity.authoringKind === "open-response") || null;
+  if (!record) return null;
+  return {
+    record,
+    registry,
+    publicPath: path.join(repositoryRoot, `src/data/ultimate-b2/authoring/publisher-created/${activityId}.open-response.json`),
+    teacherRegistryPath: defaultTeacherRegistryPath,
+    assetDirectory: path.join(repositoryRoot, `src/assets/books/ultimate-b2/authoring/open-response/${activityId}`),
   };
 }
 
@@ -158,7 +175,7 @@ async function updatedTeacherRegistry(target, activityId, teacherAuthoring) {
   return { schemaVersion: 1, activities: { ...registry.activities, [activityId]: teacherAuthoring } };
 }
 
-export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets() } = {}) {
+export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets(), projectActivity = projectUltimateB2PublisherActivity, markFilesystemSynced = markUltimateB2PublisherActivityFilesystemSynced } = {}) {
   return {
     name: "hhplms-ultimate-b2-open-response-builder",
     apply: "serve",
@@ -169,8 +186,9 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return sendJson(response, 403, { error: "The Open Response authoring endpoint is local-only." });
           const activityId = url.searchParams.get("activityId");
-          if (!ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(activityId) || !targets[activityId]) return sendJson(response, 404, { error: "Unknown Open Response activity." });
-          const target = targets[activityId];
+          const target = targets[activityId] || await dynamicTarget(activityId);
+          if (!target || (!ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(activityId) && !target.record)) return sendJson(response, 404, { error: "Unknown Open Response activity." });
+          const publisherRecord = target.record || null;
           if (url.pathname === openResponseAssetEndpoint) {
             if ([...url.searchParams.keys()].some((key) => !["activityId", "file"].includes(key)) || request.method !== "GET") return sendJson(response, 404, { error: "Unknown Open Response asset." });
             const filename = url.searchParams.get("file") || "";
@@ -190,9 +208,16 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return sendJson(response, 415, { error: "Expected an application/json request." });
           const body = await readBody(request);
           if (url.pathname === openResponsePublisherImportEndpoint) {
-            exactKeys(body, ["activityId", "files"], "Publisher import request");
+            exactKeys(body, publisherRecord ? ["activityId", "files", "title"] : ["activityId", "files"], "Publisher import request");
             if (body.activityId !== activityId) throw new Error("Request activity ID does not match the endpoint selection.");
             const imported = await importUltimateB2OpenResponsePublisherBundle({ activityId, files: decodeFiles(body.files) });
+            let projection = null;
+            let nextRegistry = null;
+            if (publisherRecord) {
+              const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.id === publisherRecord.pageId);
+              projection = await projectActivity({ page, authoringKind: "open-response", title: body.title, occupiedActivityIds: target.registry.activities.map((activity) => activity.activityId), questions: imported.publicAuthoring.questions, clientMutationId: `activity:${activityId}`, existingRecord: publisherRecord, filesystemSyncStatus: "pending" });
+              nextRegistry = normalizeUltimateB2PublisherActivityRegistry({ schemaVersion: 1, activities: target.registry.activities.map((activity) => activity.activityId === activityId ? projection.record : activity) });
+            }
             const assetEntries = imported.assets.map((asset) => {
               const expectedPrefix = `src/assets/books/ultimate-b2/authoring/open-response/${activityId}/`;
               if (!asset.repositoryPath.startsWith(expectedPrefix)) throw new Error("Imported asset path is outside the selected activity directory.");
@@ -204,19 +229,38 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
               ...assetEntries,
               { path: target.publicPath, bytes: jsonBytes(imported.publicAuthoring) },
               { path: target.teacherRegistryPath, bytes: jsonBytes(await updatedTeacherRegistry(target, activityId, imported.teacherAuthoring)) },
+              ...(nextRegistry ? [{ path: publisherActivityRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
             ]);
+            let synchronizationWarning = null;
+            if (publisherRecord) {
+              try { await markFilesystemSynced({ activityId }); }
+              catch (error) { synchronizationWarning = `Authoring was saved, but the database filesystem synchronization marker remains pending: ${error.message}`; }
+            }
             const { assets: _assets, ...safeResponse } = imported;
-            return sendJson(response, 200, { ...safeResponse, configured: true, runtimeFallback: await runtimeFallback(activityId) });
+            return sendJson(response, 200, { ...safeResponse, configured: true, record: projection?.record || null, registry: nextRegistry, runtimeFallback: await runtimeFallback(activityId), warning: synchronizationWarning });
           }
-          exactKeys(body, ["activityId", "publicAuthoring", "teacherAuthoring"], "Open Response authoring request");
+          exactKeys(body, publisherRecord ? ["activityId", "publicAuthoring", "teacherAuthoring", "title"] : ["activityId", "publicAuthoring", "teacherAuthoring"], "Open Response authoring request");
           if (body.activityId !== activityId) throw new Error("Request activity ID does not match the endpoint selection.");
           const publicAuthoring = normalizeUltimateB2OpenResponseAuthoring(body.publicAuthoring, activityId);
           const teacherAuthoring = normalizeUltimateB2OpenResponseTeacherAnswers(body.teacherAuthoring, activityId, publicAuthoring.questions.map((question) => question.id));
+          let projection = null;
+          let nextRegistry = null;
+          if (publisherRecord) {
+            const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.id === publisherRecord.pageId);
+            projection = await projectActivity({ page, authoringKind: "open-response", title: body.title, occupiedActivityIds: target.registry.activities.map((activity) => activity.activityId), questions: publicAuthoring.questions, clientMutationId: `activity:${activityId}`, existingRecord: publisherRecord, filesystemSyncStatus: "pending" });
+            nextRegistry = normalizeUltimateB2PublisherActivityRegistry({ schemaVersion: 1, activities: target.registry.activities.map((activity) => activity.activityId === activityId ? projection.record : activity) });
+          }
           await transactionalWrite([
             { path: target.publicPath, bytes: jsonBytes(publicAuthoring) },
             { path: target.teacherRegistryPath, bytes: jsonBytes(await updatedTeacherRegistry(target, activityId, teacherAuthoring)) },
+            ...(nextRegistry ? [{ path: publisherActivityRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
           ]);
-          return sendJson(response, 200, { activityId, configured: true, publicAuthoring, teacherAuthoring, runtimeFallback: await runtimeFallback(activityId) });
+          let synchronizationWarning = null;
+          if (publisherRecord) {
+            try { await markFilesystemSynced({ activityId }); }
+            catch (error) { synchronizationWarning = `Authoring was saved, but the database filesystem synchronization marker remains pending: ${error.message}`; }
+          }
+          return sendJson(response, 200, { activityId, configured: true, publicAuthoring, teacherAuthoring, record: projection?.record || null, registry: nextRegistry, runtimeFallback: await runtimeFallback(activityId), warning: synchronizationWarning });
         } catch (error) {
           return sendJson(response, 400, { error: error.message || "Open Response authoring could not be saved." });
         }

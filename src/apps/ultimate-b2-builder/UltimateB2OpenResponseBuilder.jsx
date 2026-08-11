@@ -42,7 +42,7 @@ function ImportReport({ report }) {
   </dl>;
 }
 
-export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, activity = null }) {
+export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, activity = null, onPublisherActivityCreated = () => undefined }) {
   const authoringEndpoint = endpoint("/__hhplms/ultimate-b2-open-response-authoring", activityId);
   const publisherImportEndpoint = endpoint("/__hhplms/ultimate-b2-open-response-publisher-import", activityId);
   const [payload, setPayload] = useState(null);
@@ -54,8 +54,17 @@ export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, 
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [importReport, setImportReport] = useState(null);
   const [sourceFiles, setSourceFiles] = useState([]);
+  const [title, setTitle] = useState(activity?.title || "Open Response");
 
   useEffect(() => {
+    setTitle(activity?.title || "Open Response");
+    if (activity?.publisherDraft) {
+      setPayload({ activityId, configured: false, publicAuthoring: null, teacherAuthoring: null, runtimeFallback: { title: activity.title, questions: [] } });
+      setSelectedQuestionId(null);
+      setStatus("Source bundle required");
+      setError("");
+      return undefined;
+    }
     let active = true;
     fetch(authoringEndpoint, { cache: "no-store" }).then(async (response) => {
       const body = await response.json();
@@ -70,7 +79,7 @@ export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, 
       if (active) { setStatus("Load failed"); setError(requestError.message); }
     });
     return () => { active = false; };
-  }, [authoringEndpoint]);
+  }, [activity?.publisherDraft, activity?.title, activityId, authoringEndpoint]);
 
   useEffect(() => {
     const beforeUnload = (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
@@ -91,12 +100,16 @@ export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, 
     try {
       const publicAuthoring = normalizeUltimateB2OpenResponseAuthoring(payload.publicAuthoring, activityId);
       const teacherAuthoring = normalizeUltimateB2OpenResponseTeacherAnswers(payload.teacherAuthoring, activityId, publicAuthoring.questions.map((question) => question.id));
-      const response = await fetch(authoringEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activityId, publicAuthoring, teacherAuthoring }) });
+      const requestBody = { activityId, publicAuthoring, teacherAuthoring };
+      if (activity?.publisherCreated) requestBody.title = title;
+      const response = await fetch(authoringEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Open Response authoring could not be saved.");
       setPayload(body);
       setDirty(false);
-      setStatus("Saved");
+      setStatus(body.warning ? "Saved with database synchronization pending" : "Saved");
+      setError(body.warning || "");
+      if (body.record) onPublisherActivityCreated(body.record);
     } catch (requestError) {
       setStatus("Save failed");
       setError(requestError.message);
@@ -116,14 +129,22 @@ export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, 
     setError("");
     try {
       const files = await Promise.all(sourceFiles.map(async (file) => ({ name: file.name, type: file.type || "", base64: await fileAsBase64(file) })));
-      const response = await fetch(publisherImportEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activityId, files }) });
+      const draftCreation = Boolean(activity?.publisherDraft);
+      const requestUrl = draftCreation ? "/__hhplms/ultimate-b2-publisher-activities/create" : publisherImportEndpoint;
+      const requestPayload = draftCreation
+        ? { draft: { pageId: activity.pageId, authoringKind: "open-response", title, clientMutationId: activity.clientMutationId, predictedActivityId: activityId }, source: { files } }
+        : { activityId, files, ...(activity?.publisherCreated ? { title } : {}) };
+      const response = await fetch(requestUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestPayload) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Publisher source could not be imported.");
-      setPayload(body);
+      const nextPayload = draftCreation ? { activityId: body.record.activityId, configured: true, publicAuthoring: body.publicAuthoring, teacherAuthoring: body.teacherAuthoring, runtimeFallback: { title: body.record.title, questions: [] }, report: body.report } : body;
+      setPayload(nextPayload);
       setSelectedQuestionId(body.publicAuthoring.questions[0].id);
       setImportReport(body.report);
       setDirty(false);
-      setStatus("Publisher source imported and saved");
+      if (body.record) onPublisherActivityCreated(body.record);
+      setStatus(body.warning ? "Imported with database synchronization pending" : "Publisher source imported and saved");
+      setError(body.warning || "");
       setSection("Preview");
     } catch (requestError) {
       setStatus("Import failed");
@@ -174,6 +195,7 @@ export function UltimateB2OpenResponseBuilder({ activityId = defaultActivityId, 
       </header>
       <nav className="listening-builder-sections" aria-label="Open Response editor sections">{sections.map((name) => <button type="button" key={name} aria-selected={section === name} disabled={!configured && name !== "Content"} onClick={() => setSection(name)}>{name}</button>)}</nav>
       {section === "Content" && <div className="page5-builder-form">
+        {activity?.publisherCreated && <label>Activity title<input value={title} maxLength={300} onChange={(event) => { setTitle(event.target.value); if (!activity.publisherDraft) { setDirty(true); setStatus("Unsaved changes"); } }} /></label>}
         <section className="publisher-source-import">
           <div><strong>Publisher source bundle</strong><small>Select or drop `obj_params.xml`, `ebook_obj_params.xml`, and every raster referenced by the XML. Import is deterministic, local-only, and contains no AI/OCR.</small></div>
           <label className="open-response-source-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); selectSourceFiles(event.dataTransfer.files); }}>

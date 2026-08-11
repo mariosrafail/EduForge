@@ -4,6 +4,7 @@ import {
   normalizeUltimateB2Page5TeacherAnswers,
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
 } from "./page5AuthoringSchema.js";
+import { ultimateB2PublisherCreatedActivities } from "./publisherCreatedActivities.js";
 
 export { ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID };
 
@@ -11,6 +12,7 @@ export const ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID = "ultimate-b2-sb-u2-p1-o
 export const ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS = Object.freeze([
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
   ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID,
+  ...ultimateB2PublisherCreatedActivities.filter((activity) => activity.authoringKind === "open-response").map((activity) => activity.activityId),
 ]);
 
 export const ultimateB2OpenResponseLimits = Object.freeze({
@@ -34,8 +36,8 @@ function exactKeys(value, allowed, label) {
   if (keys.some((key) => !allowedSet.has(key)) || allowed.some((key) => !keys.includes(key))) throw new Error(`${label} has missing or unknown fields.`);
 }
 
-function safeActivityId(value) {
-  if (!ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(value)) throw new Error("Unsupported Ultimate B2 Open Response activity ID.");
+function safeActivityId(value, allowUnregisteredDraft = false) {
+  if (!ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(value) && !(allowUnregisteredDraft && /^ultimate-b2-sb-u[1-9]\d*-p[1-9]\d*-o[1-9]\d*$/.test(value))) throw new Error("Unsupported Ultimate B2 Open Response activity ID.");
   return value;
 }
 
@@ -162,13 +164,13 @@ function normalizeResponseRegion(value, index, questionId, surface) {
   };
 }
 
-export function normalizeUltimateB2OpenResponseAuthoring(input, expectedActivityId = input?.activityId) {
+export function normalizeUltimateB2OpenResponseAuthoring(input, expectedActivityId = input?.activityId, { allowUnregisteredDraft = false } = {}) {
   if (input?.schemaVersion === 2 && expectedActivityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return normalizeUltimateB2Page5OpenResponseAuthoring(input);
   assertPayloadSize(input);
   const value = structuredClone(record(input, "Open Response authoring"));
   exactKeys(value, ["schemaVersion", "activityId", "source", "surface", "visualCapabilities", "artworkLayers", "questions"], "Open Response authoring");
   if (value.schemaVersion !== 3) throw new Error("Unsupported Open Response schema version.");
-  const activityId = safeActivityId(value.activityId);
+  const activityId = safeActivityId(value.activityId, allowUnregisteredDraft);
   if (activityId !== expectedActivityId) throw new Error("Open Response activity ID does not match the selected activity.");
   const surface = size(value.surface, "surface");
   const source = normalizeSource(value.source, surface);
@@ -192,13 +194,13 @@ export function normalizeUltimateB2OpenResponseAuthoring(input, expectedActivity
   return { schemaVersion: 3, activityId, source, surface, visualCapabilities, artworkLayers, questions };
 }
 
-export function normalizeUltimateB2OpenResponseTeacherAnswers(input, expectedActivityId = input?.activityId, expectedQuestionIds = null) {
+export function normalizeUltimateB2OpenResponseTeacherAnswers(input, expectedActivityId = input?.activityId, expectedQuestionIds = null, { allowUnregisteredDraft = false } = {}) {
   if (input?.activityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID && input?.schemaVersion === 1) return normalizeUltimateB2Page5TeacherAnswers(input);
   assertPayloadSize(input);
   const value = structuredClone(record(input, "Teacher Open Response authoring"));
   exactKeys(value, ["schemaVersion", "activityId", "modelAnswers"], "Teacher Open Response authoring");
   if (value.schemaVersion !== 1) throw new Error("Unsupported Teacher Open Response schema version.");
-  const activityId = safeActivityId(value.activityId);
+  const activityId = safeActivityId(value.activityId, allowUnregisteredDraft);
   if (activityId !== expectedActivityId) throw new Error("Teacher Open Response activity ID does not match the selected activity.");
   if (!Array.isArray(value.modelAnswers) || !value.modelAnswers.length || value.modelAnswers.length > ultimateB2OpenResponseLimits.questions) throw new Error("Teacher model answer count is invalid.");
   const questionIds = expectedQuestionIds || value.modelAnswers.map((_, index) => `${activityId}-q${index + 1}`);

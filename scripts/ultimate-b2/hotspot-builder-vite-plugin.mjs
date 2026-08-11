@@ -2,11 +2,14 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "./hotspot-manifest.mjs";
 import { validateAndNormalizeBookMenuSkinSelections } from "../../src/config/bookMenuSkins.js";
+import { mergeUltimateB2StudentsBookAuthoringActivities } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { normalizeUltimateB2PublisherActivityRegistry } from "../../src/data/ultimate-b2/publisherCreatedActivities.js";
 
 const hotspotEndpoint = "/__hhplms/ultimate-b2-hotspots";
 const menuSkinEndpoint = "/__hhplms/book-menu-skin-selection";
 const manifestPath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json");
 const menuSkinSelectionsPath = path.resolve(import.meta.dirname, "../../src/config/bookMenuSkinSelections.json");
+const publisherActivityRegistryPath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/publisher-created-activities.json");
 const maximumBodyBytes = 2 * 1024 * 1024;
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
@@ -17,8 +20,13 @@ function json(response, statusCode, payload) {
   response.end(`${JSON.stringify(payload)}\n`);
 }
 
+async function trustedActivities() {
+  const registry = normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(publisherActivityRegistryPath, "utf8")));
+  return mergeUltimateB2StudentsBookAuthoringActivities(registry.activities);
+}
+
 async function readManifest() {
-  return validateAndNormalizeUltimateB2HotspotManifest(JSON.parse(await readFile(manifestPath, "utf8")));
+  return validateAndNormalizeUltimateB2HotspotManifest(JSON.parse(await readFile(manifestPath, "utf8")), await trustedActivities());
 }
 
 async function readMenuSkinSelections() {
@@ -53,7 +61,7 @@ export function ultimateB2HotspotBuilderPlugin() {
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return json(response, 415, { error: "Expected an application/json request." });
           const body = await readRequestBody(request, pathname === hotspotEndpoint ? "Hotspot manifest" : "Book menu skin selection");
           const normalized = pathname === hotspotEndpoint
-            ? validateAndNormalizeUltimateB2HotspotManifest(body)
+            ? validateAndNormalizeUltimateB2HotspotManifest(body, await trustedActivities())
             : validateAndNormalizeBookMenuSkinSelections(body);
           const outputPath = pathname === hotspotEndpoint ? manifestPath : menuSkinSelectionsPath;
           await writeFile(outputPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");

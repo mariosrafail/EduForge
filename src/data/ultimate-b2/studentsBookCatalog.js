@@ -1,6 +1,7 @@
 import studentsBookRuntime from "./generated/students-book.runtime.json" with { type: "json" };
 import unit1Runtime from "./generated/unit-01.runtime.json" with { type: "json" };
 import unit2Runtime from "./generated/unit-02.runtime.json" with { type: "json" };
+import { ultimateB2PublisherCreatedActivities } from "./publisherCreatedActivities.js";
 
 const implementedUnitNumbers = new Set([1, 2]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -13,7 +14,26 @@ export const studentsBookImplementationModeLabels = Object.freeze({
   "unsupported-disabled": "Editorially disabled",
 });
 
-const runtimeActivities = [...(unit1Runtime.activities || []), ...(unit2Runtime.activities || [])];
+const publisherCreatedRuntimeActivities = ultimateB2PublisherCreatedActivities.map((record) => ({
+  stableNormalizedId: record.activityId,
+  unitNumber: record.unitNumber,
+  partNumber: record.partNumber,
+  printedPage: record.printedPage,
+  title: record.title,
+  visibleInstructionText: record.authoringKind === "open-response" ? "Respond to the questions." : "View the publisher image.",
+  activityType: record.runtime.activityType,
+  implementationMode: record.runtime.implementationMode,
+  scoringMode: record.runtime.scoringMode,
+  availability: "enabled",
+  implementationStatus: "implemented-publisher-authored-react",
+  editorialStatus: "publisher-authored",
+  mediaDependencies: [],
+  imageIdentities: [],
+  readiness: { interaction: true, media: true },
+  runtime: { questions: [] },
+  authoringKind: record.authoringKind,
+}));
+const runtimeActivities = [...(unit1Runtime.activities || []), ...(unit2Runtime.activities || []), ...publisherCreatedRuntimeActivities];
 const runtimeById = new Map(runtimeActivities.map((activity) => [activity.stableNormalizedId, activity]));
 const aliasesToStableId = new Map([["video-intro", "ultimate-b2-sb-u2-p2-o1"]]);
 const activityContexts = new Map();
@@ -27,6 +47,28 @@ for (const unit of studentsBookRuntime.units || []) {
       activityContexts.set(activity.id, { unit, page, activity });
     }
   }
+}
+
+for (const record of ultimateB2PublisherCreatedActivities) {
+  const unit = (studentsBookRuntime.units || []).find((candidate) => Number(candidate.number) === record.unitNumber);
+  const page = unit?.pages?.find((candidate) => candidate.id === record.pageId);
+  if (!unit || !page || Number(page.partNumber) !== record.partNumber || Number(page.physicalPageNumber) !== record.printedPage) throw new Error(`Publisher-created activity ${record.activityId} references an unknown canonical page.`);
+  activityContexts.set(record.activityId, {
+    unit,
+    page,
+    activity: {
+      id: record.activityId,
+      activityKey: record.activityId,
+      title: record.title,
+      instructions: record.authoringKind === "open-response" ? "Respond to the questions." : "View the publisher image.",
+      activityType: record.runtime.activityType,
+      availability: "enabled",
+      scoring: record.runtime.scoringMode,
+      implementationMode: record.runtime.implementationMode,
+      implementationStatus: "implemented-publisher-authored-react",
+      editorialStatus: "publisher-authored",
+    },
+  });
 }
 
 export function resolveStudentsBookStableId(identifier) {
@@ -53,6 +95,7 @@ function normalizeImplementation(runtimeActivity, context) {
     implementationStatus: activity.implementationStatus || runtimeActivity.implementationStatus,
     editorialStatus: activity.editorialStatus || runtimeActivity.editorialStatus,
     mediaDependencies: runtimeActivity.mediaDependencies || [],
+    authoringKind: runtimeActivity.authoringKind || null,
     aliases: [...aliasesToStableId.entries()]
       .filter(([, stableId]) => stableId === activity.id)
       .map(([alias]) => alias),
@@ -172,6 +215,7 @@ function exerciseFromActivity(implementation, page, databaseRecord = null) {
     pageSpread: implementation.printedSpread,
     pageLabel: pageLabel(page),
     mediaDependencies: implementation.mediaDependencies || [],
+    authoringKind: implementation.authoringKind || null,
     assignable: enabled,
     isAssignable: enabled,
     availableToStudent: enabled,
@@ -201,7 +245,10 @@ export function buildStudentsBookCatalog({ includeDisabled = false, databaseUnit
     .filter((unit) => implementedUnitNumbers.has(Number(unit.number)))
     .map((unit) => {
       const lessons = (unit.pages || []).map((page) => {
-        const exercises = (page.activities || [])
+        const publisherActivities = ultimateB2PublisherCreatedActivities
+          .filter((record) => record.pageId === page.id)
+          .map((record) => ({ id: record.activityId }));
+        const exercises = [...(page.activities || []), ...publisherActivities]
           .map((activity) => findStudentsBookImplementation(activity.id))
           .filter(Boolean)
           .filter((activity) => includeDisabled || isStudentsBookActivityEnabled(activity))
