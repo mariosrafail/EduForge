@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build:netlify:ultimate-b2-interactive"
+  publish = "dist-netlify/ultimate-b2-interactive"
+
+[build.environment]
+  HHPLMS_NETLIFY_REVIEW_TARGET = "viewer"
+
+[functions]
+  directory = "netlify-sites/viewer/functions"

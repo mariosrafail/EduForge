@@ -18,7 +18,14 @@ export function reviewBuildPolicy(targetName, environment = process.env) {
     && environment.CONTEXT === "production"
     && environment.BRANCH === "dev"
     && environment.HHPLMS_NETLIFY_REVIEW_TARGET === "ultimate-b2-builder";
-  if (dedicatedBuilderProduction) return { context: "production", runProductionPreflight: false };
+  const dedicatedViewerProduction = targetName === "ultimate-b2-interactive"
+    && environment.NETLIFY === "true"
+    && environment.CONTEXT === "production"
+    && environment.BRANCH === "dev"
+    && environment.HHPLMS_NETLIFY_REVIEW_TARGET === "viewer";
+  if (dedicatedBuilderProduction || dedicatedViewerProduction) {
+    return { context: "production", runProductionPreflight: false };
+  }
   const policy = deploymentBuildPolicy(environment);
   if (policy.context === "production") throw new Error("Review artifacts cannot be built in Netlify production context.");
   return policy;

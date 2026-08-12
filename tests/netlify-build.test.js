@@ -38,7 +38,7 @@ test("preview and branch deploy verify and build without production access", () 
 });
 
 test("review target markers fail before every root LMS build or preflight script", () => {
-  for (const reviewTarget of ["ultimate-b2-builder", "future-static-review"]) {
+  for (const reviewTarget of ["ultimate-b2-builder", "viewer", "future-static-review"]) {
     const scripts = [];
     assert.throws(() => runDeploymentBuild({
       environment: {

@@ -1,12 +1,12 @@
 # Netlify review build targets
 
-The LMS, Ultimate B2 Builder review, and Ultimate B2 Interactive review are three build profiles of the same `hhplms` repository. They reuse the same React components, Student-safe activity projections, page/media assets, stable IDs, and UI assets. There are no copied applications.
+The LMS, Ultimate B2 Builder review, and hosted Viewer review are three build profiles of the same `hhplms` repository. The generic public Viewer currently uses the internal Ultimate B2 Interactive target; its B2-specific code and asset graph are intentionally not renamed here. The profiles reuse the same React components, Student-safe activity projections, page/media assets, stable IDs, and UI assets. There are no copied applications.
 
 | Future site | Purpose | Build command | Publish directory | Functions | Data source | Writes | Private answers |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | LMS | LMS and Platform Admin | `npm run build:netlify:lms` | `dist-netlify/lms` | Yes: `netlify/functions` | Existing LMS services | Existing authenticated LMS behavior | Server-authorized only |
 | Ultimate B2 Builder | Publisher/stakeholder read-only review | `npm run build:netlify:ultimate-b2-builder` | `dist-netlify/ultimate-b2-builder` | No | Checked-in review-safe repository projections | No | No |
-| Ultimate B2 Interactive | Static stakeholder Interactive review | `npm run build:netlify:ultimate-b2-interactive` | `dist-netlify/ultimate-b2-interactive` | No | Checked-in public pack, Student-safe runtime, static assets | No | No |
+| Viewer (current Ultimate B2 Interactive) | Static stakeholder Interactive review | `npm run build:netlify:ultimate-b2-interactive` | `dist-netlify/ultimate-b2-interactive` | No | Checked-in public pack, Student-safe runtime, static assets | No | No |
 
 Each command empties only its own publish directory, so all three outputs can coexist. `dist-netlify/` is ignored and must not be committed.
 
@@ -20,7 +20,7 @@ Build behavior is selected explicitly in `src/config/buildProfiles.js` and `vite
 - The hosted Interactive reuses the Android Teacher visual shell but substitutes a public-pack validator/provider, the no-solution provider, Student answer UI, Student-safe activity data, and committed hotspot data. `teacher-solutions.json` is not imported.
 - Android Teacher continues to use the full private pack, strict Teacher validation, and Teacher reveal UI.
 
-The review wrapper accepts local builds and Netlify `branch-deploy`/`deploy-preview` contexts. It also accepts Netlify `production` only for the Ultimate B2 Builder target on `dev` when the dedicated package supplies the explicit `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` marker. Every other review production context remains blocked. The existing root `netlify.toml`, `deploy:build`, LMS main-only production rule, migration check, and production database preflight remain unchanged.
+The review wrapper accepts local builds and Netlify `branch-deploy`/`deploy-preview` contexts. It accepts Netlify `production` only for two exact dedicated-site combinations: the Ultimate B2 Builder target on `dev` with `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder`, or the current Ultimate B2 Interactive target on `dev` with `HHPLMS_NETLIFY_REVIEW_TARGET=viewer`. Every other review production context remains blocked. The existing root `netlify.toml`, `deploy:build`, LMS main-only production rule, migration check, and production database preflight remain unchanged.
 
 ## Verification
 
@@ -84,3 +84,52 @@ The configured Functions directory is a tracked, empty site-local directory. It 
 Do not configure LMS, authentication, database, staging, Neon, or publisher-workspace variables for the Builder site. In particular, it does not need `DATABASE_URL`, `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, or `ULTIMATE_B2_CONTENT_ROOT`. It uses only the checked-in review-safe projections and public/static assets described above.
 
 This dedicated Builder branch model does not change the LMS site. The LMS continues to use its root configuration, `main` as its only production branch, LMS Functions, and the existing production database preflight.
+
+## Configure the dedicated Viewer site
+
+Create another Netlify project for the generic public Viewer identity. The implementation remains the existing internal `ultimate-b2-interactive` review target.
+
+### Initial Viewer project creation
+
+Enter these values in Netlify's initial import form:
+
+| Setting | Value |
+| --- | --- |
+| Repository | `mariosrafail/hhplms` |
+| Project name | `hhplms-viewer` |
+| Branch to deploy | `dev` |
+| Base directory | Leave unset (repository root) |
+| Build command | `npm run build:netlify:ultimate-b2-interactive` |
+| Publish directory | `dist-netlify/ultimate-b2-interactive` |
+| Functions directory | `netlify-sites/viewer/functions` |
+| Environment variable | `HHPLMS_NETLIFY_REVIEW_TARGET=viewer` |
+
+For this dedicated Viewer site only, Netlify's **Production branch** is `dev`, meaning `dev` publishes to the primary Viewer URL. The Viewer remains a static review application; it is not an LMS production deployment and requires no branch-deploy configuration for `dev`.
+
+If the initial form does not offer Package directory and Netlify resolves the repository-root LMS configuration, the root pipeline sees the Viewer marker and fails before migration verification, production preflight, Vite compilation, or artifact generation. It cannot deploy the LMS or root Functions.
+
+### After Viewer project creation
+
+Navigate to:
+
+```text
+Project configuration
+→ Build & deploy
+→ Continuous deployment
+→ Build settings
+→ Configure
+```
+
+Set **Package directory** to `netlify-sites/viewer`, keep **Base directory** unset, save, and trigger a fresh deploy. The successful redeploy resolves `netlify-sites/viewer/netlify.toml` and uses the existing internal Interactive build target with its dedicated empty Functions directory. The UI marker may remain because the package config declares the same non-secret value.
+
+The expected primary URL is:
+
+```text
+https://hhplms-viewer.netlify.app
+```
+
+If that project name is unavailable, use the equivalent Netlify URL assigned to the selected name.
+
+Do not copy LMS, authentication, database, staging, Neon, or publisher-workspace variables into the Viewer project. It does not need `DATABASE_URL`, `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, `ULTIMATE_B2_CONTENT_ROOT`, Neon credentials, or publisher workspace credentials.
+
+The Viewer package declares no redirects and its tracked Functions directory contains no deployable source. The hosted Viewer continues to use Student-safe runtime data, excludes Teacher solutions and reveal controls, and blocks LMS Functions, `/api/`, and `/auth/` runtime dependencies.

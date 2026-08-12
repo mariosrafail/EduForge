@@ -49,6 +49,26 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(rootNetlify, /from = "\/platform-admin\/api\/auth"/);
 });
 
+test("dedicated Viewer site package isolates the Interactive output and Netlify Functions", async () => {
+  const [viewerNetlify, builderNetlify] = await Promise.all([
+    read("netlify-sites/viewer/netlify.toml"),
+    read("netlify-sites/ultimate-b2-builder/netlify.toml"),
+  ]);
+  const functionFiles = await filesUnder(new URL("../netlify-sites/viewer/functions/", import.meta.url));
+
+  assert.equal(tomlString(viewerNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-interactive");
+  assert.equal(tomlString(viewerNetlify, "build", "publish"), "dist-netlify/ultimate-b2-interactive");
+  assert.equal(tomlString(viewerNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "viewer");
+  assert.equal(tomlString(viewerNetlify, "functions", "directory"), "netlify-sites/viewer/functions");
+  assert.doesNotMatch(viewerNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
+  assert.doesNotMatch(viewerNetlify, /\[\[redirects\]\]|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
+  assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
+
+  assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
+  assert.equal(tomlString(builderNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "ultimate-b2-builder");
+  assert.equal(tomlString(builderNetlify, "functions", "directory"), "netlify-sites/ultimate-b2-builder/functions");
+});
+
 test("Netlify review targets have explicit isolated profiles and outputs", () => {
   assert.deepEqual(Object.keys(reviewTargets), ["lms", "ultimate-b2-builder", "ultimate-b2-interactive"]);
   assert.deepEqual(new Set(Object.values(reviewTargets).map((target) => target.outDir)), new Set([
@@ -81,7 +101,25 @@ test("only the explicitly marked dedicated Builder site may use production conte
   assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "dev", HHPLMS_NETLIFY_REVIEW_TARGET: "wrong-target" }), /must use branch main/);
   assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
   assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "feature", ...marker }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "dev", ...marker }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("arbitrary-review", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
+
+  assert.equal(deploymentBuildPolicy({ ...production, BRANCH: "main" }).runProductionPreflight, true);
+  assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
+});
+
+test("only the explicitly marked dedicated Viewer site may use production context on dev", () => {
+  const production = { NETLIFY: "true", CONTEXT: "production", COMMIT_REF: "abc" };
+  const marker = { HHPLMS_NETLIFY_REVIEW_TARGET: "viewer" };
+  assert.deepEqual(reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "dev", ...marker }), {
+    context: "production", runProductionPreflight: false,
+  });
+
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "dev" }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "dev", HHPLMS_NETLIFY_REVIEW_TARGET: "wrong-target" }), /must use branch main/);
   assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "feature", ...marker }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "dev", ...marker }), /must use branch main/);
   assert.throws(() => reviewBuildPolicy("arbitrary-review", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
 
   assert.equal(deploymentBuildPolicy({ ...production, BRANCH: "main" }).runProductionPreflight, true);
@@ -142,5 +180,10 @@ test("review documentation preserves the three-site matrix and existing producti
   assert.match(documentation, /https:\/\/<builder-site-name>\.netlify\.app/);
   assert.match(documentation, /main-only production rule/);
   assert.match(documentation, /HHPLMS_NETLIFY_REVIEW_TARGET[^\n]*ultimate-b2-builder/);
+  assert.match(documentation, /dedicated Viewer site/i);
+  assert.match(documentation, /Project name[^\n]*`hhplms-viewer`/);
+  assert.match(documentation, /Package directory[^\n]*`netlify-sites\/viewer`/);
+  assert.match(documentation, /HHPLMS_NETLIFY_REVIEW_TARGET=viewer/);
+  assert.match(documentation, /https:\/\/hhplms-viewer\.netlify\.app/);
   assert.match(documentation, /ULTIMATE_B2_CONTENT_ROOT.*local publisher configuration/);
 });
