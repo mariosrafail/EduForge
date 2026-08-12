@@ -32,4 +32,28 @@ npm run verify:netlify:ultimate-b2-interactive
 
 The Builder and Interactive checks reject private answers, source/IWB provenance, workstation paths, workspace configuration, private pack filenames, and unintended application/network dependencies. The LMS check applies the existing web-bundle safety policy.
 
-Creating or configuring the three Netlify sites, their branch settings, and publish-directory settings is Step 4 and is intentionally outside this change.
+## Step 4: configure the dedicated Builder site
+
+Create a second Netlify site from the same `mariosrafail/hhplms` repository. This site is only for the Ultimate B2 Builder hosted review and must use these Netlify UI values:
+
+| Setting | Value |
+| --- | --- |
+| Production branch | `main` |
+| Branch deploy | Enable `dev` as an individual branch deploy |
+| Base directory | Leave unset (repository root) |
+| Package directory | `netlify-sites/ultimate-b2-builder` |
+| Build command | `npm run build:netlify:ultimate-b2-builder` |
+| Publish directory | `dist-netlify/ultimate-b2-builder` |
+| Functions directory | `netlify-sites/ultimate-b2-builder/functions` |
+
+Do not set `dev` as the Production branch. The deployed Builder artifact must use Netlify's `branch-deploy` context; the review build continues to refuse the `production` context. After the `dev` branch deploy succeeds, its stable URL has this shape:
+
+```text
+https://dev--<builder-site-name>.netlify.app
+```
+
+Keep the Base directory unset so Netlify installs dependencies and runs the build from the repository root. The Package directory selects the Builder-specific `netlify.toml`; its paths are deliberately root-relative.
+
+The configured Functions directory is a tracked, empty site-local directory. It contains no deployable function source and must not be changed to the repository-root `netlify/functions` directory. Do not add function redirects, LMS authentication functions, Platform Admin functions, database-backed Builder APIs, or authoring mutation endpoints to this site.
+
+Do not configure LMS, authentication, database, staging, Neon, or publisher-workspace variables for the Builder site. In particular, it does not need `DATABASE_URL`, `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, or `ULTIMATE_B2_CONTENT_ROOT`. It uses only the checked-in review-safe projections and public/static assets described above.

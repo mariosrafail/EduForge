@@ -1,11 +1,51 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 import { BUILD_PROFILE_IDS, buildProfiles, resolveBuildProfile } from "../src/config/buildProfiles.js";
 import { reviewBuildPolicy, reviewTargets } from "../scripts/netlify/build-review-target.mjs";
 
 const read = (relative) => readFile(new URL(`../${relative}`, import.meta.url), "utf8");
+
+function tomlString(configuration, section, key) {
+  const header = `[${section}]`;
+  const sectionStart = configuration.indexOf(header);
+  if (sectionStart < 0) return undefined;
+  const remainder = configuration.slice(sectionStart + header.length);
+  const nextSection = remainder.search(/^\[/m);
+  const sectionBody = nextSection < 0 ? remainder : remainder.slice(0, nextSection);
+  return sectionBody.match(new RegExp(`^\\s*${key}\\s*=\\s*"([^"]+)"\\s*$`, "m"))?.[1];
+}
+
+async function filesUnder(directory) {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const child = new URL(`${entry.name}${entry.isDirectory() ? "/" : ""}`, directory);
+    if (entry.isDirectory()) files.push(...await filesUnder(child));
+    else if (entry.isFile()) files.push(entry.name);
+  }
+  return files;
+}
+
+test("dedicated Builder site package isolates build output and Netlify Functions", async () => {
+  const [builderNetlify, rootNetlify] = await Promise.all([
+    read("netlify-sites/ultimate-b2-builder/netlify.toml"),
+    read("netlify.toml"),
+  ]);
+  const functionFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/functions/", import.meta.url));
+
+  assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
+  assert.equal(tomlString(builderNetlify, "build", "publish"), "dist-netlify/ultimate-b2-builder");
+  assert.equal(tomlString(builderNetlify, "functions", "directory"), "netlify-sites/ultimate-b2-builder/functions");
+  assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
+  assert.doesNotMatch(builderNetlify, /\[\[redirects\]\]|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
+  assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
+
+  assert.equal(tomlString(rootNetlify, "build", "command"), "npm run deploy:build");
+  assert.equal(tomlString(rootNetlify, "build", "publish"), "dist");
+  assert.equal(tomlString(rootNetlify, "build", "functions"), "netlify/functions");
+  assert.match(rootNetlify, /from = "\/platform-admin\/api\/auth"/);
+});
 
 test("Netlify review targets have explicit isolated profiles and outputs", () => {
   assert.deepEqual(Object.keys(reviewTargets), ["lms", "ultimate-b2-builder", "ultimate-b2-interactive"]);
@@ -77,7 +117,11 @@ test("review documentation preserves the three-site matrix and existing producti
   assert.match(documentation, /dist-netlify\/lms/);
   assert.match(documentation, /dist-netlify\/ultimate-b2-builder/);
   assert.match(documentation, /dist-netlify\/ultimate-b2-interactive/);
-  assert.match(documentation, /Creating or configuring.*Step 4/i);
+  assert.match(documentation, /Step 4: configure the dedicated Builder site/i);
+  assert.match(documentation, /Production branch[^\n]*`main`/);
+  assert.match(documentation, /Branch deploy[^\n]*`dev`/);
+  assert.match(documentation, /Package directory[^\n]*`netlify-sites\/ultimate-b2-builder`/);
+  assert.match(documentation, /https:\/\/dev--<builder-site-name>\.netlify\.app/);
   assert.match(documentation, /main-only production rule/);
   assert.match(documentation, /ULTIMATE_B2_CONTENT_ROOT.*local publisher configuration/);
 });

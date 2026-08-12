@@ -1,0 +1,6 @@
+[build]
+  command = "npm run build:netlify:ultimate-b2-builder"
+  publish = "dist-netlify/ultimate-b2-builder"
+
+[functions]
+  directory = "netlify-sites/ultimate-b2-builder/functions"
