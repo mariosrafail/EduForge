@@ -17,6 +17,52 @@ import {
 
 export const builderContentMaximumBodyBytes = 512 * 1024;
 
+const builderContentDiagnosticStages = new Set([
+  "database",
+  "authorize",
+  "route",
+  "resolve_resource",
+  "load_document",
+  "repository_baseline",
+  "parse_mutation",
+  "validate_mutation",
+  "save_document",
+  "validate_saved_document",
+  "response",
+]);
+const safeDiagnosticToken = /^[A-Za-z0-9_.-]{1,64}$/;
+
+function diagnosticToken(value, fallback) {
+  const token = typeof value === "string" ? value : "";
+  return safeDiagnosticToken.test(token) ? token : fallback;
+}
+
+function errorProperty(error, property) {
+  try {
+    return error?.[property];
+  } catch {
+    return undefined;
+  }
+}
+
+function diagnosticCategory(errorCode) {
+  if (errorCode === "ERR_MODULE_NOT_FOUND") return "module_not_found";
+  if (["ERR_REQUIRE_ESM", "ERR_UNKNOWN_FILE_EXTENSION", "ERR_UNSUPPORTED_ESM_URL_SCHEME", "MODULE_NOT_FOUND"].includes(errorCode)) return "module_loading";
+  if (errorCode === "42P01") return "database_relation_missing";
+  if (errorCode === "42703") return "database_column_missing";
+  if (["28P01", "28000"].includes(errorCode)) return "database_authentication";
+  if (errorCode === "3D000") return "database_missing";
+  if (["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ETIMEDOUT"].includes(errorCode)) return "database_or_network_connectivity";
+  return "unexpected";
+}
+
+export function safeBuilderContentDiagnostic(stage, error) {
+  const safeStage = builderContentDiagnosticStages.has(stage) ? stage : "database";
+  const errorName = diagnosticToken(errorProperty(error, "name"), "UnknownError");
+  const errorCode = diagnosticToken(errorProperty(error, "code"), "unknown");
+  return { stage: safeStage, errorName, errorCode, category: diagnosticCategory(errorCode) };
+}
+
 function header(event, name) {
   const entry = Object.entries(event?.headers || {}).find(([key]) => key.toLowerCase() === name.toLowerCase());
   return entry ? String(entry[1]) : "";
@@ -87,25 +133,38 @@ export function createBuilderContentHandler(overrides = {}) {
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
     saveDocument: overrides.saveDocument || saveBuilderComponentDocument,
+    logger: overrides.logger || console,
   };
 
   return async function builderContentHandler(event) {
     if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
+    let stage = "database";
     try {
+      stage = "database";
       const sql = dependencies.getDatabase();
+      stage = "authorize";
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
 
+      stage = "route";
       const route = parseBuilderContentRoute(event);
+      stage = "resolve_resource";
       const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource);
       if (!resource || !resource.readable) return json(404, { error: "builder_resource_not_found" });
 
       if (event.httpMethod === "GET") {
+        stage = "load_document";
         const stored = await dependencies.loadDocument(sql, resource);
-        const state = stored || { revision: 0, source: "repository", document: resource.baseline() };
+        let state = stored;
+        if (!state) {
+          stage = "repository_baseline";
+          state = { revision: 0, source: "repository", document: resource.baseline() };
+        }
+        stage = "response";
         return json(200, contentResponse(resource, state));
       }
 
+      stage = "parse_mutation";
       if (event.httpMethod !== "PUT" || !resource.writeAllowed) return json(405, { error: "method_not_allowed" });
       const originError = requireBuilderOrigin(event);
       if (originError) return originError;
@@ -115,6 +174,7 @@ export function createBuilderContentHandler(overrides = {}) {
 
       const parsed = parseSaveBody(event);
       if (parsed.error) return parsed.error;
+      stage = "validate_mutation";
       try { assertPublicBuilderDocument(parsed.value.document); } catch { return json(400, { error: "private_document_key_rejected" }); }
 
       let document;
@@ -122,6 +182,7 @@ export function createBuilderContentHandler(overrides = {}) {
         return json(400, { error: "invalid_document", detail: String(error.message || "Document validation failed").slice(0, 240) });
       }
       const payloadSha256 = builderDocumentSha256(document);
+      stage = "save_document";
       const result = await dependencies.saveDocument(sql, {
         resource,
         expectedRevision: parsed.value.expectedRevision,
@@ -141,7 +202,9 @@ export function createBuilderContentHandler(overrides = {}) {
       if (result.outcome === "unauthorized_actor") return json(401, { error: "Unauthorized" });
       if (!["saved", "idempotent"].includes(result.outcome)) throw new Error("Unexpected Builder content save outcome");
 
+      stage = "validate_saved_document";
       const responseDocument = resource.validate(result.document);
+      stage = "response";
       return json(200, contentResponse(resource, {
         revision: result.revision,
         source: "database",
@@ -150,8 +213,8 @@ export function createBuilderContentHandler(overrides = {}) {
         currentRevision: result.currentRevision,
         idempotent: result.outcome === "idempotent",
       }));
-    } catch {
-      console.error("Builder content request failed");
+    } catch (error) {
+      dependencies.logger.error("Builder content request failed", safeBuilderContentDiagnostic(stage, error));
       return json(500, { error: "builder_content_failed" });
     }
   };
