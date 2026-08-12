@@ -42,12 +42,15 @@ test("path policy implements the conservative three-site regression matrix", () 
 
   assert.deepEqual(decisions(["netlify-sites/ultimate-b2-builder/server/_builder-content.js"]), builderOnly);
   assert.deepEqual(decisions(["netlify-sites/ultimate-b2-builder/functions/builder-content.js"]), builderOnly);
+  assert.deepEqual(decisions(["netlify-sites/ultimate-b2-builder/server/_builder-preview.js"]), builderOnly);
+  assert.deepEqual(decisions(["netlify-sites/ultimate-b2-builder/functions/builder-preview.js"]), builderOnly);
   assert.deepEqual(decisions(["src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"]), builderOnly);
   assert.deepEqual(decisions(["src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"]), builderOnly);
   assert.deepEqual(decisions(["netlify-sites/viewer/netlify.toml"]), viewerOnly);
   assert.deepEqual(decisions(["netlify/functions/auth-signin.js"]), lmsOnly);
   assert.deepEqual(decisions(["netlify.toml"]), lmsOnly);
   assert.deepEqual(decisions(["src/apps/android-teacher-offline/TeacherOfflineApp.jsx"]), builderViewer);
+  assert.deepEqual(decisions(["src/data/ultimate-b2/hostedReviewHotspotRuntime.js"]), allSites);
   assert.deepEqual(decisions(["scripts/netlify/build-review-target.mjs"]), builderViewer);
   assert.deepEqual(decisions(["scripts/netlify/committed-hotspot-vite-plugin.mjs"]), allSites);
   assert.deepEqual(decisions(["index.html"]), lmsViewer);

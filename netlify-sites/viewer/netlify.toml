@@ -8,3 +8,9 @@
 
 [functions]
   directory = "netlify-sites/viewer/functions"
+
+[[redirects]]
+  from = "/preview/content/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/content/:splat"
+  status = 200
+  force = true

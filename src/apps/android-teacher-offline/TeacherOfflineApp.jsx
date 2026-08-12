@@ -5,6 +5,7 @@ import { Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
 import { interactiveContentPackProvider } from "virtual:ultimate-b2-interactive-pack-provider";
+import { prepareUltimateB2StudentsBookHotspots } from "virtual:ultimate-b2-runtime-hotspots";
 import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
 import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
@@ -110,13 +111,19 @@ export default function TeacherOfflineApp() {
 
   useEffect(() => {
     let active = true;
-    interactiveContentPackProvider.load()
-      .then((pack) => {
+    Promise.all([
+      interactiveContentPackProvider.load(),
+      prepareUltimateB2StudentsBookHotspots(),
+    ])
+      .then(([pack]) => {
         if (active) setPackState({ status: "ready", pack, error: "" });
       })
       .catch((error) => {
         if (import.meta.env.DEV) console.error("Teacher content validation failed", error);
-        if (active) setPackState({ status: "error", pack: null, error: "Reinstall the verified classroom application." });
+        const message = error?.code === "LIVE_PREVIEW_UNAVAILABLE"
+          ? "Live preview content could not be loaded. Refresh and try again."
+          : "Reinstall the verified classroom application.";
+        if (active) setPackState({ status: "error", pack: null, error: message });
       });
     return () => {
       active = false;

@@ -48,6 +48,7 @@ const targetPatterns = Object.freeze({
     ["Netlify runtime dependency", /["']\/\.netlify\/functions/gi],
     ["API runtime dependency", /["']\/api\//gi],
     ["auth runtime dependency", /["']\/auth\//gi],
+    ["absolute Builder preview origin", /https:\/\/hhplms-builder\.netlify\.app/gi],
     ["external runtime service", /https?:\/\/(?:fonts\.(?:googleapis|gstatic)\.com|[^\s"']*(?:sentry|segment|google-analytics|googletagmanager)[^\s"']*)/gi],
     ["Platform Admin bundle", /Platform Administration|platform-admin-root/gi],
   ],
@@ -89,14 +90,14 @@ async function sourceFilesUnder(root, relative = "") {
 async function verifyBuilderFunctionLayout() {
   const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
-  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-preview.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-preview.js",
   ]);
-  for (const entry of ["builder-auth.js", "builder-content.js"]) {
+  for (const entry of ["builder-auth.js", "builder-content.js", "builder-preview.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content)Handler\(\)/);
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content|Preview)Handler\(\)/);
   }
 }
 

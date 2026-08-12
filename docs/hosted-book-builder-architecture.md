@@ -59,12 +59,21 @@ Each save also supplies a UUID `clientMutationId`. Retrying the same document id
 
 The public document guard recursively rejects exact normalized private/security key concepts, including answers, correct-option identities, model answers, Teacher solutions, reveal text, passwords, credentials, tokens, secrets, and database URLs. The canonical Ultimate B2 hotspot validator then enforces document identity, page IDs, hotspot IDs, Unit/page relationships, geometry, action type, labels, and Student-safe activity identities.
 
+The same current authoring document can be exposed to the dedicated Viewer only through a separate explicit resource capability: `previewReadable: true` plus `projectPreview(document)`. Authenticated Builder `readable` authorization does not imply public preview authorization. The public handler performs exact registry lookup, stored schema validation, canonical normalization, checksum and revision validation, repository-baseline fallback where appropriate, recursive private-key guarding, explicit projection, and a second guard on the projection. Unknown or non-preview resources fail closed.
+
 ## API and routing
 
 The browser uses only same-origin routes:
 
 - `/builder/api/auth`
 - `/builder/api/content/books/:bookSlug/components/:componentSlug/:resource`
+
+The dedicated review Viewer separately uses the intentionally public, GET-only Student-safe projection:
+
+- Builder: `/builder/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots`
+- Viewer: `/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots`
+
+The Viewer route is a narrow Netlify 200 proxy to the Builder route. The Viewer remains a static client with zero Functions and zero database credentials. No Builder session is required or forwarded. Responses contain only `bookSlug`, `componentSlug`, `resource`, `schemaVersion`, `revision`, `source`, and `document`, with JSON, `Cache-Control: no-store`, and `X-Content-Type-Options: nosniff` headers.
 
 GET requires a valid Builder session and returns `{ bookSlug, componentSlug, resource, schemaVersion, revision, source, document }`.
 
@@ -81,7 +90,9 @@ The hosted hash routes remain:
 
 The hosted hotspot editor shares the established `EditableHotspotLayer`, canonical B2 pages, normalized geometry, and Student-safe activity catalog with existing code. Its persistence transport is the Builder content API. The local Ultimate B2 editor remains unauthenticated development tooling and continues to use loopback-only `/__hhplms/ultimate-b2-hotspots` and `/__hhplms/book-menu-skin-selection` middleware. Neither transport calls the other.
 
-A hosted save does not update the Viewer, LMS runtime tables, Android packs, or repository files. Planned follow-ons are:
+A hosted save persists a Builder authoring revision and makes that Student-safe structural revision available to the dedicated live review Viewer. On startup the Viewer validates its public content pack and performs one no-store preview fetch before becoming ready; failures enter an explicit unavailable state rather than silently using stale committed hotspots. Revision `0` repository fallback is an authoritative server response, not a client-side network fallback. Android uses its bundled hotspot provider and makes no preview request.
+
+A hosted save still does not publish LMS runtime, publish Android packs, mutate production runtime tables, or commit repository files. This is review preview, not publication. Planned follow-ons are:
 
 - Phase 3B: Activity Builder public/private authoring persistence
 - Phase 3C: media/assets and UI Controller persistence

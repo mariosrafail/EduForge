@@ -7,6 +7,7 @@ const textExtensions = new Set([".html", ".js", ".css", ".json", ".xml", ".txt"]
 const forbidden = [
   ["Publisher Review Studio client", /Hamilton House Publisher Review Studio|Read-only Milestone 4A|__hhplms\/book-builder/gi],
   ["Netlify function path", /\.netlify\/functions/gi],
+  ["hosted live preview path", /\/preview\/content\//gi],
   ["teacher web solutions action", /teacher-activity-solutions/gi],
   ["student submission action", /(?:submit-assignment|submit-activity|student-submission)/gi],
   ["analytics endpoint", /(?:google-analytics\.com|googletagmanager\.com|segment\.io|sentry\.io)/gi],

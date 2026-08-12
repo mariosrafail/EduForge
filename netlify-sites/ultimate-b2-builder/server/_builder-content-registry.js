@@ -13,11 +13,15 @@ const ultimateB2HotspotResource = Object.freeze({
   schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION,
   readable: true,
   writeAllowed: true,
+  previewReadable: true,
   baseline() {
     return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(repositoryHotspots));
   },
   validate(document) {
     return validateAndNormalizeUltimateB2HotspotManifest(document);
+  },
+  projectPreview(document) {
+    return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(document));
   },
 });
 

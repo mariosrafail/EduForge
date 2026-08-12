@@ -37,9 +37,10 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   const functionFiles = await filesUnder(new URL(`../${configuredFunctionsDirectory}/`, import.meta.url));
   const serverFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/server/", import.meta.url));
   const supportedSource = /\.(?:[cm]?[jt]sx?|go)$/i;
-  const [builderAuthEntry, builderContentEntry] = await Promise.all([
+  const [builderAuthEntry, builderContentEntry, builderPreviewEntry] = await Promise.all([
     read(`${configuredFunctionsDirectory}/builder-auth.js`),
     read(`${configuredFunctionsDirectory}/builder-content.js`),
+    read(`${configuredFunctionsDirectory}/builder-preview.js`),
   ]);
 
   assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
@@ -48,16 +49,18 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.equal(configuredFunctionsDirectory, "netlify-sites/ultimate-b2-builder/functions");
   assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
   assert.match(builderNetlify, /from = "\/builder\/api\/auth"[\s\S]*to = "\/\.netlify\/functions\/builder-auth"/);
+  assert.match(builderNetlify, /from = "\/builder\/preview\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-preview\/:splat"[\s\S]*status = 200[\s\S]*force = true/);
   assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
-  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-preview.js"]);
   assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-preview.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
-  assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
+  assert.match(builderPreviewEntry, /export const handler = createBuilderPreviewHandler\(\)/);
+  assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}\n${builderPreviewEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
   assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 
@@ -79,7 +82,9 @@ test("dedicated Viewer site package isolates the Interactive output and Netlify 
   assert.equal(tomlString(viewerNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "viewer");
   assert.equal(tomlString(viewerNetlify, "functions", "directory"), "netlify-sites/viewer/functions");
   assert.doesNotMatch(viewerNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
-  assert.doesNotMatch(viewerNetlify, /\[\[redirects\]\]|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
+  assert.match(viewerNetlify, /from = "\/preview\/content\/\*"[\s\S]*to = "https:\/\/hhplms-builder\.netlify\.app\/builder\/preview\/content\/:splat"[\s\S]*status = 200[\s\S]*force = true/);
+  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 1);
+  assert.doesNotMatch(viewerNetlify, /\/builder\/api\/(?:auth|content)|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
 
   assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
@@ -187,6 +192,9 @@ test("Interactive provider split excludes solutions from hosted review and retai
     read("src/apps/android-teacher-offline/teacherOfflineNetworkGuard.js"),
   ]);
   assert.match(app, /virtual:ultimate-b2-interactive-pack-provider/);
+  assert.match(app, /prepareUltimateB2StudentsBookHotspots/);
+  assert.match(app, /Promise\.all\(\[/);
+  assert.match(app, /Live preview content could not be loaded\. Refresh and try again\./);
   assert.doesNotMatch(review, /import teacherSolutions/);
   assert.doesNotMatch(review, /teacher-solutions\.json/);
   assert.doesNotMatch(reviewProvider, /teacherSolutions|teacher-solutions\.json/);

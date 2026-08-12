@@ -2,6 +2,10 @@ import authoredManifest from "./authoring/studentsBookHotspots.json" with { type
 
 export const ultimateB2StudentsBookHotspotManifest = authoredManifest;
 
+export async function prepareUltimateB2StudentsBookHotspots() {
+  return { revision: 0, source: "bundled" };
+}
+
 export function getUltimateB2StudentsBookHotspots({ pageId, pageNumber, unitNumber } = {}) {
   const hotspots = authoredManifest.pages?.[String(pageId || "")] || [];
   return hotspots.filter((hotspot) => (
