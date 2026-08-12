@@ -36,7 +36,10 @@ const targetPatterns = Object.freeze({
     ...privateDataPatterns,
     ["local authoring endpoint", /__hhplms\//gi],
     ["hosted authoring mutation", /(?:authoring|workspace|write-capability|repositoryFileTarget)[\s\S]{0,120}method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)["']/gi],
-    ["non-auth destructive client", /method\s*:\s*["'](?:PUT|PATCH|DELETE)["']/gi],
+    ["unapproved destructive client", /method\s*:\s*["'](?:PATCH|DELETE)["']/gi],
+    ["direct Function client", /["']\/\.netlify\/functions/gi],
+    ["root API client", /["']\/api\//gi],
+    ["Platform Admin API client", /["']\/platform-admin\//gi],
     ["Platform Admin bundle", /Platform Administration|platform-admin-root/gi],
   ],
   "ultimate-b2-interactive": [
@@ -49,6 +52,29 @@ const targetPatterns = Object.freeze({
     ["Platform Admin bundle", /Platform Administration|platform-admin-root/gi],
   ],
 });
+
+async function verifyBuilderMutationSources() {
+  const contentClientPath = path.resolve("src/apps/book-builder/hosted/builderContentApi.js");
+  const contentClient = await readFile(contentClientPath, "utf8");
+  assert.match(contentClient, /const builderContentApiRoot = ["']\/builder\/api\/content["']/);
+  assert.match(contentClient, /method: ["']PUT["']/);
+  assert.match(contentClient, /credentials: ["']same-origin["']/);
+  assert.doesNotMatch(contentClient, /__hhplms|\/\.netlify\/functions|["']\/api\/|platform-admin|repositoryFileTarget|write-capability/i);
+  assert.equal([...contentClient.matchAll(/method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/g)].length, 1);
+
+  const hostedSources = [
+    "src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx",
+    "src/apps/book-builder/hosted/HostedBookBuilderApp.jsx",
+    "src/apps/book-builder/hosted/hostedBuilderAdapters.jsx",
+    "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
+    "src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx",
+  ];
+  for (const sourcePath of hostedSources) {
+    const source = await readFile(path.resolve(sourcePath), "utf8");
+    assert.doesNotMatch(source, /__hhplms|\/\.netlify\/functions|["']\/api\/|platform-admin|repositoryFileTarget|write-capability/i);
+    assert.doesNotMatch(source, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
+  }
+}
 
 async function textFiles(root) {
   const output = [];
@@ -67,15 +93,29 @@ export async function verifyReviewBundle(targetName) {
   assert.ok((await stat(root).catch(() => null))?.isDirectory(), `${targetName} review output is missing.`);
   const generic = await scanWebBundle(root);
   assert.deepEqual(generic.findings, [], `${targetName} failed generic web safety:\n${JSON.stringify(generic.findings, null, 2)}`);
+  if (targetName === "ultimate-b2-builder") await verifyBuilderMutationSources();
   const findings = [];
+  const builderApiRoutes = new Set();
   for (const file of await textFiles(root)) {
     const content = await readFile(file, "utf8");
+    if (targetName === "ultimate-b2-builder") {
+      for (const match of content.matchAll(/\/builder\/api\/[a-z0-9/_-]*/gi)) builderApiRoutes.add(match[0]);
+    }
     for (const [label, pattern] of targetPatterns[targetName] || []) {
       if (label === "Teacher answer control" && path.extname(file).toLowerCase() === ".css") continue;
       pattern.lastIndex = 0;
       const count = [...content.matchAll(pattern)].length;
       if (count) findings.push({ file: path.relative(root, file).replaceAll("\\", "/"), label, count });
     }
+  }
+  if (targetName === "ultimate-b2-builder") {
+    for (const route of builderApiRoutes) {
+      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content")) {
+        findings.push({ file: "<bundle>", label: "unapproved Builder API route", count: 1 });
+      }
+    }
+    assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/auth")), "Builder auth route is missing from bundle.");
+    assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/content")), "Builder content route is missing from bundle.");
   }
   assert.deepEqual(findings, [], `${targetName} contains forbidden hosted-review content:\n${JSON.stringify(findings, null, 2)}`);
   return { target: targetName, filesScanned: generic.filesScanned, findings: 0, status: "safe" };

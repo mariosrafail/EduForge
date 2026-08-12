@@ -9,7 +9,11 @@ const adapters = Object.freeze({
     id: "ultimate-b2-students-book",
     bookSlug: "ultimate-b2",
     componentSlug: "ultimate-b2-students-book",
-    capabilities: Object.freeze({ hotspots: true, activities: true, uiController: true, hostedReadOnly: true }),
+    capabilities: Object.freeze({
+      hotspots: Object.freeze({ readable: true, writable: true }),
+      activities: Object.freeze({ readable: true, writable: false }),
+      uiController: Object.freeze({ readable: true, writable: false }),
+    }),
     Workspace: UltimateB2StudentsBookHostedWorkspace,
   }),
 });

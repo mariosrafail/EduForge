@@ -77,11 +77,11 @@ test("generic shell owns navigation while B2 imports stay inside the adapter bou
   assert.doesNotMatch(shell, /ultimate-b2|UltimateB2|StudentsBookActivity|runtime-hotspots|TeacherOffline/i);
   assert.match(adapters, /UltimateB2StudentsBookHostedWorkspace/);
   assert.match(b2Workspace, /NormalizedStudentsBookActivity/);
-  assert.match(b2Workspace, /virtual:ultimate-b2-runtime-hotspots/);
+  assert.match(b2Workspace, /HostedUltimateB2HotspotBuilder/);
   assert.match(b2Workspace, /ultimateB2StudentsBookPageUnits/);
   assert.match(b2Workspace, /TeacherOfflineLibrary/);
   assert.match(b2Workspace, /\[1, 2\]\.includes/);
-  assert.match(b2Workspace, /Read-only review/);
+  assert.match(b2Workspace, /Read-only — persistence pending/);
   assert.doesNotMatch(b2Workspace, /window\.location\.hash|history\.replaceState/);
   assert.match(router, /hashchange/);
   assert.match(entry, /virtual:book-builder-app/);
@@ -101,7 +101,7 @@ test("disabled component routes render unavailable state and cannot resolve the 
   assert.match(adapters, /adapter\.componentSlug !== component\.slug/);
 });
 
-test("hosted shell remains content read-only and local authoring routes stay outside it", async () => {
+test("hosted shell exposes only narrow content persistence and local authoring routes stay outside it", async () => {
   const hostedSources = await Promise.all([
     "src/apps/book-builder/hosted/HostedBookBuilderApp.jsx",
     "src/apps/book-builder/hosted/hostedBuilderCatalog.js",
@@ -110,7 +110,7 @@ test("hosted shell remains content read-only and local authoring routes stay out
     "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
   ].map(read));
   const source = hostedSources.join("\n");
-  assert.doesNotMatch(source, /__hhplms|writeFile|FormData|method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)|repositoryFileTarget|write-capability/i);
+  assert.doesNotMatch(source, /__hhplms|writeFile|FormData|repositoryFileTarget|write-capability/i);
   const local = await read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx");
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
 });

@@ -32,7 +32,7 @@ test("Builder audit schema and runtime reject sensitive metadata", async () => {
   assert.match(migration, /builder_audit_target_idx/);
 });
 
-test("Builder frontend gates the read-only host without browser token persistence or signup", async () => {
+test("Builder frontend gates the hosted shell without browser token persistence or signup", async () => {
   const [gate, api, entry, hosted, hostedRoot] = await Promise.all([
     read("src/apps/book-builder/BuilderAuthGate.jsx"),
     read("src/apps/book-builder/builderAuthApi.js"),
@@ -53,7 +53,7 @@ test("Builder frontend gates the read-only host without browser token persistenc
   assert.doesNotMatch(`${gate}\n${api}`, /localStorage|sessionStorage|signup|sign up|forgot-password/i);
   assert.match(api, /credentials: "include"/);
   assert.match(api, /response\.status === 401/);
-  assert.match(hosted, /Read-only review/);
+  assert.match(hosted, /Read-only — persistence pending/);
   assert.doesNotMatch(hosted, /__hhplms|fetch\s*\(|method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)/i);
 });
 
@@ -115,6 +115,6 @@ test("operational documentation describes the same staging database with separat
   assert.match(documentation, /not Platform Admins/);
   assert.match(documentation, /DATABASE_URL/);
   assert.match(documentation, /BUILDER_AUTH_RATE_LIMIT_SALT/);
-  assert.match(documentation, /remains read-only/);
+  assert.match(documentation, /Hotspot Builder.*editable/is);
   assert.doesNotMatch(documentation, /postgres(?:ql)?:\/\/[^^\s`]+/i);
 });

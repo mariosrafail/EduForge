@@ -44,8 +44,12 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)).sort(), [
-    "_builder-auth.js", "_builder-login-rate-limit.js", "builder-auth.js",
+    "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+    "builder-auth.js", "builder-content.js",
   ]);
+  assert.deepEqual(functionFiles.filter((file) => !file.startsWith("_") && /\.(?:[cm]?[jt]sx?|go)$/i.test(file)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 
   assert.equal(tomlString(rootNetlify, "build", "command"), "npm run deploy:build");
@@ -83,6 +87,7 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING).builderReadOnly, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderMutations, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderReadOnly, true);
+  assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots"]);
   assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
   assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherSolutions, false);
@@ -133,20 +138,26 @@ test("only the explicitly marked dedicated Viewer site may use production contex
   assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
 });
 
-test("hosted Builder graph is generic, authenticated, repository-backed, and mutation-free", async () => {
-  const [hosted, local, entry, hostedRoot, shell, vite] = await Promise.all([
+test("hosted Builder graph is generic, authenticated, and exposes only the registered hotspot document mutation", async () => {
+  const [hosted, hostedHotspots, contentClient, local, entry, hostedRoot, shell, vite] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
+    read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
+    read("src/apps/book-builder/hosted/builderContentApi.js"),
     read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
     read("vite.config.js"),
   ]);
-  assert.deepEqual([...shell.matchAll(/\["(hotspots|activities|ui)", "(Hotspot Builder|Activity Builder|UI Controller)"\]/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
-  assert.match(hosted, /Read-only review/);
-  assert.match(hosted, /virtual:ultimate-b2-runtime-hotspots/);
+  assert.deepEqual([...shell.matchAll(/\{ id: "(hotspots|activities|ui)", label: "(Hotspot Builder|Activity Builder|UI Controller)"/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
+  assert.match(hosted, /Read-only — persistence pending/);
+  assert.match(hosted, /HostedUltimateB2HotspotBuilder/);
   assert.match(hosted, /NormalizedStudentsBookActivity/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|Add Activity|onPublisherActivityCreated/);
+  assert.match(hostedHotspots, /EditableHotspotLayer/);
+  assert.match(contentClient, /\/builder\/api\/content/);
+  assert.match(contentClient, /method: "PUT"/);
+  assert.doesNotMatch(`${hostedHotspots}\n${contentClient}`, /__hhplms|repositoryFileTarget|write-capability/);
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
   assert.match(entry, /virtual:book-builder-app/);

@@ -50,6 +50,15 @@ export const requiredRuntimeSchema = Object.freeze({
   builder_audit_log: [
     "id", "builder_user_id", "action", "target_type", "target_id", "metadata", "created_at",
   ],
+  builder_component_documents: [
+    "id", "book_package_id", "book_component_id", "document_type", "document_key",
+    "schema_version", "revision", "payload", "payload_sha256",
+    "created_by_builder_user_id", "updated_by_builder_user_id", "created_at", "updated_at",
+  ],
+  builder_component_document_revisions: [
+    "id", "document_id", "revision", "payload", "payload_sha256",
+    "changed_by_builder_user_id", "client_mutation_id", "created_at",
+  ],
   classes: [
     "id", "teacher_id", "school_id", "book_package_id", "name", "slug", "level",
     "assigned_book", "invite_code", "status", "created_at", "updated_at",

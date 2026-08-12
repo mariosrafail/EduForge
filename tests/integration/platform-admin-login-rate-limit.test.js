@@ -137,7 +137,7 @@ test("Platform Admin limiter is distributed, recoverable, atomic, and privacy pr
   });
 
   const migrationFiles = (await readdir("database"))
-    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql")
+    .filter((name) => /^\d+.*\.sql$/.test(name) && name !== "012_demo_login_passwords.sql" && Number(name.slice(0, 3)) <= 30)
     .sort((left, right) => left.localeCompare(right));
   assert.equal(migrationFiles.at(-1), "030_platform_admin_login_rate_limit.sql");
   for (const filename of migrationFiles.filter((name) => name !== "030_platform_admin_login_rate_limit.sql")) {

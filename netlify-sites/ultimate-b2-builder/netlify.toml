@@ -15,6 +15,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/content/*"
+  to = "/.netlify/functions/builder-content/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/ultimate-b2-builder.html"
   status = 200

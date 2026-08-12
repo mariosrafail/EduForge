@@ -1,8 +1,8 @@
 # Builder developer authentication operations
 
-## Purpose and Phase 1 boundary
+## Purpose and Phase 3A boundary
 
-The hosted Publisher Book Builder is restricted to dedicated Builder developer accounts. Authentication is required before the existing hosted review renders. After sign-in, the Builder remains read-only: this milestone adds no hosted authoring persistence, upload, mutation, filesystem, GitHub, or `__hhplms` endpoint.
+The hosted Publisher Book Builder is restricted to dedicated Builder developer accounts. Authentication is required before the generic hosted shell renders. Ultimate B2 Students Book Hotspot Builder is now editable through the narrow server-authorized content API. Activity Builder and UI Controller remain read-only. No upload, filesystem, GitHub, local `__hhplms`, or automatic publication endpoint is exposed.
 
 Builder developers are a separate global publisher trust domain. They are not `app_users`, have no school or tenant membership, and are not Platform Admins. An LMS role never grants Builder access, and a Platform Admin login/session never grants Builder access.
 
@@ -26,7 +26,7 @@ Set `STAGING_DATABASE_URL` to the isolated staging database and set `STAGING_DAT
 npm run staging:migrate
 ```
 
-This applies the production manifest through `031_builder_developer_auth.sql`. Do not run it against a production/shared database.
+This applies the production manifest through `032_builder_component_authoring.sql`. Do not run it against a production/shared database. Codex implementation and automated validation must not run this staging command; an operator applies it manually after reviewing the commit.
 
 ## Provision the five staging accounts
 
@@ -57,4 +57,6 @@ Configure these server-side environment variables on the dedicated Builder site:
 
 Do not use `STAGING_DATABASE_URL` as a Netlify runtime variable. Do not create any `VITE_DATABASE_URL` or other frontend database variable. Do not substitute `AUTH_RATE_LIMIT_SALT` or `PLATFORM_ADMIN_RATE_LIMIT_SALT`.
 
-After the migration and account provisioning are complete, set both runtime variables in the Builder Netlify project and redeploy the Builder site. The only deployed server route is `/builder/api/auth`, backed by the dedicated `builder-auth` Function. The Viewer remains static and zero-Function.
+After migration 032 is applied, redeploy the Builder site. The two public Builder server routes are `/builder/api/auth` and `/builder/api/content/*`, backed by `builder-auth` and `builder-content`. Underscore-prefixed modules are private helpers. The Viewer remains static and zero-Function.
+
+After redeploy, perform a manual two-session concurrency smoke test: load the same hotspot revision in two authenticated sessions, save in the first, verify the second receives an explicit conflict without losing local edits, then use **Reload latest** and confirm the saved revision appears. A hotspot save updates Builder authoring state only; it does not publish to Viewer or Android.

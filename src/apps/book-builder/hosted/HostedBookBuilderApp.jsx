@@ -72,15 +72,15 @@ function Workspace({ book, component, tool }) {
   if (!adapter) return <UnavailableComponent book={book} component={component} />;
   const WorkspaceComponent = adapter.Workspace;
   const tools = [
-    ["hotspots", "Hotspot Builder"],
-    ["activities", "Activity Builder"],
-    ["ui", "UI Controller"],
+    { id: "hotspots", label: "Hotspot Builder", capability: "hotspots" },
+    { id: "activities", label: "Activity Builder", capability: "activities" },
+    { id: "ui", label: "UI Controller", capability: "uiController" },
   ];
   return <main className="hosted-builder-workspace" id="main-content">
     <div className="hosted-builder-workspace-chrome">
       <Breadcrumbs book={book} component={component} tool={tool} />
       <nav className="hosted-builder-tool-tabs" aria-label={`${component.title} tools`}>
-        {tools.map(([id, label]) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}>{label}</a>)}
+        {tools.map(({ id, label, capability }) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}><span>{label}</span><small>{adapter.capabilities[capability]?.writable ? "Editable" : "Read-only"}</small></a>)}
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>

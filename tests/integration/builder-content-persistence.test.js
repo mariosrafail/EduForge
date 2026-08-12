@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import test from "node:test";
+import pg from "pg";
+
+import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/functions/_builder-content.js";
+import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
+
+const { Pool } = pg;
+const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
+const enabled = Boolean(testDatabaseUrl) && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
+const builderUserId = "10000000-0000-4000-8000-000000000001";
+const route = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+
+function scoped(base, schema) {
+  const url = new URL(base);
+  url.searchParams.set("options", `-c search_path=${schema}`);
+  return url.toString();
+}
+
+function tag(pool) {
+  return async (strings, ...values) => {
+    let text = strings[0];
+    for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`;
+    return (await pool.query(text, values)).rows;
+  };
+}
+
+function event(method = "GET", body = null) {
+  return {
+    httpMethod: method,
+    path: route,
+    headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
+    body: body === null ? "" : JSON.stringify(body),
+  };
+}
+
+test("isolated PostgreSQL persists current state, strict history, idempotency, concurrency, and audit atomically", { skip: !enabled }, async (t) => {
+  const schema = `builder_content_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
+  t.after(async () => {
+    await pool.end();
+    await admin.query(`drop schema if exists "${schema}" cascade`);
+    await admin.end();
+  });
+  const migrations = await applyCanonicalProductionMigrations(pool);
+  assert.equal(migrations.at(-1).filename, "032_builder_component_authoring.sql");
+  await pool.query(`
+    insert into builder_users(id,full_name,email,password_hash)
+    values($1,'Builder Integration','builder-integration@example.test','not-a-real-login-hash')
+  `, [builderUserId]);
+
+  const sql = tag(pool);
+  const handler = createBuilderContentHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: builderUserId, role: "developer", status: "active" } }),
+  });
+  const initial = JSON.parse((await handler(event())).body);
+  assert.equal(initial.revision, 0);
+  const pageId = Object.keys(initial.document.pages)[0];
+  initial.document.pages[pageId][0].label = "Integration revision one";
+  const mutationOne = "10000000-0000-4000-8000-000000000011";
+  const firstBody = { expectedRevision: 0, clientMutationId: mutationOne, document: initial.document };
+  const first = await handler(event("PUT", firstBody));
+  assert.equal(first.statusCode, 200);
+  assert.equal(JSON.parse(first.body).revision, 1);
+
+  const replay = await handler(event("PUT", firstBody));
+  assert.equal(replay.statusCode, 200);
+  assert.equal(JSON.parse(replay.body).idempotent, true);
+
+  const changedReuse = structuredClone(initial.document);
+  changedReuse.pages[pageId][0].label = "Wrong mutation reuse";
+  assert.equal((await handler(event("PUT", { ...firstBody, document: changedReuse }))).statusCode, 409);
+
+  const secondDocument = structuredClone(initial.document);
+  secondDocument.pages[pageId][0].label = "Integration revision two";
+  const second = await handler(event("PUT", {
+    expectedRevision: 1,
+    clientMutationId: "10000000-0000-4000-8000-000000000012",
+    document: secondDocument,
+  }));
+  assert.equal(JSON.parse(second.body).revision, 2);
+
+  const stale = await handler(event("PUT", {
+    expectedRevision: 1,
+    clientMutationId: "10000000-0000-4000-8000-000000000013",
+    document: initial.document,
+  }));
+  assert.equal(stale.statusCode, 409);
+  assert.equal(JSON.parse(stale.body).currentRevision, 2);
+
+  const counts = await pool.query(`
+    select
+      (select count(*)::int from builder_component_documents) documents,
+      (select count(*)::int from builder_component_document_revisions) revisions,
+      (select count(*)::int from builder_audit_log where action='builder_document_saved') audits
+  `);
+  assert.deepEqual(counts.rows[0], { documents: 1, revisions: 2, audits: 2 });
+  const state = await pool.query("select revision,payload,updated_by_builder_user_id from builder_component_documents");
+  assert.equal(Number(state.rows[0].revision), 2);
+  assert.equal(state.rows[0].payload.pages[pageId][0].label, "Integration revision two");
+  assert.equal(state.rows[0].updated_by_builder_user_id, builderUserId);
+  await assert.rejects(pool.query("update builder_component_document_revisions set revision=3"), /append-only/);
+});

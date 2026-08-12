@@ -5,7 +5,7 @@ The LMS, Ultimate B2 Builder review, and hosted Viewer review are three build pr
 | Future site | Purpose | Build command | Publish directory | Functions | Data source | Writes | Private answers |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | LMS | LMS and Platform Admin | `npm run build:netlify:lms` | `dist-netlify/lms` | Yes: `netlify/functions` | Existing LMS services | Existing authenticated LMS behavior | Server-authorized only |
-| Ultimate B2 Builder | Authenticated publisher/developer read-only review | `npm run build:netlify:ultimate-b2-builder` | `dist-netlify/ultimate-b2-builder` | Builder auth only | Checked-in review-safe repository projections | Security/session writes only | No |
+| Ultimate B2 Builder | Authenticated publisher/developer Builder | `npm run build:netlify:ultimate-b2-builder` | `dist-netlify/ultimate-b2-builder` | Builder auth + narrow content API | Repository baseline + Builder document revisions | Sessions/audit + registered hotspot documents | No |
 | Viewer (current Ultimate B2 Interactive) | Static stakeholder Interactive review | `npm run build:netlify:ultimate-b2-interactive` | `dist-netlify/ultimate-b2-interactive` | No | Checked-in public pack, Student-safe runtime, static assets | No | No |
 
 Each command empties only its own publish directory, so all three outputs can coexist. `dist-netlify/` is ignored and must not be committed.
@@ -15,7 +15,7 @@ Each command empties only its own publish directory, so all three outputs can co
 Build behavior is selected explicitly in `src/config/buildProfiles.js` and `vite.config.js`; it is never inferred from a hostname or Netlify URL.
 
 - The normal local Ultimate B2 Builder retains all three existing tabs and its loopback-only, workspace-first authoring endpoints.
-- The authenticated hosted Builder loads a generic Book Library and component registry. Its first connected adapter is Ultimate B2 → Students Book, containing the existing Hotspot Builder, Activity Builder, and UI Controller reviews. It intentionally loads the committed hotspot manifest and has no save, upload, import, activity-creation, database-projection, or `__hhplms` client. See `docs/hosted-book-builder-architecture.md`.
+- The authenticated hosted Builder loads a generic Book Library and component registry. Its first connected adapter is Ultimate B2 → Students Book. Hotspot Builder saves only through the registered Builder content API with revision concurrency; Activity Builder and UI Controller remain read-only. It has no upload, import, activity-creation, runtime projection, or `__hhplms` client. See `docs/hosted-book-builder-architecture.md`.
 - `ULTIMATE_B2_CONTENT_ROOT` remains local publisher configuration. Hosted builds do not need or read the external workspace.
 - The hosted Interactive reuses the Android Teacher visual shell but substitutes a public-pack validator/provider, the no-solution provider, Student answer UI, Student-safe activity data, and committed hotspot data. `teacher-solutions.json` is not imported.
 - Android Teacher continues to use the full private pack, strict Teacher validation, and Teacher reveal UI.
@@ -51,7 +51,7 @@ Enter these values in Netlify's initial import form:
 | Functions directory | `netlify-sites/ultimate-b2-builder/functions` |
 | Environment variable | `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` |
 
-For this dedicated Builder site only, Netlify's **Production branch** must be `dev`. "Production branch" is Netlify terminology for the branch published at the site's primary URL; it does not make the Builder product production-ready. The artifact remains a review-only, read-only static Builder. Because `dev` is this site's primary branch, no branch-deploy configuration is required for `dev`.
+For this dedicated Builder site only, Netlify's **Production branch** must be `dev`. "Production branch" is Netlify terminology for the branch published at the site's primary URL; it does not make the Builder product production-ready. The authenticated artifact permits only its registered hotspot document mutation; other content tools remain read-only. Because `dev` is this site's primary branch, no branch-deploy configuration is required for `dev`.
 
 The initial UI marker is non-secret. If the initial form does not offer Package directory, Netlify may resolve the repository-root LMS configuration for its first attempted deploy. The root pipeline detects the marker and fails closed before migration verification, production preflight, Vite compilation, or artifact generation. It cannot deploy the LMS or root Functions for this marked review site.
 
