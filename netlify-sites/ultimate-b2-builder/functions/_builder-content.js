@@ -97,7 +97,7 @@ export function createBuilderContentHandler(overrides = {}) {
       if (auth.error) return auth.error;
 
       const route = parseBuilderContentRoute(event);
-      const resource = route && dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource);
+      const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource);
       if (!resource || !resource.readable) return json(404, { error: "builder_resource_not_found" });
 
       if (event.httpMethod === "GET") {

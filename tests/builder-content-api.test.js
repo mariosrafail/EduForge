@@ -5,11 +5,13 @@ import { json } from "../netlify-sites/ultimate-b2-builder/functions/_builder-au
 import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-registry.js";
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-security.js";
+import { loadBuilderComponentDocument } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-store.js";
 
 const builderUserId = "10000000-0000-4000-8000-000000000001";
 const route = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
 const mutationOne = "10000000-0000-4000-8000-000000000011";
 const mutationTwo = "10000000-0000-4000-8000-000000000012";
+const hotspotResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots");
 
 function event({ method = "GET", path = route, cookie = "hh_builder_session=live", origin = "https://builder.example", body, contentType = "application/json" } = {}) {
   return {
@@ -61,7 +63,7 @@ function memoryHarness() {
 }
 
 function baseline() {
-  return resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots").baseline();
+  return hotspotResource.baseline();
 }
 
 function changedDocument(label = "Changed safely") {
@@ -133,6 +135,7 @@ test("first and second Saves persist revisions and reload returns the latest doc
   assert.equal(history.length, 2);
   assert.equal(current().updatedBy, builderUserId);
   assert.equal(saveCalls[0].builderUserId, builderUserId);
+  assert.equal(typeof saveCalls[0].document?.then, "undefined");
   assert.deepEqual(audits.map(({ action }) => action), ["builder_document_saved", "builder_document_saved"]);
   assert.doesNotMatch(JSON.stringify(audits), /payload|password|token|answer|solution/i);
 });
@@ -182,4 +185,28 @@ test("hotspot validation rejects unknown pages, geometry, IDs, activities, actio
 
 test("stable checksums are key-order independent", () => {
   assert.equal(builderDocumentSha256({ b: 2, a: { d: 4, c: 3 } }), builderDocumentSha256({ a: { c: 3, d: 4 }, b: 2 }));
+});
+
+test("stored documents resolve fully before checksum validation and fail corrupt state closed", async () => {
+  const document = baseline();
+  const row = {
+    schema_version: hotspotResource.schemaVersion,
+    revision: 3,
+    payload: document,
+    payload_sha256: builderDocumentSha256(document),
+  };
+  const loaded = await loadBuilderComponentDocument(async () => [row], hotspotResource);
+  assert.equal(loaded.revision, 3);
+  assert.equal(typeof loaded.document?.then, "undefined");
+
+  await assert.rejects(
+    loadBuilderComponentDocument(async () => [{ ...row, payload_sha256: "0".repeat(64) }], hotspotResource),
+    /checksum is invalid/,
+  );
+  const invalidPage = structuredClone(document);
+  invalidPage.pages.unknown = [];
+  await assert.rejects(
+    loadBuilderComponentDocument(async () => [{ ...row, payload: invalidPage }], hotspotResource),
+    /Unknown Students Book page id/,
+  );
 });
