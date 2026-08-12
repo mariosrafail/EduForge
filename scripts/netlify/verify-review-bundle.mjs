@@ -35,7 +35,8 @@ const targetPatterns = Object.freeze({
   "ultimate-b2-builder": [
     ...privateDataPatterns,
     ["local authoring endpoint", /__hhplms\//gi],
-    ["HTTP mutation client", /method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)["']/gi],
+    ["hosted authoring mutation", /(?:authoring|workspace|write-capability|repositoryFileTarget)[\s\S]{0,120}method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)["']/gi],
+    ["non-auth destructive client", /method\s*:\s*["'](?:PUT|PATCH|DELETE)["']/gi],
     ["Platform Admin bundle", /Platform Administration|platform-admin-root/gi],
   ],
   "ultimate-b2-interactive": [

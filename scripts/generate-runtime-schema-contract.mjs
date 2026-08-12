@@ -35,6 +35,21 @@ export const requiredRuntimeSchema = Object.freeze({
     "id", "user_id", "actor_user_id", "school_id", "event_type",
     "request_fingerprint", "created_at",
   ],
+  builder_users: [
+    "id", "full_name", "email", "password_hash", "status", "role",
+    "last_login_at", "password_changed_at", "created_at", "updated_at",
+  ],
+  builder_sessions: [
+    "id", "builder_user_id", "token_hash", "expires_at", "created_at",
+    "last_seen_at", "revoked_at", "request_fingerprint", "user_agent_hash",
+  ],
+  builder_login_attempts: [
+    "id", "builder_user_id", "request_fingerprint", "email_hash", "succeeded",
+    "outcome", "attempted_at",
+  ],
+  builder_audit_log: [
+    "id", "builder_user_id", "action", "target_type", "target_id", "metadata", "created_at",
+  ],
   classes: [
     "id", "teacher_id", "school_id", "book_package_id", "name", "slug", "level",
     "assigned_book", "invite_code", "status", "created_at", "updated_at",

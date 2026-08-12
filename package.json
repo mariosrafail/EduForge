@@ -19,6 +19,8 @@
     "demo:multi-school:verify": "node scripts/local-multi-school-demo.mjs verify --confirm=isolated-local-multi-school-demo",
     "demo:multi-school:reset": "node scripts/local-multi-school-demo.mjs reset --confirm=isolated-local-multi-school-demo",
     "platform-admin:create": "node scripts/create-platform-admin.mjs",
+    "builder-user:create": "node scripts/create-builder-user.mjs",
+    "staging:seed:builder-users": "node scripts/seed-staging-builder-users.mjs",
     "audit:ultimate-b2:functional": "node scripts/ultimate-b2/generate-functional-audit.mjs",
     "audit:source-structure": "node scripts/audit-source-structure.mjs",
     "audit:branding": "node scripts/audit-branding.mjs",

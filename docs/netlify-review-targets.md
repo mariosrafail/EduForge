@@ -5,7 +5,7 @@ The LMS, Ultimate B2 Builder review, and hosted Viewer review are three build pr
 | Future site | Purpose | Build command | Publish directory | Functions | Data source | Writes | Private answers |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | LMS | LMS and Platform Admin | `npm run build:netlify:lms` | `dist-netlify/lms` | Yes: `netlify/functions` | Existing LMS services | Existing authenticated LMS behavior | Server-authorized only |
-| Ultimate B2 Builder | Publisher/stakeholder read-only review | `npm run build:netlify:ultimate-b2-builder` | `dist-netlify/ultimate-b2-builder` | No | Checked-in review-safe repository projections | No | No |
+| Ultimate B2 Builder | Authenticated publisher/developer read-only review | `npm run build:netlify:ultimate-b2-builder` | `dist-netlify/ultimate-b2-builder` | Builder auth only | Checked-in review-safe repository projections | Security/session writes only | No |
 | Viewer (current Ultimate B2 Interactive) | Static stakeholder Interactive review | `npm run build:netlify:ultimate-b2-interactive` | `dist-netlify/ultimate-b2-interactive` | No | Checked-in public pack, Student-safe runtime, static assets | No | No |
 
 Each command empties only its own publish directory, so all three outputs can coexist. `dist-netlify/` is ignored and must not be committed.
@@ -67,7 +67,7 @@ Project configuration
 → Configure
 ```
 
-Set **Package directory** to `netlify-sites/ultimate-b2-builder`, keep **Base directory** unset, then save and trigger a new deploy. The successful redeploy resolves `netlify-sites/ultimate-b2-builder/netlify.toml` and uses its existing dedicated build, publish, and empty Functions settings.
+Set **Package directory** to `netlify-sites/ultimate-b2-builder`, keep **Base directory** unset, then save and trigger a new deploy. The successful redeploy resolves `netlify-sites/ultimate-b2-builder/netlify.toml` and uses its dedicated build, publish, and Builder-auth-only Functions settings.
 
 The UI marker may remain because the dedicated package config declares the same non-secret `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` value. The review policy accepts Netlify `production` only when that marker, the Builder target, and branch `dev` all match exactly. Do not copy the marker into the LMS site's environment or use it for another review target.
 
@@ -79,9 +79,9 @@ https://<builder-site-name>.netlify.app
 
 Keep the Base directory unset so Netlify installs dependencies and runs the build from the repository root. The Package directory selects the Builder-specific `netlify.toml`; its paths are deliberately root-relative.
 
-The configured Functions directory is a tracked, empty site-local directory. It contains no deployable function source and must not be changed to the repository-root `netlify/functions` directory. Do not add function redirects, LMS authentication functions, Platform Admin functions, database-backed Builder APIs, or authoring mutation endpoints to this site.
+The configured Functions directory is site-local and must not be changed to the repository-root `netlify/functions` directory. It deploys only `builder-auth` plus its underscore-prefixed private helpers and exposes only `/builder/api/auth`. Do not add LMS authentication, Platform Admin, content persistence, or authoring mutation Functions to this site.
 
-Do not configure LMS, authentication, database, staging, Neon, or publisher-workspace variables for the Builder site. In particular, it does not need `DATABASE_URL`, `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, or `ULTIMATE_B2_CONTENT_ROOT`. It uses only the checked-in review-safe projections and public/static assets described above.
+The Builder site requires server-only `DATABASE_URL` and `BUILDER_AUTH_RATE_LIMIT_SALT`. For dev/staging, `DATABASE_URL` points to the same isolated staging database used by LMS dev, while Builder identity/session/rate-limit/audit tables remain separate from LMS and Platform Administration. Do not configure `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, `ULTIMATE_B2_CONTENT_ROOT`, or any `VITE_DATABASE_URL` substitute. See `docs/builder-auth-operations.md`.
 
 This dedicated Builder branch model does not change the LMS site. The LMS continues to use its root configuration, `main` as its only production branch, LMS Functions, and the existing production database preflight.
 

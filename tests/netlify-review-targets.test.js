@@ -40,8 +40,13 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.equal(tomlString(builderNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "ultimate-b2-builder");
   assert.equal(tomlString(builderNetlify, "functions", "directory"), "netlify-sites/ultimate-b2-builder/functions");
   assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
-  assert.doesNotMatch(builderNetlify, /\[\[redirects\]\]|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
-  assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
+  assert.match(builderNetlify, /from = "\/builder\/api\/auth"[\s\S]*to = "\/\.netlify\/functions\/builder-auth"/);
+  assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
+  assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
+  assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)).sort(), [
+    "_builder-auth.js", "_builder-login-rate-limit.js", "builder-auth.js",
+  ]);
+  assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 
   assert.equal(tomlString(rootNetlify, "build", "command"), "npm run deploy:build");
   assert.equal(tomlString(rootNetlify, "build", "publish"), "dist");
@@ -141,6 +146,7 @@ test("hosted Builder graph is deliberately repository-backed and mutation-free",
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
   assert.match(entry, /virtual:ultimate-b2-builder-app/);
+  assert.match(entry, /BuilderAuthGate/);
 });
 
 test("Interactive provider split excludes solutions from hosted review and retains strict Android Teacher data", async () => {

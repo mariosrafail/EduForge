@@ -7,3 +7,14 @@
 
 [functions]
   directory = "netlify-sites/ultimate-b2-builder/functions"
+
+[[redirects]]
+  from = "/builder/api/auth"
+  to = "/.netlify/functions/builder-auth"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/ultimate-b2-builder.html"
+  status = 200

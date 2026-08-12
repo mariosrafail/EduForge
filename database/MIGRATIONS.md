@@ -32,6 +32,7 @@ Apply production migrations in this exact order:
 28. `028_platform_administration.sql`
 29. `029_ordinary_auth_login_rate_limit.sql`
 30. `030_platform_admin_login_rate_limit.sql`
+31. `031_builder_developer_auth.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 
