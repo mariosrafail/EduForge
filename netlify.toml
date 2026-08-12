@@ -2,6 +2,7 @@
   command = "npm run deploy:build"
   publish = "dist"
   functions = "netlify/functions"
+  ignore = "node ./scripts/netlify/ignore-site-build.mjs lms"
 
 [dev]
   command = "node scripts/start-vite-loopback.mjs"

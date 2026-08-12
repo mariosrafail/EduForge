@@ -1,6 +1,7 @@
 [build]
   command = "npm run build:netlify:ultimate-b2-interactive"
   publish = "dist-netlify/ultimate-b2-interactive"
+  ignore = "node ./scripts/netlify/ignore-site-build.mjs ultimate-b2-interactive"
 
 [build.environment]
   HHPLMS_NETLIFY_REVIEW_TARGET = "viewer"

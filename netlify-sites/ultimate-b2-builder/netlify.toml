@@ -1,6 +1,7 @@
 [build]
   command = "npm run build:netlify:ultimate-b2-builder"
   publish = "dist-netlify/ultimate-b2-builder"
+  ignore = "node ./scripts/netlify/ignore-site-build.mjs ultimate-b2-builder"
 
 [build.environment]
   HHPLMS_NETLIFY_REVIEW_TARGET = "ultimate-b2-builder"

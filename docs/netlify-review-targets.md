@@ -22,6 +22,14 @@ Build behavior is selected explicitly in `src/config/buildProfiles.js` and `vite
 
 The review wrapper accepts local builds and Netlify `branch-deploy`/`deploy-preview` contexts. It accepts Netlify `production` only for two exact dedicated-site combinations: the Ultimate B2 Builder target on `dev` with `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder`, or the current Ultimate B2 Interactive target on `dev` with `HHPLMS_NETLIFY_REVIEW_TARGET=viewer`. Every other review production context remains blocked. The existing root `netlify.toml`, `deploy:build`, LMS main-only production rule, migration check, and production database preflight remain unchanged.
 
+## Path-aware build starts
+
+All three Netlify configurations run `scripts/netlify/ignore-site-build.mjs` before starting a build. The script compares `CACHED_COMMIT_REF` with `COMMIT_REF` and uses an explicit repository-path policy to start only the sites affected by the commit. Builder package, Function, server, and hosted UI changes start the Builder without starting Viewer or LMS builds. Viewer package changes start only the Viewer. Root LMS Functions, Platform Admin, and LMS entry changes start only the LMS. Proven shared build/runtime inputs start every site they can affect, while documentation and test-only commits can stop all three builds early.
+
+The policy is deliberately fail-open: an unknown or malformed path, missing or unsafe commit reference, failed Git comparison, or otherwise ambiguous state continues the build. A first deploy therefore builds normally. Equal `CACHED_COMMIT_REF` and `COMMIT_REF` also continue the build so a manual redeploy of the current commit is never trapped by the ignore check. Netlify's `build.ignore` convention is inverted: exit 0 skips the build and exit 1 continues it.
+
+This path-aware check is site-specific. A commit-wide `[skip netlify]` marker would suppress every Netlify site and must not be used as the normal monorepo workflow. The Builder and Viewer retain `dev` as their dedicated Netlify primary branch, while root LMS production remains main-only. Migration verification, production preflight, bundle verification, secret scanning, and all other Netlify security controls remain enabled and unchanged.
+
 ## Verification
 
 ```text
