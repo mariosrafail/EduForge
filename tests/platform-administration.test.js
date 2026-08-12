@@ -27,6 +27,21 @@ const [
   platformClient, platformApp, platformCss, platformShell, platformUi, platformNavigation, ...normalUi
 ] = files;
 const sharedChrome = await readFile("src/components/app-chrome/AppChrome.jsx", "utf8");
+const platformAdminCli = await readFile("scripts/create-platform-admin.mjs", "utf8");
+
+test("Platform Admin CLI audit inserts bind UUID actors separately from text targets", () => {
+  const auditInserts = [...platformAdminCli.matchAll(
+    /await pool\.query\(`\s*(insert into platform_admin_audit_log[\s\S]*?)`\s*,\s*\[([^\]]*)\]\);/g,
+  )].map(([, sql, parameters]) => ({ sql, parameters }));
+
+  for (const action of ["platform_admin_created", "password_rotated"]) {
+    const statement = auditInserts.find(({ sql }) => sql.includes(`'${action}'`));
+    assert.ok(statement, `missing ${action} audit insert`);
+    assert.match(statement.sql, /values\(\$1::uuid,'[^']+','platform_admin',\$2::text,/);
+    assert.doesNotMatch(statement.sql, /\$1::text/);
+    assert.equal(statement.parameters.replaceAll(/\s/g, ""), "admin.id,admin.id");
+  }
+});
 
 test("Platform Admin identity, sessions, and audit are physically separate from ordinary users", () => {
   assert.match(migration, /create table if not exists platform_admins/);

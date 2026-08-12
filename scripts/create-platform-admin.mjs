@@ -54,8 +54,8 @@ try {
       await pool.query("select revoke_platform_admin_sessions($1)", [admin.id]);
       await pool.query(`
         insert into platform_admin_audit_log(platform_admin_id,action,target_type,target_id,metadata)
-        values($1,'password_rotated','platform_admin',$1::text,'{"sessions_revoked":true}'::jsonb)
-      `, [admin.id]);
+        values($1::uuid,'password_rotated','platform_admin',$2::text,'{"sessions_revoked":true}'::jsonb)
+      `, [admin.id, admin.id]);
     } else {
       admin = (await pool.query(`
         insert into platform_admins(full_name,email,password_hash,status)
@@ -63,8 +63,8 @@ try {
       `, [fullName, email, passwordHash])).rows[0];
       await pool.query(`
         insert into platform_admin_audit_log(platform_admin_id,action,target_type,target_id,metadata)
-        values($1,'platform_admin_created','platform_admin',$1::text,'{"source":"operator_cli"}'::jsonb)
-      `, [admin.id]);
+        values($1::uuid,'platform_admin_created','platform_admin',$2::text,'{"source":"operator_cli"}'::jsonb)
+      `, [admin.id, admin.id]);
     }
     await pool.query("commit");
     console.log(`${existing ? "Rotated" : "Created"} Platform Admin ${admin.email}; plaintext password was not printed.`);
