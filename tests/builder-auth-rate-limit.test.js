@@ -14,7 +14,7 @@ import {
   builderRateLimitSalt,
   builderSourceLimit,
   canonicalizeBuilderSourceIp,
-} from "../netlify-sites/ultimate-b2-builder/functions/_builder-login-rate-limit.js";
+} from "../netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js";
 import { platformAdminLoginIdentifier } from "../netlify/functions/_platform-admin-login-rate-limit.js";
 
 const salt = "builder-auth-unit-rate-limit-salt-only";
@@ -58,7 +58,7 @@ test("Builder rate-limit thresholds, pending lease, and Retry-After bounds match
 });
 
 test("Builder limiter persists reservations and outcomes through transaction-capable PostgreSQL", async () => {
-  const source = await readFile("netlify-sites/ultimate-b2-builder/functions/_builder-login-rate-limit.js", "utf8");
+  const source = await readFile("netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js", "utf8");
   assert.match(source, /authLoginTransaction|sql\.transaction/);
   assert.match(source, /pg_advisory_xact_lock/);
   assert.match(source, /insert into builder_login_attempts/);

@@ -6,9 +6,10 @@ import path from "node:path";
 import test from "node:test";
 
 import { rolldown } from "rolldown";
+import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 
 const functionEntry = path.resolve("netlify-sites/ultimate-b2-builder/functions/builder-content.js");
-const registryPath = path.resolve("netlify-sites/ultimate-b2-builder/functions/_builder-content-registry.js");
+const registryPath = path.resolve("netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js");
 const hotspotManifestPattern = /scripts[\\/]ultimate-b2[\\/]hotspot-manifest\.mjs$/;
 
 test("deployed-style CommonJS Function initialization preserves the ESM hotspot validator boundary", async () => {
@@ -33,6 +34,9 @@ test("deployed-style CommonJS Function initialization preserves the ESM hotspot 
       await writeFile(artifactPath, artifact, "utf8");
       const loaded = createRequire(import.meta.url)(artifactPath);
       assert.equal(typeof loaded.handler, "function");
+      const resource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots");
+      assert.equal(resource.schemaVersion, "1.0");
+      assert.equal(resource.baseline().componentSlug, "students-book");
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

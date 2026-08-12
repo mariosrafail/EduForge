@@ -1,3 +1,3 @@
-import { createBuilderContentHandler } from "./_builder-content.js";
+import { createBuilderContentHandler } from "../server/_builder-content.js";
 
 export const handler = createBuilderContentHandler();

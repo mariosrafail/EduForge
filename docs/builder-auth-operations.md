@@ -57,6 +57,6 @@ Configure these server-side environment variables on the dedicated Builder site:
 
 Do not use `STAGING_DATABASE_URL` as a Netlify runtime variable. Do not create any `VITE_DATABASE_URL` or other frontend database variable. Do not substitute `AUTH_RATE_LIMIT_SALT` or `PLATFORM_ADMIN_RATE_LIMIT_SALT`.
 
-After migration 032 is applied, redeploy the Builder site. The two public Builder server routes are `/builder/api/auth` and `/builder/api/content/*`, backed by `builder-auth` and `builder-content`. Underscore-prefixed modules are private helpers. The Viewer remains static and zero-Function.
+After migration 032 is applied, redeploy the Builder site. The two public Builder server routes are `/builder/api/auth` and `/builder/api/content/*`, backed by `builder-auth` and `builder-content`. The configured `functions/` directory contains only those deployable entrypoints; Builder implementation helpers live outside it in `server/`. The Viewer remains static and zero-Function.
 
 After redeploy, perform a manual two-session concurrency smoke test: load the same hotspot revision in two authenticated sessions, save in the first, verify the second receives an explicit conflict without losing local edits, then use **Reload latest** and confirm the saved revision appears. A hotspot save updates Builder authoring state only; it does not publish to Viewer or Android.

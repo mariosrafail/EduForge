@@ -14,13 +14,13 @@ import {
   revokeBuilderSession,
   safeBuilderServerError,
   writeBuilderAudit,
-} from "./_builder-auth.js";
+} from "../server/_builder-auth.js";
 import {
   beginBuilderLoginAttempt,
   builderLoginIdentifiers,
   builderRateLimitMessage,
   completeBuilderLoginAttempt,
-} from "./_builder-login-rate-limit.js";
+} from "../server/_builder-login-rate-limit.js";
 
 const genericLoginError = "Invalid email or password";
 const dummyPasswordHash = "$2b$12$TbcfsTmq6FFDE.aOFgkBuelsJsvqk.140AXzYhTFlta7idf64o.c6";

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { json } from "../netlify-sites/ultimate-b2-builder/functions/_builder-auth.js";
-import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content.js";
-import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-registry.js";
-import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-security.js";
-import { loadBuilderComponentDocument } from "../netlify-sites/ultimate-b2-builder/functions/_builder-content-store.js";
+import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
+import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
+import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { loadBuilderComponentDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
 
 const builderUserId = "10000000-0000-4000-8000-000000000001";
 const route = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";

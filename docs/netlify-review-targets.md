@@ -79,7 +79,7 @@ https://<builder-site-name>.netlify.app
 
 Keep the Base directory unset so Netlify installs dependencies and runs the build from the repository root. The Package directory selects the Builder-specific `netlify.toml`; its paths are deliberately root-relative.
 
-The configured Functions directory is site-local and must not be changed to the repository-root `netlify/functions` directory. It deploys only `builder-auth` plus its underscore-prefixed private helpers and exposes only `/builder/api/auth`. Do not add LMS authentication, Platform Admin, content persistence, or authoring mutation Functions to this site.
+The configured Functions directory is site-local and must not be changed to the repository-root `netlify/functions` directory. Its only deployable source entries are `builder-auth.js` and `builder-content.js`; their implementation helpers live in the sibling `server/` directory and are bundled dependencies, not independently discoverable Functions. The public routes remain `/builder/api/auth` and the registered `/builder/api/content/*` family. Do not add LMS authentication, Platform Admin, or unrelated authoring mutation Functions to this site.
 
 The Builder site requires server-only `DATABASE_URL` and `BUILDER_AUTH_RATE_LIMIT_SALT`. For dev/staging, `DATABASE_URL` points to the same isolated staging database used by LMS dev, while Builder identity/session/rate-limit/audit tables remain separate from LMS and Platform Administration. Do not configure `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, `ULTIMATE_B2_CONTENT_ROOT`, or any `VITE_DATABASE_URL` substitute. See `docs/builder-auth-operations.md`.
 

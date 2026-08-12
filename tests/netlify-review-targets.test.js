@@ -33,22 +33,31 @@ test("dedicated Builder site package isolates build output and Netlify Functions
     read("netlify-sites/ultimate-b2-builder/netlify.toml"),
     read("netlify.toml"),
   ]);
-  const functionFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/functions/", import.meta.url));
+  const configuredFunctionsDirectory = tomlString(builderNetlify, "functions", "directory");
+  const functionFiles = await filesUnder(new URL(`../${configuredFunctionsDirectory}/`, import.meta.url));
+  const serverFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/server/", import.meta.url));
+  const supportedSource = /\.(?:[cm]?[jt]sx?|go)$/i;
+  const [builderAuthEntry, builderContentEntry] = await Promise.all([
+    read(`${configuredFunctionsDirectory}/builder-auth.js`),
+    read(`${configuredFunctionsDirectory}/builder-content.js`),
+  ]);
 
   assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
   assert.equal(tomlString(builderNetlify, "build", "publish"), "dist-netlify/ultimate-b2-builder");
   assert.equal(tomlString(builderNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "ultimate-b2-builder");
-  assert.equal(tomlString(builderNetlify, "functions", "directory"), "netlify-sites/ultimate-b2-builder/functions");
+  assert.equal(configuredFunctionsDirectory, "netlify-sites/ultimate-b2-builder/functions");
   assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
   assert.match(builderNetlify, /from = "\/builder\/api\/auth"[\s\S]*to = "\/\.netlify\/functions\/builder-auth"/);
   assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
-  assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)).sort(), [
+  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
-    "builder-auth.js", "builder-content.js",
   ]);
-  assert.deepEqual(functionFiles.filter((file) => !file.startsWith("_") && /\.(?:[cm]?[jt]sx?|go)$/i.test(file)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
+  assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
+  assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
   assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 

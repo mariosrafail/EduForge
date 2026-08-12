@@ -76,6 +76,30 @@ async function verifyBuilderMutationSources() {
   }
 }
 
+async function sourceFilesUnder(root, relative = "") {
+  const files = [];
+  for (const entry of await readdir(path.join(root, relative), { withFileTypes: true })) {
+    const child = path.join(relative, entry.name);
+    if (entry.isDirectory()) files.push(...await sourceFilesUnder(root, child));
+    else if (entry.isFile() && /\.(?:[cm]?[jt]sx?|go)$/i.test(entry.name)) files.push(child.replaceAll("\\", "/"));
+  }
+  return files;
+}
+
+async function verifyBuilderFunctionLayout() {
+  const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
+  const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js"]);
+  assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
+    "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+  ]);
+  for (const entry of ["builder-auth.js", "builder-content.js"]) {
+    const source = await readFile(path.join(functionsRoot, entry), "utf8");
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content)Handler\(\)/);
+  }
+}
+
 async function textFiles(root) {
   const output = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
@@ -93,7 +117,10 @@ export async function verifyReviewBundle(targetName) {
   assert.ok((await stat(root).catch(() => null))?.isDirectory(), `${targetName} review output is missing.`);
   const generic = await scanWebBundle(root);
   assert.deepEqual(generic.findings, [], `${targetName} failed generic web safety:\n${JSON.stringify(generic.findings, null, 2)}`);
-  if (targetName === "ultimate-b2-builder") await verifyBuilderMutationSources();
+  if (targetName === "ultimate-b2-builder") {
+    await verifyBuilderFunctionLayout();
+    await verifyBuilderMutationSources();
+  }
   const findings = [];
   const builderApiRoutes = new Set();
   for (const file of await textFiles(root)) {

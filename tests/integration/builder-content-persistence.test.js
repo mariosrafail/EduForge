@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
-import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/functions/_builder-content.js";
+import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;

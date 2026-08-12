@@ -9,7 +9,7 @@ import {
   clearBuilderCookie,
   getBuilderSql,
   safeBuilderAuditMetadata,
-} from "../netlify-sites/ultimate-b2-builder/functions/_builder-auth.js";
+} from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderAuthHandler } from "../netlify-sites/ultimate-b2-builder/functions/builder-auth.js";
 
 const activeUser = {
