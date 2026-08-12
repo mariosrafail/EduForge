@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { BUILD_PROFILE_IDS, buildProfiles, resolveBuildProfile } from "../src/config/buildProfiles.js";
 import { reviewBuildPolicy, reviewTargets } from "../scripts/netlify/build-review-target.mjs";
+import { deploymentBuildPolicy } from "../scripts/netlify-build.mjs";
 
 const read = (relative) => readFile(new URL(`../${relative}`, import.meta.url), "utf8");
 
@@ -36,6 +37,7 @@ test("dedicated Builder site package isolates build output and Netlify Functions
 
   assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
   assert.equal(tomlString(builderNetlify, "build", "publish"), "dist-netlify/ultimate-b2-builder");
+  assert.equal(tomlString(builderNetlify, "build.environment", "HHPLMS_NETLIFY_REVIEW_TARGET"), "ultimate-b2-builder");
   assert.equal(tomlString(builderNetlify, "functions", "directory"), "netlify-sites/ultimate-b2-builder/functions");
   assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
   assert.doesNotMatch(builderNetlify, /\[\[redirects\]\]|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
@@ -62,12 +64,28 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(Object.keys(buildProfiles).length, 7);
 });
 
-test("review build policy allows local and review contexts but refuses production", () => {
-  assert.equal(reviewBuildPolicy({}).context, "local");
-  assert.equal(reviewBuildPolicy({ NETLIFY: "true", CONTEXT: "branch-deploy", BRANCH: "dev" }).context, "branch-deploy");
-  assert.equal(reviewBuildPolicy({ NETLIFY: "true", CONTEXT: "deploy-preview", BRANCH: "feature" }).context, "deploy-preview");
-  assert.throws(() => reviewBuildPolicy({ NETLIFY: "true", CONTEXT: "production", BRANCH: "main", COMMIT_REF: "abc" }), /cannot be built/);
-  assert.throws(() => reviewBuildPolicy({ NETLIFY: "true", CONTEXT: "production", BRANCH: "dev", COMMIT_REF: "abc" }), /must use branch main/);
+test("review build policy allows local and review contexts", () => {
+  assert.equal(reviewBuildPolicy("ultimate-b2-builder", {}).context, "local");
+  assert.equal(reviewBuildPolicy("ultimate-b2-builder", { NETLIFY: "true", CONTEXT: "branch-deploy", BRANCH: "dev" }).context, "branch-deploy");
+  assert.equal(reviewBuildPolicy("ultimate-b2-interactive", { NETLIFY: "true", CONTEXT: "deploy-preview", BRANCH: "feature" }).context, "deploy-preview");
+});
+
+test("only the explicitly marked dedicated Builder site may use production context on dev", () => {
+  const production = { NETLIFY: "true", CONTEXT: "production", COMMIT_REF: "abc" };
+  const marker = { HHPLMS_NETLIFY_REVIEW_TARGET: "ultimate-b2-builder" };
+  assert.deepEqual(reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "dev", ...marker }), {
+    context: "production", runProductionPreflight: false,
+  });
+
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "dev" }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "dev", HHPLMS_NETLIFY_REVIEW_TARGET: "wrong-target" }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-builder", { ...production, BRANCH: "feature", ...marker }), /must use branch main/);
+  assert.throws(() => reviewBuildPolicy("ultimate-b2-interactive", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
+  assert.throws(() => reviewBuildPolicy("arbitrary-review", { ...production, BRANCH: "main", ...marker }), /cannot be built/);
+
+  assert.equal(deploymentBuildPolicy({ ...production, BRANCH: "main" }).runProductionPreflight, true);
+  assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
 });
 
 test("hosted Builder graph is deliberately repository-backed and mutation-free", async () => {
@@ -118,10 +136,11 @@ test("review documentation preserves the three-site matrix and existing producti
   assert.match(documentation, /dist-netlify\/ultimate-b2-builder/);
   assert.match(documentation, /dist-netlify\/ultimate-b2-interactive/);
   assert.match(documentation, /Step 4: configure the dedicated Builder site/i);
-  assert.match(documentation, /Production branch[^\n]*`main`/);
-  assert.match(documentation, /Branch deploy[^\n]*`dev`/);
+  assert.match(documentation, /Production branch[^\n]*`dev`/);
+  assert.match(documentation, /no branch-deploy configuration is required/i);
   assert.match(documentation, /Package directory[^\n]*`netlify-sites\/ultimate-b2-builder`/);
-  assert.match(documentation, /https:\/\/dev--<builder-site-name>\.netlify\.app/);
+  assert.match(documentation, /https:\/\/<builder-site-name>\.netlify\.app/);
   assert.match(documentation, /main-only production rule/);
+  assert.match(documentation, /HHPLMS_NETLIFY_REVIEW_TARGET[^\n]*ultimate-b2-builder/);
   assert.match(documentation, /ULTIMATE_B2_CONTENT_ROOT.*local publisher configuration/);
 });

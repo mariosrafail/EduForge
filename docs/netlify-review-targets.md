@@ -20,7 +20,7 @@ Build behavior is selected explicitly in `src/config/buildProfiles.js` and `vite
 - The hosted Interactive reuses the Android Teacher visual shell but substitutes a public-pack validator/provider, the no-solution provider, Student answer UI, Student-safe activity data, and committed hotspot data. `teacher-solutions.json` is not imported.
 - Android Teacher continues to use the full private pack, strict Teacher validation, and Teacher reveal UI.
 
-The review wrapper accepts local builds and Netlify `branch-deploy`/`deploy-preview` contexts, but refuses Netlify `production`. The existing root `netlify.toml`, `deploy:build`, main-only production rule, migration check, and production database preflight remain unchanged.
+The review wrapper accepts local builds and Netlify `branch-deploy`/`deploy-preview` contexts. It also accepts Netlify `production` only for the Ultimate B2 Builder target on `dev` when the dedicated package supplies the explicit `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` marker. Every other review production context remains blocked. The existing root `netlify.toml`, `deploy:build`, LMS main-only production rule, migration check, and production database preflight remain unchanged.
 
 ## Verification
 
@@ -38,18 +38,21 @@ Create a second Netlify site from the same `mariosrafail/hhplms` repository. Thi
 
 | Setting | Value |
 | --- | --- |
-| Production branch | `main` |
-| Branch deploy | Enable `dev` as an individual branch deploy |
+| Production branch | `dev` |
 | Base directory | Leave unset (repository root) |
 | Package directory | `netlify-sites/ultimate-b2-builder` |
 | Build command | `npm run build:netlify:ultimate-b2-builder` |
 | Publish directory | `dist-netlify/ultimate-b2-builder` |
 | Functions directory | `netlify-sites/ultimate-b2-builder/functions` |
 
-Do not set `dev` as the Production branch. The deployed Builder artifact must use Netlify's `branch-deploy` context; the review build continues to refuse the `production` context. After the `dev` branch deploy succeeds, its stable URL has this shape:
+For this dedicated Builder site only, Netlify's **Production branch** must be `dev`. "Production branch" is Netlify terminology for the branch published at the site's primary URL; it does not make the Builder product production-ready. The artifact remains a review-only, read-only static Builder. Because `dev` is this site's primary branch, no branch-deploy configuration is required for `dev`.
+
+The package config sets the non-secret marker `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder`. The review policy accepts Netlify `production` only when that marker, the Builder target, and branch `dev` all match exactly. Do not copy the marker into the root LMS site configuration or use it for another review target.
+
+After the `dev` primary deploy succeeds, the site URL has this shape:
 
 ```text
-https://dev--<builder-site-name>.netlify.app
+https://<builder-site-name>.netlify.app
 ```
 
 Keep the Base directory unset so Netlify installs dependencies and runs the build from the repository root. The Package directory selects the Builder-specific `netlify.toml`; its paths are deliberately root-relative.
@@ -57,3 +60,5 @@ Keep the Base directory unset so Netlify installs dependencies and runs the buil
 The configured Functions directory is a tracked, empty site-local directory. It contains no deployable function source and must not be changed to the repository-root `netlify/functions` directory. Do not add function redirects, LMS authentication functions, Platform Admin functions, database-backed Builder APIs, or authoring mutation endpoints to this site.
 
 Do not configure LMS, authentication, database, staging, Neon, or publisher-workspace variables for the Builder site. In particular, it does not need `DATABASE_URL`, `STAGING_DATABASE_URL`, `AUTH_RATE_LIMIT_SALT`, `PLATFORM_ADMIN_RATE_LIMIT_SALT`, `HHPLMS_STAGING_QA_PASSWORD`, or `ULTIMATE_B2_CONTENT_ROOT`. It uses only the checked-in review-safe projections and public/static assets described above.
+
+This dedicated Builder branch model does not change the LMS site. The LMS continues to use its root configuration, `main` as its only production branch, LMS Functions, and the existing production database preflight.
