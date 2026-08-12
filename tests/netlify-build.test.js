@@ -37,6 +37,23 @@ test("preview and branch deploy verify and build without production access", () 
   }
 });
 
+test("review target markers fail before every root LMS build or preflight script", () => {
+  for (const reviewTarget of ["ultimate-b2-builder", "future-static-review"]) {
+    const scripts = [];
+    assert.throws(() => runDeploymentBuild({
+      environment: {
+        NETLIFY: "true",
+        CONTEXT: "production",
+        BRANCH: "dev",
+        COMMIT_REF: "review123",
+        HHPLMS_NETLIFY_REVIEW_TARGET: reviewTarget,
+      },
+      runScript: (script) => scripts.push(script),
+    }), new RegExp(`Review target ${reviewTarget} cannot use the root LMS Netlify configuration`));
+    assert.deepEqual(scripts, []);
+  }
+});
+
 test("Netlify context and production identity fail closed", () => {
   assert.throws(() => deploymentBuildPolicy({ NETLIFY: "true" }), /CONTEXT is required/);
   assert.throws(

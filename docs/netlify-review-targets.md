@@ -34,20 +34,42 @@ The Builder and Interactive checks reject private answers, source/IWB provenance
 
 ## Step 4: configure the dedicated Builder site
 
-Create a second Netlify site from the same `mariosrafail/hhplms` repository. This site is only for the Ultimate B2 Builder hosted review and must use these Netlify UI values:
+Create a second Netlify site from the same `mariosrafail/hhplms` repository. This site is only for the Ultimate B2 Builder hosted review.
+
+### Initial project creation
+
+Enter these values in Netlify's initial import form:
 
 | Setting | Value |
 | --- | --- |
-| Production branch | `dev` |
+| Repository | `mariosrafail/hhplms` |
+| Project name | `hhplms-builder` |
+| Branch to deploy | `dev` |
 | Base directory | Leave unset (repository root) |
-| Package directory | `netlify-sites/ultimate-b2-builder` |
 | Build command | `npm run build:netlify:ultimate-b2-builder` |
 | Publish directory | `dist-netlify/ultimate-b2-builder` |
 | Functions directory | `netlify-sites/ultimate-b2-builder/functions` |
+| Environment variable | `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` |
 
 For this dedicated Builder site only, Netlify's **Production branch** must be `dev`. "Production branch" is Netlify terminology for the branch published at the site's primary URL; it does not make the Builder product production-ready. The artifact remains a review-only, read-only static Builder. Because `dev` is this site's primary branch, no branch-deploy configuration is required for `dev`.
 
-The package config sets the non-secret marker `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder`. The review policy accepts Netlify `production` only when that marker, the Builder target, and branch `dev` all match exactly. Do not copy the marker into the root LMS site configuration or use it for another review target.
+The initial UI marker is non-secret. If the initial form does not offer Package directory, Netlify may resolve the repository-root LMS configuration for its first attempted deploy. The root pipeline detects the marker and fails closed before migration verification, production preflight, Vite compilation, or artifact generation. It cannot deploy the LMS or root Functions for this marked review site.
+
+### After project creation
+
+In the new `hhplms-builder` project, navigate to:
+
+```text
+Project configuration
+→ Build & deploy
+→ Continuous deployment
+→ Build settings
+→ Configure
+```
+
+Set **Package directory** to `netlify-sites/ultimate-b2-builder`, keep **Base directory** unset, then save and trigger a new deploy. The successful redeploy resolves `netlify-sites/ultimate-b2-builder/netlify.toml` and uses its existing dedicated build, publish, and empty Functions settings.
+
+The UI marker may remain because the dedicated package config declares the same non-secret `HHPLMS_NETLIFY_REVIEW_TARGET=ultimate-b2-builder` value. The review policy accepts Netlify `production` only when that marker, the Builder target, and branch `dev` all match exactly. Do not copy the marker into the LMS site's environment or use it for another review target.
 
 After the `dev` primary deploy succeeds, the site URL has this shape:
 

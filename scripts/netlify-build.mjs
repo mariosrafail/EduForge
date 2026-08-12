@@ -45,6 +45,10 @@ export function runDeploymentBuild({
   environment = process.env,
   runScript = (script) => runNpmScript(script, environment),
 } = {}) {
+  const reviewTarget = String(environment.HHPLMS_NETLIFY_REVIEW_TARGET || "").trim();
+  if (reviewTarget) {
+    throw new Error(`Review target ${reviewTarget} cannot use the root LMS Netlify configuration; configure its dedicated Package directory.`);
+  }
   runScript("verify:migration-manifest");
   const policy = deploymentBuildPolicy(environment);
   if (policy.runProductionPreflight) runScript("production:preflight");
