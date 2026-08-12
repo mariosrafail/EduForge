@@ -19,7 +19,7 @@ import { normalizeTeacherActivityPresentationState } from "./teacherActivityPres
 import {
   getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
-} from "../../data/ultimate-b2/studentsBookHotspots.js";
+} from "virtual:ultimate-b2-runtime-hotspots";
 import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseRuntimeData.js";
 
 const minimumZoom = 1;

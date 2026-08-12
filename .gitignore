@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-netlify/
 dist-book-builder/
 .env
 .env.*

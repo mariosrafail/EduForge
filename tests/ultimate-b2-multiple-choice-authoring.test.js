@@ -89,7 +89,7 @@ test("Object 3 runtime and builder expose bounded navigation, feedback, area edi
   assert.match(pages, /internalNavigation/);
   assert.match(pages, /toggle-text[\s\S]*previous-panel[\s\S]*next-panel/);
   assert.match(navigation, /Previous activity part[\s\S]*Next activity part/);
-  assert.match(embedded, /unit-01-reading-exercise-3\.multiple-choice\.json/);
+  assert.match(embedded, /virtual:ultimate-b2-multiple-choice-presentation/);
   assert.match(activityBuilder, /ultimateB2ActivityEditorRegistry/);
   assert.match(registry, /UltimateB2ListeningBuilder[\s\S]*UltimateB2MultipleChoiceBuilder/);
   for (const section of ["Overview", "Panels / Parts", "Questions & Answers", "Highlight Audio / Text Links", "Preview"]) assert.match(builder, new RegExp(section.replace(/[ /]/g, ".*")));

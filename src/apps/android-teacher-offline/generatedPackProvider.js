@@ -15,6 +15,7 @@ export const bundledTeacherPack = Object.freeze({
 });
 
 export const teacherContentPackProvider = new BundledTeacherContentPackProvider(bundledTeacherPack);
+export const interactiveContentPackProvider = teacherContentPackProvider;
 
 export function getOfflineTeacherSolution(activityId) {
   return teacherSolutions.solutions?.[String(activityId || "")] || null;

@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
+import { activeBuildProfile, BUILD_PROFILE_IDS } from "../../config/buildProfiles.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
-import multipleChoiceAuthoring from "../../data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json";
+import multipleChoiceAuthoring from "virtual:ultimate-b2-multiple-choice-presentation";
 
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
@@ -18,6 +19,8 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
+  const hostedReview = activeBuildProfile.id === BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW;
+  const activityMode = hostedReview ? ACTIVITY_MODES.ANDROID_OFFLINE : ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE;
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -108,12 +111,12 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
         <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
-          mode={ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE}
+          mode={activityMode}
           listeningPresentation={{ showTextCommand: listeningShowTextCommand, onStateChange: onListeningStateChange }}
           activityPresentation={{
             command: activityPresentationCommand,
             onStateChange: onActivityPresentationStateChange,
-            multipleChoiceAuthoring: activityId === multipleChoiceAuthoring.activityId ? multipleChoiceAuthoring : null,
+            multipleChoiceAuthoring: !hostedReview && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
           }}
         />
       </div>

@@ -1,0 +1,47 @@
+export const BUILD_PROFILE_IDS = Object.freeze({
+  WEB_LMS: "web-lms",
+  BUILDER_LOCAL_AUTHORING: "ultimate-b2-builder-local-authoring",
+  BUILDER_HOSTED_REVIEW: "ultimate-b2-builder-hosted-review",
+  INTERACTIVE_HOSTED_REVIEW: "ultimate-b2-interactive-review",
+  ANDROID_STUDENT_OFFLINE: "android-student-offline",
+  ANDROID_TEACHER_OFFLINE: "android-teacher-offline",
+  ANDROID_TEACHER_PROJECT: "android-teacher-project",
+});
+
+const profile = (id, capabilities) => Object.freeze({ id, ...capabilities });
+
+export const buildProfiles = Object.freeze({
+  [BUILD_PROFILE_IDS.WEB_LMS]: profile(BUILD_PROFILE_IDS.WEB_LMS, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: false,
+  }),
+  [BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING]: profile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING, {
+    builderReadOnly: false, builderMutations: true, teacherSolutions: false, staticOnly: false,
+  }),
+  [BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: true,
+  }),
+  [BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: true,
+  }),
+  [BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: true,
+  }),
+  [BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: true, staticOnly: true,
+  }),
+  [BUILD_PROFILE_IDS.ANDROID_TEACHER_PROJECT]: profile(BUILD_PROFILE_IDS.ANDROID_TEACHER_PROJECT, {
+    builderReadOnly: true, builderMutations: false, teacherSolutions: true, staticOnly: true,
+  }),
+});
+
+export function resolveBuildProfile(id) {
+  const value = buildProfiles[String(id || "")];
+  if (!value) throw new Error(`Unknown explicit build profile: ${id}`);
+  return value;
+}
+
+const compiledProfileId = typeof __HHPLMS_BUILD_PROFILE__ === "string"
+  ? __HHPLMS_BUILD_PROFILE__
+  : BUILD_PROFILE_IDS.WEB_LMS;
+
+export const activeBuildProfile = resolveBuildProfile(compiledProfileId);

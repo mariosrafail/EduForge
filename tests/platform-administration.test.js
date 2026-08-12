@@ -117,7 +117,7 @@ test("paused schools deny ordinary login and invalidate ordinary sessions withou
 
 test("the dedicated entry is built only for web and has production-style Netlify rewrites", () => {
   assert.match(vite, /platform-admin\/index\.html/);
-  assert.match(vite, /input: isAndroidOffline \? path\.resolve\(process\.cwd\(\), "index\.html"\) : webInputs/);
+  assert.match(vite, /\(isAndroidOffline \|\| isHostedInteractiveReview\) \? path\.resolve\(process\.cwd\(\), "index\.html"\) : webInputs/);
   assert.match(netlify, /from = "\/platform-admin\/api\/auth"/);
   assert.match(netlify, /from = "\/platform-admin\/api\/control"/);
   assert.match(netlify, /from = "\/platform-admin\/\*"/);

@@ -20,9 +20,9 @@ function exerciseIds(catalog) {
   ));
 }
 
-async function validateContentPack(pack, { requireTeacherSolutions }) {
+async function validateReviewContentPack(pack) {
   try {
-    const { manifest, catalog, activities, teacherSolutions, assetsManifest } = pack || {};
+    const { manifest, catalog, activities, assetsManifest } = pack || {};
     if (!globalThis.crypto?.subtle) return { valid: false, reason: "Integrity verification is unavailable." };
     if (
       manifest?.schemaVersion !== 1
@@ -40,7 +40,6 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
       "activities.json": activities,
       "assets-manifest.json": assetsManifest,
     };
-    if (requireTeacherSolutions) records["teacher-solutions.json"] = teacherSolutions;
     for (const [name, value] of Object.entries(records)) {
       const expected = manifest.files?.[name]?.semanticSha256;
       if (!expected || await sha256(stableStringify(value)) !== expected) {
@@ -53,7 +52,6 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
       activityIds.length !== 78
       || new Set(activityIds).size !== 78
       || exerciseIds(catalog).join("|") !== activityIds.join("|")
-      || (requireTeacherSolutions && Object.keys(teacherSolutions?.solutions || {}).join("|") !== activityIds.join("|"))
       || manifest.activityCountsByUnit?.["1"] !== 38
       || manifest.activityCountsByUnit?.["2"] !== 40
       || manifest.disabledActivityCount !== 12
@@ -73,10 +71,18 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
   }
 }
 
-export function validateReviewContentPack(pack) {
-  return validateContentPack(pack, { requireTeacherSolutions: false });
-}
+export class BundledReviewContentPackProvider {
+  constructor(pack) {
+    this.pack = pack;
+  }
 
-export function validateTeacherContentPack(pack) {
-  return validateContentPack(pack, { requireTeacherSolutions: true });
+  async load() {
+    const validation = await validateReviewContentPack(this.pack);
+    if (!validation.valid) {
+      const error = new Error(validation.reason || "Content pack unavailable or damaged");
+      error.code = "CONTENT_PACK_INVALID";
+      throw error;
+    }
+    return this.pack;
+  }
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { UltimateB2BuilderApp } from "./UltimateB2BuilderApp.jsx";
+import { UltimateB2BuilderApp } from "virtual:ultimate-b2-builder-app";
 import "./ultimateB2HotspotBuilder.css";
 import "./ultimateB2ListeningBuilder.css";
 import "./ultimateB2MultipleChoiceBuilder.css";

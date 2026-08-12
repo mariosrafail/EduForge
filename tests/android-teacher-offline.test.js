@@ -578,7 +578,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(renderer, /visibilitychange/);
   assert.match(renderer, /preload="metadata"/);
   assert.match(renderer, /onError=\{\(\) => setMediaError/);
-  assert.match(app, /teacherContentPackProvider\.load/);
+  assert.match(app, /interactiveContentPackProvider\.load/);
   assert.match(app, /App\.addListener\("backButton"/);
   assert.match(app, /current\.location\?\.pageId \|\| current\.location\?\.tab === "exercises"[\s\S]*returnToUnitOverview\(\)/);
   assert.match(app, /current\.view === "media"\) returnToBookPage\(\)/);
@@ -658,7 +658,7 @@ test("Teacher startup intro is first, reproducible, centered, non-skippable, and
   assert.doesNotMatch(introStyles, /teacher-startup-intro-skip|background:\s*#020711/);
   assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
   assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*teacher-offline-pack-wait[\s\S]*else if \(packState\.status === "error"\)/);
-  assert.match(app, /teacherContentPackProvider\.load\(\)[\s\S]*setPackState\(\{ status: "ready"/);
+  assert.match(app, /interactiveContentPackProvider\.load\(\)[\s\S]*setPackState\(\{ status: "ready"/);
   assert.doesNotMatch(app, /Checking classroom content/);
   assert.doesNotMatch(app, /if \(packState\.status === "loading"\)\s*\{\s*return/);
   assert.match(app, /if \(!animationsActive\) setStartupIntroPending\(false\)/);

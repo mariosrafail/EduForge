@@ -4,7 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
-import { teacherContentPackProvider } from "./generatedPackProvider.js";
+import { interactiveContentPackProvider } from "virtual:ultimate-b2-interactive-pack-provider";
 import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
 import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
@@ -110,7 +110,7 @@ export default function TeacherOfflineApp() {
 
   useEffect(() => {
     let active = true;
-    teacherContentPackProvider.load()
+    interactiveContentPackProvider.load()
       .then((pack) => {
         if (active) setPackState({ status: "ready", pack, error: "" });
       })

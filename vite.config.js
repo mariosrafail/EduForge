@@ -14,15 +14,28 @@ import { ultimateB2Page5BuilderPlugin } from "./scripts/ultimate-b2/page5-builde
 import { ultimateB2ReadingExerciseBuilderPlugin } from "./scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
 import { ultimateB2TeacherAppBuilderPlugin } from "./scripts/ultimate-b2/teacher-app-builder-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
+import { committedHotspotVitePlugin } from "./scripts/netlify/committed-hotspot-vite-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const serverEnvironment = { ...process.env, ...env };
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
+  const isHostedBuilderReview = appMode === "netlify-ultimate-b2-builder-review";
+  const isHostedInteractiveReview = appMode === "netlify-ultimate-b2-interactive-review";
+  const isHostedReview = isHostedBuilderReview || isHostedInteractiveReview;
   const isAndroidTeacherProject = appMode === "android-teacher-project";
   const isAndroidTeacherOffline = appMode === "android-teacher-offline";
   const isTeacherRuntime = isAndroidTeacherOffline || isAndroidTeacherProject;
   const isAndroidOffline = appMode === "android-offline" || isTeacherRuntime;
+  const isStaticBookRuntime = isAndroidOffline || isHostedReview;
+  const isTeacherVisualRuntime = isAndroidTeacherOffline || isHostedReview;
+  const buildProfileId = process.env.HHPLMS_BUILD_PROFILE
+    || (isHostedBuilderReview ? "ultimate-b2-builder-hosted-review"
+      : isHostedInteractiveReview ? "ultimate-b2-interactive-review"
+        : isAndroidTeacherOffline ? "android-teacher-offline"
+          : isAndroidTeacherProject ? "android-teacher-project"
+            : appMode === "android-offline" ? "android-student-offline"
+              : "web-lms");
   const webInputs = {
     lms: path.resolve(process.cwd(), "index.html"),
     platformAdmin: path.resolve(process.cwd(), "platform-admin/index.html"),
@@ -32,7 +45,7 @@ export default defineConfig(({ mode }) => {
   const bookAuthoringTools = path.resolve(process.cwd(), "src/components/lms/books/BookAuthoringTools.jsx");
   const teacherAnswerUi = path.resolve(process.cwd(), isAndroidTeacherOffline
     ? "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx"
-    : isAndroidOffline
+    : isStaticBookRuntime
       ? "src/apps/android-offline/NoTeacherAnswerUi.jsx"
       : "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx");
   const teacherListeningPlayerAssets = path.resolve(process.cwd(), isAndroidTeacherOffline
@@ -44,28 +57,40 @@ export default defineConfig(({ mode }) => {
       ? "src/apps/android-teacher-offline/generatedPackProvider.js"
       : "src/apps/android-teacher-offline/noOfflineSolutions.js",
   );
-  const bookAssetsService = path.resolve(process.cwd(), isAndroidOffline
+  const interactivePackProvider = path.resolve(process.cwd(), isHostedInteractiveReview
+    ? "src/apps/android-teacher-offline/reviewPackProvider.js"
+    : "src/apps/android-teacher-offline/generatedPackProvider.js");
+  const multipleChoicePresentation = path.resolve(process.cwd(), isHostedReview
+    ? "src/apps/android-teacher-offline/noMultipleChoicePresentation.js"
+    : "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
+  const runtimeHotspots = path.resolve(process.cwd(), isHostedReview
+    ? "src/data/ultimate-b2/hostedReviewHotspots.js"
+    : "src/data/ultimate-b2/studentsBookHotspots.js");
+  const builderApp = path.resolve(process.cwd(), isHostedBuilderReview
+    ? "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"
+    : "src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx");
+  const bookAssetsService = path.resolve(process.cwd(), isStaticBookRuntime
     ? "src/apps/android-offline/androidOfflineServiceStubs.js"
     : "src/services/bookAssetsApi.js");
-  const bookContentService = path.resolve(process.cwd(), isAndroidOffline
+  const bookContentService = path.resolve(process.cwd(), isStaticBookRuntime
     ? "src/apps/android-offline/androidOfflineServiceStubs.js"
     : "src/services/bookContentApi.js");
-  const ultimateB2PageAssets = path.resolve(process.cwd(), isAndroidOffline
-      ? isAndroidTeacherOffline
+  const ultimateB2PageAssets = path.resolve(process.cwd(), isStaticBookRuntime
+      ? isTeacherVisualRuntime
       ? "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2PageAssets.web.js");
-  const ultimateB2MediaAssets = path.resolve(process.cwd(), isAndroidOffline
-      ? isAndroidTeacherOffline
+  const ultimateB2MediaAssets = path.resolve(process.cwd(), isStaticBookRuntime
+      ? isTeacherVisualRuntime
       ? "src/data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2MediaAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2MediaAssets.web.js");
-  const ultimateB2CoverAssets = path.resolve(process.cwd(), isAndroidOffline
+  const ultimateB2CoverAssets = path.resolve(process.cwd(), isStaticBookRuntime
     ? "src/data/ultimate-b2/ultimateB2CoverAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2CoverAssets.web.js");
   const ultimateB2Unit1Part2LegacyPilotAudio = path.resolve(
     process.cwd(),
-    isAndroidOffline
+    isStaticBookRuntime
       ? "src/data/ultimate-b2/unit1Part2LegacyPilotAudio.offline.js"
       : "src/data/ultimate-b2/unit1Part2LegacyPilotAudio.web.js",
   );
@@ -90,7 +115,14 @@ export default defineConfig(({ mode }) => {
       return `export default ${JSON.stringify(authoring)};`;
     },
   };
-
+  const hostedInteractiveTitlePlugin = {
+    name: "hosted-interactive-title",
+    transformIndexHtml(html) {
+      return isHostedInteractiveReview
+        ? html.replace("<title>Hamilton House LMS</title>", "<title>Ultimate B2 Interactive Review</title>")
+        : html;
+    },
+  };
   return {
     server: {
       watch: {
@@ -101,7 +133,9 @@ export default defineConfig(({ mode }) => {
       sourcemap: false,
       assetsInlineLimit: isAndroidTeacherOffline ? 0 : isAndroidTeacherProject ? 0 : 4096,
       rollupOptions: {
-        input: isAndroidOffline ? path.resolve(process.cwd(), "index.html") : webInputs,
+        input: isHostedBuilderReview
+          ? path.resolve(process.cwd(), "ultimate-b2-builder.html")
+          : (isAndroidOffline || isHostedInteractiveReview) ? path.resolve(process.cwd(), "index.html") : webInputs,
       },
     },
     publicDir: isAndroidTeacherProject
@@ -109,18 +143,20 @@ export default defineConfig(({ mode }) => {
       : undefined,
     plugins: [
       react(),
+      hostedInteractiveTitlePlugin,
       listeningAuthoringPlugin,
+      committedHotspotVitePlugin({ enabled: isHostedReview }),
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
-      !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2OpenResponseBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2ImageBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2PublisherActivityBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2ReadingExerciseBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? ultimateB2TeacherAppBuilderPlugin({ environment: serverEnvironment }) : null,
-      !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2HotspotBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2ListeningBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2MultipleChoiceBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2OpenResponseBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2ImageBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2PublisherActivityBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2Page5BuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2ReadingExerciseBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject && !isHostedReview ? ultimateB2TeacherAppBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isStaticBookRuntime }) : null,
       !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
     ].filter(Boolean),
     resolve: {
@@ -150,10 +186,26 @@ export default defineConfig(({ mode }) => {
           replacement: teacherListeningPlayerAssets,
         },
         {
+          find: "virtual:ultimate-b2-builder-app",
+          replacement: builderApp,
+        },
+        {
+          find: "virtual:ultimate-b2-interactive-pack-provider",
+          replacement: interactivePackProvider,
+        },
+        {
+          find: "virtual:ultimate-b2-multiple-choice-presentation",
+          replacement: multipleChoicePresentation,
+        },
+        {
+          find: "virtual:ultimate-b2-runtime-hotspots",
+          replacement: runtimeHotspots,
+        },
+        {
           find: "virtual:app-entry",
           replacement: isAndroidTeacherProject
             ? "/src/apps/android-teacher-project/teacherProjectEntry.jsx"
-            : isAndroidTeacherOffline
+            : (isAndroidTeacherOffline || isHostedInteractiveReview)
             ? "/src/apps/android-teacher-offline/teacherOfflineEntry.jsx"
             : isAndroidOffline
               ? "/src/apps/android-offline/offlineEntry.jsx"
@@ -163,7 +215,7 @@ export default defineConfig(({ mode }) => {
           find: "virtual:app-styles",
           replacement: isAndroidTeacherProject
             ? "/src/apps/android-teacher-project/teacherProjectRoot.css"
-            : isAndroidTeacherOffline
+            : (isAndroidTeacherOffline || isHostedInteractiveReview)
             ? "/src/apps/android-teacher-offline/teacherOfflineRoot.css"
             : isAndroidOffline
               ? "/src/apps/android-offline/offlineRoot.css"
@@ -183,13 +235,13 @@ export default defineConfig(({ mode }) => {
         },
         {
           find: "virtual:book-authoring-tools",
-          replacement: isAndroidOffline ? offlineDisabledBookTools : bookAuthoringTools,
+          replacement: isStaticBookRuntime ? offlineDisabledBookTools : bookAuthoringTools,
         },
         {
           find: "virtual:teacher-answer-ui",
           replacement: teacherAnswerUi,
         },
-        ...(isAndroidOffline
+        ...(isStaticBookRuntime
           ? [
               {
                 find: "../../../services/bookActivitiesApi.js",
@@ -222,6 +274,9 @@ export default defineConfig(({ mode }) => {
             ]
           : []),
       ],
+    },
+    define: {
+      __HHPLMS_BUILD_PROFILE__: JSON.stringify(buildProfileId),
     },
   };
 });
