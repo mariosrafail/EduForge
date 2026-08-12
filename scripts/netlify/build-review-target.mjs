@@ -8,7 +8,7 @@ import { deploymentBuildPolicy } from "../netlify-build.mjs";
 
 export const reviewTargets = Object.freeze({
   lms: Object.freeze({ appMode: "netlify-lms-review", profile: "web-lms", outDir: "dist-netlify/lms" }),
-  "ultimate-b2-builder": Object.freeze({ appMode: "netlify-ultimate-b2-builder-review", profile: "ultimate-b2-builder-hosted-review", outDir: "dist-netlify/ultimate-b2-builder" }),
+  "ultimate-b2-builder": Object.freeze({ appMode: "netlify-book-builder-review", profile: "book-builder-hosted-review", outDir: "dist-netlify/ultimate-b2-builder" }),
   "ultimate-b2-interactive": Object.freeze({ appMode: "netlify-ultimate-b2-interactive-review", profile: "ultimate-b2-interactive-review", outDir: "dist-netlify/ultimate-b2-interactive" }),
 });
 

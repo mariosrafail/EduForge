@@ -83,6 +83,8 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING).builderReadOnly, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderMutations, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderReadOnly, true);
+  assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
+  assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherSolutions, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE).teacherSolutions, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE).teacherSolutions, false);
@@ -131,22 +133,27 @@ test("only the explicitly marked dedicated Viewer site may use production contex
   assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
 });
 
-test("hosted Builder graph is deliberately repository-backed and mutation-free", async () => {
-  const [hosted, local, entry] = await Promise.all([
+test("hosted Builder graph is generic, authenticated, repository-backed, and mutation-free", async () => {
+  const [hosted, local, entry, hostedRoot, shell, vite] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
+    read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
+    read("vite.config.js"),
   ]);
-  const tabs = hosted.match(/<nav className="ultimate-b2-builder-tabs"[\s\S]*?<\/nav>/)?.[0] || "";
-  assert.deepEqual([...tabs.matchAll(/>(Hotspot Builder|Activity Builder|UI Controller)</g)].map((match) => match[1]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
+  assert.deepEqual([...shell.matchAll(/\["(hotspots|activities|ui)", "(Hotspot Builder|Activity Builder|UI Controller)"\]/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
   assert.match(hosted, /Read-only review/);
   assert.match(hosted, /virtual:ultimate-b2-runtime-hotspots/);
   assert.match(hosted, /NormalizedStudentsBookActivity/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|Add Activity|onPublisherActivityCreated/);
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
-  assert.match(entry, /virtual:ultimate-b2-builder-app/);
-  assert.match(entry, /BuilderAuthGate/);
+  assert.match(entry, /virtual:book-builder-app/);
+  assert.match(hostedRoot, /BuilderAuthGate/);
+  assert.match(vite, /netlify-book-builder-review/);
+  assert.match(vite, /virtual:book-builder-app/);
+  assert.doesNotMatch(vite, /netlify-ultimate-b2-builder-review|virtual:ultimate-b2-builder-app/);
 });
 
 test("Interactive provider split excludes solutions from hosted review and retains strict Android Teacher data", async () => {

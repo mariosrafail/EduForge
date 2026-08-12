@@ -76,7 +76,7 @@ export function BuilderAuthGate({ children }) {
 
   return <div className="builder-authenticated-shell">
     <header className="builder-staff-bar">
-      <div><strong>Publisher Builder</strong><span>Authenticated read-only review</span></div>
+      <div><strong>Publisher Book Builder</strong><span>Authenticated Builder · read-only milestone</span></div>
       <div><span>{state.user.full_name}</span><button type="button" onClick={logout}>Logout</button></div>
     </header>
     {children}

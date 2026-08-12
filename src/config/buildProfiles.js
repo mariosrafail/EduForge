@@ -1,7 +1,7 @@
 export const BUILD_PROFILE_IDS = Object.freeze({
   WEB_LMS: "web-lms",
   BUILDER_LOCAL_AUTHORING: "ultimate-b2-builder-local-authoring",
-  BUILDER_HOSTED_REVIEW: "ultimate-b2-builder-hosted-review",
+  BUILDER_HOSTED_REVIEW: "book-builder-hosted-review",
   INTERACTIVE_HOSTED_REVIEW: "ultimate-b2-interactive-review",
   ANDROID_STUDENT_OFFLINE: "android-student-offline",
   ANDROID_TEACHER_OFFLINE: "android-teacher-offline",

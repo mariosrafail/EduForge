@@ -62,17 +62,12 @@ function UiControllerReview() {
   </main>;
 }
 
-export function UltimateB2BuilderApp() {
-  const [tab, setTab] = useState(() => window.location.hash === "#teacher-app" ? "teacher-app" : window.location.hash === "#activity-builder" ? "activities" : "hotspots");
-  const selectTab = (next) => { setTab(next); window.history.replaceState(null, "", next === "teacher-app" ? "#teacher-app" : next === "activities" ? "#activity-builder" : "#hotspot-builder"); };
-  return <div className="ultimate-b2-builder-app" data-build-profile="ultimate-b2-builder-hosted-review">
-    <nav className="ultimate-b2-builder-tabs" aria-label="Ultimate B2 review tools">
-      <button type="button" aria-selected={tab === "hotspots"} onClick={() => selectTab("hotspots")}>Hotspot Builder</button>
-      <button type="button" aria-selected={tab === "activities"} onClick={() => selectTab("activities")}>Activity Builder</button>
-      <button type="button" aria-selected={tab === "teacher-app"} onClick={() => selectTab("teacher-app")}>UI Controller</button>
-    </nav>
-    <div hidden={tab !== "hotspots"}><HotspotReview /></div>
-    <div hidden={tab !== "activities"}><ActivityReview /></div>
-    <div hidden={tab !== "teacher-app"}><UiControllerReview /></div>
+export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots" }) {
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter="ultimate-b2-students-book">
+    {tool === "hotspots" ? <HotspotReview /> : null}
+    {tool === "activities" ? <ActivityReview /> : null}
+    {tool === "ui" ? <UiControllerReview /> : null}
   </div>;
 }
+
+export default UltimateB2StudentsBookHostedWorkspace;

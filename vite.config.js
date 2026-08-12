@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const serverEnvironment = { ...process.env, ...env };
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
-  const isHostedBuilderReview = appMode === "netlify-ultimate-b2-builder-review";
+  const isHostedBuilderReview = appMode === "netlify-book-builder-review";
   const isHostedInteractiveReview = appMode === "netlify-ultimate-b2-interactive-review";
   const isHostedReview = isHostedBuilderReview || isHostedInteractiveReview;
   const isAndroidTeacherProject = appMode === "android-teacher-project";
@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
   const isStaticBookRuntime = isAndroidOffline || isHostedReview;
   const isTeacherVisualRuntime = isAndroidTeacherOffline || isHostedReview;
   const buildProfileId = process.env.HHPLMS_BUILD_PROFILE
-    || (isHostedBuilderReview ? "ultimate-b2-builder-hosted-review"
+    || (isHostedBuilderReview ? "book-builder-hosted-review"
       : isHostedInteractiveReview ? "ultimate-b2-interactive-review"
         : isAndroidTeacherOffline ? "android-teacher-offline"
           : isAndroidTeacherProject ? "android-teacher-project"
@@ -67,7 +67,7 @@ export default defineConfig(({ mode }) => {
     ? "src/data/ultimate-b2/hostedReviewHotspots.js"
     : "src/data/ultimate-b2/studentsBookHotspots.js");
   const builderApp = path.resolve(process.cwd(), isHostedBuilderReview
-    ? "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"
+    ? "src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"
     : "src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx");
   const bookAssetsService = path.resolve(process.cwd(), isStaticBookRuntime
     ? "src/apps/android-offline/androidOfflineServiceStubs.js"
@@ -186,7 +186,7 @@ export default defineConfig(({ mode }) => {
           replacement: teacherListeningPlayerAssets,
         },
         {
-          find: "virtual:ultimate-b2-builder-app",
+          find: "virtual:book-builder-app",
           replacement: builderApp,
         },
         {

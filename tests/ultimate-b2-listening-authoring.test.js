@@ -136,7 +136,7 @@ test("Builder shell keeps Hotspot authoring separate and exposes Listening edito
     readFile("src/apps/ultimate-b2-builder/activityEditorRegistry.js", "utf8"),
     readFile("src/apps/ultimate-b2-builder/UltimateB2ListeningBuilder.jsx", "utf8"),
   ]);
-  assert.match(entry, /UltimateB2BuilderApp/);
+  assert.match(entry, /virtual:book-builder-app/);
   assert.match(shell, /Hotspot Builder[\s\S]*Activity Builder/);
   assert.match(shell, /UltimateB2HotspotBuilder/);
   assert.match(activityBuilder, /ultimateB2ActivityEditorRegistry/);

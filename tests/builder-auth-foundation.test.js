@@ -33,13 +33,16 @@ test("Builder audit schema and runtime reject sensitive metadata", async () => {
 });
 
 test("Builder frontend gates the read-only host without browser token persistence or signup", async () => {
-  const [gate, api, entry, hosted] = await Promise.all([
+  const [gate, api, entry, hosted, hostedRoot] = await Promise.all([
     read("src/apps/book-builder/BuilderAuthGate.jsx"),
     read("src/apps/book-builder/builderAuthApi.js"),
     read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
   ]);
-  assert.match(entry, /<BuilderAuthGate><UltimateB2BuilderApp \/><\/BuilderAuthGate>/);
+  assert.match(entry, /virtual:book-builder-app/);
+  assert.match(hostedRoot, /<BuilderAuthGate>/);
+  assert.match(hostedRoot, /<HostedBookBuilderApp \/>/);
   assert.match(gate, /status: "checking"/);
   assert.match(gate, /payload\.authenticated/);
   assert.match(gate, /Logout/);

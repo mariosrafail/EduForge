@@ -15,7 +15,7 @@ Each command empties only its own publish directory, so all three outputs can co
 Build behavior is selected explicitly in `src/config/buildProfiles.js` and `vite.config.js`; it is never inferred from a hostname or Netlify URL.
 
 - The normal local Ultimate B2 Builder retains all three existing tabs and its loopback-only, workspace-first authoring endpoints.
-- The hosted Builder substitutes a separate read-only root module before Rollup follows the local editor graph. It contains exactly Hotspot Builder, Activity Builder, and UI Controller, intentionally loads the committed hotspot manifest, and has no save, upload, import, activity-creation, database-projection, or `__hhplms` client.
+- The authenticated hosted Builder loads a generic Book Library and component registry. Its first connected adapter is Ultimate B2 → Students Book, containing the existing Hotspot Builder, Activity Builder, and UI Controller reviews. It intentionally loads the committed hotspot manifest and has no save, upload, import, activity-creation, database-projection, or `__hhplms` client. See `docs/hosted-book-builder-architecture.md`.
 - `ULTIMATE_B2_CONTENT_ROOT` remains local publisher configuration. Hosted builds do not need or read the external workspace.
 - The hosted Interactive reuses the Android Teacher visual shell but substitutes a public-pack validator/provider, the no-solution provider, Student answer UI, Student-safe activity data, and committed hotspot data. `teacher-solutions.json` is not imported.
 - Android Teacher continues to use the full private pack, strict Teacher validation, and Teacher reveal UI.
