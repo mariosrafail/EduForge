@@ -6,41 +6,78 @@ import path from "node:path";
 import test from "node:test";
 
 import { rolldown } from "rolldown";
-import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
+import * as canonicalManifest from "../scripts/ultimate-b2/hotspot-manifest.js";
+import * as compatibilityManifest from "../scripts/ultimate-b2/hotspot-manifest.mjs";
 
 const functionEntry = path.resolve("netlify-sites/ultimate-b2-builder/functions/builder-content.js");
 const registryPath = path.resolve("netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js");
-const hotspotManifestPattern = /scripts[\\/]ultimate-b2[\\/]hotspot-manifest\.mjs$/;
 
-test("deployed-style CommonJS Function initialization preserves the ESM hotspot validator boundary", async () => {
-  const registrySource = await readFile(registryPath, "utf8");
-  assert.doesNotMatch(registrySource, /from\s+["'][^"']*hotspot-manifest\.mjs["']/);
-  assert.match(registrySource, /import\(["']\.\.\/\.\.\/\.\.\/scripts\/ultimate-b2\/hotspot-manifest\.mjs["']\)/);
-
-  const bundle = await rolldown({
-    input: functionEntry,
-    external: (id) => hotspotManifestPattern.test(id),
-  });
+async function commonJsArtifact(input, plugins = []) {
+  const bundle = await rolldown({ input, plugins });
   try {
     const generated = await bundle.generate({ format: "cjs" });
-    const artifact = generated.output.find((output) => output.type === "chunk")?.code || "";
-    assert.ok(artifact, "The deployed-style builder-content artifact was not generated.");
-    assert.doesNotMatch(artifact, /require\(["'][^"']*hotspot-manifest\.mjs["']\)/);
-    assert.match(artifact, /import\(["'][^"']*hotspot-manifest\.mjs["']\)/);
-
-    const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "hhplms-builder-content-"));
-    const artifactPath = path.join(temporaryDirectory, "builder-content.cjs");
-    try {
-      await writeFile(artifactPath, artifact, "utf8");
-      const loaded = createRequire(import.meta.url)(artifactPath);
-      assert.equal(typeof loaded.handler, "function");
-      const resource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots");
-      assert.equal(resource.schemaVersion, "1.0");
-      assert.equal(resource.baseline().componentSlug, "students-book");
-    } finally {
-      await rm(temporaryDirectory, { recursive: true, force: true });
-    }
+    return generated.output.find((output) => output.type === "chunk")?.code || "";
   } finally {
     await bundle.close();
+  }
+}
+
+test("hotspot-manifest.mjs is a compatibility-only re-export of the canonical ESM implementation", async () => {
+  const wrapper = await readFile("scripts/ultimate-b2/hotspot-manifest.mjs", "utf8");
+  assert.equal(wrapper.trim(), 'export * from "./hotspot-manifest.js";');
+  assert.equal(compatibilityManifest.validateAndNormalizeUltimateB2HotspotManifest, canonicalManifest.validateAndNormalizeUltimateB2HotspotManifest);
+  assert.equal(compatibilityManifest.ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, canonicalManifest.ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION);
+});
+
+test("deployed-style CommonJS artifacts bundle and execute the canonical hotspot validator graph", async () => {
+  const registrySource = await readFile(registryPath, "utf8");
+  assert.match(registrySource, /from ["']\.\.\/\.\.\/\.\.\/scripts\/ultimate-b2\/hotspot-manifest\.js["']/);
+  assert.doesNotMatch(registrySource, /import\s*\(|hotspot-manifest\.mjs/);
+
+  const functionArtifact = await commonJsArtifact(functionEntry);
+  assert.ok(functionArtifact, "The deployed-style builder-content artifact was not generated.");
+  assert.doesNotMatch(functionArtifact, /hotspot-manifest\.mjs|require\(["'][^"']*hotspot-manifest|import\(["'][^"']*hotspot-manifest/);
+  assert.match(functionArtifact, /Unsupported hotspot manifest schemaVersion/);
+
+  const virtualEntry = "virtual:builder-content-resource-test";
+  const resourceArtifact = await commonJsArtifact(virtualEntry, [{
+    name: "builder-content-resource-test-entry",
+    resolveId(id) {
+      if (id === virtualEntry) return `\0${virtualEntry}`;
+      if (id === "builder-content-resource-registry") return registryPath;
+      return null;
+    },
+    load(id) {
+      if (id === `\0${virtualEntry}`) return 'export { resolveBuilderContentResource } from "builder-content-resource-registry";';
+      return null;
+    },
+  }]);
+  assert.ok(resourceArtifact, "The deployed-style resource artifact was not generated.");
+  assert.doesNotMatch(resourceArtifact, /hotspot-manifest\.mjs|require\(["'][^"']*hotspot-manifest|import\(["'][^"']*hotspot-manifest/);
+  assert.doesNotMatch(resourceArtifact, /acceptedAnswers|correctAnswers|teacherSolutions|teacher-solutions\.json|revealText/);
+  assert.match(resourceArtifact, /Unsupported hotspot manifest schemaVersion/);
+
+  const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "hhplms-builder-content-"));
+  try {
+    const functionArtifactPath = path.join(temporaryDirectory, "builder-content.cjs");
+    const resourceArtifactPath = path.join(temporaryDirectory, "builder-content-resource.cjs");
+    await Promise.all([
+      writeFile(functionArtifactPath, functionArtifact, "utf8"),
+      writeFile(resourceArtifactPath, resourceArtifact, "utf8"),
+    ]);
+    const require = createRequire(import.meta.url);
+    assert.equal(typeof require(functionArtifactPath).handler, "function");
+
+    const bundledResolver = require(resourceArtifactPath).resolveBuilderContentResource;
+    assert.equal(typeof bundledResolver, "function");
+    const resource = await bundledResolver("ultimate-b2", "ultimate-b2-students-book", "hotspots");
+    assert.equal(resource.bookSlug, "ultimate-b2");
+    assert.equal(resource.componentSlug, "ultimate-b2-students-book");
+    assert.equal(resource.schemaVersion, "1.0");
+    const baseline = resource.baseline();
+    assert.equal(baseline.packageSlug, "ultimate-b2");
+    assert.equal(baseline.componentSlug, "students-book");
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
   }
 });
