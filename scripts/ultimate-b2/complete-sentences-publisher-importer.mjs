@@ -166,7 +166,7 @@ function parsePublisherXml(raw) {
   });
   const example = {
     ...exampleMarkup,
-    answer: exampleAnswer,
+    exampleText: exampleAnswer,
     textArea: area(byName.text_1, "text_1"),
     answerArea: area(byName.text_11, "text_11"),
     textStyle: style(byName.text_1, "text_1"),

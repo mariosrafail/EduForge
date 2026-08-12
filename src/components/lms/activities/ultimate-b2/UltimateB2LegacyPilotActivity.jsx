@@ -341,6 +341,7 @@ export function UltimateB2LegacyPilotActivity({
   revealedQuestionIds,
   solutions,
   solutionsLoading,
+  requestTeacherSolutions,
   revealQuestion,
   mediaPlayers,
   actions,
@@ -367,9 +368,9 @@ export function UltimateB2LegacyPilotActivity({
   const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
 
   if (objectNumber === 4) return capabilities.isPresentation || capabilities.isReadOnly
-    ? <UltimateB2CompleteSentencesActivity activity={activity} presentation={activityPresentation} />
+    ? <UltimateB2CompleteSentencesActivity activity={activity} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} />
     : <UltimateB2CompleteSentencesStudentActivity activity={activity} {...studentSubmission} />;
-  if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} presentation={activityPresentation} />;
+  if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} teacherPresentation={capabilities.isPresentation || capabilities.isReadOnly} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} studentSubmission={studentSubmission} />;
 
   return (
     <article

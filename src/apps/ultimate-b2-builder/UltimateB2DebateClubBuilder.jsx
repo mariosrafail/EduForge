@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { UltimateB2DebateClubActivity } from "../../components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx";
 import { EditableResponseRegionLayer } from "../../components/lms/activities/ultimate-b2/ResponseRegion.jsx";
 import { normalizeUltimateB2DebateClubAuthoring, ULTIMATE_B2_DEBATE_CLUB_ID } from "../../data/ultimate-b2/readingExerciseAuthoringSchema.js";
+import { projectStudentReadingActivity, projectTeacherReadingSolution } from "../../data/ultimate-b2/readingExerciseProjections.js";
 import { UltimateB2ExerciseVisualCapabilitiesEditor } from "./UltimateB2ExerciseVisualCapabilitiesEditor.jsx";
 
 const activityId = ULTIMATE_B2_DEBATE_CLUB_ID;
@@ -80,11 +81,13 @@ export function UltimateB2DebateClubBuilder() {
   });
 
   if (!authoring) return <section className="listening-builder"><p className="page5-builder-loading">{error || status}</p></section>;
+  const runtime = projectStudentReadingActivity(authoring);
+  const teacherSolution = projectTeacherReadingSolution(authoring);
   return <section className="listening-builder reading-exercise-builder">
     <header className="listening-builder-header"><div><span>Ultimate B2 · Reading authoring</span><h1>Debate Club</h1><code>{activityId}</code></div><div className="builder-save-state" role="status" data-dirty={dirty || undefined}><strong>{status}</strong>{error && <small>{error}</small>}<button type="button" disabled={!dirty || status === "Saving"} onClick={save}><Save size={17} /> Save</button></div></header>
     <nav className="listening-builder-sections" aria-label="Debate Club editor sections">{["Publisher Source", "Response Regions", "Preview"].map((name) => <button type="button" key={name} aria-selected={section === name} onClick={() => setSection(name)}>{name}</button>)}</nav>
     {section === "Publisher Source" && <div className="page5-builder-form"><section className="publisher-source-import">
-      <div><strong>Publisher XML baseline</strong><small>Reads only the fixed local <code>tmp/debateclub</code> package. Reveal text remains ordinary public Debate Club presentation content.</small></div>
+      <div><strong>Publisher XML baseline</strong><small>Reads only the fixed local <code>tmp/debateclub</code> package. Model responses remain private authoring content projected only to Teacher solutions.</small></div>
       <button type="button" onClick={importPublisherSource} disabled={status === "Importing publisher source"}><FileDown size={17} /> Import Publisher Source</button>
       {importReport && <dl>
         <div><dt>Files found</dt><dd>{importReport.sourceFilesFound.join(", ")}</dd></div>
@@ -96,7 +99,7 @@ export function UltimateB2DebateClubBuilder() {
     </section></div>}
     {section === "Response Regions" && <div className="open-response-region-workspace debate-response-region-workspace">
       <div className="open-response-region-canvas"><p>Choose a part, then drag its lined Response Region to move it or use the handle to resize it.</p><div className="open-response-region-editor-stage debate-response-region-stage">
-        <UltimateB2DebateClubActivity key={`editor-part-${editingPartIndex}`} activity={{ stableNormalizedId: activityId }} authoring={authoring} presentation={{ command: editingPartIndex === 1 ? { type: "next-panel", token: "show-part-2" } : null }} />
+        <UltimateB2DebateClubActivity key={`editor-part-${editingPartIndex}`} activity={{ stableNormalizedId: activityId }} runtime={runtime} teacherPresentation teacherSolution={teacherSolution} presentation={{ command: editingPartIndex === 1 ? { type: "next-panel", token: "show-part-2" } : null }} />
         <EditableResponseRegionLayer regions={editingRegions} selectedRegionId={editingPart?.responseRegion.id} onSelectRegion={() => undefined} onChangeRegions={updateEditingRegions} createRegion={(geometry) => ({ id: editingPart.responseRegion.id, label: `Part ${editingPart.number} response region`, ...geometry })} />
       </div></div>
       <aside className="open-response-region-properties"><h2>Response Region properties</h2><label>Part<select value={editingPartIndex} onChange={(event) => setEditingPartIndex(Number(event.target.value))}>{authoring.parts.map((part, index) => <option key={part.id} value={index}>Part {part.number}</option>)}</select></label>
@@ -109,6 +112,6 @@ export function UltimateB2DebateClubBuilder() {
     </div>}
     {section === "Preview" && <div className="reading-builder-preview">{importReport && <section className="publisher-source-import is-report-only" aria-label="Debate Club publisher source import report"><dl>
       <div><dt>Files found</dt><dd>{importReport.sourceFilesFound.join(", ")}</dd></div><div><dt>Canvas</dt><dd>{importReport.canvas.width} × {importReport.canvas.height}</dd></div><div><dt>Detected</dt><dd>{importReport.partCount} parts · {importReport.imageCount} images · {importReport.responseRegionCount} response regions</dd></div><div><dt>Validation</dt><dd>{importReport.validation}</dd></div>
-    </dl></section>}<div className="reading-builder-preview-controls"><button type="button" onClick={() => send("previous-panel")}>Previous part</button><button type="button" onClick={() => send("next-panel")}>Next part</button></div><div className="reading-builder-preview-stage"><UltimateB2DebateClubActivity activity={{ stableNormalizedId: activityId }} authoring={authoring} presentation={{ command }} /></div></div>}
+    </dl></section>}<div className="reading-builder-preview-controls"><button type="button" onClick={() => send("previous-panel")}>Previous part</button><button type="button" onClick={() => send("next-panel")}>Next part</button></div><div className="reading-builder-preview-stage"><UltimateB2DebateClubActivity activity={{ stableNormalizedId: activityId }} runtime={runtime} teacherPresentation teacherSolution={teacherSolution} presentation={{ command }} /></div></div>}
   </section>;
 }

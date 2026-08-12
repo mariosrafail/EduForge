@@ -20,7 +20,7 @@ import {
   getUltimateB2AuthoredHotspotActivityKey,
   getUltimateB2StudentsBookHotspotActions,
 } from "../../data/ultimate-b2/studentsBookHotspots.js";
-import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseAuthoringData.js";
+import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseRuntimeData.js";
 
 const minimumZoom = 1;
 const maximumZoom = 4;

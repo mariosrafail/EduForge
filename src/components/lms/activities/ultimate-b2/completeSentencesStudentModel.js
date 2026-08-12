@@ -1,28 +1,22 @@
 export const COMPLETE_SENTENCES_STUDENT_RESPONSE_SCHEMA_VERSION = 1;
 
-export function completeSentencesWordBank(authoring) {
-  const sentenceById = new Map((authoring?.sentences || []).map((sentence) => [sentence.id, sentence]));
-  return (authoring?.blanks || []).map((blank) => ({
-    id: blank.id,
-    text: blank.revealedWord,
-    questionId: sentenceById.get(blank.sentenceId)?.questionId || "",
-  }));
+export function completeSentencesWordBank(runtime) {
+  return (runtime?.wordBank || []).map((word) => ({ id: word.id, text: word.text }));
 }
 
-export function moveCompleteSentencesWord(answers, authoring, wordId, targetQuestionId = null) {
-  const words = completeSentencesWordBank(authoring);
+export function moveCompleteSentencesWord(answers, runtime, wordId, targetQuestionId = null) {
+  const words = completeSentencesWordBank(runtime);
   const word = words.find((candidate) => candidate.id === wordId);
-  if (!word || (targetQuestionId && !words.some((candidate) => candidate.questionId === targetQuestionId))) return { ...(answers || {}) };
+  const questionIds = new Set((runtime?.sentences || []).map((sentence) => sentence.questionId));
+  if (!word || (targetQuestionId && !questionIds.has(targetQuestionId))) return { ...(answers || {}) };
   const next = { ...(answers || {}) };
-  for (const candidate of words) {
-    if (next[candidate.questionId] === word.text) delete next[candidate.questionId];
-  }
+  for (const questionId of questionIds) if (next[questionId] === word.text) delete next[questionId];
   if (targetQuestionId) next[targetQuestionId] = word.text;
   return next;
 }
 
-export function completeSentencesProgress(answers, authoring) {
-  const words = completeSentencesWordBank(authoring);
-  const answered = words.filter(({ questionId }) => String(answers?.[questionId] || "").trim()).length;
-  return { answered, total: words.length, complete: words.length > 0 && answered === words.length };
+export function completeSentencesProgress(answers, runtime) {
+  const questionIds = (runtime?.sentences || []).map((sentence) => sentence.questionId);
+  const answered = questionIds.filter((questionId) => String(answers?.[questionId] || "").trim()).length;
+  return { answered, total: questionIds.length, complete: questionIds.length > 0 && answered === questionIds.length };
 }

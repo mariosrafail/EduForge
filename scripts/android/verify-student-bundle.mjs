@@ -10,6 +10,10 @@ const forbidden = [
   ["teacher answer controls", /teacher-presentation-answer-controls|Presentation answer controls|Show all answers|Hide answers/gi],
   ["authoring answer-key payload", /correctAnswers\s*:/gi],
   ["publisher answer reveal", /Publisher answer|Show publisher model answer/gi],
+  ["Reading source-private metadata", /decoded-publisher-iwb|iwbSha256/gi],
+  ["Complete Sentences authoritative answer map", /revealedWord/gi],
+  ["Reading private reveal field", /["']revealText["']\s*:/gi],
+  ["Debate Club publisher model response", /In my opinion, watching a film at home is better|Many people say that watching films at home is cheaper/gi],
   ["Teacher-only Page 5 model answer", /Films are an art form which involve many artistic processes/gi],
 ];
 

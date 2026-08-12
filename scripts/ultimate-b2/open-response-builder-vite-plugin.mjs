@@ -12,6 +12,7 @@ import { ultimateB2StudentsBookAuthoringPages } from "../../src/data/ultimate-b2
 import { ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
 import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
 import { markUltimateB2PublisherActivityFilesystemSynced, projectUltimateB2PublisherActivity } from "./publisher-activity-projection.mjs";
+import { normalizeWorkspaceRelativePath, resolveUltimateB2ContentRoot, sha256 } from "./content-workspace.mjs";
 
 export const openResponseAuthoringEndpoint = "/__hhplms/ultimate-b2-open-response-authoring";
 export const openResponsePublisherImportEndpoint = "/__hhplms/ultimate-b2-open-response-publisher-import";
@@ -38,8 +39,8 @@ function defaultTargets() {
   };
 }
 
-async function dynamicTarget(activityId) {
-  const registry = normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(publisherActivityRegistryPath, "utf8")));
+async function dynamicTarget(activityId, registrySourcePath = publisherActivityRegistryPath) {
+  const registry = normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(registrySourcePath, "utf8")));
   const record = registry.activities.find((activity) => activity.activityId === activityId && activity.authoringKind === "open-response") || null;
   if (!record) return null;
   return {
@@ -87,16 +88,23 @@ function decodeFiles(value) {
   });
 }
 
-function assertRepositoryPath(candidate, label) {
+function assertControlledPath(candidate, roots, label) {
   const resolved = path.resolve(candidate);
-  const relative = path.relative(repositoryRoot, resolved);
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} is outside the repository.`);
+  if (!roots.some((root) => {
+    const relative = path.relative(root, resolved);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  })) throw new Error(`${label} is outside the controlled authoring roots.`);
   return resolved;
 }
 
-async function rejectSymlinkPath(candidate) {
+async function rejectSymlinkPath(candidate, roots = [repositoryRoot]) {
+  const controlledRoot = roots.find((root) => {
+    const relative = path.relative(root, candidate);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  });
+  if (!controlledRoot) throw new Error("Managed authoring path escaped the controlled roots.");
   let cursor = path.dirname(candidate);
-  while (cursor.startsWith(repositoryRoot) && cursor !== repositoryRoot) {
+  while (cursor.startsWith(controlledRoot) && cursor !== controlledRoot) {
     const stats = await lstat(cursor).catch((error) => error.code === "ENOENT" ? null : Promise.reject(error));
     if (stats?.isSymbolicLink()) throw new Error("Managed authoring path contains a symlink.");
     cursor = path.dirname(cursor);
@@ -105,13 +113,13 @@ async function rejectSymlinkPath(candidate) {
   if (targetStats?.isSymbolicLink()) throw new Error("Managed authoring target must not be a symlink.");
 }
 
-async function transactionalWrite(entries) {
+async function transactionalWrite(entries, roots = [repositoryRoot]) {
   const token = `${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}`;
   const prepared = [];
   try {
     for (const entry of entries) {
-      const target = assertRepositoryPath(entry.path, "Managed authoring target");
-      await rejectSymlinkPath(target);
+      const target = assertControlledPath(entry.path, roots, "Managed authoring target");
+      await rejectSymlinkPath(target, roots);
       await mkdir(path.dirname(target), { recursive: true });
       const temporaryPath = `${target}.${token}.tmp`;
       const backupPath = `${target}.${token}.bak`;
@@ -175,7 +183,41 @@ async function updatedTeacherRegistry(target, activityId, teacherAuthoring) {
   return { schemaVersion: 1, activities: { ...registry.activities, [activityId]: teacherAuthoring } };
 }
 
-export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets(), projectActivity = projectUltimateB2PublisherActivity, markFilesystemSynced = markUltimateB2PublisherActivityFilesystemSynced } = {}) {
+export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets(), projectActivity = projectUltimateB2PublisherActivity, markFilesystemSynced = markUltimateB2PublisherActivityFilesystemSynced, environment = process.env } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const roots = workspaceRoot ? [repositoryRoot, workspaceRoot] : [repositoryRoot];
+  const workspaceRegistryPath = workspaceRoot ? path.join(workspaceRoot, "students-book", "activities", "publisher-created-activities.json") : publisherActivityRegistryPath;
+  const workspaceTeacherRegistryPath = workspaceRoot ? path.join(workspaceRoot, "students-book", "teacher-private", "registries", "_ultimate-b2-open-response-model-answers.json") : defaultTeacherRegistryPath;
+
+  function canonicalTarget(activityId, repositoryTarget) {
+    if (!workspaceRoot) return repositoryTarget;
+    const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.activities.some((activity) => activity.id === activityId));
+    const unitNumber = page?.unitNumber || repositoryTarget.record?.unitNumber || Number(/-u(\d+)-/.exec(activityId)?.[1]);
+    const activityRoot = path.join(workspaceRoot, "students-book", "activities", `unit-${String(unitNumber).padStart(2, "0")}`, activityId);
+    return {
+      ...repositoryTarget,
+      publicPath: path.join(activityRoot, "source-private", "authoring", path.basename(repositoryTarget.publicPath)),
+      repositoryPublicPath: repositoryTarget.publicPath,
+      teacherRegistryPath: workspaceTeacherRegistryPath,
+      repositoryTeacherRegistryPath: repositoryTarget.teacherRegistryPath,
+      assetDirectory: path.join(activityRoot, "student-runtime", "assets"),
+      repositoryAssetDirectory: repositoryTarget.assetDirectory,
+      sourcePrivateDirectory: path.join(activityRoot, "source-private", "uploads"),
+    };
+  }
+
+  function mirroredEntries(target, entries) {
+    if (!workspaceRoot) return entries;
+    const mirrored = [];
+    for (const entry of entries) {
+      mirrored.push(entry);
+      if (entry.path === target.publicPath) mirrored.push({ ...entry, path: target.repositoryPublicPath });
+      else if (entry.path === target.teacherRegistryPath) mirrored.push({ ...entry, path: target.repositoryTeacherRegistryPath });
+      else if (entry.path === workspaceRegistryPath) mirrored.push({ ...entry, path: publisherActivityRegistryPath });
+      else if (path.dirname(entry.path) === target.assetDirectory) mirrored.push({ ...entry, path: path.join(target.repositoryAssetDirectory, path.basename(entry.path)) });
+    }
+    return mirrored;
+  }
   return {
     name: "hhplms-ultimate-b2-open-response-builder",
     apply: "serve",
@@ -186,7 +228,8 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return sendJson(response, 403, { error: "The Open Response authoring endpoint is local-only." });
           const activityId = url.searchParams.get("activityId");
-          const target = targets[activityId] || await dynamicTarget(activityId);
+          const repositoryTarget = targets[activityId] || await dynamicTarget(activityId, workspaceRegistryPath);
+          const target = repositoryTarget ? canonicalTarget(activityId, repositoryTarget) : null;
           if (!target || (!ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(activityId) && !target.record)) return sendJson(response, 404, { error: "Unknown Open Response activity." });
           const publisherRecord = target.record || null;
           if (url.pathname === openResponseAssetEndpoint) {
@@ -194,7 +237,7 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
             const filename = url.searchParams.get("file") || "";
             if (!/^[a-f0-9]{64}\.(?:png|jpg|webp)$/.test(filename)) return sendJson(response, 404, { error: "Unknown Open Response asset." });
             const assetPath = path.join(target.assetDirectory, filename);
-            await rejectSymlinkPath(assetPath);
+            await rejectSymlinkPath(assetPath, roots);
             const bytes = await readFile(assetPath);
             response.statusCode = 200;
             response.setHeader("Content-Type", filename.endsWith(".png") ? "image/png" : filename.endsWith(".webp") ? "image/webp" : "image/jpeg");
@@ -210,7 +253,8 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
           if (url.pathname === openResponsePublisherImportEndpoint) {
             exactKeys(body, publisherRecord ? ["activityId", "files", "title"] : ["activityId", "files"], "Publisher import request");
             if (body.activityId !== activityId) throw new Error("Request activity ID does not match the endpoint selection.");
-            const imported = await importUltimateB2OpenResponsePublisherBundle({ activityId, files: decodeFiles(body.files) });
+            const decodedFiles = decodeFiles(body.files);
+            const imported = await importUltimateB2OpenResponsePublisherBundle({ activityId, files: decodedFiles });
             let projection = null;
             let nextRegistry = null;
             if (publisherRecord) {
@@ -221,16 +265,21 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
             const assetEntries = imported.assets.map((asset) => {
               const expectedPrefix = `src/assets/books/ultimate-b2/authoring/open-response/${activityId}/`;
               if (!asset.repositoryPath.startsWith(expectedPrefix)) throw new Error("Imported asset path is outside the selected activity directory.");
-              const destination = path.join(repositoryRoot, ...asset.repositoryPath.split("/"));
-              if (path.dirname(destination) !== path.resolve(target.assetDirectory)) throw new Error("Imported asset directory does not match the selected activity.");
+              const destination = path.join(target.assetDirectory, path.basename(asset.repositoryPath));
               return { path: destination, bytes: asset.bytes };
             });
-            await transactionalWrite([
+            const sourceEntries = workspaceRoot ? decodedFiles.map((file) => {
+              const safeName = path.basename(file.name).replace(/[^A-Za-z0-9._-]+/g, "-");
+              normalizeWorkspaceRelativePath(`uploads/${safeName}`);
+              return { path: path.join(target.sourcePrivateDirectory, `${sha256(file.bytes)}-${safeName}`), bytes: file.bytes };
+            }) : [];
+            await transactionalWrite(mirroredEntries(target, [
+              ...sourceEntries,
               ...assetEntries,
               { path: target.publicPath, bytes: jsonBytes(imported.publicAuthoring) },
               { path: target.teacherRegistryPath, bytes: jsonBytes(await updatedTeacherRegistry(target, activityId, imported.teacherAuthoring)) },
-              ...(nextRegistry ? [{ path: publisherActivityRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
-            ]);
+              ...(nextRegistry ? [{ path: workspaceRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
+            ]), roots);
             let synchronizationWarning = null;
             if (publisherRecord) {
               try { await markFilesystemSynced({ activityId }); }
@@ -250,11 +299,11 @@ export function ultimateB2OpenResponseBuilderPlugin({ targets = defaultTargets()
             projection = await projectActivity({ page, authoringKind: "open-response", title: body.title, occupiedActivityIds: target.registry.activities.map((activity) => activity.activityId), questions: publicAuthoring.questions, clientMutationId: `activity:${activityId}`, existingRecord: publisherRecord, filesystemSyncStatus: "pending" });
             nextRegistry = normalizeUltimateB2PublisherActivityRegistry({ schemaVersion: 1, activities: target.registry.activities.map((activity) => activity.activityId === activityId ? projection.record : activity) });
           }
-          await transactionalWrite([
+          await transactionalWrite(mirroredEntries(target, [
             { path: target.publicPath, bytes: jsonBytes(publicAuthoring) },
             { path: target.teacherRegistryPath, bytes: jsonBytes(await updatedTeacherRegistry(target, activityId, teacherAuthoring)) },
-            ...(nextRegistry ? [{ path: publisherActivityRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
-          ]);
+            ...(nextRegistry ? [{ path: workspaceRegistryPath, bytes: jsonBytes(nextRegistry) }] : []),
+          ]), roots);
           let synchronizationWarning = null;
           if (publisherRecord) {
             try { await markFilesystemSynced({ activityId }); }

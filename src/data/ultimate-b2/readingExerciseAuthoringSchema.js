@@ -200,13 +200,13 @@ export function normalizeUltimateB2CompleteSentencesAuthoring(input) {
   if (value.instruction.binding !== ultimateB2ReadingExerciseBindings.completeInstruction || value.instruction.sourceFile !== "image_2.png" || value.instruction.naturalSize.width !== 873 || value.instruction.naturalSize.height !== 34) throw new Error("Complete the Sentences instruction artwork identity is invalid.");
   const instruction = { binding: value.instruction.binding, sourceFile: value.instruction.sourceFile, naturalSize: { width: 873, height: 34 }, area: area(value.instruction.area, "instruction.area", normalizedSurface) };
   if (instruction.area.width !== 873 || instruction.area.height !== 34) throw new Error("Complete the Sentences instruction must preserve its publisher dimensions.");
-  exactKeys(value.example, ["id", "number", "before", "answer", "after", "textArea", "answerArea", "textStyle", "answerStyle"], "example");
+  exactKeys(value.example, ["id", "number", "before", "exampleText", "after", "textArea", "answerArea", "textStyle", "answerStyle"], "example");
   if (value.example.id !== "sentence-1" || value.example.number !== 1) throw new Error("The publisher example identity is fixed.");
   const example = {
     id: value.example.id,
     number: 1,
     before: boundedText(value.example.before, "example.before", 500, { allowEmpty: true }),
-    answer: boundedText(value.example.answer, "example.answer", 100),
+    exampleText: boundedText(value.example.exampleText, "example.exampleText", 100),
     after: boundedText(value.example.after, "example.after", 500, { allowEmpty: true }),
     textArea: area(value.example.textArea, "example.textArea", normalizedSurface),
     answerArea: area(value.example.answerArea, "example.answerArea", normalizedSurface),

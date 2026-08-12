@@ -2,6 +2,7 @@ import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { normalizeMultipleChoiceAuthoring } from "../../src/data/ultimate-b2/multipleChoiceAuthoringSchema.js";
+import { readAuthoringJson, repositoryFileTarget, resolveUltimateB2ContentRoot, writeAuthoringJson } from "./content-workspace.mjs";
 
 export const multipleChoiceEndpoint = "/__hhplms/ultimate-b2-multiple-choice-authoring";
 const defaultPath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
@@ -31,7 +32,9 @@ async function atomicWrite(outputPath, value) {
   await rename(temporaryPath, outputPath);
 }
 
-export function ultimateB2MultipleChoiceBuilderPlugin({ authoringPath = defaultPath } = {}) {
+export function ultimateB2MultipleChoiceBuilderPlugin({ authoringPath = defaultPath, environment = process.env } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const authoringTarget = repositoryFileTarget(authoringPath, workspaceRoot, "students-book/activities/unit-01/ultimate-b2-sb-u1-p2-o3/source-private/authoring/unit-01-reading-exercise-3.multiple-choice.json");
   return {
     name: "hhplms-ultimate-b2-multiple-choice-builder",
     apply: "serve",
@@ -41,13 +44,13 @@ export function ultimateB2MultipleChoiceBuilderPlugin({ authoringPath = defaultP
         if (pathname !== multipleChoiceEndpoint) return next();
         try {
           if (!loopback.has(request.socket.remoteAddress || "")) return send(response, 403, { error: "The authoring endpoint is local-only." });
-          if (request.method === "GET") return send(response, 200, normalizeMultipleChoiceAuthoring(JSON.parse(await readFile(authoringPath, "utf8"))));
+          if (request.method === "GET") return send(response, 200, normalizeMultipleChoiceAuthoring(await readAuthoringJson(authoringTarget)));
           if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return send(response, 415, { error: "Expected an application/json request." });
           const normalized = normalizeMultipleChoiceAuthoring(await readBody(request));
-          const current = normalizeMultipleChoiceAuthoring(JSON.parse(await readFile(authoringPath, "utf8")));
+          const current = normalizeMultipleChoiceAuthoring(await readAuthoringJson(authoringTarget));
           normalized.source = current.source;
-          await atomicWrite(authoringPath, normalized);
+          await writeAuthoringJson(authoringTarget, normalized, { workspaceRoot, operation: "multiple-choice-save" });
           return send(response, 200, normalized);
         } catch (error) {
           return send(response, 400, { error: error.message || "Multiple-choice authoring could not be saved." });

@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { readAuthoringJson, repositoryFileTarget, resolveUltimateB2ContentRoot, writeAuthoringJson } from "./content-workspace.mjs";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "./hotspot-manifest.mjs";
 import { validateAndNormalizeBookMenuSkinSelections } from "../../src/config/bookMenuSkins.js";
 import { mergeUltimateB2StudentsBookAuthoringActivities } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
@@ -20,13 +21,13 @@ function json(response, statusCode, payload) {
   response.end(`${JSON.stringify(payload)}\n`);
 }
 
-async function trustedActivities() {
-  const registry = normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(publisherActivityRegistryPath, "utf8")));
+async function trustedActivities(registryTarget) {
+  const registry = normalizeUltimateB2PublisherActivityRegistry(await readAuthoringJson(registryTarget));
   return mergeUltimateB2StudentsBookAuthoringActivities(registry.activities);
 }
 
-async function readManifest() {
-  return validateAndNormalizeUltimateB2HotspotManifest(JSON.parse(await readFile(manifestPath, "utf8")), await trustedActivities());
+async function readManifest(hotspotTarget, registryTarget) {
+  return validateAndNormalizeUltimateB2HotspotManifest(await readAuthoringJson(hotspotTarget), await trustedActivities(registryTarget));
 }
 
 async function readMenuSkinSelections() {
@@ -44,7 +45,10 @@ async function readRequestBody(request, description) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-export function ultimateB2HotspotBuilderPlugin() {
+export function ultimateB2HotspotBuilderPlugin({ environment = process.env } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const hotspotTarget = repositoryFileTarget(manifestPath, workspaceRoot, "students-book/hotspots/hotspots.json");
+  const registryTarget = repositoryFileTarget(publisherActivityRegistryPath, workspaceRoot, "students-book/activities/publisher-created-activities.json");
   return {
     name: "hhplms-ultimate-b2-hotspot-builder",
     apply: "serve",
@@ -55,16 +59,16 @@ export function ultimateB2HotspotBuilderPlugin() {
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return json(response, 403, { error: "The authoring endpoint is local-only." });
           if (request.method === "GET") {
-            return json(response, 200, pathname === hotspotEndpoint ? await readManifest() : await readMenuSkinSelections());
+            return json(response, 200, pathname === hotspotEndpoint ? await readManifest(hotspotTarget, registryTarget) : await readMenuSkinSelections());
           }
           if (request.method !== "POST") return json(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return json(response, 415, { error: "Expected an application/json request." });
           const body = await readRequestBody(request, pathname === hotspotEndpoint ? "Hotspot manifest" : "Book menu skin selection");
           const normalized = pathname === hotspotEndpoint
-            ? validateAndNormalizeUltimateB2HotspotManifest(body, await trustedActivities())
+            ? validateAndNormalizeUltimateB2HotspotManifest(body, await trustedActivities(registryTarget))
             : validateAndNormalizeBookMenuSkinSelections(body);
-          const outputPath = pathname === hotspotEndpoint ? manifestPath : menuSkinSelectionsPath;
-          await writeFile(outputPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+          if (pathname === hotspotEndpoint) await writeAuthoringJson(hotspotTarget, normalized, { workspaceRoot, operation: "hotspot-save" });
+          else await writeFile(menuSkinSelectionsPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
           return json(response, 200, normalized);
         } catch (error) {
           return json(response, 400, { error: error.message || "Hotspot manifest could not be saved." });

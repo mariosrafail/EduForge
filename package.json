@@ -108,7 +108,14 @@
     "ultimate-b2:recover:startup-intro": "node scripts/ultimate-b2/recover-startup-intro.mjs",
     "ultimate-b2:extract:listening": "node scripts/ultimate-b2/extract-listening-authoring.mjs",
     "ultimate-b2:extract:multiple-choice": "node scripts/ultimate-b2/extract-multiple-choice-authoring.mjs",
-    "ultimate-b2:test:legacy-flash": "node scripts/ultimate-b2/run-legacy-flash-proof.mjs"
+    "ultimate-b2:test:legacy-flash": "node scripts/ultimate-b2/run-legacy-flash-proof.mjs",
+    "ultimate-b2:workspace:migrate": "node --env-file-if-exists=.env.local scripts/ultimate-b2/content-workspace-cli.mjs migrate",
+    "ultimate-b2:workspace:index": "node --env-file-if-exists=.env.local scripts/ultimate-b2/content-workspace-cli.mjs index",
+    "ultimate-b2:workspace:verify": "node --env-file-if-exists=.env.local scripts/ultimate-b2/content-workspace-cli.mjs verify",
+    "ultimate-b2:workspace:status": "node --env-file-if-exists=.env.local scripts/ultimate-b2/content-workspace-cli.mjs status",
+    "ultimate-b2:workspace:sync": "node --env-file-if-exists=.env.local scripts/ultimate-b2/content-workspace-cli.mjs sync --write",
+    "ultimate-b2:project:reading": "node scripts/ultimate-b2/project-reading-runtime.mjs",
+    "ultimate-b2:project:page5": "node scripts/ultimate-b2/project-page5-runtime.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",

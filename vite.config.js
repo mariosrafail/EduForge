@@ -17,6 +17,7 @@ import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const serverEnvironment = { ...process.env, ...env };
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
   const isAndroidTeacherProject = appMode === "android-teacher-project";
   const isAndroidTeacherOffline = appMode === "android-teacher-offline";
@@ -110,15 +111,15 @@ export default defineConfig(({ mode }) => {
       react(),
       listeningAuthoringPlugin,
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
-      !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2OpenResponseBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2ImageBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2PublisherActivityBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2ReadingExerciseBuilderPlugin() : null,
-      !isAndroidTeacherProject ? ultimateB2TeacherAppBuilderPlugin() : null,
+      !isAndroidTeacherProject ? ultimateB2HotspotBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2ListeningBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2MultipleChoiceBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2OpenResponseBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2ImageBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2PublisherActivityBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2Page5BuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2ReadingExerciseBuilderPlugin({ environment: serverEnvironment }) : null,
+      !isAndroidTeacherProject ? ultimateB2TeacherAppBuilderPlugin({ environment: serverEnvironment }) : null,
       !isAndroidTeacherProject ? unit2ProtectedMediaPlugin({ androidOffline: isAndroidOffline }) : null,
       !isAndroidTeacherProject ? legacyFlashProofPlugin({ ...process.env, ...env }) : null,
     ].filter(Boolean),

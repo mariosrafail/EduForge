@@ -31,7 +31,7 @@ test("Complete the Sentences publisher XML safely reconstructs the exact canonic
   assert.deepEqual(imported.authoring.sentences.map(({ id, questionId, number }) => ({ id, questionId, number })), Array.from({ length: 8 }, (_, index) => ({ id: `sentence-${index + 2}`, questionId: `ultimate-b2-sb-u1-p2-o4-q${index + 1}`, number: index + 2 })));
   assert.deepEqual(imported.authoring.blanks.map((blank) => blank.revealedWord), expectedAnswers);
   assert.deepEqual(imported.authoring.blanks.map((blank) => blank.area), expectedAreas);
-  assert.equal(imported.authoring.example.answer, "On-demand");
+  assert.equal(imported.authoring.example.exampleText, "On-demand");
   assert.deepEqual(imported.authoring.example.answerArea, { x: 116, y: 92, width: 153, height: 29 });
   assert.deepEqual(imported.authoring.sentences[5].continuationArea, { x: 84, y: 417, width: 495, height: 29 });
   assert.ok(imported.authoring.blanks.every((blank) => blank.style.fontFamily === "ITC Flora Std Medium" && blank.style.fontSize === 21 && blank.style.color === "#e40083" && blank.style.align === "center" && blank.style.wordWrap === false && blank.style.verticalAlign === "middle"));

@@ -1,17 +1,17 @@
-import { resolveUltimateB2Page5Artwork } from "./page5AuthoringData.js";
 import {
-  normalizeUltimateB2OpenResponseAuthoring,
+  getUltimateB2Page5OpenResponseRuntime,
+  resolveUltimateB2Page5RuntimeArtwork,
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
-} from "./openResponseAuthoringSchema.js";
+} from "./page5RuntimeData.js";
 
-const genericAuthoringModules = import.meta.glob("./authoring/**/*.open-response.json", { eager: true, import: "default" });
+const genericAuthoringModules = import.meta.glob(["./authoring/**/*.open-response.json", "!./authoring/unit-01-page-5-exercise-1.open-response.json"], { eager: true, import: "default" });
 const genericArtworkModules = import.meta.glob("../../assets/books/ultimate-b2/authoring/open-response/**/*.{png,jpg,jpeg,webp}", { eager: true, query: "?url", import: "default" });
 
 const authoredByActivityId = new Map();
 for (const source of Object.values(genericAuthoringModules)) {
-  const normalized = normalizeUltimateB2OpenResponseAuthoring(source, source.activityId);
-  authoredByActivityId.set(normalized.activityId, Object.freeze(normalized));
+  authoredByActivityId.set(source.activityId, Object.freeze(structuredClone(source)));
 }
+authoredByActivityId.set(ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID, getUltimateB2Page5OpenResponseRuntime(ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID));
 
 function assetModuleKey(repositoryPath) {
   if (!repositoryPath?.startsWith("src/assets/")) return "";
@@ -41,7 +41,7 @@ export function getUltimateB2OpenResponseArtworkLayers(authoring) {
 }
 
 export function resolveUltimateB2OpenResponseArtwork(layer) {
-  if (layer?.binding?.startsWith("unit1.page5.")) return resolveUltimateB2Page5Artwork(layer.binding);
+  if (layer?.binding?.startsWith("unit1.page5.")) return resolveUltimateB2Page5RuntimeArtwork(layer.binding);
   const bundled = genericArtworkModules[assetModuleKey(layer?.repositoryPath)] || null;
   if (bundled || !import.meta.env.DEV || !layer?.repositoryPath) return bundled;
   const segments = layer.repositoryPath.split("/");

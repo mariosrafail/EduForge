@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 2,
+  "activityId": "ultimate-b2-sb-u1-p1-o1",
+  "surface": {
+    "width": 1024,
+    "height": 582
+  },
+  "visualCapabilities": {
+    "instructionImage": "unit1.page5.exercise1.instruction",
+    "showText": {
+      "enabled": false,
+      "showTextImage": null
+    }
+  },
+  "instructionImageAlt": "Read the quote and discuss these questions with a partner.",
+  "quoteArtworkBinding": "unit1.page5.exercise1.quote",
+  "artwork": {
+    "instruction": {
+      "binding": "unit1.page5.exercise1.instruction",
+      "naturalSize": {
+        "width": 606,
+        "height": 34
+      },
+      "area": {
+        "x": 206,
+        "y": 18,
+        "width": 606,
+        "height": 34
+      }
+    },
+    "quote": {
+      "binding": "unit1.page5.exercise1.quote",
+      "naturalSize": {
+        "width": 317,
+        "height": 507
+      },
+      "area": {
+        "x": 696,
+        "y": 75,
+        "width": 317,
+        "height": 507
+      }
+    }
+  },
+  "questions": [
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q1",
+      "prompt": "In what ways are films an art form?",
+      "promptArea": {
+        "x": 54,
+        "y": 79,
+        "width": 604,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q1-response",
+        "ariaLabel": "Write a response for question 1",
+        "area": {
+          "x": 73,
+          "y": 117,
+          "width": 605,
+          "height": 73
+        },
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23,
+          "fontScale": 1,
+          "lineCount": 3,
+          "linePositions": [
+            23,
+            47,
+            69
+          ],
+          "lineWidth": 605,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q2",
+      "prompt": "Why is theatre life?",
+      "promptArea": {
+        "x": 54,
+        "y": 214,
+        "width": 571,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q2-response",
+        "ariaLabel": "Write a response for question 2",
+        "area": {
+          "x": 73,
+          "y": 253,
+          "width": 605,
+          "height": 96
+        },
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23.3333,
+          "fontScale": 1,
+          "lineCount": 4,
+          "linePositions": [
+            21,
+            46,
+            69,
+            91
+          ],
+          "lineWidth": 605,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "ultimate-b2-sb-u1-p1-o1-q3",
+      "prompt": "Do you agree that TV is furniture?",
+      "promptArea": {
+        "x": 54,
+        "y": 372,
+        "width": 491,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans",
+        "fontSize": 21,
+        "color": "#000000",
+        "align": "left"
+      },
+      "responseRegion": {
+        "id": "ultimate-b2-sb-u1-p1-o1-q3-response",
+        "ariaLabel": "Write a response for question 3",
+        "area": {
+          "x": 73,
+          "y": 410,
+          "width": 601,
+          "height": 96
+        },
+        "presentation": {
+          "paddingX": 0,
+          "paddingY": 0,
+          "lineSpacing": 23,
+          "fontScale": 1,
+          "lineCount": 4,
+          "linePositions": [
+            23,
+            46,
+            69,
+            92
+          ],
+          "lineWidth": 601,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left"
+        }
+      }
+    }
+  ]
+}

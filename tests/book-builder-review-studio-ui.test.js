@@ -31,7 +31,7 @@ test("Ultimate B2 tabbed shell connects the existing Hotspot utility to canonica
   assert.match(html, /Ultimate B2 Students Book hotspot builder/);
   assert.match(component, /ultimateB2TeacherAppAssetUrl\(page\.assetBindingId/);
   assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");
-  assert.equal(sha256(plugin), "be817d5ad811c17049fd65b19543b7523d44740ff647393a8b5f258543c1b9d7");
+  assert.equal(sha256(plugin), "8e8bf82be353fa3208980cac55411ea50f0f51cc302f759d30635ac5e51fe851");
   assert.match(activityEntry, /UltimateB2BuilderApp/);
 });
 

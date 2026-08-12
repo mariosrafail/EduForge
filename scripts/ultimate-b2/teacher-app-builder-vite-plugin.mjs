@@ -11,6 +11,15 @@ import {
   ULTIMATE_B2_TEACHER_APP_IMPORT_ENDPOINT,
   ultimateB2TeacherAppDefaultAssets,
 } from "../../src/data/ultimate-b2/teacherAppAuthoring.js";
+import {
+  readAuthoringJson,
+  repositoryFileTarget,
+  resolveInsideWorkspace,
+  resolveUltimateB2ContentRoot,
+  sha256,
+  writeAuthoringBytes,
+  writeAuthoringJson,
+} from "./content-workspace.mjs";
 
 const defaultRepositoryRoot = path.resolve(import.meta.dirname, "../..");
 const defaultConfigPath = path.join(defaultRepositoryRoot, "src/data/ultimate-b2/authoring/teacherAppAssetOverrides.json");
@@ -81,7 +90,32 @@ export function ultimateB2TeacherAppBuilderPlugin({
   repositoryRoot = defaultRepositoryRoot,
   configPath = defaultConfigPath,
   assetRoot = defaultAssetRoot,
+  environment = process.env,
 } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const configTarget = repositoryFileTarget(configPath, workspaceRoot, "interactive-ui/ui-config.json");
+  const workspaceAssetManifestPath = workspaceRoot ? path.join(workspaceRoot, "interactive-ui", "ui-assets.json") : null;
+  const pendingWorkspaceAssets = new Map();
+
+  async function readWorkspaceAssetManifest() {
+    return workspaceAssetManifestPath ? JSON.parse(await readFile(workspaceAssetManifestPath, "utf8")) : null;
+  }
+
+  async function resolveAuthoringAsset(id, binding) {
+    if (workspaceRoot) {
+      if (binding.role === "page") {
+        const match = /^unit\/(\d+)\/parts\/HD\/([^/]+)$/.exec(binding.repositoryPath);
+        if (!match) throw new Error(`Canonical workspace page mapping is invalid: ${id}`);
+        return resolveInsideWorkspace(workspaceRoot, `students-book/pages/unit-${String(Number(match[1])).padStart(2, "0")}/${match[2]}`);
+      }
+      const manifest = await readWorkspaceAssetManifest();
+      const workspacePath = pendingWorkspaceAssets.get(id) || manifest?.assets?.[id]?.workspacePath;
+      if (!workspacePath) throw new Error(`Canonical workspace asset is missing for Teacher App binding: ${id}`);
+      return resolveInsideWorkspace(workspaceRoot, workspacePath);
+    }
+    return resolveInsideRepository(repositoryRoot, binding.repositoryPath);
+  }
+
   return {
     name: "hhplms-ultimate-b2-teacher-app-builder",
     apply: "serve",
@@ -95,10 +129,10 @@ export function ultimateB2TeacherAppBuilderPlugin({
           if (url.pathname === ULTIMATE_B2_TEACHER_APP_ASSET_ENDPOINT) {
             if (request.method !== "GET") return json(response, 405, { error: "Method not allowed" });
             if ([...url.searchParams.keys()].some((key) => !["id", "v"].includes(key))) return json(response, 400, { error: "Unknown asset query field." });
-            const model = buildUltimateB2TeacherAppAuthoring(await readOverrides(configPath));
+            const model = buildUltimateB2TeacherAppAuthoring(normalizeUltimateB2TeacherAppOverrides(await readAuthoringJson(configTarget)));
             const binding = model.assets[id];
             if (!binding) return json(response, 404, { error: "Unknown Ultimate B2 Teacher App asset." });
-            const file = await resolveInsideRepository(repositoryRoot, binding.repositoryPath);
+            const file = await resolveAuthoringAsset(id, binding);
             const bytes = await readFile(file);
             response.statusCode = 200;
             response.setHeader("Content-Type", binding.mediaType);
@@ -127,7 +161,12 @@ export function ultimateB2TeacherAppBuilderPlugin({
             const outputPath = path.resolve(repositoryRoot, repositoryPath);
             const expectedDirectory = path.resolve(assetRoot, definition.role === "navibar-library" ? "library" : ".");
             if (path.dirname(outputPath) !== expectedDirectory) throw new Error("Teacher App import target escaped its controlled asset directory.");
-            try { await stat(outputPath); } catch { await atomicWrite(outputPath, inspected.bytes); }
+            const workspaceRelativePath = `interactive-ui/authored-replacements/${definition.role === "navibar-library" ? "library/" : ""}${id.replace(/[^A-Za-z0-9.-]+/g, "-")}-${inspected.metadata.sha256}${inspected.inspection.extension}`;
+            const assetTarget = repositoryFileTarget(outputPath, workspaceRoot, workspaceRelativePath);
+            const canonicalExists = await stat(assetTarget.canonicalPath).then(() => true, () => false);
+            const projectionExists = await stat(outputPath).then(() => true, () => false);
+            if (!canonicalExists || !projectionExists) await writeAuthoringBytes(assetTarget, inspected.bytes, { workspaceRoot, operation: `teacher-app-asset-import:${id}` });
+            pendingWorkspaceAssets.set(id, workspaceRelativePath);
             const override = {
               repositoryPath,
               mediaType: inspected.metadata.mediaType,
@@ -141,7 +180,7 @@ export function ultimateB2TeacherAppBuilderPlugin({
             return json(response, 200, { id, override });
           }
           if (request.method === "GET") {
-            const overrides = await readOverrides(configPath);
+            const overrides = normalizeUltimateB2TeacherAppOverrides(await readAuthoringJson(configTarget));
             return json(response, 200, { overrides, model: buildUltimateB2TeacherAppAuthoring(overrides) });
           }
           if (request.method !== "POST") return json(response, 405, { error: "Method not allowed" });
@@ -149,7 +188,17 @@ export function ultimateB2TeacherAppBuilderPlugin({
           const candidate = JSON.parse((await bodyBytes(request, maximumJsonBytes, "Teacher App authoring manifest")).toString("utf8"));
           const overrides = normalizeUltimateB2TeacherAppOverrides(candidate);
           await verifyOverrides(overrides, repositoryRoot);
-          await atomicWrite(configPath, Buffer.from(`${JSON.stringify(overrides, null, 2)}\n`));
+          if (workspaceRoot) {
+            const manifest = await readWorkspaceAssetManifest();
+            for (const [assetId, workspacePath] of pendingWorkspaceAssets) {
+              const bytes = await readFile(await resolveInsideWorkspace(workspaceRoot, workspacePath));
+              const binding = buildUltimateB2TeacherAppAuthoring(overrides).assets[assetId];
+              manifest.assets[assetId] = { workspacePath, repositoryPath: binding.repositoryPath, mediaType: binding.mediaType, sha256: sha256(bytes), sizeBytes: bytes.length };
+            }
+            await writeAuthoringJson(workspaceAssetManifestPath, manifest, { operation: "teacher-app-ui-manifest-save" });
+          }
+          await writeAuthoringJson(configTarget, overrides, { workspaceRoot, operation: "teacher-app-config-save" });
+          pendingWorkspaceAssets.clear();
           return json(response, 200, { overrides, model: buildUltimateB2TeacherAppAuthoring(overrides) });
         } catch (error) {
           return json(response, error?.statusCode || 400, { error: error.message || error.code || "Ultimate B2 Teacher App authoring failed." });

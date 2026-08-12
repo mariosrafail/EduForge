@@ -438,6 +438,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         revealedQuestionIds={revealedQuestionIds}
         solutions={solutions}
         solutionsLoading={solutionsLoading}
+        requestTeacherSolutions={loadSolutions}
         revealQuestion={revealQuestion}
         mediaPlayers={mediaPlayers}
         actions={(legacyPilotObjectOne && capabilities.isPresentation) || teacherOfflineListening || teacherOfflineMultipleChoice ? null : activityActions}

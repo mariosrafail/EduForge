@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p1-o2",
+  "visualCapabilities": {
+    "instructionImage": null,
+    "showText": {
+      "enabled": false,
+      "showTextImage": null
+    }
+  },
+  "instructionImageAlt": "1",
+  "mainImage": "unit1.page5.exercise2.main-content",
+  "mainImageAlt": "Have your say! Exercise 2: How do you feel about film, theatre and TV? Discuss these ideas in small groups.\n• your favourite form of entertainment\n• how often you watch films, plays and TV programmes\n• where you watch them"
+}

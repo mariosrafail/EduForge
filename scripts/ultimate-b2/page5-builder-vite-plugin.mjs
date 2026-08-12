@@ -3,6 +3,7 @@ import { readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 import { importUltimateB2Page5OpenResponsePublisherSource } from "./page5-open-response-publisher-importer.mjs";
+import { readAuthoringJson, repositoryFileTarget, resolveInsideWorkspace, resolveUltimateB2ContentRoot, writeAuthoringBytes, writeAuthoringJson } from "./content-workspace.mjs";
 
 import {
   normalizeUltimateB2Page5ImageAuthoring,
@@ -99,7 +100,13 @@ export function ultimateB2Page5BuilderPlugin({
   teacherAnswersPath = defaultTeacherAnswersPath,
   imageAssetPath = defaultImageAssetPath,
   publisherSourceDirectory = defaultPublisherSourceDirectory,
+  environment = process.env,
 } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const openResponseTarget = repositoryFileTarget(openResponsePath, workspaceRoot, `students-book/activities/unit-01/${ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID}/source-private/authoring/${path.basename(openResponsePath)}`);
+  const imageTarget = repositoryFileTarget(imagePath, workspaceRoot, `students-book/activities/unit-01/${ULTIMATE_B2_PAGE5_IMAGE_ID}/source-private/authoring/${path.basename(imagePath)}`);
+  const teacherAnswersTarget = repositoryFileTarget(teacherAnswersPath, workspaceRoot, `students-book/activities/unit-01/${ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID}/teacher-private/model-answers.json`);
+  const imageAssetTarget = repositoryFileTarget(imageAssetPath, workspaceRoot, `students-book/activities/unit-01/${ULTIMATE_B2_PAGE5_IMAGE_ID}/student-runtime/assets/discussion-prompts.svg`);
   return {
     name: "hhplms-ultimate-b2-page-5-builder",
     apply: "serve",
@@ -114,7 +121,8 @@ export function ultimateB2Page5BuilderPlugin({
             if ([...url.searchParams.keys()].some((key) => key !== "activityId") || activityId !== ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return sendJson(response, 404, { error: "Unknown publisher-source import target." });
             if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
             const imported = await importUltimateB2Page5OpenResponsePublisherSource(publisherSourceDirectory);
-            await Promise.all([atomicWrite(openResponsePath, imported.publicAuthoring), atomicWrite(teacherAnswersPath, imported.teacherAuthoring)]);
+            await writeAuthoringJson(teacherAnswersTarget, imported.teacherAuthoring, { workspaceRoot, operation: "page5-import-teacher" });
+            await writeAuthoringJson(openResponseTarget, imported.publicAuthoring, { workspaceRoot, operation: "page5-import-public" });
             return sendJson(response, 200, imported);
           }
           if (url.pathname === page5ImageAssetEndpoint) {
@@ -122,8 +130,14 @@ export function ultimateB2Page5BuilderPlugin({
             if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
             const contentType = String(request.headers["content-type"] || "").toLowerCase().split(";", 1)[0].trim();
             if (!acceptedImageTypes.has(contentType)) return sendJson(response, 415, { error: "Choose a PNG, JPEG or WebP image." });
-            const normalized = await normalizeImageAsset(await readImageBody(request), contentType);
-            await atomicWriteBytes(imageAssetPath, normalized.bytes);
+            const uploadedBytes = await readImageBody(request);
+            const normalized = await normalizeImageAsset(uploadedBytes, contentType);
+            if (workspaceRoot) {
+              const originalExtension = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" }[contentType];
+              const originalPath = await resolveInsideWorkspace(workspaceRoot, `students-book/activities/unit-01/${ULTIMATE_B2_PAGE5_IMAGE_ID}/source-private/uploads/${normalized.sha256}${originalExtension}`, { allowMissing: true });
+              await writeAuthoringBytes(originalPath, uploadedBytes, { operation: "page5-image-source-import" });
+            }
+            await writeAuthoringBytes(imageAssetTarget, normalized.bytes, { workspaceRoot, operation: "page5-image-projection" });
             return sendJson(response, 200, {
               activityId,
               binding: "unit1.page5.exercise2.main-content",
@@ -135,8 +149,8 @@ export function ultimateB2Page5BuilderPlugin({
           }
           if (![ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID, ULTIMATE_B2_PAGE5_IMAGE_ID].includes(activityId)) return sendJson(response, 404, { error: "Unknown Page 5 activity." });
           if (request.method === "GET") {
-            if (activityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return sendJson(response, 200, { activityId, publicAuthoring: normalizeUltimateB2Page5OpenResponseAuthoring(await readJson(openResponsePath)), teacherAuthoring: normalizeUltimateB2Page5TeacherAnswers(await readJson(teacherAnswersPath)) });
-            return sendJson(response, 200, { activityId, publicAuthoring: normalizeUltimateB2Page5ImageAuthoring(await readJson(imagePath)) });
+            if (activityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) return sendJson(response, 200, { activityId, publicAuthoring: normalizeUltimateB2Page5OpenResponseAuthoring(await readAuthoringJson(openResponseTarget)), teacherAuthoring: normalizeUltimateB2Page5TeacherAnswers(await readAuthoringJson(teacherAnswersTarget)) });
+            return sendJson(response, 200, { activityId, publicAuthoring: normalizeUltimateB2Page5ImageAuthoring(await readAuthoringJson(imageTarget)) });
           }
           if (request.method !== "POST") return sendJson(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return sendJson(response, 415, { error: "Expected an application/json request." });
@@ -146,11 +160,12 @@ export function ultimateB2Page5BuilderPlugin({
           if (activityId === ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID) {
             const publicAuthoring = normalizeUltimateB2Page5OpenResponseAuthoring(body.publicAuthoring);
             const teacherAuthoring = normalizeUltimateB2Page5TeacherAnswers(body.teacherAuthoring);
-            await Promise.all([atomicWrite(openResponsePath, publicAuthoring), atomicWrite(teacherAnswersPath, teacherAuthoring)]);
+            await writeAuthoringJson(teacherAnswersTarget, teacherAuthoring, { workspaceRoot, operation: "page5-teacher-save" });
+            await writeAuthoringJson(openResponseTarget, publicAuthoring, { workspaceRoot, operation: "page5-public-save" });
             return sendJson(response, 200, { activityId, publicAuthoring, teacherAuthoring });
           }
           const publicAuthoring = normalizeUltimateB2Page5ImageAuthoring(body.publicAuthoring);
-          await atomicWrite(imagePath, publicAuthoring);
+          await writeAuthoringJson(imageTarget, publicAuthoring, { workspaceRoot, operation: "page5-image-authoring-save" });
           return sendJson(response, 200, { activityId, publicAuthoring });
         } catch (error) {
           return sendJson(response, 400, { error: error.message || "Page 5 authoring could not be saved." });

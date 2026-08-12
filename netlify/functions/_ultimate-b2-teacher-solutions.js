@@ -2,6 +2,8 @@ import unit1Matrix from "../../books/ultimate-b2/generated/editorial/unit-01.imp
 import unit2Matrix from "../../books/ultimate-b2/generated/editorial/unit-02.implementation-matrix.json" with { type: "json" };
 import openResponseModelAnswerRegistry from "./_ultimate-b2-open-response-model-answers.json" with { type: "json" };
 import publisherActivityRegistry from "../../src/data/ultimate-b2/authoring/publisher-created-activities.json" with { type: "json" };
+import completeSentencesReadingSolution from "./_ultimate-b2-reading-exercise-4-solution.json" with { type: "json" };
+import debateClubReadingSolution from "./_ultimate-b2-reading-debate-club-solution.json" with { type: "json" };
 import { ULTIMATE_B2_UNIT1_OPENER_MODEL_ANSWERS } from "./_ultimate-b2-unit1-opener-model-answers.js";
 import { ULTIMATE_B2_UNIT1_PART2_OBJECT1_MODEL_ANSWERS } from "./_ultimate-b2-unit1-part2-object1-model-answers.js";
 import { ULTIMATE_B2_UNIT1_PART2_OBJECT2_MODEL_ANSWERS } from "./_ultimate-b2-unit1-part2-object2-model-answers.js";
@@ -15,6 +17,10 @@ const publisherCreatedActivities = (publisherActivityRegistry.activities || []).
 }));
 const activities = [...(unit1Matrix.activities || []), ...(unit2Matrix.activities || []), ...publisherCreatedActivities];
 const activitiesById = new Map(activities.map((activity) => [activity.stableNormalizedId, activity]));
+const readingSolutionsById = Object.freeze({
+  [completeSentencesReadingSolution.activityId]: completeSentencesReadingSolution,
+  [debateClubReadingSolution.activityId]: debateClubReadingSolution,
+});
 
 function normalizeAnswer(value) {
   return String(value ?? "")
@@ -64,6 +70,25 @@ export function getUltimateB2TeacherSolutionRecord(activityId) {
 export function buildUltimateB2TeacherSolutionPayload(activityId) {
   const activity = getUltimateB2TeacherSolutionRecord(activityId);
   if (!activity) return null;
+  const readingSolution = readingSolutionsById[activity.stableNormalizedId] || null;
+
+  if (readingSolution?.solutionType === "publisher-model-response") {
+    const questionId = activity.runtime?.questions?.[0]?.id;
+    return {
+      activityId: activity.stableNormalizedId,
+      solutionAvailability: "model-response",
+      solutionType: "publisher-model-response",
+      questions: questionId ? {
+        [questionId]: {
+          questionId,
+          acceptedAnswers: Object.values(readingSolution.parts),
+          correctOptionIds: [],
+          answerRole: "publisher-model-response",
+        },
+      } : {},
+      readingSolution,
+    };
+  }
 
   const genericOpenResponseAnswers = openResponseModelAnswerRegistry.activities?.[activity.stableNormalizedId]?.modelAnswers;
   const modelAnswers = genericOpenResponseAnswers
@@ -89,6 +114,7 @@ export function buildUltimateB2TeacherSolutionPayload(activityId) {
       solutionAvailability: "model-response",
       solutionType: "publisher-model-answer",
       questions: modelAnswerQuestions,
+      ...(readingSolution ? { readingSolution } : {}),
     };
   }
 
@@ -108,6 +134,7 @@ export function buildUltimateB2TeacherSolutionPayload(activityId) {
       ? "publisher-answer"
       : solutionAvailability,
     questions: Object.fromEntries(verifiedQuestions.map((question) => [question.questionId, question])),
+    ...(readingSolution ? { readingSolution } : {}),
   };
 }
 

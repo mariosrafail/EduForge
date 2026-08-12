@@ -13,6 +13,7 @@ import { ultimateB2StudentsBookAuthoringActivities, ultimateB2StudentsBookAuthor
 import { normalizeUltimateB2ImageAuthoring } from "../../src/data/ultimate-b2/imageAuthoringSchema.js";
 import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
 import { markUltimateB2PublisherActivityFilesystemSynced, projectUltimateB2PublisherActivity } from "./publisher-activity-projection.mjs";
+import { assertStudentSafe, resolveUltimateB2ContentRoot, sha256 } from "./content-workspace.mjs";
 
 export const publisherActivityEndpoint = "/__hhplms/ultimate-b2-publisher-activities";
 export const publisherActivityCreateEndpoint = "/__hhplms/ultimate-b2-publisher-activities/create";
@@ -66,8 +67,8 @@ function decodePublisherFiles(files) {
   });
 }
 
-async function loadRegistry() {
-  return normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(registryPath, "utf8")));
+async function loadRegistry(sourcePath = registryPath) {
+  return normalizeUltimateB2PublisherActivityRegistry(JSON.parse(await readFile(sourcePath, "utf8")));
 }
 
 function publicAuthoringPath(record) {
@@ -75,16 +76,23 @@ function publicAuthoringPath(record) {
   return path.join(repositoryRoot, `src/data/ultimate-b2/authoring/publisher-created/${record.activityId}.${extension}.json`);
 }
 
-function withinRepository(candidate) {
+function withinControlledRoots(candidate, roots) {
   const resolved = path.resolve(candidate);
-  const relative = path.relative(repositoryRoot, resolved);
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Managed publisher authoring target is outside the repository.");
+  if (!roots.some((root) => {
+    const relative = path.relative(root, resolved);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  })) throw new Error("Managed publisher authoring target is outside the controlled authoring roots.");
   return resolved;
 }
 
-async function rejectSymlinks(candidate) {
+async function rejectSymlinks(candidate, roots) {
+  const controlledRoot = roots.find((root) => {
+    const relative = path.relative(root, candidate);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  });
+  if (!controlledRoot) throw new Error("Managed publisher authoring target escaped the controlled roots.");
   let cursor = path.dirname(candidate);
-  while (cursor.startsWith(repositoryRoot) && cursor !== repositoryRoot) {
+  while (cursor.startsWith(controlledRoot) && cursor !== controlledRoot) {
     const stats = await lstat(cursor).catch((error) => error.code === "ENOENT" ? null : Promise.reject(error));
     if (stats?.isSymbolicLink()) throw new Error("Managed publisher authoring path contains a symlink.");
     cursor = path.dirname(cursor);
@@ -93,13 +101,13 @@ async function rejectSymlinks(candidate) {
   if (target?.isSymbolicLink()) throw new Error("Managed publisher authoring target must not be a symlink.");
 }
 
-export async function transactionalPublisherAuthoringWrite(entries) {
+export async function transactionalPublisherAuthoringWrite(entries, { roots = [repositoryRoot] } = {}) {
   const token = `${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}`;
   const prepared = [];
   try {
     for (const entry of entries) {
-      const target = withinRepository(entry.path);
-      await rejectSymlinks(target);
+      const target = withinControlledRoots(entry.path, roots);
+      await rejectSymlinks(target, roots);
       await mkdir(path.dirname(target), { recursive: true });
       const temporary = `${target}.${token}.tmp`;
       const backup = `${target}.${token}.bak`;
@@ -152,7 +160,16 @@ function jsonBytes(value) { return Buffer.from(`${JSON.stringify(value, null, 2)
 export function ultimateB2PublisherActivityBuilderPlugin({
   projectActivity = projectUltimateB2PublisherActivity,
   markFilesystemSynced = markUltimateB2PublisherActivityFilesystemSynced,
+  environment = process.env,
 } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const roots = workspaceRoot ? [repositoryRoot, workspaceRoot] : [repositoryRoot];
+  const canonicalRegistryPath = workspaceRoot ? path.join(workspaceRoot, "students-book", "activities", "publisher-created-activities.json") : registryPath;
+  const canonicalTeacherRegistryPath = workspaceRoot ? path.join(workspaceRoot, "students-book", "teacher-private", "registries", "_ultimate-b2-open-response-model-answers.json") : teacherRegistryPath;
+
+  function activityWorkspaceRoot(record) {
+    return path.join(workspaceRoot, "students-book", "activities", `unit-${String(record.unitNumber).padStart(2, "0")}`, record.activityId);
+  }
   return {
     name: "hhplms-ultimate-b2-publisher-activity-builder",
     apply: "serve",
@@ -165,14 +182,14 @@ export function ultimateB2PublisherActivityBuilderPlugin({
           if (url.search) return json(response, 404, { error: "Unknown publisher activity authoring target." });
           if (url.pathname === publisherActivityEndpoint) {
             if (request.method !== "GET") return json(response, 405, { error: "Method not allowed" });
-            const registry = await loadRegistry();
+            const registry = await loadRegistry(canonicalRegistryPath);
             return json(response, 200, { ...registry, databaseAuthoringConfigured: ["test", "staging"].includes(process.env.ULTIMATE_B2_PUBLISHER_AUTHORING_DB_MODE) });
           }
           if (request.method !== "POST") return json(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return json(response, 415, { error: "Expected an application/json request." });
           const body = await requestBody(request);
           exactKeys(body, ["draft", "source"], "Publisher activity creation request");
-          const registry = await loadRegistry();
+          const registry = await loadRegistry(canonicalRegistryPath);
           const draft = validateDraft(body.draft, ultimateB2StudentsBookAuthoringPages, registry);
           let prepared;
           if (draft.authoringKind === "image") {
@@ -190,6 +207,7 @@ export function ultimateB2PublisherActivityBuilderPlugin({
           let publicAuthoring;
           let teacherAuthoring = null;
           const entries = [];
+          const originalSourceEntries = [];
           if (record.authoringKind === "image") {
             const assetPath = `src/assets/books/ultimate-b2/authoring/image/${record.activityId}/${prepared.raster.sha256}.webp`;
             publicAuthoring = normalizeUltimateB2ImageAuthoring({
@@ -201,6 +219,12 @@ export function ultimateB2PublisherActivityBuilderPlugin({
               mainImageAlt: body.source.mainImageAlt || record.title,
             }, record.activityId);
             entries.push({ path: path.join(repositoryRoot, ...assetPath.split("/")), bytes: prepared.raster.bytes });
+            if (workspaceRoot) {
+              const originalBytes = canonicalBase64(body.source.base64, "source.base64");
+              const extension = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp" }[body.source.type];
+              originalSourceEntries.push({ path: path.join(activityWorkspaceRoot(record), "source-private", "uploads", `${sha256(originalBytes)}${extension}`), bytes: originalBytes });
+              entries.push({ path: path.join(activityWorkspaceRoot(record), "student-runtime", "assets", `${prepared.raster.sha256}.webp`), bytes: prepared.raster.bytes });
+            }
           } else {
             const imported = record.activityId === body.draft.predictedActivityId
               ? prepared.provisional
@@ -208,16 +232,68 @@ export function ultimateB2PublisherActivityBuilderPlugin({
             publicAuthoring = imported.publicAuthoring;
             teacherAuthoring = imported.teacherAuthoring;
             entries.push(...imported.assets.map((asset) => ({ path: path.join(repositoryRoot, ...asset.repositoryPath.split("/")), bytes: asset.bytes })));
-            const teacherRegistry = JSON.parse(await readFile(teacherRegistryPath, "utf8"));
+            if (workspaceRoot) {
+              entries.push(...imported.assets.map((asset) => ({ path: path.join(activityWorkspaceRoot(record), "student-runtime", "assets", path.basename(asset.repositoryPath)), bytes: asset.bytes })));
+              originalSourceEntries.push(...prepared.files.map((file) => ({ path: path.join(activityWorkspaceRoot(record), "source-private", "uploads", `${sha256(file.bytes)}-${path.basename(file.name).replace(/[^A-Za-z0-9._-]+/g, "-")}`), bytes: file.bytes })));
+            }
+            const teacherRegistry = JSON.parse(await readFile(canonicalTeacherRegistryPath, "utf8"));
             teacherRegistry.activities = { ...teacherRegistry.activities, [record.activityId]: teacherAuthoring };
-            entries.push({ path: teacherRegistryPath, bytes: jsonBytes(teacherRegistry) });
+            entries.push({ path: canonicalTeacherRegistryPath, bytes: jsonBytes(teacherRegistry) });
+            if (workspaceRoot) entries.push({ path: teacherRegistryPath, bytes: jsonBytes(teacherRegistry) });
           }
-          const latestRegistry = await loadRegistry();
+          const latestRegistry = await loadRegistry(canonicalRegistryPath);
           const collision = latestRegistry.activities.find((activity) => activity.activityId === record.activityId);
           if (collision && JSON.stringify(collision) !== JSON.stringify(record)) throw new Error("Publisher activity identity was claimed by another authoring operation.");
           const nextRegistry = normalizeUltimateB2PublisherActivityRegistry({ schemaVersion: 1, activities: collision ? latestRegistry.activities : [...latestRegistry.activities, record] });
-          entries.push({ path: publicAuthoringPath(record), bytes: jsonBytes(publicAuthoring) }, { path: registryPath, bytes: jsonBytes(nextRegistry) });
-          await transactionalPublisherAuthoringWrite(entries);
+          const repositoryPublicPath = publicAuthoringPath(record);
+          if (workspaceRoot) {
+            const studentRuntime = assertStudentSafe({
+              stableNormalizedId: record.activityId,
+              unitNumber: record.unitNumber,
+              partNumber: record.partNumber,
+              printedPage: record.printedPage,
+              title: record.title,
+              visibleInstructionText: publicAuthoring.instructions || null,
+              activityType: record.runtime.activityType,
+              implementationMode: record.runtime.implementationMode,
+              scoringMode: record.runtime.scoringMode,
+              availability: "enabled",
+              implementationStatus: "publisher-created",
+              runtime: publicAuthoring,
+            }, `Publisher activity ${record.activityId}`);
+            const manifest = {
+              schemaVersion: "1.0",
+              activityId: record.activityId,
+              book: "ultimate-b2",
+              component: "students-book",
+              unitNumber: record.unitNumber,
+              partNumber: record.partNumber,
+              pageId: record.pageId,
+              printedPage: record.printedPage,
+              section: record.sectionTitle,
+              title: record.title,
+              activityType: record.runtime.activityType,
+              implementationMode: record.runtime.implementationMode,
+              scoringMode: record.runtime.scoringMode,
+              implementationStatus: "publisher-created",
+              availability: "enabled",
+              sourceProvenance: originalSourceEntries.map((entry) => ({ workspacePath: path.relative(workspaceRoot, entry.path).replaceAll("\\", "/"), sha256: sha256(entry.bytes), sizeBytes: entry.bytes.length })),
+              unresolvedSourceMappings: [],
+              studentRuntimePath: `students-book/activities/unit-${String(record.unitNumber).padStart(2, "0")}/${record.activityId}/student-runtime/activity.json`,
+              teacherPrivatePath: teacherAuthoring ? `students-book/activities/unit-${String(record.unitNumber).padStart(2, "0")}/${record.activityId}/teacher-private/solution.json` : null,
+              repositoryProjectionPaths: [path.relative(repositoryRoot, repositoryPublicPath).replaceAll("\\", "/"), "src/data/ultimate-b2/authoring/publisher-created-activities.json"],
+            };
+            entries.push(
+              ...originalSourceEntries,
+              { path: path.join(activityWorkspaceRoot(record), "source-private", "authoring", path.basename(repositoryPublicPath)), bytes: jsonBytes(publicAuthoring) },
+              { path: path.join(activityWorkspaceRoot(record), "student-runtime", "activity.json"), bytes: jsonBytes(studentRuntime) },
+              { path: path.join(activityWorkspaceRoot(record), "manifest.json"), bytes: jsonBytes(manifest) },
+              ...(teacherAuthoring ? [{ path: path.join(activityWorkspaceRoot(record), "teacher-private", "solution.json"), bytes: jsonBytes(teacherAuthoring) }] : []),
+              { path: canonicalRegistryPath, bytes: jsonBytes(nextRegistry) },
+            );
+          }
+          entries.push({ path: repositoryPublicPath, bytes: jsonBytes(publicAuthoring) }, { path: registryPath, bytes: jsonBytes(nextRegistry) });
+          await transactionalPublisherAuthoringWrite(entries, { roots });
           let synchronizationWarning = null;
           try { await markFilesystemSynced({ activityId: record.activityId }); }
           catch (error) { synchronizationWarning = `Authoring was saved, but the database filesystem synchronization marker remains pending: ${error.message}`; }

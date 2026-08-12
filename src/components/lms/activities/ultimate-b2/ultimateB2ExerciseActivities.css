@@ -149,6 +149,41 @@
 .ultimate-b2-debate-response-region { background-color: transparent; border: 0; border-radius: 0; }
 .ultimate-b2-debate-response-region:is(:hover, :focus-visible) { border: 0; outline-color: rgb(105 25 79 / 24%); }
 .ultimate-b2-debate-response-region.is-revealed { background-color: transparent; }
+.ultimate-b2-debate-student-response {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  resize: none;
+  overflow: auto;
+  padding: var(--response-region-padding-y) var(--response-region-padding-x);
+  color: var(--response-region-text-color, #7d174f);
+  background-color: rgb(255 255 255 / 86%);
+  border: 1px solid rgb(105 25 79 / 24%);
+  border-radius: 4px;
+  font-family: var(--response-region-font-family, "Fira Sans", Arial, sans-serif);
+  font-size: var(--response-region-font-size);
+  line-height: var(--response-region-line-spacing);
+}
+.ultimate-b2-debate-student-response:focus { outline: 3px solid rgb(0 174 239 / 28%); }
+.ultimate-b2-debate-student-controls {
+  position: absolute;
+  z-index: 6;
+  right: 12px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ultimate-b2-debate-student-controls button,
+.ultimate-b2-debate-student-controls strong {
+  min-height: 34px;
+  padding: 6px 12px;
+  color: #5c174a;
+  background: rgb(255 255 255 / 94%);
+  border: 1px solid rgb(105 25 79 / 32%);
+  border-radius: 8px;
+  font: 700 14px/1 "Fira Sans", Arial, sans-serif;
+}
 
 .ultimate-b2-complete-sentences-student {
   display: grid;

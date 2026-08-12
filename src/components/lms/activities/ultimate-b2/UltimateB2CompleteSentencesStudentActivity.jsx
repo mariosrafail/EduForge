@@ -2,7 +2,7 @@ import { GripVertical, RotateCcw, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import Modal from "../../../ui/Modal.jsx";
-import { getUltimateB2ReadingExerciseAuthoring } from "../../../../data/ultimate-b2/readingExerciseAuthoringData.js";
+import { getUltimateB2ReadingExerciseRuntime } from "../../../../data/ultimate-b2/readingExerciseRuntimeData.js";
 import {
   completeSentencesProgress,
   completeSentencesWordBank,
@@ -14,7 +14,7 @@ const dragMime = "application/x-ultimate-b2-complete-sentences-word";
 
 export function UltimateB2CompleteSentencesStudentActivity({
   activity,
-  authoring: authoringOverride = null,
+  runtime: runtimeOverride = null,
   answers = {},
   frozen = false,
   submitting = false,
@@ -24,12 +24,12 @@ export function UltimateB2CompleteSentencesStudentActivity({
   replaceAnswers,
   onSubmit,
 }) {
-  const authoring = authoringOverride || getUltimateB2ReadingExerciseAuthoring(activity);
+  const runtime = runtimeOverride || getUltimateB2ReadingExerciseRuntime(activity);
   const [selectedWordId, setSelectedWordId] = useState("");
   const [draggingWordId, setDraggingWordId] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const words = useMemo(() => completeSentencesWordBank(authoring), [authoring]);
-  const progress = completeSentencesProgress(answers, authoring);
+  const words = useMemo(() => completeSentencesWordBank(runtime), [runtime]);
+  const progress = completeSentencesProgress(answers, runtime);
   const wordByText = new Map(words.map((word) => [word.text, word]));
   const selectedWord = words.find((word) => word.id === selectedWordId) || null;
   const selectedIsPlaced = selectedWord ? Object.values(answers).includes(selectedWord.text) : false;
@@ -42,11 +42,11 @@ export function UltimateB2CompleteSentencesStudentActivity({
     }
   }, [frozen, submitted]);
 
-  if (!authoring) return null;
+  if (!runtime) return null;
 
   const moveWord = (wordId, questionId = null) => {
     if (frozen || !wordId) return;
-    replaceAnswers?.((current) => moveCompleteSentencesWord(current, authoring, wordId, questionId));
+    replaceAnswers?.((current) => moveCompleteSentencesWord(current, runtime, wordId, questionId));
     setSelectedWordId("");
     setDraggingWordId("");
   };
@@ -65,7 +65,7 @@ export function UltimateB2CompleteSentencesStudentActivity({
   };
 
   return (
-    <section className="ultimate-b2-complete-sentences-student" data-student-complete-sentences={authoring.activityId} data-response-schema-version="1">
+    <section className="ultimate-b2-complete-sentences-student" data-student-complete-sentences={runtime.activityId} data-response-schema-version="1">
       <header className="complete-sentences-student-heading">
         <span className="complete-sentences-student-number">4</span>
         <div><h2>Complete the sentences</h2><p>Drag each word or phrase to the correct blank. On touch devices, tap a word and then tap a blank.</p></div>
@@ -105,11 +105,11 @@ export function UltimateB2CompleteSentencesStudentActivity({
 
       <div className="complete-sentences-student-list">
         <div className="complete-sentences-student-row is-example">
-          <b>{authoring.example.number}</b>
-          <p>{authoring.example.before}<span className="complete-sentences-example-chip">{authoring.example.answer}</span>{authoring.example.after}</p>
+          <b>{runtime.example.number}</b>
+          <p>{runtime.example.before}<span className="complete-sentences-example-chip">{runtime.example.exampleText}</span>{runtime.example.after}</p>
           <small>Example</small>
         </div>
-        {authoring.sentences.map((sentence) => {
+        {runtime.sentences.map((sentence) => {
           const value = answers[sentence.questionId] || "";
           const placedWord = wordByText.get(value) || null;
           const selected = placedWord && selectedWordId === placedWord.id;

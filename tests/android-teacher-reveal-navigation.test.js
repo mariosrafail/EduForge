@@ -58,11 +58,11 @@ test("only the three supported activity renderers implement the generic reveal c
     assert.match(source, /command\.type === "reset-activity"/);
     assert.match(source, /command\.type === "show-all"/);
     assert.match(source, /command\.type === "show-next"/);
-    assert.match(source, /reveal: \{ supported: true, total:/);
+    assert.match(source, /reveal:[^\n]*\{ supported: true, total:/);
     assert.doesNotMatch(source, /onStateChange\?\.\([^)]*(?:answer|solution)/i);
   }
   assert.match(page5, /revealableQuestions\.find\(\(question\) => !revealedQuestionIds/);
-  assert.match(complete, /authoring\?\.blanks\.find\(\(blank\) => !current\.includes/);
+  assert.match(complete, /runtime\?\.blanks\.find\(\(blank\) => !revealedBlankIds\.includes/);
   assert.match(debate, /parts\.findIndex\(\(part\) => !revealedPartIds\.includes/);
   assert.match(embedded, /activityPresentation=\{\{[\s\S]*command: activityPresentationCommand,[\s\S]*onStateChange: onActivityPresentationStateChange/);
 });

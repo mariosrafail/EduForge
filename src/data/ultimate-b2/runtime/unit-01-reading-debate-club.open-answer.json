@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "activityId": "ultimate-b2-sb-u1-p2-o5",
+  "interactionType": "open-response",
+  "surface": {
+    "width": 1024,
+    "height": 582
+  },
+  "visualCapabilities": {
+    "instructionImage": "unit1.reading.debate-club.instruction",
+    "showText": {
+      "enabled": false,
+      "showTextImage": null
+    }
+  },
+  "instructionImageAlt": "With your partner, discuss the question below. Use the ideas given and add your own. Then take turns to present your arguments.",
+  "artwork": {
+    "badge": {
+      "binding": "unit1.reading.debate-club.badge",
+      "naturalSize": {
+        "width": 250,
+        "height": 105
+      },
+      "area": {
+        "x": 5,
+        "y": 18,
+        "width": 250,
+        "height": 105
+      },
+      "parts": [
+        1
+      ]
+    },
+    "instruction": {
+      "binding": "unit1.reading.debate-club.instruction",
+      "naturalSize": {
+        "width": 646,
+        "height": 60
+      },
+      "area": {
+        "x": 263,
+        "y": 45,
+        "width": 646,
+        "height": 60
+      },
+      "parts": [
+        1
+      ]
+    }
+  },
+  "parts": [
+    {
+      "id": "part-1",
+      "number": 1,
+      "prompt": "Watching a film at home is better than going to the cinema. Agree or disagree?",
+      "promptArea": {
+        "x": 111,
+        "y": 132,
+        "width": 841,
+        "height": 29
+      },
+      "promptStyle": {
+        "fontFamily": "Fira Sans SemiBold",
+        "fontSize": 21,
+        "color": "#691554",
+        "align": "left"
+      },
+      "partImageAlt": "Watching a film at home",
+      "visualObjects": {
+        "photo": {
+          "binding": "unit1.reading.debate-club.part-1-photo",
+          "naturalSize": {
+            "width": 250,
+            "height": 166
+          },
+          "area": {
+            "x": 727,
+            "y": 387,
+            "width": 250,
+            "height": 166
+          },
+          "parts": [
+            1
+          ]
+        },
+        "argument": {
+          "binding": "unit1.reading.debate-club.part-1-argument",
+          "naturalSize": {
+            "width": 336,
+            "height": 123
+          },
+          "area": {
+            "x": 665,
+            "y": 264,
+            "width": 336,
+            "height": 123
+          },
+          "parts": [
+            1
+          ]
+        }
+      },
+      "responseRegion": {
+        "id": "debate-reveal-1",
+        "area": {
+          "x": 70,
+          "y": 272,
+          "width": 776,
+          "height": 296
+        },
+        "ariaLabel": "Part 1 learner response",
+        "presentation": {
+          "paddingX": 7,
+          "paddingY": 0,
+          "lineSpacing": 29.6667,
+          "fontScale": 1,
+          "lineCount": 10,
+          "linePositions": [
+            21,
+            50,
+            79,
+            109,
+            138,
+            168,
+            198,
+            228,
+            258,
+            288
+          ],
+          "lineWidths": [
+            713,
+            712,
+            702,
+            707,
+            727,
+            722,
+            745,
+            746,
+            776,
+            750
+          ],
+          "textWidth": 581,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left",
+          "wordWrap": false,
+          "verticalAlign": "middle"
+        }
+      }
+    },
+    {
+      "id": "part-2",
+      "number": 2,
+      "prompt": "",
+      "promptArea": null,
+      "promptStyle": null,
+      "partImageAlt": "Watching a film at the cinema",
+      "visualObjects": {
+        "photo": {
+          "binding": "unit1.reading.debate-club.part-2-photo",
+          "naturalSize": {
+            "width": 259,
+            "height": 172
+          },
+          "area": {
+            "x": 60,
+            "y": 350,
+            "width": 259,
+            "height": 172
+          },
+          "parts": [
+            2
+          ]
+        },
+        "argument": {
+          "binding": "unit1.reading.debate-club.part-2-argument",
+          "naturalSize": {
+            "width": 268,
+            "height": 99
+          },
+          "area": {
+            "x": 60,
+            "y": 264,
+            "width": 268,
+            "height": 99
+          },
+          "parts": [
+            2
+          ]
+        }
+      },
+      "responseRegion": {
+        "id": "debate-reveal-2",
+        "area": {
+          "x": 390,
+          "y": 242,
+          "width": 634,
+          "height": 236
+        },
+        "ariaLabel": "Part 2 learner response",
+        "presentation": {
+          "paddingX": 5,
+          "paddingY": 0,
+          "lineSpacing": 29.5714,
+          "fontScale": 1,
+          "lineCount": 8,
+          "linePositions": [
+            21,
+            50,
+            79,
+            109,
+            138,
+            168,
+            198,
+            228
+          ],
+          "lineWidths": [
+            634,
+            634,
+            634,
+            634,
+            634,
+            634,
+            634,
+            634
+          ],
+          "textWidth": 585,
+          "fontFamily": "ITC Flora Std Medium",
+          "fontSize": 21,
+          "color": "#e40083",
+          "align": "left",
+          "wordWrap": false,
+          "verticalAlign": "middle"
+        }
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import {
   assertUltimateB2ListeningAuthoring,
   ultimateB2ListeningAuthoringLimits,
 } from "../../src/data/ultimate-b2/listeningAuthoringSchema.js";
+import { readAuthoringJson, repositoryFileTarget, resolveUltimateB2ContentRoot, writeAuthoringJson } from "./content-workspace.mjs";
 
 const listeningEndpoint = "/__hhplms/ultimate-b2-listening-authoring";
 const defaultListeningPath = path.resolve(import.meta.dirname, "../../src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json");
@@ -34,7 +35,9 @@ async function writeAtomically(outputPath, value) {
   await rename(temporaryPath, outputPath);
 }
 
-export function ultimateB2ListeningBuilderPlugin({ listeningPath = defaultListeningPath } = {}) {
+export function ultimateB2ListeningBuilderPlugin({ listeningPath = defaultListeningPath, environment = process.env } = {}) {
+  const workspaceRoot = resolveUltimateB2ContentRoot(environment);
+  const authoringTarget = repositoryFileTarget(listeningPath, workspaceRoot, "students-book/activities/unit-01/ultimate-b2-sb-u1-p2-o2/source-private/authoring/unit-01-reading-exercise-2.listening.json");
   return {
     name: "hhplms-ultimate-b2-listening-builder",
     apply: "serve",
@@ -45,12 +48,12 @@ export function ultimateB2ListeningBuilderPlugin({ listeningPath = defaultListen
         try {
           if (!loopbackAddresses.has(request.socket.remoteAddress || "")) return json(response, 403, { error: "The authoring endpoint is local-only." });
           if (request.method === "GET") {
-            return json(response, 200, assertUltimateB2ListeningAuthoring(JSON.parse(await readFile(listeningPath, "utf8"))));
+            return json(response, 200, assertUltimateB2ListeningAuthoring(await readAuthoringJson(authoringTarget)));
           }
           if (request.method !== "POST") return json(response, 405, { error: "Method not allowed" });
           if (!String(request.headers["content-type"] || "").toLowerCase().startsWith("application/json")) return json(response, 415, { error: "Expected an application/json request." });
           const normalized = assertUltimateB2ListeningAuthoring(await readBody(request));
-          await writeAtomically(listeningPath, normalized);
+          await writeAuthoringJson(authoringTarget, normalized, { workspaceRoot, operation: "listening-save" });
           return json(response, 200, normalized);
         } catch (error) {
           return json(response, 400, { error: error.message || "Listening authoring manifest could not be saved." });
