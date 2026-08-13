@@ -8,8 +8,10 @@ import {
   parseCompleteSentencesPublisherText,
 } from "../scripts/ultimate-b2/complete-sentences-publisher-importer.mjs";
 import canonical from "../src/data/ultimate-b2/authoring/unit-01-reading-exercise-4.complete-sentences.json" with { type: "json" };
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const sourceFile = "tmp/complete-sentences/obj_params.xml";
+const publisherEvidence = publisherSourceEvidenceOptions(sourceFile);
 const expectedAnswers = ["binge-watching", "season", "franchise", "episodes", "genre", "sub-plots", "Tuning in", "Media streaming"];
 const expectedAreas = [
   { x: 498, y: 143, width: 165, height: 27 },
@@ -22,7 +24,7 @@ const expectedAreas = [
   { x: 88, y: 514, width: 164, height: 27 },
 ];
 
-test("Complete the Sentences publisher XML safely reconstructs the exact canonical activity", async () => {
+test("Complete the Sentences publisher XML safely reconstructs the exact canonical activity", publisherEvidence, async () => {
   const imported = await importUltimateB2CompleteSentencesPublisherSource(sourceFile);
   assert.equal(imported.report.sourceSha256, COMPLETE_SENTENCES_SOURCE_SHA256);
   assert.deepEqual(imported.report.canvas, { width: 1024, height: 582 });
@@ -38,7 +40,7 @@ test("Complete the Sentences publisher XML safely reconstructs the exact canonic
   assert.deepEqual(imported.authoring, canonical);
 });
 
-test("Complete the Sentences import verifies and SHA-reuses both tracked auxiliary assets", async () => {
+test("Complete the Sentences import verifies and SHA-reuses both tracked auxiliary assets", publisherEvidence, async () => {
   const imported = await importUltimateB2CompleteSentencesPublisherSource(sourceFile);
   assert.deepEqual(imported.authoring.instruction, { binding: "unit1.reading.exercise4.instruction", sourceFile: "image_2.png", naturalSize: { width: 873, height: 34 }, area: { x: 93, y: 18, width: 873, height: 34 } });
   assert.deepEqual(imported.authoring.source.assets.map(({ sourceFile, sha256, role }) => ({ sourceFile, sha256, role })), [
@@ -50,7 +52,7 @@ test("Complete the Sentences import verifies and SHA-reuses both tracked auxilia
   assert.equal(imported.report.showTextAuxiliaryAssetMatched, true);
 });
 
-test("Complete the Sentences import is deterministic, idempotent, and stores no raw XML or local paths", async () => {
+test("Complete the Sentences import is deterministic, idempotent, and stores no raw XML or local paths", publisherEvidence, async () => {
   const first = await importUltimateB2CompleteSentencesPublisherSource(sourceFile);
   const second = await importUltimateB2CompleteSentencesPublisherSource(sourceFile);
   assert.deepEqual(second, first);

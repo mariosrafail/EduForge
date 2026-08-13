@@ -22,8 +22,11 @@ import {
   ultimateB2TeacherRevealControlDefinitions,
 } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 import { ultimateB2StudentsBookAuthoringActivities, ultimateB2StudentsBookAuthoringPages } from "../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const root = path.resolve(import.meta.dirname, "..");
+const navibarPublisherSourceRoot = path.join(root, "tmp/navibar_pngs");
+const navibarPublisherEvidence = publisherSourceEvidenceOptions(navibarPublisherSourceRoot);
 const emptyOverrides = { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} };
 const knownPageId = "ub2-sb-unit-1-part-1";
 const knownActivityId = "ultimate-b2-sb-u1-p1-o1";
@@ -58,8 +61,8 @@ test("canonical Teacher App model deterministically binds all current B2 pages a
   }
 });
 
-test("the actual publisher Navibar package is catalogued byte-identically with stable canonical bindings", async () => {
-  const sourceRoot = path.join(root, "tmp/navibar_pngs");
+test("the actual publisher Navibar package is catalogued byte-identically with stable canonical bindings", navibarPublisherEvidence, async () => {
+  const sourceRoot = navibarPublisherSourceRoot;
   const canonicalRoot = path.join(root, "src/assets/books/ultimate-b2/legacy-classroom-ui/icons/navigation/publisher-navibar");
   const actualFiles = (await readdir(sourceRoot)).filter((name) => name.toLowerCase().endsWith(".png")).sort();
   const canonicalFiles = (await readdir(canonicalRoot)).filter((name) => name.toLowerCase().endsWith(".png")).sort();

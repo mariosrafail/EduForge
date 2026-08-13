@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
@@ -14,9 +15,12 @@ import { ultimateB2OpenResponseBuilderPlugin } from "../scripts/ultimate-b2/open
 import { buildUltimateB2ActivityNavigation } from "../src/apps/ultimate-b2-builder/activityBuilderNavigation.js";
 import { ultimateB2ActivityEditorMetadata } from "../src/apps/ultimate-b2-builder/activityEditorMetadata.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const unit1Id = "ultimate-b2-sb-u1-p1-o1";
 const unit2Id = "ultimate-b2-sb-u2-p1-o1";
+const page5SourceRoot = path.resolve("tmp/page5-open-response-source");
+const page5PublisherEvidence = publisherSourceEvidenceOptions(page5SourceRoot);
 
 test("Unit 2 opener is explicitly registered for the reusable Open Response editor", async () => {
   assert.deepEqual(ultimateB2ActivityEditorMetadata[unit2Id], { kind: "open-response", label: "Open Response", variant: "publisher-source-question-list", status: "Configurable" });
@@ -73,9 +77,9 @@ async function bundle({ images = 3, questions = 2, primary = {}, ebook = {}, ext
   return [...files, ...extra];
 }
 
-test("generic importer preserves the proven Page 5 semantic and geometry contract", async () => {
+test("generic importer preserves the proven Page 5 semantic and geometry contract", page5PublisherEvidence, async () => {
   const names = ["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"];
-  const files = await Promise.all(names.map(async (name) => ({ name, bytes: await readFile(path.join("tmp/page5-open-response-source", name)) })));
+  const files = await Promise.all(names.map(async (name) => ({ name, bytes: await readFile(path.join(page5SourceRoot, name)) })));
   const first = await importUltimateB2OpenResponsePublisherBundle({ activityId: unit1Id, files });
   const second = await importUltimateB2OpenResponsePublisherBundle({ activityId: unit1Id, files });
   assert.deepEqual(second, first);
@@ -148,7 +152,7 @@ test("generic importer rejects traversal, raw IWB without safe context, and over
 });
 
 test("failed endpoint import leaves existing public and Teacher-private authoring untouched", async () => {
-  const directory = await mkdtemp(path.resolve("tmp/open-response-transaction-test-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "hhplms-open-response-transaction-test-"));
   const publicPath = path.join(directory, "public.json");
   const teacherRegistryPath = path.join(directory, "teacher-registry.json");
   const publicBefore = "{\"sentinel\":\"public\"}\n";

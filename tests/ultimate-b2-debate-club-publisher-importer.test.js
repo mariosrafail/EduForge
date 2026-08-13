@@ -13,9 +13,11 @@ import {
   normalizeDebateClubPublisherRevealText,
 } from "../scripts/ultimate-b2/debate-club-publisher-importer.mjs";
 import trackedAuthoring from "../src/data/ultimate-b2/authoring/unit-01-reading-debate-club.open-answer.json" with { type: "json" };
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const root = path.resolve(import.meta.dirname, "..");
 const sourceRoot = path.join(root, "tmp/debateclub");
+const publisherEvidence = publisherSourceEvidenceOptions(sourceRoot);
 const trackedAssetRoot = path.join(root, "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj5");
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
@@ -24,7 +26,7 @@ test("publisher reveal line breaks normalize to safe plain text", () => {
   assert.throws(() => normalizeDebateClubPublisherRevealText("Safe<script>alert(1)</script>"), /unsupported markup/);
 });
 
-test("Debate Club publisher package inventory and tracked images are exact", async () => {
+test("Debate Club publisher package inventory and tracked images are exact", publisherEvidence, async () => {
   const names = (await readdir(sourceRoot)).sort();
   assert.deepEqual(names, [...DEBATE_CLUB_SOURCE_FILES].sort());
   const expectedDimensions = [[250, 105], [646, 60], [336, 123], [268, 99], [250, 166], [259, 172]];
@@ -38,7 +40,7 @@ test("Debate Club publisher package inventory and tracked images are exact", asy
   }
 });
 
-test("publisher XML deterministically reconstructs the exact two-part canonical Debate Club authoring", async () => {
+test("publisher XML deterministically reconstructs the exact two-part canonical Debate Club authoring", publisherEvidence, async () => {
   const first = await importUltimateB2DebateClubPublisherSource(sourceRoot);
   const second = await importUltimateB2DebateClubPublisherSource(sourceRoot);
   assert.deepEqual(first, second);
@@ -64,7 +66,7 @@ test("publisher XML deterministically reconstructs the exact two-part canonical 
   for (const part of first.authoring.parts) assert.deepEqual({ fontFamily: part.responseRegion.presentation.fontFamily, fontSize: part.responseRegion.presentation.fontSize, color: part.responseRegion.presentation.color, align: part.responseRegion.presentation.align }, { fontFamily: "ITC Flora Std Medium", fontSize: 21, color: "#e40083", align: "left" });
 });
 
-test("publisher artwork maps by XML name, page index, natural size, and exact source coordinates", async () => {
+test("publisher artwork maps by XML name, page index, natural size, and exact source coordinates", publisherEvidence, async () => {
   const { authoring } = await importUltimateB2DebateClubPublisherSource(sourceRoot);
   assert.deepEqual(authoring.artwork, {
     badge: { binding: "unit1.reading.debate-club.badge", sourceFile: "image_1.png", naturalSize: { width: 250, height: 105 }, area: { x: 5, y: 18, width: 250, height: 105 }, parts: [1] },

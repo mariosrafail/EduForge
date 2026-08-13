@@ -21,6 +21,12 @@ import {
 } from "../src/data/ultimate-b2/readingExerciseAuthoringSchema.js";
 import { projectStudentReadingActivity, projectTeacherReadingSolution } from "../src/data/ultimate-b2/readingExerciseProjections.js";
 import { assertStudentSafe } from "../scripts/ultimate-b2/content-workspace.mjs";
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
+
+const completeSentencesPublisherSourceFile = path.resolve("tmp/complete-sentences/obj_params.xml");
+const debateClubPublisherSourceDirectory = path.resolve("tmp/debateclub");
+const completeSentencesPublisherEvidence = publisherSourceEvidenceOptions(completeSentencesPublisherSourceFile);
+const debateClubPublisherEvidence = publisherSourceEvidenceOptions(debateClubPublisherSourceDirectory);
 
 async function fixtureServer() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "hhplms-reading-authoring-"));
@@ -103,7 +109,7 @@ test("Complete the Sentences projections separate eight interactive blanks from 
   assert.notStrictEqual(student, teacher);
 });
 
-test("Complete the Sentences publisher import endpoint is fixed-scope and persists the verified reconstruction", async () => {
+test("Complete the Sentences publisher import endpoint is fixed-scope and persists the verified reconstruction", completeSentencesPublisherEvidence, async () => {
   const fixture = await fixtureServer();
   try {
     const url = `${fixture.base}${completeSentencesPublisherImportEndpoint}?activityId=${ULTIMATE_B2_COMPLETE_SENTENCES_ID}`;
@@ -115,8 +121,6 @@ test("Complete the Sentences publisher import endpoint is fixed-scope and persis
     assert.deepEqual(JSON.parse(await readFile(fixture.completePath, "utf8")), imported.authoring);
     assert.deepEqual(JSON.parse(await readFile(fixture.completeStudentPath, "utf8")), projectStudentReadingActivity(imported.authoring));
     assert.deepEqual(JSON.parse(await readFile(fixture.completeTeacherPath, "utf8")), projectTeacherReadingSolution(imported.authoring));
-    assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
-    assert.equal((await fetch(url)).status, 405);
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
@@ -148,7 +152,7 @@ test("Debate Club projections preserve both response layouts but isolate both pu
   assert.notStrictEqual(student, teacher);
 });
 
-test("Debate Club publisher import endpoint is fixed-scope and persists private Teacher presentation content", async () => {
+test("Debate Club publisher import endpoint is fixed-scope and persists private Teacher presentation content", debateClubPublisherEvidence, async () => {
   const fixture = await fixtureServer();
   try {
     const url = `${fixture.base}${debateClubPublisherImportEndpoint}?activityId=${ULTIMATE_B2_DEBATE_CLUB_ID}`;
@@ -161,8 +165,20 @@ test("Debate Club publisher import endpoint is fixed-scope and persists private 
     assert.ok(imported.authoring.parts.every((part) => part.responseRegion.revealText.length > 300), "reveal content remains canonical private authoring");
     assert.deepEqual(JSON.parse(await readFile(fixture.debateStudentPath, "utf8")), projectStudentReadingActivity(imported.authoring));
     assert.deepEqual(JSON.parse(await readFile(fixture.debateTeacherPath, "utf8")), projectTeacherReadingSolution(imported.authoring));
-    assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
-    assert.equal((await fetch(url)).status, 405);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("publisher import endpoints always reject noncanonical scope and methods", async () => {
+  const fixture = await fixtureServer();
+  try {
+    for (const [endpoint, activityId] of [
+      [completeSentencesPublisherImportEndpoint, ULTIMATE_B2_COMPLETE_SENTENCES_ID],
+      [debateClubPublisherImportEndpoint, ULTIMATE_B2_DEBATE_CLUB_ID],
+    ]) {
+      const url = `${fixture.base}${endpoint}?activityId=${activityId}`;
+      assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
+      assert.equal((await fetch(url)).status, 405);
+    }
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 

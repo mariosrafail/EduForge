@@ -27,8 +27,9 @@ async function temporaryRoot(t) {
 }
 
 test("workspace root is server-side, absolute, non-UNC, and optional for repository-only development", () => {
+  const nativeAbsolutePath = process.platform === "win32" ? "C:\\content\\B2" : "/content/B2";
   assert.equal(resolveUltimateB2ContentRoot({}), null);
-  assert.equal(resolveUltimateB2ContentRoot({ ULTIMATE_B2_CONTENT_ROOT: "C:\\content\\B2" }), path.resolve("C:\\content\\B2"));
+  assert.equal(resolveUltimateB2ContentRoot({ ULTIMATE_B2_CONTENT_ROOT: nativeAbsolutePath }), path.resolve(nativeAbsolutePath));
   assert.throws(() => resolveUltimateB2ContentRoot({ ULTIMATE_B2_CONTENT_ROOT: "relative/B2" }), /absolute local path/);
   assert.throws(() => resolveUltimateB2ContentRoot({ ULTIMATE_B2_CONTENT_ROOT: "\\\\server\\share\\B2" }), /UNC/);
 });

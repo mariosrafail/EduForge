@@ -8,12 +8,14 @@ import {
   importUltimateB2Page5OpenResponsePublisherSource,
   PAGE5_OPEN_RESPONSE_SOURCE_FILES,
 } from "../scripts/ultimate-b2/page5-open-response-publisher-importer.mjs";
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const sourceDirectory = path.resolve("tmp/page5-open-response-source");
+const publisherEvidence = publisherSourceEvidenceOptions(sourceDirectory);
 const activityId = "ultimate-b2-sb-u1-p1-o1";
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
-test("Page 5 publisher XML deterministically reconstructs the canonical public and Teacher-private activity", async () => {
+test("Page 5 publisher XML deterministically reconstructs the canonical public and Teacher-private activity", publisherEvidence, async () => {
   const first = await importUltimateB2Page5OpenResponsePublisherSource(sourceDirectory);
   const second = await importUltimateB2Page5OpenResponsePublisherSource(sourceDirectory);
   assert.deepEqual(second, first, "unchanged publisher input imports idempotently");

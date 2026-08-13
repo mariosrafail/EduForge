@@ -19,9 +19,12 @@ import {
   normalizeUltimateB2Page5TeacherAnswers,
 } from "../src/data/ultimate-b2/page5AuthoringSchema.js";
 import teacherAnswers from "../netlify/functions/_ultimate-b2-unit1-opener-model-answers.json" with { type: "json" };
+import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
 const openResponseId = "ultimate-b2-sb-u1-p1-o1";
 const imageActivityId = "ultimate-b2-sb-u1-p1-o2";
+const page5PublisherSourceDirectory = path.resolve("tmp/page5-open-response-source");
+const page5PublisherEvidence = publisherSourceEvidenceOptions(page5PublisherSourceDirectory);
 
 async function fixtureServer() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "hhplms-page5-authoring-"));
@@ -35,7 +38,7 @@ async function fixtureServer() {
     writeFile(teacherAnswersPath, `${JSON.stringify(teacherAnswers, null, 2)}\n`),
     writeFile(imageAssetPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"/>\n"),
   ]);
-  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath, publisherSourceDirectory: path.resolve("tmp/page5-open-response-source") })], server: { host: "127.0.0.1", port: 0 } });
+  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath, publisherSourceDirectory: page5PublisherSourceDirectory })], server: { host: "127.0.0.1", port: 0 } });
   await server.listen();
   return { directory, server, base: `http://127.0.0.1:${server.httpServer.address().port}`, openResponsePath, imagePath, imageAssetPath, teacherAnswersPath };
 }
@@ -102,7 +105,7 @@ test("Page 5 Exercise 2 is a generic image activity with no bullet authoring", a
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
 });
 
-test("Page 5 publisher import endpoint is fixed-scope and persists the public/private split", async () => {
+test("Page 5 publisher import endpoint is fixed-scope and persists the public/private split", page5PublisherEvidence, async () => {
   const fixture = await fixtureServer();
   try {
     const url = `${fixture.base}/__hhplms/ultimate-b2-page-5-publisher-import?activityId=${openResponseId}`;
@@ -120,6 +123,13 @@ test("Page 5 publisher import endpoint is fixed-scope and persists the public/pr
     });
     assert.deepEqual(JSON.parse(await readFile(fixture.openResponsePath, "utf8")), imported.publicAuthoring);
     assert.deepEqual(JSON.parse(await readFile(fixture.teacherAnswersPath, "utf8")), imported.teacherAuthoring);
+  } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("Page 5 publisher import endpoint always rejects noncanonical scope and methods", async () => {
+  const fixture = await fixtureServer();
+  try {
+    const url = `${fixture.base}/__hhplms/ultimate-b2-page-5-publisher-import?activityId=${openResponseId}`;
     assert.equal((await fetch(`${url}&path=C:/escape`, { method: "POST" })).status, 404);
     assert.equal((await fetch(url)).status, 405);
   } finally { await fixture.server.close(); await rm(fixture.directory, { recursive: true, force: true }); }
