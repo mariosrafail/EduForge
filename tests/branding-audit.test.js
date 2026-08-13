@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findBrandingViolations, isMaintainedTrackedPath } from "../scripts/_branding-audit.mjs";
+import {
+  BRANDING_COMPATIBILITY_EXCEPTIONS,
+  findBrandingViolations,
+  isMaintainedTrackedPath,
+} from "../scripts/_branding-audit.mjs";
 
 const retiredName = ["Edu", "Forge"].join("");
 const retiredSlug = retiredName.toLowerCase();
@@ -26,6 +30,36 @@ test("branding audit permits only an enumerated compatibility token in its appro
   assert.equal(findBrandingViolations([{
     path: "src/example.js",
     content: `select * from ${token}`,
+  }]).length, 1);
+});
+
+test("branding audit preserves the existing login hash-domain exceptions", () => {
+  for (const { token, path } of [
+    { token: `${retiredSlug}:ordinary-auth`, path: "netlify/functions/_auth-login-rate-limit.js" },
+    { token: `${retiredSlug}:platform-admin-auth`, path: "netlify/functions/_platform-admin-login-rate-limit.js" },
+  ]) {
+    assert.deepEqual(findBrandingViolations([{ path, content: token }]), []);
+  }
+});
+
+test("branding audit permits only the stable Builder hash domain in its approved limiter", () => {
+  const token = `${retiredSlug}:builder-auth`;
+  assert.deepEqual(BRANDING_COMPATIBILITY_EXCEPTIONS.find((entry) => entry.token === token), {
+    token,
+    reason: "stable Builder login rate-limit hash domain",
+    paths: ["netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js"],
+  });
+  assert.deepEqual(findBrandingViolations([{
+    path: "netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js",
+    content: `.update(\`${token}:email:v1\\0value\`)`,
+  }]), []);
+  assert.equal(findBrandingViolations([{
+    path: "src/example.js",
+    content: token,
+  }]).length, 1);
+  assert.equal(findBrandingViolations([{
+    path: "netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js",
+    content: `${token}-extra`,
   }]).length, 1);
 });
 

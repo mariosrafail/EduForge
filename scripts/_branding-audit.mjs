@@ -69,6 +69,11 @@ export const BRANDING_COMPATIBILITY_EXCEPTIONS = Object.freeze([
     paths: ["netlify/functions/_platform-admin-login-rate-limit.js"],
   },
   {
+    token: `${retiredProductSlug}:builder-auth`,
+    reason: "stable Builder login rate-limit hash domain",
+    paths: ["netlify-sites/ultimate-b2-builder/server/_builder-login-rate-limit.js"],
+  },
+  {
     token: `${retiredProductSlug}:multi-school-seed`,
     reason: "cross-version PostgreSQL advisory-lock domain",
     paths: ["scripts/cleanup-multi-school.mjs", "scripts/seed-multi-school.mjs"],
@@ -112,7 +117,16 @@ export function isMaintainedTrackedPath(path) {
 function removeApprovedTokens(path, value) {
   let remaining = value;
   for (const exception of exceptionPathsByToken) {
-    if (exception.pathSet.has(path)) remaining = remaining.replaceAll(exception.token, "");
+    if (!exception.pathSet.has(path)) continue;
+    remaining = remaining.replaceAll(exception.token, (match, offset, source) => {
+      const identifierCharacter = /[a-z0-9_-]/i;
+      const preceding = source[offset - 1];
+      const following = source[offset + match.length];
+      return (!preceding || !identifierCharacter.test(preceding))
+        && (!following || !identifierCharacter.test(following))
+        ? ""
+        : match;
+    });
   }
   return remaining;
 }
