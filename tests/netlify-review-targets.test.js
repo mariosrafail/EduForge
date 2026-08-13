@@ -104,6 +104,7 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots"]);
   assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
   assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
+  assert.equal(reviewTargets["ultimate-b2-interactive"].profile, BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherSolutions, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherPresentation, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE).teacherSolutions, true);
@@ -113,6 +114,13 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.WEB_LMS).teacherPresentation, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).teacherPresentation, false);
   assert.equal(Object.keys(buildProfiles).length, 7);
+});
+
+test("dedicated Teacher Review build generates the authoritative solution pack before Vite", async () => {
+  const buildScript = await read("scripts/netlify/build-review-target.mjs");
+  assert.match(buildScript, /targetName === "ultimate-b2-interactive"[\s\S]*generateTeacherReviewSolutions/);
+  assert.match(buildScript, /scripts\/android-teacher\/build-pack\.mjs/);
+  assert.doesNotMatch(buildScript, /writeFile|teacher-solutions[\s\S]*JSON\.stringify/);
 });
 
 test("review build policy allows local and review contexts", () => {
