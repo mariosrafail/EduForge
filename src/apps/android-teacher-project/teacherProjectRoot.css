@@ -1,6 +1,7 @@
 @import "../../styles/base.css";
 @import "../../styles/shared-components.css";
 @import "../android-teacher-offline/teacherOffline.css";
+@import "../android-teacher-offline/teacherViewerStartup.css";
 @import "../android-teacher-offline/classroomTools.css";
 @import "../android-teacher-offline/teacherOfflineLauncher.css";
 @import "../android-teacher-offline/teacherOfflineSettings.css";

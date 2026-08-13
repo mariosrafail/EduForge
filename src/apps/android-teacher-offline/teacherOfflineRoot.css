@@ -2,6 +2,7 @@
 @import "../../styles/shared-components.css";
 @import "../../styles/activities.css";
 @import "./teacherOffline.css";
+@import "./teacherViewerStartup.css";
 @import "./teacherOfflinePageViewer.css";
 @import "./classroomTools.css";
 @import "./teacherOfflineLauncher.css";
