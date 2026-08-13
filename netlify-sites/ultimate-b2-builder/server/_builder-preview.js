@@ -38,12 +38,13 @@ function decodeSegment(segment) {
 
 export function parseBuilderPreviewRoute(event) {
   const pathname = String(event?.path || "").split("?")[0];
-  const match = pathname.match(/(?:\/builder\/preview\/content|\/\.netlify\/functions\/builder-preview)\/books\/([^/]+)\/components\/([^/]+)\/([^/]+)\/?$/);
+  const match = pathname.match(/(?:\/builder\/preview\/content|\/\.netlify\/functions\/builder-preview)\/books\/([^/]+)\/components\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/);
   if (!match) return null;
   return {
     bookSlug: decodeSegment(match[1]),
     componentSlug: decodeSegment(match[2]),
     resource: decodeSegment(match[3]),
+    documentKey: decodeSegment(match[4] || ""),
   };
 }
 
@@ -56,6 +57,7 @@ function previewResponse(resource, state, document) {
     bookSlug: resource.bookSlug,
     componentSlug: resource.componentSlug,
     resource: resource.resource,
+    ...(resource.documentKey !== "default" ? { documentKey: resource.documentKey } : {}),
     schemaVersion: resource.schemaVersion,
     revision: state.revision,
     source: state.source,
@@ -77,7 +79,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
     try {
       const route = parseBuilderPreviewRoute(event);
       stage = "resolve_resource";
-      const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource);
+      const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource, route.documentKey);
       if (!resource?.previewReadable || typeof resource.projectPreview !== "function") {
         return previewJson(404, { error: "builder_preview_resource_not_found" });
       }
@@ -87,6 +89,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
       stage = "load_document";
       let state = await dependencies.loadDocument(sql, resource);
       if (!state) {
+        if (resource.previewRequiresStored) return previewJson(404, { error: "builder_preview_document_not_found" });
         stage = "repository_baseline";
         state = { revision: 0, source: "repository", document: resource.baseline() };
       }

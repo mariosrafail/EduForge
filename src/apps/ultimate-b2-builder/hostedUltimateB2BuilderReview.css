@@ -7,9 +7,20 @@
 .b2-hosted-activity-layout { display: grid; grid-template-columns: minmax(250px, 330px) minmax(0, 1fr); min-height: calc(100vh - 170px); }
 .b2-hosted-activity-review .activity-builder-sidebar { max-height: calc(100vh - 170px); overflow: auto; }
 .b2-hosted-activity-review .activity-builder-sidebar button { display: block; text-align: left; width: 100%; }
+.b2-hosted-activity-review .activity-builder-sidebar button small { display: block; margin-top: .2rem; opacity: .72; }
 .b2-hosted-activity-review .activity-builder-sidebar button[aria-current="true"] { background: #dff3ff; color: #064968; }
 .b2-hosted-activity-preview { min-width: 0; padding: 1rem; }
 .b2-hosted-preview-identity { display: flex; justify-content: space-between; margin-bottom: .75rem; }
+.b2-hosted-open-response-editor, .b2-hosted-unsupported-activity { border: 1px solid #b9c6d3; border-radius: .65rem; background: #fff; margin-bottom: 1rem; padding: 1rem; }
+.b2-hosted-open-response-editor > header { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
+.b2-hosted-open-response-editor h2 { margin: .2rem 0; }
+.b2-hosted-open-response-actions { align-items: flex-end; display: flex; flex-direction: column; gap: .5rem; }
+.b2-hosted-open-response-actions button { min-height: 40px; }
+.b2-hosted-open-response-boundary { background: #eef7fc; border-left: 4px solid #2382b8; padding: .65rem .8rem; }
+.b2-hosted-open-response-error { color: #9f1d20; }
+.b2-hosted-open-response-editor label { display: grid; font-weight: 700; gap: .35rem; margin-top: .8rem; }
+.b2-hosted-open-response-editor textarea { box-sizing: border-box; font: inherit; padding: .55rem; resize: vertical; width: 100%; }
+.b2-hosted-open-response-editor textarea[readonly] { background: #f3f5f7; color: #526475; }
 .b2-hosted-ui-preview, .b2-hosted-hotspot-viewer-preview { padding: 1rem; }
 .b2-hosted-hotspot-viewer-preview { border-top: 1px solid #cad4df; background: #eef1f4; }
 .hosted-viewer-preview { overflow: hidden; border: 1px solid #b9c6d3; border-radius: .65rem; background: #fff; box-shadow: 0 8px 22px rgba(23, 32, 51, .1); }

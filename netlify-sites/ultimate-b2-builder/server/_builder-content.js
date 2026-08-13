@@ -74,12 +74,13 @@ function decodeSegment(segment) {
 
 export function parseBuilderContentRoute(event) {
   const pathname = String(event?.path || "").split("?")[0];
-  const match = pathname.match(/(?:\/builder\/api\/content|\/\.netlify\/functions\/builder-content)\/books\/([^/]+)\/components\/([^/]+)\/([^/]+)\/?$/);
+  const match = pathname.match(/(?:\/builder\/api\/content|\/\.netlify\/functions\/builder-content)\/books\/([^/]+)\/components\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/);
   if (!match) return null;
   return {
     bookSlug: decodeSegment(match[1]),
     componentSlug: decodeSegment(match[2]),
     resource: decodeSegment(match[3]),
+    documentKey: decodeSegment(match[4] || ""),
   };
 }
 
@@ -118,6 +119,7 @@ function contentResponse(resource, state, extra = {}) {
     bookSlug: resource.bookSlug,
     componentSlug: resource.componentSlug,
     resource: resource.resource,
+    ...(resource.documentKey !== "default" ? { documentKey: resource.documentKey } : {}),
     schemaVersion: resource.schemaVersion,
     revision: state.revision,
     source: state.source,
@@ -149,7 +151,7 @@ export function createBuilderContentHandler(overrides = {}) {
       stage = "route";
       const route = parseBuilderContentRoute(event);
       stage = "resolve_resource";
-      const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource);
+      const resource = route && await dependencies.resolveResource(route.bookSlug, route.componentSlug, route.resource, route.documentKey);
       if (!resource || !resource.readable) return json(404, { error: "builder_resource_not_found" });
 
       if (event.httpMethod === "GET") {

@@ -101,7 +101,7 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING).builderReadOnly, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderMutations, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderReadOnly, true);
-  assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots"]);
+  assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots", "open-response"]);
   assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
   assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
   assert.equal(reviewTargets["ultimate-b2-interactive"].profile, BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW);
@@ -165,10 +165,11 @@ test("only the explicitly marked dedicated Viewer site may use production contex
   assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
 });
 
-test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only the registered hotspot document mutation", async () => {
-  const [hosted, hostedHotspots, contentClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
+test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only registered public document mutations", async () => {
+  const [hosted, hostedHotspots, hostedOpenResponse, contentClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
+    read("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx"),
     read("src/apps/book-builder/hosted/builderContentApi.js"),
     read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
     read("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"),
@@ -184,9 +185,10 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
   assert.doesNotMatch(hosted, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|android-teacher-offline|ACTIVITY_MODES/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|Add Activity|onPublisherActivityCreated/);
   assert.match(hostedHotspots, /EditableHotspotLayer/);
+  assert.match(hostedOpenResponse, /expectedRevision: revision/);
   assert.match(contentClient, /\/builder\/api\/content/);
   assert.match(contentClient, /method: "PUT"/);
-  assert.doesNotMatch(`${hostedHotspots}\n${contentClient}`, /__hhplms|repositoryFileTarget|write-capability/);
+  assert.doesNotMatch(`${hostedHotspots}\n${hostedOpenResponse}\n${contentClient}`, /__hhplms|repositoryFileTarget|write-capability/);
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
   assert.match(entry, /HostedAuthenticatedBookBuilderApp/);

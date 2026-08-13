@@ -2,18 +2,19 @@ import { normalizeUltimateB2ExerciseVisualCapabilities } from "./exerciseVisualC
 import {
   normalizeUltimateB2Page5OpenResponseAuthoring,
   normalizeUltimateB2Page5TeacherAnswers,
-  ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
 } from "./page5AuthoringSchema.js";
-import { ultimateB2PublisherCreatedActivities } from "./publisherCreatedActivities.js";
+import {
+  isUltimateB2ConfigurableOpenResponse,
+  ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS,
+  ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
+} from "./openResponseActivityRegistry.js";
 
-export { ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID };
-
-export const ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID = "ultimate-b2-sb-u2-p1-o1";
-export const ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS = Object.freeze([
+export {
+  isUltimateB2ConfigurableOpenResponse,
+  ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS,
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
   ULTIMATE_B2_UNIT2_OPENER_OPEN_RESPONSE_ID,
-  ...ultimateB2PublisherCreatedActivities.filter((activity) => activity.authoringKind === "open-response").map((activity) => activity.activityId),
-]);
+} from "./openResponseActivityRegistry.js";
 
 export const ultimateB2OpenResponseLimits = Object.freeze({
   payloadBytes: 256_000,
@@ -214,9 +215,4 @@ export function normalizeUltimateB2OpenResponseTeacherAnswers(input, expectedAct
       return { questionId: answer.questionId, text: boundedText(answer.text, `modelAnswers[${index}].text`, ultimateB2OpenResponseLimits.modelAnswerLength) };
     }),
   };
-}
-
-export function isUltimateB2ConfigurableOpenResponse(activityOrId) {
-  const activityId = typeof activityOrId === "string" ? activityOrId : activityOrId?.stableNormalizedId;
-  return ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS.includes(activityId);
 }

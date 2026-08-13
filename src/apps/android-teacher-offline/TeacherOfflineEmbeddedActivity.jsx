@@ -6,6 +6,7 @@ import { NormalizedStudentsBookActivity } from "../../components/lms/activities/
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
 import multipleChoiceAuthoring from "virtual:ultimate-b2-multiple-choice-presentation";
+import { useHostedOpenResponseDraft } from "virtual:ultimate-b2-hosted-open-response-drafts";
 
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
@@ -18,6 +19,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
+  const hostedOpenResponseDraft = useHostedOpenResponseDraft(activityId);
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const activityMode = activeBuildProfile.teacherPresentation
     ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
@@ -112,6 +114,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
         <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
+          activityPublicDraft={hostedOpenResponseDraft}
           mode={activityMode}
           listeningPresentation={{ showTextCommand: listeningShowTextCommand, onStateChange: onListeningStateChange }}
           activityPresentation={{

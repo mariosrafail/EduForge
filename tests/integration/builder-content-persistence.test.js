@@ -11,6 +11,8 @@ const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const enabled = Boolean(testDatabaseUrl) && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
 const builderUserId = "10000000-0000-4000-8000-000000000001";
 const route = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+const openResponseActivityId = "ultimate-b2-sb-u1-p1-o1";
+const openResponseRoute = `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/open-response/${openResponseActivityId}`;
 
 function scoped(base, schema) {
   const url = new URL(base);
@@ -26,10 +28,10 @@ function tag(pool) {
   };
 }
 
-function event(method = "GET", body = null) {
+function event(method = "GET", body = null, path = route) {
   return {
     httpMethod: method,
-    path: route,
+    path,
     headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
     body: body === null ? "" : JSON.stringify(body),
   };
@@ -104,4 +106,21 @@ test("isolated PostgreSQL persists current state, strict history, idempotency, c
   assert.equal(state.rows[0].payload.pages[pageId][0].label, "Integration revision two");
   assert.equal(state.rows[0].updated_by_builder_user_id, builderUserId);
   await assert.rejects(pool.query("update builder_component_document_revisions set revision=3"), /append-only/);
+
+  const openResponseBaseline = JSON.parse((await handler(event("GET", null, openResponseRoute))).body);
+  assert.equal(openResponseBaseline.revision, 0);
+  assert.equal(openResponseBaseline.document.activityId, openResponseActivityId);
+  openResponseBaseline.document.questions[0].prompt = "Database-backed hosted prompt";
+  const openResponseSave = await handler(event("PUT", {
+    expectedRevision: 0,
+    clientMutationId: "10000000-0000-4000-8000-000000000021",
+    document: openResponseBaseline.document,
+  }, openResponseRoute));
+  assert.equal(openResponseSave.statusCode, 200);
+  assert.equal(JSON.parse(openResponseSave.body).revision, 1);
+  const identities = await pool.query("select document_type,document_key,revision from builder_component_documents order by document_type,document_key");
+  assert.deepEqual(identities.rows.map((row) => ({ ...row, revision: Number(row.revision) })), [
+    { document_type: "hotspots", document_key: "default", revision: 2 },
+    { document_type: "open_response", document_key: openResponseActivityId, revision: 1 },
+  ]);
 });

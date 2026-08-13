@@ -62,6 +62,9 @@ export default defineConfig(({ mode }) => {
   const interactivePackProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/reviewPackProvider.js"
     : "src/apps/android-teacher-offline/generatedPackProvider.js");
+  const hostedOpenResponseDraftProvider = path.resolve(process.cwd(), isHostedInteractiveReview
+    ? "src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"
+    : "src/apps/android-teacher-offline/noHostedOpenResponseDraftProvider.js");
   const multipleChoiceAuthoringPath = path.resolve(process.cwd(), "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
   const multipleChoicePresentationModuleId = "\0ultimate-b2-multiple-choice-presentation";
   const multipleChoicePresentationPlugin = {
@@ -215,6 +218,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-runtime-hotspots",
           replacement: runtimeHotspots,
+        },
+        {
+          find: "virtual:ultimate-b2-hosted-open-response-drafts",
+          replacement: hostedOpenResponseDraftProvider,
         },
         {
           find: "virtual:app-entry",

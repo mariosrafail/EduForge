@@ -20,7 +20,8 @@ import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
 import { isUltimateB2Unit1Part2LegacyPilot } from "../../../../data/ultimate-b2/unit1Part2LegacyPilotAssets.js";
 import { UltimateB2LegacyPilotActivity } from "./UltimateB2LegacyPilotActivity.jsx";
-import { hasUltimateB2OpenResponseAuthoring } from "../../../../data/ultimate-b2/openResponseAuthoringData.js";
+import { getUltimateB2OpenResponseAuthoring, hasUltimateB2OpenResponseAuthoring } from "../../../../data/ultimate-b2/openResponseAuthoringData.js";
+import { applyUltimateB2HostedOpenResponseDraft } from "../../../../data/ultimate-b2/hostedOpenResponseDraft.js";
 import { UltimateB2LegacyUnitOpenerActivity } from "./UltimateB2LegacyUnitOpenerActivity.jsx";
 import { isUltimateB2ImageActivity } from "../../../../data/ultimate-b2/unit1Part1Exercise2Image.js";
 import { UltimateB2ImageActivity } from "./UltimateB2ImageActivity.jsx";
@@ -175,8 +176,10 @@ function persistedSubmissionResult(submission) {
   };
 }
 
-export function NormalizedStudentsBookActivity({ activityId, mode = "student", onSubmit, submission = null, listeningPresentation = null, activityPresentation = null }) {
-  const activity = findStudentsBookImplementation(activityId);
+export function NormalizedStudentsBookActivity({ activityId, mode = "student", onSubmit, submission = null, listeningPresentation = null, activityPresentation = null, activityPublicDraft = null }) {
+  const canonicalActivity = findStudentsBookImplementation(activityId);
+  let activity = canonicalActivity;
+  try { activity = applyUltimateB2HostedOpenResponseDraft(canonicalActivity, activityPublicDraft); } catch { activity = canonicalActivity; }
   const capabilities = getActivityModeCapabilities(mode);
   const initialSubmissionResult = persistedSubmissionResult(submission);
   const persistedSubmission = Boolean(initialSubmissionResult);
@@ -226,6 +229,10 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
 
   const questions = activity.runtime?.questions || [];
   const authoredOpenResponse = hasUltimateB2OpenResponseAuthoring(activity);
+  const canonicalOpenResponseAuthoring = getUltimateB2OpenResponseAuthoring(activity);
+  const openResponseAuthoring = activityPublicDraft && canonicalOpenResponseAuthoring
+    ? { ...canonicalOpenResponseAuthoring, questions: canonicalOpenResponseAuthoring.questions.map((question) => ({ ...question, prompt: activity.runtime.questions.find((runtimeQuestion) => runtimeQuestion.id === question.id)?.prompt || question.prompt })) }
+    : null;
   const legacyPilotObjectOne = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o1";
   const legacyPilotObjectTwo = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o2";
   const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && activeBuildProfile.teacherPresentation;
@@ -407,6 +414,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     return (
       <UltimateB2LegacyUnitOpenerActivity
         activity={activity}
+        authoring={openResponseAuthoring}
         capabilities={capabilities}
         answers={answers}
         frozen={frozen}

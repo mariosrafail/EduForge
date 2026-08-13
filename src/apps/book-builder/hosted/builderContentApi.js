@@ -1,11 +1,11 @@
 const builderContentApiRoot = "/builder/api/content";
 const routeIdentityPattern = /^[a-z0-9][a-z0-9-]{1,79}$/;
 
-function contentPath(bookSlug, componentSlug, resource) {
-  for (const value of [bookSlug, componentSlug, resource]) {
+function contentPath(bookSlug, componentSlug, resource, documentKey = "") {
+  for (const value of [bookSlug, componentSlug, resource, ...(documentKey ? [documentKey] : [])]) {
     if (!routeIdentityPattern.test(String(value || ""))) throw new Error("Invalid Builder content route identity.");
   }
-  return `${builderContentApiRoot}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/${encodeURIComponent(resource)}`;
+  return `${builderContentApiRoot}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/${encodeURIComponent(resource)}${documentKey ? `/${encodeURIComponent(documentKey)}` : ""}`;
 }
 
 export class BuilderContentApiError extends Error {
@@ -21,8 +21,8 @@ async function responsePayload(response) {
   return response.json().catch(() => ({}));
 }
 
-export async function getBuilderContent({ bookSlug, componentSlug, resource }, { signal } = {}) {
-  const response = await fetch(contentPath(bookSlug, componentSlug, resource), {
+export async function getBuilderContent({ bookSlug, componentSlug, resource, documentKey }, { signal } = {}) {
+  const response = await fetch(contentPath(bookSlug, componentSlug, resource, documentKey), {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
@@ -37,11 +37,12 @@ export async function saveBuilderContent({
   bookSlug,
   componentSlug,
   resource,
+  documentKey,
   expectedRevision,
   clientMutationId,
   document,
 }) {
-  const response = await fetch(contentPath(bookSlug, componentSlug, resource), {
+  const response = await fetch(contentPath(bookSlug, componentSlug, resource, documentKey), {
     method: "PUT",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
