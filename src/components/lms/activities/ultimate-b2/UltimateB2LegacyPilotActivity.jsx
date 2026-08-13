@@ -15,6 +15,7 @@ import { TeacherLegacyMultipleChoiceActivity } from "./TeacherLegacyMultipleChoi
 import { UltimateB2CompleteSentencesActivity } from "./UltimateB2CompleteSentencesActivity.jsx";
 import { UltimateB2CompleteSentencesStudentActivity } from "./UltimateB2CompleteSentencesStudentActivity.jsx";
 import { UltimateB2DebateClubActivity } from "./UltimateB2DebateClubActivity.jsx";
+import { activeBuildProfile } from "../../../../config/buildProfiles.js";
 
 const PdfSaver = registerPlugin("PdfSaver");
 
@@ -280,7 +281,7 @@ function ObjectOne({ images, questionProps }) {
 }
 
 function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation }) {
-  if (questionProps.capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline") {
+  if (questionProps.capabilities.isPresentation && activeBuildProfile.teacherPresentation) {
     return (
       <TeacherLegacyListeningActivity
         activity={questionProps.activity}
@@ -312,7 +313,7 @@ function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation 
 }
 
 function ObjectThree({ images, questionProps, activityPresentation }) {
-  if (questionProps.capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring) {
+  if (questionProps.capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring) {
     return <TeacherLegacyMultipleChoiceActivity authoring={activityPresentation.multipleChoiceAuthoring} images={images} presentation={activityPresentation} />;
   }
   return (
@@ -364,8 +365,8 @@ export function UltimateB2LegacyPilotActivity({
     revealQuestion,
   };
   const bodyProps = { images, mediaPlayers, questionProps, listeningPresentation, activityPresentation };
-  const teacherListening = objectNumber === 2 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
-  const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
+  const teacherListening = objectNumber === 2 && capabilities.isPresentation && activeBuildProfile.teacherPresentation;
+  const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring;
 
   if (objectNumber === 4) return capabilities.isPresentation || capabilities.isReadOnly
     ? <UltimateB2CompleteSentencesActivity activity={activity} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} />

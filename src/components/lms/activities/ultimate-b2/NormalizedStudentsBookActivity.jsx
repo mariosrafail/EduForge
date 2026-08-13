@@ -25,6 +25,7 @@ import { UltimateB2LegacyUnitOpenerActivity } from "./UltimateB2LegacyUnitOpener
 import { isUltimateB2ImageActivity } from "../../../../data/ultimate-b2/unit1Part1Exercise2Image.js";
 import { UltimateB2ImageActivity } from "./UltimateB2ImageActivity.jsx";
 import { TeacherPresentationControls, TeacherQuestionFeedback } from "virtual:teacher-answer-ui";
+import { activeBuildProfile } from "../../../../config/buildProfiles.js";
 
 const studentAndroidBuild = import.meta.env.VITE_APP_MODE === "android-offline";
 
@@ -227,8 +228,8 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   const authoredOpenResponse = hasUltimateB2OpenResponseAuthoring(activity);
   const legacyPilotObjectOne = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o1";
   const legacyPilotObjectTwo = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o2";
-  const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline";
-  const teacherOfflineMultipleChoice = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o3" && capabilities.isPresentation && import.meta.env.VITE_APP_MODE === "android-teacher-offline" && activityPresentation?.multipleChoiceAuthoring;
+  const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && activeBuildProfile.teacherPresentation;
+  const teacherOfflineMultipleChoice = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o3" && capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring;
   const imageActivity = isUltimateB2ImageActivity(activity);
   const media = (activity.mediaDependencies || []).filter((dependency) => dependency.logicalKey);
   const frozen = submitted || completed || !capabilities.canEditAnswers;

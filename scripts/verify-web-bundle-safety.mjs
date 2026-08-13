@@ -29,6 +29,16 @@ const prohibitedPatterns = [
   ["known Teacher-only Page 5 model answer", /Films are an art form which involve many artistic processes/gi],
 ];
 
+const teacherAnswerPatternLabels = new Set([
+  "answer record field",
+  "serialized answer-key field",
+  "hardcoded answer value",
+  "hardcoded accepted-answer array",
+  "known legacy listening answer",
+  "known legacy quiz answer",
+  "known Teacher-only Page 5 model answer",
+]);
+
 async function filesUnder(root) {
   const output = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
@@ -39,7 +49,7 @@ async function filesUnder(root) {
   return output.sort();
 }
 
-export async function scanWebBundle(root) {
+export async function scanWebBundle(root, { allowTeacherAnswers = false } = {}) {
   const rootStat = await stat(root).catch(() => null);
   if (!rootStat?.isDirectory()) throw new Error(`Standard web build directory not found: ${root}`);
   const files = await filesUnder(root);
@@ -47,6 +57,7 @@ export async function scanWebBundle(root) {
   for (const file of files) {
     const content = await readFile(file, "utf8");
     for (const [label, pattern] of prohibitedPatterns) {
+      if (allowTeacherAnswers && teacherAnswerPatternLabels.has(label)) continue;
       pattern.lastIndex = 0;
       const matches = [...content.matchAll(pattern)].filter((match) => {
         if (label !== "hardcoded answer value") return true;

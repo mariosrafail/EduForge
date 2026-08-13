@@ -18,6 +18,19 @@ test("standard web safety scanner accepts learner-only assets and rejects answer
   assert.ok(result.findings.some((finding) => finding.label === "hardcoded answer value"));
   assert.ok(result.findings.some((finding) => finding.label === "hardcoded accepted-answer array"));
   assert.ok(result.findings.some((finding) => finding.label === "publisher resource path"));
+  const teacherReviewResult = await scanWebBundle(root, { allowTeacherAnswers: true });
+  assert.ok(!teacherReviewResult.findings.some((finding) => finding.label.includes("answer")));
+  assert.ok(teacherReviewResult.findings.some((finding) => finding.label === "publisher resource path"));
+});
+
+test("Teacher Review solution provider returns the generated pack entry without fallback answers", async () => {
+  const [{ getOfflineTeacherSolution }, generated] = await Promise.all([
+    import("../src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"),
+    import("../android-content-packs/ultimate-b2-students-book/teacher-solutions.json", { with: { type: "json" } }),
+  ]);
+  const activityId = "ultimate-b2-sb-u1-p2-o4";
+  assert.deepEqual(getOfflineTeacherSolution(activityId), generated.default.solutions[activityId]);
+  assert.equal(getOfflineTeacherSolution("unknown-activity"), null);
 });
 
 test("web and student Android builds select the learner-only legacy catalog", async () => {

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
-import { activeBuildProfile, BUILD_PROFILE_IDS } from "../../config/buildProfiles.js";
+import { activeBuildProfile } from "../../config/buildProfiles.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
@@ -19,8 +19,9 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
-  const hostedReview = activeBuildProfile.id === BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW;
-  const activityMode = hostedReview ? ACTIVITY_MODES.ANDROID_OFFLINE : ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE;
+  const activityMode = activeBuildProfile.teacherPresentation
+    ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
+    : ACTIVITY_MODES.ANDROID_OFFLINE;
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -116,7 +117,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           activityPresentation={{
             command: activityPresentationCommand,
             onStateChange: onActivityPresentationStateChange,
-            multipleChoiceAuthoring: !hostedReview && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
+            multipleChoiceAuthoring: activeBuildProfile.teacherPresentation && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
           }}
         />
       </div>

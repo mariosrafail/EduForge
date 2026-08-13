@@ -12,25 +12,25 @@ const profile = (id, capabilities) => Object.freeze({ id, ...capabilities });
 
 export const buildProfiles = Object.freeze({
   [BUILD_PROFILE_IDS.WEB_LMS]: profile(BUILD_PROFILE_IDS.WEB_LMS, {
-    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: false,
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, teacherPresentation: false, staticOnly: false,
   }),
   [BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING]: profile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING, {
-    builderReadOnly: false, builderMutations: true, teacherSolutions: false, staticOnly: false,
+    builderReadOnly: false, builderMutations: true, teacherSolutions: false, teacherPresentation: false, staticOnly: false,
   }),
   [BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, {
-    builderReadOnly: true, builderMutations: false, hostedDocumentWrites: Object.freeze(["hotspots"]), teacherSolutions: false, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, hostedDocumentWrites: Object.freeze(["hotspots"]), teacherSolutions: false, teacherPresentation: false, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW, {
-    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, teacherSolutions: true, teacherPresentation: true, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE, {
-    builderReadOnly: true, builderMutations: false, teacherSolutions: false, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, teacherSolutions: false, teacherPresentation: false, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE, {
-    builderReadOnly: true, builderMutations: false, teacherSolutions: true, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, teacherSolutions: true, teacherPresentation: true, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.ANDROID_TEACHER_PROJECT]: profile(BUILD_PROFILE_IDS.ANDROID_TEACHER_PROJECT, {
-    builderReadOnly: true, builderMutations: false, teacherSolutions: true, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, teacherSolutions: true, teacherPresentation: true, staticOnly: true,
   }),
 });
 

@@ -4,6 +4,7 @@ import { Component } from "react";
 import TeacherOfflineApp from "./TeacherOfflineApp.jsx";
 import { installTeacherOfflineNetworkGuard } from "./teacherOfflineNetworkGuard.js";
 import { installTeacherOfflineDiagnostics } from "./teacherOfflineDiagnostics.js";
+import { activeBuildProfile, BUILD_PROFILE_IDS } from "../../config/buildProfiles.js";
 
 class TeacherOfflineErrorBoundary extends Component {
   constructor(props) {
@@ -39,7 +40,9 @@ function pauseActiveMedia() {
 export function renderApp(root) {
   installTeacherOfflineNetworkGuard();
   installTeacherOfflineDiagnostics();
-  document.title = "Hamilton House LMS";
+  document.title = activeBuildProfile.id === BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW
+    ? "Ultimate B2 Teacher Review"
+    : "Hamilton House LMS";
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) pauseActiveMedia();

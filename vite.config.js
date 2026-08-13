@@ -15,6 +15,7 @@ import { ultimateB2ReadingExerciseBuilderPlugin } from "./scripts/ultimate-b2/re
 import { ultimateB2TeacherAppBuilderPlugin } from "./scripts/ultimate-b2/teacher-app-builder-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 import { committedHotspotVitePlugin } from "./scripts/netlify/committed-hotspot-vite-plugin.mjs";
+import { resolveBuildProfile } from "./src/config/buildProfiles.js";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -36,6 +37,7 @@ export default defineConfig(({ mode }) => {
           : isAndroidTeacherProject ? "android-teacher-project"
             : appMode === "android-offline" ? "android-student-offline"
               : "web-lms");
+  const buildProfile = resolveBuildProfile(buildProfileId);
   const webInputs = {
     lms: path.resolve(process.cwd(), "index.html"),
     platformAdmin: path.resolve(process.cwd(), "platform-admin/index.html"),
@@ -43,26 +45,38 @@ export default defineConfig(({ mode }) => {
   const androidOfflineServiceStub = path.resolve(process.cwd(), "src/apps/android-offline/androidOfflineServiceStubs.js");
   const offlineDisabledBookTools = path.resolve(process.cwd(), "src/apps/android-offline/OfflineDisabledBookTools.jsx");
   const bookAuthoringTools = path.resolve(process.cwd(), "src/components/lms/books/BookAuthoringTools.jsx");
-  const teacherAnswerUi = path.resolve(process.cwd(), isAndroidTeacherOffline
+  const teacherAnswerUi = path.resolve(process.cwd(), !isStaticBookRuntime || buildProfile.teacherPresentation
     ? "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx"
-    : isStaticBookRuntime
-      ? "src/apps/android-offline/NoTeacherAnswerUi.jsx"
-      : "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx");
-  const teacherListeningPlayerAssets = path.resolve(process.cwd(), isAndroidTeacherOffline
+    : "src/apps/android-offline/NoTeacherAnswerUi.jsx");
+  const teacherListeningPlayerAssets = path.resolve(process.cwd(), buildProfile.teacherPresentation
     ? "src/apps/android-teacher-offline/TeacherListeningPlayerAssets.js"
     : "src/apps/android-offline/NoTeacherListeningPlayerAssets.js");
   const offlineSolutionProvider = path.resolve(
     process.cwd(),
-    isAndroidTeacherOffline
+    buildProfileId === "android-teacher-offline"
       ? "src/apps/android-teacher-offline/generatedPackProvider.js"
+      : buildProfileId === "ultimate-b2-interactive-review"
+        ? "src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"
       : "src/apps/android-teacher-offline/noOfflineSolutions.js",
   );
   const interactivePackProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/reviewPackProvider.js"
     : "src/apps/android-teacher-offline/generatedPackProvider.js");
-  const multipleChoicePresentation = path.resolve(process.cwd(), isHostedReview
-    ? "src/apps/android-teacher-offline/noMultipleChoicePresentation.js"
-    : "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
+  const multipleChoiceAuthoringPath = path.resolve(process.cwd(), "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
+  const multipleChoicePresentationModuleId = "\0ultimate-b2-multiple-choice-presentation";
+  const multipleChoicePresentationPlugin = {
+    name: "ultimate-b2-multiple-choice-presentation",
+    resolveId(id) {
+      return id === "virtual:ultimate-b2-multiple-choice-presentation" ? multipleChoicePresentationModuleId : null;
+    },
+    load(id) {
+      if (id !== multipleChoicePresentationModuleId) return null;
+      if (!buildProfile.teacherPresentation) return "export default null;";
+      const authoring = JSON.parse(readFileSync(multipleChoiceAuthoringPath, "utf8"));
+      if (buildProfileId === "ultimate-b2-interactive-review") delete authoring.source;
+      return `export default ${JSON.stringify(authoring)};`;
+    },
+  };
   const runtimeHotspots = path.resolve(process.cwd(), isHostedReview
     ? "src/data/ultimate-b2/hostedReviewHotspots.js"
     : "src/data/ultimate-b2/studentsBookHotspots.js");
@@ -121,7 +135,7 @@ export default defineConfig(({ mode }) => {
     name: "hosted-interactive-title",
     transformIndexHtml(html) {
       return isHostedInteractiveReview
-        ? html.replace("<title>Hamilton House LMS</title>", "<title>Ultimate B2 Interactive Review</title>")
+        ? html.replace("<title>Hamilton House LMS</title>", "<title>Ultimate B2 Teacher Review</title>")
         : html;
     },
   };
@@ -149,6 +163,7 @@ export default defineConfig(({ mode }) => {
       react(),
       hostedInteractiveTitlePlugin,
       listeningAuthoringPlugin,
+      multipleChoicePresentationPlugin,
       committedHotspotVitePlugin({ enabled: isHostedReview }),
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
       !isAndroidTeacherProject && !isHostedReview ? ultimateB2HotspotBuilderPlugin({ environment: serverEnvironment }) : null,
@@ -196,10 +211,6 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-interactive-pack-provider",
           replacement: interactivePackProvider,
-        },
-        {
-          find: "virtual:ultimate-b2-multiple-choice-presentation",
-          replacement: multipleChoicePresentation,
         },
         {
           find: "virtual:ultimate-b2-runtime-hotspots",
