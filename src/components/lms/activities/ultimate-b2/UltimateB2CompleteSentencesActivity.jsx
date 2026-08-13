@@ -10,6 +10,8 @@ function readingSolution(value) {
   return value?.readingSolution || (value?.solutionType === "complete-sentences" ? value : null);
 }
 
+const COMPLETE_SENTENCE_TARGET_HEIGHT = 40;
+
 export function UltimateB2CompleteSentencesActivity({ activity, runtime: runtimeOverride = null, teacherSolution = null, requestTeacherSolution = null, presentation = null }) {
   const runtime = runtimeOverride || getUltimateB2ReadingExerciseRuntime(activity);
   const [view, setView] = useState("questions");
@@ -65,22 +67,30 @@ export function UltimateB2CompleteSentencesActivity({ activity, runtime: runtime
         const blank = blankById.get(sentence.blankId);
         const revealed = revealedBlankIds.includes(blank.id);
         const relativeBlank = { left: blank.area.x - sentence.textArea.x, top: blank.area.y - sentence.textArea.y };
+        const targetHeight = Math.max(COMPLETE_SENTENCE_TARGET_HEIGHT, blank.area.height);
+        const targetInset = (targetHeight - blank.area.height) / 2;
         return (
           <div className="ultimate-b2-complete-sentence" key={sentence.id} data-sentence-id={sentence.id} style={{ ...sourceAreaStyle(sentence.textArea, runtime.surface), fontFamily: `"${sentence.textStyle.fontFamily}", Arial, sans-serif`, fontSize: sentence.textStyle.fontSize, color: sentence.textStyle.color }}>
             <b>{sentence.number}</b>
             {sentence.before && <span className="ultimate-b2-complete-sentence-before">{sentence.before}</span>}
-            <span className="ultimate-b2-inline-blank" style={{ left: relativeBlank.left, top: relativeBlank.top, width: blank.area.width, height: blank.area.height }} aria-hidden="true" />
+            <span className="ultimate-b2-inline-blank" data-blank-visual-id={blank.id} style={{ left: relativeBlank.left, top: relativeBlank.top, width: blank.area.width, height: blank.area.height }} aria-hidden="true" />
             {!sentence.continuationArea && <span className="ultimate-b2-complete-sentence-after" style={{ left: relativeBlank.left + blank.area.width }}>{sentence.after}</span>}
             {sentence.continuationArea && <span className="ultimate-b2-complete-sentence-continuation" style={{ left: sentence.continuationArea.x - sentence.textArea.x, top: sentence.continuationArea.y - sentence.textArea.y, width: sentence.continuationArea.width, height: sentence.continuationArea.height, fontFamily: `"${sentence.textStyle.fontFamily}", Arial, sans-serif`, fontSize: sentence.textStyle.fontSize }}>{sentence.after.trim()}</span>}
             <button
               type="button"
               className={revealed ? "revealed" : ""}
               data-blank-id={blank.id}
-              style={{ left: relativeBlank.left, top: relativeBlank.top, width: blank.area.width, height: blank.area.height, color: revealed ? blank.style.color : "transparent", fontFamily: `"${blank.style.fontFamily}", "Fira Sans", Arial, sans-serif`, fontSize: blank.style.fontSize, textAlign: blank.style.align, lineHeight: `${blank.area.height}px` }}
+              style={{ left: relativeBlank.left, top: relativeBlank.top - targetInset, width: blank.area.width, height: targetHeight, color: revealed ? blank.style.color : "transparent" }}
               aria-label={revealed && solution?.blanks?.[blank.id] ? `${blank.label}: ${solution.blanks[blank.id]}` : `Reveal ${blank.label.toLowerCase()}`}
               aria-pressed={revealed}
               onClick={() => void reveal([blank.id])}
-            >{revealed ? solution?.blanks?.[blank.id] || "" : ""}</button>
+            >
+              <span
+                className="ultimate-b2-complete-sentence-answer"
+                data-blank-answer-id={blank.id}
+                style={{ top: targetInset, height: blank.area.height, fontFamily: `"${blank.style.fontFamily}", "Fira Sans", Arial, sans-serif`, fontSize: blank.style.fontSize, textAlign: blank.style.align, lineHeight: `${blank.area.height}px` }}
+              >{revealed ? solution?.blanks?.[blank.id] || "" : ""}</span>
+            </button>
           </div>
         );
       })}

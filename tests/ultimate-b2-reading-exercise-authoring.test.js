@@ -90,6 +90,7 @@ test("Complete the Sentences matches the Object 4 source contract and exact eigh
   assert.equal(completeSentences.visualCapabilities.showText.enabled, true);
   assert.deepEqual(completeSentences.instruction.area, { x: 93, y: 18, width: 873, height: 34 });
   assert.ok(completeSentences.blanks.every((blank) => blank.style.color === "#e40083"));
+  assert.ok(completeSentences.blanks.every((blank) => blank.area.height === 27), "publisher-authored blank visuals remain exactly 27px high");
   assert.throws(() => normalizeUltimateB2CompleteSentencesAuthoring({ ...completeSentences, blanks: completeSentences.blanks.slice(1) }), /exactly eight blanks/);
   assert.throws(() => normalizeUltimateB2CompleteSentencesAuthoring({ ...completeSentences, arbitraryPath: "C:/escape" }), /unknown fields/);
 });

@@ -3,6 +3,8 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
+import completeSentencesRuntime from "../../src/data/ultimate-b2/runtime/unit-01-reading-exercise-4.complete-sentences.json" with { type: "json" };
+import completeSentencesSolution from "../../netlify/functions/_ultimate-b2-reading-exercise-4-solution.json" with { type: "json" };
 
 const baseURL = "http://127.0.0.1:4181";
 const artifactRoot = "test-results/ultimate-b2-legacy-pilot/visual";
@@ -194,6 +196,31 @@ async function assertPilotLayout(page, target, id) {
         };
       })
       .filter((control) => control.width && control.height);
+    const authoredBounds = (element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: (bounds.left - rect.left) / presentationScale,
+        top: (bounds.top - rect.top) / presentationScale,
+        right: (bounds.right - rect.left) / presentationScale,
+        bottom: (bounds.bottom - rect.top) / presentationScale,
+        width: bounds.width / presentationScale,
+        height: bounds.height / presentationScale,
+      };
+    };
+    const completeSentenceBlanks = [...root.querySelectorAll("button[data-blank-id]")].map((button) => {
+      const blankId = button.dataset.blankId;
+      const visual = root.querySelector(`[data-blank-visual-id="${blankId}"]`);
+      const answer = button.querySelector(`[data-blank-answer-id="${blankId}"]`);
+      return {
+        blankId,
+        label: button.getAttribute("aria-label"),
+        pressed: button.getAttribute("aria-pressed"),
+        text: button.textContent?.trim() || "",
+        target: authoredBounds(button),
+        visual: visual ? authoredBounds(visual) : null,
+        answer: answer ? authoredBounds(answer) : null,
+      };
+    });
     const smallestControl = controls.reduce((smallest, control) => (
       Math.min(control.width, control.height) < Math.min(smallest.width, smallest.height) ? control : smallest
     ));
@@ -225,6 +252,7 @@ async function assertPilotLayout(page, target, id) {
         .map((image) => ({ source: image.currentSrc || image.src, complete: image.complete, naturalWidth: image.naturalWidth })),
       minimumTarget: Math.min(smallestControl.width, smallestControl.height),
       smallestControl,
+      completeSentenceBlanks,
       fitScale,
       fitPolicy: fitViewport?.dataset.fitPolicy || null,
       fitTransform: fitStyle?.transform || null,
@@ -261,6 +289,33 @@ async function assertPilotLayout(page, target, id) {
   assert.ok(Number.isFinite(metrics.stageScale) && metrics.stageScale > 0, `${target.name} fixed-stage scale: ${metrics.stageScale}`);
   assert.ok(Number.isFinite(metrics.fitScale) && metrics.fitScale > 0, `${target.name} activity-fit scale: ${metrics.fitScale}`);
   assert.ok(metrics.minimumTarget >= 38, `${target.name} authored minimum target ${metrics.minimumTarget}px: ${JSON.stringify(metrics)}`);
+  if (id.endsWith("-o4")) {
+    assert.equal(metrics.completeSentenceBlanks.length, completeSentencesRuntime.blanks.length, `${target.name} Object 4 exact blank count`);
+    const tolerance = 0.1;
+    for (const expected of completeSentencesRuntime.blanks) {
+      const actual = metrics.completeSentenceBlanks.find((blank) => blank.blankId === expected.id);
+      assert.ok(actual, `${target.name} Object 4 ${expected.id} target exists`);
+      assert.equal(actual.label, `Reveal ${expected.label.toLowerCase()}`, `${target.name} Object 4 ${expected.id} accessible mapping`);
+      assert.equal(actual.pressed, "false", `${target.name} Object 4 ${expected.id} starts unrevealed`);
+      assert.equal(actual.text, "", `${target.name} Object 4 ${expected.id} does not leak its answer`);
+      assert.ok(actual.target.height >= 38, `${target.name} Object 4 ${expected.id} target is at least 38 authored px: ${JSON.stringify(actual)}`);
+      assert.ok(actual.target.left >= -tolerance && actual.target.top >= -tolerance && actual.target.right <= metrics.authoredRootWidth + tolerance && actual.target.bottom <= metrics.authoredRootHeight + tolerance, `${target.name} Object 4 ${expected.id} target remains inside the activity surface: ${JSON.stringify(actual.target)}`);
+      const expectedVisual = { left: expected.area.x, top: expected.area.y, width: expected.area.width, height: expected.area.height };
+      for (const surface of [actual.visual, actual.answer]) {
+        assert.ok(surface, `${target.name} Object 4 ${expected.id} publisher visual surface exists`);
+        for (const dimension of ["left", "top", "width", "height"]) {
+          assert.ok(Math.abs(surface[dimension] - expectedVisual[dimension]) <= tolerance, `${target.name} Object 4 ${expected.id} ${dimension} preserves publisher geometry: ${JSON.stringify({ expected: expectedVisual, actual: surface })}`);
+        }
+      }
+    }
+    for (const [index, left] of metrics.completeSentenceBlanks.entries()) {
+      for (const right of metrics.completeSentenceBlanks.slice(index + 1)) {
+        const overlapWidth = Math.min(left.target.right, right.target.right) - Math.max(left.target.left, right.target.left);
+        const overlapHeight = Math.min(left.target.bottom, right.target.bottom) - Math.max(left.target.top, right.target.top);
+        assert.ok(overlapWidth <= tolerance || overlapHeight <= tolerance, `${target.name} Object 4 targets ${left.blankId} and ${right.blankId} must not overlap: ${JSON.stringify({ left: left.target, right: right.target })}`);
+      }
+    }
+  }
   const improvedSurfaceActivity = /-o[23]$/.test(id);
   assert.ok(
     metrics.rasterUpscale.every((image) => image.scale <= (improvedSurfaceActivity ? 1.3 : 1.05)),
@@ -439,18 +494,24 @@ try {
       }
 
       if (objectNumber === 4) {
-        const firstBlank = page.locator(".ultimate-b2-complete-sentence button").first();
-        assert.equal(await firstBlank.getAttribute("aria-label"), "Reveal sentence 2 blank");
-        await firstBlank.click();
-        assert.equal(await firstBlank.getAttribute("aria-pressed"), "true", `${target.name} Object 4 blank stays revealed`);
-        assert.equal(await firstBlank.textContent(), "binge-watching");
+        const blankButtons = page.locator(".ultimate-b2-complete-sentence button[data-blank-id]");
+        assert.equal(await blankButtons.count(), completeSentencesRuntime.blanks.length, `${target.name} Object 4 exact reveal target count`);
+        for (const [blankIndex, expected] of completeSentencesRuntime.blanks.entries()) {
+          const blank = blankButtons.nth(blankIndex);
+          assert.equal(await blank.getAttribute("data-blank-id"), expected.id, `${target.name} Object 4 reveal order`);
+          assert.equal(await blank.getAttribute("aria-label"), `Reveal ${expected.label.toLowerCase()}`);
+          assert.equal(await blank.textContent(), "", `${target.name} Object 4 ${expected.id} answer starts hidden`);
+          await blank.click();
+          assert.equal(await blank.getAttribute("aria-pressed"), "true", `${target.name} Object 4 ${expected.id} stays revealed`);
+          assert.equal((await blank.textContent()).trim(), completeSentencesSolution.blanks[expected.id], `${target.name} Object 4 ${expected.id} reveals its intended answer`);
+        }
         await screenshot(page, target, objectNumber, "click-reveal");
         await page.getByRole("button", { name: "Show Text" }).click();
         await page.locator('[data-show-text-view="open"]').waitFor();
         await screenshot(page, target, objectNumber, "show-text");
         await page.getByRole("button", { name: "Return to questions" }).click();
         await page.locator('[data-complete-sentences-view="questions"]').waitFor();
-        assert.equal(await firstBlank.getAttribute("aria-pressed"), "true", `${target.name} Object 4 reveal persists after Show Text`);
+        assert.ok((await blankButtons.evaluateAll((buttons) => buttons.every((button) => button.getAttribute("aria-pressed") === "true"))), `${target.name} Object 4 reveals persist after Show Text`);
       }
 
       if (objectNumber === 5) {
