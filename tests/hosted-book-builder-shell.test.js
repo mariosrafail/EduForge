@@ -71,21 +71,20 @@ test("generic shell owns navigation while B2 imports stay inside the adapter bou
     read("src/apps/book-builder/hosted/hostedBuilderRouter.js"),
     read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
-    read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
+    read("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"),
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
   ]);
   assert.doesNotMatch(shell, /ultimate-b2|UltimateB2|StudentsBookActivity|runtime-hotspots|TeacherOffline/i);
   assert.match(adapters, /UltimateB2StudentsBookHostedWorkspace/);
-  assert.match(b2Workspace, /NormalizedStudentsBookActivity/);
+  assert.doesNotMatch(b2Workspace, /NormalizedStudentsBookActivity|ACTIVITY_MODES/);
   assert.match(b2Workspace, /HostedUltimateB2HotspotBuilder/);
-  assert.match(b2Workspace, /ultimateB2StudentsBookPageUnits/);
-  assert.match(b2Workspace, /TeacherOfflineLibrary/);
-  assert.match(b2Workspace, /\[1, 2\]\.includes/);
+  assert.match(b2Workspace, /HostedViewerPreview/);
+  assert.doesNotMatch(b2Workspace, /TeacherOfflineLibrary|ClassroomToolsProvider|teacherBookMenuSkins|hostedReviewUiAssets|android-teacher-offline/);
   assert.match(b2Workspace, /Read-only — persistence pending/);
   assert.doesNotMatch(b2Workspace, /window\.location\.hash|history\.replaceState/);
   assert.match(router, /hashchange/);
-  assert.match(entry, /virtual:book-builder-app/);
-  assert.doesNotMatch(entry, /BuilderAuthGate|UltimateB2BuilderApp/);
+  assert.match(entry, /HostedAuthenticatedBookBuilderApp/);
+  assert.doesNotMatch(entry, /virtual:book-builder-app|Teacher|Listening|MultipleChoice|activityBuilderEntry/);
   assert.match(root, /<BuilderAuthGate>/);
   assert.match(root, /lazy\(\(\) => import\("\.\/HostedBookBuilderApp\.jsx"\)\)/);
 });

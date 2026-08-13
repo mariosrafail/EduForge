@@ -86,6 +86,20 @@ The hosted hash routes remain:
 - `#/books/ultimate-b2/components/ultimate-b2-students-book`
 - the same component route ending in `/hotspots`, `/activities`, or `/ui`
 
+## Canonical Viewer preview boundary
+
+The hosted Builder is the authenticated authoring/control surface; it does not embed a second copy of the Student/Teacher interactive runtime. Activity and UI review render the dedicated Viewer in a cross-origin frame at the single configured origin `https://hhplms-viewer.netlify.app`. Hotspot geometry remains editable on the local Builder canvas, while its Viewer frame represents only the last successfully saved revision and reloads after a successful PUT.
+
+The Builder creates only these public, non-secret query intents:
+
+- `?builderPreview=1&view=library`
+- `?builderPreview=1&view=page&unitNumber=<number>&pageId=<stable-page-id>`
+- `?builderPreview=1&view=activity&activityId=<stable-activity-id>`
+
+The contract is enabled only by the hosted interactive startup provider. It uses an exact parameter allowlist, bounded stable IDs, real Viewer page units, and the canonical activity-location resolver against the validated loaded content pack. Duplicate, extra, malformed, unknown-page, and unknown-activity values fail visibly. Android providers ignore the query. Preview mode may suppress only the decorative intro; content validation, live-hotspot preparation, blocking preload, progress/retry UI, cache behavior, and background video scheduling remain unchanged.
+
+The frame sends no Builder cookie, token, or mutation data, uses `no-referrer`, and has no postMessage or cross-origin DOM bridge. The Viewer still fetches only the same-origin public `/preview/content/*` projection. No CORS, CSP, network-guard, or Builder API exception is required.
+
 ## Local and publication boundaries
 
 The hosted hotspot editor shares the established `EditableHotspotLayer`, canonical B2 pages, normalized geometry, and Student-safe activity catalog with existing code. Its persistence transport is the Builder content API. The local Ultimate B2 editor remains unauthenticated development tooling and continues to use loopback-only `/__hhplms/ultimate-b2-hotspots` and `/__hhplms/book-menu-skin-selection` middleware. Neither transport calls the other.

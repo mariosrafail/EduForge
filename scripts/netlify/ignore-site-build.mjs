@@ -82,11 +82,14 @@ export function classifyNetlifyPath(value) {
     return { path: repositoryPath, category: "viewer-only", targets: VIEWER_ONLY };
   }
 
+  if (hasPrefix(repositoryPath, ["src/apps/android-teacher-offline/"])) {
+    return { path: repositoryPath, category: "viewer-only", targets: VIEWER_ONLY };
+  }
+
   if (
     [
       "scripts/netlify/build-review-target.mjs",
     ].includes(repositoryPath)
-    || hasPrefix(repositoryPath, ["src/apps/android-teacher-offline/"])
   ) return { path: repositoryPath, category: "builder-viewer-shared", targets: BUILDER_AND_VIEWER };
 
   if (["index.html", "src/main.jsx"].includes(repositoryPath)) {

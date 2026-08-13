@@ -46,3 +46,17 @@
     --teacher-students-book-stage-chrome-width: min(100%, 980px);
   }
 }
+
+.teacher-viewer-preview-invalid {
+  box-sizing: border-box;
+  display: grid;
+  place-content: center;
+  min-height: 100%;
+  padding: 3rem;
+  color: #172033;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.teacher-viewer-preview-invalid h1 { margin: 0 0 .6rem; color: #9f1d20; }
+.teacher-viewer-preview-invalid p { margin: 0; }

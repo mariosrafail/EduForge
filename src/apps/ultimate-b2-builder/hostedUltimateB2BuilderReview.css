@@ -4,23 +4,21 @@
 .b2-hosted-hotspot-editor .builder-header > div:first-child small { color: #a9b8d2; display: block; margin-top: .35rem; }
 .b2-hosted-hotspot-editor .builder-save-state[data-conflict] strong { color: #fca5a5; }
 .b2-hosted-hotspot-editor .builder-controls { grid-template-columns: 180px 180px 140px minmax(300px, 1fr) auto; }
-.b2-hosted-hotspot-review .builder-page-surface { position: relative; }
-.b2-hosted-hotspot { background: rgba(13, 137, 205, .15); border: 2px solid #0787c9; cursor: pointer; position: absolute; }
-.b2-hosted-hotspot[aria-pressed="true"] { background: rgba(255, 184, 52, .3); border-color: #bd6800; }
-.b2-hosted-hotspot span { background: #052e46d9; color: white; font-size: .7rem; left: 0; padding: .15rem .3rem; position: absolute; top: 0; }
-.b2-hosted-activity-layout { display: grid; grid-template-columns: minmax(250px, 330px) 1fr; min-height: calc(100vh - 170px); }
+.b2-hosted-activity-layout { display: grid; grid-template-columns: minmax(250px, 330px) minmax(0, 1fr); min-height: calc(100vh - 170px); }
 .b2-hosted-activity-review .activity-builder-sidebar { max-height: calc(100vh - 170px); overflow: auto; }
 .b2-hosted-activity-review .activity-builder-sidebar button { display: block; text-align: left; width: 100%; }
 .b2-hosted-activity-review .activity-builder-sidebar button[aria-current="true"] { background: #dff3ff; color: #064968; }
-.b2-hosted-activity-preview { min-width: 0; overflow: auto; padding: 1rem; }
-.b2-hosted-activity-preview > header { display: flex; justify-content: space-between; margin-bottom: .75rem; }
-.b2-hosted-ui-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.4fr) minmax(310px, .6fr); padding: 1rem; }
-.b2-hosted-library-preview { aspect-ratio: 16 / 9; contain: content; overflow: hidden; position: relative; }
-.b2-hosted-library-preview > * { height: 1080px; transform: scale(.44); transform-origin: top left; width: 1920px; }
-.b2-hosted-ui-grid aside { display: grid; gap: .7rem; }
-.b2-hosted-ui-page, .b2-hosted-background-swatch { border-radius: .5rem; max-height: 320px; object-fit: contain; width: 100%; }
-.b2-hosted-toolbar-assets { display: grid; gap: .4rem; grid-template-columns: repeat(6, 1fr); }
-.b2-hosted-toolbar-assets figure { margin: 0; text-align: center; }
-.b2-hosted-toolbar-assets img { height: 34px; object-fit: contain; width: 34px; }
-.b2-hosted-toolbar-assets figcaption { font-size: .62rem; }
-@media (max-width: 900px) { .b2-hosted-activity-layout, .b2-hosted-ui-grid { grid-template-columns: 1fr; } }
+.b2-hosted-activity-preview { min-width: 0; padding: 1rem; }
+.b2-hosted-preview-identity { display: flex; justify-content: space-between; margin-bottom: .75rem; }
+.b2-hosted-ui-preview, .b2-hosted-hotspot-viewer-preview { padding: 1rem; }
+.b2-hosted-hotspot-viewer-preview { border-top: 1px solid #cad4df; background: #eef1f4; }
+.hosted-viewer-preview { overflow: hidden; border: 1px solid #b9c6d3; border-radius: .65rem; background: #fff; box-shadow: 0 8px 22px rgba(23, 32, 51, .1); }
+.hosted-viewer-preview > header { align-items: center; display: flex; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid #d7e0e8; }
+.hosted-viewer-preview > header > div { display: flex; flex-direction: column; gap: .2rem; }
+.hosted-viewer-preview > header > div:last-child { flex-direction: row; }
+.hosted-viewer-preview > header span { color: #526475; font-size: .78rem; }
+.hosted-viewer-preview button, .hosted-viewer-preview a { align-items: center; display: inline-flex; min-height: 36px; padding: 0 .75rem; border: 1px solid #8aa1b5; border-radius: .35rem; color: #064968; background: #f7fafc; font: inherit; font-weight: 700; text-decoration: none; }
+.hosted-viewer-preview-state { margin: 0; padding: .35rem 1rem; color: #526475; font-size: .75rem; }
+.hosted-viewer-preview-state[data-state="error"] { color: #9f1d20; }
+.hosted-viewer-preview iframe { display: block; width: 100%; min-height: min(72vh, 760px); border: 0; background: #064968; }
+@media (max-width: 900px) { .b2-hosted-activity-layout { grid-template-columns: 1fr; } .hosted-viewer-preview > header { align-items: flex-start; flex-direction: column; } }

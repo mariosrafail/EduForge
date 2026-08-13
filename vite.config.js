@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
   const isTeacherRuntime = isAndroidTeacherOffline || isAndroidTeacherProject;
   const isAndroidOffline = appMode === "android-offline" || isTeacherRuntime;
   const isStaticBookRuntime = isAndroidOffline || isHostedReview;
-  const isTeacherVisualRuntime = isAndroidTeacherOffline || isHostedReview;
+  const isTeacherVisualRuntime = isAndroidTeacherOffline || isHostedInteractiveReview;
   const buildProfileId = process.env.HHPLMS_BUILD_PROFILE
     || (isHostedBuilderReview ? "book-builder-hosted-review"
       : isHostedInteractiveReview ? "ultimate-b2-interactive-review"
@@ -75,7 +75,9 @@ export default defineConfig(({ mode }) => {
   const bookContentService = path.resolve(process.cwd(), isStaticBookRuntime
     ? "src/apps/android-offline/androidOfflineServiceStubs.js"
     : "src/services/bookContentApi.js");
-  const ultimateB2PageAssets = path.resolve(process.cwd(), isStaticBookRuntime
+  const ultimateB2PageAssets = path.resolve(process.cwd(), isHostedBuilderReview
+    ? "src/data/ultimate-b2/ultimateB2PageAssets.hosted-builder.js"
+    : isStaticBookRuntime
       ? isTeacherVisualRuntime
       ? "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
@@ -138,9 +140,11 @@ export default defineConfig(({ mode }) => {
           : (isAndroidOffline || isHostedInteractiveReview) ? path.resolve(process.cwd(), "index.html") : webInputs,
       },
     },
-    publicDir: isAndroidTeacherProject
-      ? path.resolve(env.TEACHER_PROJECT_PUBLIC_DIR || process.env.TEACHER_PROJECT_PUBLIC_DIR || ".teacher-project-build/missing-public")
-      : undefined,
+    publicDir: isHostedBuilderReview
+      ? false
+      : isAndroidTeacherProject
+        ? path.resolve(env.TEACHER_PROJECT_PUBLIC_DIR || process.env.TEACHER_PROJECT_PUBLIC_DIR || ".teacher-project-build/missing-public")
+        : undefined,
     plugins: [
       react(),
       hostedInteractiveTitlePlugin,

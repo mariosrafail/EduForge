@@ -152,21 +152,23 @@ test("only the explicitly marked dedicated Viewer site may use production contex
   assert.throws(() => deploymentBuildPolicy({ ...production, BRANCH: "dev", ...marker }), /must use branch main/);
 });
 
-test("hosted Builder graph is generic, authenticated, and exposes only the registered hotspot document mutation", async () => {
-  const [hosted, hostedHotspots, contentClient, local, entry, hostedRoot, shell, vite] = await Promise.all([
+test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only the registered hotspot document mutation", async () => {
+  const [hosted, hostedHotspots, contentClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
     read("src/apps/book-builder/hosted/builderContentApi.js"),
     read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
-    read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
+    read("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"),
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
     read("vite.config.js"),
+    read("ultimate-b2-builder.html"),
   ]);
   assert.deepEqual([...shell.matchAll(/\{ id: "(hotspots|activities|ui)", label: "(Hotspot Builder|Activity Builder|UI Controller)"/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
   assert.match(hosted, /Read-only — persistence pending/);
   assert.match(hosted, /HostedUltimateB2HotspotBuilder/);
-  assert.match(hosted, /NormalizedStudentsBookActivity/);
+  assert.match(hosted, /HostedViewerPreview/);
+  assert.doesNotMatch(hosted, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|android-teacher-offline|ACTIVITY_MODES/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|Add Activity|onPublisherActivityCreated/);
   assert.match(hostedHotspots, /EditableHotspotLayer/);
   assert.match(contentClient, /\/builder\/api\/content/);
@@ -174,9 +176,14 @@ test("hosted Builder graph is generic, authenticated, and exposes only the regis
   assert.doesNotMatch(`${hostedHotspots}\n${contentClient}`, /__hhplms|repositoryFileTarget|write-capability/);
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
-  assert.match(entry, /virtual:book-builder-app/);
+  assert.match(entry, /HostedAuthenticatedBookBuilderApp/);
+  assert.doesNotMatch(entry, /virtual:book-builder-app|activityBuilderEntry|Teacher|Listening|MultipleChoice/);
+  assert.match(html, /src\/apps\/book-builder\/hosted\/hostedBuilderEntry\.jsx/);
+  assert.doesNotMatch(html, /activityBuilderEntry/);
   assert.match(hostedRoot, /BuilderAuthGate/);
   assert.match(vite, /netlify-book-builder-review/);
+  assert.match(vite, /ultimateB2PageAssets\.hosted-builder\.js/);
+  assert.match(vite, /isHostedBuilderReview[\s\S]*\? false[\s\S]*isAndroidTeacherProject/);
   assert.match(vite, /virtual:book-builder-app/);
   assert.doesNotMatch(vite, /netlify-ultimate-b2-builder-review|virtual:ultimate-b2-builder-app/);
 });

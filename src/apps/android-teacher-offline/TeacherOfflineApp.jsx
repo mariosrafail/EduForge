@@ -32,6 +32,10 @@ import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
 } from "./teacherOfflineActivityLocation.js";
+import {
+  isHostedViewerPreviewRequest,
+  resolveHostedViewerPreviewIntent,
+} from "./hostedViewerPreviewIntent.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 const initialPackState = Object.freeze({
@@ -112,7 +116,9 @@ export default function TeacherOfflineApp() {
   const settings = useTeacherOfflineSettings();
   const prefersReducedMotion = usePrefersReducedMotion();
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
-  const [startupIntroPending, setStartupIntroPending] = useState(animationsActive);
+  const pageUnits = useMemo(() => ultimateB2StudentsBookPageUnits.filter((unit) => [1, 2].includes(Number(unit.number))), []);
+  const hostedPreviewRequested = isHostedViewerPreviewRequest(globalThis.location?.search || "", interactiveStartupAssets.hosted);
+  const [startupIntroPending, setStartupIntroPending] = useState(animationsActive && !hostedPreviewRequested);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [packState, setPackState] = useState(initialPackState);
@@ -126,8 +132,8 @@ export default function TeacherOfflineApp() {
   startupIntroPendingRef.current = startupIntroPending;
 
   useEffect(() => {
-    if (!animationsActive) setStartupIntroPending(false);
-  }, [animationsActive]);
+    if (!animationsActive || hostedPreviewRequested) setStartupIntroPending(false);
+  }, [animationsActive, hostedPreviewRequested]);
 
   useEffect(() => {
     const previous = document.documentElement.style.fontSize;
@@ -165,7 +171,6 @@ export default function TeacherOfflineApp() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const pageUnits = useMemo(() => ultimateB2StudentsBookPageUnits.filter((unit) => [1, 2].includes(Number(unit.number))), []);
   const navigate = (state, { replace = false } = {}) => {
     const next = { teacherOffline: true, ...state };
     setNavigation(next);
@@ -256,6 +261,22 @@ export default function TeacherOfflineApp() {
 
   const pack = packState.pack;
   const packReady = packState.status === "ready" && Boolean(pack);
+  const hostedPreviewIntent = useMemo(() => resolveHostedViewerPreviewIntent({
+    search: globalThis.location?.search || "",
+    hosted: interactiveStartupAssets.hosted,
+    activities: pack?.activities?.activities || [],
+    pageUnits,
+  }), [pack, pageUnits]);
+
+  useEffect(() => {
+    if (!packReady || hostedPreviewIntent.kind !== "valid") return;
+    const next = { teacherOffline: true, ...hostedPreviewIntent.navigation };
+    navigationRef.current = next;
+    setNavigation(next);
+    const hash = next.activityId ? `#book/activity/${encodeURIComponent(next.activityId)}` : `#${next.view}`;
+    window.history.replaceState(next, "", hash);
+  }, [hostedPreviewIntent, packReady]);
+
   const selectedMenuSkinId = packReady ? selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId) : "";
   const menuSkin = packReady ? resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId) : null;
   const openBookActivity = (activityId, originLocation = null) => {
@@ -286,6 +307,8 @@ export default function TeacherOfflineApp() {
       : <div className="teacher-offline-pack-wait" aria-hidden="true" />;
   } else if (packState.status === "error") {
     content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
+  } else if (hostedPreviewIntent.kind === "invalid") {
+    content = <main className="teacher-viewer-preview-invalid" role="alert"><h1>Preview unavailable</h1><p>{hostedPreviewIntent.message}</p></main>;
   } else if (navigation.view === "media") {
     content = (
       <TeacherOfflineMedia
@@ -326,7 +349,8 @@ export default function TeacherOfflineApp() {
   const activeView = startupIntroPending
     ? "intro"
     : packState.status === "loading" ? "pack-wait"
-      : packState.status === "error" ? "pack-error"
+    : packState.status === "error" ? "pack-error"
+      : hostedPreviewIntent.kind === "invalid" ? "preview-invalid"
         : navigation.view;
   const viewportBackdrop = resolveViewportBackdrop({
     startupIntroPending: startupSurfacePending,

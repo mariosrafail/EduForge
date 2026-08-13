@@ -23,6 +23,9 @@ test("hosted Hotspot Builder reuses the proven editor and exposes explicit persi
   assert.match(editor, /disabled=\{!dirty \|\| status === "Saving"\}/);
   assert.match(editor, /Drag on the page to create a hotspot/);
   assert.match(editor, /Delete hotspot/);
+  assert.match(editor, /Viewer preview shows the last saved hotspot revision/);
+  assert.match(editor, /intent=\{\{ view: "page", unitNumber: page\.unitNumber, pageId: page\.id \}\}/);
+  assert.match(editor, /refreshKey=\{viewerRefreshKey\}/);
 });
 
 test("hosted conflict handling retains local edits until explicit reload", async () => {
@@ -33,6 +36,16 @@ test("hosted conflict handling retains local edits until explicit reload", async
   assert.match(conflict, /Your unsaved changes are still here/);
   assert.doesNotMatch(conflict, /setManifest|setDirty\(false\)|loadLatest/);
   assert.match(editor, /onClick=\{\(\) => loadLatest\(\)/);
+});
+
+test("Viewer refresh advances only after a successful persisted hotspot save", async () => {
+  const editor = await read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx");
+  const saveBody = editor.match(/async function save\(\) \{[\s\S]*?\n  \}/)?.[0] || "";
+  const success = saveBody.match(/setManifest\(payload\.document\)[\s\S]*?setViewerRefreshKey\(\(value\) => value \+ 1\)/)?.[0] || "";
+  assert.match(success, /setStatus\("Saved"\)/);
+  assert.equal([...saveBody.matchAll(/setViewerRefreshKey/g)].length, 1);
+  assert.doesNotMatch(saveBody.match(/if \(payload\.currentRevision > payload\.revision\) \{[\s\S]*?return;\n      \}/)?.[0] || "", /setViewerRefreshKey/);
+  assert.doesNotMatch(saveBody.match(/status === 409[\s\S]*?\} else/)?.[0] || "", /setViewerRefreshKey/);
 });
 
 test("adapter capabilities make only hotspots writable", async () => {

@@ -4,6 +4,7 @@ import { RefreshCw, Save, Scan, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import catalog from "../../../android-content-packs/ultimate-b2-students-book/catalog.json";
 import { EditableHotspotLayer } from "../../components/lms/books/BookPageImagePanel.jsx";
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
+import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
 import {
   BuilderContentApiError,
   getBuilderContent,
@@ -62,6 +63,7 @@ export function HostedUltimateB2HotspotBuilder() {
   const [zoom, setZoom] = useState(1);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [customLabels, setCustomLabels] = useState(() => new Set());
+  const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
   const hotspots = manifest?.pages?.[page?.id] || [];
@@ -181,6 +183,7 @@ export function HostedUltimateB2HotspotBuilder() {
       setDirty(false);
       mutationId.current = null;
       setStatus("Saved");
+      setViewerRefreshKey((value) => value + 1);
     } catch (requestError) {
       if (requestError instanceof BuilderContentApiError && requestError.status === 409 && requestError.payload.error === "revision_conflict") {
         setConflictRevision(requestError.payload.currentRevision);
@@ -234,6 +237,14 @@ export function HostedUltimateB2HotspotBuilder() {
           <button className="builder-delete" type="button" onClick={deleteSelectedHotspot}><Trash2 size={17} /> Delete hotspot</button><small>Delete and Backspace also remove the selected hotspot when you are not typing.</small>
         </>}
       </aside>
+    </section>
+    <section className="b2-hosted-hotspot-viewer-preview">
+      <HostedViewerPreview
+        intent={{ view: "page", unitNumber: page.unitNumber, pageId: page.id }}
+        refreshKey={viewerRefreshKey}
+        title={`Canonical Viewer preview: ${pageLabel(page)}`}
+        description="Viewer preview shows the last saved hotspot revision. Unsaved Builder edits remain only in the authoring canvas until Save succeeds."
+      />
     </section>
   </main>;
 }

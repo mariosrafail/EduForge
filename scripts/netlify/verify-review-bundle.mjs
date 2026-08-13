@@ -64,9 +64,12 @@ async function verifyBuilderMutationSources() {
   assert.equal([...contentClient.matchAll(/method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/g)].length, 1);
 
   const hostedSources = [
+    "src/apps/book-builder/hosted/hostedBuilderEntry.jsx",
     "src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx",
     "src/apps/book-builder/hosted/HostedBookBuilderApp.jsx",
     "src/apps/book-builder/hosted/hostedBuilderAdapters.jsx",
+    "src/apps/book-builder/hosted/HostedViewerPreview.jsx",
+    "src/apps/book-builder/hosted/hostedViewerPreviewUrl.js",
     "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
     "src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx",
   ];
@@ -75,6 +78,36 @@ async function verifyBuilderMutationSources() {
     assert.doesNotMatch(source, /__hhplms|\/\.netlify\/functions|["']\/api\/|platform-admin|repositoryFileTarget|write-capability/i);
     assert.doesNotMatch(source, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
   }
+
+  const [html, hostedEntry, hostedWorkspace, previewFrame, previewUrl] = await Promise.all([
+    readFile(path.resolve("ultimate-b2-builder.html"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/HostedViewerPreview.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/hostedViewerPreviewUrl.js"), "utf8"),
+  ]);
+  assert.match(html, /src\/apps\/book-builder\/hosted\/hostedBuilderEntry\.jsx/);
+  assert.doesNotMatch(`${html}\n${hostedEntry}`, /activityBuilderEntry|TeacherOffline|NormalizedStudentsBookActivity|Listening|MultipleChoice|virtual:book-builder-app/);
+  assert.doesNotMatch(hostedWorkspace, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|ClassroomToolsProvider|android-teacher-offline|hostedReviewUiAssets|ACTIVITY_MODES/);
+  assert.match(previewUrl, /https:\/\/hhplms-viewer\.netlify\.app/);
+  assert.match(previewFrame, /referrerPolicy="no-referrer"/);
+  assert.doesNotMatch(`${previewFrame}\n${previewUrl}`, /postMessage|contentWindow|document\.domain|credentials|token|session/i);
+}
+
+async function verifySlimBuilderArtifact(root) {
+  const forbiddenExtensions = new Set([".aac", ".m4a", ".mp3", ".ogg", ".wav", ".m4v", ".mp4", ".webm", ".gaf"]);
+  const forbidden = [];
+  const visit = async (directory) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) await visit(absolute);
+      else if (entry.isFile() && forbiddenExtensions.has(path.extname(entry.name).toLowerCase())) {
+        forbidden.push(path.relative(root, absolute).replaceAll("\\", "/"));
+      }
+    }
+  };
+  await visit(root);
+  assert.deepEqual(forbidden, [], `Builder emitted Viewer-only media/runtime assets:\n${forbidden.join("\n")}`);
 }
 
 async function sourceFilesUnder(root, relative = "") {
@@ -121,6 +154,7 @@ export async function verifyReviewBundle(targetName) {
   if (targetName === "ultimate-b2-builder") {
     await verifyBuilderFunctionLayout();
     await verifyBuilderMutationSources();
+    await verifySlimBuilderArtifact(root);
   }
   const findings = [];
   const builderApiRoutes = new Set();

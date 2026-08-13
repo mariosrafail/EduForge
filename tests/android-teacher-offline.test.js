@@ -661,7 +661,8 @@ test("Teacher startup intro is first, reproducible, centered, non-skippable, and
   assert.match(app, /runInteractiveViewerStartup\([\s\S]*interactiveContentPackProvider\.load\(\)[\s\S]*startupAssets: interactiveStartupAssets/);
   assert.doesNotMatch(app, /Checking classroom content/);
   assert.doesNotMatch(app, /if \(packState\.status === "loading"\)\s*\{\s*return/);
-  assert.match(app, /if \(!animationsActive\) setStartupIntroPending\(false\)/);
+  assert.match(app, /if \(!animationsActive \|\| hostedPreviewRequested\) setStartupIntroPending\(false\)/);
+  assert.match(app, /useState\(animationsActive && !hostedPreviewRequested\)/);
   assert.match(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*return;\s*\}/);
   assert.doesNotMatch(app, /if \(startupIntroPendingRef\.current\)\s*\{\s*setStartupIntroPending\(false\)/);
   assert.match(library, /legacy-home-floating-chrome/);

@@ -28,7 +28,8 @@ test("Ultimate B2 tabbed shell connects the existing Hotspot utility to canonica
   // compatibility guard detects source changes without depending on checkout
   // line-ending policy.
   const sha256 = (value) => createHash("sha256").update(value.replaceAll("\r\n", "\n")).digest("hex");
-  assert.match(html, /src\/apps\/ultimate-b2-builder\/activityBuilderEntry\.jsx/);
+  assert.match(html, /src\/apps\/book-builder\/hosted\/hostedBuilderEntry\.jsx/);
+  assert.doesNotMatch(html, /activityBuilderEntry/);
   assert.match(html, /Hamilton House Book Builder/);
   assert.match(component, /ultimateB2TeacherAppAssetUrl\(page\.assetBindingId/);
   assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");

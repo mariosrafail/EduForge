@@ -49,7 +49,7 @@ test("path policy implements the conservative three-site regression matrix", () 
   assert.deepEqual(decisions(["netlify-sites/viewer/netlify.toml"]), viewerOnly);
   assert.deepEqual(decisions(["netlify/functions/auth-signin.js"]), lmsOnly);
   assert.deepEqual(decisions(["netlify.toml"]), lmsOnly);
-  assert.deepEqual(decisions(["src/apps/android-teacher-offline/TeacherOfflineApp.jsx"]), builderViewer);
+  assert.deepEqual(decisions(["src/apps/android-teacher-offline/TeacherOfflineApp.jsx"]), viewerOnly);
   assert.deepEqual(decisions(["src/data/ultimate-b2/hostedReviewHotspotRuntime.js"]), allSites);
   assert.deepEqual(decisions(["scripts/netlify/build-review-target.mjs"]), builderViewer);
   assert.deepEqual(decisions(["scripts/netlify/committed-hotspot-vite-plugin.mjs"]), allSites);
