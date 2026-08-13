@@ -10,6 +10,21 @@ import { bookBuilderReviewStudioPlugin } from "./review-studio-api.mjs";
 import { runRealWorkspaceValidation } from "./review-studio-validator.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..");
+const diagnosticsByPage = new WeakMap();
+
+function installPageDiagnostics(page) {
+  const diagnostics = [];
+  const record = (value) => diagnostics.push(String(value).replaceAll(SYNTHETIC_TEACHER_SECRET, "[redacted]").slice(0, 2_000));
+  diagnosticsByPage.set(page, diagnostics);
+  page.on("console", (message) => {
+    if (message.type() === "error") record(`[console:error] ${message.text()}`);
+  });
+  page.on("pageerror", (error) => record(`[pageerror] ${error.message}`));
+  page.on("requestfailed", (request) => record(`[requestfailed] ${request.method()} ${request.url()} ${request.failure()?.errorText || "unknown failure"}`));
+  page.on("response", (response) => {
+    if (response.status() >= 400) record(`[response:${response.status()}] ${response.request().method()} ${response.url()}`);
+  });
+}
 
 async function startStudio(workspace) {
   const server = await createServer({
@@ -26,7 +41,23 @@ async function startStudio(workspace) {
 }
 
 async function expectHeading(page, name) {
-  await page.getByRole("heading", { name, exact: true }).waitFor({ state: "visible" });
+  try {
+    await page.getByRole("heading", { name, exact: true }).waitFor({ state: "visible" });
+  } catch (error) {
+    const pageState = await page.evaluate(() => ({
+      readyState: document.readyState,
+      rootChildren: document.querySelector("#root")?.childElementCount ?? null,
+      visibleText: document.body?.innerText.slice(0, 1_000) || "",
+    })).catch((stateError) => ({ evaluationError: stateError.message }));
+    pageState.visibleText = String(pageState.visibleText || "").replaceAll(SYNTHETIC_TEACHER_SECRET, "[redacted]");
+    throw new Error([
+      `Heading did not become ready: ${JSON.stringify(name)}`,
+      `Final URL: ${page.url()}`,
+      `Page state: ${JSON.stringify(pageState)}`,
+      `Browser diagnostics: ${JSON.stringify((diagnosticsByPage.get(page) || []).slice(-20))}`,
+      `Original failure: ${error.message}`,
+    ].join("\n"));
+  }
 }
 
 async function assertSafePage(page, networkBodies) {
@@ -120,6 +151,7 @@ async function run() {
   try {
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    installPageDiagnostics(page);
     const networkBodies = [];
     page.on("response", async (response) => {
       if (!response.url().includes("/__hhplms/book-builder/") || !String(response.headers()["content-type"] || "").includes("application/json")) return;

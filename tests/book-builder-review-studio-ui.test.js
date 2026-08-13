@@ -15,12 +15,13 @@ test("builder.html loads the generic Publisher Review Studio entry", async () =>
 });
 
 test("Ultimate B2 tabbed shell connects the existing Hotspot utility to canonical page assets", async () => {
-  const [html, component, entry, plugin, activityEntry] = await Promise.all([
+  const [html, component, entry, plugin, activityEntry, localBuilderApp] = await Promise.all([
     read("ultimate-b2-builder.html"),
     read("src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/builderEntry.jsx"),
     read("scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"),
     read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
+    read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
   ]);
   // Git stores these source files with LF endings, while a fresh Windows
   // worktree may materialize them as CRLF. Hash the canonical Git text so the
@@ -33,6 +34,8 @@ test("Ultimate B2 tabbed shell connects the existing Hotspot utility to canonica
   assert.equal(sha256(entry), "c3504b61206dc0237e20d4553f22e9e3c25f9219c1f8132dacadbab72e12be9c");
   assert.equal(sha256(plugin), "8e8bf82be353fa3208980cac55411ea50f0f51cc302f759d30635ac5e51fe851");
   assert.match(activityEntry, /virtual:book-builder-app/);
+  assert.match(activityEntry, /import BookBuilderApp from "virtual:book-builder-app"/);
+  assert.match(localBuilderApp, /export default UltimateB2BuilderApp/);
 });
 
 test("Review Studio routing is hash-based, path-free and covers every required project view", async () => {

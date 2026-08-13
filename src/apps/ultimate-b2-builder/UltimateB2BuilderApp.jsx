@@ -40,3 +40,5 @@ export function UltimateB2BuilderApp() {
     </div>
   );
 }
+
+export default UltimateB2BuilderApp;
