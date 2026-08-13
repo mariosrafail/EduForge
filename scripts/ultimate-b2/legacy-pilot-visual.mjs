@@ -517,13 +517,13 @@ try {
       if (objectNumber === 5) {
         const previousPart = page.getByRole("button", { name: "Previous activity part" });
         const nextPart = page.getByRole("button", { name: "Next activity part" });
-        const partOneReveal = page.getByRole("button", { name: "Reveal the argument for watching a film at home" });
+        const partOneReveal = page.getByRole("button", { name: "Show model response for part 1", exact: true });
         await partOneReveal.click();
         assert.equal(await partOneReveal.getAttribute("aria-pressed"), "true");
         await screenshot(page, target, objectNumber, "part-1-reveal");
         await nextPart.click();
         await page.locator('[data-debate-part="2"]').waitFor();
-        await page.getByRole("button", { name: "Reveal the argument for going to the cinema" }).click();
+        await page.getByRole("button", { name: "Show model response for part 2", exact: true }).click();
         await screenshot(page, target, objectNumber, "part-2-reveal");
         await previousPart.click();
         await page.locator('[data-debate-part="1"]').waitFor();
