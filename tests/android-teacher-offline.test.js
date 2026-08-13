@@ -657,7 +657,7 @@ test("Teacher startup intro is first, reproducible, centered, non-skippable, and
   assert.match(introStyles, /object-fit:\s*contain/);
   assert.doesNotMatch(introStyles, /teacher-startup-intro-skip|background:\s*#020711/);
   assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
-  assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*TeacherViewerStartupStatus[\s\S]*else if \(packState\.status === "error"\)/);
+  assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*interactiveStartupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait[\s\S]*else if \(packState\.status === "error"\)/);
   assert.match(app, /runInteractiveViewerStartup\([\s\S]*interactiveContentPackProvider\.load\(\)[\s\S]*startupAssets: interactiveStartupAssets/);
   assert.doesNotMatch(app, /Checking classroom content/);
   assert.doesNotMatch(app, /if \(packState\.status === "loading"\)\s*\{\s*return/);

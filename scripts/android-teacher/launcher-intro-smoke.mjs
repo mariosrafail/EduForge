@@ -210,6 +210,8 @@ try {
   assert.doesNotMatch(await pendingPackPage.locator("body").innerText(), /Checking classroom content/i, "Pack validation must not replace the intro with a loading message.");
   await pendingIntro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
   await pendingPackPage.locator('[data-teacher-view="pack-wait"]').waitFor();
+  assert.equal(await pendingPackPage.locator(".teacher-viewer-startup").count(), 0, "Android pack wait must not render the hosted Viewer progress surface.");
+  assert.doesNotMatch(await pendingPackPage.locator("body").innerText(), /Preparing classroom content/i, "Android pack wait must not expose hosted Viewer progress copy.");
   assert.equal((await pendingPackPage.locator("body").innerText()).trim(), "", "Post-intro pack wait must remain visually plain.");
   assert.equal(await pendingPackPage.locator("[data-teacher-stage-host]").evaluate((host) => getComputedStyle(host).backgroundColor), "rgb(254, 254, 254)");
   await pendingPackPage.evaluate(() => globalThis.__releasePackValidation());

@@ -168,6 +168,7 @@ test("Android runtime remains a bundled no-op with no preview route dependency",
   assert.match(app, /loadContentPack: \(\) => interactiveContentPackProvider\.load\(\)/);
   assert.match(app, /prepareHotspots: \(\) => prepareUltimateB2StudentsBookHotspots\(\)/);
   assert.match(app, /startupAssets: interactiveStartupAssets/);
+  assert.match(app, /interactiveStartupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait/);
   assert.match(generatedProvider, /interactiveStartupAssets = createNoopStartupAssets\(\)/);
   assert.doesNotMatch(generatedProvider, /hostedReviewStartupAssets/);
 });

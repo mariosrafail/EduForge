@@ -7,6 +7,7 @@ import {
   createAssetProgress,
   createBinaryAssetCacheIdentity,
   createHostedStartupAssets,
+  createNoopStartupAssets,
   preloadAssetGroup,
   runInteractiveViewerStartup,
 } from "../src/apps/android-teacher-offline/interactiveStartupAssets.js";
@@ -24,6 +25,11 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
+
+test("startup providers expose the progress-visibility boundary without giving Android hosted preload work", () => {
+  assert.equal(createHostedStartupAssets({}).hosted, true);
+  assert.equal(createNoopStartupAssets().hosted, false);
+});
 
 test("hosted load plan makes pages, UI graphics and audio blocking while videos stay background-only", () => {
   const sharedPageUrl = "/assets/page-abc123.png";

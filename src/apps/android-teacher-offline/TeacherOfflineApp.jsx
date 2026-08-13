@@ -281,7 +281,9 @@ export default function TeacherOfflineApp() {
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
   } else if (packState.status === "loading") {
-    content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} />;
+    content = interactiveStartupAssets.hosted
+      ? <TeacherViewerStartupStatus state={packState} hosted />
+      : <div className="teacher-offline-pack-wait" aria-hidden="true" />;
   } else if (packState.status === "error") {
     content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
   } else if (navigation.view === "media") {
