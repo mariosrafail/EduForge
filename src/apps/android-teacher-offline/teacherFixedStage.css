@@ -66,7 +66,8 @@ html[data-app-mode="android-teacher-offline"] :is(
   .teacher-offline-book,
   .teacher-offline-media,
   .teacher-offline-presentation,
-  .teacher-offline-status
+  .teacher-offline-status,
+  .teacher-viewer-startup
 ) {
   box-sizing: border-box;
   width: 100%;

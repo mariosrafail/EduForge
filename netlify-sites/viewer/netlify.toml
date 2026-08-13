@@ -9,6 +9,11 @@
 [functions]
   directory = "netlify-sites/viewer/functions"
 
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
   from = "/preview/content/*"
   to = "https://hhplms-builder.netlify.app/builder/preview/content/:splat"

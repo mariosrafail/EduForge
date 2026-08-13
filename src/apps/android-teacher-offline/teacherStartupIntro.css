@@ -7,14 +7,8 @@ html[data-app-mode="android-teacher-offline"] #root {
 .teacher-fixed-stage-host[data-viewport-backdrop="intro"],
 .teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-fixed-stage,
 .teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-offline-settings-surface,
-.teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-offline-view-transition,
-.teacher-offline-pack-wait {
+.teacher-fixed-stage-host[data-viewport-backdrop="intro"] .teacher-offline-view-transition {
   background: #fefefe;
-}
-
-.teacher-offline-pack-wait {
-  width: 100%;
-  height: 100%;
 }
 
 .teacher-startup-intro {

@@ -182,8 +182,9 @@ test("hosted Builder graph is generic, authenticated, and exposes only the regis
 });
 
 test("Interactive provider split excludes solutions from hosted review and retains strict Android Teacher data", async () => {
-  const [app, review, reviewProvider, teacher, validation, vite, networkGuard] = await Promise.all([
+  const [app, startup, review, reviewProvider, teacher, validation, vite, networkGuard] = await Promise.all([
     read("src/apps/android-teacher-offline/TeacherOfflineApp.jsx"),
+    read("src/apps/android-teacher-offline/interactiveStartupAssets.js"),
     read("src/apps/android-teacher-offline/reviewPackProvider.js"),
     read("src/apps/android-teacher-offline/reviewContentPackProvider.js"),
     read("src/apps/android-teacher-offline/generatedPackProvider.js"),
@@ -193,8 +194,11 @@ test("Interactive provider split excludes solutions from hosted review and retai
   ]);
   assert.match(app, /virtual:ultimate-b2-interactive-pack-provider/);
   assert.match(app, /prepareUltimateB2StudentsBookHotspots/);
-  assert.match(app, /Promise\.all\(\[/);
-  assert.match(app, /Live preview content could not be loaded\. Refresh and try again\./);
+  assert.match(app, /runInteractiveViewerStartup/);
+  assert.match(app, /Live preview content could not be loaded\. Check the connection and try again\./);
+  assert.match(startup, /Promise\.all\(\[loadContentPack\(\), prepareHotspots\(\)\]\)/);
+  assert.match(startup, /preloadBlocking[\s\S]*status: "ready"[\s\S]*preloadBackground/);
+  assert.match(review, /interactiveStartupAssets/);
   assert.doesNotMatch(review, /import teacherSolutions/);
   assert.doesNotMatch(review, /teacher-solutions\.json/);
   assert.doesNotMatch(reviewProvider, /teacherSolutions|teacher-solutions\.json/);

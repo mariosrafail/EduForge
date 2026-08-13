@@ -5,6 +5,7 @@ import teacherSolutions from "../../../android-content-packs/ultimate-b2-student
 import assetsManifest from "../../../android-content-packs/ultimate-b2-students-book/assets-manifest.json";
 
 import { BundledTeacherContentPackProvider } from "./contentPackProviders.js";
+import { createNoopStartupAssets } from "./interactiveStartupAssets.js";
 
 export const bundledTeacherPack = Object.freeze({
   manifest,
@@ -16,6 +17,7 @@ export const bundledTeacherPack = Object.freeze({
 
 export const teacherContentPackProvider = new BundledTeacherContentPackProvider(bundledTeacherPack);
 export const interactiveContentPackProvider = teacherContentPackProvider;
+export const interactiveStartupAssets = createNoopStartupAssets();
 
 export function getOfflineTeacherSolution(activityId) {
   return teacherSolutions.solutions?.[String(activityId || "")] || null;

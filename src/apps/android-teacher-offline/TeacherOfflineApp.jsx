@@ -4,7 +4,10 @@ import { Capacitor } from "@capacitor/core";
 import { Volume2, VolumeX } from "lucide-react";
 
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
-import { interactiveContentPackProvider } from "virtual:ultimate-b2-interactive-pack-provider";
+import {
+  interactiveContentPackProvider,
+  interactiveStartupAssets,
+} from "virtual:ultimate-b2-interactive-pack-provider";
 import { prepareUltimateB2StudentsBookHotspots } from "virtual:ultimate-b2-runtime-hotspots";
 import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
 import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
@@ -19,6 +22,8 @@ import TeacherOfflineSettingsDialog from "./TeacherOfflineSettingsDialog.jsx";
 import TeacherStartupIntro from "./TeacherStartupIntro.jsx";
 import TeacherFixedStage from "./TeacherFixedStage.jsx";
 import TeacherShellChrome from "./TeacherShellChrome.jsx";
+import TeacherViewerStartupStatus from "./TeacherViewerStartupStatus.jsx";
+import { runInteractiveViewerStartup } from "./interactiveStartupAssets.js";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
@@ -29,6 +34,26 @@ import {
 } from "./teacherOfflineActivityLocation.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
+const initialPackState = Object.freeze({
+  status: "loading",
+  phase: "validating",
+  progress: null,
+  pack: null,
+  error: null,
+  message: "",
+});
+
+function startupErrorMessage(error) {
+  if (error?.code === "LIVE_PREVIEW_UNAVAILABLE") {
+    return "Live preview content could not be loaded. Check the connection and try again.";
+  }
+  if (error?.code === "VIEWER_ASSET_LOAD_FAILED" || error?.code === "VIEWER_ASSET_PLAN_INVALID") {
+    return "A required page, interface or audio asset could not be prepared. Check the connection and try again.";
+  }
+  return interactiveStartupAssets.hosted
+    ? "The verified Viewer content could not be prepared. Try again."
+    : "Reinstall the verified classroom application.";
+}
 
 const classroomBackdropGradients = Object.freeze({
   contents: "linear-gradient(rgba(21, 79, 120, 0.08), rgba(81, 35, 119, 0.12))",
@@ -90,7 +115,8 @@ export default function TeacherOfflineApp() {
   const [startupIntroPending, setStartupIntroPending] = useState(animationsActive);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const [packState, setPackState] = useState({ status: "loading", pack: null, error: "" });
+  const [packState, setPackState] = useState(initialPackState);
+  const [startupAttempt, setStartupAttempt] = useState(0);
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
   const settingsOpenRef = useRef(settingsOpen);
@@ -110,25 +136,23 @@ export default function TeacherOfflineApp() {
   }, [settings.graphics.interfaceScale]);
 
   useEffect(() => {
-    let active = true;
-    Promise.all([
-      interactiveContentPackProvider.load(),
-      prepareUltimateB2StudentsBookHotspots(),
-    ])
-      .then(([pack]) => {
-        if (active) setPackState({ status: "ready", pack, error: "" });
-      })
-      .catch((error) => {
-        if (import.meta.env.DEV) console.error("Teacher content validation failed", error);
-        const message = error?.code === "LIVE_PREVIEW_UNAVAILABLE"
-          ? "Live preview content could not be loaded. Refresh and try again."
-          : "Reinstall the verified classroom application.";
-        if (active) setPackState({ status: "error", pack: null, error: message });
-      });
+    const controller = new AbortController();
+    runInteractiveViewerStartup({
+      loadContentPack: () => interactiveContentPackProvider.load(),
+      prepareHotspots: () => prepareUltimateB2StudentsBookHotspots(),
+      startupAssets: interactiveStartupAssets,
+      signal: controller.signal,
+      onState: (state) => setPackState({
+        ...state,
+        message: state.status === "error" ? startupErrorMessage(state.error) : "",
+      }),
+    }).catch((error) => {
+      if (import.meta.env.DEV && !controller.signal.aborted) console.error("Teacher content startup failed", error);
+    });
     return () => {
-      active = false;
+      controller.abort();
     };
-  }, []);
+  }, [startupAttempt]);
 
   useEffect(() => {
     recordTeacherOfflineNavigation(navigation.view);
@@ -257,14 +281,9 @@ export default function TeacherOfflineApp() {
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
   } else if (packState.status === "loading") {
-    content = <div className="teacher-offline-pack-wait" aria-hidden="true" />;
+    content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} />;
   } else if (packState.status === "error") {
-    content = (
-      <main className="teacher-offline-status damaged" role="alert">
-        <h1>Content pack unavailable or damaged</h1>
-        <p>{packState.error || "Reinstall the verified classroom application."}</p>
-      </main>
-    );
+    content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
   } else if (navigation.view === "media") {
     content = (
       <TeacherOfflineMedia
