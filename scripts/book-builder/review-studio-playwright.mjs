@@ -258,9 +258,8 @@ async function run() {
     assert.notEqual(internalStatus, 200);
 
     await page.goto(`${primary.origin}/ultimate-b2-builder.html`, { waitUntil: "domcontentloaded" });
-    await expectHeading(page, "Students Book hotspot builder");
-    await page.getByRole("textbox", { name: "Book", exact: true }).waitFor();
-    await page.getByRole("button", { name: /Save/ }).waitFor();
+    await expectHeading(page, "Builder sign in");
+    assert.equal(await page.getByRole("heading", { name: "Students Book hotspot builder", exact: true }).count(), 0);
 
     const viewports = [
       { width: 1280, height: 720, name: "1280x720" },

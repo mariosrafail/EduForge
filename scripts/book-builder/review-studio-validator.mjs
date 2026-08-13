@@ -304,13 +304,14 @@ async function validateBrowserFlows({ origin, projects, selections, screenshotRo
     }
 
     await page.goto(`${origin}/ultimate-b2-builder.html`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("heading", { name: "Students Book hotspot builder", exact: true }).waitFor();
-    await capture(page, screenshotRoot, screenshots, "ultimate-b2-legacy-builder.png");
+    await page.getByRole("heading", { name: "Builder sign in", exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Students Book hotspot builder", exact: true }).count(), 0);
+    await capture(page, screenshotRoot, screenshots, "ultimate-b2-hosted-auth-boundary.png");
     const body = await page.locator("body").innerText();
     assertSafeValidationValue(body, "browser DOM");
     assertSafeValidationValue(responseBodies.join("\n"), "browser network responses");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, "page-level horizontal overflow detected");
-    return { screenshots, routing, legacyBuilder: true };
+    return { screenshots, routing, hostedBuilderAuthBoundary: true };
   } finally {
     await browser.close();
   }
@@ -376,7 +377,7 @@ export async function runRealWorkspaceValidation({ url, screenshotDirectory } = 
     timings,
     screenshots: { directory: screenshotRoot, count: browser.screenshots.length, files: browser.screenshots },
     routing: browser.routing,
-    legacyBuilder: browser.legacyBuilder,
+    hostedBuilderAuthBoundary: browser.hostedBuilderAuthBoundary,
     security,
     browserResponsesChecked: responseBodies.length,
   };
