@@ -4,11 +4,15 @@ import test from "node:test";
 
 import {
   buildHostedViewerAssetLoadPlan,
+  classifyImmutableViewerAssets,
   createAssetProgress,
   createBinaryAssetCacheIdentity,
   createHostedStartupAssets,
   createNoopStartupAssets,
+  preloadDifferentialAssetGroup,
   preloadAssetGroup,
+  probeImmutableViewerAsset,
+  resolveImmutableViewerAssetUrl,
   runInteractiveViewerStartup,
 } from "../src/apps/android-teacher-offline/interactiveStartupAssets.js";
 
@@ -29,6 +33,117 @@ function deferred() {
 test("startup providers expose the progress-visibility boundary without giving Android hosted preload work", () => {
   assert.equal(createHostedStartupAssets({}).hosted, true);
   assert.equal(createNoopStartupAssets().hosted, false);
+});
+
+test("immutable Viewer cache eligibility is exact-origin /assets only", () => {
+  const environment = {
+    locationHref: "https://viewer.example/library",
+    locationOrigin: "https://viewer.example",
+  };
+  assert.equal(resolveImmutableViewerAssetUrl("/assets/page-a.png", environment)?.href, "https://viewer.example/assets/page-a.png");
+  for (const rejected of [
+    "https://other.example/assets/page-a.png",
+    "/preview/content/hotspots",
+    "/api/assets/page-a.png",
+    "/auth/assets/page-a.png",
+    "/.netlify/functions/assets",
+    "data:image/png;base64,AA==",
+    "blob:https://viewer.example/id",
+    "not a valid url%",
+  ]) assert.equal(resolveImmutableViewerAssetUrl(rejected, environment), null, rejected);
+});
+
+test("cache probe distinguishes confirmed hits, misses and unsupported assets without trusting metadata", async () => {
+  const calls = [];
+  const environment = {
+    locationHref: "https://viewer.example/",
+    locationOrigin: "https://viewer.example",
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      if (url.endsWith("miss.png")) throw new TypeError("Failed to fetch");
+      return { ok: true };
+    },
+  };
+  assert.equal((await probeImmutableViewerAsset({ url: "/assets/hit.png" }, environment)).status, "hit");
+  assert.equal((await probeImmutableViewerAsset({ url: "/assets/miss.png" }, environment)).status, "miss");
+  assert.equal((await probeImmutableViewerAsset({ url: "/preview/content/hotspots" }, environment)).status, "unsupported");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0].options, {
+    cache: "only-if-cached",
+    mode: "same-origin",
+    credentials: "same-origin",
+    signal: undefined,
+  });
+});
+
+test("differential preload skips all cache hits and completes immediately without artificial delay", async () => {
+  const assets = Array.from({ length: 5 }, (_, index) => ({ key: `a${index}`, url: `/assets/a${index}.png`, sizeBytes: 10 }));
+  const loaded = [];
+  const progress = [];
+  const cacheStates = [];
+  const result = await preloadDifferentialAssetGroup(assets, {
+    probeAsset: async (asset) => ({ status: "hit", asset }),
+    loadAsset: async (asset) => loaded.push(asset.url),
+    onCacheState: (value) => cacheStates.push(value),
+    onProgress: (value) => progress.push(value),
+  });
+  assert.deepEqual(loaded, []);
+  assert.equal(result.classification.hits.length, 5);
+  assert.equal(result.cache.preparationAssets, 0);
+  assert.equal(result.progress.percentage, 100);
+  assert.equal(cacheStates[0].percentage, 100);
+  assert.equal(progress.at(-1).cachedAssets, 5);
+});
+
+test("differential preload prepares only misses and unsupported assets while hits start satisfied", async () => {
+  const assets = Array.from({ length: 5 }, (_, index) => ({ key: `a${index}`, url: `/assets/a${index}.png`, sizeBytes: 10 }));
+  const loaded = [];
+  const progress = [];
+  const cacheStates = [];
+  const result = await preloadDifferentialAssetGroup(assets, {
+    probeAsset: async (asset) => ({
+      status: asset.key === "a4" ? "miss" : "hit",
+      asset,
+    }),
+    loadAsset: async (asset) => loaded.push(asset.key),
+    onCacheState: (value) => cacheStates.push(value),
+    onProgress: (value) => progress.push(value),
+  });
+  assert.deepEqual(loaded, ["a4"]);
+  assert.equal(cacheStates[0].completedAssets, 4);
+  assert.equal(progress[0].completedAssets, 4);
+  assert.equal(progress.at(-1).percentage, 100);
+  assert.equal(result.cache.cachedAssets, 4);
+  assert.equal(result.cache.preparationAssets, 1);
+});
+
+test("probe exceptions fail safely to the existing loader and all misses preserve prior preparation", async () => {
+  const assets = Array.from({ length: 3 }, (_, index) => ({ key: `a${index}`, url: `/assets/a${index}.png` }));
+  const loaded = [];
+  const classification = await classifyImmutableViewerAssets(assets, {
+    probeAsset: async () => { throw new Error("probe unsupported"); },
+  });
+  assert.equal(classification.misses.length, 3);
+  await preloadDifferentialAssetGroup(assets, {
+    probeAsset: async (asset) => ({ status: "miss", asset }),
+    loadAsset: async (asset) => loaded.push(asset.key),
+  });
+  assert.deepEqual(loaded.sort(), ["a0", "a1", "a2"]);
+});
+
+test("differential cache classification preserves abort semantics", async () => {
+  const controller = new AbortController();
+  const started = deferred();
+  const result = classifyImmutableViewerAssets([{ key: "a", url: "/assets/a.png" }], {
+    signal: controller.signal,
+    probeAsset: async (_asset, { signal }) => {
+      started.resolve();
+      await new Promise((resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+    },
+  });
+  await started.promise;
+  controller.abort(new Error("cache check cancelled"));
+  await assert.rejects(result, /cache check cancelled/);
 });
 
 test("hosted load plan makes pages, UI graphics and audio blocking while videos stay background-only", () => {
@@ -125,6 +240,27 @@ test("background video failures are nonfatal after ready", async () => {
   assert.equal(result.errors[0].asset.key, "video");
 });
 
+test("cached background videos skip redundant preload while missing videos retain nonfatal loading", async () => {
+  const loaded = [];
+  const loader = createHostedStartupAssets({}, {
+    probeAsset: async (asset) => ({ status: asset.key === "cached-video" ? "hit" : "miss", asset }),
+    loadAsset: async (asset) => {
+      loaded.push(asset.key);
+      throw new Error("background video unavailable");
+    },
+  });
+  const result = await loader.preloadBackground({
+    blocking: [],
+    background: [
+      { key: "cached-video", url: "/assets/cached.mp4", kind: "video" },
+      { key: "missing-video", url: "/assets/missing.mp4", kind: "video" },
+    ],
+  });
+  assert.deepEqual(loaded, ["missing-video"]);
+  assert.equal(result.classification.hits.length, 1);
+  assert.equal(result.errors.length, 1);
+});
+
 test("blocking failure stays non-ready and a clean retry can reach ready", async () => {
   let attempts = 0;
   const states = [];
@@ -210,6 +346,11 @@ test("hosted inventory uses exact renderer URLs, immutable headers stay fingerpr
   assert.match(startupUi, /role="progressbar"/);
   assert.match(startupUi, /aria-valuemin="0"[\s\S]*aria-valuemax="100"[\s\S]*aria-valuenow=\{percentage\}/);
   assert.match(startupUi, /role="status"[\s\S]*aria-live="polite"/);
+  assert.match(startupUi, /Checking cached content on this device/);
+  assert.match(startupUi, /Using cached content/);
+  assert.match(startupUi, /Preparing.*updated.*file/);
+  assert.match(startupUi, /cached;[\s\S]*critical assets ready/);
+  assert.doesNotMatch(startupUi, /permanently installed|downloaded forever/i);
   assert.match(startupUi, /<button type="button"[\s\S]*>Retry<\/button>/);
   assert.match(generatedProvider, /createNoopStartupAssets/);
   assert.doesNotMatch(generatedProvider, /hostedReviewStartupAssets/);

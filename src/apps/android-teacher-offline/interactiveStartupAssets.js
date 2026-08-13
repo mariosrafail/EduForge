@@ -14,6 +14,10 @@ function throwIfAborted(signal) {
   if (signal?.aborted) throw abortError(signal.reason);
 }
 
+function isAbortError(error, signal) {
+  return signal?.aborted || error?.name === "AbortError";
+}
+
 function assetUrl(value) {
   if (typeof value === "string") return value;
   return value?.localUrl || value?.devFallbackUrl || value?.url || "";
@@ -71,6 +75,76 @@ export function collectRuntimeAssetUrls(value, found = []) {
 export function createBinaryAssetCacheIdentity({ url = "", sha256 = "" } = {}) {
   const fingerprint = /^[a-f0-9]{64}$/i.test(sha256) ? sha256.toLowerCase() : "url";
   return `${fingerprint}:${url}`;
+}
+
+export function resolveImmutableViewerAssetUrl(value, {
+  locationHref = globalThis.location?.href,
+  locationOrigin = globalThis.location?.origin,
+} = {}) {
+  if (!locationHref || !locationOrigin) return null;
+  try {
+    const url = new URL(assetUrl(value), locationHref);
+    if (!["http:", "https:"].includes(url.protocol)) return null;
+    if (url.origin !== locationOrigin || !url.pathname.startsWith("/assets/")) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+export async function probeImmutableViewerAsset(asset, {
+  fetchImpl = globalThis.fetch,
+  locationHref = globalThis.location?.href,
+  locationOrigin = globalThis.location?.origin,
+  signal,
+} = {}) {
+  throwIfAborted(signal);
+  const url = resolveImmutableViewerAssetUrl(asset, { locationHref, locationOrigin });
+  if (!url || typeof fetchImpl !== "function") return Object.freeze({ status: "unsupported", asset });
+  try {
+    const response = await fetchImpl(url.href, {
+      cache: "only-if-cached",
+      mode: "same-origin",
+      credentials: "same-origin",
+      signal,
+    });
+    throwIfAborted(signal);
+    return Object.freeze({ status: response?.ok ? "hit" : "miss", asset });
+  } catch (error) {
+    if (isAbortError(error, signal)) throw abortError(signal?.reason || error);
+    return Object.freeze({ status: "miss", asset });
+  }
+}
+
+export async function classifyImmutableViewerAssets(assets = [], {
+  probeAsset = probeImmutableViewerAsset,
+  signal,
+} = {}) {
+  if (typeof probeAsset !== "function") throw new TypeError("Asset cache probe is required.");
+  const classified = { hits: [], misses: [], unsupported: [] };
+  const results = await Promise.all(assets.map(async (asset) => {
+    try {
+      throwIfAborted(signal);
+      const result = await probeAsset(asset, { signal });
+      throwIfAborted(signal);
+      return result;
+    } catch (error) {
+      if (isAbortError(error, signal)) throw abortError(signal?.reason || error);
+      return { status: "miss", asset };
+    }
+  }));
+  for (let index = 0; index < assets.length; index += 1) {
+    const asset = assets[index];
+    const result = results[index];
+    if (result?.status === "hit") classified.hits.push(asset);
+    else if (result?.status === "unsupported") classified.unsupported.push(asset);
+    else classified.misses.push(asset);
+  }
+  return Object.freeze({
+    hits: Object.freeze(classified.hits),
+    misses: Object.freeze(classified.misses),
+    unsupported: Object.freeze(classified.unsupported),
+  });
 }
 
 export function deduplicateAssetUrls(assets = []) {
@@ -135,7 +209,7 @@ export function buildHostedViewerAssetLoadPlan({
   });
 }
 
-export function createAssetProgress(assets = []) {
+export function createAssetProgress(assets = [], initiallyCompleted = []) {
   const reliableWeights = assets.map((asset) => asset.sizeBytes).filter((size) => Number.isFinite(size) && size > 0);
   const fallbackWeight = reliableWeights.length
     ? reliableWeights.reduce((sum, size) => sum + size, 0) / reliableWeights.length
@@ -150,6 +224,13 @@ export function createAssetProgress(assets = []) {
     totalAssets: assets.length,
     percentage: lastPercentage,
   });
+  initiallyCompleted.forEach((asset) => {
+    if (weights.has(asset?.url)) completed.add(asset.url);
+  });
+  if (completed.size) {
+    const completedWeight = [...completed].reduce((sum, url) => sum + weights.get(url), 0);
+    lastPercentage = completed.size === assets.length ? 100 : Math.floor((completedWeight / totalWeight) * 100);
+  }
   return Object.freeze({
     complete(asset) {
       if (!weights.has(asset?.url) || completed.has(asset.url)) return snapshot();
@@ -184,9 +265,11 @@ export async function preloadAssetGroup(assets = [], {
   signal,
   onProgress = () => {},
   continueOnError = false,
+  progressAssets = assets,
+  initiallyCompleted = [],
 } = {}) {
   if (typeof loadAsset !== "function") throw new TypeError("Asset loader is required.");
-  const progress = createAssetProgress(assets);
+  const progress = createAssetProgress(progressAssets, initiallyCompleted);
   onProgress(progress.snapshot());
   if (!assets.length) return { errors: [], progress: progress.snapshot() };
   const localController = new AbortController();
@@ -215,6 +298,46 @@ export async function preloadAssetGroup(assets = [], {
   const workers = Array.from({ length: Math.min(Math.max(1, concurrency), assets.length) }, worker);
   await Promise.all(workers);
   return { errors, progress: progress.snapshot() };
+}
+
+function cacheSummary(assets, classification) {
+  const preparation = [...classification.misses, ...classification.unsupported];
+  const bytes = (items) => items.reduce((sum, asset) => sum + (Number(asset.sizeBytes) || 0), 0);
+  return Object.freeze({
+    cachedAssets: classification.hits.length,
+    preparationAssets: preparation.length,
+    totalAssets: assets.length,
+    cachedBytes: bytes(classification.hits),
+    preparationBytes: bytes(preparation),
+  });
+}
+
+export async function preloadDifferentialAssetGroup(assets = [], {
+  loadAsset,
+  probeAsset = probeImmutableViewerAsset,
+  concurrency = 6,
+  signal,
+  onCacheState = () => {},
+  onProgress = () => {},
+  continueOnError = false,
+} = {}) {
+  const classification = await classifyImmutableViewerAssets(assets, { probeAsset, signal });
+  const preparation = [...classification.misses, ...classification.unsupported];
+  const summary = cacheSummary(assets, classification);
+  onCacheState(Object.freeze({
+    ...createAssetProgress(assets, classification.hits).snapshot(),
+    ...summary,
+  }));
+  const result = await preloadAssetGroup(preparation, {
+    loadAsset,
+    concurrency,
+    signal,
+    onProgress: (progress) => onProgress(Object.freeze({ ...progress, ...summary })),
+    continueOnError,
+    progressAssets: assets,
+    initiallyCompleted: classification.hits,
+  });
+  return Object.freeze({ ...result, classification, cache: summary });
 }
 
 async function drainResponse(response, asset) {
@@ -337,6 +460,7 @@ export function createHostedStartupAssets(inventory, {
   blockingConcurrency = 6,
   backgroundConcurrency = 2,
   loadAsset = preloadBrowserAsset,
+  probeAsset = probeImmutableViewerAsset,
 } = {}) {
   return Object.freeze({
     hosted: true,
@@ -352,17 +476,19 @@ export function createHostedStartupAssets(inventory, {
       });
     },
     preloadBlocking(plan, options = {}) {
-      return preloadAssetGroup(plan.blocking, {
+      return preloadDifferentialAssetGroup(plan.blocking, {
         ...options,
         loadAsset,
+        probeAsset,
         concurrency: blockingConcurrency,
         continueOnError: false,
       });
     },
     preloadBackground(plan, options = {}) {
-      return preloadAssetGroup(plan.background, {
+      return preloadDifferentialAssetGroup(plan.background, {
         ...options,
         loadAsset,
+        probeAsset,
         concurrency: backgroundConcurrency,
         continueOnError: true,
       });
@@ -397,9 +523,25 @@ export async function runInteractiveViewerStartup({
     throwIfAborted(signal);
     onState({ status: "loading", phase: "planning", progress: null, pack, error: null });
     const plan = startupAssets.createLoadPlan(pack);
+    if (startupAssets.hosted) {
+      onState({ status: "loading", phase: "checking-cache", progress: null, pack, error: null });
+    }
     await startupAssets.preloadBlocking(plan, {
       signal,
-      onProgress: (progress) => onState({ status: "loading", phase: "assets", progress, pack, error: null }),
+      onCacheState: (cache) => onState({
+        status: "loading",
+        phase: cache.preparationAssets ? "preparing-updates" : "using-cache",
+        progress: cache,
+        pack,
+        error: null,
+      }),
+      onProgress: (progress) => onState({
+        status: "loading",
+        phase: progress.preparationAssets ? "preparing-updates" : "using-cache",
+        progress,
+        pack,
+        error: null,
+      }),
     });
     throwIfAborted(signal);
     onState({
