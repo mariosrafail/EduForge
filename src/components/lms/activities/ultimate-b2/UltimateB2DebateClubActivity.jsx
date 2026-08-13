@@ -76,6 +76,7 @@ export function UltimateB2DebateClubActivity({
         revealed={revealed}
         revealText={solution?.parts?.[part.id] || ""}
         onReveal={() => void reveal([part.id])}
+        interactiveAriaLabel={`Show model response for part ${part.number}`}
         className="ultimate-b2-debate-response-region"
       /> : <textarea
         className="ultimate-b2-debate-student-response"

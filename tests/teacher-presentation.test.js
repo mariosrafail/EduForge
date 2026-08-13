@@ -319,6 +319,18 @@ test("presentation state clears on activity changes and never enters student pro
   assert.match(server, /if \(!isStudent\(currentUser\)\) return forbidden\("Only student accounts can submit activity responses"\)/);
 });
 
+test("Teacher response regions override learner labels without changing reveal-button semantics", async () => {
+  const [responseRegion, page5, debate] = await Promise.all([
+    readFile("src/components/lms/activities/ultimate-b2/ResponseRegion.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx", "utf8"),
+    readFile("src/components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx", "utf8"),
+  ]);
+  assert.match(responseRegion, /interactiveAriaLabel = null/);
+  assert.match(responseRegion, /<button[\s\S]*aria-label=\{interactiveAriaLabel \?\? region\.ariaLabel\}[\s\S]*aria-pressed=\{revealed\}[\s\S]*onClick=\{onReveal\}/);
+  assert.match(page5, /interactiveAriaLabel=\{`Show model response for question \$\{index \+ 1\}`\}/);
+  assert.match(debate, /interactiveAriaLabel=\{`Show model response for part \$\{part\.number\}`\}/);
+});
+
 test("student-safe payloads and browser runtime remain answer-key free", async () => {
   const safe = browserSafeBookActivityPayload({
     id: enabledMultipleChoiceId,

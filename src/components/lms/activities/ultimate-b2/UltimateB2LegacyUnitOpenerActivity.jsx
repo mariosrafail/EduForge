@@ -92,7 +92,7 @@ export function UltimateB2OpenResponseActivity({
           disabled={frozen}
           onChange={(event) => updateAnswer(question.id, event.target.value)}
         />)}
-        {(authoringOverride || capabilities.canRevealSolutions) && questions.map((question) => {
+        {(authoringOverride || capabilities.canRevealSolutions) && questions.map((question, index) => {
           if (!question.responseRegion?.area) return null;
           const revealed = revealedQuestionIds?.includes(question.id) || false;
           const modelAnswer = solutions?.questions?.[question.id]?.acceptedAnswers?.[0] || "";
@@ -103,6 +103,7 @@ export function UltimateB2OpenResponseActivity({
             revealed={revealed}
             revealText={modelAnswer}
             onReveal={capabilities.canRevealSolutions ? () => revealQuestion(question.id) : null}
+            interactiveAriaLabel={`Show model response for question ${index + 1}`}
             disabled={solutionsLoading}
             className="legacy-unit-opener-response-region"
           />;

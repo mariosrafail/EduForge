@@ -59,7 +59,7 @@ export function responseRegionStyle(region, surface = null) {
   return style;
 }
 
-export function ResponseRegion({ region, surface = null, revealed = false, revealText = "", onReveal = null, disabled = false, className = "" }) {
+export function ResponseRegion({ region, surface = null, revealed = false, revealText = "", onReveal = null, interactiveAriaLabel = null, disabled = false, className = "" }) {
   const interactive = typeof onReveal === "function";
   const content = <span className="response-region-text">{revealed ? revealText : ""}</span>;
   const shared = {
@@ -69,7 +69,7 @@ export function ResponseRegion({ region, surface = null, revealed = false, revea
     "data-revealed": revealed ? "true" : "false",
   };
   if (!interactive) return <div {...shared} aria-hidden="true">{content}</div>;
-  return <button {...shared} type="button" aria-label={region.ariaLabel} aria-pressed={revealed} disabled={disabled} onClick={onReveal}>{content}</button>;
+  return <button {...shared} type="button" aria-label={interactiveAriaLabel ?? region.ariaLabel} aria-pressed={revealed} disabled={disabled} onClick={onReveal}>{content}</button>;
 }
 
 function pointerPercent(event, element) {

@@ -18,6 +18,7 @@ import {
   normalizeUltimateB2Page5OpenResponseAuthoring,
   normalizeUltimateB2Page5TeacherAnswers,
 } from "../src/data/ultimate-b2/page5AuthoringSchema.js";
+import { projectUltimateB2Page5OpenResponseRuntime } from "../src/data/ultimate-b2/page5RuntimeProjection.js";
 import teacherAnswers from "../netlify/functions/_ultimate-b2-unit1-opener-model-answers.json" with { type: "json" };
 import { publisherSourceEvidenceOptions } from "./_publisher-source-test-helper.js";
 
@@ -66,6 +67,15 @@ test("Page 5 schemas keep stable identities, allowlisted bindings, and exact fie
   outside.questions[0].responseRegion.area.x = 1000;
   outside.questions[0].responseRegion.area.width = 100;
   assert.throws(() => normalizeUltimateB2Page5OpenResponseAuthoring(outside), /inside the authored canvas/);
+});
+
+test("Page 5 public runtime keeps learner response labels", () => {
+  const runtime = projectUltimateB2Page5OpenResponseRuntime(openResponse);
+  assert.deepEqual(runtime.questions.map((question) => question.responseRegion.ariaLabel), [
+    "Write a response for question 1",
+    "Write a response for question 2",
+    "Write a response for question 3",
+  ]);
 });
 
 test("Page 5 endpoint saves and reloads open-response public prompts and Teacher-private answers", async () => {
