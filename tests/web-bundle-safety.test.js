@@ -23,14 +23,21 @@ test("standard web safety scanner accepts learner-only assets and rejects answer
   assert.ok(teacherReviewResult.findings.some((finding) => finding.label === "publisher resource path"));
 });
 
-test("Teacher Review solution provider returns the generated pack entry without fallback answers", async () => {
-  const [{ getOfflineTeacherSolution }, generated] = await Promise.all([
-    import("../src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"),
-    import("../android-content-packs/ultimate-b2-students-book/teacher-solutions.json", { with: { type: "json" } }),
-  ]);
-  const activityId = "ultimate-b2-sb-u1-p2-o4";
-  assert.deepEqual(getOfflineTeacherSolution(activityId), generated.default.solutions[activityId]);
-  assert.equal(getOfflineTeacherSolution("unknown-activity"), null);
+test("Teacher Review solution provider uses only the canonical generated pack and a null fallback", async () => {
+  const provider = await readFile(
+    "src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js",
+    "utf8",
+  );
+  assert.match(
+    provider,
+    /import teacherSolutions from "\.\.\/\.\.\/\.\.\/android-content-packs\/ultimate-b2-students-book\/teacher-solutions\.json" with \{ type: "json" \};/,
+  );
+  assert.match(
+    provider,
+    /return teacherSolutions\.solutions\?\.\[String\(activityId \|\| ""\)\] \|\| null;/,
+  );
+  assert.equal((provider.match(/^import\s/gm) || []).length, 1);
+  assert.doesNotMatch(provider, /fetch\s*\(|XMLHttpRequest|WebSocket|\/api\/|\/auth\/|database|acceptedAnswers|fallback/i);
 });
 
 test("web and student Android builds select the learner-only legacy catalog", async () => {
