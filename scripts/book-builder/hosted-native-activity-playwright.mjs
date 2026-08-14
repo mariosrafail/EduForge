@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
@@ -11,135 +11,93 @@ import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-laun
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const contentRoot = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book";
-const nativeCreatePath = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create";
+const nativeRoot = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book";
 const previewToken = `v1.${Buffer.from('{"fixture":true}').toString("base64url")}.${"a".repeat(43)}`;
 const mime = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml" };
-const nativeDocuments = new Map();
-let indexRevision = 0;
-let nativeIndex = { schemaVersion: "1.0", activities: [] };
-const requestedPaths = [];
+const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFgAI/ScL4WQAAAABJRU5ErkJggg==", "base64");
+const nativeDocuments = new Map(); const nativeAssets = new Map(); const requestedPaths = [];
+let indexRevision = 0; let nativeIndex = { schemaVersion: "1.0", activities: [] }; let origin = "";
 
-function json(response, statusCode, value) {
-  const bytes = Buffer.from(JSON.stringify(value));
-  response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": bytes.length, "Content-Type": "application/json" });
-  response.end(bytes);
-}
+function json(response, statusCode, value) { const bytes = Buffer.from(JSON.stringify(value)); response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": bytes.length, "Content-Type": "application/json" }); response.end(bytes); }
+async function requestBytes(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); return Buffer.concat(chunks); }
+async function requestJson(request) { return JSON.parse((await requestBytes(request)).toString("utf8")); }
+function envelope(resource, documentKey, revision, document) { return { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource, documentKey, schemaVersion: "1.0", revision, source: revision ? "database" : "repository", document }; }
 
-async function requestJson(request) {
-  const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-}
-
-function envelope(resource, documentKey, revision, document) {
-  return { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource, documentKey, schemaVersion: "1.0", revision, source: revision ? "database" : "repository", document };
-}
-
-function nativeDocument(activityId, kind, pageId, title) {
-  return {
-    schemaVersion: "1.0",
-    activityId,
-    kind,
-    metadata: { title, visibleInstructionText: "" },
-    placement: { pageId },
-    assets: [],
-    parts: [{ id: "part-1", interaction: kind === "open-response"
-      ? { kind, surface: { width: 1024, height: 582 }, artwork: [], questions: [] }
-      : { kind, image: null, altText: "" } }],
-  };
+function nativeDocumentPair(activityId, kind, pageId, title) {
+  const publicDocument = { schemaVersion: "1.0", activityId, kind, metadata: { title, visibleInstructionText: "" }, placement: { pageId }, assets: [], parts: [{ id: "part-1", interaction: kind === "open-response" ? { kind, surface: { width: 1024, height: 582 }, artwork: [], questions: [] } : { kind, image: null, altText: "" } }] };
+  const teacherDocument = { schemaVersion: "1.0", activityId, kind, parts: [{ id: "part-1", solution: kind === "open-response" ? { kind, modelAnswers: [] } : { kind } }] };
+  return { publicRevision: 1, teacherRevision: 1, publicDocument, teacherDocument };
 }
 
 async function staticResponse(pathname, response) {
-  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
-  let file = path.resolve(builderRoot, relative);
+  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(builderRoot, relative);
   let details = file.startsWith(`${builderRoot}${path.sep}`) ? await stat(file).catch(() => null) : null;
   if (!details?.isFile()) { file = path.join(builderRoot, "index.html"); details = await stat(file); }
-  response.writeHead(200, { "Content-Length": details.size, "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream" });
-  createReadStream(file).pipe(response);
+  response.writeHead(200, { "Content-Length": details.size, "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream" }); createReadStream(file).pipe(response);
 }
 
 const server = createServer(async (request, response) => {
-  const url = new URL(request.url, "http://127.0.0.1");
-  requestedPaths.push(url.pathname);
-  if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "phase-2-browser", full_name: "Phase 2 Browser", role: "developer", status: "active" } });
+  const url = new URL(request.url, "http://127.0.0.1"); requestedPaths.push(url.pathname);
+  if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "phase-3-browser", full_name: "Phase 3 Browser", role: "developer", status: "active" } });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: previewToken, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
-  if (url.pathname === nativeCreatePath && request.method === "POST") {
-    const body = await requestJson(request);
-    const activityId = `ultimate-b2-sb-u1-p1-o${90 + nativeIndex.activities.length}`;
-    const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : "Open Response"}`;
-    const document = nativeDocument(activityId, body.kind, body.pageId, title);
-    nativeDocuments.set(activityId, { revision: 1, document });
-    indexRevision += 1;
+  if (url.pathname === `${nativeRoot}/create` && request.method === "POST") {
+    const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${90 + nativeIndex.activities.length}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : "Open Response"}`;
+    nativeDocuments.set(activityId, nativeDocumentPair(activityId, body.kind, body.pageId, title)); indexRevision += 1;
     nativeIndex = { schemaVersion: "1.0", activities: [...nativeIndex.activities, { activityId, kind: body.kind, placement: { pageId: body.pageId }, sortOrder: indexRevision }] };
     return json(response, 200, { outcome: "created", activityId, indexRevision, publicRevision: 1, teacherRevision: 1, kind: body.kind, placement: { pageId: body.pageId }, idempotent: false });
   }
-  const nativeMatch = url.pathname.match(new RegExp(`^${contentRoot}/native-activity-public/([a-z0-9-]+)$`));
+  const nativeMatch = url.pathname.match(new RegExp(`^${contentRoot}/native-activity-(public|teacher)/([a-z0-9-]+)$`));
   if (nativeMatch) {
-    const state = nativeDocuments.get(nativeMatch[1]);
-    if (!state) return json(response, 404, { error: "builder_resource_not_found" });
-    if (request.method === "GET") return json(response, 200, envelope("native-activity-public", nativeMatch[1], state.revision, state.document));
-    const body = await requestJson(request);
-    if (body.expectedRevision !== state.revision) return json(response, 409, { error: "revision_conflict", currentRevision: state.revision });
-    state.revision += 1; state.document = structuredClone(body.document);
-    return json(response, 200, { ...envelope("native-activity-public", nativeMatch[1], state.revision, state.document), currentRevision: state.revision, idempotent: false });
+    const state = nativeDocuments.get(nativeMatch[2]); if (!state) return json(response, 404, { error: "builder_resource_not_found" });
+    if (request.method === "GET") return json(response, 200, envelope(`native-activity-${nativeMatch[1]}`, nativeMatch[2], state[`${nativeMatch[1]}Revision`], state[`${nativeMatch[1]}Document`]));
+    if (request.method === "PUT" && nativeMatch[1] === "public" && state.publicDocument.kind === "image") { const body = await requestJson(request); if (body.expectedRevision !== state.publicRevision) return json(response, 409, { error: "revision_conflict", currentRevision: state.publicRevision }); state.publicRevision += 1; state.publicDocument = structuredClone(body.document); return json(response, 200, { ...envelope("native-activity-public", nativeMatch[2], state.publicRevision, state.publicDocument), currentRevision: state.publicRevision, idempotent: false }); }
+    return json(response, 405, { error: "method_not_allowed" });
   }
+  const pairMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/save$`));
+  if (pairMatch && request.method === "POST") {
+    const state = nativeDocuments.get(pairMatch[1]); const body = await requestJson(request);
+    if (body.expectedPublicRevision !== state.publicRevision || body.expectedTeacherRevision !== state.teacherRevision) return json(response, 409, { error: "revision_conflict", currentPublicRevision: state.publicRevision, currentTeacherRevision: state.teacherRevision });
+    state.publicRevision += 1; state.teacherRevision += 1; state.publicDocument = structuredClone(body.publicDocument); state.teacherDocument = structuredClone(body.teacherDocument);
+    return json(response, 200, { activityId: pairMatch[1], publicRevision: state.publicRevision, teacherRevision: state.teacherRevision, publicDocument: state.publicDocument, teacherDocument: state.teacherDocument, idempotent: false });
+  }
+  const prepareMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/assets/prepare$`));
+  if (prepareMatch && request.method === "POST") { const body = await requestJson(request); const uploadId = "10000000-0000-4000-8000-000000000010"; nativeAssets.set(uploadId, { activityId: prepareMatch[1], slot: body.assetSlot, bytes: null }); return json(response, 200, { uploadId, expiresIn: 900, authorization: { url: `${origin}/fixture-upload/${uploadId}`, headers: { "Content-Type": body.type }, expiresIn: 900 }, idempotent: false }); }
+  if (url.pathname.startsWith("/fixture-upload/") && request.method === "PUT") { const upload = nativeAssets.get(url.pathname.split("/").at(-1)); upload.bytes = await requestBytes(request); response.writeHead(200); return response.end(); }
+  const finalizeMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/assets/finalize$`));
+  if (finalizeMatch && request.method === "POST") {
+    const body = await requestJson(request); const upload = nativeAssets.get(body.uploadId); const assetId = "10000000-0000-4000-8000-000000000011"; nativeAssets.set(assetId, upload);
+    return json(response, 200, { reference: { assetId, checksumSha256: "a".repeat(64), role: "activity_artwork", slot: upload.slot }, previewUrl: `${nativeRoot}/activities/${finalizeMatch[1]}/assets/${assetId}/preview`, metadata: { mimeType: "image/png", byteSize: upload.bytes.length, width: 1, height: 1 }, idempotent: false });
+  }
+  const assetPreviewMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/assets/([0-9a-f-]+)/preview$`));
+  if (assetPreviewMatch && request.method === "GET") { const bytes = nativeAssets.get(assetPreviewMatch[2])?.bytes || Buffer.alloc(0); response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }); return response.end(bytes); }
   const canonicalMatch = url.pathname.match(new RegExp(`^${contentRoot}/open-response/([a-z0-9-]+)$`));
-  if (canonicalMatch && request.method === "GET") {
-    const activity = findStudentsBookImplementation(canonicalMatch[1]);
-    if (!activity) return json(response, 404, { error: "builder_resource_not_found" });
-    return json(response, 200, envelope("open-response", canonicalMatch[1], 0, createUltimateB2HostedOpenResponseSeed(activity)));
-  }
+  if (canonicalMatch && request.method === "GET") { const activity = findStudentsBookImplementation(canonicalMatch[1]); if (!activity) return json(response, 404, { error: "builder_resource_not_found" }); return json(response, 200, envelope("open-response", canonicalMatch[1], 0, createUltimateB2HostedOpenResponseSeed(activity))); }
   if (url.pathname.startsWith("/builder/api/open-response-import/status/") && request.method === "GET") return json(response, 200, { activityId: url.pathname.split("/").at(-1), revision: 0, fingerprint: null, updatedAt: null });
   return staticResponse(url.pathname, response);
 });
 
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const origin = `http://127.0.0.1:${server.address().port}`;
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
-  browser = await chromium.launch(localPlaywrightLaunchOptions());
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
-    const url = new URL(route.request().url());
-    if (url.pathname === "/" || url.pathname.endsWith(".html")) return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Viewer fixture</title>" });
-    return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
-  });
-  const page = await context.newPage();
-  page.setDefaultTimeout(45_000);
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Activity" }).waitFor();
-  await page.locator(".b2-hosted-open-response-editor").waitFor();
-
-  await page.getByRole("button", { name: "Add Activity" }).click();
-  await page.getByLabel("Activity kind").selectOption("open-response");
-  await page.getByLabel("Initial title (optional)").fill("Browser native response");
-  await page.getByRole("button", { name: "Create native draft" }).click();
-  const openResponseId = "ultimate-b2-sb-u1-p1-o90";
-  await page.getByRole("heading", { name: "Browser native response" }).waitFor();
-  await page.getByText(openResponseId, { exact: true }).first().waitFor();
-  await page.getByText("Part 1", { exact: true }).waitFor();
-  await page.getByText("Native Open Response content editing arrives in Phase 3.", { exact: true }).waitFor();
-  await page.getByText("Native draft · not included in publication v1", { exact: true }).waitFor();
-  await page.getByLabel("Activity title").fill("Persisted browser response");
-  await page.getByLabel("Visible instruction").fill("Respond in complete sentences.");
-  await page.getByRole("button", { name: "Save Draft" }).click();
-  await page.getByText("Draft saved.", { exact: true }).waitFor();
-
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: new RegExp(openResponseId) }).click();
-  assert.equal(await page.getByLabel("Activity title").inputValue(), "Persisted browser response");
-  assert.equal(await page.getByLabel("Visible instruction").inputValue(), "Respond in complete sentences.");
-  await page.getByRole("button", { name: "Add Activity" }).click();
-  await page.getByLabel("Activity kind").selectOption("image");
-  await page.getByRole("button", { name: "Create native draft" }).click();
-  const imageId = "ultimate-b2-sb-u1-p1-o91";
-  await page.getByText(imageId, { exact: true }).first().waitFor();
-  await page.getByText("Native Image content editing arrives in Phase 4.", { exact: true }).waitFor();
-  assert.notEqual(imageId, openResponseId);
-  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false);
-  process.stdout.write(`Hosted native activity Playwright acceptance passed for ${openResponseId} and ${imageId}.\n`);
-} finally {
-  await browser?.close();
-  await new Promise((resolve) => server.close(resolve));
-}
+  browser = await chromium.launch(localPlaywrightLaunchOptions()); const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await context.route("https://hhplms-viewer.netlify.app/**", (route) => route.fulfill({ status: route.request().resourceType() === "document" ? 200 : 404, contentType: route.request().resourceType() === "document" ? "text/html" : "application/json", body: route.request().resourceType() === "document" ? "<!doctype html><title>Viewer fixture</title>" : "{}" }));
+  const page = await context.newPage(); page.setDefaultTimeout(45_000); await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.locator(".b2-hosted-open-response-editor").waitFor();
+  await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByLabel("Activity kind").selectOption("open-response"); await page.getByLabel("Initial title (optional)").fill("Browser native response"); await page.getByRole("button", { name: "Create native draft" }).click();
+  const openResponseId = "ultimate-b2-sb-u1-p1-o90"; await page.getByRole("heading", { name: "Browser native response" }).waitFor(); await page.getByText(openResponseId, { exact: true }).first().waitFor(); await page.getByText(/not included in publication v1/).waitFor();
+  await page.getByLabel("Activity title").fill("Persisted browser response"); await page.getByLabel("Visible instruction").fill("Respond in complete sentences.");
+  await page.getByRole("button", { name: "Add Question", exact: true }).click(); const firstQuestionId = await page.locator(".native-or-question-workspace aside button").nth(1).locator("code").textContent(); await page.getByLabel("Prompt").fill("First prompt"); await page.getByLabel("Private model answer (Teacher)").fill("First private model answer");
+  await page.getByRole("button", { name: "Add Question", exact: true }).click(); const secondQuestionId = await page.locator(".native-or-question-workspace aside button").nth(2).locator("code").textContent(); assert.notEqual(firstQuestionId, secondQuestionId); await page.getByLabel("Prompt").fill("Second prompt"); await page.getByLabel("Private model answer (Teacher)").fill("Second private model answer"); await page.getByRole("button", { name: "Move Up" }).click();
+  await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("button", { name: new RegExp(openResponseId) }).click();
+  assert.equal(await page.getByLabel("Activity title").inputValue(), "Persisted browser response"); assert.equal(await page.getByLabel("Visible instruction").inputValue(), "Respond in complete sentences."); assert.equal(await page.locator(".native-or-question-workspace aside button").nth(1).locator("code").textContent(), secondQuestionId);
+  await page.getByRole("button", { name: /^Question 1/ }).click(); assert.equal(await page.getByLabel("Private model answer (Teacher)").inputValue(), "Second private model answer");
+  await page.getByRole("button", { name: "Layout" }).click(); await page.locator(".native-or-upload input[type=file]").setInputFiles({ name: "fixture.png", mimeType: "image/png", buffer: onePixelPng }); await page.getByRole("heading", { name: "Artwork" }).waitFor(); await page.getByLabel("Alt text").fill("A deterministic test diagram"); await page.getByRole("spinbutton", { name: "X", exact: true }).fill("210"); await page.getByRole("spinbutton", { name: "Y", exact: true }).fill("130"); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Preview" }).click(); await page.getByRole("button", { name: "Student Preview" }).click(); assert.equal(await page.getByText("Second private model answer", { exact: true }).count(), 0); await page.getByRole("button", { name: "Teacher Preview" }).click(); assert.equal(await page.getByText("Second private model answer", { exact: true }).count(), 0); await page.getByRole("button", { name: /Reveal model answer for Response for question 2/ }).click(); await page.getByText("Second private model answer", { exact: true }).waitFor(); assert.equal(await page.getByText("First private model answer", { exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Content" }).click(); await page.getByRole("button", { name: /^Question 1/ }).click(); page.once("dialog", (dialog) => dialog.accept()); await page.getByRole("button", { name: "Delete Question" }).click(); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); assert.equal(nativeDocuments.get(openResponseId).teacherDocument.parts[0].solution.modelAnswers.some((item) => item.questionId === secondQuestionId), false);
+  await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByLabel("Activity kind").selectOption("image"); await page.getByRole("button", { name: "Create native draft" }).click(); await page.getByText("ultimate-b2-sb-u1-p1-o91", { exact: true }).first().waitFor(); await page.getByText("Native Image content editing arrives in Phase 4.", { exact: true }).waitFor(); await page.getByLabel("Activity title").fill("Image metadata still editable"); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor();
+  const tablet = await context.newPage(); await tablet.setViewportSize({ width: 900, height: 700 }); await tablet.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" }); await tablet.getByRole("button", { name: new RegExp(openResponseId) }).click(); await tablet.getByRole("button", { name: "Preview" }).click(); await tablet.getByRole("button", { name: "Teacher Preview" }).click(); await tablet.getByRole("button", { name: /Reveal model answer/ }).click();
+  const geometry = await tablet.locator(".native-or-surface").evaluate((surface) => { const rect = surface.getBoundingClientRect(); const line = surface.querySelector(".native-or-line"); const answer = surface.querySelector(".native-or-answer-line"); return { ratio: rect.width / rect.height, lineTop: line?.style.top, answerTop: answer?.style.top }; });
+  assert.ok(Math.abs(geometry.ratio - (1024 / 582)) < 0.02); assert.equal(geometry.answerTop, geometry.lineTop); await tablet.close();
+  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted native Open Response Playwright acceptance passed for ${openResponseId}.\n`);
+} finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }

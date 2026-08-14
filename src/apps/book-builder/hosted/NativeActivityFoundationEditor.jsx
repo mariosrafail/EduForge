@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 
 import { getBuilderContent, newBuilderClientMutationId, saveBuilderContent } from "./builderContentApi.js";
 import { nativeActivityKindLabels } from "../../../data/native-activities/nativeActivityKinds.js";
+import { NativeOpenResponseEditor } from "./NativeOpenResponseEditor.jsx";
 
-export function NativeActivityFoundationEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {} }) {
+export function NativeActivityFoundationEditor({ bookSlug, componentSlug, activityId, kind, placementLabel, onDirtyChange = () => {} }) {
+  if (kind === "open-response") return <NativeOpenResponseEditor {...{ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange }} />;
   const [state, setState] = useState({ kind: "loading" });
   const [draft, setDraft] = useState(null);
   const [dirty, setDirty] = useState(false);
