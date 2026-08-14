@@ -552,8 +552,9 @@ try {
     await page.screenshot({ path: `${artifactRoot}/legacy-home-1920x1080.png` });
     assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Students Book");
     const editionArtwork = await page.locator(".legacy-home-book-button").evaluateAll((buttons) => buttons.map((button) => [...button.querySelectorAll("img")].map((image) => image.src)));
-    assert.deepEqual(editionArtwork[0], editionArtwork[1], "Workbook aliases the Students Book normal/active artwork");
-    assert.deepEqual(editionArtwork[0], editionArtwork[2], "Grammar Book aliases the Students Book normal/active artwork");
+    assert.notDeepEqual(editionArtwork[0], editionArtwork[1], "Workbook uses its tracked authored normal/active artwork");
+    assert.notDeepEqual(editionArtwork[0], editionArtwork[2], "Grammar Book uses its tracked authored normal/active artwork");
+    assert.notDeepEqual(editionArtwork[1], editionArtwork[2], "Workbook and Grammar Book authored artwork stay distinct");
     assert.notDeepEqual(editionArtwork[0], editionArtwork[3], "Extras retains its distinct publisher artwork");
     await page.getByRole("button", { name: "Extras", exact: true }).click();
     assert.equal(await page.locator('.legacy-home-book-button[aria-pressed="true"]').getAttribute("aria-label"), "Extras");
@@ -644,8 +645,8 @@ try {
     await page.locator('.legacy-unit-opener-response-region[data-response-region-id$="q3-response"][data-revealed="true"]').waitFor();
     const unitOpenerFonts = await page.evaluate(() => ({
       question: getComputedStyle(document.querySelector(".legacy-unit-opener-question h3")).fontFamily,
-      answer: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed")).fontFamily,
-      answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed")).fontWeight,
+      answer: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed .response-region-text")).fontFamily,
+      answerWeight: getComputedStyle(document.querySelector(".legacy-unit-opener-response-region.is-revealed .response-region-text")).fontWeight,
     }));
     assert.match(unitOpenerFonts.question, /Fira Sans/, "unit opener question uses the recovered Fira Sans family");
     assert.match(unitOpenerFonts.answer, /ITC Flora Std Medium/, "unit opener Response Region uses the publisher reveal family");

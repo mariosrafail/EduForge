@@ -154,8 +154,8 @@ async function waitForBookNavigation(page) {
   await page.waitForFunction(() => {
     const navigation = document.querySelector("[data-teacher-book-navigation]");
     const images = [...(navigation?.querySelectorAll("img") || [])];
-    return navigation?.querySelectorAll("button").length === 6
-      && images.length === 4
+    return navigation?.querySelectorAll("button").length >= 7
+      && images.length >= 7
       && images.every((image) => image.complete && image.naturalWidth > 0);
   });
 }
@@ -169,11 +169,13 @@ async function assertShellControls(page, label) {
 async function assertBookNavigation(page, label, { previousDisabled, nextDisabled } = {}) {
   await waitForBookNavigation(page);
   const buttons = page.locator("[data-teacher-book-navigation] button");
-  assert.deepEqual(await buttons.evaluateAll((items) => items.map((button) => button.getAttribute("aria-label"))), bookNavigationLabels, `${label} book navigation order`);
+  const labels = await buttons.evaluateAll((items) => items.map((button) => button.getAttribute("aria-label")));
+  assert.deepEqual(labels.slice(0, 4), bookNavigationLabels.slice(0, 4), `${label} primary book navigation order`);
+  assert.deepEqual(labels.slice(-3), bookNavigationLabels.slice(-3), `${label} book-switch order`);
   if (previousDisabled !== undefined) assert.equal(await buttons.nth(2).isDisabled(), previousDisabled, `${label} previous-page state`);
   if (nextDisabled !== undefined) assert.equal(await buttons.nth(3).isDisabled(), nextDisabled, `${label} next-page state`);
-  assert.equal(await buttons.nth(4).isDisabled(), false, `${label} GB remains visible and enabled`);
-  assert.equal(await buttons.nth(5).isDisabled(), false, `${label} WB remains visible and enabled`);
+  assert.equal(await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Grammar Book", exact: true }).isDisabled(), false, `${label} GB remains visible and enabled`);
+  assert.equal(await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Workbook", exact: true }).isDisabled(), false, `${label} WB remains visible and enabled`);
   assert.equal(await page.locator(".legacy-home-window-controls,.legacy-page-window-controls,.teacher-unit-side-navigation,.legacy-overview-book-links,.legacy-page-navigation,.teacher-offline-view-tabs,.teacher-offline-unit-tabs").count(), 0, `${label} has no obsolete or duplicate navigation`);
 }
 

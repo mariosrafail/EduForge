@@ -113,6 +113,7 @@ async function sendStatic(request, response, requestPath) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
+  if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller") { const body = Buffer.from(JSON.stringify({ document: { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} } })); response.writeHead(200, { "Cache-Control": "no-store", "Content-Length": body.length, "Content-Type": "application/json" }); response.end(body); return; }
   if (url.pathname === "/cache-probe.html") {
     const body = Buffer.from("<!doctype html><title>Viewer cache probe</title>");
     response.writeHead(200, {

@@ -77,6 +77,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller") return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots") {
       return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "hotspots", schemaVersion: "1.0", revision: 1, source: "database", document: hotspots }) });
     }

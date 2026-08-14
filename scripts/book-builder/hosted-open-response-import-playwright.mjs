@@ -106,6 +106,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller") return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "hotspots", schemaVersion: "1.0", revision: 1, source: "database", document: hotspots }) });
     const textMatch = url.pathname.match(/\/preview\/content\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/open-response\/([a-z0-9-]+)$/);
     if (textMatch) { const activity = findStudentsBookImplementation(textMatch[1]); const state = textStates.get(textMatch[1]); return state ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(contentEnvelope(activity, state)) }) : route.fulfill({ status: 404, contentType: "application/json", body: "{}" }); }

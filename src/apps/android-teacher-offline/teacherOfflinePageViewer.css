@@ -394,6 +394,7 @@
 
 .teacher-offline-embedded-activity :is(
   .legacy-unit-opener-answer-lines,
+  .legacy-unit-opener-response-region .response-region-text,
   .legacy-pilot-revealed-answer > strong,
   .presentation-revealed-answer > strong
 ) {

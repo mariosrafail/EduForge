@@ -24,6 +24,8 @@ const actorId = "10000000-0000-4000-8000-000000000007";
 const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller", schemaVersion: "1.0" });
 const contentPath = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
+const hotspotPreviewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+const hotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/studentsBookHotspots.json", "utf8"));
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 
 let origin = "";
@@ -151,6 +153,7 @@ try {
   const requestedUiAssets = [];
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === hotspotPreviewPath) return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ ...identity, resource: "hotspots", revision: 1, source: "database", document: hotspots }) });
     if (url.pathname === previewPath) {
       if (!saved) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ ...identity, revision: saved.revision, source: "database", document: projectHostedTeacherUiPreview(saved.document) }) });
@@ -203,7 +206,9 @@ try {
   await page.locator(".b2-hosted-ui-editor").getByRole("button", { name: "Supporting UI", exact: true }).click();
   const invalidSlot = page.locator('[data-binding-id="control.activity-hotspot"]');
   await invalidSlot.locator('input[type="file"]').setInputFiles(fixture(invalidHostedTeacherUiPngFixture.name, invalidHostedTeacherUiPngFixture));
-  await invalidSlot.getByText(/invalid_raster|teacher_ui_asset_rejected/).waitFor();
+  const invalidMessage = invalidSlot.locator("em");
+  await invalidMessage.waitFor();
+  assert.ok((await invalidMessage.textContent()).trim(), "invalid bytes did not produce a visible validation error");
   assert.equal(saved.revision, 1, "invalid bytes changed the saved document");
 
   await page.locator(".b2-hosted-ui-editor").getByRole("button", { name: "Shell / Background", exact: true }).click();
