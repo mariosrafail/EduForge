@@ -37,9 +37,10 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   const functionFiles = await filesUnder(new URL(`../${configuredFunctionsDirectory}/`, import.meta.url));
   const serverFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/server/", import.meta.url));
   const supportedSource = /\.(?:[cm]?[jt]sx?|go)$/i;
-  const [builderAuthEntry, builderContentEntry, builderPreviewEntry] = await Promise.all([
+  const [builderAuthEntry, builderContentEntry, builderImportEntry, builderPreviewEntry] = await Promise.all([
     read(`${configuredFunctionsDirectory}/builder-auth.js`),
     read(`${configuredFunctionsDirectory}/builder-content.js`),
+    read(`${configuredFunctionsDirectory}/builder-open-response-import.js`),
     read(`${configuredFunctionsDirectory}/builder-preview.js`),
   ]);
 
@@ -50,17 +51,20 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.doesNotMatch(builderNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
   assert.match(builderNetlify, /from = "\/builder\/api\/auth"[\s\S]*to = "\/\.netlify\/functions\/builder-auth"/);
   assert.match(builderNetlify, /from = "\/builder\/preview\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-preview\/:splat"[\s\S]*status = 200[\s\S]*force = true/);
+  assert.match(builderNetlify, /from = "\/builder\/api\/open-response-import\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-open-response-import\/:splat"/);
   assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
-  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-preview.js"]);
+  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js"]);
   assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-preview.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+    "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
+  assert.match(builderImportEntry, /export const handler = createBuilderOpenResponseImportHandler\(\)/);
   assert.match(builderPreviewEntry, /export const handler = createBuilderPreviewHandler\(\)/);
-  assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}\n${builderPreviewEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
+  assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}\n${builderImportEntry}\n${builderPreviewEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
   assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 
@@ -83,7 +87,10 @@ test("dedicated Viewer site package isolates the Interactive output and Netlify 
   assert.equal(tomlString(viewerNetlify, "functions", "directory"), "netlify-sites/viewer/functions");
   assert.doesNotMatch(viewerNetlify, /(?:^|["/])netlify\/functions(?:["/]|$)/m);
   assert.match(viewerNetlify, /from = "\/preview\/content\/\*"[\s\S]*to = "https:\/\/hhplms-builder\.netlify\.app\/builder\/preview\/content\/:splat"[\s\S]*status = 200[\s\S]*force = true/);
-  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 1);
+  assert.match(viewerNetlify, /from = "\/preview\/open-response-import\/\*"[\s\S]*builder\/preview\/open-response-import\/:splat/);
+  assert.match(viewerNetlify, /from = "\/preview\/open-response-teacher\/\*"[\s\S]*builder\/preview\/open-response-teacher\/:splat/);
+  assert.match(viewerNetlify, /from = "\/preview\/open-response-assets\/\*"[\s\S]*builder\/preview\/open-response-assets\/:splat/);
+  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 4);
   assert.doesNotMatch(viewerNetlify, /\/builder\/api\/(?:auth|content)|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
 
@@ -166,11 +173,12 @@ test("only the explicitly marked dedicated Viewer site may use production contex
 });
 
 test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only registered public document mutations", async () => {
-  const [hosted, hostedHotspots, hostedOpenResponse, contentClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
+  const [hosted, hostedHotspots, hostedOpenResponse, contentClient, importClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx"),
     read("src/apps/book-builder/hosted/builderContentApi.js"),
+    read("src/apps/book-builder/hosted/builderOpenResponseImportApi.js"),
     read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"),
     read("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"),
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
@@ -188,7 +196,10 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
   assert.match(hostedOpenResponse, /expectedRevision: revision/);
   assert.match(contentClient, /\/builder\/api\/content/);
   assert.match(contentClient, /method: "PUT"/);
-  assert.doesNotMatch(`${hostedHotspots}\n${hostedOpenResponse}\n${contentClient}`, /__hhplms|repositoryFileTarget|write-capability/);
+  assert.match(importClient, /\/builder\/api\/open-response-import/);
+  assert.match(importClient, /XMLHttpRequest/);
+  assert.doesNotMatch(importClient, /@aws-sdk|secretAccessKey|base64|FormData/);
+  assert.doesNotMatch(`${hostedHotspots}\n${hostedOpenResponse}\n${contentClient}\n${importClient}`, /__hhplms|repositoryFileTarget|write-capability/);
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
   assert.match(local, /fetch\(publisherActivityEndpoint/);
   assert.match(entry, /HostedAuthenticatedBookBuilderApp/);

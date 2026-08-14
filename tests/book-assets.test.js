@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { classifyAssetAccess, canDeliverAsset } from "../lib/book-assets/access.js";
 import { normalizeSignedUrlTtl, readBookAssetStorageConfig, signedUrlTtlBounds, signedUrlTtlForAsset } from "../lib/book-assets/config.js";
 import { validateBookManifestStructure } from "../lib/book-assets/manifest.js";
-import { buildBookAssetObjectKey, ensureSourceWithinRoot, normalizeObjectKeySegment, validateObjectKey } from "../lib/book-assets/object-keys.js";
+import { buildBookAssetHostedOpenResponseArchiveKey, buildBookAssetHostedOpenResponsePublicKey, buildBookAssetImportStagingKey, buildBookAssetObjectKey, ensureSourceWithinRoot, normalizeObjectKeySegment, validateObjectKey } from "../lib/book-assets/object-keys.js";
 import { S3BookAssetStorage } from "../lib/book-assets/storage.js";
 import { getBookAssetAccess } from "../netlify/functions/_book-asset-access.js";
 
@@ -48,6 +48,22 @@ test("storage uploads are conditional and verify checksum metadata", async () =>
   const put = commands.find((command) => command.constructor.name === "PutObjectCommand");
   assert.equal(put.input.IfNoneMatch, "*");
   assert.equal(result.reused, false);
+});
+
+test("hosted import keys are opaque/content-addressed and signed PUT is private-only", async () => {
+  const uploadId = "10000000-0000-4000-8000-000000000001";
+  const fileId = "10000000-0000-4000-8000-000000000002";
+  const staging = buildBookAssetImportStagingKey({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: "ultimate-b2-sb-u2-p1-o1", uploadId, fileId });
+  assert.match(staging, new RegExp(`${uploadId}/staging/${fileId}$`));
+  assert.doesNotMatch(staging, /obj_params|image_1/);
+  assert.match(buildBookAssetHostedOpenResponsePublicKey({ checksum: "a".repeat(64), extension: ".png" }), /a{64}\.png$/);
+  assert.match(buildBookAssetHostedOpenResponseArchiveKey({ activityId: "ultimate-b2-sb-u2-p1-o1", fingerprint: "b".repeat(64), fileChecksum: "a".repeat(64), extension: ".xml" }), /b{64}\/a{64}\.xml$/);
+  const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 });
+  const authorization = await storage.signedPutUrl({ profile: "private", objectKey: staging, contentType: "application/xml", ttlSeconds: 60 });
+  assert.match(authorization.url, /^https:\/\/private\.s3\.invalid\/builder-imports\//);
+  assert.equal(authorization.headers["Content-Type"], "application/xml");
+  assert.equal(authorization.expiresIn, 60);
+  await assert.rejects(storage.signedPutUrl({ profile: "public", objectKey: staging, contentType: "application/xml" }), /private staging/);
 });
 
 test("public/protected access classification denies non-published and internal assets", () => {

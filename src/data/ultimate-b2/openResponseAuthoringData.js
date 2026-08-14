@@ -41,6 +41,7 @@ export function getUltimateB2OpenResponseArtworkLayers(authoring) {
 }
 
 export function resolveUltimateB2OpenResponseArtwork(layer) {
+  if (layer?.assetPath?.startsWith("/preview/open-response-assets/")) return layer.assetPath;
   if (layer?.binding?.startsWith("unit1.page5.")) return resolveUltimateB2Page5RuntimeArtwork(layer.binding);
   const bundled = genericArtworkModules[assetModuleKey(layer?.repositoryPath)] || null;
   if (bundled || !import.meta.env.DEV || !layer?.repositoryPath) return bundled;

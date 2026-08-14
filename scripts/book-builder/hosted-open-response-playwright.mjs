@@ -53,6 +53,7 @@ async function staticResponse(root, pathname, response, fallback = "index.html")
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "smoke", full_name: "Builder Smoke", role: "developer", status: "active" } });
+  if (url.pathname === `/builder/api/open-response-import/status/${activityId}`) return json(response, 200, { activityId, revision: 0, fingerprint: null, updatedAt: null });
   if (url.pathname === `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/open-response/${activityId}`) {
     if (request.method === "GET") return json(response, 200, contentEnvelope(saved || canonical, saved ? "database" : "repository"));
     const chunks = [];

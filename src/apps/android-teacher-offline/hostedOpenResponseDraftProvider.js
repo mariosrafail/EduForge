@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 
 import { ULTIMATE_B2_HOSTED_OPEN_RESPONSE_SCHEMA_VERSION } from "../../data/ultimate-b2/hostedOpenResponseDraft.js";
 import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/openResponseActivityRegistry.js";
+import {
+  hostedTeacherImportAsSolution,
+  normalizeUltimateB2HostedOpenResponseImport,
+  normalizeUltimateB2HostedOpenResponseTeacherImport,
+} from "../../data/ultimate-b2/hostedOpenResponseImport.js";
 
 const routeRoot = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/open-response";
 
@@ -45,4 +50,35 @@ export function useHostedOpenResponseDraft(activityId) {
   }, [activityId]);
 
   return draft;
+}
+
+function validateImportEnvelope(value, activityId, kind) {
+  if (!exactKeys(value, ["activityId", "revision", "fingerprint", "document"]) || value.activityId !== activityId || !Number.isSafeInteger(value.revision) || value.revision < 1 || !/^[a-f0-9]{64}$/.test(value.fingerprint)) throw new Error("Invalid hosted Open Response import envelope.");
+  return kind === "public"
+    ? normalizeUltimateB2HostedOpenResponseImport(value.document, activityId)
+    : normalizeUltimateB2HostedOpenResponseTeacherImport(value.document, activityId);
+}
+
+export function useHostedOpenResponseImport(activityId) {
+  const [state, setState] = useState({ publicImport: null, teacherSolution: null, revision: 0 });
+  useEffect(() => {
+    setState({ publicImport: null, teacherSolution: null, revision: 0 });
+    if (!isUltimateB2ConfigurableOpenResponse(activityId)) return undefined;
+    const controller = new AbortController();
+    const fetchProjection = async (kind) => {
+      const response = await fetch(`/preview/open-response-${kind === "public" ? "import" : "teacher"}/${encodeURIComponent(activityId)}`, { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal });
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error("Hosted Open Response import preview is unavailable.");
+      const envelope = await response.json();
+      return { document: validateImportEnvelope(envelope, activityId, kind), revision: envelope.revision };
+    };
+    Promise.all([fetchProjection("public"), fetchProjection("teacher")]).then(([publicValue, teacherValue]) => {
+      if (controller.signal.aborted || !publicValue || !teacherValue || publicValue.revision !== teacherValue.revision) return;
+      setState({ publicImport: publicValue.document, teacherSolution: hostedTeacherImportAsSolution(teacherValue.document, activityId), revision: publicValue.revision });
+    }).catch(() => {
+      if (!controller.signal.aborted) setState({ publicImport: null, teacherSolution: null, revision: 0 });
+    });
+    return () => controller.abort();
+  }, [activityId]);
+  return state;
 }

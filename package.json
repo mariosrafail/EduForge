@@ -63,6 +63,7 @@
     "test:android-teacher-offline:viewports": "node scripts/android-teacher/viewport-matrix.mjs",
     "test:viewer:teacher-review": "node scripts/android-teacher/teacher-review-viewer-smoke.mjs",
     "test:builder:hosted-open-response": "node scripts/book-builder/hosted-open-response-playwright.mjs",
+    "test:builder:hosted-open-response-import": "node scripts/book-builder/hosted-open-response-import-playwright.mjs",
     "test:android-teacher-offline:fixed-stage": "node scripts/android-teacher/fixed-stage-matrix.mjs",
     "test:android-teacher-offline:legacy-visual": "node scripts/android-teacher/legacy-classroom-visual.mjs",
     "test:lms-branding-visual": "node scripts/lms-branding-visual.mjs",

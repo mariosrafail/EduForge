@@ -24,3 +24,21 @@
   to = "https://hhplms-builder.netlify.app/builder/preview/content/:splat"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/preview/open-response-import/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/open-response-import/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/preview/open-response-teacher/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/open-response-teacher/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/preview/open-response-assets/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/open-response-assets/:splat"
+  status = 200
+  force = true

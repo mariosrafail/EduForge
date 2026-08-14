@@ -114,6 +114,8 @@ test("hosted editor stays slim and Viewer integration is no-store, fail-safe, an
   assert.match(provider, /response\.status === 404/);
   assert.match(embedded, /activityPublicDraft=\{hostedOpenResponseDraft\}/);
   assert.match(normalized, /getOfflineTeacherSolution/);
-  assert.doesNotMatch(`${editor}\n${workspace}`, /UltimateB2OpenResponseBuilder|FormData|\.xml|repositoryFileTarget|android-teacher-offline/);
+  assert.match(editor, /prepareOpenResponseImport/);
+  assert.match(editor, /Save or deliberately reload your unsaved text edits/);
+  assert.doesNotMatch(`${editor}\n${workspace}`, /UltimateB2OpenResponseBuilder|FormData|repositoryFileTarget|android-teacher-offline/);
   assert.match(localEditor, /Open Response/);
 });

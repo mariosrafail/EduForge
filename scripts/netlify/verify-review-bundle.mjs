@@ -68,12 +68,18 @@ const targetPatterns = Object.freeze({
 
 async function verifyBuilderMutationSources() {
   const contentClientPath = path.resolve("src/apps/book-builder/hosted/builderContentApi.js");
-  const contentClient = await readFile(contentClientPath, "utf8");
+  const importClientPath = path.resolve("src/apps/book-builder/hosted/builderOpenResponseImportApi.js");
+  const [contentClient, importClient] = await Promise.all([readFile(contentClientPath, "utf8"), readFile(importClientPath, "utf8")]);
   assert.match(contentClient, /const builderContentApiRoot = ["']\/builder\/api\/content["']/);
   assert.match(contentClient, /method: ["']PUT["']/);
   assert.match(contentClient, /credentials: ["']same-origin["']/);
   assert.doesNotMatch(contentClient, /__hhplms|\/\.netlify\/functions|["']\/api\/|platform-admin|repositoryFileTarget|write-capability/i);
   assert.equal([...contentClient.matchAll(/method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/g)].length, 1);
+  assert.match(importClient, /const root = ["']\/builder\/api\/open-response-import["']/);
+  assert.match(importClient, /method: ["']POST["']/);
+  assert.match(importClient, /XMLHttpRequest/);
+  assert.match(importClient, /credentials: ["']same-origin["']/);
+  assert.doesNotMatch(importClient, /@aws-sdk|accessKey|secretAccessKey|\.netlify\/functions|FormData|base64/i);
 
   const hostedSources = [
     "src/apps/book-builder/hosted/hostedBuilderEntry.jsx",
@@ -156,14 +162,15 @@ async function sourceFilesUnder(root, relative = "") {
 async function verifyBuilderFunctionLayout() {
   const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
-  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-preview.js"]);
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-preview.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
+    "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview.js",
   ]);
-  for (const entry of ["builder-auth.js", "builder-content.js", "builder-preview.js"]) {
+  for (const entry of ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content|Preview)Handler\(\)/);
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content|OpenResponseImport|Preview)Handler\(\)/);
   }
 }
 
@@ -207,12 +214,13 @@ export async function verifyReviewBundle(targetName) {
   }
   if (targetName === "ultimate-b2-builder") {
     for (const route of builderApiRoutes) {
-      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content")) {
+      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content") && !route.startsWith("/builder/api/open-response-import")) {
         findings.push({ file: "<bundle>", label: "unapproved Builder API route", count: 1 });
       }
     }
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/auth")), "Builder auth route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/content")), "Builder content route is missing from bundle.");
+    assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/open-response-import")), "Builder source-import route is missing from bundle.");
   }
   assert.deepEqual(findings, [], `${targetName} contains forbidden hosted-review content:\n${JSON.stringify(findings, null, 2)}`);
   return { target: targetName, filesScanned: generic.filesScanned, findings: 0, status: "safe" };

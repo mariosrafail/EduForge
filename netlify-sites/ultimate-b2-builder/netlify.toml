@@ -22,8 +22,32 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/open-response-import/*"
+  to = "/.netlify/functions/builder-open-response-import/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/content/*"
   to = "/.netlify/functions/builder-preview/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/preview/open-response-import/*"
+  to = "/.netlify/functions/builder-open-response-import/preview/open-response-import/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/preview/open-response-teacher/*"
+  to = "/.netlify/functions/builder-open-response-import/preview/open-response-teacher/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/preview/open-response-assets/*"
+  to = "/.netlify/functions/builder-open-response-import/preview/open-response-assets/:splat"
   status = 200
   force = true
 

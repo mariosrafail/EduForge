@@ -58,7 +58,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
     HHPLMS_STAGING_QA_PASSWORD: "password123",
   };
   const result = await checkStagingDeployment(environment);
-  assert.equal(result.latest_migration, "032_builder_component_authoring.sql");
+  assert.equal(result.latest_migration, "033_builder_open_response_imports.sql");
   await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
   await assert.rejects(checkStagingDeployment({ ...environment, HHPLMS_STAGING_QA_PASSWORD: "not-canonical" }), /canonical password/);
 });
