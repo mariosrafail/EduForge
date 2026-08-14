@@ -77,7 +77,7 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
     },
     placement: normalizeNativeActivityPlacement(value.placement),
     assets,
-    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction: normalizeInteraction(part.interaction) }],
+    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction: normalizeInteraction(part.interaction, { assets }) }],
   };
 }
 
