@@ -16,6 +16,7 @@ function harness() {
   let indexState = null;
   const documents = new Map();
   const mutations = new Map();
+  const pairMutations = new Map();
   const handler = createBuilderNativeActivitiesHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
@@ -30,6 +31,18 @@ function harness() {
       documents.set(`native_activity_teacher:${input.activityId}`, { revision: 1, source: "database", document: input.teacherDocument });
       const result = { outcome: "created", activityId: input.activityId, indexRevision: indexState.revision, publicRevision: 1, teacherRevision: 1 };
       mutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
+      return result;
+    },
+    validateAssets: async () => true,
+    savePair: async (_sql, input) => {
+      const replay = pairMutations.get(input.clientMutationId);
+      if (replay) return replay.requestSha256 === input.requestSha256 ? { ...replay.result, outcome: "idempotent" } : { ...replay.result, outcome: "mutation_id_conflict" };
+      const publicState = documents.get(`native_activity_public:${input.activityId}`);
+      const teacherState = documents.get(`native_activity_teacher:${input.activityId}`);
+      if (publicState.revision !== input.expectedPublicRevision || teacherState.revision !== input.expectedTeacherRevision) return { outcome: "revision_conflict", currentPublicRevision: publicState.revision, currentTeacherRevision: teacherState.revision };
+      publicState.revision += 1; teacherState.revision += 1; publicState.document = input.publicDocument; teacherState.document = input.teacherDocument;
+      const result = { outcome: "saved", publicRevision: publicState.revision, teacherRevision: teacherState.revision, currentPublicRevision: publicState.revision, currentTeacherRevision: teacherState.revision };
+      pairMutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
       return result;
     },
     logger: { error() {} },
@@ -64,7 +77,7 @@ test("one create mutation produces index, public, and Teacher documents and repl
   assert.equal(JSON.parse(changed.body).error, "mutation_id_conflict");
 });
 
-test("generic content boundary keeps native public and Teacher resources authenticated and independently validated", async () => {
+test("native documents are authenticated reads and paired writes are the only mutation boundary", async () => {
   const { handler: create, documents } = harness();
   const created = JSON.parse((await create(request())).body);
   const content = createBuilderContentHandler({
@@ -82,8 +95,29 @@ test("generic content boundary keeps native public and Teacher resources authent
   assert.equal(JSON.parse(publicRejected.body).error, "private_document_key_rejected");
   const teacherDocument = documents.get(`native_activity_teacher:${created.activityId}`).document;
   const teacherSaved = await content(event("native-activity-teacher", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: teacherDocument }));
-  assert.equal(teacherSaved.statusCode, 200);
+  assert.equal(teacherSaved.statusCode, 400);
   const changedKind = { ...publicDocument, kind: "image" };
   assert.equal((await content(event("native-activity-public", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: changedKind }))).statusCode, 400);
   assert.equal(await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-public", "../../secret"), null);
+
+  const imageCreated = JSON.parse((await create(request({ body: { kind: "image", pageId, title: "Image metadata", clientMutationId: randomUUID() } }))).body);
+  const imagePublic = documents.get(`native_activity_public:${imageCreated.activityId}`).document; imagePublic.metadata.title = "Updated Image metadata";
+  const imageSaved = await content({ httpMethod: "PUT", path: `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/native-activity-public/${imageCreated.activityId}`, headers: { host: "builder.example", origin: "https://builder.example", cookie: "hh_builder_session=live", "content-type": "application/json" }, body: JSON.stringify({ expectedRevision: 1, clientMutationId: randomUUID(), document: imagePublic }) });
+  assert.equal(imageSaved.statusCode, 200);
+
+  const questionId = `q-${"a".repeat(32)}`;
+  publicDocument.parts[0].interaction.questions.push({ id: questionId, prompt: "Explain.", promptArea: { x: 20, y: 20, width: 400, height: 50 }, promptStyle: { fontFamily: "Arial", fontSize: 20, color: "#111827", align: "left" }, responseRegion: { id: `${questionId}-response`, ariaLabel: "Response for question 1", area: { x: 40, y: 100, width: 500, height: 120 }, presentation: { paddingX: 10, paddingY: 8, lineCount: 3, lineSpacing: 32, linePositions: [40, 72, 104], lineWidth: 480, answerFontFamily: "Arial", answerFontSizeMin: 12, answerFontSizeMax: 22, color: "#111827", align: "left" } } });
+  teacherDocument.parts[0].solution.modelAnswers.push({ questionId, text: "A private answer." });
+  const pairPath = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${created.activityId}/save`;
+  const mutationId = randomUUID();
+  const pairEvent = (body) => ({ httpMethod: "POST", path: pairPath, headers: { host: "builder.example", origin: "https://builder.example", cookie: "hh_builder_session=live", "content-type": "application/json" }, body: JSON.stringify(body) });
+  const pairBody = { expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: mutationId, publicDocument, teacherDocument };
+  const saved = await create(pairEvent(pairBody));
+  assert.equal(saved.statusCode, 200);
+  assert.equal(JSON.parse(saved.body).publicRevision, 2);
+  assert.equal(JSON.parse(saved.body).teacherRevision, 2);
+  assert.equal(JSON.stringify(JSON.parse(saved.body).publicDocument).includes("private answer"), false);
+  assert.equal(JSON.parse((await create(pairEvent(pairBody))).body).idempotent, true);
+  const stale = await create(pairEvent({ ...pairBody, clientMutationId: randomUUID() }));
+  assert.equal(stale.statusCode, 409);
 });

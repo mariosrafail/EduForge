@@ -5,6 +5,11 @@ const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 
 async function payload(response) { return response.json().catch(() => ({})); }
 
+function activityRoot(bookSlug, componentSlug, activityId) {
+  for (const value of [bookSlug, componentSlug, activityId]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity identity.");
+  return `${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}`;
+}
+
 export async function createNativeActivity({ bookSlug, componentSlug, kind, pageId, title }) {
   for (const value of [bookSlug, componentSlug, kind, pageId]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity creation identity.");
   const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/create`, {
@@ -16,4 +21,37 @@ export async function createNativeActivity({ bookSlug, componentSlug, kind, page
   const value = await payload(response);
   if (!response.ok) throw new Error(value.error || "Native activity could not be created.");
   return value;
+}
+
+export async function saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument }) {
+  const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/save`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument, clientMutationId: newBuilderClientMutationId() }),
+  });
+  const value = await payload(response);
+  if (!response.ok) {
+    const error = new Error(value.error || "Native activity could not be saved.");
+    error.status = response.status; error.payload = value; throw error;
+  }
+  return value;
+}
+
+export async function uploadNativeActivityArtwork({ bookSlug, componentSlug, activityId, assetSlot, file }) {
+  const base = activityRoot(bookSlug, componentSlug, activityId);
+  const clientMutationId = newBuilderClientMutationId();
+  const preparedResponse = await fetch(`${base}/assets/prepare`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: file.name, size: file.size, type: file.type, assetSlot, clientMutationId }),
+  });
+  const prepared = await payload(preparedResponse);
+  if (!preparedResponse.ok) throw new Error(prepared.error || "Artwork upload could not be prepared.");
+  const uploaded = await fetch(prepared.authorization.url, { method: "PUT", headers: prepared.authorization.headers, body: file });
+  if (!uploaded.ok) throw new Error("Artwork bytes could not be uploaded.");
+  const finalizedResponse = await fetch(`${base}/assets/finalize`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadId: prepared.uploadId, clientMutationId }),
+  });
+  const finalized = await payload(finalizedResponse);
+  if (!finalizedResponse.ok) throw new Error(finalized.error || "Artwork upload could not be finalized.");
+  return finalized;
 }

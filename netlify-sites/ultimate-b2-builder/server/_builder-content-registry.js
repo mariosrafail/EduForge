@@ -87,6 +87,7 @@ function nativeDocumentResource(bookSlug, componentSlug, resource, documentKey) 
     validate(document) { return teacher ? normalizeNativeActivityTeacherDocument(document, documentKey) : normalizeNativeActivityPublicDocument(document, documentKey); },
     async validateMutationContext({ document, currentDocument, loadRelated }) {
       if (currentDocument.activityId !== document.activityId || currentDocument.kind !== document.kind) throw new Error("Native activity identity and kind are immutable.");
+      if (document.kind === "open-response") throw new Error("Native Open Response mutations require the atomic paired save boundary.");
       const related = await loadRelated(teacher ? "native-activity-public" : "native-activity-teacher", documentKey);
       if (!related) throw new Error("Matching native activity document is unavailable.");
       validateNativeActivityPair(teacher ? related.document : document, teacher ? document : related.document);

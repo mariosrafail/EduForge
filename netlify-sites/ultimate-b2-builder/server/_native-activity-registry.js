@@ -5,6 +5,11 @@ import {
   normalizeNativeActivityPublic,
 } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { normalizeNativeActivityTeacher, validateNativeActivityDocumentPair } from "../../../src/data/native-activities/nativeActivityTeacher.js";
+import {
+  normalizeNativeOpenResponseInteraction,
+  normalizeNativeOpenResponseSolution,
+  validateNativeOpenResponseTopology,
+} from "../../../src/data/native-activities/nativeOpenResponse.js";
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -22,27 +27,11 @@ function integer(value, label, minimum, maximum) {
   return value;
 }
 
-function normalizeBlankOpenResponseInteraction(input) {
-  const value = structuredClone(object(input, "Native Open Response interaction"));
-  exactKeys(value, ["kind", "surface", "artwork", "questions"], "Native Open Response interaction");
-  if (value.kind !== "open-response") throw new Error("Native Open Response interaction kind is invalid.");
-  exactKeys(value.surface, ["width", "height"], "Native Open Response surface");
-  if (!Array.isArray(value.artwork) || value.artwork.length || !Array.isArray(value.questions) || value.questions.length) throw new Error("Phase 2 Open Response draft collections must be empty.");
-  return { kind: "open-response", surface: { width: integer(value.surface.width, "Native Open Response surface width", 1, 10_000), height: integer(value.surface.height, "Native Open Response surface height", 1, 10_000) }, artwork: [], questions: [] };
-}
-
 function normalizeBlankImageInteraction(input) {
   const value = structuredClone(object(input, "Native Image interaction"));
   exactKeys(value, ["kind", "image", "altText"], "Native Image interaction");
   if (value.kind !== "image" || value.image !== null || value.altText !== "") throw new Error("Phase 2 Image interaction must remain an empty structural draft.");
   return { kind: "image", image: null, altText: "" };
-}
-
-function normalizeBlankOpenResponseSolution(input) {
-  const value = structuredClone(object(input, "Native Open Response Teacher solution"));
-  exactKeys(value, ["kind", "modelAnswers"], "Native Open Response Teacher solution");
-  if (value.kind !== "open-response" || !Array.isArray(value.modelAnswers) || value.modelAnswers.length) throw new Error("Phase 2 Open Response Teacher solution must be empty.");
-  return { kind: "open-response", modelAnswers: [] };
 }
 
 function normalizeBlankImageSolution(input) {
@@ -52,7 +41,7 @@ function normalizeBlankImageSolution(input) {
   return { kind: "image" };
 }
 
-function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution) {
+function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null) {
   return Object.freeze({
     kind,
     label: nativeActivityKindLabels[kind],
@@ -64,12 +53,18 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
     },
     normalizePublic(document, expectedActivityId = null) { return normalizeNativeActivityPublic(document, { normalizeInteraction, expectedActivityId, expectedKind: kind }); },
     normalizeTeacher(document, expectedActivityId = null) { return normalizeNativeActivityTeacher(document, { normalizeSolution, expectedActivityId, expectedKind: kind }); },
-    validatePair(publicDocument, teacherDocument) { return validateNativeActivityDocumentPair(this.normalizePublic(publicDocument), this.normalizeTeacher(teacherDocument)); },
+    validatePair(publicDocument, teacherDocument) {
+      const normalizedPublic = this.normalizePublic(publicDocument);
+      const normalizedTeacher = this.normalizeTeacher(teacherDocument);
+      validateNativeActivityDocumentPair(normalizedPublic, normalizedTeacher);
+      if (validateTopology) validateTopology(normalizedPublic, normalizedTeacher);
+      return true;
+    },
   });
 }
 
 const registry = Object.freeze({
-  "open-response": definition("open-response", normalizeBlankOpenResponseInteraction, normalizeBlankOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] })),
+  "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology),
   image: definition("image", normalizeBlankImageInteraction, normalizeBlankImageSolution, () => ({ kind: "image", image: null, altText: "" }), () => ({ kind: "image" })),
 });
 
