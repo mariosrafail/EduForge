@@ -87,7 +87,7 @@ function Workspace({ book, component, tool }) {
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>
-      <WorkspaceComponent tool={tool} capabilities={adapter.capabilities} />
+      <WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} />
     </Suspense>
   </main>;
 }

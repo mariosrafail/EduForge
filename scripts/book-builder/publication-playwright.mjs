@@ -33,6 +33,7 @@ async function staticResponse(root, pathname, response, fallback) { const relati
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return sendJson(response, 200, { authenticated: true, builderUser: { id: "task-9", full_name: "Task 9 Browser", role: "developer", status: "active" } });
+  if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return sendJson(response, 200, { token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === publication && request.method === "GET") return sendJson(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", currentSourceSha256: sourceSha(), headRevision, published: activeReleaseId ? metadata(releases.find((release) => release.id === activeReleaseId)) : null, releases: [...releases].reverse().map(metadata) });
   if (url.pathname === `${publication}/prepare` && request.method === "POST") {
     const number = releases.length + 1; const release = { id: releaseIds[number - 1], number, sourceSha: sourceSha(), createdAt: `2026-08-14T10:0${number}:00Z`, ...projection(savedPrompt) }; releases.push(release);
@@ -76,7 +77,7 @@ try {
   assert.equal(frameUrl.searchParams.get("releaseId"), releaseIds[0]);
 
   const viewer = await context.newPage();
-  await viewer.goto(`https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseIds[0]}&view=activity&activityId=${activityId}`, { waitUntil: "domcontentloaded" });
+  await viewer.goto(`https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseIds[0]}&view=activity&activityId=${activityId}&previewAuthorization=${encodeURIComponent(`v1.eA.${"a".repeat(43)}`)}`, { waitUntil: "domcontentloaded" });
   await viewer.locator('[data-legacy-unit-opener-activity] h3').filter({ hasText: "Draft version A" }).waitFor();
   savedPrompt = "Draft version B"; sourceVersion = 2;
   await viewer.reload({ waitUntil: "domcontentloaded" });

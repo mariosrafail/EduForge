@@ -37,13 +37,15 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   const functionFiles = await filesUnder(new URL(`../${configuredFunctionsDirectory}/`, import.meta.url));
   const serverFiles = await filesUnder(new URL("../netlify-sites/ultimate-b2-builder/server/", import.meta.url));
   const supportedSource = /\.(?:[cm]?[jt]sx?|go)$/i;
-  const [builderAuthEntry, builderContentEntry, builderImportEntry, builderPreviewEntry, builderUiAssetsEntry, builderPublicationEntry] = await Promise.all([
+  const [builderAuthEntry, builderContentEntry, builderImportEntry, builderPreviewEntry, builderUiAssetsEntry, builderPublicationEntry, nativeEntry, previewAuthorizationEntry] = await Promise.all([
     read(`${configuredFunctionsDirectory}/builder-auth.js`),
     read(`${configuredFunctionsDirectory}/builder-content.js`),
     read(`${configuredFunctionsDirectory}/builder-open-response-import.js`),
     read(`${configuredFunctionsDirectory}/builder-preview.js`),
     read(`${configuredFunctionsDirectory}/builder-teacher-ui-assets.js`),
     read(`${configuredFunctionsDirectory}/builder-publication.js`),
+    read(`${configuredFunctionsDirectory}/builder-native-activities.js`),
+    read(`${configuredFunctionsDirectory}/builder-preview-authorization.js`),
   ]);
 
   assert.equal(tomlString(builderNetlify, "build", "command"), "npm run build:netlify:ultimate-b2-builder");
@@ -56,13 +58,13 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderNetlify, /from = "\/builder\/api\/open-response-import\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-open-response-import\/:splat"/);
   assert.match(builderNetlify, /from = "\/\*"[\s\S]*to = "\/ultimate-b2-builder\.html"/);
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
-  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
+  assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
   assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
-    "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js",
+    "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
     "_builder-publication-compiler.js", "_builder-publication-store.js", "_builder-publication.js",
-    "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js",
+    "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
@@ -70,10 +72,14 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderPreviewEntry, /export const handler = createBuilderPreviewHandler\(\)/);
   assert.match(builderUiAssetsEntry, /export const handler = createBuilderTeacherUiAssetsHandler\(\)/);
   assert.match(builderPublicationEntry, /export const handler = createBuilderPublicationHandler\(\)/);
+  assert.match(nativeEntry, /export const handler = createBuilderNativeActivitiesHandler\(\)/);
+  assert.match(previewAuthorizationEntry, /export const handler = createBuilderPreviewAuthorizationHandler\(\)/);
   assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}\n${builderImportEntry}\n${builderPreviewEntry}\n${builderUiAssetsEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
   assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/ui-assets\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-teacher-ui-assets\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/publication\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-publication\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/api\/native-activities\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-native-activities\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/api\/preview-authorization"[\s\S]*to = "\/\.netlify\/functions\/builder-preview-authorization"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 
   assert.equal(tomlString(rootNetlify, "build", "command"), "npm run deploy:build");
@@ -118,7 +124,7 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_LOCAL_AUTHORING).builderReadOnly, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderMutations, false);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).builderReadOnly, true);
-  assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots", "open-response", "ui-controller"]);
+  assert.deepEqual(resolveBuildProfile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW).hostedDocumentWrites, ["hotspots", "open-response", "ui-controller", "native-activity-public", "native-activity-teacher"]);
   assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
   assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
   assert.equal(reviewTargets["ultimate-b2-interactive"].profile, BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW);
@@ -203,7 +209,9 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
   assert.match(hosted, /HostedUltimateB2HotspotBuilder/);
   assert.match(hosted, /HostedViewerPreview/);
   assert.doesNotMatch(hosted, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|android-teacher-offline|ACTIVITY_MODES/);
-  assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|Add Activity|onPublisherActivityCreated/);
+  assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|onPublisherActivityCreated/);
+  assert.match(hosted, /Add Activity/);
+  assert.match(hosted, /NativeActivityFoundationEditor/);
   assert.match(hostedHotspots, /EditableHotspotLayer/);
   assert.match(hostedOpenResponse, /expectedRevision: revision/);
   assert.match(contentClient, /\/builder\/api\/content/);

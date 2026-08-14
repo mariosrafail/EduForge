@@ -63,7 +63,10 @@ test("adapter capabilities expose only hotspots and supported activities as writ
   assert.match(workspace, /Open Response · Editable/);
   assert.match(workspace, /Unsupported type · Read-only/);
   assert.doesNotMatch(workspace, /ReadOnlyBanner|persistence pending/);
-  assert.doesNotMatch(workspace, /Add Activity|Create Activity|upload|FormData/i);
+  assert.match(workspace, /Add Activity/);
+  assert.match(workspace, /NativeActivityFoundationEditor/);
+  assert.match(workspace, /Not included in publication v1 or the live LMS/);
+  assert.doesNotMatch(workspace, /upload|FormData/i);
 });
 
 test("hosted and local hotspot persistence transports stay deliberately separate", async () => {

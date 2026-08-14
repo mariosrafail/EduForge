@@ -28,6 +28,10 @@ const server = createServer(async (request, response) => {
     const body = JSON.stringify({ authenticated: true, builderUser: { id: "task-8", full_name: "Task 8 Browser", role: "developer", status: "active" } });
     response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
   }
+  if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") {
+    const body = JSON.stringify({ token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
+    response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
+  }
   await staticFile(builderRoot, url.pathname, response);
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

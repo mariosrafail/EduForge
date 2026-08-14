@@ -121,6 +121,7 @@ function builderEnvelope() {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: actorId, full_name: "Task 7 Browser", role: "developer", status: "active" } });
+  if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === contentPath && request.method === "GET") return json(response, 200, builderEnvelope());
   if (url.pathname === "/test/force-conflict" && request.method === "POST") { forceConflict = true; return json(response, 200, { ok: true }); }
   if (url.pathname.startsWith("/object-upload/") && request.method === "PUT") {
