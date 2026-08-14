@@ -153,7 +153,12 @@ begin
   if session.client_mutation_id <> requested_client_mutation_id or session.expected_revision <> requested_expected_revision then
     return query select 'session_identity_conflict'::text, null::bigint, session.state, session.activity_key, null::jsonb; return;
   end if;
-  select coalesce((select revision from builder_open_response_imports where book_component_id=session.book_component_id and activity_key=session.activity_key),0) into current_import_revision;
+  select coalesce((
+    select current_row.revision
+    from builder_open_response_imports current_row
+    where current_row.book_component_id=session.book_component_id
+      and current_row.activity_key=session.activity_key
+  ),0) into current_import_revision;
   if session.state='succeeded' then return query select 'idempotent'::text,current_import_revision,session.state,session.activity_key,session.file_descriptors; return; end if;
   if session.state='finalizing' then return query select 'finalize_in_progress'::text,current_import_revision,session.state,session.activity_key,null::jsonb; return; end if;
   if session.state<>'prepared' then return query select 'invalid_session_state'::text,current_import_revision,session.state,session.activity_key,null::jsonb; return; end if;
@@ -185,7 +190,11 @@ begin
   if session.client_mutation_id<>requested_client_mutation_id or session.expected_revision<>requested_expected_revision then return query select 'session_identity_conflict'::text,null::bigint,null::bigint,null::text; return; end if;
   if session.state='succeeded' then return query select 'idempotent'::text,session.resulting_revision,session.resulting_revision,session.fingerprint_sha256; return; end if;
   if session.state<>'finalizing' then return query select 'invalid_session_state'::text,null::bigint,null::bigint,null::text; return; end if;
-  select * into current_import from builder_open_response_imports where book_component_id=session.book_component_id and activity_key=session.activity_key for update;
+  select current_row.* into current_import
+  from builder_open_response_imports current_row
+  where current_row.book_component_id=session.book_component_id
+    and current_row.activity_key=session.activity_key
+  for update;
   if coalesce(current_import.revision,0)<>requested_expected_revision then return query select 'revision_conflict'::text,null::bigint,coalesce(current_import.revision,0),null::text; return; end if;
   next_revision := requested_expected_revision + 1;
   if current_import.id is null then
