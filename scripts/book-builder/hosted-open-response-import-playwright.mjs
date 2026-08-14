@@ -117,12 +117,16 @@ try {
   const page = await context.newPage(); page.setDefaultTimeout(45_000);
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   const activityTitle = findStudentsBookImplementation(activityId).title;
-  await page.locator(".activity-builder-sidebar button").filter({ hasText: activityTitle }).click();
+  const targetActivityButton = () => page.locator(".activity-builder-sidebar section")
+    .filter({ has: page.getByRole("heading", { name: "Unit 2", exact: true }) })
+    .locator("button")
+    .filter({ hasText: activityTitle });
+  await targetActivityButton().click();
   let editor = page.locator(".b2-hosted-open-response-editor"); await editor.getByText("Import revision 0", { exact: true }).waitFor();
   const frame = () => page.frameLocator('iframe[title^="Canonical Viewer activity preview"]');
   await editor.locator('input[type="file"]').setInputFiles(goodFiles);
   await editor.getByRole("button", { name: "Upload and import publisher source" }).click();
-  await editor.getByText("Validating and finalizingâ€¦", { exact: true }).waitFor();
+  await editor.getByText("Validating and finalizing…", { exact: true }).waitFor();
   assert.equal(await frame().getByText("Imported question 1?", { exact: false }).count(), 0, "Viewer changed before commit");
   await editor.getByText("Import committed. The canonical Teacher Review Viewer has refreshed.").waitFor();
   await frame().getByText("Imported question 1?", { exact: false }).waitFor();
@@ -131,7 +135,7 @@ try {
   await frame().getByText("Imported model 1.1", { exact: false }).waitFor();
   const fingerprint = currentImport.fingerprint;
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".activity-builder-sidebar button").filter({ hasText: activityTitle }).click();
+  await targetActivityButton().click();
   editor = page.locator(".b2-hosted-open-response-editor"); await editor.getByText("Import revision 1", { exact: true }).waitFor(); await editor.getByText(fingerprint, { exact: true }).waitFor();
   await editor.getByRole("button", { name: "Edit public authoring" }).click();
   await editor.locator("textarea").nth(1).fill("Task 5 overlay after import");
