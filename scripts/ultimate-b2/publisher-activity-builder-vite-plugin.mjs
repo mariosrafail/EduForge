@@ -11,7 +11,7 @@ import {
 } from "../../src/data/ultimate-b2/publisherCreatedActivities.js";
 import { ultimateB2StudentsBookAuthoringActivities, ultimateB2StudentsBookAuthoringPages } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { normalizeUltimateB2ImageAuthoring } from "../../src/data/ultimate-b2/imageAuthoringSchema.js";
-import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
+import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.js";
 import { markUltimateB2PublisherActivityFilesystemSynced, projectUltimateB2PublisherActivity } from "./publisher-activity-projection.mjs";
 import { assertStudentSafe, resolveUltimateB2ContentRoot, sha256 } from "./content-workspace.mjs";
 

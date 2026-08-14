@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { handler as deployableHandler } from "../netlify-sites/ultimate-b2-builder/functions/builder-open-response-import.js";
 import { createBuilderOpenResponseImportHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-open-response-import.js";
-import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.mjs";
+import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.js";
 import { applyUltimateB2HostedOpenResponseDraft, createUltimateB2HostedOpenResponseSeed } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { applyUltimateB2HostedOpenResponseImport } from "../src/data/ultimate-b2/hostedOpenResponseImport.js";
 import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
@@ -13,6 +15,19 @@ const activityId = "ultimate-b2-sb-u2-p1-o1";
 const actorId = "10000000-0000-4000-8000-000000000001";
 const originHeaders = { host: "builder.example", origin: "https://builder.example", "content-type": "application/json" };
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+test("deployable Function entry starts without eagerly loading the deterministic importer graph", async () => {
+  const [serverSource, limitsSource] = await Promise.all([
+    readFile(new URL("../netlify-sites/ultimate-b2-builder/server/_builder-open-response-import.js", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/ultimate-b2/open-response-import-limits.js", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(serverSource, /^import .*open-response-(?:hosted-import|publisher-importer)/m);
+  assert.match(serverSource, /await import\("\.\.\/\.\.\/\.\.\/scripts\/ultimate-b2\/open-response-hosted-import\.js"\)/);
+  assert.doesNotMatch(limitsSource, /fast-xml-parser|sharp|hosted-import|publisher-importer/);
+  const response = await deployableHandler(event("/.netlify/functions/builder-open-response-import/prepare", undefined, "OPTIONS", {}));
+  assert.equal(response.statusCode, 204);
+  assert.equal(response.body, "");
+});
 
 class MemoryStorage {
   objects = new Map();
@@ -76,6 +91,35 @@ test("authenticated prepare creates exact opaque private keys and scoped upload 
   assert.doesNotMatch(response.body, /accessKey|secret|objectKey|bucket/i);
 });
 
+test("prepare and public assets return safe schema/storage diagnostics after Function startup", async () => {
+  const valid = [{ name: "obj_params.xml", size: 100, type: "application/xml" }, { name: "ebook_obj_params.xml", size: 100, type: "application/xml" }, { name: "image_1.png", size: 100, type: "image/png" }];
+  const logs = [];
+  const base = { getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actorId } }), logger: { error(_message, fields) { logs.push(fields); } } };
+  const schemaHandler = createBuilderOpenResponseImportHandler({ ...base, prepare: async () => { throw Object.assign(new Error("private database detail"), { code: "42P01" }); } });
+  const schemaResponse = await schemaHandler(event("/builder/api/open-response-import/prepare", { activityId, expectedRevision: 0, clientMutationId: randomUUID(), files: valid }));
+  assert.equal(schemaResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(schemaResponse.body), { error: "open_response_schema_unavailable" });
+  assert.doesNotMatch(schemaResponse.body, /private database detail|42P01/i);
+
+  const storageHandler = createBuilderOpenResponseImportHandler({
+    ...base,
+    storage: () => { throw Object.assign(new Error("private storage detail"), { code: "storage_config" }); },
+    prepare: async (_sql, input) => ({ outcome: "prepared", uploadId: input.uploadId, state: "prepared", fileDescriptors: input.fileDescriptors }),
+  });
+  const prepareResponse = await storageHandler(event("/builder/api/open-response-import/prepare", { activityId, expectedRevision: 0, clientMutationId: randomUUID(), files: valid }));
+  assert.equal(prepareResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(prepareResponse.body), { error: "open_response_storage_unavailable" });
+  const assetResponse = await storageHandler(event(`/preview/open-response-assets/${"0".repeat(64)}.png`, undefined, "GET", {}));
+  assert.equal(assetResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(assetResponse.body), { error: "open_response_storage_unavailable" });
+  assert.doesNotMatch(`${prepareResponse.body}${assetResponse.body}`, /private storage detail|storage_config/i);
+  assert.deepEqual(logs.map(({ category, code }) => ({ category, code })), [
+    { category: "schema", code: "42P01" },
+    { category: "storage", code: "storage_config" },
+    { category: "storage", code: "storage_config" },
+  ]);
+});
+
 test("prepare rejects unauthenticated, unsupported, traversal, duplicate, missing XML, and oversized metadata", async () => {
   const storage = new MemoryStorage();
   const handler = createBuilderOpenResponseImportHandler({ getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actorId } }), storage: () => storage, logger: { error() {} } });
@@ -103,10 +147,11 @@ test("finalize reads exact private bytes, promotes public rasters, archives sour
   const mutation = randomUUID();
   const descriptors = files.map((file) => ({ name: file.name, size: file.bytes.length, type: file.name.endsWith(".xml") ? "application/xml" : "image/png", role: file.name === "obj_params.xml" ? "obj_params" : file.name === "ebook_obj_params.xml" ? "ebook_obj_params" : "raster", fileId: randomUUID(), objectKey: `builder-imports/ultimate-b2/ultimate-b2-students-book/${activityId}/${uploadId}/staging/${randomUUID()}` }));
   files.forEach((file, index) => storage.objects.set(storage.key("private", descriptors[index].objectKey), { body: file.bytes, contentType: descriptors[index].type }));
-  let committed;
+  let committed; let importerLoads = 0;
   const handler = createBuilderOpenResponseImportHandler({
     getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actorId } }), storage: () => storage,
     claim: async () => ({ outcome: "claimed", currentRevision: 0, state: "finalizing", activityId, fileDescriptors: descriptors }),
+    loadImporter: async () => { importerLoads += 1; return importUltimateB2HostedOpenResponseBundle; },
     commit: async (_sql, input) => { committed = input; return { outcome: "saved", revision: 1, currentRevision: 1, fingerprint: input.fingerprint }; },
     logger: { error() {} },
   });
@@ -118,6 +163,7 @@ test("finalize reads exact private bytes, promotes public rasters, archives sour
   assert.equal(storage.uploads.filter((item) => item.profile === "archive").length, 3);
   assert.equal(descriptors.every((item) => !storage.objects.has(storage.key("private", item.objectKey))), true);
   assert.equal(committed.archiveManifest.files.every((item) => item.objectKey && item.checksumSha256), true);
+  assert.equal(importerLoads, 1);
 });
 
 test("finalize rejects missing/corrupt/oversized actual objects without committing a replacement", async () => {

@@ -10,7 +10,7 @@ import { createServer } from "vite";
 import {
   OPEN_RESPONSE_IMPORT_LIMITS,
   importUltimateB2OpenResponsePublisherBundle,
-} from "../scripts/ultimate-b2/open-response-publisher-importer.mjs";
+} from "../scripts/ultimate-b2/open-response-publisher-importer.js";
 import { ultimateB2OpenResponseBuilderPlugin } from "../scripts/ultimate-b2/open-response-builder-vite-plugin.mjs";
 import { buildUltimateB2ActivityNavigation } from "../src/apps/ultimate-b2-builder/activityBuilderNavigation.js";
 import { ultimateB2ActivityEditorMetadata } from "../src/apps/ultimate-b2-builder/activityEditorMetadata.js";

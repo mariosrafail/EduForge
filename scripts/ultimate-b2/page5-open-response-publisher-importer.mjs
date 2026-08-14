@@ -6,7 +6,7 @@ import {
   normalizeUltimateB2Page5TeacherAnswers,
   ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID,
 } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
-import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
+import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.js";
 
 export const PAGE5_OPEN_RESPONSE_SOURCE_FILES = Object.freeze(["obj_params.xml", "ebook_obj_params.xml", "image_1.png", "image_2.png"]);
 export const PAGE5_OPEN_RESPONSE_SOURCE_KIND = "decoded-publisher-iwb";

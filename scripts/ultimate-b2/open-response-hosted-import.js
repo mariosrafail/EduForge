@@ -7,7 +7,7 @@ import {
   ULTIMATE_B2_HOSTED_OPEN_RESPONSE_IMPORT_SCHEMA_VERSION,
   ULTIMATE_B2_HOSTED_OPEN_RESPONSE_TEACHER_SCHEMA_VERSION,
 } from "../../src/data/ultimate-b2/hostedOpenResponseImport.js";
-import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
+import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.js";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const stableJson = (value) => Array.isArray(value)

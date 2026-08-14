@@ -4,21 +4,15 @@ import path from "node:path";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import sharp from "sharp";
 
+import { OPEN_RESPONSE_IMPORT_LIMITS } from "./open-response-import-limits.js";
+
 import {
   normalizeUltimateB2OpenResponseAuthoring,
   normalizeUltimateB2OpenResponseTeacherAnswers,
 } from "../../src/data/ultimate-b2/openResponseAuthoringSchema.js";
 
 export const OPEN_RESPONSE_PARAMETER_BASENAMES = Object.freeze(["obj_params", "ebook_obj_params"]);
-export const OPEN_RESPONSE_IMPORT_LIMITS = Object.freeze({
-  files: 34,
-  xmlBytes: 512 * 1024,
-  rasterBytes: 12 * 1024 * 1024,
-  totalBytes: 64 * 1024 * 1024,
-  pixels: 40_000_000,
-  width: 8192,
-  height: 8192,
-});
+export { OPEN_RESPONSE_IMPORT_LIMITS } from "./open-response-import-limits.js";
 
 const rasterExtensions = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 const parser = new XMLParser({

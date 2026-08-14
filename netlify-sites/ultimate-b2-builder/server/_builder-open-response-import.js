@@ -7,8 +7,7 @@ import {
   buildBookAssetHostedOpenResponsePublicKey,
   buildBookAssetImportStagingKey,
 } from "../../../lib/book-assets/object-keys.js";
-import { importUltimateB2HostedOpenResponseBundle } from "../../../scripts/ultimate-b2/open-response-hosted-import.mjs";
-import { OPEN_RESPONSE_IMPORT_LIMITS } from "../../../scripts/ultimate-b2/open-response-publisher-importer.mjs";
+import { OPEN_RESPONSE_IMPORT_LIMITS } from "../../../scripts/ultimate-b2/open-response-import-limits.js";
 import { assertPublicBuilderDocument, builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
@@ -120,6 +119,20 @@ function importJson(statusCode, body) {
   return json(statusCode, body, { "X-Content-Type-Options": "nosniff" });
 }
 
+function safeDiagnosticCode(error) {
+  return /^[A-Za-z0-9_.-]{1,64}$/.test(String(error?.code || "")) ? error.code : "unknown";
+}
+
+function unavailable(logger, category, error) {
+  logger.error("Builder Open Response import dependency unavailable", { category, code: safeDiagnosticCode(error) });
+  return importJson(503, { error: `open_response_${category}_unavailable` });
+}
+
+async function loadAuthoritativeImporter() {
+  const module = await import("../../../scripts/ultimate-b2/open-response-hosted-import.js");
+  return module.importUltimateB2HostedOpenResponseBundle;
+}
+
 export function createBuilderOpenResponseImportHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
@@ -131,7 +144,8 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
     commit: overrides.commit || commitOpenResponseImport,
     fail: overrides.fail || failOpenResponseImportSession,
     loadCurrent: overrides.loadCurrent || loadCurrentOpenResponseImport,
-    importer: overrides.importer || importUltimateB2HostedOpenResponseBundle,
+    importer: overrides.importer || null,
+    loadImporter: overrides.loadImporter || loadAuthoritativeImporter,
     now: overrides.now || (() => Date.now()),
     randomUuid: overrides.randomUuid || randomUUID,
     logger: overrides.logger || console,
@@ -158,7 +172,8 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
       }
       if (assetMatch) {
         if (event.httpMethod !== "GET" && event.httpMethod !== "HEAD") return importJson(405, { error: "method_not_allowed" });
-        const storage = dependencies.storage();
+        let storage;
+        try { storage = dependencies.storage(); } catch (error) { return unavailable(dependencies.logger, "storage", error); }
         const objectKey = buildBookAssetHostedOpenResponsePublicKey({ checksum: assetMatch[1], extension: `.${assetMatch[2]}` });
         try { await storage.head({ profile: "public", objectKey }); } catch { return importJson(404, { error: "asset_not_found" }); }
         return { statusCode: 302, headers: { Location: storage.publicUrl(objectKey), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" }, body: "" };
@@ -197,14 +212,24 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
           return { ...file, fileId, objectKey: buildBookAssetImportStagingKey({ ...identity, activityId, uploadId, fileId }) };
         });
         const requestSha256 = sha256(stableBuilderJson({ activityId, expectedRevision, files }));
-        const prepared = await dependencies.prepare(sql, { ...identity, activityId, expectedRevision, clientMutationId, uploadId, requestSha256, fileDescriptors: descriptors, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + openResponseImportSessionTtlSeconds * 1000).toISOString() });
+        let prepared;
+        try {
+          prepared = await dependencies.prepare(sql, { ...identity, activityId, expectedRevision, clientMutationId, uploadId, requestSha256, fileDescriptors: descriptors, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + openResponseImportSessionTtlSeconds * 1000).toISOString() });
+        } catch (error) {
+          return unavailable(dependencies.logger, "schema", error);
+        }
         if (prepared.outcome === "revision_conflict") return importJson(409, { error: "revision_conflict", currentRevision: prepared.currentRevision });
         if (prepared.outcome === "mutation_id_conflict") return importJson(409, { error: "mutation_id_conflict", currentRevision: prepared.currentRevision });
         if (!new Set(["prepared", "idempotent"]).has(prepared.outcome)) return importJson(prepared.outcome === "resource_not_found" ? 404 : 400, { error: prepared.outcome });
         if (prepared.state !== "prepared") return importJson(409, { error: "invalid_session_state", state: prepared.state });
         const storedDescriptors = prepared.fileDescriptors;
-        const storage = dependencies.storage();
-        const uploads = await Promise.all(storedDescriptors.map(async (descriptor) => ({ fileId: descriptor.fileId, name: descriptor.name, size: descriptor.size, role: descriptor.role, authorization: await storage.signedPutUrl({ profile: "private", objectKey: descriptor.objectKey, contentType: descriptor.type, ttlSeconds: openResponseImportSessionTtlSeconds }) })));
+        let uploads;
+        try {
+          const storage = dependencies.storage();
+          uploads = await Promise.all(storedDescriptors.map(async (descriptor) => ({ fileId: descriptor.fileId, name: descriptor.name, size: descriptor.size, role: descriptor.role, authorization: await storage.signedPutUrl({ profile: "private", objectKey: descriptor.objectKey, contentType: descriptor.type, ttlSeconds: openResponseImportSessionTtlSeconds }) })));
+        } catch (error) {
+          return unavailable(dependencies.logger, "storage", error);
+        }
         return importJson(200, { uploadId: prepared.uploadId, activityId, expectedRevision, expiresIn: openResponseImportSessionTtlSeconds, idempotent: prepared.outcome === "idempotent", uploads });
       }
 
@@ -237,7 +262,8 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
           const files = await Promise.all(descriptors.map(async (descriptor) => ({ name: descriptor.name, bytes: await storage.download({ profile: "private", objectKey: descriptor.objectKey }) })));
           files.forEach((file, index) => { if (file.bytes.length !== descriptors[index].size) throw new Error("actual_object_size_mismatch"); });
           const expectedQuestionIds = resource.baseline().questions.map((question) => question.id);
-          const imported = await dependencies.importer({ activityId: claimed.activityId, files, expectedQuestionIds, assetPathFor: publicAssetPath });
+          const importer = dependencies.importer || await dependencies.loadImporter();
+          const imported = await importer({ activityId: claimed.activityId, files, expectedQuestionIds, assetPathFor: publicAssetPath });
           assertPublicBuilderDocument(imported.publicProjection);
           const persisted = await uploadAuthoritativeOutputs(storage, imported, files);
           const committed = await dependencies.commit(sql, { uploadId, expectedRevision, clientMutationId, fingerprint: imported.fingerprint, publicProjection: imported.publicProjection, teacherProjection: imported.teacherProjection, archiveManifest: persisted.archiveManifest, builderUserId: auth.builderUser.id });

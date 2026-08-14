@@ -10,7 +10,7 @@ import {
 import { normalizeUltimateB2PublisherActivityRegistry } from "../../src/data/ultimate-b2/publisherCreatedActivities.js";
 import { ultimateB2StudentsBookAuthoringPages } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { ULTIMATE_B2_PAGE5_OPEN_RESPONSE_ID } from "../../src/data/ultimate-b2/page5AuthoringSchema.js";
-import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.mjs";
+import { importUltimateB2OpenResponsePublisherBundle } from "./open-response-publisher-importer.js";
 import { markUltimateB2PublisherActivityFilesystemSynced, projectUltimateB2PublisherActivity } from "./publisher-activity-projection.mjs";
 import { normalizeWorkspaceRelativePath, resolveUltimateB2ContentRoot, sha256 } from "./content-workspace.mjs";
 
