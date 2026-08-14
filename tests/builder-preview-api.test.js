@@ -151,3 +151,18 @@ test("private keys are rejected before projection and can never be serialized", 
   assert.deepEqual(parsed(response), { error: "builder_preview_failed" });
   assert.doesNotMatch(response.body, /teacherSolution|must-not-escape/i);
 });
+
+test("Teacher UI draft preview requires explicit Builder/scoped authorization", async () => {
+  const teacherResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "ui-controller");
+  const teacherRoute = "/builder/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
+  const document = teacherResource.baseline();
+  const handler = createBuilderPreviewHandler({
+    getDatabase: () => ({}),
+    authorizePreview: async (request) => request.headers["x-preview-authorized"] === "yes",
+    loadDocument: async () => ({ revision: 1, source: "database", document }),
+  });
+  assert.equal((await handler(event("GET", teacherRoute))).statusCode, 401);
+  const authorized = await handler(event("GET", teacherRoute, { "x-preview-authorized": "yes" }));
+  assert.equal(authorized.statusCode, 200);
+  assert.deepEqual(parsed(authorized).document, teacherResource.projectPreview(document));
+});

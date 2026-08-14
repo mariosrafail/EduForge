@@ -189,12 +189,14 @@ test("public and Teacher preview endpoints are exact, no-store, minimal, and sep
   const files = await task6SourceBundle();
   const ids = [1, 2, 3].map((number) => `${activityId}-q${number}`);
   const imported = await importUltimateB2HostedOpenResponseBundle({ activityId, files, expectedQuestionIds: ids, assetPathFor: (sha, extension) => `/preview/open-response-assets/${sha}${extension}` });
-  const handler = createBuilderOpenResponseImportHandler({ getDatabase: () => ({}), loadCurrent: async () => ({ revision: 2, fingerprint: imported.fingerprint, publicProjection: imported.publicProjection, teacherProjection: imported.teacherProjection }), logger: { error() {} } });
+  const handler = createBuilderOpenResponseImportHandler({ getDatabase: () => ({}), authorizePreview: async (request) => request.headers["x-preview-authorized"] === "yes", loadCurrent: async () => ({ revision: 2, fingerprint: imported.fingerprint, publicProjection: imported.publicProjection, teacherProjection: imported.teacherProjection }), logger: { error() {} } });
   const publicResponse = await handler(event(`/preview/open-response-import/${activityId}`, undefined, "GET", {}));
-  const teacherResponse = await handler(event(`/preview/open-response-teacher/${activityId}`, undefined, "GET", {}));
+  const anonymousTeacher = await handler(event(`/preview/open-response-teacher/${activityId}`, undefined, "GET", {}));
+  const teacherResponse = await handler(event(`/preview/open-response-teacher/${activityId}`, undefined, "GET", { "x-preview-authorized": "yes" }));
   assert.equal(publicResponse.statusCode, 200);
   assert.equal(publicResponse.headers["Cache-Control"], "no-store");
   assert.doesNotMatch(publicResponse.body, /Imported model|teacher|archive|objectKey/i);
+  assert.equal(anonymousTeacher.statusCode, 401);
   assert.match(teacherResponse.body, /Imported model 1\.1/);
   assert.doesNotMatch(teacherResponse.body, /archive|objectKey|obj_params/i);
   assert.equal((await handler(event(`/preview/open-response-import/ultimate-b2-sb-u1-p1-o2`, undefined, "GET", {}))).statusCode, 404);

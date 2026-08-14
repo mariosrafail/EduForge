@@ -1,4 +1,5 @@
 import { getBuilderSql, json } from "./_builder-auth.js";
+import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument } from "./_builder-content-security.js";
 import { loadBuilderComponentDocument } from "./_builder-content-store.js";
@@ -70,6 +71,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
     getDatabase: overrides.getDatabase || getBuilderSql,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest,
     logger: overrides.logger || console,
   };
 
@@ -86,6 +88,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
 
       stage = "database";
       const sql = dependencies.getDatabase();
+      if (resource.previewAudience === "teacher" && !(await dependencies.authorizePreview(event, sql, { action: "teacher-ui-draft", bookSlug: resource.bookSlug, componentSlug: resource.componentSlug }))) return previewJson(401, { error: "Unauthorized" });
       stage = "load_document";
       let state = await dependencies.loadDocument(sql, resource);
       if (!state) {

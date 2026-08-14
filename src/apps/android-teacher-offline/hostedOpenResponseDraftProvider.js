@@ -7,7 +7,7 @@ import {
   normalizeUltimateB2HostedOpenResponseImport,
   normalizeUltimateB2HostedOpenResponseTeacherImport,
 } from "../../data/ultimate-b2/hostedOpenResponseImport.js";
-import { currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
+import { authorizedHostedPreviewPath, currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
 import { createUltimateB2HostedOpenResponseSeed } from "../../data/ultimate-b2/hostedOpenResponseDraft.js";
 import { hydrateUltimateB2ReleaseImport } from "../../data/ultimate-b2/componentPublication.js";
 import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsBookCatalog.js";
@@ -88,7 +88,8 @@ export function useHostedOpenResponseImport(activityId) {
       return () => controller.abort();
     }
     const fetchProjection = async (kind) => {
-      const response = await fetch(`/preview/open-response-${kind === "public" ? "import" : "teacher"}/${encodeURIComponent(activityId)}`, { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal });
+      const path = `/preview/open-response-${kind === "public" ? "import" : "teacher"}/${encodeURIComponent(activityId)}`;
+      const response = await fetch(kind === "teacher" ? authorizedHostedPreviewPath(path) : path, { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error("Hosted Open Response import preview is unavailable.");
       const envelope = await response.json();

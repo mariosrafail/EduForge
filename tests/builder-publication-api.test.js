@@ -20,6 +20,7 @@ function harness() {
   let published = false;
   const handler = createBuilderPublicationHandler({
     getDatabase: () => ({}), authorize: async (request) => request.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
+    authorizePreview: async (request) => request.headers["x-preview-authorized"] === "yes",
     collect: async () => ({}), compile: () => currentRelease, storage: () => ({ head: async () => ({ byteSize: 1, checksumSha256: "a".repeat(64) }), publicUrl: () => "https://assets.example/object" }),
     create: async (_sql, input) => ({ outcome: "created", releaseId: id, releaseNumber: 1, releaseSha256: input.releaseSha256 }),
     status: async () => ({ headRevision: published ? 1 : 0, published: published ? { id, number: 1, sourceSnapshotSha256: release.sourceSnapshotSha256 } : null, releases: [{ id, number: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, createdAt: "2026-01-01T00:00:00Z" }] }),
@@ -71,7 +72,9 @@ test("release preview is pinned by strict component-owned UUID and exposes proje
   assert.equal(publicResponse.statusCode, 200);
   assert.ok(parsed(publicResponse).projection.activities);
   assert.equal("teacherProjection" in parsed(publicResponse), false);
-  assert.equal((await handler(event(`${prefix}/teacher-ui`, "GET", null, { cookie: "" }))).statusCode, 200);
+  assert.equal((await handler(event(`${prefix}/teacher-ui`, "GET", null, { cookie: "" }))).statusCode, 401);
+  assert.equal((await handler(event(`${prefix}/teacher-ui`, "GET", null, { cookie: "", "x-preview-authorized": "yes" }))).statusCode, 200);
+  assert.equal((await handler(event(`${prefix}/teacher-solution/ultimate-b2-sb-u1-p1-o1`, "GET", null, { cookie: "" }))).statusCode, 401);
   assert.equal((await handler(event(`${prefix}/assets/${"a".repeat(64)}.png`, "HEAD", null, { cookie: "" }))).statusCode, 404);
   assert.equal((await handler(event(`${prefix}/assets/${"a".repeat(64)}.png`, "POST", null, { cookie: "" }))).statusCode, 405);
   assert.equal((await handler(event(`/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-workbook/${id}/public`, "GET", null, { cookie: "" }))).statusCode, 404);

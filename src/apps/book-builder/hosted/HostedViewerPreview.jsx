@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { createHostedViewerPreviewUrl } from "./hostedViewerPreviewUrl.js";
+import { createBuilderPreviewAuthorization } from "./builderPreviewAuthorizationApi.js";
 
 export function HostedViewerPreview({
   intent,
@@ -10,9 +11,19 @@ export function HostedViewerPreview({
   title,
   description = "",
 }) {
-  const src = createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug });
+  const [authorization, setAuthorization] = useState(null);
+  const [authorizationError, setAuthorizationError] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(0);
   const [frameState, setFrameState] = useState("loading");
+  useEffect(() => {
+    const controller = new AbortController();
+    setAuthorization(null); setAuthorizationError(false);
+    createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal: controller.signal })
+      .then((value) => { if (!controller.signal.aborted) setAuthorization(value.token); })
+      .catch(() => { if (!controller.signal.aborted) setAuthorizationError(true); });
+    return () => controller.abort();
+  }, [bookSlug, componentSlug, intent.view, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
+  const src = authorization ? createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug, previewAuthorization: authorization }) : "";
   const frameKey = `${src}:${refreshKey}:${manualRefresh}`;
 
   useEffect(() => setFrameState("loading"), [frameKey]);
@@ -22,13 +33,13 @@ export function HostedViewerPreview({
       <div><strong>{title}</strong>{description ? <span>{description}</span> : null}</div>
       <div>
         <button type="button" onClick={() => { setFrameState("loading"); setManualRefresh((value) => value + 1); }}>Refresh Viewer</button>
-        <a href={src} target="_blank" rel="noreferrer">Open in Viewer</a>
+        {src ? <a href={src} target="_blank" rel="noreferrer">Open in Viewer</a> : null}
       </div>
     </header>
     <p className="hosted-viewer-preview-state" role="status" data-state={frameState}>
-      {frameState === "loading" ? "Loading canonical Viewer..." : frameState === "error" ? "The canonical Viewer could not be loaded." : "Canonical Viewer loaded."}
+      {authorizationError ? "Secure Viewer authorization could not be created." : frameState === "loading" ? "Loading canonical Viewer..." : frameState === "error" ? "The canonical Viewer could not be loaded." : "Canonical Viewer loaded."}
     </p>
-    <iframe
+    {src ? <iframe
       key={frameKey}
       src={src}
       title={title}
@@ -36,7 +47,7 @@ export function HostedViewerPreview({
       loading="eager"
       onLoad={() => setFrameState("ready")}
       onError={() => setFrameState("error")}
-    />
+    /> : null}
   </section>;
 }
 

@@ -3,9 +3,9 @@ import { resolveTeacherOfflineActivityLocation } from "./teacherOfflineActivityL
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const INVALID_MESSAGE = "The requested Builder preview is invalid or unavailable.";
 const ALLOWED_PARAMETERS = Object.freeze({
-  library: new Set(["builderPreview", "bookSlug", "componentSlug", "view"]),
-  page: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "unitNumber", "pageId"]),
-  activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId"]),
+  library: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "previewAuthorization"]),
+  page: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "unitNumber", "pageId", "previewAuthorization"]),
+  activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId", "previewAuthorization"]),
 });
 const RELEASE_ALLOWED_PARAMETERS = Object.freeze(Object.fromEntries(Object.entries(ALLOWED_PARAMETERS).map(([view, keys]) => [view, new Set([...keys, "releaseId"])])));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -74,8 +74,9 @@ export function resolveHostedViewerPreviewIntent({
 
   const view = parameters.get("view");
   const releaseId = parameters.get("releaseId");
+  const previewAuthorization = parameters.get("previewAuthorization") || "";
   const allowed = releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view];
-  if (!allowed || !hasExactParameters(parameters, allowed)) return invalid();
+  if (!allowed || !hasExactParameters(parameters, allowed) || !/^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
   if (releaseId && !UUID.test(releaseId)) return invalid();
 
   if (view === "library") {

@@ -1,12 +1,12 @@
 import { normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
-import { currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
+import { authorizedHostedPreviewPath, currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
 
 const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 
 export const interactiveUiManifestProvider = Object.freeze({
   async load({ signal } = {}) {
     const releaseId = currentHostedReleaseId();
-    const response = await fetch(releaseId ? hostedReleasePath(releaseId, "teacher-ui") : previewPath, { method: "GET", cache: "no-store", credentials: "omit", signal });
+    const response = await fetch(releaseId ? hostedReleasePath(releaseId, "teacher-ui") : authorizedHostedPreviewPath(previewPath), { method: "GET", cache: "no-store", credentials: "omit", signal });
     if (response.status === 404) return null;
     if (!response.ok) {
       const error = new Error("The saved Teacher interface revision could not be loaded.");

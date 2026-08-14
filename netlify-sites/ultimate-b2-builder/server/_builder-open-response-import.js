@@ -11,6 +11,7 @@ import { OPEN_RESPONSE_IMPORT_LIMITS } from "../../../scripts/ultimate-b2/open-r
 import { assertPublicBuilderDocument, builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
+import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
 import {
   claimOpenResponseImportSession,
   commitOpenResponseImport,
@@ -137,6 +138,7 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
     authorize: overrides.authorize || requireBuilderUser,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     storage: overrides.storage || (() => createBookAssetStorage()),
     prepare: overrides.prepare || prepareOpenResponseImportSession,
@@ -164,6 +166,7 @@ export function createBuilderOpenResponseImportHandler(overrides = {}) {
         const resource = await dependencies.resolveResource(identity.bookSlug, identity.componentSlug, identity.resource, activityId);
         if (!resource) return importJson(404, { error: "import_not_found" });
         sql = dependencies.getDatabase();
+        if (teacherMatch && !(await dependencies.authorizePreview(event, sql, { action: "open-response-teacher", bookSlug: identity.bookSlug, componentSlug: identity.componentSlug, activityId }))) return importJson(401, { error: "Unauthorized" });
         const current = await dependencies.loadCurrent(sql, activityId);
         if (!current) return importJson(404, { error: "import_not_found" });
         const document = publicImportMatch ? current.publicProjection : current.teacherProjection;

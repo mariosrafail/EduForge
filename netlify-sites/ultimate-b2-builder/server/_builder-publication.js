@@ -5,6 +5,7 @@ import { findProductComponent } from "../../../src/data/bookProductCatalog.js";
 import { normalizeUltimateB2PublicReleaseProjection, normalizeUltimateB2ReleaseSourceSnapshot, normalizeUltimateB2TeacherReleaseProjection, ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/componentPublication.js";
 import { builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
+import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 import { collectUltimateB2PublicationSources, createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, publishComponentRelease } from "./_builder-publication-store.js";
 
@@ -63,7 +64,7 @@ function verifyImmutableRelease(release) {
 }
 
 export function createBuilderPublicationHandler(overrides = {}) {
-  const dependencies = { getDatabase: overrides.getDatabase || getBuilderSql, authorize: overrides.authorize || requireBuilderUser, collect: overrides.collect || collectUltimateB2PublicationSources, compile: overrides.compile || compileUltimateB2ComponentRelease, create: overrides.create || createComponentRelease, publish: overrides.publish || publishComponentRelease, status: overrides.status || loadComponentPublicationStatus, loadRelease: overrides.loadRelease || loadComponentRelease, loadMutation: overrides.loadMutation || loadComponentPublicationMutation, storage: overrides.storage || (() => createBookAssetStorage()), logger: overrides.logger || console };
+  const dependencies = { getDatabase: overrides.getDatabase || getBuilderSql, authorize: overrides.authorize || requireBuilderUser, authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest, collect: overrides.collect || collectUltimateB2PublicationSources, compile: overrides.compile || compileUltimateB2ComponentRelease, create: overrides.create || createComponentRelease, publish: overrides.publish || publishComponentRelease, status: overrides.status || loadComponentPublicationStatus, loadRelease: overrides.loadRelease || loadComponentRelease, loadMutation: overrides.loadMutation || loadComponentPublicationMutation, storage: overrides.storage || (() => createBookAssetStorage()), logger: overrides.logger || console };
   return async function handler(event) {
     const parsedRoute = route(event);
     if (!parsedRoute || !publicationComponent(parsedRoute.bookSlug, parsedRoute.componentSlug, parsedRoute.action === "prepare" || parsedRoute.action === "publish")) return json(404, { error: "publication_component_not_found" });
@@ -72,6 +73,10 @@ export function createBuilderPublicationHandler(overrides = {}) {
       if (parsedRoute.boundary === "preview") {
         const methodAllowed = event.httpMethod === "GET" || (parsedRoute.action === "assets" && event.httpMethod === "HEAD");
         if (!methodAllowed || !UUID.test(parsedRoute.releaseId)) return json(methodAllowed ? 404 : 405, { error: "release_not_found" });
+        if (["teacher-ui", "teacher-solution"].includes(parsedRoute.action)) {
+          const authorized = await dependencies.authorizePreview(event, sql, { action: parsedRoute.action === "teacher-ui" ? "release-teacher-ui" : "release-teacher-solution", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, releaseId: parsedRoute.releaseId, ...(parsedRoute.action === "teacher-solution" ? { activityId: parsedRoute.activityId } : {}) });
+          if (!authorized) return json(401, { error: "Unauthorized" });
+        }
         const release = await dependencies.loadRelease(sql, parsedRoute);
         if (!release) return json(404, { error: "release_not_found" });
         try { verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
