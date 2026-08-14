@@ -52,6 +52,12 @@ const server = createServer(async (request, response) => {
     response.end(body);
     return;
   }
+  if (/^\/preview\/open-response-(?:import|teacher)\/[a-z0-9-]+$/.test(url.pathname)) {
+    const body = Buffer.from("{}");
+    response.writeHead(200, { "Cache-Control": "no-store", "Content-Length": body.length, "Content-Type": "application/json" });
+    response.end(body);
+    return;
+  }
   const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname).replace(/^\/+/, "");
   const file = path.resolve(root, relative);
   if (!file.startsWith(`${root}${path.sep}`) && file !== path.join(root, "index.html")) return response.writeHead(404).end();
