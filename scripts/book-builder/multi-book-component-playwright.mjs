@@ -11,7 +11,8 @@ const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const hotspots = await readFile("src/data/ultimate-b2/authoring/studentsBookHotspots.json", "utf8");
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
-const studentsIdentity = "builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book";
+const previewAuthorization = `v1.eA.${"a".repeat(43)}`;
+const studentsIdentity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${encodeURIComponent(previewAuthorization)}`;
 
 async function staticFile(root, pathname, response) {
   const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
@@ -29,7 +30,11 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
   }
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") {
-    const body = JSON.stringify({ token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
+    const body = JSON.stringify({ token: previewAuthorization, expiresAt: "2099-01-01T00:00:00.000Z" });
+    response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
+  }
+  if (url.pathname === "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/native-activity-index" && request.method === "GET") {
+    const body = JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "native-activity-index", documentKey: "default", schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: [] } });
     response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
   }
   await staticFile(builderRoot, url.pathname, response);
