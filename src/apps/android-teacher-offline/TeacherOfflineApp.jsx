@@ -3,13 +3,6 @@ import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { Volume2, VolumeX } from "lucide-react";
 
-import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
-import {
-  interactiveContentPackProvider,
-  interactiveStartupAssets,
-  interactiveUiManifestProvider,
-} from "virtual:ultimate-b2-interactive-pack-provider";
-import { prepareUltimateB2StudentsBookHotspots } from "virtual:ultimate-b2-runtime-hotspots";
 import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
 import TeacherOfflineBook from "./TeacherOfflineBook.jsx";
 import TeacherOfflineLibrary from "./TeacherOfflineLibrary.jsx";
@@ -39,8 +32,14 @@ import {
 } from "./teacherOfflineActivityLocation.js";
 import {
   isHostedViewerPreviewRequest,
+  resolveHostedViewerComponentRequest,
   resolveHostedViewerPreviewIntent,
 } from "./hostedViewerPreviewIntent.js";
+import {
+  getDefaultReviewComponent,
+  resolveTeacherEditionComponent,
+  reviewComponentRegistry,
+} from "./reviewComponentRegistry.js";
 
 const defaultLocation = { unitNumber: 1, tab: "pages", pageId: "" };
 const initialPackState = Object.freeze({
@@ -53,14 +52,14 @@ const initialPackState = Object.freeze({
   message: "",
 });
 
-function startupErrorMessage(error) {
+function startupErrorMessage(error, hosted) {
   if (error?.code === "LIVE_PREVIEW_UNAVAILABLE") {
     return "Live preview content could not be loaded. Check the connection and try again.";
   }
   if (error?.code === "VIEWER_ASSET_LOAD_FAILED" || error?.code === "VIEWER_ASSET_PLAN_INVALID") {
     return "A required page, interface or audio asset could not be prepared. Check the connection and try again.";
   }
-  return interactiveStartupAssets.hosted
+  return hosted
     ? "The verified Viewer content could not be prepared. Try again."
     : "Reinstall the verified classroom application.";
 }
@@ -98,8 +97,12 @@ function resolveViewportBackdrop({ startupIntroPending, navigation, classroomBac
   };
 }
 
-function libraryState() {
-  return { teacherOffline: true, view: "library" };
+function componentIdentity(runtime) {
+  return { bookSlug: runtime.bookSlug, componentSlug: runtime.componentSlug };
+}
+
+function libraryState(runtime) {
+  return { teacherOffline: true, ...componentIdentity(runtime), view: "library" };
 }
 
 function usePrefersReducedMotion() {
@@ -118,6 +121,18 @@ function usePrefersReducedMotion() {
 
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
+  const defaultRuntime = useMemo(() => getDefaultReviewComponent(), []);
+  const hosted = defaultRuntime.startupAssets.hosted;
+  const componentRequest = useMemo(() => resolveHostedViewerComponentRequest({
+    search: globalThis.location?.search || "",
+    hosted,
+    registry: reviewComponentRegistry,
+  }), [hosted]);
+  const [activeRuntime, setActiveRuntime] = useState(() => (
+    componentRequest.kind === "installed" ? componentRequest.runtime
+      : componentRequest.kind === "none" ? defaultRuntime
+        : null
+  ));
   const [packState, setPackState] = useState(initialPackState);
   const runtimeUiAssets = useMemo(
     () => createUltimateB2TeacherRuntimeUiAssets(packState.uiManifest),
@@ -127,13 +142,14 @@ export default function TeacherOfflineApp() {
   const settings = useTeacherOfflineSettings();
   const prefersReducedMotion = usePrefersReducedMotion();
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
-  const pageUnits = useMemo(() => ultimateB2StudentsBookPageUnits.filter((unit) => [1, 2].includes(Number(unit.number))), []);
-  const hostedPreviewRequested = isHostedViewerPreviewRequest(globalThis.location?.search || "", interactiveStartupAssets.hosted);
+  const pageUnits = activeRuntime?.pageUnits || [];
+  const hostedPreviewRequested = isHostedViewerPreviewRequest(globalThis.location?.search || "", hosted);
   const [startupIntroPending, setStartupIntroPending] = useState(animationsActive && !hostedPreviewRequested);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const [startupAttempt, setStartupAttempt] = useState(0);
-  const [navigation, setNavigation] = useState(libraryState);
+  const [navigation, setNavigation] = useState(() => libraryState(activeRuntime || defaultRuntime));
+  const [componentFeedback, setComponentFeedback] = useState("");
   const navigationRef = useRef(navigation);
   const settingsOpenRef = useRef(settingsOpen);
   const startupIntroPendingRef = useRef(startupIntroPending);
@@ -152,16 +168,21 @@ export default function TeacherOfflineApp() {
   }, [settings.graphics.interfaceScale]);
 
   useEffect(() => {
+    if (!activeRuntime) {
+      setPackState({ ...initialPackState, status: "unavailable" });
+      return undefined;
+    }
     const controller = new AbortController();
+    setPackState(initialPackState);
     runInteractiveViewerStartup({
-      loadContentPack: () => interactiveContentPackProvider.load(),
-      loadUiManifest: (options) => interactiveUiManifestProvider.load(options),
-      prepareHotspots: () => prepareUltimateB2StudentsBookHotspots(),
-      startupAssets: interactiveStartupAssets,
+      loadContentPack: () => activeRuntime.contentPackProvider.load(),
+      loadUiManifest: (options) => activeRuntime.uiManifestProvider?.load?.(options) || Promise.resolve(null),
+      prepareHotspots: () => activeRuntime.hotspotProvider?.prepare?.() || Promise.resolve(),
+      startupAssets: activeRuntime.startupAssets,
       signal: controller.signal,
       onState: (state) => setPackState({
         ...state,
-        message: state.status === "error" ? startupErrorMessage(state.error) : "",
+        message: state.status === "error" ? startupErrorMessage(state.error, activeRuntime.startupAssets.hosted) : "",
       }),
     }).catch((error) => {
       if (import.meta.env.DEV && !controller.signal.aborted) console.error("Teacher content startup failed", error);
@@ -169,31 +190,32 @@ export default function TeacherOfflineApp() {
     return () => {
       controller.abort();
     };
-  }, [startupAttempt]);
+  }, [activeRuntime, startupAttempt]);
 
   useEffect(() => {
     recordTeacherOfflineNavigation(navigation.view);
   }, [navigation.view]);
 
   useEffect(() => {
-    window.history.replaceState(libraryState(), "", "#library");
-    const onPopState = (event) => setNavigation(event.state?.teacherOffline ? event.state : libraryState());
+    const initial = libraryState(activeRuntime || defaultRuntime);
+    window.history.replaceState(initial, "", "#library");
+    const onPopState = (event) => setNavigation(event.state?.teacherOffline ? event.state : initial);
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [defaultRuntime]);
 
   const navigate = (state, { replace = false } = {}) => {
-    const next = { teacherOffline: true, ...state };
+    const next = { teacherOffline: true, ...componentIdentity(activeRuntime), ...state };
     setNavigation(next);
     const method = replace ? "replaceState" : "pushState";
     window.history[method](next, "", `#${next.view}`);
   };
   const openBook = (unitNumber = null) => {
-    const storedLocation = readTeacherOfflineLocation() || defaultLocation;
+    const storedLocation = readTeacherOfflineLocation(activeRuntime) || defaultLocation;
     const location = unitNumber
       ? { ...storedLocation, unitNumber, tab: "pages", pageId: "" }
       : storedLocation;
-    writeTeacherOfflineLocation(location);
+    writeTeacherOfflineLocation(location, activeRuntime);
     navigate({ view: "book", location });
   };
   const closeApplication = useCallback(async () => {
@@ -203,12 +225,12 @@ export default function TeacherOfflineApp() {
     if (Capacitor.isNativePlatform()) await App.minimizeApp();
   }, []);
   const updateBookLocation = (location, options) => {
-    writeTeacherOfflineLocation(location);
+    writeTeacherOfflineLocation(location, activeRuntime);
     navigate({ view: "book", location }, { ...options, replace: true });
   };
   const replaceBookNavigation = (location) => {
-    const next = { teacherOffline: true, view: "book", location };
-    writeTeacherOfflineLocation(location);
+    const next = { teacherOffline: true, ...componentIdentity(activeRuntime), view: "book", location };
+    writeTeacherOfflineLocation(location, activeRuntime);
     navigationRef.current = next;
     setNavigation(next);
     window.history.replaceState(next, "", "#book");
@@ -222,7 +244,7 @@ export default function TeacherOfflineApp() {
     replaceBookNavigation({ ...location, tab: "pages", pageId: "" });
   };
   const returnToLibrary = () => {
-    const next = libraryState();
+    const next = libraryState(activeRuntime);
     navigationRef.current = next;
     setNavigation(next);
     window.history.replaceState(next, "", "#library");
@@ -274,19 +296,20 @@ export default function TeacherOfflineApp() {
   const packReady = packState.status === "ready" && Boolean(pack);
   const hostedPreviewIntent = useMemo(() => resolveHostedViewerPreviewIntent({
     search: globalThis.location?.search || "",
-    hosted: interactiveStartupAssets.hosted,
+    hosted,
     activities: pack?.activities?.activities || [],
     pageUnits,
-  }), [pack, pageUnits]);
+    registry: reviewComponentRegistry,
+  }), [hosted, pack, pageUnits]);
 
   useEffect(() => {
     if (!packReady || hostedPreviewIntent.kind !== "valid") return;
-    const next = { teacherOffline: true, ...hostedPreviewIntent.navigation };
+    const next = { teacherOffline: true, ...componentIdentity(activeRuntime), ...hostedPreviewIntent.navigation };
     navigationRef.current = next;
     setNavigation(next);
     const hash = next.activityId ? `#book/activity/${encodeURIComponent(next.activityId)}` : `#${next.view}`;
     window.history.replaceState(next, "", hash);
-  }, [hostedPreviewIntent, packReady]);
+  }, [activeRuntime, hostedPreviewIntent, packReady]);
 
   const selectedMenuSkinId = packReady ? selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId) : "";
   const menuSkin = packReady ? resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId, runtimeUiAssets) : null;
@@ -299,8 +322,8 @@ export default function TeacherOfflineApp() {
       originLocation,
     });
     if (!resolved) return;
-    const pageState = { teacherOffline: true, view: "book", location: resolved.location };
-    writeTeacherOfflineLocation(resolved.location);
+    const pageState = { teacherOffline: true, ...componentIdentity(activeRuntime), view: "book", location: resolved.location };
+    writeTeacherOfflineLocation(resolved.location, activeRuntime);
     if (navigationRef.current.view !== "book"
       || !isTeacherOfflinePageLocation(navigationRef.current.location, resolved.location)) {
       window.history.pushState(pageState, "", "#book");
@@ -309,16 +332,39 @@ export default function TeacherOfflineApp() {
     setNavigation(activityState);
     window.history.pushState(activityState, "", `#book/activity/${encodeURIComponent(activityId)}`);
   };
+  const switchTeacherEdition = (teacherEditionId) => {
+    const resolution = resolveTeacherEditionComponent(activeRuntime.bookSlug, teacherEditionId);
+    if (resolution.kind !== "installed") {
+      const title = resolution.registration?.component?.title || "The requested component";
+      setComponentFeedback(`${title} content is registered but not installed for Teacher Review.`);
+      return false;
+    }
+    if (resolution.runtime.key === activeRuntime.key) {
+      setComponentFeedback("");
+      return true;
+    }
+    const nextRuntime = resolution.runtime;
+    const location = readTeacherOfflineLocation(nextRuntime) || defaultLocation;
+    const next = { teacherOffline: true, ...componentIdentity(nextRuntime), view: "book", location };
+    setComponentFeedback("");
+    setActiveRuntime(nextRuntime);
+    navigationRef.current = next;
+    setNavigation(next);
+    window.history.replaceState(next, "", "#book");
+    return true;
+  };
   let content;
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
+  } else if (componentRequest.kind === "invalid" || componentRequest.kind === "unavailable") {
+    content = <main className="teacher-viewer-preview-invalid" role="alert"><h1>Preview unavailable</h1><p>{componentRequest.message}</p></main>;
   } else if (packState.status === "loading") {
-    content = interactiveStartupAssets.hosted
+    content = activeRuntime.startupAssets.hosted
       ? <TeacherViewerStartupStatus state={packState} hosted />
       : <div className="teacher-offline-pack-wait" aria-hidden="true" />;
   } else if (packState.status === "error") {
-    content = <TeacherViewerStartupStatus state={packState} hosted={interactiveStartupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
-  } else if (hostedPreviewIntent.kind === "invalid") {
+    content = <TeacherViewerStartupStatus state={packState} hosted={activeRuntime.startupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
+  } else if (hostedPreviewIntent.kind === "invalid" || hostedPreviewIntent.kind === "unavailable") {
     content = <main className="teacher-viewer-preview-invalid" role="alert"><h1>Preview unavailable</h1><p>{hostedPreviewIntent.message}</p></main>;
   } else if (navigation.view === "media") {
     content = (
@@ -341,6 +387,9 @@ export default function TeacherOfflineApp() {
         onOpenMedia={(media) => navigate({ view: "media", media, location: navigation.location || defaultLocation })}
         onBackToLibrary={returnToLibrary}
         viewportProfile={viewport.profile}
+        selectedBookId={activeRuntime.component.teacherEditionId}
+        onBookSwitch={switchTeacherEdition}
+        hotspotProvider={activeRuntime.hotspotProvider}
       />
     );
   } else {
@@ -348,7 +397,7 @@ export default function TeacherOfflineApp() {
       <TeacherOfflineLibrary
         menuSkin={menuSkin}
         onOpenUnit={(editionId, unitNumber) => {
-          if (editionId === "students-book") openBook(unitNumber);
+          if (switchTeacherEdition(editionId)) openBook(unitNumber);
         }}
         animationsActive={animationsActive}
       />
@@ -393,6 +442,7 @@ export default function TeacherOfflineApp() {
         <div key={activeView} className="teacher-offline-view-transition" data-teacher-view={activeView} data-book-activity={navigation.activityId || undefined}>
           {content}
         </div>
+        {componentFeedback ? <p className="teacher-component-feedback" role="status">{componentFeedback}</p> : null}
         {!startupIntroPending && packReady && (
           <TeacherShellChrome
             menuSkin={menuSkin}

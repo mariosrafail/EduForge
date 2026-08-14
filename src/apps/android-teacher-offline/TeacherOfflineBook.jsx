@@ -14,6 +14,9 @@ export default function TeacherOfflineBook({
   onOpenMedia,
   onBackToLibrary,
   viewportProfile,
+  selectedBookId,
+  onBookSwitch,
+  hotspotProvider,
 }) {
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const availableUnitNumbers = (pageUnits || [])
@@ -50,6 +53,9 @@ export default function TeacherOfflineBook({
           onOpenMedia={onOpenMedia}
           onBackToLibrary={onBackToLibrary}
           viewportProfile={viewportProfile}
+          selectedBookId={selectedBookId}
+          onBookSwitch={onBookSwitch}
+          hotspotProvider={hotspotProvider}
         />
       ) : (
         <>
@@ -60,6 +66,8 @@ export default function TeacherOfflineBook({
           <TeacherBookNavigation
             onHome={onBackToLibrary}
             onBack={() => update({ tab: "pages", pageId: "" })}
+            selectedBookId={selectedBookId}
+            onBookSwitch={onBookSwitch}
           />
         </>
       )}

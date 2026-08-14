@@ -18,10 +18,10 @@ const adapters = Object.freeze({
   }),
 });
 
-export function resolveHostedBuilderAdapter(component) {
+export function resolveHostedBuilderAdapter(book, component) {
   if (!component?.adapterId) return null;
   const adapter = adapters[component.adapterId];
-  if (!adapter || adapter.componentSlug !== component.slug) return null;
+  if (!adapter || adapter.bookSlug !== book?.slug || adapter.componentSlug !== component.slug) return null;
   return adapter;
 }
 

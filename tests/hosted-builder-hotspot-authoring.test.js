@@ -57,7 +57,8 @@ test("adapter capabilities expose only hotspots and supported activities as writ
   assert.match(adapters, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /uiController: Object\.freeze\(\{ readable: true, writable: true \}\)/);
-  assert.match(shell, /adapter\.capabilities\[capability\]\?\.writable \? "Editable" : "Read-only"/);
+  assert.match(shell, /tools\.filter\(\(\{ capability \}\) => adapter\.capabilities\[capability\]\?\.readable\)/);
+  assert.match(shell, /adapter\.capabilities\[capability\]\.writable \? "Editable" : "Read-only"/);
   assert.match(workspace, /HostedTeacherUiController/);
   assert.match(workspace, /Open Response · Editable/);
   assert.match(workspace, /Unsupported type · Read-only/);

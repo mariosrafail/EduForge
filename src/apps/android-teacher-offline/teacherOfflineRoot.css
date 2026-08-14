@@ -60,3 +60,4 @@
 
 .teacher-viewer-preview-invalid h1 { margin: 0 0 .6rem; color: #9f1d20; }
 .teacher-viewer-preview-invalid p { margin: 0; }
+.teacher-component-feedback { position: fixed; z-index: 80; right: 24px; bottom: 92px; max-width: 430px; margin: 0; padding: 14px 18px; border: 1px solid #f59e0b; border-radius: 10px; background: #fffbeb; color: #78350f; box-shadow: 0 12px 30px rgba(15, 23, 42, .24); font-weight: 700; }

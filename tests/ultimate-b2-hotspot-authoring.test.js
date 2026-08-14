@@ -88,18 +88,20 @@ test("runtime lookup and action conversion preserve the normalized activity key"
 });
 
 test("web, Android student, and Android teacher viewers consume the tracked manifest without hotspot APIs", async () => {
-  const [viewer, pageImagePanel, androidViewer, teacherViewer, teacherViewerStyles, stubs] = await Promise.all([
+  const [viewer, pageImagePanel, androidViewer, teacherViewer, teacherViewerStyles, stubs, registry] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageImagePanel.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/AndroidBookViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/TeacherOfflinePages.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/teacherOfflinePageViewer.css"), "utf8"),
     readFile(path.join(repositoryRoot, "src/apps/android-offline/androidOfflineServiceStubs.js"), "utf8"),
+    readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/reviewComponentRegistry.js"), "utf8"),
   ]);
   assert.match(viewer, /BookPageImageLayer/);
   assert.match(pageImagePanel, /getUltimateB2StudentsBookHotspotActions/);
   assert.match(androidViewer, /BookPackageBrowser/);
-  assert.match(teacherViewer, /getUltimateB2StudentsBookHotspotActions/);
+  assert.match(teacherViewer, /hotspotProvider\?\.getActions/);
+  assert.match(registry, /getUltimateB2StudentsBookHotspotActions/);
   assert.doesNotMatch(pageImagePanel, /listBookPageHotspots/);
   assert.match(stubs, /listBookPageHotspots/);
   assert.match(teacherViewerStyles, /\.teacher-offline-pages-viewer \.teacher-offline-page-hotspot[\s\S]*border: 2px solid transparent/);

@@ -6,6 +6,7 @@ import {
   hostedBuilderCatalog,
 } from "./hostedBuilderCatalog.js";
 import { resolveHostedBuilderAdapter } from "./hostedBuilderAdapters.jsx";
+import { resolveHostedBuilderTool } from "./hostedBuilderCapabilities.js";
 import { hostedBuilderHash, parseHostedBuilderHash } from "./hostedBuilderRouter.js";
 import "./hostedBuilder.css";
 
@@ -35,7 +36,7 @@ function BookLibrary() {
     <header className="hosted-builder-title"><div><span>Hamilton House</span><h1>Book Builder</h1><p>Choose a publisher title to inspect its authoring components.</p></div><strong>Book Library</strong></header>
     <section className="hosted-builder-book-grid" aria-label="Available books">
       {hostedBuilderCatalog.map((book) => <article className="hosted-builder-book-card" key={book.slug}>
-        <img src={book.cover} alt={`${book.title} cover`} />
+        {book.cover ? <img src={book.cover} alt={`${book.title} cover`} /> : <div className="hosted-builder-cover-placeholder" role="img" aria-label={`${book.title} cover not supplied`}><span>{book.level}</span></div>}
         <div><span className="hosted-builder-status">{book.status}</span><h2>{book.title}</h2><p>Level {book.level}</p><a className="hosted-builder-action" href={hostedBuilderHash({ bookSlug: book.slug })}>Open book</a></div>
       </article>)}
     </section>
@@ -45,12 +46,12 @@ function BookLibrary() {
 function ComponentSelection({ book }) {
   return <main className="hosted-builder-page" id="main-content">
     <Breadcrumbs book={book} />
-    <header className="hosted-builder-book-heading"><img src={book.cover} alt="" /><div><span>Level {book.level}</span><h1>{book.title}</h1><p>Select a component. Components without a registered adapter remain visible for future authoring setup.</p></div></header>
+    <header className="hosted-builder-book-heading">{book.cover ? <img src={book.cover} alt="" /> : <div className="hosted-builder-cover-placeholder" aria-hidden="true"><span>{book.level}</span></div>}<div><span>Level {book.level}</span><h1>{book.title}</h1><p>Select a component. Components without a registered adapter remain visible for future authoring setup.</p></div></header>
     <section className="hosted-builder-component-grid" aria-label={`${book.title} components`}>
       {book.components.map((component) => {
-        const available = Boolean(resolveHostedBuilderAdapter(component));
+        const available = Boolean(resolveHostedBuilderAdapter(book, component));
         return <article className="hosted-builder-component-card" data-available={available || undefined} key={component.slug}>
-          <img src={component.cover} alt="" />
+          {component.cover ? <img src={component.cover} alt="" /> : <div className="hosted-builder-cover-placeholder" aria-hidden="true"><span>{book.level}</span></div>}
           <div><span>{component.type.replaceAll("_", " ")}</span><h2>{component.title}</h2><p>{component.status}</p>{available
             ? <a className="hosted-builder-action" href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug })}>Open workspace</a>
             : <span className="hosted-builder-unavailable">Authoring adapter pending</span>}</div>
@@ -68,8 +69,9 @@ function UnavailableComponent({ book, component }) {
 }
 
 function Workspace({ book, component, tool }) {
-  const adapter = resolveHostedBuilderAdapter(component);
+  const adapter = resolveHostedBuilderAdapter(book, component);
   if (!adapter) return <UnavailableComponent book={book} component={component} />;
+  if (!resolveHostedBuilderTool(adapter, tool)) return <NotFound />;
   const WorkspaceComponent = adapter.Workspace;
   const tools = [
     { id: "hotspots", label: "Hotspot Builder", capability: "hotspots" },
@@ -80,7 +82,7 @@ function Workspace({ book, component, tool }) {
     <div className="hosted-builder-workspace-chrome">
       <Breadcrumbs book={book} component={component} tool={tool} />
       <nav className="hosted-builder-tool-tabs" aria-label={`${component.title} tools`}>
-        {tools.map(({ id, label, capability }) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}><span>{label}</span><small>{adapter.capabilities[capability]?.writable ? "Editable" : "Read-only"}</small></a>)}
+        {tools.filter(({ capability }) => adapter.capabilities[capability]?.readable).map(({ id, label, capability }) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}><span>{label}</span><small>{adapter.capabilities[capability].writable ? "Editable" : "Read-only"}</small></a>)}
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>

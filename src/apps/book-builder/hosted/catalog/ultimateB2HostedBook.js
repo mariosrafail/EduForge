@@ -1,54 +1,29 @@
-const covers = Object.freeze({
+import { findProductBook } from "../../../../data/bookProductCatalog.js";
+
+export const ultimateB2HostedCovers = Object.freeze({
   studentsBook: new URL("../../../../assets/books/ultimate-b2/covers/ultimate_b2_students_book.jpg", import.meta.url).href,
   workbook: new URL("../../../../assets/books/ultimate-b2/covers/ultimate_b2_workbook.jpg", import.meta.url).href,
   grammarBook: new URL("../../../../assets/books/ultimate-b2/covers/ultimate_b2_grammar_book.jpg", import.meta.url).href,
   testBook: new URL("../../../../assets/books/ultimate-b2/covers/ultimate_b2_test_book.jpg", import.meta.url).href,
 });
 
+const coverBySlug = Object.freeze({
+  "ultimate-b2-students-book": ultimateB2HostedCovers.studentsBook,
+  "ultimate-b2-workbook": ultimateB2HostedCovers.workbook,
+  "ultimate-b2-grammar-book": ultimateB2HostedCovers.grammarBook,
+  "ultimate-b2-test-book": ultimateB2HostedCovers.testBook,
+});
+
+const product = findProductBook("ultimate-b2");
+
 export const ultimateB2HostedBook = Object.freeze({
-  id: "ultimate-b2",
-  slug: "ultimate-b2",
-  title: "Ultimate B2",
-  level: "B2",
-  publisher: "Hamilton House",
+  ...product,
   status: "In authoring",
-  cover: covers.studentsBook,
-  components: Object.freeze([
-    Object.freeze({
-      id: "ultimate-b2-students-book",
-      slug: "ultimate-b2-students-book",
-      title: "Students Book",
-      type: "students_book",
-      status: "In authoring",
-      cover: covers.studentsBook,
-      adapterId: "ultimate-b2-students-book",
-    }),
-    Object.freeze({
-      id: "ultimate-b2-workbook",
-      slug: "ultimate-b2-workbook",
-      title: "Workbook",
-      type: "workbook",
-      status: "Ready for authoring setup",
-      cover: covers.workbook,
-      adapterId: null,
-    }),
-    Object.freeze({
-      id: "ultimate-b2-grammar-book",
-      slug: "ultimate-b2-grammar-book",
-      title: "Grammar Book",
-      type: "grammar_book",
-      status: "Ready for authoring setup",
-      cover: covers.grammarBook,
-      adapterId: null,
-    }),
-    Object.freeze({
-      id: "ultimate-b2-test-book",
-      slug: "ultimate-b2-test-book",
-      title: "Test Book",
-      type: "test_book",
-      status: "Ready for authoring setup",
-      cover: covers.testBook,
-      adapterId: null,
-    }),
-  ]),
+  cover: ultimateB2HostedCovers.studentsBook,
+  components: Object.freeze(product.components.map((component) => Object.freeze({
+    ...component,
+    status: component.authoringState === "active" ? "In authoring" : "Authoring adapter pending",
+    cover: coverBySlug[component.slug] || null,
+    adapterId: component.authoringAdapterId,
+  }))),
 });

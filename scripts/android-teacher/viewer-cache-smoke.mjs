@@ -152,7 +152,12 @@ const server = createServer(async (request, response) => {
 
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const viewerUrl = `${origin}/?builderPreview=1&view=library`;
+function viewerUrl(root) {
+  const identity = baselineRoot && root === baselineRoot
+    ? ""
+    : "&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book";
+  return `${origin}/?builderPreview=1${identity}&view=library`;
+}
 
 function transfersFor(label) {
   const entries = transferLog.filter((entry) => entry.phase === label);
@@ -195,7 +200,7 @@ async function runViewer(context, label, root) {
     if (message.type() === "error") errors.push(message.text());
   });
   const startedAt = performance.now();
-  await page.goto(viewerUrl, { waitUntil: "domcontentloaded" });
+  await page.goto(viewerUrl(root), { waitUntil: "domcontentloaded" });
   await page.locator(".legacy-home-launcher").waitFor({ timeout: 120_000 });
   const readyMs = Number((performance.now() - startedAt).toFixed(1));
   const startupCopy = await page.evaluate(() => globalThis.__task41StartupCopy);

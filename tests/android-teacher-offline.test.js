@@ -579,7 +579,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(renderer, /visibilitychange/);
   assert.match(renderer, /preload="metadata"/);
   assert.match(renderer, /onError=\{\(\) => setMediaError/);
-  assert.match(app, /interactiveContentPackProvider\.load/);
+  assert.match(app, /activeRuntime\.contentPackProvider\.load/);
+  assert.match(app, /reviewComponentRegistry/);
   assert.match(app, /App\.addListener\("backButton"/);
   assert.match(app, /current\.location\?\.pageId \|\| current\.location\?\.tab === "exercises"[\s\S]*returnToUnitOverview\(\)/);
   assert.match(app, /current\.view === "media"\) returnToBookPage\(\)/);
@@ -658,8 +659,8 @@ test("Teacher startup intro is first, reproducible, centered, non-skippable, and
   assert.match(introStyles, /object-fit:\s*contain/);
   assert.doesNotMatch(introStyles, /teacher-startup-intro-skip|background:\s*#020711/);
   assert.match(app, /startupIntroPending[\s\S]*TeacherStartupIntro/);
-  assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*interactiveStartupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait[\s\S]*else if \(packState\.status === "error"\)/);
-  assert.match(app, /runInteractiveViewerStartup\([\s\S]*interactiveContentPackProvider\.load\(\)[\s\S]*startupAssets: interactiveStartupAssets/);
+  assert.match(app, /if \(startupIntroPending\)[\s\S]*TeacherStartupIntro[\s\S]*componentRequest\.kind === "invalid"[\s\S]*else if \(packState\.status === "loading"\)[\s\S]*activeRuntime\.startupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait[\s\S]*else if \(packState\.status === "error"\)/);
+  assert.match(app, /runInteractiveViewerStartup\([\s\S]*activeRuntime\.contentPackProvider\.load\(\)[\s\S]*startupAssets: activeRuntime\.startupAssets/);
   assert.doesNotMatch(app, /Checking classroom content/);
   assert.doesNotMatch(app, /if \(packState\.status === "loading"\)\s*\{\s*return/);
   assert.match(app, /if \(!animationsActive \|\| hostedPreviewRequested\) setStartupIntroPending\(false\)/);

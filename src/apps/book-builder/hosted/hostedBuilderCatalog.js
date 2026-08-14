@@ -1,4 +1,5 @@
 import { ultimateB2HostedBook } from "./catalog/ultimateB2HostedBook.js";
+import { bookProductCatalog } from "../../../data/bookProductCatalog.js";
 
 const identityPattern = /^[a-z0-9][a-z0-9-]{1,79}$/;
 
@@ -17,7 +18,21 @@ export function createHostedBuilderCatalog(books) {
   return Object.freeze(books.map((book) => Object.freeze(book)));
 }
 
-export const hostedBuilderCatalog = createHostedBuilderCatalog([ultimateB2HostedBook]);
+const hostedBooksBySlug = new Map([[ultimateB2HostedBook.slug, ultimateB2HostedBook]]);
+
+export const hostedBuilderCatalog = createHostedBuilderCatalog(bookProductCatalog.map((book) => (
+  hostedBooksBySlug.get(book.slug) || {
+    ...book,
+    status: "Registered — content pending",
+    cover: null,
+    components: book.components.map((component) => ({
+      ...component,
+      status: "Content and authoring adapter pending",
+      cover: null,
+      adapterId: component.authoringAdapterId,
+    })),
+  }
+)));
 
 export function findHostedBuilderBook(bookSlug) {
   return hostedBuilderCatalog.find((book) => book.slug === bookSlug) || null;

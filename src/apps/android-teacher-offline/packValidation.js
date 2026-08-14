@@ -20,7 +20,28 @@ function exerciseIds(catalog) {
   ));
 }
 
-async function validateContentPack(pack, { requireTeacherSolutions }) {
+export const ultimateB2StudentsBookValidationPolicy = Object.freeze({
+  packageId: "ultimate-b2-students-book",
+  componentId: "students-book",
+  activityCount: 78,
+  activityCountsByUnit: Object.freeze({ "1": 38, "2": 40 }),
+  disabledActivityCount: 12,
+});
+
+export function createContentPackValidationPolicy(policy) {
+  if (!policy?.packageId || !policy?.componentId || !Number.isSafeInteger(policy.activityCount) || policy.activityCount < 0) {
+    throw new TypeError("Content pack validation policy is invalid.");
+  }
+  return Object.freeze({
+    packageId: String(policy.packageId),
+    componentId: String(policy.componentId),
+    activityCount: policy.activityCount,
+    activityCountsByUnit: Object.freeze({ ...(policy.activityCountsByUnit || {}) }),
+    disabledActivityCount: Number(policy.disabledActivityCount || 0),
+  });
+}
+
+async function validateContentPack(pack, { requireTeacherSolutions, policy }) {
   try {
     const { manifest, catalog, activities, teacherSolutions, assetsManifest } = pack || {};
     if (!globalThis.crypto?.subtle) return { valid: false, reason: "Integrity verification is unavailable." };
@@ -31,7 +52,7 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
     ) {
       return { valid: false, reason: "Unsupported content schema." };
     }
-    if (manifest.packageId !== "ultimate-b2-students-book" || manifest.componentId !== "students-book") {
+    if (manifest.packageId !== policy.packageId || manifest.componentId !== policy.componentId) {
       return { valid: false, reason: "Unexpected content package identity." };
     }
 
@@ -50,13 +71,13 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
 
     const activityIds = (activities?.activities || []).map((activity) => activity.stableActivityId);
     if (
-      activityIds.length !== 78
-      || new Set(activityIds).size !== 78
+      activityIds.length !== policy.activityCount
+      || new Set(activityIds).size !== policy.activityCount
       || exerciseIds(catalog).join("|") !== activityIds.join("|")
       || (requireTeacherSolutions && Object.keys(teacherSolutions?.solutions || {}).join("|") !== activityIds.join("|"))
-      || manifest.activityCountsByUnit?.["1"] !== 38
-      || manifest.activityCountsByUnit?.["2"] !== 40
-      || manifest.disabledActivityCount !== 12
+      || Object.entries(policy.activityCountsByUnit).some(([unit, count]) => manifest.activityCountsByUnit?.[unit] !== count)
+      || Object.keys(manifest.activityCountsByUnit || {}).length !== Object.keys(policy.activityCountsByUnit).length
+      || manifest.disabledActivityCount !== policy.disabledActivityCount
     ) {
       return { valid: false, reason: "Content catalog counts or identities do not match." };
     }
@@ -73,10 +94,10 @@ async function validateContentPack(pack, { requireTeacherSolutions }) {
   }
 }
 
-export function validateReviewContentPack(pack) {
-  return validateContentPack(pack, { requireTeacherSolutions: false });
+export function validateReviewContentPack(pack, policy = ultimateB2StudentsBookValidationPolicy) {
+  return validateContentPack(pack, { requireTeacherSolutions: false, policy });
 }
 
-export function validateTeacherContentPack(pack) {
-  return validateContentPack(pack, { requireTeacherSolutions: true });
+export function validateTeacherContentPack(pack, policy = ultimateB2StudentsBookValidationPolicy) {
+  return validateContentPack(pack, { requireTeacherSolutions: true, policy });
 }

@@ -92,14 +92,14 @@ try {
     await page.goto(`${origin}/${search}`, { waitUntil: "domcontentloaded" });
     await page.locator(ready).waitFor();
   };
-  await open("?builderPreview=1&view=library", ".legacy-home-launcher");
+  await open("?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=library", ".legacy-home-launcher");
   assert.equal(await page.title(), "Ultimate B2 Teacher Review");
   assert.equal(await page.getByText(/sign in|log in/i).count(), 0);
 
-  await open("?builderPreview=1&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-2", ".teacher-offline-page-stage");
+  await open("?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-2", ".teacher-offline-page-stage");
   assert.equal(await page.locator(".teacher-offline-page-hotspot").count() > 0, true);
 
-  const activityUrl = (id) => `?builderPreview=1&view=activity&activityId=${id}`;
+  const activityUrl = (id) => `?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=activity&activityId=${id}`;
   await open(activityUrl("ultimate-b2-sb-u1-p2-o1"), '[data-embedded-activity-id="ultimate-b2-sb-u1-p2-o1"]');
   assert.equal(await page.locator('.teacher-presentation-activity[data-legacy-pilot-activity="ultimate-b2-sb-u1-p2-o1"]').count(), 1);
   const readingObjectOneAnswer = page.locator('[data-legacy-pilot-activity="ultimate-b2-sb-u1-p2-o1"] .legacy-unit-opener-answer-lines').first();
@@ -154,7 +154,7 @@ try {
   await navigation.getByRole("button", { name: "Previous activity part" }).click();
   await page.locator('[data-multiple-choice-panel="1"]').waitFor();
 
-  await page.goto(`${origin}/?builderPreview=1&view=activity&activityId=unknown-activity`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=activity&activityId=unknown-activity`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Preview unavailable" }).waitFor();
   assert.match(await page.locator("main[role=alert]").textContent(), /invalid or unavailable/);
   assert.deepEqual(consoleErrors, []);

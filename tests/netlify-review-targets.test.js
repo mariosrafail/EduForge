@@ -227,7 +227,7 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
 });
 
 test("Interactive provider split gives only the Teacher Review a narrow solution lookup while retaining its review pack", async () => {
-  const [app, startup, review, reviewProvider, hostedSolutions, teacher, studentSolutions, validation, vite, embedded, networkGuard] = await Promise.all([
+  const [app, startup, review, reviewProvider, hostedSolutions, teacher, studentSolutions, validation, vite, embedded, networkGuard, registry] = await Promise.all([
     read("src/apps/android-teacher-offline/TeacherOfflineApp.jsx"),
     read("src/apps/android-teacher-offline/interactiveStartupAssets.js"),
     read("src/apps/android-teacher-offline/reviewPackProvider.js"),
@@ -239,9 +239,11 @@ test("Interactive provider split gives only the Teacher Review a narrow solution
     read("vite.config.js"),
     read("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx"),
     read("src/apps/android-teacher-offline/teacherOfflineNetworkGuard.js"),
+    read("src/apps/android-teacher-offline/reviewComponentRegistry.js"),
   ]);
-  assert.match(app, /virtual:ultimate-b2-interactive-pack-provider/);
-  assert.match(app, /prepareUltimateB2StudentsBookHotspots/);
+  assert.match(registry, /virtual:ultimate-b2-interactive-pack-provider/);
+  assert.match(registry, /prepareUltimateB2StudentsBookHotspots/);
+  assert.match(app, /reviewComponentRegistry/);
   assert.match(app, /runInteractiveViewerStartup/);
   assert.match(app, /Live preview content could not be loaded\. Check the connection and try again\./);
   assert.match(startup, /Promise\.all\(\[loadContentPack\(\), prepareHotspots\(\), loadUiManifest/);

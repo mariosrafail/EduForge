@@ -1,6 +1,7 @@
 import { englishJourney6Package } from "./englishJourney6DemoData.js";
 import { ultimateB2Package } from "./ultimateB2DemoData.js";
 import { filterPhaseOneComponents, sortPhaseOnePackages } from "../config/bookCatalogVisibility.js";
+import { findProductBook } from "./bookProductCatalog.js";
 
 const emptyCatalogComponent = (packageSlug, packageTitle, suffix, title, componentType, sortOrder) => ({
   id: `${packageSlug}-${suffix}`,
@@ -14,27 +15,32 @@ const emptyCatalogComponent = (packageSlug, packageTitle, suffix, title, compone
   units: [],
 });
 
-function emptyUltimatePackage(slug, packageTitle, level) {
+function emptyUltimatePackage(slug) {
+  const product = findProductBook(slug);
   return {
     id: slug,
     slug,
-    packageTitle,
-    packageLabel: `${packageTitle} package`,
-    level,
-    publisher: "Hamilton House",
+    packageTitle: product.title,
+    packageLabel: `${product.title} package`,
+    level: product.level,
+    publisher: product.publisher,
     demoSchool: "Hamilton House ELT Demo",
     description: "Content will be added when the publisher files are available.",
     coverAssetPath: null,
     status: "active",
-    components: [
-      emptyCatalogComponent(slug, packageTitle, "students-book", "Students Book", "students_book", 1),
-      emptyCatalogComponent(slug, packageTitle, "workbook", "Workbook", "workbook", 2),
-    ],
+    components: product.components.map((item, index) => emptyCatalogComponent(
+      slug,
+      product.title,
+      item.slug.slice(slug.length + 1),
+      item.title,
+      item.type,
+      index + 1,
+    )),
   };
 }
 
-export const ultimateB1Package = emptyUltimatePackage("ultimate-b1", "Ultimate English B1", "B1");
-export const ultimateB1PlusPackage = emptyUltimatePackage("ultimate-b1-plus", "Ultimate English B1+", "B1+");
+export const ultimateB1Package = emptyUltimatePackage("ultimate-b1");
+export const ultimateB1PlusPackage = emptyUltimatePackage("ultimate-b1-plus");
 export const demoBookPackages = sortPhaseOnePackages([
   ultimateB1Package,
   ultimateB1PlusPackage,

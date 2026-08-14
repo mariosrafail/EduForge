@@ -103,6 +103,9 @@ test("resource registry fails unknown books, components, resources, and pending 
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-workbook/hotspots",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-grammar-book/hotspots",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-test-book/hotspots",
+    "/builder/api/content/books/ultimate-b2/components/ultimate-b2-workbook/open-response/ultimate-b2-sb-u1-p5-o2",
+    "/builder/api/content/books/ultimate-b2/components/ultimate-b2-grammar-book/open-response/ultimate-b2-sb-u1-p5-o2",
+    "/builder/api/content/books/ultimate-b2/components/ultimate-b2-test-book/open-response/ultimate-b2-sb-u1-p5-o2",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/activities",
   ];
   for (const path of paths) assert.equal((await handler(event({ path }))).statusCode, 404);

@@ -3,13 +3,22 @@ import { resolveTeacherOfflineActivityLocation } from "./teacherOfflineActivityL
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const INVALID_MESSAGE = "The requested Builder preview is invalid or unavailable.";
 const ALLOWED_PARAMETERS = Object.freeze({
-  library: new Set(["builderPreview", "view"]),
-  page: new Set(["builderPreview", "view", "unitNumber", "pageId"]),
-  activity: new Set(["builderPreview", "view", "activityId"]),
+  library: new Set(["builderPreview", "bookSlug", "componentSlug", "view"]),
+  page: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "unitNumber", "pageId"]),
+  activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId"]),
 });
 
 function invalid() {
   return Object.freeze({ kind: "invalid", message: INVALID_MESSAGE });
+}
+
+function unavailable(registration) {
+  return Object.freeze({
+    kind: "unavailable",
+    bookSlug: registration.book.slug,
+    componentSlug: registration.component.slug,
+    message: `${registration.component.title} is registered but its content is not installed for Teacher Review.`,
+  });
 }
 
 function hasExactParameters(parameters, allowed) {
@@ -25,23 +34,48 @@ export function isHostedViewerPreviewRequest(search, hosted) {
     && parameters.get("builderPreview") === "1";
 }
 
+export function resolveHostedViewerComponentRequest({
+  search = "",
+  hosted = false,
+  registry,
+} = {}) {
+  if (!hosted) return Object.freeze({ kind: "none" });
+  const parameters = new URLSearchParams(search);
+  if (!parameters.has("builderPreview")) return Object.freeze({ kind: "none" });
+  if (parameters.getAll("builderPreview").length !== 1 || parameters.get("builderPreview") !== "1") return invalid();
+  const bookSlug = parameters.get("bookSlug") || "";
+  const componentSlug = parameters.get("componentSlug") || "";
+  if (parameters.getAll("bookSlug").length !== 1 || parameters.getAll("componentSlug").length !== 1
+    || !SAFE_ID.test(bookSlug) || !SAFE_ID.test(componentSlug)) return invalid();
+  if (!registry?.resolve) return invalid();
+  const resolved = registry.resolve(bookSlug, componentSlug);
+  if (resolved.kind === "unknown") return invalid();
+  if (resolved.kind === "pending") return unavailable(resolved.registration);
+  return Object.freeze({ kind: "installed", bookSlug, componentSlug, runtime: resolved.runtime });
+}
+
 export function resolveHostedViewerPreviewIntent({
   search = "",
   hosted = false,
   activities = [],
   pageUnits = [],
+  registry,
 } = {}) {
   if (!hosted) return Object.freeze({ kind: "none" });
   const parameters = new URLSearchParams(search);
   if (!parameters.has("builderPreview")) return Object.freeze({ kind: "none" });
   if (parameters.getAll("builderPreview").length !== 1 || parameters.get("builderPreview") !== "1") return invalid();
 
+  const componentRequest = resolveHostedViewerComponentRequest({ search, hosted, registry });
+  if (componentRequest.kind === "invalid" || componentRequest.kind === "unavailable") return componentRequest;
+  if (componentRequest.kind !== "installed") return invalid();
+
   const view = parameters.get("view");
   const allowed = ALLOWED_PARAMETERS[view];
   if (!allowed || !hasExactParameters(parameters, allowed)) return invalid();
 
   if (view === "library") {
-    return Object.freeze({ kind: "valid", view, navigation: Object.freeze({ view: "library" }) });
+    return Object.freeze({ kind: "valid", view, bookSlug: componentRequest.bookSlug, componentSlug: componentRequest.componentSlug, navigation: Object.freeze({ view: "library" }) });
   }
 
   if (view === "page") {
@@ -54,6 +88,8 @@ export function resolveHostedViewerPreviewIntent({
     return Object.freeze({
       kind: "valid",
       view,
+      bookSlug: componentRequest.bookSlug,
+      componentSlug: componentRequest.componentSlug,
       navigation: Object.freeze({ view: "book", location: Object.freeze({ unitNumber, tab: "pages", pageId }) }),
     });
   }
@@ -65,6 +101,8 @@ export function resolveHostedViewerPreviewIntent({
   return Object.freeze({
     kind: "valid",
     view,
+    bookSlug: componentRequest.bookSlug,
+    componentSlug: componentRequest.componentSlug,
     navigation: Object.freeze({ view: "book", location: Object.freeze(resolved.location), activityId }),
   });
 }

@@ -11,6 +11,8 @@ function requiredSafeId(value, label) {
 export function createHostedViewerPreviewUrl(intent) {
   const url = new URL(HOSTED_VIEWER_ORIGIN);
   url.searchParams.set("builderPreview", "1");
+  url.searchParams.set("bookSlug", requiredSafeId(intent?.bookSlug, "Viewer book slug"));
+  url.searchParams.set("componentSlug", requiredSafeId(intent?.componentSlug, "Viewer component slug"));
   if (intent?.view === "library") {
     url.searchParams.set("view", "library");
   } else if (intent?.view === "page") {

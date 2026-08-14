@@ -152,11 +152,12 @@ test("network guard naturally allows same-origin preview and static assets while
 });
 
 test("Android runtime remains a bundled no-op with no preview route dependency", async () => {
-  const [androidRuntime, vite, app, generatedProvider] = await Promise.all([
+  const [androidRuntime, vite, app, generatedProvider, registry] = await Promise.all([
     readFile("src/data/ultimate-b2/studentsBookHotspots.js", "utf8"),
     readFile("vite.config.js", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/generatedPackProvider.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/reviewComponentRegistry.js", "utf8"),
   ]);
   assert.match(androidRuntime, /prepareUltimateB2StudentsBookHotspots/);
   assert.match(androidRuntime, /source: "bundled"/);
@@ -165,10 +166,11 @@ test("Android runtime remains a bundled no-op with no preview route dependency",
   assert.match(vite, /hostedReviewHotspots/);
   assert.match(vite, /studentsBookHotspots/);
   assert.doesNotMatch(vite, /window\.location|hostname|netlify\.app/i);
-  assert.match(app, /loadContentPack: \(\) => interactiveContentPackProvider\.load\(\)/);
-  assert.match(app, /prepareHotspots: \(\) => prepareUltimateB2StudentsBookHotspots\(\)/);
-  assert.match(app, /startupAssets: interactiveStartupAssets/);
-  assert.match(app, /interactiveStartupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait/);
+  assert.match(app, /loadContentPack: \(\) => activeRuntime\.contentPackProvider\.load\(\)/);
+  assert.match(app, /prepareHotspots: \(\) => activeRuntime\.hotspotProvider\?\.prepare/);
+  assert.match(app, /startupAssets: activeRuntime\.startupAssets/);
+  assert.match(app, /activeRuntime\.startupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait/);
+  assert.match(registry, /prepareUltimateB2StudentsBookHotspots/);
   assert.match(generatedProvider, /interactiveStartupAssets = createNoopStartupAssets\(\)/);
   assert.doesNotMatch(generatedProvider, /hostedReviewStartupAssets/);
 });

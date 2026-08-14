@@ -18,14 +18,14 @@ class BundledContentPackProvider {
 }
 
 export class BundledTeacherContentPackProvider extends BundledContentPackProvider {
-  constructor(pack) {
-    super(pack, validateTeacherContentPack);
+  constructor(pack, policy) {
+    super(pack, (candidate) => validateTeacherContentPack(candidate, policy));
   }
 }
 
 export class BundledReviewContentPackProvider extends BundledContentPackProvider {
-  constructor(pack) {
-    super(pack, validateReviewContentPack);
+  constructor(pack, policy) {
+    super(pack, (candidate) => validateReviewContentPack(candidate, policy));
   }
 }
 

@@ -16,8 +16,8 @@ import { PHASE_ONE_VISIBLE_COMPONENTS } from "../src/config/bookCatalogVisibilit
 
 const read = (file) => readFile(file, "utf8");
 
-test("hosted authoring catalog registers Ultimate B2 and its exact established components", () => {
-  assert.equal(hostedBuilderCatalog.length, 1);
+test("hosted authoring catalog registers all known titles and Ultimate B2 exact established components", () => {
+  assert.deepEqual(hostedBuilderCatalog.map(({ slug }) => slug), ["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
   const book = findHostedBuilderBook("ultimate-b2");
   assert.deepEqual({ slug: book.slug, title: book.title, level: book.level, status: book.status }, {
     slug: "ultimate-b2", title: "Ultimate B2", level: "B2", status: "In authoring",
@@ -32,7 +32,7 @@ test("hosted authoring catalog registers Ultimate B2 and its exact established c
   for (const slug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
     const component = findHostedBuilderComponent(book, slug);
     assert.equal(component.adapterId, null);
-    assert.equal(component.status, "Ready for authoring setup");
+    assert.equal(component.status, "Authoring adapter pending");
   }
 });
 
@@ -97,6 +97,7 @@ test("disabled component routes render unavailable state and cannot resolve the 
   assert.match(shell, /if \(!adapter\) return <UnavailableComponent/);
   assert.match(shell, /Authoring adapter pending/);
   assert.match(adapters, /if \(!component\?\.adapterId\) return null/);
+  assert.match(adapters, /adapter\.bookSlug !== book\?\.slug/);
   assert.match(adapters, /adapter\.componentSlug !== component\.slug/);
 });
 

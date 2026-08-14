@@ -2,8 +2,15 @@ import { useEffect, useState } from "react";
 
 import { createHostedViewerPreviewUrl } from "./hostedViewerPreviewUrl.js";
 
-export function HostedViewerPreview({ intent, refreshKey = 0, title, description = "" }) {
-  const src = createHostedViewerPreviewUrl(intent);
+export function HostedViewerPreview({
+  intent,
+  bookSlug = "ultimate-b2",
+  componentSlug = "ultimate-b2-students-book",
+  refreshKey = 0,
+  title,
+  description = "",
+}) {
+  const src = createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug });
   const [manualRefresh, setManualRefresh] = useState(0);
   const [frameState, setFrameState] = useState("loading");
   const frameKey = `${src}:${refreshKey}:${manualRefresh}`;

@@ -16,10 +16,6 @@ import { useTeacherStage } from "./TeacherFixedStage.jsx";
 import { renderedDeltaToTeacherStage } from "./teacherStageGeometry.js";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { normalizeTeacherActivityPresentationState } from "./teacherActivityPresentation.js";
-import {
-  getUltimateB2AuthoredHotspotActivityKey,
-  getUltimateB2StudentsBookHotspotActions,
-} from "virtual:ultimate-b2-runtime-hotspots";
 import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseRuntimeData.js";
 
 const minimumZoom = 1;
@@ -29,8 +25,8 @@ function enabledActivities(page) {
   return (page?.activities || []).filter((activity) => activity.availability === "enabled");
 }
 
-function activityIdForAction(page, action) {
-  const authoredActivityKey = getUltimateB2AuthoredHotspotActivityKey(action);
+function activityIdForAction(page, action, getAuthoredActivityKey) {
+  const authoredActivityKey = getAuthoredActivityKey(action);
   if (authoredActivityKey) return authoredActivityKey;
   const activities = enabledActivities(page);
   const direct = activities.find((activity) => (
@@ -64,10 +60,14 @@ export default function TeacherOfflinePages({
   onCloseActivity,
   onOpenMedia,
   onBackToLibrary,
+  selectedBookId,
+  onBookSwitch,
+  hotspotProvider,
 }) {
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const legacyClassroomAssets = runtimeUiAssets.classroom;
   const pages = unit?.pages || [];
+  const getAuthoredActivityKey = hotspotProvider?.getActivityKey || (() => null);
   const settings = useTeacherOfflineSettings();
   const { scale: teacherStageScale } = useTeacherStage();
   const showLeftNavigation = settings.content.showNavbarLeft || (!settings.content.showNavbarLeft && !settings.content.showNavbarRight);
@@ -169,20 +169,20 @@ export default function TeacherOfflinePages({
 
   const actions = useMemo(() => [
     ...(page?.actions || []),
-    ...getUltimateB2StudentsBookHotspotActions({
+    ...(hotspotProvider?.getActions?.({
       pageId: page?.id,
       pageNumber: page?.pageNumber,
       unitNumber: unit?.number,
-    }),
+    }) || []),
   ].filter((action) => {
     if (action.availability !== "enabled") return false;
     if (action.logicalKey) return true;
-    return Boolean(activityIdForAction(page, action));
-  }), [page, unit?.number]);
+    return Boolean(activityIdForAction(page, action, getAuthoredActivityKey));
+  }), [getAuthoredActivityKey, hotspotProvider, page, unit?.number]);
 
   const image = page?.images?.[0] || null;
   const openAction = (action) => {
-    const activityId = activityIdForAction(page, action);
+    const activityId = activityIdForAction(page, action, getAuthoredActivityKey);
     if (activityId) {
       setActionsOpen(false);
       onOpenActivity(activityId);
@@ -471,6 +471,8 @@ export default function TeacherOfflinePages({
         nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
         contextActions={contextActions}
         internalNavigation={internalNavigation}
+        selectedBookId={selectedBookId}
+        onBookSwitch={onBookSwitch}
       />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />
