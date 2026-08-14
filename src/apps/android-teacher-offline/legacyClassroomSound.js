@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { canonicalTeacherRuntimeUiAssets, useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 import { getTeacherOfflineSettings, subscribeTeacherOfflineSettings, updateTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 
 let activeSound = null;
@@ -30,8 +30,9 @@ export function setLegacyClassroomSoundEnabled(nextEnabled) {
   }
 }
 
-export function playLegacyClassroomSound(name, requestedCategory = "") {
-  if (!legacyClassroomAssets.sounds[name]) return;
+export function playLegacyClassroomSound(name, requestedCategory = "", runtimeUiAssets = canonicalTeacherRuntimeUiAssets) {
+  const sounds = runtimeUiAssets.classroom.sounds;
+  if (!sounds[name]) return;
   const category = requestedCategory || (name === "pageTurn" ? "navigation" : "button");
   const [enabledKey, volumeKey] = categoryKeys[category] || categoryKeys.button;
   const audioSettings = getTeacherOfflineSettings().audio;
@@ -40,14 +41,16 @@ export function playLegacyClassroomSound(name, requestedCategory = "") {
     .some((media) => !media.paused && !media.ended && media !== activeSound);
   if (textbookMediaIsPlaying) return;
   activeSound?.pause();
-  activeSound = soundPlayers.get(name) || new Audio(legacyClassroomAssets.sounds[name]);
+  activeSound = soundPlayers.get(name) || new Audio(sounds[name]);
   soundPlayers.set(name, activeSound);
   activeSound.currentTime = 0;
   activeSound.volume = audioSettings[volumeKey] / 100;
   activeSound.play().catch(() => {});
 }
 
-export function useLegacyClassroomSound() {
+export function useLegacyClassroomSound(runtimeUiAssetsOverride = null) {
+  const contextualRuntimeUiAssets = useTeacherRuntimeUiAssets();
+  const runtimeUiAssets = runtimeUiAssetsOverride || contextualRuntimeUiAssets;
   const soundEnabled = useSyncExternalStore(
     subscribeTeacherOfflineSettings,
     allCategoriesEnabled,
@@ -55,7 +58,7 @@ export function useLegacyClassroomSound() {
   );
   useEffect(() => {
     let resultTimer = 0;
-    Object.entries(legacyClassroomAssets.sounds).forEach(([name, source]) => {
+    Object.entries(runtimeUiAssets.classroom.sounds).forEach(([name, source]) => {
       const player = new Audio(source);
       player.preload = "auto";
       player.load();
@@ -70,7 +73,7 @@ export function useLegacyClassroomSound() {
         resultTimer = globalThis.setTimeout(() => {
           const hasIncorrect = document.querySelector(".presentation-answer-incorrect, .legacy-pilot-answer-incorrect");
           const hasCorrect = document.querySelector(".presentation-answer-correct, .legacy-pilot-answer-correct");
-          playLegacyClassroomSound(hasIncorrect ? "incorrect" : hasCorrect ? "correct" : "button", "button");
+          playLegacyClassroomSound(hasIncorrect ? "incorrect" : hasCorrect ? "correct" : "button", "button", runtimeUiAssets);
         }, 80);
         return;
       }
@@ -78,7 +81,7 @@ export function useLegacyClassroomSound() {
       const toolbarButton = button.closest(".classroom-teaching-toolbar");
       const category = toolbarButton ? "toolbar" : navigationButton ? "navigation" : "button";
       const sound = button.dataset.sound || (category === "navigation" ? "pageTurn" : "button");
-      playLegacyClassroomSound(sound, category);
+      playLegacyClassroomSound(sound, category, runtimeUiAssets);
     };
     document.addEventListener("click", onClick, true);
     return () => {
@@ -88,6 +91,6 @@ export function useLegacyClassroomSound() {
       activeSound = null;
       soundPlayers.clear();
     };
-  }, []);
+  }, [runtimeUiAssets]);
   return { enabled: soundEnabled, setEnabled: setLegacyClassroomSoundEnabled };
 }

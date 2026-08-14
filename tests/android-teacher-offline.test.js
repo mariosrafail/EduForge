@@ -272,7 +272,8 @@ test("Teacher book screens use one canonical navigation row with code-controlled
   assert.doesNotMatch(navigationCore, />GB<|>WB</);
   assert.match(navigation, /TeacherBookNavigationCore/);
   assert.match(navigation, /LegacyClassroomIcon/);
-  assert.match(navigation, /legacyClassroomAssets\.bookSwitches/);
+  assert.match(navigation, /useTeacherRuntimeUiAssets\(\)/);
+  assert.match(navigation, /runtimeUiAssets\.classroom\.bookSwitches/);
   assert.match(navigation, /data-icon-state="active"/);
   assert.match(navigation, /data-icon-state="pressed"/);
   assert.match(navigation, /data-icon-state="disabled"/);

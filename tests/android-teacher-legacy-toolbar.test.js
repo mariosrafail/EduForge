@@ -37,8 +37,8 @@ test("Ultimate B2 teacher toolbar keeps the recovered legacy order and assets", 
   assert.match(toolbar, /selectMouse[\s\S]*setActiveTool\("pointer"\)[\s\S]*resetRegionZoom\(surfaceKey\)/);
   assert.doesNotMatch(toolbar, /lucide-react|window\.open|fetch\(|XMLHttpRequest|showSaveFilePicker/);
   assert.doesNotMatch(toolbar, /legacyClassroomAssets|ultimateB2TeacherToolbarItems/);
-  assert.match(adapter, /ultimateB2TeacherToolbarItems/);
-  assert.match(adapter, /<ClassroomToolbar [^>]*items=\{ultimateB2TeacherToolbarItems\}/);
+  assert.match(adapter, /useTeacherRuntimeUiAssets\(\)/);
+  assert.match(adapter, /<ClassroomToolbar [^>]*items=\{runtimeUiAssets\.toolbarItems\}/);
 });
 
 test("Ultimate B2 teacher toolbar CSS exposes transparent, hover, press, and selected states", async () => {

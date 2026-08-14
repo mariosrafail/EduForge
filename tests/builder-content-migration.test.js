@@ -9,7 +9,7 @@ test("migration 032 creates generic Builder documents and append-only revisions 
     read("database/032_builder_component_authoring.sql"),
     read("database/MIGRATIONS.md"),
   ]);
-  assert.match(manifest, /31\. `031_builder_developer_auth\.sql`\s+32\. `032_builder_component_authoring\.sql`\s+33\. `033_builder_open_response_imports\.sql`/);
+  assert.match(manifest, /31\. `031_builder_developer_auth\.sql`\s+32\. `032_builder_component_authoring\.sql`\s+33\. `033_builder_open_response_imports\.sql`\s+34\. `034_builder_teacher_ui_asset_uploads\.sql`/);
   assert.match(migration, /create table if not exists builder_component_documents/);
   assert.match(migration, /create table if not exists builder_component_document_revisions/);
   assert.match(migration, /created_by_builder_user_id uuid not null references builder_users/);

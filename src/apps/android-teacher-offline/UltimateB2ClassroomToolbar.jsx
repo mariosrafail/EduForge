@@ -1,6 +1,7 @@
 import ClassroomToolbar from "./ClassroomToolbar.jsx";
-import { ultimateB2TeacherToolbarItems } from "./legacyClassroomAssets.js";
+import { useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 
 export default function UltimateB2ClassroomToolbar(props) {
-  return <ClassroomToolbar {...props} items={ultimateB2TeacherToolbarItems} />;
+  const runtimeUiAssets = useTeacherRuntimeUiAssets();
+  return <ClassroomToolbar {...props} items={runtimeUiAssets.toolbarItems} />;
 }

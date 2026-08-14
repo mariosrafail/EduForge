@@ -335,7 +335,8 @@ test("hosted inventory uses exact renderer URLs, immutable headers stay fingerpr
   ]);
   assert.match(hosted, /resolveUltimateB2AuthoredAssetUrl\(page\.image\)/);
   assert.match(hosted, /ultimateB2StudentsBookMedia/);
-  assert.match(hosted, /collectRuntimeAssetUrls\(legacyClassroomAssets\)/);
+  assert.match(hosted, /createUltimateB2TeacherRuntimeUiAssets\(uiManifest\)/);
+  assert.match(hosted, /collectRuntimeAssetUrls\(createUltimateB2TeacherRuntimeUiAssets\(uiManifest\)\.classroom\)/);
   assert.match(hosted, /ultimateB2Unit1Part2LegacyAudio/);
   assert.match(hosted, /pack\?\.activities\?\.activities/);
   assert.match(hosted, /getUltimateB2OpenResponseArtworkLayers/);

@@ -5,7 +5,7 @@ import listeningAuthoring from "virtual:ultimate-b2-listening-authoring";
 import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2-legacy-pilot-audio";
 import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
-import { teacherListeningPlayerAssets } from "virtual:teacher-listening-player-assets";
+import { useTeacherListeningPlayerAssets } from "virtual:teacher-listening-player-assets";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
 import { findListeningCue, findListeningScrollEntry, formatListeningTime } from "./listeningRuntime.js";
 import "./teacherLegacyListeningActivity.css";
@@ -30,7 +30,7 @@ function PlayerButton({ label, source, pressedSource, disabled = false, onClick 
 }
 
 function TeacherListeningAudioPlayer({ currentMs, durationMs, playing, muted, onPlay, onPause, onStop, onSeek, onToggleMute }) {
-  const player = teacherListeningPlayerAssets;
+  const player = useTeacherListeningPlayerAssets();
   const maximum = Math.max(durationMs, listeningAuthoring.karaoke.cues.at(-1).endMs);
   return (
     <div className="teacher-listening-audio-player" aria-label="Full reading audio player">

@@ -53,7 +53,7 @@ test("Builder frontend gates the hosted shell without browser token persistence 
   assert.doesNotMatch(`${gate}\n${api}`, /localStorage|sessionStorage|signup|sign up|forgot-password/i);
   assert.match(api, /credentials: "include"/);
   assert.match(api, /response\.status === 401/);
-  assert.match(hosted, /Read-only — persistence pending/);
+  assert.match(hosted, /HostedTeacherUiController/);
   assert.doesNotMatch(hosted, /__hhplms|fetch\s*\(|method\s*:\s*["'](?:POST|PUT|PATCH|DELETE)/i);
 });
 

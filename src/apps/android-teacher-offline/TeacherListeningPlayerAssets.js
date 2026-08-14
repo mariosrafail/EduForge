@@ -1,3 +1,5 @@
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 
-export const teacherListeningPlayerAssets = legacyClassroomAssets.mediaPlayer;
+export function useTeacherListeningPlayerAssets() {
+  return useTeacherRuntimeUiAssets().classroom.mediaPlayer;
+}

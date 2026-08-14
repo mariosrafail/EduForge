@@ -1,1 +1,3 @@
-export const teacherListeningPlayerAssets = null;
+export function useTeacherListeningPlayerAssets() {
+  return null;
+}

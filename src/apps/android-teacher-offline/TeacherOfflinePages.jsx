@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
@@ -65,6 +65,8 @@ export default function TeacherOfflinePages({
   onOpenMedia,
   onBackToLibrary,
 }) {
+  const runtimeUiAssets = useTeacherRuntimeUiAssets();
+  const legacyClassroomAssets = runtimeUiAssets.classroom;
   const pages = unit?.pages || [];
   const settings = useTeacherOfflineSettings();
   const { scale: teacherStageScale } = useTeacherStage();

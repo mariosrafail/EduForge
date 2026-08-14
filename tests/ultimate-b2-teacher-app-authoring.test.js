@@ -185,9 +185,10 @@ test("runtime wires the book and reveal controls while the unused Navibar catalo
   const pack = teacherPackAssetSources().find((candidate) => candidate.pageId === knownPageId);
   assert.equal(pack.logicalKey, page.logicalAssetIdentity);
   assert.equal(path.normalize(pack.sourcePath), path.join(root, page.image.repositoryPath));
-  const [runtimeResolver, shellResolver, hotspotBuilder, builderShell, controller, navigation, navigationCore] = await Promise.all([
+  const [runtimeResolver, shellResolver, runtimeUiModel, hotspotBuilder, builderShell, controller, navigation, navigationCore] = await Promise.all([
     readFile(path.join(root, "src/data/ultimate-b2/ultimateB2PageAssets.teacher-offline.js"), "utf8"),
     readFile(path.join(root, "src/apps/android-teacher-offline/legacyClassroomAssets.js"), "utf8"),
+    readFile(path.join(root, "src/apps/android-teacher-offline/teacherRuntimeUiAssetModel.js"), "utf8"),
     readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"), "utf8"),
     readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx"), "utf8"),
     readFile(path.join(root, "src/apps/ultimate-b2-builder/UltimateB2TeacherAppBuilder.jsx"), "utf8"),
@@ -196,9 +197,10 @@ test("runtime wires the book and reveal controls while the unused Navibar catalo
   ]);
   assert.match(runtimeResolver, /getUltimateB2TeacherAppPageByPart/);
   assert.match(shellResolver, /ultimateB2TeacherAppAuthoring/);
-  assert.match(shellResolver, /authored\.shell\.extras/);
-  assert.match(shellResolver, /authored\.shell\.bookSwitches/);
-  assert.match(shellResolver, /authored\.shell\.revealControls/);
+  assert.match(shellResolver, /createTeacherRuntimeUiAssetModel/);
+  assert.match(runtimeUiModel, /authoring\.shell\.extras/);
+  assert.match(runtimeUiModel, /authoring\.shell\.bookSwitches/);
+  assert.match(runtimeUiModel, /authoring\.shell\.revealControls/);
   assert.match(hotspotBuilder, /page\.assetBindingId/);
   assert.deepEqual([...builderShell.matchAll(/>(Hotspot Builder|Activity Builder|UI Controller)</g)].map((match) => match[1]), ["Hotspot Builder", "Activity Builder", "UI Controller"]);
   assert.doesNotMatch(builderShell, />Teacher App</);
@@ -208,7 +210,8 @@ test("runtime wires the book and reveal controls while the unused Navibar catalo
   assert.match(controller, /Book Switch Controls/);
   assert.match(controller, /Reveal activity controls/);
   assert.match(controller, /Navibar Assets/);
-  assert.match(navigation, /legacyClassroomAssets\.bookSwitches/);
+  assert.match(navigation, /useTeacherRuntimeUiAssets\(\)/);
+  assert.match(navigation, /runtimeUiAssets\.classroom\.bookSwitches/);
   assert.match(navigation, /renderContextIcon/);
   assert.match(navigationCore, /onBookSwitch\(item\.id\)/);
   assert.doesNotMatch(navigationCore, />GB<|>WB</);

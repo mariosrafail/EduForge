@@ -56,12 +56,12 @@ test("adapter capabilities expose only hotspots and supported activities as writ
   ]);
   assert.match(adapters, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
-  assert.match(adapters, /uiController: Object\.freeze\(\{ readable: true, writable: false \}\)/);
+  assert.match(adapters, /uiController: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(shell, /adapter\.capabilities\[capability\]\?\.writable \? "Editable" : "Read-only"/);
-  assert.match(workspace, /Read-only — persistence pending/);
+  assert.match(workspace, /HostedTeacherUiController/);
   assert.match(workspace, /Open Response · Editable/);
   assert.match(workspace, /Unsupported type · Read-only/);
-  assert.match(workspace, /<ReadOnlyBanner tool="UI Controller" \/>/);
+  assert.doesNotMatch(workspace, /ReadOnlyBanner|persistence pending/);
   assert.doesNotMatch(workspace, /Add Activity|Create Activity|upload|FormData/i);
 });
 

@@ -18,7 +18,7 @@ export const buildProfiles = Object.freeze({
     builderReadOnly: false, builderMutations: true, teacherSolutions: false, teacherPresentation: false, staticOnly: false,
   }),
   [BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, {
-    builderReadOnly: true, builderMutations: false, hostedDocumentWrites: Object.freeze(["hotspots", "open-response"]), teacherSolutions: false, teacherPresentation: false, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, hostedDocumentWrites: Object.freeze(["hotspots", "open-response", "ui-controller"]), teacherSolutions: false, teacherPresentation: false, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW, {
     builderReadOnly: true, builderMutations: false, teacherSolutions: true, teacherPresentation: true, staticOnly: true,

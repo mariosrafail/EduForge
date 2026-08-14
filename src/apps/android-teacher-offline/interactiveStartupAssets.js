@@ -464,13 +464,16 @@ export function createHostedStartupAssets(inventory, {
 } = {}) {
   return Object.freeze({
     hosted: true,
-    createLoadPlan(pack) {
+    createLoadPlan(pack, uiManifest = null) {
+      const uiAssetUrls = typeof inventory.uiAssetUrls === "function"
+        ? inventory.uiAssetUrls(uiManifest)
+        : inventory.uiAssetUrls || [];
       return buildHostedViewerAssetLoadPlan({
         manifestAssets: pack?.assetsManifest?.assets,
         pageAssetUrls: inventory.pageAssetUrls,
         mediaAssetUrls: inventory.mediaAssetUrls,
         uiAssetUrls: [
-          ...(inventory.uiAssetUrls || []),
+          ...uiAssetUrls,
           ...(inventory.activityAssetUrls?.(pack) || []),
         ],
       });
@@ -512,19 +515,20 @@ export function createNoopStartupAssets() {
 
 export async function runInteractiveViewerStartup({
   loadContentPack,
+  loadUiManifest = async () => null,
   prepareHotspots,
   startupAssets,
   signal,
   onState = () => {},
 } = {}) {
   try {
-    onState({ status: "loading", phase: "validating", progress: null, pack: null, error: null });
-    const [pack] = await Promise.all([loadContentPack(), prepareHotspots()]);
+    onState({ status: "loading", phase: "validating", progress: null, pack: null, uiManifest: null, error: null });
+    const [pack, , uiManifest] = await Promise.all([loadContentPack(), prepareHotspots(), loadUiManifest({ signal })]);
     throwIfAborted(signal);
-    onState({ status: "loading", phase: "planning", progress: null, pack, error: null });
-    const plan = startupAssets.createLoadPlan(pack);
+    onState({ status: "loading", phase: "planning", progress: null, pack, uiManifest, error: null });
+    const plan = startupAssets.createLoadPlan(pack, uiManifest);
     if (startupAssets.hosted) {
-      onState({ status: "loading", phase: "checking-cache", progress: null, pack, error: null });
+      onState({ status: "loading", phase: "checking-cache", progress: null, pack, uiManifest, error: null });
     }
     await startupAssets.preloadBlocking(plan, {
       signal,
@@ -533,6 +537,7 @@ export async function runInteractiveViewerStartup({
         phase: cache.preparationAssets ? "preparing-updates" : "using-cache",
         progress: cache,
         pack,
+        uiManifest,
         error: null,
       }),
       onProgress: (progress) => onState({
@@ -540,6 +545,7 @@ export async function runInteractiveViewerStartup({
         phase: progress.preparationAssets ? "preparing-updates" : "using-cache",
         progress,
         pack,
+        uiManifest,
         error: null,
       }),
     });
@@ -549,14 +555,15 @@ export async function runInteractiveViewerStartup({
       phase: "ready",
       progress: Object.freeze({ completedAssets: plan.blocking.length, totalAssets: plan.blocking.length, percentage: 100 }),
       pack,
+      uiManifest,
       error: null,
     });
     const backgroundPromise = Promise.resolve()
       .then(() => startupAssets.preloadBackground(plan, { signal }))
       .catch((error) => ({ errors: [{ asset: null, error }], progress: null }));
-    return { pack, plan, backgroundPromise };
+    return { pack, uiManifest, plan, backgroundPromise };
   } catch (error) {
-    if (!signal?.aborted) onState({ status: "error", phase: "error", progress: null, pack: null, error });
+    if (!signal?.aborted) onState({ status: "error", phase: "error", progress: null, pack: null, uiManifest: null, error });
     throw error;
   }
 }

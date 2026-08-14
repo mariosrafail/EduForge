@@ -1,7 +1,7 @@
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import TeacherOfflineActivityList from "./TeacherOfflineActivityList.jsx";
 import TeacherOfflinePages from "./TeacherOfflinePages.jsx";
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 
 export default function TeacherOfflineBook({
   pack,
@@ -15,6 +15,7 @@ export default function TeacherOfflineBook({
   onBackToLibrary,
   viewportProfile,
 }) {
+  const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const availableUnitNumbers = (pageUnits || [])
     .map((unit) => Number(unit.number))
     .filter((number) => Number.isInteger(number))
@@ -33,8 +34,8 @@ export default function TeacherOfflineBook({
     <main
       className={`teacher-offline-book ${pageViewerActive ? "page-viewer-active" : ""} ${unitOverviewActive ? "unit-overview-active" : ""} ${tab === "exercises" ? "contents-active" : ""}`.trim()}
       style={{
-        "--legacy-classroom-background": `url(${legacyClassroomAssets.backgrounds.classroomGlacier})`,
-        "--legacy-students-book-parts-background": `url(${legacyClassroomAssets.backgrounds.studentsBookPartsBackground})`,
+        "--legacy-classroom-background": `url(${runtimeUiAssets.classroom.backgrounds.classroomGlacier})`,
+        "--legacy-students-book-parts-background": `url(${runtimeUiAssets.classroom.backgrounds.studentsBookPartsBackground})`,
       }}
     >
       {tab === "pages" ? (

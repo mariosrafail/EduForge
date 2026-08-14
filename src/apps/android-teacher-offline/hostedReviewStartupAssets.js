@@ -13,7 +13,7 @@ import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherApp
 import { resolveUltimateB2AuthoredAssetUrl } from "../../data/ultimate-b2/ultimateB2AuthoredAssetUrls.js";
 import { ultimateB2StudentsBookMedia } from "../../data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js";
 import { ultimateB2Unit1Part2LegacyImages } from "../../data/ultimate-b2/unit1Part2LegacyPilotAssets.js";
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { createUltimateB2TeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 import {
   collectRuntimeAssetUrls,
   createHostedStartupAssets,
@@ -47,7 +47,9 @@ export const hostedReviewAssetInventory = Object.freeze({
   mediaAssetUrls: ultimateB2StudentsBookMedia,
   // This walks the deliberately wired runtime surface, not the broader Vite glob
   // used internally by the authored-asset resolver.
-  uiAssetUrls: Object.freeze(collectRuntimeAssetUrls(legacyClassroomAssets)),
+  uiAssetUrls(uiManifest) {
+    return collectRuntimeAssetUrls(createUltimateB2TeacherRuntimeUiAssets(uiManifest).classroom);
+  },
   activityAssetUrls,
 });
 

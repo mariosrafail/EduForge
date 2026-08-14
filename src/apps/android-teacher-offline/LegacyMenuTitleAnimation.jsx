@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { legacyClassroomAssets } from "./legacyClassroomAssets.js";
+import { useTeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 import { parseGaf, renderGafFrame } from "./legacyGaf.js";
 
 function loadImage(source) {
@@ -14,6 +14,7 @@ function loadImage(source) {
 }
 
 export default function LegacyMenuTitleAnimation({ animate = true }) {
+  const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const canvasRef = useRef(null);
   const [error, setError] = useState("");
 
@@ -23,7 +24,7 @@ export default function LegacyMenuTitleAnimation({ animate = true }) {
     const controller = new AbortController();
     let animationFrame = 0;
     let disposed = false;
-    const title = legacyClassroomAssets.branding.menuTitle;
+    const title = runtimeUiAssets.classroom.branding.menuTitle;
 
     fetch(title.gaf, { signal: controller.signal }).then((response) => {
       if (!response.ok) throw new Error("Unable to load the recovered GAF menu title.");
@@ -61,7 +62,7 @@ export default function LegacyMenuTitleAnimation({ animate = true }) {
       controller.abort();
       cancelAnimationFrame(animationFrame);
     };
-  }, [animate]);
+  }, [animate, runtimeUiAssets]);
 
   return (
     <div className="legacy-menu-title-animation" role="img" aria-label="Ultimate B2 English">

@@ -10,6 +10,12 @@ import {
 } from "../../../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { isUltimateB2ConfigurableOpenResponse } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { findStudentsBookImplementation, isStudentsBookActivityEnabled } from "../../../src/data/ultimate-b2/studentsBookCatalog.js";
+import {
+  createEmptyHostedTeacherUiDocument,
+  normalizeHostedTeacherUiDocument,
+  projectHostedTeacherUiPreview,
+} from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
+import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 
 const ultimateB2HotspotResource = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -34,6 +40,21 @@ const ultimateB2HotspotResource = Object.freeze({
 
 const registry = Object.freeze({
   "ultimate-b2/ultimate-b2-students-book/hotspots": ultimateB2HotspotResource,
+  "ultimate-b2/ultimate-b2-students-book/ui-controller": Object.freeze({
+    bookSlug: "ultimate-b2",
+    componentSlug: "ultimate-b2-students-book",
+    resource: "ui-controller",
+    documentType: "teacher_ui",
+    documentKey: "default",
+    schemaVersion: HOSTED_TEACHER_UI_SCHEMA_VERSION,
+    readable: true,
+    writeAllowed: false,
+    previewReadable: true,
+    previewRequiresStored: true,
+    baseline: createEmptyHostedTeacherUiDocument,
+    validate: normalizeHostedTeacherUiDocument,
+    projectPreview: projectHostedTeacherUiPreview,
+  }),
 });
 
 function resolveOpenResponseResource(bookSlug, componentSlug, resource, documentKey) {

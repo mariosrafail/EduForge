@@ -41,9 +41,10 @@ test("Teacher runtime resolves menu visuals by package without exposing assets t
     readFile("src/config/bookMenuSkins.js", "utf8"),
   ]);
   assert.match(runtime, /resolveTeacherBookMenuSkin/);
-  assert.match(runtime, /legacyClassroomAssets\.branding\.bookMenu/);
+  assert.match(runtime, /canonicalTeacherRuntimeUiAssets/);
+  assert.match(runtime, /runtimeUiAssets\.classroom/);
   assert.match(app, /selectedBookMenuSkinId\(bookMenuSkinSelections, pack\.manifest\.packageId\)/);
-  assert.match(app, /resolveTeacherBookMenuSkin\(pack\.manifest\.packageId, selectedMenuSkinId\)/);
+  assert.match(app, /resolveTeacherBookMenuSkin\(pack\.manifest\.packageId, selectedMenuSkinId, runtimeUiAssets\)/);
   assert.match(library, /data-book-menu-skin=\{menuSkin\.id\}/);
   assert.doesNotMatch(library, /legacyClassroomAssets/);
   assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);

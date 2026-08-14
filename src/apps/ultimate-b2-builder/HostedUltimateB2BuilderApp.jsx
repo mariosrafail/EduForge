@@ -5,12 +5,9 @@ import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/ope
 import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
 import { HostedOpenResponseEditor } from "./HostedOpenResponseEditor.jsx";
 import { HostedUltimateB2HotspotBuilder } from "./HostedUltimateB2HotspotBuilder.jsx";
+import { HostedTeacherUiController } from "./HostedTeacherUiController.jsx";
 import "./ultimateB2HotspotBuilder.css";
 import "./hostedUltimateB2BuilderReview.css";
-
-function ReadOnlyBanner({ tool }) {
-  return <div className="b2-hosted-review-banner" role="status"><strong>Read-only — persistence pending</strong><span>{tool} uses the canonical hosted Viewer for interactive preview.</span></div>;
-}
 
 function ActivityReview() {
   const firstId = catalog.units?.[0]?.lessons?.[0]?.exercises?.[0]?.stableActivityId || "";
@@ -59,24 +56,11 @@ function ActivityReview() {
   </main>;
 }
 
-function UiControllerReview() {
-  return <main className="b2-teacher-app-builder b2-hosted-ui-review">
-    <header className="b2-teacher-app-header"><div><span>Ultimate B2 hosted review</span><h1>UI Controller</h1><p>Review the real Viewer library, shell, navigation, toolbar and current interface assets.</p></div><ReadOnlyBanner tool="UI Controller" /></header>
-    <div className="b2-hosted-ui-preview">
-      <HostedViewerPreview
-        intent={{ view: "library" }}
-        title="Canonical Viewer library and shell preview"
-        description="Interact with the deployed Viewer directly; UI configuration remains read-only in this milestone."
-      />
-    </div>
-  </main>;
-}
-
 export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots" }) {
   return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter="ultimate-b2-students-book">
     {tool === "hotspots" ? <HostedUltimateB2HotspotBuilder /> : null}
     {tool === "activities" ? <ActivityReview /> : null}
-    {tool === "ui" ? <UiControllerReview /> : null}
+    {tool === "ui" ? <HostedTeacherUiController /> : null}
   </div>;
 }
 

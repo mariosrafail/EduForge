@@ -7,6 +7,7 @@ import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimate
 import {
   interactiveContentPackProvider,
   interactiveStartupAssets,
+  interactiveUiManifestProvider,
 } from "virtual:ultimate-b2-interactive-pack-provider";
 import { prepareUltimateB2StudentsBookHotspots } from "virtual:ultimate-b2-runtime-hotspots";
 import { readTeacherOfflineLocation, writeTeacherOfflineLocation } from "./teacherOfflineStorage.js";
@@ -26,6 +27,10 @@ import TeacherViewerStartupStatus from "./TeacherViewerStartupStatus.jsx";
 import { runInteractiveViewerStartup } from "./interactiveStartupAssets.js";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
+import {
+  createUltimateB2TeacherRuntimeUiAssets,
+  TeacherRuntimeUiAssetsProvider,
+} from "./legacyClassroomAssets.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
 import { selectedBookMenuSkinId } from "../../config/bookMenuSkins.js";
 import {
@@ -43,6 +48,7 @@ const initialPackState = Object.freeze({
   phase: "validating",
   progress: null,
   pack: null,
+  uiManifest: null,
   error: null,
   message: "",
 });
@@ -112,7 +118,12 @@ function usePrefersReducedMotion() {
 
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
-  const classroomSound = useLegacyClassroomSound();
+  const [packState, setPackState] = useState(initialPackState);
+  const runtimeUiAssets = useMemo(
+    () => createUltimateB2TeacherRuntimeUiAssets(packState.uiManifest),
+    [packState.uiManifest],
+  );
+  const classroomSound = useLegacyClassroomSound(runtimeUiAssets);
   const settings = useTeacherOfflineSettings();
   const prefersReducedMotion = usePrefersReducedMotion();
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
@@ -121,7 +132,6 @@ export default function TeacherOfflineApp() {
   const [startupIntroPending, setStartupIntroPending] = useState(animationsActive && !hostedPreviewRequested);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const [packState, setPackState] = useState(initialPackState);
   const [startupAttempt, setStartupAttempt] = useState(0);
   const [navigation, setNavigation] = useState(libraryState);
   const navigationRef = useRef(navigation);
@@ -145,6 +155,7 @@ export default function TeacherOfflineApp() {
     const controller = new AbortController();
     runInteractiveViewerStartup({
       loadContentPack: () => interactiveContentPackProvider.load(),
+      loadUiManifest: (options) => interactiveUiManifestProvider.load(options),
       prepareHotspots: () => prepareUltimateB2StudentsBookHotspots(),
       startupAssets: interactiveStartupAssets,
       signal: controller.signal,
@@ -278,7 +289,7 @@ export default function TeacherOfflineApp() {
   }, [hostedPreviewIntent, packReady]);
 
   const selectedMenuSkinId = packReady ? selectedBookMenuSkinId(bookMenuSkinSelections, pack.manifest.packageId) : "";
-  const menuSkin = packReady ? resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId) : null;
+  const menuSkin = packReady ? resolveTeacherBookMenuSkin(pack.manifest.packageId, selectedMenuSkinId, runtimeUiAssets) : null;
   const openBookActivity = (activityId, originLocation = null) => {
     if (!packReady) return;
     const resolved = resolveTeacherOfflineActivityLocation({
@@ -358,6 +369,7 @@ export default function TeacherOfflineApp() {
     classroomBackground: menuSkin?.background,
   });
   return (
+    <TeacherRuntimeUiAssetsProvider value={runtimeUiAssets}>
     <ClassroomToolsProvider>
       <TeacherFixedStage
         viewport={viewport}
@@ -404,5 +416,6 @@ export default function TeacherOfflineApp() {
       </div>
       </TeacherFixedStage>
     </ClassroomToolsProvider>
+    </TeacherRuntimeUiAssetsProvider>
   );
 }

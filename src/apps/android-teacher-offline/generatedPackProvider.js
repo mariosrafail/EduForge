@@ -6,6 +6,7 @@ import assetsManifest from "../../../android-content-packs/ultimate-b2-students-
 
 import { BundledTeacherContentPackProvider } from "./contentPackProviders.js";
 import { createNoopStartupAssets } from "./interactiveStartupAssets.js";
+export { interactiveUiManifestProvider } from "./noHostedReviewUiManifestProvider.js";
 
 export const bundledTeacherPack = Object.freeze({
   manifest,
