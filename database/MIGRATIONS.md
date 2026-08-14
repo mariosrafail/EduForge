@@ -37,6 +37,7 @@ Apply production migrations in this exact order:
 33. `033_builder_open_response_imports.sql`
 34. `034_builder_teacher_ui_asset_uploads.sql`
 35. `035_builder_component_publication.sql`
+36. `036_builder_native_activity_foundation.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

@@ -27,7 +27,7 @@ test("isolated PostgreSQL preserves immutable release history and stale-safe ato
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "035_builder_component_publication.sql");
+  assert.equal(migrations.at(-1).filename, "036_builder_native_activity_foundation.sql");
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication Integration','publication@example.test','not-a-real-login-hash')`, [actor]);
   const sql = tag(pool);
 

@@ -16,6 +16,8 @@ import {
   projectHostedTeacherUiPreview,
 } from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
+import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument, validateNativeActivityPair } from "./_native-activity-registry.js";
 
 const ultimateB2HotspotResource = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -50,12 +52,47 @@ const registry = Object.freeze({
     readable: true,
     writeAllowed: false,
     previewReadable: true,
+    previewAudience: "teacher",
     previewRequiresStored: true,
     baseline: createEmptyHostedTeacherUiDocument,
     validate: normalizeHostedTeacherUiDocument,
     projectPreview: projectHostedTeacherUiPreview,
   }),
 });
+
+const nativeActivityIdPattern = /^[a-z0-9][a-z0-9-]{0,127}$/;
+const nativeComponent = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
+
+function nativeIndexResource(bookSlug, componentSlug, resource, documentKey) {
+  if (bookSlug !== nativeComponent.bookSlug || componentSlug !== nativeComponent.componentSlug || resource !== "native-activity-index" || documentKey) return null;
+  return Object.freeze({ ...nativeComponent, resource, documentType: "native_activity_index", documentKey: "default", schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION, audience: "public", readable: true, writeAllowed: false, previewReadable: false, baseline: createEmptyNativeActivityIndex, validate(document) { return normalizeNativeActivityIndex(document, { allowedKinds: NATIVE_ACTIVITY_KINDS }); } });
+}
+
+function nativeDocumentResource(bookSlug, componentSlug, resource, documentKey) {
+  if (bookSlug !== nativeComponent.bookSlug || componentSlug !== nativeComponent.componentSlug || !nativeActivityIdPattern.test(documentKey)) return null;
+  const teacher = resource === "native-activity-teacher";
+  if (!teacher && resource !== "native-activity-public") return null;
+  return Object.freeze({
+    ...nativeComponent,
+    resource,
+    documentType: teacher ? "native_activity_teacher" : "native_activity_public",
+    documentKey,
+    schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
+    audience: teacher ? "teacher" : "public",
+    readable: true,
+    writeAllowed: true,
+    previewReadable: false,
+    requiresStored: true,
+    baseline() { throw new Error("Native activity documents have no repository baseline."); },
+    validate(document) { return teacher ? normalizeNativeActivityTeacherDocument(document, documentKey) : normalizeNativeActivityPublicDocument(document, documentKey); },
+    async validateMutationContext({ document, currentDocument, loadRelated }) {
+      if (currentDocument.activityId !== document.activityId || currentDocument.kind !== document.kind) throw new Error("Native activity identity and kind are immutable.");
+      const related = await loadRelated(teacher ? "native-activity-public" : "native-activity-teacher", documentKey);
+      if (!related) throw new Error("Matching native activity document is unavailable.");
+      validateNativeActivityPair(teacher ? related.document : document, teacher ? document : related.document);
+    },
+  });
+}
 
 function resolveOpenResponseResource(bookSlug, componentSlug, resource, documentKey) {
   if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book" || resource !== "open-response") return null;
@@ -86,6 +123,8 @@ function resolveOpenResponseResource(bookSlug, componentSlug, resource, document
 }
 
 export async function resolveBuilderContentResource(bookSlug, componentSlug, resource, documentKey = "") {
+  const nativeResource = nativeIndexResource(bookSlug, componentSlug, resource, documentKey) || nativeDocumentResource(bookSlug, componentSlug, resource, documentKey);
+  if (nativeResource) return nativeResource;
   const openResponse = resolveOpenResponseResource(bookSlug, componentSlug, resource, documentKey);
   if (openResponse) return openResponse;
   if (documentKey) return null;

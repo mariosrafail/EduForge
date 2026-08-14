@@ -159,6 +159,7 @@ export function createBuilderContentHandler(overrides = {}) {
         const stored = await dependencies.loadDocument(sql, resource);
         let state = stored;
         if (!state) {
+          if (resource.requiresStored) return json(404, { error: "builder_resource_not_found" });
           stage = "repository_baseline";
           state = { revision: 0, source: "repository", document: resource.baseline() };
         }
@@ -177,11 +178,29 @@ export function createBuilderContentHandler(overrides = {}) {
       const parsed = parseSaveBody(event);
       if (parsed.error) return parsed.error;
       stage = "validate_mutation";
-      try { assertPublicBuilderDocument(parsed.value.document); } catch { return json(400, { error: "private_document_key_rejected" }); }
+      if (resource.audience !== "teacher") {
+        try { assertPublicBuilderDocument(parsed.value.document); } catch { return json(400, { error: "private_document_key_rejected" }); }
+      }
 
       let document;
       try { document = resource.validate(parsed.value.document); } catch (error) {
         return json(400, { error: "invalid_document", detail: String(error.message || "Document validation failed").slice(0, 240) });
+      }
+      const currentState = resource.requiresStored ? await dependencies.loadDocument(sql, resource) : null;
+      if (resource.requiresStored && !currentState) return json(404, { error: "builder_resource_not_found" });
+      if (typeof resource.validateMutationContext === "function") {
+        try {
+          await resource.validateMutationContext({
+            document,
+            currentDocument: currentState.document,
+            loadRelated: async (relatedResource, relatedKey) => {
+              const resolved = await dependencies.resolveResource(resource.bookSlug, resource.componentSlug, relatedResource, relatedKey);
+              return resolved ? dependencies.loadDocument(sql, resolved) : null;
+            },
+          });
+        } catch (error) {
+          return json(400, { error: "invalid_document", detail: String(error.message || "Document consistency validation failed").slice(0, 240) });
+        }
       }
       const payloadSha256 = builderDocumentSha256(document);
       stage = "save_document";

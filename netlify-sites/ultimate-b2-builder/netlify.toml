@@ -22,6 +22,18 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/preview-authorization"
+  to = "/.netlify/functions/builder-preview-authorization"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/api/native-activities/*"
+  to = "/.netlify/functions/builder-native-activities/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/api/open-response-import/*"
   to = "/.netlify/functions/builder-open-response-import/:splat"
   status = 200
