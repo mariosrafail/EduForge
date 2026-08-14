@@ -17,6 +17,7 @@ import {
 } from "../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { ultimateB2TeacherAppAuthoring, ultimateB2TeacherAppDefaultAssets } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 import { createTeacherRuntimeUiAssetModel } from "../src/apps/android-teacher-offline/teacherRuntimeUiAssetModel.js";
+import { teacherUiAssetErrorMessage } from "../src/apps/book-builder/hosted/builderTeacherUiAssetApi.js";
 
 const actorId = "10000000-0000-4000-8000-000000000001";
 const headers = { host: "builder.example", origin: "https://builder.example", "content-type": "application/json" };
@@ -65,6 +66,12 @@ test("hosted Teacher UI catalog is the unique live subset of canonical bindings"
   assert.deepEqual(HOSTED_TEACHER_UI_TITLE_BINDING_IDS, ["title.gaf", "title.sd.1", "title.sd.2", "title.hd.1", "title.hd.2"]);
 });
 
+test("hosted Teacher UI operational errors have concise non-secret messages", () => {
+  assert.equal(teacherUiAssetErrorMessage("teacher_ui_storage_unavailable"), "Teacher interface asset storage is unavailable. Contact the hosted Builder operator.");
+  assert.equal(teacherUiAssetErrorMessage("teacher_ui_schema_unavailable"), "Teacher interface upload records are unavailable. Contact the hosted Builder operator.");
+  assert.equal(teacherUiAssetErrorMessage("invalid_filename"), "invalid_filename");
+});
+
 test("hosted Teacher UI schema normalizes overrides, strips private diagnostics, and enforces the title group", () => {
   const document = normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } });
   assert.equal(document.assets["background.main"].originalFilename, "replacement.png");
@@ -109,6 +116,51 @@ test("prepare authenticates one allowlisted slot, creates opaque private staging
   ]) assert.equal((await handler(event("/builder/api/ui-assets/prepare", { expectedRevision: 0, clientMutationId: randomUUID(), files }))).statusCode, 400);
   const unauthenticated = createBuilderTeacherUiAssetsHandler({ getDatabase: () => ({}), authorize: async () => ({ error: { statusCode: 401, headers: {}, body: "" } }), logger: { error() {} } });
   assert.equal((await unauthenticated(event("/builder/api/ui-assets/prepare", {}))).statusCode, 401);
+});
+
+test("prepare reports schema and storage outages safely without changing request validation", async () => {
+  const request = () => event("/builder/api/ui-assets/prepare", { expectedRevision: 0, clientMutationId: randomUUID(), files: [{ bindingId: "background.main", name: "local.png", size: png.length, type: "image/png" }] });
+  const diagnostics = [];
+  const base = { getDatabase: () => ({}), authorize, logger: { error: (_message, diagnostic) => diagnostics.push(diagnostic) } };
+
+  const schemaUnavailable = createBuilderTeacherUiAssetsHandler({
+    ...base,
+    prepare: async () => { throw Object.assign(new Error("database details must stay private"), { code: "42883" }); },
+  });
+  const schemaResponse = await schemaUnavailable(request());
+  assert.equal(schemaResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(schemaResponse.body), { error: "teacher_ui_schema_unavailable" });
+  assert.deepEqual(diagnostics.pop(), { category: "schema", code: "42883" });
+  assert.doesNotMatch(schemaResponse.body, /database|42883/i);
+
+  const configurationUnavailable = createBuilderTeacherUiAssetsHandler({
+    ...base,
+    prepare: async (_sql, input) => ({ outcome: "prepared", uploadId: input.uploadId, currentRevision: 0, state: "prepared", fileDescriptors: input.fileDescriptors }),
+    storage: () => { throw new Error("missing secret configuration details"); },
+  });
+  const configurationResponse = await configurationUnavailable(request());
+  assert.equal(configurationResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(configurationResponse.body), { error: "teacher_ui_storage_unavailable" });
+  assert.deepEqual(diagnostics.pop(), { category: "storage", code: "unknown" });
+  assert.doesNotMatch(configurationResponse.body, /missing|secret/i);
+
+  const signingStorage = new MemoryStorage();
+  signingStorage.signedPutUrl = async () => { throw Object.assign(new Error("signing details must stay private"), { code: "CredentialsProviderError" }); };
+  const signingUnavailable = createBuilderTeacherUiAssetsHandler({
+    ...base,
+    prepare: async (_sql, input) => ({ outcome: "prepared", uploadId: input.uploadId, currentRevision: 0, state: "prepared", fileDescriptors: input.fileDescriptors }),
+    storage: () => signingStorage,
+  });
+  const signingResponse = await signingUnavailable(request());
+  assert.equal(signingResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(signingResponse.body), { error: "teacher_ui_storage_unavailable" });
+  assert.deepEqual(diagnostics.pop(), { category: "storage", code: "CredentialsProviderError" });
+  assert.doesNotMatch(signingResponse.body, /signing|credentials/i);
+
+  const invalidDescriptor = await configurationUnavailable(event("/builder/api/ui-assets/prepare", { expectedRevision: 0, clientMutationId: randomUUID(), files: [{ bindingId: "background.main", name: "../local.png", size: png.length, type: "image/png" }] }));
+  assert.equal(invalidDescriptor.statusCode, 400);
+  const invalidOrigin = await configurationUnavailable(event("/builder/api/ui-assets/prepare", {}, "POST", { ...headers, origin: "https://other.example" }));
+  assert.equal(invalidOrigin.statusCode, 403);
 });
 
 test("finalize inspects actual bytes, promotes immutable content, returns an unsaved candidate, and cleans staging", async () => {
@@ -175,6 +227,11 @@ test("public UI asset delivery is exact, immutable, GET/HEAD-only, and never acc
   assert.equal((await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "POST", {}))).statusCode, 405);
   assert.equal((await handler(event(`/preview/ui-assets/${"a".repeat(64)}.png`, undefined, "GET", {}))).statusCode, 404);
   assert.equal((await handler(event("/preview/ui-assets/../../private/key", undefined, "GET", {}))).statusCode, 404);
+
+  const unavailable = createBuilderTeacherUiAssetsHandler({ storage: () => { throw new Error("private configuration detail"); }, logger: { error() {} } });
+  const unavailableResponse = await unavailable(event(`/preview/ui-assets/${checksum}.png`, undefined, "GET", {}));
+  assert.equal(unavailableResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(unavailableResponse.body), { error: "teacher_ui_storage_unavailable" });
 });
 
 test("runtime UI consumers use the explicit provider boundary rather than module-static asset objects", async () => {

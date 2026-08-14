@@ -1,6 +1,14 @@
 import { BuilderContentApiError } from "./builderContentApi.js";
 
 const root = "/builder/api/ui-assets";
+const operationalMessages = Object.freeze({
+  teacher_ui_schema_unavailable: "Teacher interface upload records are unavailable. Contact the hosted Builder operator.",
+  teacher_ui_storage_unavailable: "Teacher interface asset storage is unavailable. Contact the hosted Builder operator.",
+});
+
+export function teacherUiAssetErrorMessage(code) {
+  return operationalMessages[code] || String(code || "");
+}
 
 async function responsePayload(response) {
   return response.json().catch(() => ({}));
@@ -15,7 +23,7 @@ async function request(path, body) {
     body: JSON.stringify(body),
   });
   const payload = await responsePayload(response);
-  if (!response.ok) throw new BuilderContentApiError(response.status, payload, "Teacher interface authoring failed.");
+  if (!response.ok) throw new BuilderContentApiError(response.status, payload?.error ? { ...payload, error: teacherUiAssetErrorMessage(payload.error) } : payload, "Teacher interface authoring failed.");
   return payload;
 }
 

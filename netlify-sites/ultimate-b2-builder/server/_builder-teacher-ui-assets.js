@@ -123,6 +123,15 @@ function safeFailureCode(error) {
   return /^[a-z0-9_]{3,64}$/.test(message) ? message : /raster|sharp|image/i.test(message) ? "invalid_raster" : /audio/i.test(message) ? "invalid_audio" : /gaf/i.test(message) ? "invalid_gaf" : "teacher_ui_asset_rejected";
 }
 
+function safeDiagnosticCode(error) {
+  return /^[A-Za-z0-9_.-]{1,64}$/.test(String(error?.code || "")) ? error.code : "unknown";
+}
+
+function unavailable(logger, category, error) {
+  logger.error("Builder Teacher UI asset dependency unavailable", { category, code: safeDiagnosticCode(error) });
+  return uiJson(503, { error: `teacher_ui_${category}_unavailable` });
+}
+
 function metadataEquals(left, right) {
   return stableBuilderJson(left) === stableBuilderJson(right);
 }
@@ -158,7 +167,8 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
     try {
       if (publicMatch) {
         if (!["GET", "HEAD"].includes(event.httpMethod)) return uiJson(405, { error: "method_not_allowed" });
-        const storage = dependencies.storage();
+        let storage;
+        try { storage = dependencies.storage(); } catch (error) { return unavailable(dependencies.logger, "storage", error); }
         const objectKey = buildBookAssetHostedTeacherUiPublicKey({ checksum: publicMatch[1], extension: publicMatch[2] });
         try { await storage.head({ profile: "public", objectKey }); } catch { return uiJson(404, { error: "asset_not_found" }); }
         return { statusCode: 302, headers: { Location: storage.publicUrl(objectKey), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" }, body: "" };
@@ -188,12 +198,22 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
           return { ...file, fileId, objectKey: buildBookAssetTeacherUiStagingKey({ ...identity, uploadId, fileId }) };
         });
         const requestSha256 = sha256(stableBuilderJson({ expectedRevision: parsed.value.expectedRevision, files }));
-        const prepared = await dependencies.prepare(sql, { ...identity, expectedRevision: parsed.value.expectedRevision, clientMutationId: parsed.value.clientMutationId, uploadId, requestSha256, fileDescriptors: descriptors, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + uploadTtlSeconds * 1000).toISOString() });
+        let prepared;
+        try {
+          prepared = await dependencies.prepare(sql, { ...identity, expectedRevision: parsed.value.expectedRevision, clientMutationId: parsed.value.clientMutationId, uploadId, requestSha256, fileDescriptors: descriptors, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + uploadTtlSeconds * 1000).toISOString() });
+        } catch (error) {
+          return unavailable(dependencies.logger, "schema", error);
+        }
         if (["revision_conflict", "mutation_id_conflict"].includes(prepared.outcome)) return uiJson(409, { error: prepared.outcome, currentRevision: prepared.currentRevision });
         if (!["prepared", "idempotent"].includes(prepared.outcome)) return uiJson(prepared.outcome === "resource_not_found" ? 404 : 400, { error: prepared.outcome });
         if (prepared.state !== "prepared") return uiJson(409, { error: "invalid_session_state", state: prepared.state });
-        const storage = dependencies.storage();
-        const uploads = await Promise.all(prepared.fileDescriptors.map(async (descriptor) => ({ bindingId: descriptor.bindingId, fileId: descriptor.fileId, authorization: await storage.signedPutUrl({ profile: "private", objectKey: descriptor.objectKey, contentType: descriptor.type, ttlSeconds: uploadTtlSeconds }) })));
+        let uploads;
+        try {
+          const storage = dependencies.storage();
+          uploads = await Promise.all(prepared.fileDescriptors.map(async (descriptor) => ({ bindingId: descriptor.bindingId, fileId: descriptor.fileId, authorization: await storage.signedPutUrl({ profile: "private", objectKey: descriptor.objectKey, contentType: descriptor.type, ttlSeconds: uploadTtlSeconds }) })));
+        } catch (error) {
+          return unavailable(dependencies.logger, "storage", error);
+        }
         return uiJson(200, { uploadId: prepared.uploadId, expectedRevision: parsed.value.expectedRevision, expiresIn: uploadTtlSeconds, idempotent: prepared.outcome === "idempotent", uploads });
       }
 
@@ -273,7 +293,7 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
       }
       return uiJson(404, { error: "teacher_ui_asset_route_not_found" });
     } catch (error) {
-      dependencies.logger.error("Builder Teacher UI asset request failed", { category: "unexpected", code: /^[A-Za-z0-9_.-]{1,64}$/.test(String(error?.code || "")) ? error.code : "unknown" });
+      dependencies.logger.error("Builder Teacher UI asset request failed", { category: "unexpected", code: safeDiagnosticCode(error) });
       return uiJson(500, { error: "teacher_ui_asset_failed" });
     }
   };
