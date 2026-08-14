@@ -7,6 +7,8 @@ const ALLOWED_PARAMETERS = Object.freeze({
   page: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "unitNumber", "pageId"]),
   activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId"]),
 });
+const RELEASE_ALLOWED_PARAMETERS = Object.freeze(Object.fromEntries(Object.entries(ALLOWED_PARAMETERS).map(([view, keys]) => [view, new Set([...keys, "releaseId"])])));
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function invalid() {
   return Object.freeze({ kind: "invalid", message: INVALID_MESSAGE });
@@ -71,11 +73,13 @@ export function resolveHostedViewerPreviewIntent({
   if (componentRequest.kind !== "installed") return invalid();
 
   const view = parameters.get("view");
-  const allowed = ALLOWED_PARAMETERS[view];
+  const releaseId = parameters.get("releaseId");
+  const allowed = releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view];
   if (!allowed || !hasExactParameters(parameters, allowed)) return invalid();
+  if (releaseId && !UUID.test(releaseId)) return invalid();
 
   if (view === "library") {
-    return Object.freeze({ kind: "valid", view, bookSlug: componentRequest.bookSlug, componentSlug: componentRequest.componentSlug, navigation: Object.freeze({ view: "library" }) });
+    return Object.freeze({ kind: "valid", view, bookSlug: componentRequest.bookSlug, componentSlug: componentRequest.componentSlug, ...(releaseId ? { releaseId } : {}), navigation: Object.freeze({ view: "library" }) });
   }
 
   if (view === "page") {
@@ -90,6 +94,7 @@ export function resolveHostedViewerPreviewIntent({
       view,
       bookSlug: componentRequest.bookSlug,
       componentSlug: componentRequest.componentSlug,
+      ...(releaseId ? { releaseId } : {}),
       navigation: Object.freeze({ view: "book", location: Object.freeze({ unitNumber, tab: "pages", pageId }) }),
     });
   }
@@ -103,6 +108,7 @@ export function resolveHostedViewerPreviewIntent({
     view,
     bookSlug: componentRequest.bookSlug,
     componentSlug: componentRequest.componentSlug,
+    ...(releaseId ? { releaseId } : {}),
     navigation: Object.freeze({ view: "book", location: Object.freeze(resolved.location), activityId }),
   });
 }

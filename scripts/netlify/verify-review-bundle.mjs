@@ -167,16 +167,17 @@ async function sourceFilesUnder(root, relative = "") {
 async function verifyBuilderFunctionLayout() {
   const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
-  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js", "builder-teacher-ui-assets.js"]);
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview.js",
+    "_builder-publication-compiler.js", "_builder-publication-store.js", "_builder-publication.js",
     "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js",
   ]);
-  for (const entry of ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js", "builder-teacher-ui-assets.js"]) {
+  for (const entry of ["builder-auth.js", "builder-content.js", "builder-open-response-import.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content|OpenResponseImport|Preview|TeacherUiAssets)Handler\(\)/);
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content|OpenResponseImport|Preview|Publication|TeacherUiAssets)Handler\(\)/);
   }
 }
 
@@ -220,7 +221,7 @@ export async function verifyReviewBundle(targetName) {
   }
   if (targetName === "ultimate-b2-builder") {
     for (const route of builderApiRoutes) {
-      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content") && !route.startsWith("/builder/api/open-response-import") && !route.startsWith("/builder/api/ui-assets")) {
+      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content") && !route.startsWith("/builder/api/open-response-import") && !route.startsWith("/builder/api/ui-assets") && !route.startsWith("/builder/api/publication")) {
         findings.push({ file: "<bundle>", label: "unapproved Builder API route", count: 1 });
       }
     }
@@ -228,6 +229,7 @@ export async function verifyReviewBundle(targetName) {
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/content")), "Builder content route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/open-response-import")), "Builder source-import route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/ui-assets")), "Builder Teacher UI asset route is missing from bundle.");
+    assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/publication")), "Builder publication route is missing from bundle.");
   }
   assert.deepEqual(findings, [], `${targetName} contains forbidden hosted-review content:\n${JSON.stringify(findings, null, 2)}`);
   return { target: targetName, filesScanned: generic.filesScanned, findings: 0, status: "safe" };

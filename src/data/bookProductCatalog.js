@@ -25,6 +25,11 @@ function component(bookSlug, suffix, title, type, teacherEditionId, options = {}
     reviewState: options.reviewState || "pending",
     authoringState: options.authoringState || "pending",
     authoringAdapterId: options.authoringAdapterId || null,
+    publication: Object.freeze({
+      readable: options.publication?.readable === true,
+      writable: options.publication?.writable === true,
+      compilerId: options.publication?.compilerId || null,
+    }),
   };
 }
 
@@ -62,6 +67,11 @@ const catalogInput = [
         reviewState: "installed",
         authoringState: "active",
         authoringAdapterId: "ultimate-b2-students-book",
+        publication: {
+          readable: true,
+          writable: true,
+          compilerId: "ultimate-b2-students-book-v1",
+        },
       }),
       component("ultimate-b2", "workbook", "Workbook", "workbook", "workbook"),
       component("ultimate-b2", "grammar-book", "Grammar Book", "grammar_book", "grammar-book"),
@@ -100,6 +110,11 @@ export function createBookProductCatalog(books) {
       if (expectsAuthoringAdapter !== Boolean(item.authoringAdapterId)) {
         throw new Error(`Product component authoring adapter mismatch: ${item.slug}`);
       }
+      const publication = item.publication || {};
+      const publicationEnabled = publication.readable === true || publication.writable === true;
+      if (publication.writable === true && publication.readable !== true) throw new Error(`Writable publication must also be readable: ${item.slug}`);
+      if (publicationEnabled !== Boolean(publication.compilerId)) throw new Error(`Product component publication compiler mismatch: ${item.slug}`);
+      if (publicationEnabled && (item.reviewState !== "installed" || item.authoringState !== "active")) throw new Error(`Product component publication readiness mismatch: ${item.slug}`);
       if (item.type === "test_book" ? item.teacherEditionId !== null : !SAFE_SLUG.test(item.teacherEditionId || "")) {
         throw new Error(`Invalid Teacher edition mapping: ${item.slug}`);
       }

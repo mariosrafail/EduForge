@@ -4,6 +4,8 @@ export const ULTIMATE_B2_HOSTED_OPEN_RESPONSE_IMPORT_SCHEMA_VERSION = "1.0";
 export const ULTIMATE_B2_HOSTED_OPEN_RESPONSE_TEACHER_SCHEMA_VERSION = "1.0";
 
 const safeAssetPath = /^\/preview\/open-response-assets\/[a-f0-9]{64}\.(?:png|jpg|webp)$/;
+const safePublishedAssetPath = /^\/\.netlify\/functions\/book-content\?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}&sha256=[a-f0-9]{64}&extension=(?:png|jpg|webp)$/i;
+const safeReleasePreviewAssetPath = /^\/preview\/releases\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/assets\/[a-f0-9]{64}\.(?:png|jpg|webp)$/i;
 const safeTextPattern = /(?:[<>]|https?:\/\/|file:\/\/|[a-z]:[\\/]|\\\\|(?:^|\s)\.\.[\\/])/i;
 
 function exactKeys(value, keys, label) {
@@ -67,7 +69,7 @@ function presentation(value, label, surface, responseArea) {
   };
 }
 
-export function normalizeUltimateB2HostedOpenResponseImport(input, expectedActivityId = input?.activityId, expectedQuestionIds = null) {
+export function normalizeUltimateB2HostedOpenResponseImport(input, expectedActivityId = input?.activityId, expectedQuestionIds = null, { assetPathPolicy = "preview" } = {}) {
   exactKeys(input, ["schemaVersion", "activityId", "surface", "visualCapabilities", "artworkLayers", "questions"], "Hosted Open Response import");
   if (input.schemaVersion !== ULTIMATE_B2_HOSTED_OPEN_RESPONSE_IMPORT_SCHEMA_VERSION) throw new Error("Unsupported hosted Open Response import schema.");
   if (input.activityId !== expectedActivityId || !isUltimateB2ConfigurableOpenResponse(input.activityId)) throw new Error("Hosted Open Response import activity is unsupported.");
@@ -79,7 +81,8 @@ export function normalizeUltimateB2HostedOpenResponseImport(input, expectedActiv
   const artworkLayers = input.artworkLayers.map((layer, index) => {
     const label = `artworkLayers[${index}]`;
     exactKeys(layer, ["id", "binding", "assetPath", "sha256", "naturalSize", "area", "order", "altText", "accessibilityStatus"], label);
-    if (layer.id !== `${input.activityId}-artwork-${index + 1}` || layer.order !== index || !safeAssetPath.test(layer.assetPath) || !/^[a-f0-9]{64}$/.test(layer.sha256) || !layer.assetPath.includes(layer.sha256)) throw new Error(`${label} identity is invalid.`);
+    const acceptedAssetPath = safeAssetPath.test(layer.assetPath) || (assetPathPolicy === "runtime" && (safePublishedAssetPath.test(layer.assetPath) || safeReleasePreviewAssetPath.test(layer.assetPath)));
+    if (layer.id !== `${input.activityId}-artwork-${index + 1}` || layer.order !== index || !acceptedAssetPath || !/^[a-f0-9]{64}$/.test(layer.sha256) || !layer.assetPath.includes(layer.sha256)) throw new Error(`${label} identity is invalid.`);
     if (!new RegExp(`^open-response\\.${input.activityId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.artwork\\.${index + 1}\\.[a-f0-9]{12}$`).test(layer.binding)) throw new Error(`${label}.binding is invalid.`);
     if (!["review-required", "reviewed", "decorative"].includes(layer.accessibilityStatus)) throw new Error(`${label}.accessibilityStatus is invalid.`);
     return { id: layer.id, binding: layer.binding, assetPath: layer.assetPath, sha256: layer.sha256, naturalSize: size(layer.naturalSize, `${label}.naturalSize`), area: area(layer.area, `${label}.area`, surface), order: index, altText: boundedText(layer.altText, `${label}.altText`, { allowEmpty: true, maximum: 2_000 }), accessibilityStatus: layer.accessibilityStatus };

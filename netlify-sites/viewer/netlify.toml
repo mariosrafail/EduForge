@@ -20,6 +20,12 @@
     X-Robots-Tag = "noindex, nofollow, noarchive"
 
 [[redirects]]
+  from = "/preview/releases/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/releases/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/preview/content/*"
   to = "https://hhplms-builder.netlify.app/builder/preview/content/:splat"
   status = 200

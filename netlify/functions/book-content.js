@@ -31,6 +31,7 @@ import { listBookMediaAssets, createBookMediaAsset } from "./_book-content/media
 import {
   getDashboardMetrics, withDashboardMetricsHeaders
 } from "./_book-content/dashboard-metrics.js";
+import { getActiveComponentRelease, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
 
 export {
   stripStudentAnswerKeys,
@@ -74,6 +75,12 @@ export async function handler(event) {
     }
     const currentUser = auth.currentUser;
 
+    if (event.httpMethod === "HEAD" && query.action === "published-release-asset") {
+      if (requestsHiddenPhaseOneComponent(query)) return json(404, { error: "Component not found" });
+      const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+      return accessError || getPublishedReleaseAsset(sql, query);
+    }
+
     if (event.httpMethod === "GET") {
       if (query.action === "dashboard-metrics") {
         return await getDashboardMetrics(sql, currentUser, event.queryStringParameters || {});
@@ -83,6 +90,14 @@ export async function handler(event) {
       }
       if (query.action === "teacher-activity-solutions") {
         return getTeacherActivitySolutions(sql, currentUser, query);
+      }
+      if (query.action === "active-component-release") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+        return accessError || getActiveComponentRelease(sql, query);
+      }
+      if (query.action === "published-release-asset") {
+        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+        return accessError || getPublishedReleaseAsset(sql, query);
       }
       if (query.action === "asset-access") {
         return getBookAssetAccess(sql, currentUser, query, {

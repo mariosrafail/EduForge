@@ -1,6 +1,7 @@
 export const HOSTED_VIEWER_ORIGIN = "https://hhplms-viewer.netlify.app";
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function requiredSafeId(value, label) {
   const normalized = String(value || "");
@@ -13,6 +14,10 @@ export function createHostedViewerPreviewUrl(intent) {
   url.searchParams.set("builderPreview", "1");
   url.searchParams.set("bookSlug", requiredSafeId(intent?.bookSlug, "Viewer book slug"));
   url.searchParams.set("componentSlug", requiredSafeId(intent?.componentSlug, "Viewer component slug"));
+  if (intent?.releaseId) {
+    if (!UUID.test(String(intent.releaseId))) throw new TypeError("Viewer release ID is invalid.");
+    url.searchParams.set("releaseId", String(intent.releaseId).toLowerCase());
+  }
   if (intent?.view === "library") {
     url.searchParams.set("view", "library");
   } else if (intent?.view === "page") {

@@ -2,6 +2,7 @@ export const hostedBuilderCapabilityByTool = Object.freeze({
   hotspots: "hotspots",
   activities: "activities",
   ui: "uiController",
+  publication: "publication",
 });
 
 export function resolveHostedBuilderTool(adapter, tool) {

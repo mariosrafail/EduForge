@@ -13,6 +13,7 @@ const adapters = Object.freeze({
       hotspots: Object.freeze({ readable: true, writable: true }),
       activities: Object.freeze({ readable: true, writable: true }),
       uiController: Object.freeze({ readable: true, writable: true }),
+      publication: Object.freeze({ readable: true, writable: true }),
     }),
     Workspace: UltimateB2StudentsBookHostedWorkspace,
   }),

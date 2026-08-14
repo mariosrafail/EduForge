@@ -186,7 +186,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   let importedOpenResponseAuthoring = null;
   try {
     const expectedQuestionIds = canonicalActivity.runtime.questions.map((question) => question.id);
-    importedOpenResponseAuthoring = normalizeUltimateB2HostedOpenResponseImport(activityPublicImport, activityId, expectedQuestionIds);
+    importedOpenResponseAuthoring = normalizeUltimateB2HostedOpenResponseImport(activityPublicImport, activityId, expectedQuestionIds, { assetPathPolicy: "runtime" });
     activity = applyUltimateB2HostedOpenResponseImport(canonicalActivity, importedOpenResponseAuthoring);
   } catch { activity = canonicalActivity; importedOpenResponseAuthoring = null; }
   try { activity = applyUltimateB2HostedOpenResponseDraft(activity, activityPublicDraft); } catch { /* retain the imported/canonical base */ }

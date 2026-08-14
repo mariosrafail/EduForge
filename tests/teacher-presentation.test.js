@@ -77,6 +77,7 @@ function mockSql({ currentUser = null, activity = null, accessiblePackageIds = [
     if (query.includes("from book_packages bp")) {
       return accessiblePackageIds.map((id) => ({ id }));
     }
+    if (query.includes("from book_component_publication_heads head")) return [];
     throw new Error(`Unexpected verification query: ${query}`);
   });
 }

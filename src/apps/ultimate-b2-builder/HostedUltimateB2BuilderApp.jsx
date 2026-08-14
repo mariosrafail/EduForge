@@ -6,6 +6,7 @@ import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.
 import { HostedOpenResponseEditor } from "./HostedOpenResponseEditor.jsx";
 import { HostedUltimateB2HotspotBuilder } from "./HostedUltimateB2HotspotBuilder.jsx";
 import { HostedTeacherUiController } from "./HostedTeacherUiController.jsx";
+import { HostedPublicationWorkspace } from "./HostedPublicationWorkspace.jsx";
 import "./ultimateB2HotspotBuilder.css";
 import "./hostedUltimateB2BuilderReview.css";
 
@@ -61,6 +62,7 @@ export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots" }) {
     {tool === "hotspots" ? <HostedUltimateB2HotspotBuilder /> : null}
     {tool === "activities" ? <ActivityReview /> : null}
     {tool === "ui" ? <HostedTeacherUiController /> : null}
+    {tool === "publication" ? <HostedPublicationWorkspace /> : null}
   </div>;
 }
 

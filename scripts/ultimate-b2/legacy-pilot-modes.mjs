@@ -42,7 +42,7 @@ function localMediaPath(logicalKey) {
     : null;
 }
 
-async function installProtectedEndpointMocks(page, teacherSolutionRequests) {
+async function installProtectedEndpointMocks(page, teacherSolutionRequests, publicationRequests) {
   await page.route("**/.netlify/functions/book-content?*", async (route) => {
     const url = new URL(route.request().url());
     const action = url.searchParams.get("action");
@@ -66,6 +66,15 @@ async function installProtectedEndpointMocks(page, teacherSolutionRequests) {
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({ solution: teacherSolutions.solutions[activityId] }),
+      });
+      return;
+    }
+    if (action === "active-component-release") {
+      publicationRequests.push(url.toString());
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "no_publication" }),
       });
       return;
     }
@@ -213,14 +222,19 @@ try {
   page.setDefaultNavigationTimeout(120_000);
   const consoleErrors = [];
   const externalRequests = [];
+  const unexpectedErrorResponses = [];
   const teacherSolutionRequests = [];
+  const publicationRequests = [];
   page.on("console", (message) => {
-    if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text());
+    if (message.type() === "error" && !/favicon|server responded with a status of 404 \(Not Found\)/i.test(message.text())) consoleErrors.push(message.text());
   });
   page.on("request", (request) => {
     if (!request.url().startsWith(baseURL)) externalRequests.push(request.url());
   });
-  await installProtectedEndpointMocks(page, teacherSolutionRequests);
+  page.on("response", (response) => {
+    if (response.status() >= 400 && !response.url().includes("action=active-component-release")) unexpectedErrorResponses.push(`${response.status()} ${response.url()}`);
+  });
+  await installProtectedEndpointMocks(page, teacherSolutionRequests, publicationRequests);
   const results = [];
 
   for (const mode of modes) {
@@ -330,6 +344,8 @@ try {
 
   assert.deepEqual(consoleErrors, [], "web-mode console errors");
   assert.deepEqual(externalRequests, [], "web-mode external requests");
+  assert.deepEqual(unexpectedErrorResponses, [], "web-mode unexpected error responses");
+  assert.ok(publicationRequests.length > 0, "web mode checks the normal LMS active release boundary");
   const report = { schemaVersion: "1.0", status: "passed", results, teacherPresentationShell: "passed" };
   await writeFile(`${artifactRoot}/mode-report.json`, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));

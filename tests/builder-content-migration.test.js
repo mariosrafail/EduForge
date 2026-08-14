@@ -9,7 +9,7 @@ test("migration 032 creates generic Builder documents and append-only revisions 
     read("database/032_builder_component_authoring.sql"),
     read("database/MIGRATIONS.md"),
   ]);
-  assert.match(manifest, /31\. `031_builder_developer_auth\.sql`\s+32\. `032_builder_component_authoring\.sql`\s+33\. `033_builder_open_response_imports\.sql`\s+34\. `034_builder_teacher_ui_asset_uploads\.sql`/);
+  assert.match(manifest, /31\. `031_builder_developer_auth\.sql`\s+32\. `032_builder_component_authoring\.sql`\s+33\. `033_builder_open_response_imports\.sql`\s+34\. `034_builder_teacher_ui_asset_uploads\.sql`\s+35\. `035_builder_component_publication\.sql`/);
   assert.match(migration, /create table if not exists builder_component_documents/);
   assert.match(migration, /create table if not exists builder_component_document_revisions/);
   assert.match(migration, /created_by_builder_user_id uuid not null references builder_users/);
@@ -23,6 +23,21 @@ test("migration 032 creates generic Builder documents and append-only revisions 
   assert.match(migration, /payload_sha256 ~ '\^\[a-f0-9\]\{64\}\$'/);
   assert.match(migration, /builder_component_document_revisions_append_only/);
   assert.doesNotMatch(migration, /plain(?:text)?[_ -]?password|builder\.dev[1-5]@/i);
+});
+
+test("Task 9 migration creates immutable releases and a single mutable component head", async () => {
+  const migration = await read("database/035_builder_component_publication.sql");
+  assert.match(migration, /create table if not exists book_component_releases/);
+  assert.match(migration, /unique \(book_component_id, release_number\)/);
+  assert.match(migration, /create table if not exists book_component_publication_heads/);
+  assert.match(migration, /create table if not exists book_component_publication_mutations/);
+  assert.match(migration, /book_component_id uuid primary key/);
+  assert.match(migration, /Book component releases are immutable/);
+  assert.match(migration, /stale_release_preview/);
+  assert.match(migration, /pg_advisory_xact_lock\(hashtextextended\('builder-publication-component:'/);
+  assert.match(migration, /preview_release_created/);
+  assert.match(migration, /release_published/);
+  assert.doesNotMatch(migration, /book_asset_imports|update\s+book_assets|book_page_hotspots/i);
 });
 
 test("migration 032 performs concurrency, history, and audit in one atomic database call", async () => {

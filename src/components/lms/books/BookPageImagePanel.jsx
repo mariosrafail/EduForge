@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { getUltimateB2StudentsBookHotspotActions } from "../../../data/ultimate-b2/studentsBookHotspots.js";
+import { publishedHotspotActions, usePublishedComponentRelease } from "virtual:component-publication";
 
 export function BookPageHotspots({ actions = [], onAction, className = "", highlightedActivityKey = null }) {
   if (!actions.length) return null;
@@ -51,13 +51,22 @@ export function BookPageImageLayer({
   zoom,
   highlightedActivityKey = null,
 }) {
-  const authoredHotspotActions = packageSlug === "ultimate-b2" && componentSlug === "students-book"
-    ? getUltimateB2StudentsBookHotspotActions({
+  const publication = usePublishedComponentRelease();
+  const usesPublishedHotspots = packageSlug === "ultimate-b2" && componentSlug === "students-book";
+  const authoredHotspotActions = usesPublishedHotspots
+    ? publishedHotspotActions(publication, {
       pageId: selectedSection.pageId,
       pageNumber: selectedSection.pageNumber,
       unitNumber: selectedSection.unitNumber,
     })
     : [];
+
+  if (usesPublishedHotspots && publication.kind === "loading") {
+    return <div className={`book-page-image-layer ${spreadClass}`}><div className="book-page-missing" role="status">Loading published content…</div></div>;
+  }
+  if (usesPublishedHotspots && publication.kind === "error") {
+    return <div className={`book-page-image-layer ${spreadClass}`}><div className="book-page-missing" role="alert">{publication.message}</div></div>;
+  }
 
   return (
     <div

@@ -87,7 +87,7 @@ test("runtime lookup and action conversion preserve the normalized activity key"
   assert.deepEqual(getUltimateB2StudentsBookHotspotActions({ pageId: "missing" }), []);
 });
 
-test("web, Android student, and Android teacher viewers consume the tracked manifest without hotspot APIs", async () => {
+test("web resolves publisher releases while offline viewers retain the tracked hotspot manifest", async () => {
   const [viewer, pageImagePanel, androidViewer, teacherViewer, teacherViewerStyles, stubs, registry] = await Promise.all([
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageViewer.jsx"), "utf8"),
     readFile(path.join(repositoryRoot, "src/components/lms/books/BookPageImagePanel.jsx"), "utf8"),
@@ -98,7 +98,8 @@ test("web, Android student, and Android teacher viewers consume the tracked mani
     readFile(path.join(repositoryRoot, "src/apps/android-teacher-offline/reviewComponentRegistry.js"), "utf8"),
   ]);
   assert.match(viewer, /BookPageImageLayer/);
-  assert.match(pageImagePanel, /getUltimateB2StudentsBookHotspotActions/);
+  assert.match(pageImagePanel, /publishedHotspotActions/);
+  assert.match(pageImagePanel, /usePublishedComponentRelease/);
   assert.match(androidViewer, /BookPackageBrowser/);
   assert.match(teacherViewer, /hotspotProvider\?\.getActions/);
   assert.match(registry, /getUltimateB2StudentsBookHotspotActions/);

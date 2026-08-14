@@ -68,6 +68,8 @@ Migration `016_operations_readiness.sql` adds aggregate operational run history 
 
 Migration `017_book_licensing.sql` adds hashed one-time student book codes, school-scoped batches, persistent entitlements, rate-limited atomic redemption, and licensing audit events. Admin/student operation, fictional three-school QA data, cleanup safety, role visibility, and test commands are documented in [`docs/book-licensing.md`](docs/book-licensing.md).
 
+Migration `035_builder_component_publication.sql` adds immutable hosted Builder component releases and an atomic active publication head. The draft/preview/publish model, review boundary, LMS behavior, and separate production-rollout responsibilities are documented in [`docs/builder-publication.md`](docs/builder-publication.md).
+
 `database/003_activities_assignments.sql` adds the demo/MVP activity authoring flow for interactive book-based practice:
 
 - teacher-created interactive activities

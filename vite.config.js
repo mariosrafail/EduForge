@@ -65,6 +65,9 @@ export default defineConfig(({ mode }) => {
   const hostedOpenResponseDraftProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"
     : "src/apps/android-teacher-offline/noHostedOpenResponseDraftProvider.js");
+  const publishedComponentReleaseProvider = path.resolve(process.cwd(), buildProfileId === "web-lms"
+    ? "src/services/publishedComponentReleaseProvider.js"
+    : "src/apps/android-offline/noPublishedComponentReleaseProvider.js");
   const multipleChoiceAuthoringPath = path.resolve(process.cwd(), "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
   const multipleChoicePresentationModuleId = "\0ultimate-b2-multiple-choice-presentation";
   const multipleChoicePresentationPlugin = {
@@ -222,6 +225,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-hosted-open-response-drafts",
           replacement: hostedOpenResponseDraftProvider,
+        },
+        {
+          find: "virtual:component-publication",
+          replacement: publishedComponentReleaseProvider,
         },
         {
           find: "virtual:app-entry",

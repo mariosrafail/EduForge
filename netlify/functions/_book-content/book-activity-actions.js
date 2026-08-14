@@ -3,6 +3,8 @@ import {
   buildUltimateB2TeacherSolutionPayload,
   isUltimateB2PresentationActivityEnabled,
 } from "../_ultimate-b2-teacher-solutions.js";
+import { getPublishedTeacherSolutionOverride } from "./publication-actions.js";
+import { isUltimateB2ConfigurableOpenResponse } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 
 export function bookActivityRowToUi(row) {
   return {
@@ -30,14 +32,12 @@ export async function getTeacherActivitySolutions(sql, currentUser, query = {}) 
   if (roleError) return withTeacherSolutionHeaders(roleError);
 
   const stableActivityId = String(query.stableActivityId || query.activitySlug || "").trim();
-  if (!/^ultimate-b2-sb-u[12]-p\d+-o\d+$/.test(stableActivityId)) {
+  if (!/^ultimate-b2-sb-u[12]-p\d+-o\d+$/.test(stableActivityId) && !isUltimateB2ConfigurableOpenResponse(stableActivityId)) {
     return teacherSolutionResponse(404, { error: "Activity not found" });
   }
-
-  const solution = buildUltimateB2TeacherSolutionPayload(stableActivityId);
-  if (!solution || !isUltimateB2PresentationActivityEnabled(stableActivityId)) {
-    return teacherSolutionResponse(404, { error: "Activity not found" });
-  }
+  const canonicalSolution = buildUltimateB2TeacherSolutionPayload(stableActivityId);
+  const canonicalEnabled = Boolean(canonicalSolution && isUltimateB2PresentationActivityEnabled(stableActivityId));
+  if (!canonicalEnabled && !isUltimateB2ConfigurableOpenResponse(stableActivityId)) return teacherSolutionResponse(404, { error: "Activity not found" });
 
   const rows = await sql`
     select bp.id as package_id, bp.slug as package_slug, bp.status as package_status,
@@ -58,7 +58,11 @@ export async function getTeacherActivitySolutions(sql, currentUser, query = {}) 
     return withTeacherSolutionHeaders(forbidden());
   }
 
-  return teacherSolutionResponse(200, { solution });
+  const publishedOverride = await getPublishedTeacherSolutionOverride(sql, stableActivityId);
+  if (publishedOverride) return teacherSolutionResponse(200, { solution: publishedOverride });
+
+  if (!canonicalEnabled) return teacherSolutionResponse(404, { error: "Activity not found" });
+  return teacherSolutionResponse(200, { solution: canonicalSolution });
 }
 
 export function browserSafeBookActivityPayload(activity) {

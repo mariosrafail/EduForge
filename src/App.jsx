@@ -17,6 +17,7 @@ import { dashboardForRole, useAuth } from "./hooks/useAuth.js";
 import { useCourseData } from "./hooks/useCourseData.js";
 import { useHashView } from "./hooks/useHashView.js";
 import { useSchoolBrand } from "./hooks/useSchoolBrand.js";
+import { clearPublishedComponentReleaseCache } from "virtual:component-publication";
 
 const teacherSectionByView = {
   teacher: "dashboard",
@@ -153,6 +154,7 @@ export default function App() {
 
   const signOut = async () => {
     await auth.signOut();
+    clearPublishedComponentReleaseCache();
     if (typeof window !== "undefined") window.sessionStorage.removeItem("hhplmsDemoRole");
     courseData.resetCourse();
     navigateTo("home");
@@ -195,7 +197,7 @@ export default function App() {
       <PageTransition pageKey={transitionKey}>
         {view === "home" && <RoleSelection navigateTo={navigateTo} brand={brand} />}
         {view === "invalid-route" && <InvalidRouteView attemptedHash={attemptedHash} navigateTo={navigateTo} />}
-        {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView key={view} mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} onSignOut={auth.signOut} navigateTo={navigateTo} />}
+        {["accept-invitation", "reset-password", "account-security"].includes(view) && <AccountLifecycleView key={view} mode={view} token={accountToken} currentUser={auth.currentUser} onAuthenticated={auth.adoptAuthenticatedUser} onSignOut={signOut} navigateTo={navigateTo} />}
         {view.startsWith("auth-") && (
           <AuthView
             role={view.replace("auth-", "")}
@@ -208,6 +210,7 @@ export default function App() {
             createStudentAccount={auth.createStudentAccount}
             signOut={async () => {
               await auth.signOut();
+              clearPublishedComponentReleaseCache();
               if (typeof window !== "undefined") window.sessionStorage.removeItem("hhplmsDemoRole");
               courseData.resetCourse();
               navigateTo("home");

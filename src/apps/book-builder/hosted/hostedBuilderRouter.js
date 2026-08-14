@@ -1,4 +1,4 @@
-export const hostedBuilderTools = Object.freeze(["hotspots", "activities", "ui"]);
+export const hostedBuilderTools = Object.freeze(["hotspots", "activities", "ui", "publication"]);
 
 export function hostedBuilderHash({ bookSlug, componentSlug, tool } = {}) {
   if (!bookSlug) return "#/books";

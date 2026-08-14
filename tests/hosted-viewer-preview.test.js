@@ -33,6 +33,15 @@ test("hosted Viewer resolves strict library, page, and canonical activity intent
   assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry }), { kind: "valid", view: "activity", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "book", location: { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" }, activityId: "ultimate-b2-sb-u1-p1-o1" } });
 });
 
+test("release preview requires one strict UUID and remains a read-only pinned intent", () => {
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  const intent = resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${releaseId}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry });
+  assert.equal(intent.kind, "valid");
+  assert.equal(intent.releaseId, releaseId);
+  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "library", releaseId }), /releaseId=10000000-0000-4000-8000-000000000099/);
+  for (const value of ["latest", "../draft", `${releaseId}&releaseId=${releaseId}`]) assert.equal(resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${value}&view=library`, hosted: true, registry }).kind, "invalid");
+});
+
 test("hosted Viewer fails closed for malformed, unknown, duplicated, extra, and oversized intents", () => {
   const invalidSearches = [`?${identity}&view=unknown`, `?${identity}&view=library&token=secret`, `?${identity}&builderPreview=1&view=library`, `?${identity}&view=page&unitNumber=1&pageId=unknown-page`, `?${identity}&view=activity&activityId=unknown-activity`, `?${identity}&view=activity&activityId=${"a".repeat(129)}`, "?builderPreview=1&bookSlug=unknown&componentSlug=unknown&view=library"];
   for (const search of invalidSearches) assert.deepEqual(resolveHostedViewerPreviewIntent({ search, hosted: true, activities, pageUnits, registry }), { kind: "invalid", message: "The requested Builder preview is invalid or unavailable." });

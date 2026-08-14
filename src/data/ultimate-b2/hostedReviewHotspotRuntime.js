@@ -1,4 +1,5 @@
 export const ultimateB2HotspotPreviewRoute = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+import { currentHostedReleaseId, hostedReleasePath } from "../../apps/android-teacher-offline/hostedReleasePreview.js";
 
 const envelopeKeys = Object.freeze([
   "bookSlug",
@@ -96,12 +97,18 @@ export function createHostedReviewHotspotRuntime(initialManifest) {
     async prepare({ fetchImpl = globalThis.fetch } = {}) {
       if (typeof fetchImpl !== "function") throw unavailable();
       try {
-        const response = await fetchImpl(ultimateB2HotspotPreviewRoute, {
+        const releaseId = currentHostedReleaseId();
+        const response = await fetchImpl(releaseId ? hostedReleasePath(releaseId, "public") : ultimateB2HotspotPreviewRoute, {
           cache: "no-store",
           credentials: "omit",
         });
         if (!response?.ok) throw unavailable();
-        const envelope = validateUltimateB2HotspotPreviewEnvelope(await response.json());
+        const payload = await response.json();
+        if (releaseId) {
+          currentManifest = structuredClone(payload?.projection?.hotspots);
+          return { revision: 0, source: "release", releaseId };
+        }
+        const envelope = validateUltimateB2HotspotPreviewEnvelope(payload);
         currentManifest = structuredClone(envelope.document);
         return { revision: envelope.revision, source: envelope.source };
       } catch {

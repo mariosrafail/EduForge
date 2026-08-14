@@ -22,7 +22,7 @@ function useHostedBuilderRoute() {
 }
 
 function Breadcrumbs({ book, component, tool }) {
-  const toolLabels = { hotspots: "Hotspot Builder", activities: "Activity Builder", ui: "UI Controller" };
+  const toolLabels = { hotspots: "Hotspot Builder", activities: "Activity Builder", ui: "UI Controller", publication: "Publication" };
   return <nav className="hosted-builder-breadcrumbs" aria-label="Breadcrumb">
     <a href={hostedBuilderHash()}>Books</a>
     {book ? <><span aria-hidden="true">/</span><a href={hostedBuilderHash({ bookSlug: book.slug })}>{book.title}</a></> : null}
@@ -77,6 +77,7 @@ function Workspace({ book, component, tool }) {
     { id: "hotspots", label: "Hotspot Builder", capability: "hotspots" },
     { id: "activities", label: "Activity Builder", capability: "activities" },
     { id: "ui", label: "UI Controller", capability: "uiController" },
+    { id: "publication", label: "Publication", capability: "publication" },
   ];
   return <main className="hosted-builder-workspace" id="main-content">
     <div className="hosted-builder-workspace-chrome">

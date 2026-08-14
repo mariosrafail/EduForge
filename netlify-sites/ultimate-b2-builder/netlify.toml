@@ -34,6 +34,18 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/publication/*"
+  to = "/.netlify/functions/builder-publication/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/preview/releases/*"
+  to = "/.netlify/functions/builder-publication/preview/releases/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/content/*"
   to = "/.netlify/functions/builder-preview/:splat"
   status = 200
