@@ -5,11 +5,13 @@ import pg from "pg";
 
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentRelease } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
-import { collectUltimateB2PublicationSources, createComponentRelease, publishComponentRelease } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
+import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
+import { collectUltimateB2PublicationSources, collectUltimateB2PublicationV2Sources, createComponentRelease, publishComponentRelease } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
 import { resolveBuilderContentResource } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { saveBuilderComponentDocument } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
 import { ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION } from "../../src/data/ultimate-b2/componentPublication.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
+import { createPublicationV2FixtureSources, publicationV2Fixture } from "../fixtures/publication-v2.js";
 
 const { Pool } = pg;
 const databaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -18,7 +20,7 @@ const actor = "10000000-0000-4000-8000-000000000001";
 
 function scoped(base, schema) { const url = new URL(base); url.searchParams.set("options", `-c search_path=${schema}`); return url.toString(); }
 function tag(pool) { return async (strings, ...values) => { let text = strings[0]; for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`; return (await pool.query(text, values)).rows; }; }
-function releaseInput(compiled, mutationId = randomUUID(), requestSha256 = compiled.releaseSha256) { return { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, ...compiled, requestSha256, releaseNote: "", clientMutationId: mutationId, builderUserId: actor }; }
+function releaseInput(compiled, mutationId = randomUUID(), requestSha256 = compiled.releaseSha256) { return { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseSchemaVersion: compiled.releaseSchemaVersion || ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, ...compiled, requestSha256, releaseNote: "", clientMutationId: mutationId, builderUserId: actor }; }
 
 test("isolated PostgreSQL preserves immutable release history and stale-safe atomic heads", { skip: !enabled }, async (t) => {
   const schema = `builder_publication_${randomBytes(8).toString("hex")}`;
@@ -27,7 +29,7 @@ test("isolated PostgreSQL preserves immutable release history and stale-safe ato
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "038_builder_native_asset_reuse.sql");
+  assert.equal(migrations.at(-1).filename, "039_builder_component_publication_v2.sql");
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication Integration','publication@example.test','not-a-real-login-hash')`, [actor]);
   const sql = tag(pool);
 
@@ -98,4 +100,74 @@ test("isolated PostgreSQL preserves immutable release history and stale-safe ato
   assert.equal(preserved.rows[0].public_projection_sha256, raceCompiled.publicProjectionSha256);
   const audits = await pool.query(`select action from builder_audit_log where action in ('preview_release_created','release_published') order by id`);
   assert.deepEqual(audits.rows.map((row) => row.action), ["preview_release_created", "release_published", "preview_release_created", "preview_release_created", "release_published", "preview_release_created", "preview_release_created", "release_published", "preview_release_created", ...(racePublish.outcome === "published" ? ["release_published"] : [])]);
+});
+
+test("migration 039 enforces exact v2 native/legacy freshness and serializes native save versus publish", { skip: !enabled }, async (t) => {
+  const schema = `builder_publication_v2_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: databaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  const migrations = await applyCanonicalProductionMigrations(pool);
+  assert.equal(migrations.at(-1).filename, "039_builder_component_publication_v2.sql");
+  await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication v2 Integration','publication-v2@example.test','not-a-real-login-hash')`, [actor]);
+  const sql = tag(pool);
+  const sources = createPublicationV2FixtureSources();
+  sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId] = sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId]
+    .filter((hotspot) => hotspot.activityKey !== publicationV2Fixture.imageId);
+
+  const resources = {
+    hotspots: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots"),
+    index: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-index"),
+    public: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-public", publicationV2Fixture.openResponseId),
+    teacher: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-teacher", publicationV2Fixture.openResponseId),
+    legacy: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "open-response", "ultimate-b2-sb-u1-p5-o2"),
+  };
+  const revisions = { hotspots: 0, index: 0, public: 0, teacher: 0, legacy: 0 };
+  const save = async (key, document) => {
+    const result = await saveBuilderComponentDocument(sql, { resource: resources[key], expectedRevision: revisions[key], clientMutationId: randomUUID(), document, payloadSha256: builderDocumentSha256(document), builderUserId: actor });
+    assert.equal(result.outcome, "saved");
+    revisions[key] = result.revision;
+    return result;
+  };
+  await save("index", sources.native.index.payload);
+  await save("public", sources.native.activities[publicationV2Fixture.openResponseId].public.payload);
+  await save("teacher", sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload);
+  await save("hotspots", sources.documents.hotspots.payload);
+  await save("legacy", resources.legacy.baseline());
+
+  const prepare = async () => createComponentRelease(sql, releaseInput(compileUltimateB2ComponentReleaseV2(await collectUltimateB2PublicationV2Sources(sql))));
+  const current = async (releaseId) => (await pool.query("select builder_release_sources_are_current($1) current", [releaseId])).rows[0].current;
+  const staleAfter = async (key, document) => {
+    const candidate = await prepare();
+    assert.equal(await current(candidate.releaseId), true);
+    await save(key, document);
+    assert.equal(await current(candidate.releaseId), false);
+    const outcome = await publishComponentRelease(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: candidate.releaseId, expectedHeadRevision: 0, requestSha256: randomBytes(32).toString("hex"), builderUserId: actor, clientMutationId: randomUUID() });
+    assert.equal(outcome.outcome, "stale_release_preview");
+  };
+
+  const publicDocument = structuredClone(sources.native.activities[publicationV2Fixture.openResponseId].public.payload);
+  publicDocument.metadata.title = "Changed native public";
+  await staleAfter("public", publicDocument);
+  const teacherDocument = structuredClone(sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload);
+  teacherDocument.parts[0].solution.modelAnswers[0].text = "Changed private answer";
+  await staleAfter("teacher", teacherDocument);
+  await staleAfter("index", sources.native.index.payload);
+  await staleAfter("hotspots", sources.documents.hotspots.payload);
+  await staleAfter("legacy", resources.legacy.baseline());
+
+  const raceCandidate = await prepare();
+  assert.equal(await current(raceCandidate.releaseId), true);
+  const racePublic = structuredClone(publicDocument);
+  racePublic.metadata.title = "Concurrent native public save";
+  const [raceSave, racePublish] = await Promise.all([
+    save("public", racePublic),
+    publishComponentRelease(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: raceCandidate.releaseId, expectedHeadRevision: 0, requestSha256: randomBytes(32).toString("hex"), builderUserId: actor, clientMutationId: randomUUID() }),
+  ]);
+  assert.equal(raceSave.outcome, "saved");
+  assert.ok(["published", "stale_release_preview"].includes(racePublish.outcome));
+  const immutable = (await pool.query("select source_snapshot from book_component_releases where id=$1", [raceCandidate.releaseId])).rows[0].source_snapshot;
+  assert.notEqual(immutable.nativeActivities[publicationV2Fixture.openResponseId].public.revision, revisions.public);
+  assert.equal(await current(raceCandidate.releaseId), false);
 });

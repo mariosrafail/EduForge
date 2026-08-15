@@ -6,6 +6,7 @@ import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builde
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { loadBuilderComponentDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
+import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const builderUserId = "10000000-0000-4000-8000-000000000001";
 const route = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
@@ -43,7 +44,9 @@ function memoryHarness() {
       if (cookie !== "hh_builder_session=live") return { error: json(401, { error: "Unauthorized" }) };
       return { builderUser: { id: builderUserId, role: "developer", status: "active" } };
     },
-    loadDocument: async () => current && { revision: current.revision, source: "database", document: current.document },
+    loadDocument: async (_sql, resource) => resource.resource === "hotspots" && current
+      ? { revision: current.revision, source: "database", document: current.document }
+      : null,
     saveDocument: async (_sql, input) => {
       saveCalls.push(input);
       const replay = history.find((item) => item.clientMutationId === input.clientMutationId);
@@ -212,4 +215,36 @@ test("stored documents verify raw checksums before validation and fail corrupt s
     loadBuilderComponentDocument(async () => [{ ...row, payload: invalidPage, payload_sha256: builderDocumentSha256(invalidPage) }], hotspotResource),
     /Unknown Students Book page id/,
   );
+});
+
+test("native hotspot targets save, reload, and fail closed when the saved native catalog cannot prove membership", async () => {
+  const fixture = createPublicationV2FixtureSources();
+  let saved = null;
+  const handler = createBuilderContentHandler({
+    getDatabase: () => ({}),
+    authorize: async () => ({ builderUser: { id: builderUserId, role: "developer", status: "active" } }),
+    loadDocument: async (_sql, resource) => {
+      if (resource.resource === "hotspots") return saved;
+      if (resource.resource === "native-activity-index") return { revision: fixture.native.index.revision, source: "database", document: fixture.native.index.payload };
+      if (resource.resource === "native-activity-public") {
+        const source = fixture.native.activities[resource.documentKey]?.public;
+        return source ? { revision: source.revision, source: "database", document: source.payload } : null;
+      }
+      return null;
+    },
+    saveDocument: async (_sql, input) => {
+      saved = { revision: 1, source: "database", document: input.document };
+      return { outcome: "saved", revision: 1, currentRevision: 1, document: input.document, payloadSha256: input.payloadSha256 };
+    },
+  });
+  const document = fixture.documents.hotspots.payload;
+  const response = await handler(event({ method: "PUT", body: saveBody(document) }));
+  assert.equal(response.statusCode, 200);
+  assert.equal(parsed(await handler(event())).document.pages[publicationV2Fixture.pageId].some((hotspot) => hotspot.activityKey === publicationV2Fixture.openResponseId), true);
+
+  saved = null;
+  delete fixture.native.activities[publicationV2Fixture.openResponseId];
+  const rejected = await handler(event({ method: "PUT", body: saveBody(document, 0, mutationTwo) }));
+  assert.equal(rejected.statusCode, 400);
+  assert.match(parsed(rejected).detail, /incomplete/);
 });

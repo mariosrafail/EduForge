@@ -6,7 +6,7 @@ export const builderPreviewAuthorizationTtlSeconds = 5 * 60;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^v1\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]{43})$/;
-const ACTIONS = new Set(["teacher-ui-draft", "open-response-teacher", "release-teacher-ui", "release-teacher-solution"]);
+const ACTIONS = new Set(["teacher-ui-draft", "open-response-teacher", "release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]);
 
 function secret(environment = process.env) {
   const value = String(environment.BUILDER_PREVIEW_AUTH_SECRET || "");
@@ -28,8 +28,10 @@ function normalizeIntent(input) {
 }
 
 function actionsFor(intent) {
-  const actions = [intent.releaseId ? "release-teacher-ui" : "teacher-ui-draft"];
-  if (intent.view === "activity") actions.push(intent.releaseId ? "release-teacher-solution" : "open-response-teacher");
+  const actions = intent.releaseId
+    ? ["release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]
+    : ["teacher-ui-draft"];
+  if (!intent.releaseId && intent.view === "activity") actions.push("open-response-teacher");
   return actions;
 }
 
@@ -57,7 +59,7 @@ export function verifyBuilderPreviewAuthorization(event, requestedScope, { envir
   if (!exact(payload, ["version", "expiresAt", "nonce", "actions", "bookSlug", "componentSlug", "view", "activityId", "releaseId"]) || payload.version !== 1 || !Number.isSafeInteger(payload.expiresAt) || payload.expiresAt <= Math.floor(now / 1000) || !/^[A-Za-z0-9_-]{16,64}$/.test(payload.nonce) || !Array.isArray(payload.actions) || !payload.actions.includes(requestedScope.action)) return false;
   if (payload.bookSlug !== requestedScope.bookSlug || payload.componentSlug !== requestedScope.componentSlug) return false;
   if (requestedScope.releaseId && payload.releaseId !== String(requestedScope.releaseId).toLowerCase()) return false;
-  if (requestedScope.activityId && payload.activityId !== requestedScope.activityId) return false;
+  if (requestedScope.activityId && payload.activityId !== null && payload.activityId !== requestedScope.activityId) return false;
   return true;
 }
 

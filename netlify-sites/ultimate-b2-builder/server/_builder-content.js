@@ -192,7 +192,7 @@ export function createBuilderContentHandler(overrides = {}) {
         try {
           await resource.validateMutationContext({
             document,
-            currentDocument: currentState.document,
+            currentDocument: currentState?.document || null,
             loadRelated: async (relatedResource, relatedKey) => {
               const resolved = await dependencies.resolveResource(resource.bookSlug, resource.componentSlug, relatedResource, relatedKey);
               return resolved ? dependencies.loadDocument(sql, resolved) : null;

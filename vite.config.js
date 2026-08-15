@@ -67,7 +67,9 @@ export default defineConfig(({ mode }) => {
     : "src/apps/android-teacher-offline/noHostedOpenResponseDraftProvider.js");
   const publishedComponentReleaseProvider = path.resolve(process.cwd(), buildProfileId === "web-lms"
     ? "src/services/publishedComponentReleaseProvider.js"
-    : "src/apps/android-offline/noPublishedComponentReleaseProvider.js");
+    : isHostedInteractiveReview
+      ? "src/apps/android-teacher-offline/hostedComponentReleaseProvider.js"
+      : "src/apps/android-offline/noPublishedComponentReleaseProvider.js");
   const multipleChoiceAuthoringPath = path.resolve(process.cwd(), "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
   const multipleChoicePresentationModuleId = "\0ultimate-b2-multiple-choice-presentation";
   const multipleChoicePresentationPlugin = {

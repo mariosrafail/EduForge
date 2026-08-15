@@ -65,7 +65,7 @@ test("adapter capabilities expose only hotspots and supported activities as writ
   assert.doesNotMatch(workspace, /ReadOnlyBanner|persistence pending/);
   assert.match(workspace, /Add Activity/);
   assert.match(workspace, /NativeActivityFoundationEditor/);
-  assert.match(workspace, /Not included in publication v1 or the live LMS/);
+  assert.match(workspace, /included in Publication v2/);
   assert.doesNotMatch(workspace, /upload|FormData/i);
 });
 

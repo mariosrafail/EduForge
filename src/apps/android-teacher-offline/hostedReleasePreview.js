@@ -19,6 +19,6 @@ export function authorizedHostedPreviewPath(path, authorization = currentHostedP
 }
 
 export function hostedReleasePath(releaseId, suffix) {
-  if (!UUID.test(String(releaseId || "")) || !/^(?:public|teacher-ui|teacher-solution\/[a-z0-9][a-z0-9-]{0,127}|assets\/[a-f0-9]{64}\.(?:png|jpg|webp))$/.test(suffix)) throw new Error("Invalid hosted release preview path.");
+  if (!UUID.test(String(releaseId || "")) || !/^(?:public|teacher-ui|teacher-solution\/[a-z0-9][a-z0-9-]{0,127}|native-teacher\/[a-z0-9][a-z0-9-]{0,127}|assets\/[a-f0-9]{64}\.(?:png|jpg|webp))$/.test(suffix)) throw new Error("Invalid hosted release preview path.");
   return authorizedHostedPreviewPath(`/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/${suffix}`);
 }

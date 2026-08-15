@@ -6,6 +6,7 @@ export const ULTIMATE_B2_HOTSPOT_COMPONENT = "students-book";
 
 const pageById = new Map(ultimateB2StudentsBookAuthoringPages.map((page) => [page.id, page]));
 const hotspotIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
+const activityKeyPattern = /^[a-z0-9][a-z0-9-]{0,127}$/;
 
 function finiteCoordinate(value, field, id) {
   const number = Number(value);
@@ -26,7 +27,7 @@ function normalizeHotspot(hotspot, page, ids, activityByKey) {
   if (hotspot.actionType !== "normalized_activity") throw new Error(`Hotspot ${id} has an unsupported actionType.`);
 
   const activityKey = String(hotspot.activityKey || "");
-  if (!activityByKey.has(activityKey)) throw new Error(`Hotspot ${id} references an unavailable activityKey.`);
+  if (!activityKeyPattern.test(activityKey) || (activityByKey && !activityByKey.has(activityKey))) throw new Error(`Hotspot ${id} references an unavailable activityKey.`);
   const left = finiteCoordinate(hotspot.left, "left", id);
   const top = finiteCoordinate(hotspot.top, "top", id);
   const width = finiteCoordinate(hotspot.width, "width", id);
@@ -44,7 +45,7 @@ function normalizeHotspot(hotspot, page, ids, activityByKey) {
     top,
     width,
     height,
-    label: String(hotspot.label || activityByKey.get(activityKey).title).trim().slice(0, 200),
+    label: String(hotspot.label || activityByKey?.get(activityKey)?.title || activityKey).trim().slice(0, 200),
     actionType: "normalized_activity",
     activityKey,
   };
@@ -56,7 +57,11 @@ export function validateAndNormalizeUltimateB2HotspotManifest(input, activities 
   if (input.packageSlug !== ULTIMATE_B2_HOTSPOT_PACKAGE) throw new Error("Only ultimate-b2 hotspots can be saved.");
   if (input.componentSlug !== ULTIMATE_B2_HOTSPOT_COMPONENT) throw new Error("Only students-book hotspots can be saved.");
   if (!input.pages || typeof input.pages !== "object" || Array.isArray(input.pages)) throw new Error("Hotspot manifest pages must be an object.");
-  const activityByKey = new Map(activities.map((activity) => [activity.activityKey, activity]));
+  const activityByKey = activities === null ? null : new Map();
+  for (const activity of activities || []) {
+    if (activityByKey.has(activity.activityKey)) throw new Error(`Ambiguous Students Book activity id: ${activity.activityKey}`);
+    activityByKey.set(activity.activityKey, activity);
+  }
 
   const unknownPageIds = Object.keys(input.pages).filter((pageId) => !pageById.has(pageId));
   if (unknownPageIds.length) throw new Error(`Unknown Students Book page id: ${unknownPageIds[0]}`);
@@ -76,4 +81,8 @@ export function validateAndNormalizeUltimateB2HotspotManifest(input, activities 
     componentSlug: ULTIMATE_B2_HOTSPOT_COMPONENT,
     pages,
   };
+}
+
+export function validateUltimateB2HotspotManifestStructure(input) {
+  return validateAndNormalizeUltimateB2HotspotManifest(input, null);
 }

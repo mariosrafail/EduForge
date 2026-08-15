@@ -2,16 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { compileUltimateB2ComponentRelease } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
-import { getActiveComponentRelease, getPublishedReleaseAsset, getPublishedTeacherSolutionOverride } from "../netlify/functions/_book-content/publication-actions.js";
+import { getActiveComponentRelease, getPublishedNativeTeacherDocument, getPublishedReleaseAsset, getPublishedTeacherSolutionOverride } from "../netlify/functions/_book-content/publication-actions.js";
 import { readQuery } from "../netlify/functions/_book-content-utils.js";
 import { getActiveComponentPublication } from "../src/services/componentPublicationApi.js";
 import { createUltimateB2HostedOpenResponseSeed } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.js";
 import { task6SourceBundle } from "./fixtures/open-response-task6.js";
+import { compilePublicationV2Fixture, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 function row(compiled = compileUltimateB2ComponentRelease()) {
-  return { id: "10000000-0000-4000-8000-000000000099", release_number: 4, release_sha256: compiled.releaseSha256, runtime_compatibility_sha256: compiled.compatibility, source_snapshot: compiled.sourceSnapshot, source_snapshot_sha256: compiled.sourceSnapshotSha256, public_projection: compiled.publicProjection, public_projection_sha256: compiled.publicProjectionSha256, teacher_projection: compiled.teacherProjection, teacher_projection_sha256: compiled.teacherProjectionSha256 };
+  return { id: "10000000-0000-4000-8000-000000000099", release_number: 4, release_schema_version: "1.0", compiler_id: "ultimate-b2-students-book-v1", release_sha256: compiled.releaseSha256, runtime_compatibility_sha256: compiled.compatibility, source_snapshot: compiled.sourceSnapshot, source_snapshot_sha256: compiled.sourceSnapshotSha256, public_projection: compiled.publicProjection, public_projection_sha256: compiled.publicProjectionSha256, teacher_projection: compiled.teacherProjection, teacher_projection_sha256: compiled.teacherProjectionSha256, asset_manifest: compiled.assetManifest };
+}
+function v2Row(compiled = compilePublicationV2Fixture(), id = "10000000-0000-4000-8000-000000000097", number = 7) {
+  return { id, release_number: number, release_schema_version: compiled.releaseSchemaVersion, compiler_id: compiled.compilerId, release_sha256: compiled.releaseSha256, runtime_compatibility_sha256: compiled.compatibility, source_snapshot: compiled.sourceSnapshot, source_snapshot_sha256: compiled.sourceSnapshotSha256, public_projection: compiled.publicProjection, public_projection_sha256: compiled.publicProjectionSha256, teacher_projection: compiled.teacherProjection, teacher_projection_sha256: compiled.teacherProjectionSha256, asset_manifest: compiled.assetManifest };
 }
 const sqlWith = (value) => async () => value ? [value] : [];
 const body = (response) => JSON.parse(response.body);
@@ -57,12 +61,46 @@ test("Teacher runtime resolves only the requested active published import overri
   const publicAsset = compiled.publicProjection.assets[0];
   const assetResponse = await getPublishedReleaseAsset(sqlWith(row(compiled)), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: row(compiled).id, sha256: publicAsset.sha256, extension: publicAsset.extension }, { storage: { publicUrl: () => "https://assets.example/immutable" } });
   assert.equal(assetResponse.statusCode, 302);
-  assert.equal(assetResponse.headers["Cache-Control"], "public, max-age=31536000, immutable");
+  assert.equal(assetResponse.headers["Cache-Control"], "private, max-age=300");
   const solution = await getPublishedTeacherSolutionOverride(sqlWith(row(compiled)), activityId);
   assert.equal(solution.solutionAvailability, "verified");
   assert.deepEqual(Object.keys(solution.questions), seed.questions.map((question) => question.id));
   assert.match(solution.questions[seed.questions[0].id].acceptedAnswers[0], /Imported model/);
   assert.equal(await getPublishedTeacherSolutionOverride(sqlWith(row(compiled)), "ultimate-b2-sb-u2-p99-o99"), null);
+});
+
+test("v2 LMS delivery is Student-safe, release-bound, private, and Teacher role data stays separately addressable", async () => {
+  const compiled = compilePublicationV2Fixture();
+  const release = v2Row(compiled);
+  const active = await getActiveComponentRelease(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
+  assert.equal(active.statusCode, 200);
+  const publicPayload = body(active);
+  assert.equal(publicPayload.compilerId, "ultimate-b2-students-book-v2");
+  assert.equal(publicPayload.projection.nativeActivities[publicationV2Fixture.openResponseId].kind, "open-response");
+  assert.doesNotMatch(JSON.stringify(publicPayload), new RegExp(publicationV2Fixture.teacherSentinel));
+
+  const signed = [];
+  const asset = await getPublishedReleaseAsset(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, sha256: publicationV2Fixture.assetChecksum, extension: "png" }, { storage: { signedGetUrl: async (request) => { signed.push(request); return "https://private-assets.example/signed"; } } });
+  assert.equal(asset.statusCode, 302);
+  assert.equal(asset.headers["Cache-Control"], "private, no-store");
+  assert.deepEqual(signed[0], { profile: "private", objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${publicationV2Fixture.assetChecksum}.png` });
+
+  const teacher = await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: publicationV2Fixture.openResponseId });
+  assert.equal(teacher.statusCode, 200);
+  assert.match(JSON.stringify(body(teacher).document), new RegExp(publicationV2Fixture.teacherSentinel));
+  assert.equal((await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: "ultimate-b2-sb-u1-p1-o97" })).statusCode, 404);
+});
+
+test("published v2 R1 assets and Teacher documents remain pinned after R2 exists", async () => {
+  const r1 = v2Row(compilePublicationV2Fixture({ prompt: "R1 prompt", teacherAnswer: "R1_PRIVATE_ANSWER" }), "10000000-0000-4000-8000-000000000095", 5);
+  const r2 = v2Row(compilePublicationV2Fixture({ prompt: "R2 prompt", teacherAnswer: "R2_PRIVATE_ANSWER" }), "10000000-0000-4000-8000-000000000096", 6);
+  const r1Teacher = body(await getPublishedNativeTeacherDocument(sqlWith(r1), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: r1.id, activityId: publicationV2Fixture.openResponseId }));
+  const r2Teacher = body(await getPublishedNativeTeacherDocument(sqlWith(r2), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: r2.id, activityId: publicationV2Fixture.openResponseId }));
+  assert.match(JSON.stringify(r1Teacher), /R1_PRIVATE_ANSWER/);
+  assert.doesNotMatch(JSON.stringify(r1Teacher), /R2_PRIVATE_ANSWER/);
+  assert.match(JSON.stringify(r2Teacher), /R2_PRIVATE_ANSWER/);
+  const r1Asset = await getPublishedReleaseAsset(sqlWith(r1), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: r1.id, sha256: publicationV2Fixture.assetChecksum, extension: "png" }, { storage: { signedGetUrl: async () => "https://private-assets.example/r1" } });
+  assert.equal(r1Asset.headers.Location, "https://private-assets.example/r1");
 });
 
 test("web client falls back only for explicit no_publication and fails closed on service errors", async (t) => {

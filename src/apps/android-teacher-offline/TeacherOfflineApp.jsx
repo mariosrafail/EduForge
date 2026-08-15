@@ -321,11 +321,15 @@ export default function TeacherOfflineApp() {
       pageUnits,
       originLocation,
     });
-    if (!resolved) return;
-    const pageState = { teacherOffline: true, ...componentIdentity(activeRuntime), view: "book", location: resolved.location };
-    writeTeacherOfflineLocation(resolved.location, activeRuntime);
+    const nativeHotspotLocation = !resolved && originLocation?.pageId
+      ? { unitNumber: Number(originLocation.unitNumber), tab: "pages", pageId: originLocation.pageId }
+      : null;
+    const activityLocation = resolved?.location || nativeHotspotLocation;
+    if (!activityLocation) return;
+    const pageState = { teacherOffline: true, ...componentIdentity(activeRuntime), view: "book", location: activityLocation };
+    writeTeacherOfflineLocation(activityLocation, activeRuntime);
     if (navigationRef.current.view !== "book"
-      || !isTeacherOfflinePageLocation(navigationRef.current.location, resolved.location)) {
+      || !isTeacherOfflinePageLocation(navigationRef.current.location, activityLocation)) {
       window.history.pushState(pageState, "", "#book");
     }
     const activityState = { ...pageState, activityId };

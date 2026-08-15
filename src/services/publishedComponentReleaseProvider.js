@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getActiveComponentPublication } from "./componentPublicationApi.js";
+import { getActiveComponentPublication, getPublishedNativeTeacherDocument } from "./componentPublicationApi.js";
 import { createUltimateB2HostedOpenResponseSeed } from "../data/ultimate-b2/hostedOpenResponseDraft.js";
 import { hydrateUltimateB2ReleaseImport, publishedReleaseAssetPath } from "../data/ultimate-b2/componentPublication.js";
 import { findStudentsBookImplementation } from "../data/ultimate-b2/studentsBookCatalog.js";
@@ -32,4 +32,17 @@ export function publishedHotspotActions(publication, identity) {
   if (publication.kind === "published") return getUltimateB2StudentsBookHotspotActionsFromManifest(publication.projection.hotspots, identity);
   if (publication.kind === "none") return getUltimateB2StudentsBookHotspotActions(identity);
   return [];
+}
+
+export function publishedNativeAssetUrl(publication, reference) {
+  if (publication.kind !== "published" || !reference) return "";
+  const asset = publication.projection.assets.find((candidate) => candidate.sha256 === reference.checksumSha256 && candidate.role === reference.role);
+  return asset ? publishedReleaseAssetPath(asset, publication.releaseId) : "";
+}
+
+export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
+  if (publication.kind !== "published") throw new Error("Published release is unavailable.");
+  const payload = await getPublishedNativeTeacherDocument({ releaseId: publication.releaseId, activityId, signal });
+  if (payload.releaseId !== publication.releaseId || payload.activityId !== activityId) throw new Error("Teacher release identity mismatch.");
+  return payload.document;
 }

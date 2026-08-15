@@ -2,7 +2,9 @@ import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/students
 import {
   ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION,
   validateAndNormalizeUltimateB2HotspotManifest,
+  validateUltimateB2HotspotManifestStructure,
 } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
+import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import {
   createUltimateB2HostedOpenResponseSeed,
   normalizeUltimateB2HostedOpenResponseDraft,
@@ -33,7 +35,19 @@ const ultimateB2HotspotResource = Object.freeze({
     return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(repositoryHotspots));
   },
   validate(document) {
-    return validateAndNormalizeUltimateB2HotspotManifest(document);
+    return validateUltimateB2HotspotManifestStructure(document);
+  },
+  async validateMutationContext({ document, loadRelated }) {
+    const storedIndex = await loadRelated("native-activity-index", "");
+    const index = storedIndex?.document || createEmptyNativeActivityIndex();
+    const nativeActivities = [];
+    for (const entry of index.activities) {
+      const storedPublic = await loadRelated("native-activity-public", entry.activityId);
+      const publicDocument = storedPublic?.document;
+      if (!publicDocument || publicDocument.kind !== entry.kind || publicDocument.placement.pageId !== entry.placement.pageId) throw new Error(`Native activity ${entry.activityId} is incomplete.`);
+      nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true });
+    }
+    validateAndNormalizeUltimateB2HotspotManifest(document, [...ultimateB2StudentsBookAuthoringActivities, ...nativeActivities]);
   },
   projectPreview(document) {
     return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(document));

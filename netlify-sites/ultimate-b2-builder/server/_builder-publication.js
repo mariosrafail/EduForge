@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
-import { buildBookAssetHostedOpenResponsePublicKey, buildBookAssetHostedTeacherUiPublicKey } from "../../../lib/book-assets/object-keys.js";
+import { buildBookAssetHostedOpenResponsePublicKey, buildBookAssetHostedTeacherUiPublicKey, buildComponentReleaseAssetObjectKey } from "../../../lib/book-assets/object-keys.js";
 import { findProductComponent } from "../../../src/data/bookProductCatalog.js";
-import { normalizeUltimateB2PublicReleaseProjection, normalizeUltimateB2ReleaseSourceSnapshot, normalizeUltimateB2TeacherReleaseProjection, ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/componentPublication.js";
-import { builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
+import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
-import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
-import { collectUltimateB2PublicationSources, createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, publishComponentRelease } from "./_builder-publication-store.js";
+import { materializeNativeReleaseAssets } from "./_builder-publication-assets.js";
+import { resolvePublicationCompiler, verifyImmutableComponentRelease } from "./_builder-publication-compilers.js";
+import { ultimateB2PublicationCanonicalSeeds } from "./_builder-publication-compiler.js";
+import { createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, publicationV2DatabaseReady, publishComponentRelease } from "./_builder-publication-store.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -18,7 +19,7 @@ function route(event) {
   const pathname = String(event.path || "").split("?")[0];
   let match = pathname.match(/(?:\/builder\/api\/publication|\/\.netlify\/functions\/builder-publication)\/books\/([^/]+)\/components\/([^/]+)(?:\/(prepare|publish))?\/?$/);
   if (match) return { boundary: "builder", bookSlug: decodeURIComponent(match[1]), componentSlug: decodeURIComponent(match[2]), action: match[3] || "status" };
-  match = pathname.match(/(?:\/builder\/preview\/releases|\/\.netlify\/functions\/builder-publication\/preview\/releases)\/books\/([^/]+)\/components\/([^/]+)\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|assets)(?:\/([^/]+))?\/?$/i);
+  match = pathname.match(/(?:\/builder\/preview\/releases|\/\.netlify\/functions\/builder-publication\/preview\/releases)\/books\/([^/]+)\/components\/([^/]+)\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|assets)(?:\/([^/]+))?\/?$/i);
   return match ? { boundary: "preview", bookSlug: decodeURIComponent(match[1]), componentSlug: decodeURIComponent(match[2]), releaseId: match[3], action: match[4], activityId: decodeURIComponent(match[5] || "") } : null;
 }
 
@@ -30,12 +31,13 @@ function body(event, keys) {
 
 function publicationComponent(bookSlug, componentSlug, writable = false) {
   const component = findProductComponent(bookSlug, componentSlug);
-  if (!component?.publication?.readable || (writable && !component.publication.writable) || component.publication.compilerId !== "ultimate-b2-students-book-v1") return null;
+  if (!component?.publication?.readable || (writable && !component.publication.writable) || !resolvePublicationCompiler(component.publication.compilerId)) return null;
   return component;
 }
 
 async function verifyAssets(storage, assets) {
   for (const asset of assets) {
+    if (asset.role === "activity_artwork") continue;
     const objectKey = asset.role === "teacher_ui"
       ? buildBookAssetHostedTeacherUiPublicKey({ checksum: asset.sha256, extension: asset.extension })
       : buildBookAssetHostedOpenResponsePublicKey({ checksum: asset.sha256, extension: `.${asset.extension}` });
@@ -44,71 +46,85 @@ async function verifyAssets(storage, assets) {
   }
 }
 
-function verifyImmutableRelease(release) {
-  const compatibility = ultimateB2PublicationCompatibility();
-  if (release.runtime_compatibility_sha256 !== compatibility) throw new Error("release_integrity_failed");
-  const seeds = ultimateB2PublicationCanonicalSeeds();
-  const sourceSnapshot = normalizeUltimateB2ReleaseSourceSnapshot(release.source_snapshot, seeds);
-  const publicProjection = normalizeUltimateB2PublicReleaseProjection(release.public_projection, seeds);
-  const teacherProjection = normalizeUltimateB2TeacherReleaseProjection(release.teacher_projection, seeds);
-  const expectedAssets = [
-    ...publicProjection.assets,
-    ...Object.values(teacherProjection.ui.assets).map((asset) => ({ sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: "teacher_ui" })),
-  ].sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
-  if (!Array.isArray(release.asset_manifest) || release.asset_manifest.some((asset) => !exact(asset, ["sha256", "extension", "mediaType", "role"]))
-    || stableBuilderJson([...release.asset_manifest].sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`))) !== stableBuilderJson(expectedAssets)) throw new Error("release_integrity_failed");
-  if (builderDocumentSha256(sourceSnapshot) !== release.source_snapshot_sha256
-    || builderDocumentSha256(publicProjection) !== release.public_projection_sha256
-    || builderDocumentSha256(teacherProjection) !== release.teacher_projection_sha256
-    || builderDocumentSha256({ compatibility, sourceSnapshot, publicProjection, teacherProjection }) !== release.release_sha256) throw new Error("release_integrity_failed");
-}
+function verifyImmutableRelease(release) { return verifyImmutableComponentRelease(release); }
 
 export function createBuilderPublicationHandler(overrides = {}) {
-  const dependencies = { getDatabase: overrides.getDatabase || getBuilderSql, authorize: overrides.authorize || requireBuilderUser, authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest, collect: overrides.collect || collectUltimateB2PublicationSources, compile: overrides.compile || compileUltimateB2ComponentRelease, create: overrides.create || createComponentRelease, publish: overrides.publish || publishComponentRelease, status: overrides.status || loadComponentPublicationStatus, loadRelease: overrides.loadRelease || loadComponentRelease, loadMutation: overrides.loadMutation || loadComponentPublicationMutation, storage: overrides.storage || (() => createBookAssetStorage()), logger: overrides.logger || console };
+  const dependencies = {
+    getDatabase: overrides.getDatabase || getBuilderSql,
+    authorize: overrides.authorize || requireBuilderUser,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest,
+    collect: overrides.collect || null,
+    compile: overrides.compile || null,
+    create: overrides.create || createComponentRelease,
+    publish: overrides.publish || publishComponentRelease,
+    status: overrides.status || loadComponentPublicationStatus,
+    loadRelease: overrides.loadRelease || loadComponentRelease,
+    loadMutation: overrides.loadMutation || loadComponentPublicationMutation,
+    v2Ready: overrides.v2Ready || (overrides.compile ? async () => true : publicationV2DatabaseReady),
+    materialize: overrides.materialize || materializeNativeReleaseAssets,
+    storage: overrides.storage || (() => createBookAssetStorage()),
+    logger: overrides.logger || console,
+  };
   return async function handler(event) {
     const parsedRoute = route(event);
-    if (!parsedRoute || !publicationComponent(parsedRoute.bookSlug, parsedRoute.componentSlug, parsedRoute.action === "prepare" || parsedRoute.action === "publish")) return json(404, { error: "publication_component_not_found" });
+    const component = parsedRoute && publicationComponent(parsedRoute.bookSlug, parsedRoute.componentSlug, parsedRoute.action === "prepare" || parsedRoute.action === "publish");
+    if (!component) return json(404, { error: "publication_component_not_found" });
     try {
       const sql = dependencies.getDatabase();
       if (parsedRoute.boundary === "preview") {
         const methodAllowed = event.httpMethod === "GET" || (parsedRoute.action === "assets" && event.httpMethod === "HEAD");
         if (!methodAllowed || !UUID.test(parsedRoute.releaseId)) return json(methodAllowed ? 404 : 405, { error: "release_not_found" });
-        if (["teacher-ui", "teacher-solution"].includes(parsedRoute.action)) {
-          const authorized = await dependencies.authorizePreview(event, sql, { action: parsedRoute.action === "teacher-ui" ? "release-teacher-ui" : "release-teacher-solution", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, releaseId: parsedRoute.releaseId, ...(parsedRoute.action === "teacher-solution" ? { activityId: parsedRoute.activityId } : {}) });
-          if (!authorized) return json(401, { error: "Unauthorized" });
-        }
+        const previewAction = { public: "release-public", assets: "release-asset", "teacher-ui": "release-teacher-ui", "teacher-solution": "release-teacher-solution", "native-teacher": "release-native-teacher" }[parsedRoute.action];
+        const authorized = await dependencies.authorizePreview(event, sql, { action: previewAction, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, releaseId: parsedRoute.releaseId, ...(["teacher-solution", "native-teacher"].includes(parsedRoute.action) ? { activityId: parsedRoute.activityId } : {}) });
+        if (!authorized) return json(401, { error: "Unauthorized" });
         const release = await dependencies.loadRelease(sql, parsedRoute);
         if (!release) return json(404, { error: "release_not_found" });
-        try { verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
+        let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
         if (parsedRoute.action === "assets") {
           const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)$/);
-          const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && ["open_response_artwork", "teacher_ui"].includes(candidate.role));
+          const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && ["open_response_artwork", "teacher_ui", "activity_artwork"].includes(candidate.role));
           if (!asset) return json(404, { error: "release_asset_not_found" });
+          if (asset.role === "activity_artwork") {
+            const objectKey = buildComponentReleaseAssetObjectKey({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, checksum: match[1], extension: match[2] });
+            const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey });
+            return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
+          }
           const objectKey = asset.role === "teacher_ui"
             ? buildBookAssetHostedTeacherUiPublicKey({ checksum: match[1], extension: match[2] })
             : buildBookAssetHostedOpenResponsePublicKey({ checksum: match[1], extension: `.${match[2]}` });
-          return { statusCode: 302, headers: { Location: dependencies.storage().publicUrl(objectKey), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" }, body: "" };
+          return { statusCode: 302, headers: { Location: dependencies.storage().publicUrl(objectKey), "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
         }
-        if (parsedRoute.action === "public") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), releaseSha256: release.release_sha256, projection: release.public_projection });
+        if (parsedRoute.action === "public") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), releaseSha256: release.release_sha256, compatibility: release.runtime_compatibility_sha256, compilerId: release.compiler_id, releaseSchemaVersion: release.release_schema_version, projection: verified.publicProjection }, { "Cache-Control": "private, no-store", Vary: "Cookie" });
         if (parsedRoute.action === "teacher-ui") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), document: release.teacher_projection.ui });
+        if (parsedRoute.action === "native-teacher") {
+          const native = verified.teacherProjection?.nativeActivities?.[parsedRoute.activityId];
+          return native ? json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), activityId: parsedRoute.activityId, kind: native.kind, document: native.document }, { "Cache-Control": "private, no-store", Vary: "Cookie" }) : json(404, { error: "release_native_teacher_not_found" });
+        }
         const solution = release.teacher_projection?.solutions?.[parsedRoute.activityId];
         return solution ? json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), activityId: parsedRoute.activityId, document: solution }) : json(404, { error: "release_teacher_solution_not_found" });
       }
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
+      const configuredCompiler = resolvePublicationCompiler(component.publication.compilerId);
+      const collectAndCompile = async () => {
+        const collected = dependencies.collect ? await dependencies.collect(sql) : await configuredCompiler.collect(sql);
+        return dependencies.compile ? dependencies.compile(collected) : configuredCompiler.compile(collected);
+      };
       if (event.httpMethod === "GET" && parsedRoute.action === "status") {
-        const [status, compiled] = await Promise.all([dependencies.status(sql, parsedRoute.bookSlug, parsedRoute.componentSlug), dependencies.collect(sql).then(dependencies.compile)]);
-        return json(200, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, currentSourceSha256: compiled.sourceSnapshotSha256, ...status, releases: status.releases.map((release) => ({ ...release, state: release.sourceSnapshotSha256 === compiled.sourceSnapshotSha256 ? "current" : "stale" })) });
+        const [status, compiled] = await Promise.all([dependencies.status(sql, parsedRoute.bookSlug, parsedRoute.componentSlug), collectAndCompile()]);
+        return json(200, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, compilerId: configuredCompiler.compilerId, releaseSchemaVersion: configuredCompiler.releaseSchemaVersion, currentSourceSha256: compiled.sourceSnapshotSha256, ...status, releases: status.releases.map((release) => ({ ...release, state: release.sourceSnapshotSha256 === compiled.sourceSnapshotSha256 ? "current" : "stale" })) });
       }
       if (event.httpMethod !== "POST") return json(405, { error: "method_not_allowed" });
       const originError = requireBuilderOrigin(event); if (originError) return originError;
       if (parsedRoute.action === "prepare") {
         const parsed = body(event, ["clientMutationId", "releaseNote"]); if (parsed.error) return parsed.error;
         if (!builderClientMutationIdPattern.test(parsed.value.clientMutationId) || typeof parsed.value.releaseNote !== "string" || parsed.value.releaseNote.length > 240) return json(400, { error: "invalid_request" });
-        const compiled = dependencies.compile(await dependencies.collect(sql));
+        if (configuredCompiler.releaseSchemaVersion === "2.0" && !await dependencies.v2Ready(sql)) return json(409, { error: "publication_schema_unavailable" });
+        const compiled = await collectAndCompile();
+        await dependencies.materialize(dependencies.storage(), { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, nativeAssetSources: compiled.nativeAssetSources || [] });
         await verifyAssets(dependencies.storage(), compiled.assetManifest);
         const requestSha256 = sha256(stableBuilderJson({ sourceSnapshotSha256: compiled.sourceSnapshotSha256, releaseSha256: compiled.releaseSha256, releaseNote: parsed.value.releaseNote }));
-        const result = await dependencies.create(sql, { ...parsedRoute, ...compiled, releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, requestSha256, releaseNote: parsed.value.releaseNote, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
+        const result = await dependencies.create(sql, { ...parsedRoute, ...compiled, releaseSchemaVersion: configuredCompiler.releaseSchemaVersion, requestSha256, releaseNote: parsed.value.releaseNote, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
         if (result.outcome === "mutation_id_conflict") return json(409, { error: result.outcome });
         if (!["created", "idempotent"].includes(result.outcome)) return json(result.outcome === "component_not_found" ? 404 : 400, { error: result.outcome });
         return json(200, { ...result, idempotent: result.outcome === "idempotent", sourceSnapshot: compiled.sourceSnapshot });
@@ -119,10 +135,12 @@ export function createBuilderPublicationHandler(overrides = {}) {
         const candidate = await dependencies.loadRelease(sql, { ...parsedRoute, releaseId: parsed.value.releaseId });
         if (!candidate) return json(404, { error: "release_not_found" });
         try { verifyImmutableRelease(candidate); } catch { return json(409, { error: "release_integrity_failed" }); }
+        if (candidate.compiler_id !== component.publication.compilerId || candidate.release_schema_version !== configuredCompiler.releaseSchemaVersion) return json(409, { error: "publication_compiler_mismatch" });
+        if (configuredCompiler.releaseSchemaVersion === "2.0" && !await dependencies.v2Ready(sql)) return json(409, { error: "publication_schema_unavailable" });
         const requestSha256 = sha256(stableBuilderJson({ releaseId: parsed.value.releaseId, expectedHeadRevision: parsed.value.expectedHeadRevision }));
         const replay = await dependencies.loadMutation(sql, { ...parsedRoute, clientMutationId: parsed.value.clientMutationId });
         if (!replay && candidate.is_current !== true) {
-          const current = dependencies.compile(await dependencies.collect(sql));
+          const current = await collectAndCompile();
           if (candidate.source_snapshot_sha256 !== current.sourceSnapshotSha256) return json(409, { error: "stale_release_preview" });
         }
         const result = await dependencies.publish(sql, { ...parsedRoute, ...parsed.value, requestSha256, builderUserId: auth.builderUser.id });
@@ -134,7 +152,8 @@ export function createBuilderPublicationHandler(overrides = {}) {
       return json(404, { error: "publication_route_not_found" });
     } catch (error) {
       dependencies.logger.error("Builder publication request failed", { code: /^[A-Za-z0-9_.-]+$/.test(String(error?.code || "")) ? error.code : "unknown" });
-      return json(error?.message === "release_asset_unavailable" ? 409 : 500, { error: error?.message === "release_asset_unavailable" ? "release_asset_unavailable" : "builder_publication_failed" });
+      const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "release_asset_unavailable"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
+      return safeCode ? json(409, { error: safeCode, ...(error.activityId ? { activityId: error.activityId } : {}), ...(error.issues?.length ? { issues: error.issues } : {}) }) : json(500, { error: "builder_publication_failed" });
     }
   };
 }

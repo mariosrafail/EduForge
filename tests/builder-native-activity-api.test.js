@@ -6,6 +6,7 @@ import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.
 import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const actor = "10000000-0000-4000-8000-000000000001";
 const root = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create";
@@ -154,4 +155,28 @@ test("native documents are authenticated reads and paired writes are the only mu
   assert.equal(JSON.parse((await create(pairEvent(pairBody))).body).idempotent, true);
   const stale = await create(pairEvent({ ...pairBody, clientMutationId: randomUUID() }));
   assert.equal(stale.statusCode, 409);
+});
+
+test("authenticated native catalog exposes page-aware readiness without Teacher answers", async () => {
+  const sources = createPublicationV2FixtureSources();
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => ({}),
+    authorize: async (event) => event.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
+    collectCatalog: async () => sources,
+    logger: { error() {} },
+  });
+  const path = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog";
+  assert.equal((await handler(request({ method: "GET", path, headers: { cookie: "" } }))).statusCode, 401);
+  const response = await handler(request({ method: "GET", path }));
+  assert.equal(response.statusCode, 200);
+  const payload = JSON.parse(response.body);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [publicationV2Fixture.openResponseId, publicationV2Fixture.imageId]);
+  assert.equal(payload.activities.every((activity) => activity.placement.pageId === publicationV2Fixture.pageId && activity.ready), true);
+  assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.teacherSentinel));
+
+  sources.native.activities[publicationV2Fixture.openResponseId].public.payload.parts[0].interaction.questions = [];
+  sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload.parts[0].solution.modelAnswers = [];
+  const incomplete = JSON.parse((await handler(request({ method: "GET", path }))).body).activities.find((activity) => activity.activityId === publicationV2Fixture.openResponseId);
+  assert.equal(incomplete.ready, false);
+  assert.ok(incomplete.issues.length > 0);
 });

@@ -11,6 +11,7 @@ import {
   newBuilderClientMutationId,
   saveBuilderContent,
 } from "../book-builder/hosted/builderContentApi.js";
+import { getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
 
 const contentIdentity = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -22,7 +23,7 @@ const pageRows = ultimateB2StudentsBookPageUnits
   .filter((unit) => [1, 2].includes(Number(unit.number)))
   .flatMap((unit) => unit.pages.map((page) => ({ ...page, unitNumber: Number(unit.number) })));
 
-const activities = (catalog.units || []).flatMap((unit) => (unit.lessons || []).flatMap((lesson) => (
+const legacyActivities = (catalog.units || []).flatMap((unit) => (unit.lessons || []).flatMap((lesson) => (
   (lesson.exercises || []).map((activity) => ({
     activityKey: activity.stableActivityId,
     title: activity.title,
@@ -64,8 +65,23 @@ export function HostedUltimateB2HotspotBuilder() {
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [customLabels, setCustomLabels] = useState(() => new Set());
   const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
+  const [nativeActivities, setNativeActivities] = useState([]);
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
+  const activities = useMemo(() => [...legacyActivities, ...nativeActivities.map((activity) => {
+    const activityPage = pageRows.find((row) => row.id === activity.placement.pageId);
+    return {
+      activityKey: activity.activityId,
+      title: activity.title,
+      unitNumber: activityPage?.unitNumber || 0,
+      pageSpread: String(activityPage?.spreadNumber || ""),
+      pageLabel: activityPage ? pageLabel(activityPage) : activity.placement.pageId,
+      native: true,
+      kind: activity.kind,
+      ready: activity.ready,
+      issues: activity.issues,
+    };
+  })], [nativeActivities]);
   const hotspots = manifest?.pages?.[page?.id] || [];
   const selectedHotspot = hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
   const currentPageActivities = activities.filter((activity) => (
@@ -89,7 +105,10 @@ export function HostedUltimateB2HotspotBuilder() {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadLatest({ signal: controller.signal }).catch((requestError) => {
+    Promise.all([
+      loadLatest({ signal: controller.signal }),
+      getNativeActivityCatalog(contentIdentity, { signal: controller.signal }).then(setNativeActivities),
+    ]).catch((requestError) => {
       if (requestError.name === "AbortError") return;
       setError(requestError.message);
       setStatus("Load failed");
@@ -230,9 +249,10 @@ export function HostedUltimateB2HotspotBuilder() {
       <aside className="builder-properties">
         <h2>Hotspot properties</h2>
         {!selectedHotspot ? <p>Drag on the page to create a hotspot, or select an existing rectangle.</p> : <>
-          <label>Activity<select value={selectedHotspot.activityKey || ""} onChange={(event) => selectActivity(event.target.value)}><option value="">Choose an implemented activity…</option>{currentPageActivities.length ? <optgroup label={`Current ${pageLabel(page)}`}>{currentPageActivities.map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.title}</option>)}</optgroup> : null}{[1, 2].map((unit) => <optgroup key={unit} label={`Unit ${unit}`}>{otherActivities.filter((activity) => activity.unitNumber === unit).map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.pageLabel} — {activity.title}</option>)}</optgroup>)}</select></label>
+          <label>Activity<select value={selectedHotspot.activityKey || ""} onChange={(event) => selectActivity(event.target.value)}><option value="">Choose an implemented activity…</option>{currentPageActivities.length ? <optgroup label={`Current ${pageLabel(page)}`}>{currentPageActivities.map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup> : null}{[1, 2].map((unit) => <optgroup key={unit} label={`Unit ${unit}`}>{otherActivities.filter((activity) => activity.unitNumber === unit).map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.pageLabel} — {activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup>)}</select></label>
           <label>Label<input maxLength="200" value={selectedHotspot.label || ""} onChange={(event) => { setCustomLabels((current) => new Set(current).add(selectedHotspot.id)); updateSelectedHotspot({ label: event.target.value }); }} /></label>
           <div className="builder-stable-id"><span>Stable normalized activity id</span><code>{selectedHotspot.activityKey || "Not assigned"}</code></div>
+          {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey)?.native ? <p role="status">Native {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).kind} · {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).ready ? "Ready to publish" : "Incomplete draft — Prepare Preview will explain what is missing"}</p> : null}
           <dl><div><dt>Left</dt><dd>{selectedHotspot.left.toFixed(2)}%</dd></div><div><dt>Top</dt><dd>{selectedHotspot.top.toFixed(2)}%</dd></div><div><dt>Width</dt><dd>{selectedHotspot.width.toFixed(2)}%</dd></div><div><dt>Height</dt><dd>{selectedHotspot.height.toFixed(2)}%</dd></div></dl>
           <button className="builder-delete" type="button" onClick={deleteSelectedHotspot}><Trash2 size={17} /> Delete hotspot</button><small>Delete and Backspace also remove the selected hotspot when you are not typing.</small>
         </>}

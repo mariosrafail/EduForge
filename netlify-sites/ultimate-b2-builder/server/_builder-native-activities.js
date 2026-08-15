@@ -21,6 +21,7 @@ import {
 } from "./_builder-native-activity-store.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
+import { collectUltimateB2PublicationV2Sources } from "./_builder-publication-store.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -40,6 +41,7 @@ function route(event) {
   if (!prefix) return null;
   const scope = { bookSlug: decode(prefix[1]), componentSlug: decode(prefix[2]) };
   const suffix = pathname.slice(prefix.index + prefix[0].length).replace(/^\/+|\/+$/g, "");
+  if (suffix === "catalog") return { ...scope, action: "catalog" };
   if (suffix === "create") return { ...scope, action: "create" };
   let match = suffix.match(/^activities\/([a-z0-9-]+)\/save$/);
   if (match) return { ...scope, activityId: match[1], action: "save" };
@@ -227,6 +229,42 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   }
 }
 
+async function nativeCatalog(dependencies, sql) {
+  const sources = await dependencies.collectCatalog(sql);
+  const assetRows = new Map((sources.native.assetRows || []).map((row) => [String(row.id), row]));
+  const activities = [];
+  for (const entry of sources.native.index?.payload?.activities || []) {
+    const pair = sources.native.activities[entry.activityId];
+    const kind = resolveNativeActivityKind(entry.kind);
+    let ready = false;
+    let issues = [];
+    if (!kind || !pair?.public || !pair?.teacher) {
+      issues = ["Native activity pair is incomplete."];
+    } else {
+      try {
+        const publicDocument = kind.normalizePublic(pair.public.payload, entry.activityId);
+        const teacherDocument = kind.normalizeTeacher(pair.teacher.payload, entry.activityId);
+        if (publicDocument.placement.pageId !== entry.placement.pageId) throw new Error("Native placement does not match its index.");
+        const readiness = kind.assessReadiness(publicDocument, teacherDocument);
+        issues = [...readiness.issues];
+        for (const reference of publicDocument.assets) {
+          const asset = assetRows.get(reference.assetId);
+          if (!asset || asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
+            || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
+            || asset.source_metadata?.native_activity_id !== entry.activityId || asset.source_metadata?.asset_slot !== reference.slot) issues.push("Managed artwork is invalid.");
+        }
+        ready = issues.length === 0;
+        activities.push({ activityId: entry.activityId, kind: entry.kind, title: publicDocument.metadata.title, placement: entry.placement, ready, issues: [...new Set(issues)] });
+        continue;
+      } catch {
+        issues = ["Native activity pair is invalid."];
+      }
+    }
+    activities.push({ activityId: entry.activityId, kind: entry.kind, title: entry.activityId, placement: entry.placement, ready, issues });
+  }
+  return json(200, { schemaVersion: "1.0", activities });
+}
+
 export function createBuilderNativeActivitiesHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
@@ -242,6 +280,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     completeAsset: overrides.completeAsset || completeBuilderNativeAssetUpload,
     failAsset: overrides.failAsset || failBuilderNativeAssetUpload,
     loadAsset: overrides.loadAsset || loadBuilderNativeAsset,
+    collectCatalog: overrides.collectCatalog || collectUltimateB2PublicationV2Sources,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     randomUuid: overrides.randomUuid || randomUUID,
@@ -255,6 +294,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       const sql = dependencies.getDatabase();
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
+      if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? nativeCatalog(dependencies, sql) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "asset-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });
         const result = await assetResponse(dependencies, sql, parsedRoute, parsedRoute.assetId);

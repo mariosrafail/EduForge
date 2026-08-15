@@ -70,7 +70,7 @@ const catalogInput = [
         publication: {
           readable: true,
           writable: true,
-          compilerId: "ultimate-b2-students-book-v1",
+          compilerId: "ultimate-b2-students-book-v2",
         },
       }),
       component("ultimate-b2", "workbook", "Workbook", "workbook", "workbook"),

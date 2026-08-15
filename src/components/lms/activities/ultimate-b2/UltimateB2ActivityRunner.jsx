@@ -9,6 +9,7 @@ import { DatabaseActivity } from "./DatabaseActivity.jsx";
 import { findStudentsBookImplementation, NormalizedStudentsBookActivity } from "./NormalizedStudentsBookActivity.jsx";
 import { getActivityModeCapabilities } from "../activityModes.js";
 import { hydratePublishedActivityImport, usePublishedComponentRelease } from "virtual:component-publication";
+import { PublishedNativeActivityRunner } from "./PublishedNativeActivityRunner.jsx";
 
 function ImportedActivityPlaceholder({ activity }) {
   return (
@@ -26,6 +27,11 @@ function ImportedActivityPlaceholder({ activity }) {
 }
 
 function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, submission, publication }) {
+  const nativeActivity = publication.kind === "published" ? publication.projection?.nativeActivities?.[activityKey] : null;
+  if (nativeActivity) {
+    const capabilities = getActivityModeCapabilities(mode);
+    return <PublishedNativeActivityRunner entry={nativeActivity} publication={publication} teacherMode={capabilities.isReadOnly || capabilities.isPresentation} />;
+  }
   if (findStudentsBookImplementation(activityKey)) {
     if (publication.kind === "error") return <Card><div className="inline-status error">{publication.message}</div></Card>;
     if (publication.kind === "loading") return <Card><div className="inline-status">Loading published content…</div></Card>;
@@ -74,7 +80,8 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
   const normalizedKey = normalized?.stableNormalizedId || null;
   const key = normalizedKey || exercise?.stableActivityId || exercise?.activityKey || exercise?.demoActivityKey || activity?.demoActivityKey || contentJson.demoActivityKey || activityKey || exerciseId;
   const studentDenied = !capabilities.isReadOnly && normalized?.availability === "disabled";
-  const title = studentDenied ? "Activity unavailable" : activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
+  const publishedNative = publication.kind === "published" ? publication.projection?.nativeActivities?.[activityKey || exerciseId] : null;
+  const title = studentDenied ? "Activity unavailable" : publishedNative?.document?.metadata?.title || activity?.title || exercise?.title || normalized?.title || "Ultimate B2 activity";
   const routeRole = getActivityRouteRole(mode);
   const packageRoute = `${routeRole}-books`;
   const bookRoute = getBookHashForActivity(key, mode, resolved);

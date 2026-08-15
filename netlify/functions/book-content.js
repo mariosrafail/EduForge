@@ -31,7 +31,7 @@ import { listBookMediaAssets, createBookMediaAsset } from "./_book-content/media
 import {
   getDashboardMetrics, withDashboardMetricsHeaders
 } from "./_book-content/dashboard-metrics.js";
-import { getActiveComponentRelease, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
+import { getActiveComponentRelease, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
 
 export {
   stripStudentAnswerKeys,
@@ -94,6 +94,11 @@ export async function handler(event) {
       if (query.action === "active-component-release") {
         const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
         return accessError || getActiveComponentRelease(sql, query);
+      }
+      if (query.action === "published-native-teacher") {
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        const accessError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+        return accessError || getPublishedNativeTeacherDocument(sql, query);
       }
       if (query.action === "published-release-asset") {
         const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });

@@ -23,6 +23,14 @@ export async function createNativeActivity({ bookSlug, componentSlug, kind, page
   return value;
 }
 
+export async function getNativeActivityCatalog({ bookSlug, componentSlug }, { signal } = {}) {
+  for (const value of [bookSlug, componentSlug]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity catalog identity.");
+  const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/catalog`, { method: "GET", credentials: "same-origin", cache: "no-store", signal });
+  const value = await payload(response);
+  if (!response.ok || value.schemaVersion !== "1.0" || !Array.isArray(value.activities)) throw new Error(value.error || "Native activity catalog could not be loaded.");
+  return value.activities;
+}
+
 export async function saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument }) {
   const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/save`, {
     method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },

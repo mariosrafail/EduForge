@@ -27,6 +27,18 @@ test("release authorization cannot cross release, activity, component, or action
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now }), true);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, releaseId: "10000000-0000-4000-8000-000000000098" }, { environment, now }), false);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, componentSlug: "ultimate-b2-workbook" }, { environment, now }), false);
+  for (const action of ["release-public", "release-asset", "release-teacher-ui", "release-native-teacher"]) {
+    assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, action }, { environment, now }), true);
+  }
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, action: "release-native-teacher", activityId: "ultimate-b2-sb-u1-p1-o2" }, { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor("malformed"), scope, { environment, now }), false);
+});
+
+test("release library tokens may address only membership-checked resources in their exact release", () => {
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  const issued = issueBuilderPreviewAuthorization({ ...intent, view: "library", activityId: null, releaseId }, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { action: "release-native-teacher", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, releaseId, activityId: "ultimate-b2-sb-u1-p1-o99" }, { environment, now }), true);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { action: "release-native-teacher", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, releaseId: "10000000-0000-4000-8000-000000000098", activityId: "ultimate-b2-sb-u1-p1-o99" }, { environment, now }), false);
 });
 
 test("authorization issuance requires Builder auth, same origin, and exact intent", async () => {

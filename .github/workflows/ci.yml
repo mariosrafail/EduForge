@@ -35,6 +35,9 @@ jobs:
       - run: npm run build:netlify:ultimate-b2-builder
       - run: npm run verify:netlify:ultimate-b2-builder
       - run: npm run test:builder:hosted-native-activity
+      - run: npm run build:netlify:ultimate-b2-interactive
+      - run: npm run verify:netlify:ultimate-b2-interactive
+      - run: npm run test:builder:publication
       - run: node scripts/book-builder/teacher-project-authoring-playwright.mjs
       - run: npm run test:book-builder:studio:visual
       - run: npm run test:android-teacher-offline:smoke

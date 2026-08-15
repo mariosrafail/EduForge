@@ -6,13 +6,15 @@ import {
 } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { normalizeNativeActivityTeacher, validateNativeActivityDocumentPair } from "../../../src/data/native-activities/nativeActivityTeacher.js";
 import { normalizeNativeImageInteraction, normalizeNativeImageSolution } from "../../../src/data/native-activities/nativeImage.js";
+import { assessNativeImageReadiness } from "../../../src/data/native-activities/nativeImage.js";
 import {
   normalizeNativeOpenResponseInteraction,
   normalizeNativeOpenResponseSolution,
   validateNativeOpenResponseTopology,
+  assessNativeOpenResponseReadiness,
 } from "../../../src/data/native-activities/nativeOpenResponse.js";
 
-function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null) {
+function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null, assessReadiness = null) {
   return Object.freeze({
     kind,
     label: nativeActivityKindLabels[kind],
@@ -31,12 +33,16 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
       if (validateTopology) validateTopology(normalizedPublic, normalizedTeacher);
       return true;
     },
+    assessReadiness(publicDocument, teacherDocument) {
+      this.validatePair(publicDocument, teacherDocument);
+      return assessReadiness ? assessReadiness(publicDocument, teacherDocument) : { ready: true, issues: [] };
+    },
   });
 }
 
 const registry = Object.freeze({
-  "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology),
-  image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" })),
+  "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology, assessNativeOpenResponseReadiness),
+  image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" }), null, assessNativeImageReadiness),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }
