@@ -1,7 +1,17 @@
-export function NativeImageSurface({ document, assetUrl = () => "" }) {
+import { logicalAreaStyle } from "../native-open-response/NativeOpenResponseSurface.jsx";
+
+export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "" }) {
   const interaction = document.parts[0].interaction;
-  const reference = interaction.image ? document.assets.find((asset) => asset.slot === interaction.image.assetSlot) : null;
-  return <div className="native-image-surface" data-empty={!reference || undefined}>
-    {reference ? <img src={assetUrl(reference.assetId)} alt={interaction.image.decorative ? "" : interaction.altText} style={{ objectFit: interaction.image.fit }} /> : <p>No image uploaded yet.</p>}
+  const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
+  return <div className={`native-or-surface native-image-surface ${className}`.trim()} style={{ aspectRatio: `${interaction.surface.width} / ${interaction.surface.height}` }} data-empty={!interaction.images.length || undefined} data-surface-width={interaction.surface.width} data-surface-height={interaction.surface.height}>
+    {interaction.images.map((item) => {
+      const reference = assets.get(item.assetSlot);
+      const authoringLocked = Boolean(onSelect && item.locked);
+      return <button key={item.id} type="button" className={`native-or-artwork native-or-selectable ${selectedId === item.id ? "is-selected" : ""}`} style={{ ...logicalAreaStyle(item.area, interaction.surface), zIndex: item.order + 1, pointerEvents: authoringLocked ? "none" : undefined }} aria-label={`${item.decorative ? "Decorative image" : item.altText || "Image"}${authoringLocked ? " (locked)" : ""}`} data-locked={authoringLocked || undefined} onClick={() => onSelect?.(item.id)} disabled={!onSelect}>
+        {reference ? <img src={assetUrl(reference.assetId)} alt={item.decorative ? "" : item.altText} style={{ objectFit: item.fit }} /> : null}
+      </button>;
+    })}
+    {!interaction.images.length ? <p>No images added yet.</p> : null}
+    {children}
   </div>;
 }
