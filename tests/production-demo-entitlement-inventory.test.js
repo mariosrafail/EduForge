@@ -7,7 +7,7 @@ import {
   inventoryProductionDemoEntitlements,
   validateDemoEntitlementInventoryEnvironment,
 } from "../scripts/_production-demo-entitlement-inventory.mjs";
-import { loadProductionMigrationManifest } from "../scripts/_migration-readiness.mjs";
+import { loadProductionMigrationManifest, migrationManifestSummary } from "../scripts/_migration-readiness.mjs";
 import { productionDatabaseFingerprint } from "../scripts/_production-preflight.mjs";
 
 function productionEnvironment(databaseUrl = "postgresql://runtime:private-value@db.provider.net/hhplms") {
@@ -66,6 +66,7 @@ async function inventoryHarness({
   });
   return {
     run,
+    manifestFingerprint: migrationManifestSummary(migrations).manifestFingerprint,
     statements,
     state: () => ({ released, ended }),
   };
@@ -172,7 +173,7 @@ test("successful inventory returns aggregate-only output and enforces transactio
     matchingEntitlementCount: 2,
     classification: DEMO_ENTITLEMENT_CLASSIFICATIONS.MATCHING_ENTITLEMENTS_PRESENT,
     databaseFingerprintPrefix: productionEnvironment().PRODUCTION_DATABASE_FINGERPRINT.slice(0, 12),
-    manifestFingerprint: "114b75e929b0e560a95315913812256b6d8552c8eff5b5c03dfb9537ea262dd7",
+    manifestFingerprint: harness.manifestFingerprint,
   });
   assert.equal(harness.statements[0], "begin read only");
   assert.ok(harness.statements.includes("set local statement_timeout = '15s'"));
