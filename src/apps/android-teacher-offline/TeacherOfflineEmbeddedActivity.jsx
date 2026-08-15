@@ -4,12 +4,15 @@ import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js
 import { activeBuildProfile } from "../../config/buildProfiles.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
 import { PublishedNativeActivityRunner } from "../../components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx";
+import { HostedNativeDraftActivityRunner } from "../../components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx";
+import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsBookCatalog.js";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
 import multipleChoiceAuthoring from "virtual:ultimate-b2-multiple-choice-presentation";
 import { useHostedOpenResponseDraft, useHostedOpenResponseImport } from "virtual:ultimate-b2-hosted-open-response-drafts";
 import { usePublishedComponentRelease } from "virtual:component-publication";
-import { resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
+import { useHostedNativeDraftActivity } from "virtual:hosted-native-drafts";
+import { HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
@@ -26,6 +29,9 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const hostedOpenResponseImport = useHostedOpenResponseImport(activityId);
   const publication = usePublishedComponentRelease();
   const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
+  const runtimeContext = resolveHostedViewerRuntimeContext();
+  const nativeDraftCandidate = runtimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && !findStudentsBookImplementation(activityId);
+  const hostedNativeDraft = useHostedNativeDraftActivity(nativeDraftCandidate ? activityId : null);
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const teacherPreview = activeBuildProfile.teacherPresentation
     || (activeBuildProfile.authorizedTeacherPreview && resolveHostedViewerRuntimeContext().teacherPreview);
@@ -119,7 +125,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} /> : <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}

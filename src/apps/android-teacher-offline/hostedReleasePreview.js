@@ -1,5 +1,5 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const TOKEN = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
+const TOKEN = /^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
 
 export const HOSTED_VIEWER_RUNTIME_MODES = Object.freeze({
   BARE: "bare",

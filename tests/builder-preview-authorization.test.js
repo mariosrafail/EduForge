@@ -7,7 +7,7 @@ import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.
 
 const environment = { BUILDER_PREVIEW_AUTH_SECRET: "test-only-preview-secret-with-at-least-thirty-two-bytes" };
 const now = Date.parse("2026-08-14T12:00:00Z");
-const intent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "activity", activityId: "ultimate-b2-sb-u1-p1-o1", releaseId: null };
+const intent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "activity", pageId: null, activityId: "ultimate-b2-sb-u1-p1-o1", releaseId: null };
 const eventFor = (token) => ({ queryStringParameters: { previewAuthorization: token } });
 
 test("short-lived preview authorization is signed and restricted to exact action and resource", () => {
@@ -31,7 +31,7 @@ test("authorization denial classification is bounded and never returns token mat
   assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, action: "release-teacher-solution" }, { environment, now }), { authorized: false, code: "action_denied" });
   assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, componentSlug: "ultimate-b2-workbook" }, { environment, now }), { authorized: false, code: "scope_mismatch" });
   assert.deepEqual(classifyBuilderPreviewAuthorization({ multiValueQueryStringParameters: { previewAuthorization: [issued.token, issued.token] } }, scope, { environment, now }), { authorized: false, code: "token_malformed" });
-  assert.doesNotMatch(JSON.stringify(classifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now })), /v1\.|abcdefghijklmnopQRSTUV/);
+  assert.doesNotMatch(JSON.stringify(classifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now })), /v[12]\.|abcdefghijklmnopQRSTUV/);
 });
 
 test("release authorization cannot cross release, activity, component, or action scope", () => {
@@ -63,7 +63,7 @@ test("authorization issuance requires Builder auth, same origin, and exact inten
   assert.equal((await handler(request({ body: { intent, extra: true } }))).statusCode, 400);
   const response = await handler(request());
   assert.equal(response.statusCode, 200);
-  assert.match(JSON.parse(response.body).token, /^v1\./);
+  assert.match(JSON.parse(response.body).token, /^v2\./);
   assert.doesNotMatch(response.body, /secret|cookie|session/i);
 });
 

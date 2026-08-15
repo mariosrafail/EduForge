@@ -251,7 +251,7 @@ test("Teacher UI draft preview requires explicit Builder/scoped authorization", 
 test("actual Teacher UI preview authorization accepts fresh exact scope and rejects expired or wrong scope", async () => {
   const environment = { BUILDER_PREVIEW_AUTH_SECRET: "test-only-preview-secret-with-at-least-thirty-two-bytes" };
   const now = Date.parse("2026-08-15T16:00:00Z");
-  const intent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "library", activityId: null, releaseId: null };
+  const intent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "library", pageId: null, activityId: null, releaseId: null };
   const issued = issueBuilderPreviewAuthorization(intent, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
   const teacherResource = await resolveBuilderContentResource(intent.bookSlug, intent.componentSlug, "ui-controller");
   const teacherRoute = "/builder/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";

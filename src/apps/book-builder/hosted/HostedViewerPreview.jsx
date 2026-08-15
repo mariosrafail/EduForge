@@ -19,11 +19,11 @@ export function HostedViewerPreview({
   useEffect(() => {
     setAuthorization(null); setAuthorizationError(false);
     return startHostedViewerAuthorizationLifecycle({
-      requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal }),
+      requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, pageId: intent.view === "page" ? intent.pageId : null, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal }),
       onAuthorization: (token) => { setAuthorization(token); if (token) setAuthorizationError(false); },
       onError: () => setAuthorizationError(true),
     });
-  }, [bookSlug, componentSlug, intent.view, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
+  }, [bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
   const src = authorization ? createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug, previewAuthorization: authorization }) : "";
   const frameKey = `${src}:${refreshKey}:${manualRefresh}`;
 

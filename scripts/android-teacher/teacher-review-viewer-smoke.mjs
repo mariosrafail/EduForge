@@ -61,6 +61,7 @@ try {
   await waitForLibrary();
   assert.equal(await page.title(), "Ultimate B2 Viewer");
   assert.deepEqual(requestsSince(checkpoint).map((url) => url.pathname), [], "Bare Viewer must not request any preview endpoint.");
+  assert.equal(requestsSince(checkpoint).filter((url) => /native-activities|native-draft|\/assets\//.test(url.pathname)).length, 0, "Bare Viewer must make zero native draft or draft asset requests.");
   assert.equal(await page.getByText("Publisher answer", { exact: true }).count(), 0);
   assert.equal(await page.getByRole("button", { name: /Show all answers|Reveal model answer/i }).count(), 0);
 
@@ -74,6 +75,7 @@ try {
   assert.equal(uiRequest?.searchParams.get("previewAuthorization"), token);
   assert.ok(authorizedRequests.some((url) => url.pathname === hotspotsPath), "Authorized Builder preview must load saved hotspot preview state.");
   assert.equal(authorizedRequests.filter((url) => /teacher-solution|native-teacher|open-response-teacher/.test(url.pathname)).length, 0, "Teacher answer endpoints must remain on-demand.");
+  assert.equal(authorizedRequests.filter((url) => /native-activities/.test(url.pathname)).length, 0, "Library preview must not receive native draft access.");
 
   for (const search of [
     new URLSearchParams({ builderPreview: "1", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "library" }),

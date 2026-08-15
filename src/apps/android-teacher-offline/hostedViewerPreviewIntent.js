@@ -76,7 +76,7 @@ export function resolveHostedViewerPreviewIntent({
   const releaseId = parameters.get("releaseId");
   const previewAuthorization = parameters.get("previewAuthorization") || "";
   const allowed = releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view];
-  if (!allowed || !hasExactParameters(parameters, allowed) || !/^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
+  if (!allowed || !hasExactParameters(parameters, allowed) || !/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
   if (releaseId && !UUID.test(releaseId)) return invalid();
 
   if (view === "library") {

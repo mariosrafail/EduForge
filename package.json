@@ -64,7 +64,7 @@
     "test:viewer:boundary": "node scripts/android-teacher/teacher-review-viewer-smoke.mjs",
     "test:viewer:teacher-review": "npm run test:viewer:boundary",
     "test:builder:hosted-open-response": "node scripts/book-builder/hosted-open-response-playwright.mjs",
-    "test:builder:hosted-native-activity": "node scripts/book-builder/hosted-native-activity-playwright.mjs",
+    "test:builder:hosted-native-activity": "npm run build:netlify:ultimate-b2-interactive && node scripts/book-builder/hosted-native-activity-playwright.mjs",
     "test:builder:hosted-open-response-import": "node scripts/book-builder/hosted-open-response-import-playwright.mjs",
     "test:builder:hosted-ui-controller": "node scripts/book-builder/hosted-ui-controller-playwright.mjs",
     "test:builder:multi-book": "node scripts/book-builder/multi-book-component-playwright.mjs",

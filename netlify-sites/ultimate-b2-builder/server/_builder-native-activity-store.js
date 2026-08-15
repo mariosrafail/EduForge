@@ -88,6 +88,16 @@ export async function loadBuilderNativeAsset(sql, { bookSlug, componentSlug, act
   return rows[0] || null;
 }
 
+export function isBuilderNativeDraftAssetRecord(asset, { activityId, reference = null }) {
+  if (!asset || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
+    || asset.source_metadata?.native_activity_id !== activityId) return false;
+  if (!reference) return true;
+  return String(asset.id) === reference.assetId
+    && asset.checksum_sha256 === reference.checksumSha256
+    && asset.asset_role === reference.role
+    && asset.source_metadata?.asset_slot === reference.slot;
+}
+
 export async function validateBuilderNativeAssetReferences(sql, { bookSlug, componentSlug, activityId, assets }) {
   if (!assets.length) return true;
   const ids = assets.map((asset) => asset.assetId);

@@ -15,6 +15,7 @@ import {
   createBuilderNativeActivity,
   failBuilderNativeAssetUpload,
   loadBuilderNativeAsset,
+  isBuilderNativeDraftAssetRecord,
   prepareBuilderNativeAssetUpload,
   saveBuilderNativeActivityPair,
   validateBuilderNativeAssetReferences,
@@ -187,7 +188,7 @@ async function prepareAsset(dependencies, sql, auth, parsedRoute, event) {
 
 async function assetResponse(dependencies, sql, parsedRoute, assetId) {
   const asset = await dependencies.loadAsset(sql, { ...parsedRoute, assetId });
-  if (!asset || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private") return null;
+  if (!isBuilderNativeDraftAssetRecord(asset, { activityId: parsedRoute.activityId })) return null;
   return {
     asset,
     reference: { assetId: String(asset.id), checksumSha256: asset.checksum_sha256, role: asset.asset_role, slot: asset.source_metadata.asset_slot },

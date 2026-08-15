@@ -1,5 +1,5 @@
 export const HOSTED_VIEWER_AUTHORIZATION_RENEWAL_MARGIN_MS = 30_000;
-const TOKEN = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
+const TOKEN = /^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
 
 export function previewAuthorizationRenewalDelay(expiresAt, now = Date.now()) {
   const expiry = Date.parse(String(expiresAt || ""));

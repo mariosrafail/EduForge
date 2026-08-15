@@ -11,7 +11,7 @@ function requiredSafeId(value, label) {
 
 export function createHostedViewerPreviewUrl(intent) {
   const url = new URL(HOSTED_VIEWER_ORIGIN);
-  if (!/^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(String(intent?.previewAuthorization || ""))) throw new TypeError("Viewer preview authorization is required.");
+  if (!/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(String(intent?.previewAuthorization || ""))) throw new TypeError("Viewer preview authorization is required.");
   url.searchParams.set("builderPreview", "1");
   url.searchParams.set("bookSlug", requiredSafeId(intent?.bookSlug, "Viewer book slug"));
   url.searchParams.set("componentSlug", requiredSafeId(intent?.componentSlug, "Viewer component slug"));

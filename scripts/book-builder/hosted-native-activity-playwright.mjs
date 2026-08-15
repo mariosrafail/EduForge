@@ -1,24 +1,27 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import { createUltimateB2HostedOpenResponseSeed } from "../../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../../src/data/ultimate-b2/studentsBookCatalog.js";
+import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
+const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const contentRoot = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book";
 const nativeRoot = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book";
-const previewToken = `v1.${Buffer.from('{"fixture":true}').toString("base64url")}.${"a".repeat(43)}`;
+const previewToken = `v2.${Buffer.from('{"fixture":true}').toString("base64url")}.${"a".repeat(43)}`;
 const mime = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml" };
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFgAI/ScL4WQAAAABJRU5ErkJggg==", "base64");
 const secondPixelPng = Buffer.concat([onePixelPng, Buffer.from([0])]);
-const nativeDocuments = new Map(); const nativeAssets = new Map(); const nativeUploads = new Map(); const nativeAssetByContent = new Map(); const requestedPaths = [];
+const nativeDocuments = new Map(); const nativeAssets = new Map(); const nativeUploads = new Map(); const nativeAssetByContent = new Map(); const requestedPaths = []; const viewerRequests = [];
 let indexRevision = 0; let nativeIndex = { schemaVersion: "1.0", activities: [] }; let origin = "";
+let hotspotRevision = 0; let hotspotManifest = structuredClone(repositoryHotspots);
 let uploadSequence = 10;
 const legacyActivityId = "ultimate-b2-sb-u1-p1-o89";
 
@@ -53,7 +56,10 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1"); requestedPaths.push(url.pathname);
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "phase-3-browser", full_name: "Phase 3 Browser", role: "developer", status: "active" } });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: previewToken, expiresAt: "2099-01-01T00:00:00.000Z" });
+  if (url.pathname === `${contentRoot}/hotspots` && request.method === "GET") return json(response, 200, envelope("hotspots", "default", hotspotRevision, hotspotManifest));
+  if (url.pathname === `${contentRoot}/hotspots` && request.method === "PUT") { const body = await requestJson(request); hotspotRevision += 1; hotspotManifest = structuredClone(body.document); return json(response, 200, { ...envelope("hotspots", "default", hotspotRevision, hotspotManifest), currentRevision: hotspotRevision, idempotent: false }); }
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
+  if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
   if (url.pathname === `${nativeRoot}/create` && request.method === "POST") {
     const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${89 + nativeIndex.activities.length}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : "Open Response"}`;
     nativeDocuments.set(activityId, nativeDocumentPair(activityId, body.kind, body.pageId, title)); indexRevision += 1;
@@ -96,7 +102,27 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin =
 let browser;
 try {
   browser = await chromium.launch(localPlaywrightLaunchOptions()); const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await context.route("https://hhplms-viewer.netlify.app/**", (route) => route.fulfill({ status: route.request().resourceType() === "document" ? 200 : 404, contentType: route.request().resourceType() === "document" ? "text/html" : "application/json", body: route.request().resourceType() === "document" ? "<!doctype html><title>Viewer fixture</title>" : "{}" }));
+  await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
+    const viewerRequest = route.request(); const url = new URL(viewerRequest.url());
+    viewerRequests.push({ pathname: url.pathname, search: url.search, headers: viewerRequest.headers(), method: viewerRequest.method() });
+    if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "hotspots", schemaVersion: "1.0", revision: hotspotRevision, source: hotspotRevision ? "database" : "repository", document: hotspotManifest }) });
+    if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller") return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    const nativePreview = url.pathname.match(/^\/preview\/native-activities\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/activities\/([a-z0-9-]+)\/(public|teacher)$/);
+    if (nativePreview) {
+      const state = nativeDocuments.get(nativePreview[1]); const audience = nativePreview[2];
+      if (!state || (audience === "teacher" && state.publicDocument.kind !== "open-response")) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+      const document = state[`${audience}Document`]; const revision = state[`${audience}Revision`];
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: nativePreview[1], kind: state.publicDocument.kind, audience, schemaVersion: "1.0", revision, document }) });
+    }
+    const nativeAsset = url.pathname.match(/^\/preview\/native-activities\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/activities\/([a-z0-9-]+)\/assets\/([0-9a-f-]+)$/);
+    if (nativeAsset) { const asset = nativeAssets.get(nativeAsset[2]); if (!asset || asset.activityId !== nativeAsset[1]) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" }); return route.fulfill({ status: 200, contentType: "image/png", body: asset.bytes }); }
+    if (url.pathname.startsWith("/preview/")) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    let file = path.resolve(viewerRoot, relative); let details = file.startsWith(`${viewerRoot}${path.sep}`) ? await stat(file).catch(() => null) : null;
+    if (!details?.isFile() && viewerRequest.resourceType() === "document") { file = path.join(viewerRoot, "index.html"); details = await stat(file).catch(() => null); }
+    if (!details?.isFile()) return route.fulfill({ status: 404, body: "" });
+    return route.fulfill({ status: 200, contentType: mime[path.extname(file).toLowerCase()] || "application/octet-stream", body: await readFile(file) });
+  });
   const page = await context.newPage(); page.setDefaultTimeout(45_000); await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.locator(".b2-hosted-open-response-editor").waitFor();
   await page.getByRole("button", { name: new RegExp(legacyActivityId) }).click(); await page.getByRole("heading", { name: "Legacy checksum fixture" }).waitFor(); assert.equal(await page.getByText("builder_content_failed", { exact: true }).count(), 0); await page.getByRole("button", { name: "Layout" }).click(); await page.locator(".native-or-layers button").filter({ hasText: "Legacy background" }).click(); assert.equal(await page.getByLabel("Lock position and size").isChecked(), false);
@@ -124,8 +150,17 @@ try {
   await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("button", { name: new RegExp(imageId) }).click(); await page.getByRole("button", { name: "Layout" }).click(); assert.equal(await page.locator(".native-image-surface img").count(), 3);
   await page.locator(".native-or-layers button").filter({ hasText: "Background diagram" }).click(); page.once("dialog", (dialog) => dialog.accept()); await page.getByRole("button", { name: "Remove image" }).click(); await page.locator(".native-or-layers button").filter({ hasText: "A useful diagram" }).click(); page.once("dialog", (dialog) => dialog.accept()); await page.getByRole("button", { name: "Remove image" }).click(); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); assert.equal(nativeDocuments.get(imageId).publicDocument.assets.length, 1); assert.equal(nativeDocuments.get(imageId).publicDocument.parts[0].interaction.images.length, 1);
   await page.locator(".native-or-upload input[type=file]").setInputFiles({ name: "image.png", mimeType: "image/png", buffer: onePixelPng }); await page.getByLabel("Alt text").fill("Restored diagram"); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); assert.deepEqual(nativeDocuments.get(imageId).publicDocument.assets.find((item) => item.slot === firstImageReference.slot), firstImageReference); assert.equal(nativeDocuments.get(imageId).publicDocument.assets.length, 2); assert.equal(nativeDocuments.get(imageId).teacherDocument.parts[0].solution.kind, "image");
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/hotspots`, { waitUntil: "domcontentloaded" }); await page.getByRole("heading", { name: "Students Book hotspot builder" }).waitFor();
+  await page.locator(".editable-hotspot-box").first().click(); await page.getByLabel("Activity").selectOption(openResponseId); await page.getByLabel("Label").fill("Draft Open Response hotspot"); await page.locator(".builder-save-state").getByRole("button", { name: "Save", exact: true }).click(); await page.locator(".builder-save-state").getByText("Saved", { exact: true }).waitFor();
+  let viewer = page.frameLocator(".hosted-viewer-preview iframe"); await viewer.getByRole("button", { name: "Draft Open Response hotspot" }).waitFor(); assert.equal(await viewer.locator("title").evaluate((element) => element.ownerDocument.title), "Ultimate B2 Viewer");
+  await viewer.getByRole("button", { name: "Draft Open Response hotspot" }).evaluate((button) => button.click()); await viewer.getByRole("heading", { name: "Persisted browser response" }).waitFor(); await viewer.getByText("Respond in complete sentences.", { exact: true }).waitFor(); assert.equal(await viewer.getByText("Students Book activity data could not be loaded.", { exact: true }).count(), 0); assert.equal(await viewer.getByText("First private model answer", { exact: true }).count(), 0);
+  const viewerReveal = viewer.getByRole("button", { name: /Reveal model answer for Response for question 1/ }); await viewerReveal.evaluate((button) => button.click()); await viewer.getByText("First private model answer", { exact: true }).waitFor(); await viewer.getByRole("button", { name: "Back" }).evaluate((button) => button.click());
+  await page.locator(".editable-hotspot-box").first().click(); await page.getByLabel("Activity").selectOption(imageId); await page.getByLabel("Label").fill("Draft Image hotspot"); await page.locator(".builder-save-state").getByRole("button", { name: "Save", exact: true }).click(); await page.locator(".builder-save-state").getByText("Saved", { exact: true }).waitFor();
+  viewer = page.frameLocator(".hosted-viewer-preview iframe"); await viewer.getByRole("button", { name: "Draft Image hotspot" }).waitFor(); const teacherRequestsBeforeImage = viewerRequests.filter((item) => /\/teacher$/.test(item.pathname)).length; await viewer.getByRole("button", { name: "Draft Image hotspot" }).evaluate((button) => button.click()); await viewer.getByRole("heading", { name: "Production image draft" }).waitFor(); await viewer.getByText("Study this image.", { exact: true }).waitFor(); await viewer.locator(".native-image-surface img").first().waitFor(); assert.equal(viewerRequests.filter((item) => /\/teacher$/.test(item.pathname)).length, teacherRequestsBeforeImage); assert.ok(viewerRequests.some((item) => item.pathname.includes(`/activities/${imageId}/assets/`)));
+  const protectedDraftRequests = viewerRequests.filter((item) => item.pathname.includes("/preview/native-activities/")); assert.ok(protectedDraftRequests.length >= 4); assert.ok(protectedDraftRequests.every((item) => new URLSearchParams(item.search).getAll("previewAuthorization").length === 1 && !item.headers.cookie));
+
   const tablet = await context.newPage(); await tablet.setViewportSize({ width: 900, height: 700 }); await tablet.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" }); await tablet.getByRole("button", { name: new RegExp(openResponseId) }).click(); await tablet.getByRole("button", { name: "Preview" }).click(); await tablet.getByRole("button", { name: "Teacher Preview" }).click(); await tablet.getByRole("button", { name: /Reveal model answer/ }).click();
   const geometry = await tablet.locator(".native-or-surface:visible").evaluate((surface) => { const rect = surface.getBoundingClientRect(); const line = surface.querySelector(".native-or-line"); const answer = surface.querySelector(".native-or-answer-line"); return { ratio: rect.width / rect.height, lineTop: line?.style.top, answerTop: answer?.style.top }; });
   assert.ok(Math.abs(geometry.ratio - (1024 / 582)) < 0.02); assert.equal(geometry.answerTop, geometry.lineTop); await tablet.close();
-  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted native Open Response Playwright acceptance passed for ${openResponseId}.\n`);
+  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted native draft authoring and real Viewer acceptance passed for ${openResponseId} and ${imageId}.\n`);
 } finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }

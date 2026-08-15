@@ -117,7 +117,7 @@ async function verifyBuilderMutationSources() {
 }
 
 async function verifyPublicViewerSourcesAndArtifact(root) {
-  const [profiles, vite, embedded, hostedSolutions, packagedSolutions, releaseProvider, previewProvider, buildScript] = await Promise.all([
+  const [profiles, vite, embedded, hostedSolutions, packagedSolutions, releaseProvider, previewProvider, nativeDraftProvider, disabledNativeDraftProvider, buildScript] = await Promise.all([
     readFile(path.resolve("src/config/buildProfiles.js"), "utf8"),
     readFile(path.resolve("vite.config.js"), "utf8"),
     readFile(path.resolve("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx"), "utf8"),
@@ -125,6 +125,8 @@ async function verifyPublicViewerSourcesAndArtifact(root) {
     readFile(path.resolve("src/apps/android-teacher-offline/generatedPackProvider.js"), "utf8"),
     readFile(path.resolve("src/apps/android-teacher-offline/hostedComponentReleaseProvider.js"), "utf8"),
     readFile(path.resolve("src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/hostedNativeDraftProvider.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/noHostedNativeDraftProvider.js"), "utf8"),
     readFile(path.resolve("scripts/netlify/build-review-target.mjs"), "utf8"),
   ]);
   assert.match(profiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*teacherSolutions:\s*false[\s\S]*teacherPresentation:\s*false[\s\S]*authorizedTeacherPreview:\s*true/);
@@ -136,12 +138,18 @@ async function verifyPublicViewerSourcesAndArtifact(root) {
   assert.match(packagedSolutions, /teacher-solutions\.json[\s\S]*getOfflineTeacherSolution/);
   assert.match(releaseProvider, /native-teacher/);
   assert.match(previewProvider, /teacher-solution|open-response-teacher/);
+  assert.match(vite, /virtual:hosted-native-drafts/);
+  assert.match(nativeDraftProvider, /HOSTED_VIEWER_RUNTIME_MODES\.BUILDER_PREVIEW/);
+  assert.match(nativeDraftProvider, /authorizedHostedPreviewPath\(`\/preview\/native-activities/);
+  assert.match(nativeDraftProvider, /credentials:\s*"omit"/);
+  assert.doesNotMatch(nativeDraftProvider, /localStorage|sessionStorage|document\.cookie|object_key|storage_bucket|BUILDER_PREVIEW_AUTH_SECRET/i);
+  assert.doesNotMatch(disabledNativeDraftProvider, /fetch|preview\/native-activities|modelAnswers/i);
   assert.doesNotMatch(buildScript, /generateTeacherReviewSolutions|android-teacher\/build-pack/);
 
   const artifactText = (await Promise.all((await textFiles(root)).map((file) => readFile(file, "utf8")))).join("\n");
   assert.match(artifactText, /Ultimate B2 Viewer/);
   assert.match(artifactText, /previewAuthorization/);
-  assert.doesNotMatch(artifactText, /Ultimate B2 Teacher Review|Films are an art form which involve many artistic processes/);
+  assert.doesNotMatch(artifactText, /Ultimate B2 Teacher Review|Films are an art form which involve many artistic processes|PHASE_5_PRIVATE_TEACHER_SENTINEL|BUILDER_PREVIEW_AUTH_SECRET|builder-native-assets\/source\.png|storage_bucket|object_key/);
   assert.doesNotMatch(artifactText, /builderContentApiRoot|\/builder\/api\/auth|\/builder\/api\/content/);
 }
 
@@ -174,17 +182,17 @@ async function sourceFilesUnder(root, relative = "") {
 async function verifyBuilderFunctionLayout() {
   const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
-  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
     "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
     "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
-  for (const entry of ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]) {
+  for (const entry of ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|OpenResponseImport|PreviewAuthorization|Preview|Publication|TeacherUiAssets)Handler\(\)/);
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|NativePreview|OpenResponseImport|PreviewAuthorization|Preview|Publication|TeacherUiAssets)Handler\(\)/);
   }
 }
 

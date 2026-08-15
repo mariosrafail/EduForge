@@ -52,6 +52,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/preview/native-activities/*"
+  to = "/.netlify/functions/builder-native-preview/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/releases/*"
   to = "/.netlify/functions/builder-publication/preview/releases/:splat"
   status = 200

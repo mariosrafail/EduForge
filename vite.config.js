@@ -65,6 +65,9 @@ export default defineConfig(({ mode }) => {
   const hostedOpenResponseDraftProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"
     : "src/apps/android-teacher-offline/noHostedOpenResponseDraftProvider.js");
+  const hostedNativeDraftProvider = path.resolve(process.cwd(), isHostedInteractiveReview
+    ? "src/apps/android-teacher-offline/hostedNativeDraftProvider.js"
+    : "src/apps/android-teacher-offline/noHostedNativeDraftProvider.js");
   const publishedComponentReleaseProvider = path.resolve(process.cwd(), buildProfileId === "web-lms"
     ? "src/services/publishedComponentReleaseProvider.js"
     : isHostedInteractiveReview
@@ -227,6 +230,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-hosted-open-response-drafts",
           replacement: hostedOpenResponseDraftProvider,
+        },
+        {
+          find: "virtual:hosted-native-drafts",
+          replacement: hostedNativeDraftProvider,
         },
         {
           find: "virtual:component-publication",
