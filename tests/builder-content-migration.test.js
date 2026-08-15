@@ -40,6 +40,35 @@ test("Task 9 migration creates immutable releases and a single mutable component
   assert.doesNotMatch(migration, /book_asset_imports|update\s+book_assets|book_page_hotspots/i);
 });
 
+test("migration 038 reuses exact in-scope native content without weakening physical object uniqueness", async () => {
+  const [migration, assetsMigration] = await Promise.all([
+    read("database/038_builder_native_asset_reuse.sql"),
+    read("database/018_book_assets.sql"),
+  ]);
+  const reuseLookup = migration.match(/select asset\.id, asset\.source_metadata->>'asset_slot'[\s\S]*?limit 1;/)?.[0] || "";
+  for (const predicate of [
+    /asset\.book_package_id=session\.book_package_id/,
+    /asset\.book_component_id=session\.book_component_id/,
+    /asset\.storage_bucket=requested_storage_bucket/,
+    /asset\.object_key=requested_object_key/,
+    /asset\.checksum_sha256=requested_checksum/,
+    /asset\.mime_type=requested_mime_type/,
+    /asset\.byte_size=requested_byte_size/,
+    /asset\.width=requested_width/,
+    /asset\.height=requested_height/,
+    /asset\.asset_role='activity_artwork'/,
+    /asset\.publication_status='draft'/,
+    /asset\.storage_profile='private'/,
+    /asset\.access_level='internal'/,
+    /source_metadata->>'native_activity_id'=session\.activity_id/,
+  ]) assert.match(reuseLookup, predicate);
+  assert.doesNotMatch(reuseLookup, /source_metadata->>'asset_slot'=session\.asset_slot/);
+  assert.match(migration, /pg_advisory_xact_lock/);
+  assert.match(migration, /requested_asset_slot[\s\S]*resolved_asset_slot[\s\S]*reused_existing_asset/);
+  assert.match(assetsMigration, /create unique index if not exists book_assets_object_unique_idx on book_assets \(storage_bucket, object_key\)/);
+  assert.doesNotMatch(migration, /drop\s+index|alter\s+table\s+book_assets\s+drop/i);
+});
+
 test("migration 032 performs concurrency, history, and audit in one atomic database call", async () => {
   const migration = await read("database/032_builder_component_authoring.sql");
   const saveFunction = migration.match(/create or replace function save_builder_component_document\([\s\S]*?\n\$\$;/)?.[0] || "";

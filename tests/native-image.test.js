@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
+import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
 import { assessNativeImageReadiness } from "../src/data/native-activities/nativeImage.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o98";
@@ -24,6 +25,18 @@ test("blank and complete Native Image document pairs normalize exactly", () => {
   complete.publicDocument.parts[0].interaction = { kind: "image", image: { assetSlot: asset.slot, fit: "cover", decorative: false }, altText: "A labelled diagram." };
   assert.equal(validateNativeActivityPair(complete.publicDocument, complete.teacherDocument), true);
   assert.equal(kind.normalizePublic(complete.publicDocument).parts[0].interaction.image.fit, "cover");
+});
+
+test("Native Image replacement uses one authoritative canonical finalize reference", () => {
+  const requestedSlot = "asset-new-request";
+  const complete = pair();
+  const finalizedReference = { ...asset, slot: "asset-canonical" };
+  complete.publicDocument.assets = mergeNativeManagedAssetReference([], finalizedReference);
+  complete.publicDocument.parts[0].interaction = { kind: "image", image: { assetSlot: finalizedReference.slot, fit: "contain", decorative: false }, altText: "Diagram" };
+  assert.equal(requestedSlot === complete.publicDocument.parts[0].interaction.image.assetSlot, false);
+  assert.equal(kind.normalizePublic(complete.publicDocument).assets.length, 1);
+  complete.publicDocument.assets = mergeNativeManagedAssetReference([], finalizedReference);
+  assert.equal(kind.normalizePublic(complete.publicDocument).assets.length, 1);
 });
 
 test("Native Image rejects unknown fields, invalid states, stale assets, and non-minimal Teacher data", () => {

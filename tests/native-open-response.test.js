@@ -4,7 +4,8 @@ import test from "node:test";
 import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, nativeOpenResponseLinePositions } from "../src/data/native-activities/nativeOpenResponse.js";
+import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
+import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -13,6 +14,7 @@ const kind = resolveNativeActivityKind("open-response");
 const q1 = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000001");
 const q2 = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000002");
 const art1 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000003");
+const art2 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000005");
 const asset = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "asset-one" };
 
 function pair(questionIds = []) {
@@ -62,19 +64,49 @@ test("geometry, response line topology, and unknown fields fail closed", () => {
   assert.deepEqual(nativeOpenResponseLinePositions({ paddingY: 8, lineSpacing: 32, lineCount: 3 }), [40, 72, 104]);
 });
 
-test("artwork must map one-to-one to managed activity artwork slots", () => {
+test("Open Response permits many artwork instances for one canonical managed asset", () => {
   const { publicDocument } = pair([q1]);
   publicDocument.assets = [asset];
   publicDocument.parts[0].interaction.artwork = [{ id: art1, assetSlot: asset.slot, area: { x: 10, y: 10, width: 200, height: 100 }, order: 0, altText: "Diagram", decorative: false, fit: "contain" }];
   assert.equal(kind.normalizePublic(publicDocument).parts[0].interaction.artwork[0].locked, false);
   publicDocument.parts[0].interaction.artwork[0].locked = true;
   assert.equal(kind.normalizePublic(publicDocument).parts[0].interaction.artwork[0].locked, true);
+  duplicateNativeOpenResponseArtwork(publicDocument.parts[0].interaction, art1, art2);
+  const normalized = kind.normalizePublic(publicDocument);
+  assert.equal(normalized.assets.length, 1);
+  assert.deepEqual(normalized.parts[0].interaction.artwork.map((item) => [item.id, item.assetSlot, item.order]), [[art1, asset.slot, 0], [art2, asset.slot, 1]]);
+  assert.deepEqual(normalized.parts[0].interaction.artwork[1].area, { x: 26, y: 26, width: 200, height: 100 });
+  assert.equal(normalized.parts[0].interaction.artwork[1].locked, false);
+  publicDocument.parts[0].interaction.artwork[1].area.x = 80;
+  publicDocument.parts[0].interaction.artwork[1].locked = true;
+  assert.equal(publicDocument.parts[0].interaction.artwork[0].area.x, 10);
+  assert.equal(publicDocument.parts[0].interaction.artwork[0].locked, true);
+
+  removeNativeOpenResponseArtwork(publicDocument, art1);
+  assert.equal(publicDocument.assets.length, 1);
+  assert.deepEqual(publicDocument.parts[0].interaction.artwork.map((item) => [item.id, item.order]), [[art2, 0]]);
+  removeNativeOpenResponseArtwork(publicDocument, art2);
+  assert.deepEqual(publicDocument.assets, []);
+  assert.deepEqual(publicDocument.parts[0].interaction.artwork, []);
+});
+
+test("Open Response managed asset roots deduplicate identical finalize references and reject conflicts", () => {
+  assert.deepEqual(mergeNativeManagedAssetReference([], asset), [asset]);
+  assert.deepEqual(mergeNativeManagedAssetReference([asset], asset), [asset]);
+  assert.throws(() => mergeNativeManagedAssetReference([asset], { ...asset, checksumSha256: "b".repeat(64) }));
+  assert.throws(() => mergeNativeManagedAssetReference([asset], { ...asset, assetId: "10000000-0000-4000-8000-000000000006" }));
+
+  const { publicDocument } = pair([q1]);
+  publicDocument.assets = [asset];
+  publicDocument.parts[0].interaction.artwork = [{ id: art1, assetSlot: asset.slot, area: { x: 10, y: 10, width: 200, height: 100 }, order: 0, altText: "Diagram", decorative: false, fit: "contain", locked: false }];
   for (const mutate of [
     (value) => { value.parts[0].interaction.artwork[0].id = "art-1"; },
     (value) => { value.parts[0].interaction.artwork[0].locked = "yes"; },
     (value) => { value.parts[0].interaction.artwork[0].assetSlot = "missing"; },
     (value) => { value.assets[0].role = "other_role"; },
-    (value) => { value.parts[0].interaction.artwork.push(structuredClone(value.parts[0].interaction.artwork[0])); },
+    (value) => { value.parts[0].interaction.artwork.push({ ...structuredClone(value.parts[0].interaction.artwork[0]), order: 1 }); },
+    (value) => { value.assets.push({ ...asset, slot: "asset-two" }); },
+    (value) => { value.assets.push({ ...asset, assetId: "10000000-0000-4000-8000-000000000006" }); },
     (value) => { value.assets.push({ ...asset, assetId: "10000000-0000-4000-8000-000000000005", slot: "asset-two" }); },
   ]) { const invalid = structuredClone(publicDocument); mutate(invalid); assert.throws(() => kind.normalizePublic(invalid)); }
 });

@@ -14,7 +14,7 @@ const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 const base = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
-function harness({ bytes = png, inspectRaster = inspectManagedRaster } = {}) {
+function harness({ bytes = png, inspectRaster = inspectManagedRaster, resolvedSlot = "asset-one" } = {}) {
   let prepared = null; let completed = null; let failed = null;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/signed-put", headers: { "Content-Type": "image/png" }, expiresIn: 900 }),
@@ -35,7 +35,7 @@ function harness({ bytes = png, inspectRaster = inspectManagedRaster } = {}) {
     claimAsset: async (_sql, input) => ({ outcome: "claimed", activityId, assetSlot: prepared.assetSlot, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey }),
     completeAsset: async (_sql, input) => { completed = input; return assetId; },
     failAsset: async (_sql, input) => { failed = input; },
-    loadAsset: async (_sql, input) => input.activityId === activityId && input.assetId === assetId ? { id: assetId, checksum_sha256: completed?.checksumSha256 || "a".repeat(64), asset_role: "activity_artwork", object_key: completed?.objectKey || "builder-native-assets/object.png", storage_profile: "private", storage_bucket: "private-assets", mime_type: "image/png", byte_size: png.length, width: 1, height: 1, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: "asset-one" } } : null,
+    loadAsset: async (_sql, input) => input.activityId === activityId && input.assetId === assetId ? { id: assetId, checksum_sha256: completed?.checksumSha256 || "a".repeat(64), asset_role: "activity_artwork", object_key: completed?.objectKey || "builder-native-assets/object.png", storage_profile: "private", storage_bucket: "private-assets", mime_type: "image/png", byte_size: png.length, width: 1, height: 1, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: resolvedSlot } } : null,
     logger: { error() {} },
   });
   return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed };
@@ -55,6 +55,15 @@ test("native raster prepare requires auth/origin and rejects unsafe descriptors"
   const payload = JSON.parse(accepted.body);
   assert.equal(payload.uploadId, uploadId); assert.match(payload.authorization.url, /^https:\/\/storage\.example/);
   assert.equal(JSON.stringify(payload).includes("stagingObjectKey"), false);
+});
+
+test("native finalize returns the persisted canonical slot instead of the newly requested slot", async () => {
+  const { handler } = harness({ resolvedSlot: "asset-canonical" });
+  const clientMutationId = randomUUID();
+  await handler(request(`${base}/prepare`, { name: "diagram.png", size: png.length, type: "image/png", assetSlot: "asset-new-request", clientMutationId }));
+  const finalized = await handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(finalized.statusCode, 200);
+  assert.equal(JSON.parse(finalized.body).reference.slot, "asset-canonical");
 });
 
 test("native raster finalize inspects real bytes, creates a private book asset reference, and supports authenticated preview", async () => {
