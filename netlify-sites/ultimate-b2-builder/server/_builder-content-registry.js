@@ -17,7 +17,7 @@ import {
 } from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
-import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument, validateNativeActivityPair } from "./_native-activity-registry.js";
+import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
 
 const ultimateB2HotspotResource = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -80,18 +80,11 @@ function nativeDocumentResource(bookSlug, componentSlug, resource, documentKey) 
     schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     audience: teacher ? "teacher" : "public",
     readable: true,
-    writeAllowed: true,
+    writeAllowed: false,
     previewReadable: false,
     requiresStored: true,
     baseline() { throw new Error("Native activity documents have no repository baseline."); },
     validate(document) { return teacher ? normalizeNativeActivityTeacherDocument(document, documentKey) : normalizeNativeActivityPublicDocument(document, documentKey); },
-    async validateMutationContext({ document, currentDocument, loadRelated }) {
-      if (currentDocument.activityId !== document.activityId || currentDocument.kind !== document.kind) throw new Error("Native activity identity and kind are immutable.");
-      if (document.kind === "open-response") throw new Error("Native Open Response mutations require the atomic paired save boundary.");
-      const related = await loadRelated(teacher ? "native-activity-public" : "native-activity-teacher", documentKey);
-      if (!related) throw new Error("Matching native activity document is unavailable.");
-      validateNativeActivityPair(teacher ? related.document : document, teacher ? document : related.document);
-    },
   });
 }
 

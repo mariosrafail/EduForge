@@ -5,41 +5,12 @@ import {
   normalizeNativeActivityPublic,
 } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { normalizeNativeActivityTeacher, validateNativeActivityDocumentPair } from "../../../src/data/native-activities/nativeActivityTeacher.js";
+import { normalizeNativeImageInteraction, normalizeNativeImageSolution } from "../../../src/data/native-activities/nativeImage.js";
 import {
   normalizeNativeOpenResponseInteraction,
   normalizeNativeOpenResponseSolution,
   validateNativeOpenResponseTopology,
 } from "../../../src/data/native-activities/nativeOpenResponse.js";
-
-function object(value, label) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
-  return value;
-}
-
-function exactKeys(value, keys, label) {
-  const actual = Object.keys(object(value, label)).sort();
-  const expected = [...keys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
-}
-
-function integer(value, label, minimum, maximum) {
-  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
-  return value;
-}
-
-function normalizeBlankImageInteraction(input) {
-  const value = structuredClone(object(input, "Native Image interaction"));
-  exactKeys(value, ["kind", "image", "altText"], "Native Image interaction");
-  if (value.kind !== "image" || value.image !== null || value.altText !== "") throw new Error("Phase 2 Image interaction must remain an empty structural draft.");
-  return { kind: "image", image: null, altText: "" };
-}
-
-function normalizeBlankImageSolution(input) {
-  const value = structuredClone(object(input, "Native Image Teacher solution"));
-  exactKeys(value, ["kind"], "Native Image Teacher solution");
-  if (value.kind !== "image") throw new Error("Native Image Teacher solution kind is invalid.");
-  return { kind: "image" };
-}
 
 function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null) {
   return Object.freeze({
@@ -65,7 +36,7 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
 
 const registry = Object.freeze({
   "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology),
-  image: definition("image", normalizeBlankImageInteraction, normalizeBlankImageSolution, () => ({ kind: "image", image: null, altText: "" }), () => ({ kind: "image" })),
+  image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", image: null, altText: "" }), () => ({ kind: "image" })),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }

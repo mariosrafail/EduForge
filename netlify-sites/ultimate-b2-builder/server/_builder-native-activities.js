@@ -127,7 +127,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
     if (!currentPublic || !currentTeacher || currentPublic.document.kind !== input.publicDocument?.kind || currentTeacher.document.kind !== input.teacherDocument?.kind
       || currentPublic.document.activityId !== parsedRoute.activityId || currentTeacher.document.activityId !== parsedRoute.activityId) throw new Error("Native activity identity and kind are immutable.");
     const kind = resolveNativeActivityKind(input.publicDocument?.kind);
-    if (!kind || input.publicDocument?.kind !== "open-response") throw new Error("Only native Open Response uses paired authoring save.");
+    if (!kind) throw new Error("Native activity kind is not registered for paired authoring save.");
     publicDocument = kind.normalizePublic(input.publicDocument, parsedRoute.activityId);
     teacherDocument = kind.normalizeTeacher(input.teacherDocument, parsedRoute.activityId);
     validateNativeActivityPair(publicDocument, teacherDocument);

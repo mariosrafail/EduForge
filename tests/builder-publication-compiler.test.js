@@ -26,9 +26,9 @@ test("component release compiler materializes a deterministic canonical baseline
   for (const forbidden of ["acceptedAnswers", "teacherProjection", "modelAnswer", "rawXml", "archiveManifest", "signedUrl"]) assert.doesNotMatch(JSON.stringify(first.publicProjection), new RegExp(forbidden, "i"));
 });
 
-test("Phase 2 native drafts are deliberately ignored by frozen publication v1", () => {
+test("Open Response and Image native drafts are deliberately ignored by frozen publication v1", () => {
   const baseline = compileUltimateB2ComponentRelease();
-  const withNativeDrafts = compileUltimateB2ComponentRelease({ documents: { nativeActivityIndex: { revision: 9, sha256: "a".repeat(64), payload: { schemaVersion: "1.0", activities: [{ activityId: "ultimate-b2-sb-u1-p1-o99" }] } }, nativeActivityPublic: { "ultimate-b2-sb-u1-p1-o99": { revision: 1, sha256: "b".repeat(64), payload: { private: "not consumed" } } }, nativeActivityTeacher: { "ultimate-b2-sb-u1-p1-o99": { revision: 1, sha256: "c".repeat(64), payload: { modelAnswers: ["not consumed"] } } } } });
+  const withNativeDrafts = compileUltimateB2ComponentRelease({ documents: { nativeActivityIndex: { revision: 9, sha256: "a".repeat(64), payload: { schemaVersion: "1.0", activities: [{ activityId: "ultimate-b2-sb-u1-p1-o98", kind: "image" }, { activityId: "ultimate-b2-sb-u1-p1-o99", kind: "open-response" }] } }, nativeActivityPublic: { "ultimate-b2-sb-u1-p1-o98": { revision: 2, sha256: "d".repeat(64), payload: { image: "not consumed" } }, "ultimate-b2-sb-u1-p1-o99": { revision: 1, sha256: "b".repeat(64), payload: { private: "not consumed" } } }, nativeActivityTeacher: { "ultimate-b2-sb-u1-p1-o98": { revision: 2, sha256: "e".repeat(64), payload: { kind: "image" } }, "ultimate-b2-sb-u1-p1-o99": { revision: 1, sha256: "c".repeat(64), payload: { modelAnswers: ["not consumed"] } } } } });
   assert.equal(withNativeDrafts.sourceSnapshotSha256, baseline.sourceSnapshotSha256);
   assert.equal(withNativeDrafts.releaseSha256, baseline.releaseSha256);
   assert.deepEqual(withNativeDrafts.publicProjection, baseline.publicProjection);

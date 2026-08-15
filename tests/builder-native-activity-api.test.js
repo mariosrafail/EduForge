@@ -12,7 +12,7 @@ const root = "/builder/api/native-activities/books/ultimate-b2/components/ultima
 const pageId = "ub2-sb-unit-1-part-1";
 const request = (overrides = {}) => ({ httpMethod: overrides.method || "POST", path: overrides.path || root, headers: { host: "builder.example", origin: "https://builder.example", cookie: "hh_builder_session=live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(overrides.body || { kind: "open-response", pageId, title: "Native draft", clientMutationId: overrides.clientMutationId || randomUUID() }) });
 
-function harness() {
+function harness(overrides = {}) {
   let indexState = null;
   const documents = new Map();
   const mutations = new Map();
@@ -33,7 +33,7 @@ function harness() {
       mutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
       return result;
     },
-    validateAssets: async () => true,
+    validateAssets: overrides.validateAssets || (async () => true),
     savePair: async (_sql, input) => {
       const replay = pairMutations.get(input.clientMutationId);
       if (replay) return replay.requestSha256 === input.requestSha256 ? { ...replay.result, outcome: "idempotent" } : { ...replay.result, outcome: "mutation_id_conflict" };
@@ -57,6 +57,29 @@ test("native creation HTTP boundary rejects missing auth, wrong origin, unknown 
   assert.equal((await handler(request({ path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/create" }))).statusCode, 404);
   assert.equal((await handler(request({ body: { kind: "matching", pageId, title: "x", clientMutationId: randomUUID() } }))).statusCode, 400);
   assert.equal((await handler(request({ body: { kind: "image", pageId: "unknown", title: "x", clientMutationId: randomUUID() } }))).statusCode, 400);
+});
+
+test("Image paired save requires auth and origin and delegates semantic managed-asset validation", async () => {
+  const checked = [];
+  const { handler, documents } = harness({ validateAssets: async (_sql, input) => { checked.push(input); if (input.assets[0]?.checksumSha256 !== "a".repeat(64)) throw new Error("Native managed asset references are invalid."); return true; } });
+  const created = JSON.parse((await handler(request({ body: { kind: "image", pageId, title: "Secured image", clientMutationId: randomUUID() } }))).body);
+  const publicDocument = structuredClone(documents.get(`native_activity_public:${created.activityId}`).document);
+  const teacherDocument = structuredClone(documents.get(`native_activity_teacher:${created.activityId}`).document);
+  const path = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${created.activityId}/save`;
+  const body = { expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID(), publicDocument, teacherDocument };
+  assert.equal((await handler(request({ path, body, headers: { cookie: "" } }))).statusCode, 401);
+  assert.equal((await handler(request({ path, body, headers: { origin: "https://attacker.example" } }))).statusCode, 403);
+  const assetSlot = "asset-image";
+  publicDocument.assets = [{ assetId: "10000000-0000-4000-8000-000000000099", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: assetSlot }];
+  publicDocument.parts[0].interaction = { kind: "image", image: { assetSlot, fit: "contain", decorative: false }, altText: "Diagram" };
+  const rejected = await handler(request({ path, body: { ...body, publicDocument, clientMutationId: randomUUID() } }));
+  assert.equal(rejected.statusCode, 400);
+  assert.equal(checked[0].activityId, created.activityId);
+  assert.equal(checked[0].componentSlug, "ultimate-b2-students-book");
+  publicDocument.assets[0].checksumSha256 = "a".repeat(64);
+  const saved = await handler(request({ path, body: { ...body, publicDocument, clientMutationId: randomUUID() } }));
+  assert.equal(saved.statusCode, 200);
+  assert.equal(JSON.parse(saved.body).publicRevision, 2);
 });
 
 test("one create mutation produces index, public, and Teacher documents and replays the stable ID", async () => {
@@ -92,18 +115,24 @@ test("native documents are authenticated reads and paired writes are the only mu
   const publicDocument = documents.get(`native_activity_public:${created.activityId}`).document;
   const privatePublic = structuredClone(publicDocument); privatePublic.metadata.modelAnswer = "leak";
   const publicRejected = await content(event("native-activity-public", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: privatePublic }));
-  assert.equal(JSON.parse(publicRejected.body).error, "private_document_key_rejected");
+  assert.equal(publicRejected.statusCode, 405);
+  assert.equal(JSON.parse(publicRejected.body).error, "method_not_allowed");
   const teacherDocument = documents.get(`native_activity_teacher:${created.activityId}`).document;
   const teacherSaved = await content(event("native-activity-teacher", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: teacherDocument }));
-  assert.equal(teacherSaved.statusCode, 400);
+  assert.equal(teacherSaved.statusCode, 405);
   const changedKind = { ...publicDocument, kind: "image" };
-  assert.equal((await content(event("native-activity-public", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: changedKind }))).statusCode, 400);
+  assert.equal((await content(event("native-activity-public", "PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: changedKind }))).statusCode, 405);
   assert.equal(await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-public", "../../secret"), null);
 
   const imageCreated = JSON.parse((await create(request({ body: { kind: "image", pageId, title: "Image metadata", clientMutationId: randomUUID() } }))).body);
-  const imagePublic = documents.get(`native_activity_public:${imageCreated.activityId}`).document; imagePublic.metadata.title = "Updated Image metadata";
+  const imagePublic = structuredClone(documents.get(`native_activity_public:${imageCreated.activityId}`).document); imagePublic.metadata.title = "Updated Image metadata";
+  const imageTeacher = structuredClone(documents.get(`native_activity_teacher:${imageCreated.activityId}`).document);
   const imageSaved = await content({ httpMethod: "PUT", path: `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/native-activity-public/${imageCreated.activityId}`, headers: { host: "builder.example", origin: "https://builder.example", cookie: "hh_builder_session=live", "content-type": "application/json" }, body: JSON.stringify({ expectedRevision: 1, clientMutationId: randomUUID(), document: imagePublic }) });
-  assert.equal(imageSaved.statusCode, 200);
+  assert.equal(imageSaved.statusCode, 405);
+  const imagePairPath = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${imageCreated.activityId}/save`;
+  const imagePairSaved = await create({ httpMethod: "POST", path: imagePairPath, headers: { host: "builder.example", origin: "https://builder.example", cookie: "hh_builder_session=live", "content-type": "application/json" }, body: JSON.stringify({ expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID(), publicDocument: imagePublic, teacherDocument: imageTeacher }) });
+  assert.equal(imagePairSaved.statusCode, 200);
+  assert.equal(JSON.parse(imagePairSaved.body).publicDocument.metadata.title, "Updated Image metadata");
 
   const questionId = `q-${"a".repeat(32)}`;
   publicDocument.parts[0].interaction.questions.push({ id: questionId, prompt: "Explain.", promptArea: { x: 20, y: 20, width: 400, height: 50 }, promptStyle: { fontFamily: "Arial", fontSize: 20, color: "#111827", align: "left" }, responseRegion: { id: `${questionId}-response`, ariaLabel: "Response for question 1", area: { x: 40, y: 100, width: 500, height: 120 }, presentation: { paddingX: 10, paddingY: 8, lineCount: 3, lineSpacing: 32, linePositions: [40, 72, 104], lineWidth: 480, answerFontFamily: "Arial", answerFontSizeMin: 12, answerFontSizeMax: 22, color: "#111827", align: "left" } } });

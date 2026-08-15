@@ -36,7 +36,7 @@ export async function saveNativeActivityPair({ bookSlug, componentSlug, activity
   return value;
 }
 
-export async function uploadNativeActivityArtwork({ bookSlug, componentSlug, activityId, assetSlot, file }) {
+export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file }) {
   const base = activityRoot(bookSlug, componentSlug, activityId);
   const clientMutationId = newBuilderClientMutationId();
   const preparedResponse = await fetch(`${base}/assets/prepare`, {
@@ -55,3 +55,5 @@ export async function uploadNativeActivityArtwork({ bookSlug, componentSlug, act
   if (!finalizedResponse.ok) throw new Error(finalized.error || "Artwork upload could not be finalized.");
   return finalized;
 }
+
+export const uploadNativeActivityArtwork = uploadNativeActivityAsset;

@@ -65,6 +65,14 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   assert.deepEqual(pairedRows.rows.map((row) => Number(row.revision)), [3, 3]);
   assert.equal(pairedRows.rows[0].payload.parts[0].interaction.questions[0].id, pairedRows.rows[1].payload.parts[0].solution.modelAnswers[0].questionId);
 
+  const imageCreated = JSON.parse((await handler(event({ kind: "image", title: "Integration image" }))).body);
+  const imagePublic = (await pool.query("select payload from builder_component_documents where document_type='native_activity_public' and document_key=$1", [imageCreated.activityId])).rows[0].payload;
+  const imageTeacher = (await pool.query("select payload from builder_component_documents where document_type='native_activity_teacher' and document_key=$1", [imageCreated.activityId])).rows[0].payload;
+  imagePublic.metadata.title = "Paired Integration image"; imagePublic.metadata.visibleInstructionText = "Inspect the image.";
+  const imagePaired = await handler(pairEvent(imageCreated.activityId, { expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID(), publicDocument: imagePublic, teacherDocument: imageTeacher }));
+  assert.equal(imagePaired.statusCode, 200);
+  assert.deepEqual([JSON.parse(imagePaired.body).publicRevision, JSON.parse(imagePaired.body).teacherRevision], [2, 2]);
+
   const concurrent = await Promise.all([handler(event({ title: "Concurrent A" })), handler(event({ title: "Concurrent B" }))]);
   assert.deepEqual(concurrent.map((response) => response.statusCode), [200, 200]);
   const concurrentIds = concurrent.map((response) => JSON.parse(response.body).activityId);
@@ -72,18 +80,18 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
 
   const rows = await pool.query("select document_type,document_key,revision from builder_component_documents where document_type like 'native_activity_%' order by document_type,document_key");
   assert.equal(rows.rows.filter((row) => row.document_type === "native_activity_index").length, 1);
-  assert.equal(rows.rows.filter((row) => row.document_type === "native_activity_public").length, 3);
-  assert.equal(rows.rows.filter((row) => row.document_type === "native_activity_teacher").length, 3);
+  assert.equal(rows.rows.filter((row) => row.document_type === "native_activity_public").length, 4);
+  assert.equal(rows.rows.filter((row) => row.document_type === "native_activity_teacher").length, 4);
   const index = await pool.query("select revision,payload from builder_component_documents where document_type='native_activity_index'");
-  assert.equal(Number(index.rows[0].revision), 3);
-  assert.equal(index.rows[0].payload.activities.length, 3);
+  assert.equal(Number(index.rows[0].revision), 4);
+  assert.equal(index.rows[0].payload.activities.length, 4);
   const histories = await pool.query("select count(*)::int count from builder_component_document_revisions revision join builder_component_documents document on document.id=revision.document_id where document.document_type like 'native_activity_%'");
-  assert.equal(histories.rows[0].count, 13);
+  assert.equal(histories.rows[0].count, 18);
   const audits = await pool.query("select metadata from builder_audit_log where action='native_activity_created'");
-  assert.equal(audits.rows.length, 3);
+  assert.equal(audits.rows.length, 4);
   assert.doesNotMatch(JSON.stringify(audits.rows), /payload|answer|solution|token|secret/i);
   const pairAudits = await pool.query("select metadata from builder_audit_log where action='native_activity_pair_saved'");
-  assert.equal(pairAudits.rows.length, 2);
+  assert.equal(pairAudits.rows.length, 3);
   assert.doesNotMatch(JSON.stringify(pairAudits.rows), /integration answer|payload|solution|token|secret/i);
 
   const beforeFailure = await pool.query("select count(*)::int count from builder_component_documents where document_type like 'native_activity_%'");
@@ -91,9 +99,9 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   const teacherDocument = (await pool.query("select payload from builder_component_documents where document_type='native_activity_teacher' order by created_at limit 1")).rows[0].payload;
   const failedId = "ultimate-b2-sb-u1-p1-o999";
   const failedIndex = structuredClone(index.rows[0].payload); failedIndex.activities.push({ activityId: failedId, kind: "open-response", placement: { pageId: "ub2-sb-unit-1-part-1" }, sortOrder: 9999 });
-  await assert.rejects(createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 3, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "invalid", schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: actor, clientMutationId: randomUUID() }));
+  await assert.rejects(createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 4, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "invalid", schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: actor, clientMutationId: randomUUID() }));
   assert.equal((await pool.query("select count(*)::int count from builder_component_documents where document_type like 'native_activity_%'")).rows[0].count, beforeFailure.rows[0].count);
 
-  const unauthorized = await createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 3, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "d".repeat(64), schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: "10000000-0000-4000-8000-000000000099", clientMutationId: randomUUID() });
+  const unauthorized = await createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 4, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "d".repeat(64), schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: "10000000-0000-4000-8000-000000000099", clientMutationId: randomUUID() });
   assert.equal(unauthorized.outcome, "unauthorized_actor");
 });
