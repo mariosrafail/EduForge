@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
+import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeImageReadiness } from "../../../data/native-activities/nativeImage.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
@@ -42,8 +43,8 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
       const uploaded = await uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot: slot, file });
       mutate((next) => {
         const current = next.parts[0].interaction;
-        next.assets = [uploaded.reference];
-        current.image = { assetSlot: slot, fit: current.image?.fit || "contain", decorative: current.image?.decorative || false };
+        next.assets = mergeNativeManagedAssetReference([], uploaded.reference);
+        current.image = { assetSlot: uploaded.reference.slot, fit: current.image?.fit || "contain", decorative: current.image?.decorative || false };
       });
       setState((current) => ({ ...current, message: "Image uploaded; save the draft to attach it." }));
     } catch (error) { setState((current) => ({ ...current, message: error.message })); }

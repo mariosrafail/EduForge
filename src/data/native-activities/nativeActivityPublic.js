@@ -39,6 +39,33 @@ export function normalizeNativeManagedAssetReference(input) {
   return { assetId: value.assetId.toLowerCase(), checksumSha256: value.checksumSha256, role: value.role, slot: safeId(value.slot, "Native managed asset slot") };
 }
 
+function sameManagedAssetReference(left, right) {
+  return left.assetId === right.assetId
+    && left.checksumSha256 === right.checksumSha256
+    && left.role === right.role
+    && left.slot === right.slot;
+}
+
+export function mergeNativeManagedAssetReference(inputAssets, inputReference) {
+  if (!Array.isArray(inputAssets)) throw new Error("Native public assets must be an array.");
+  const assets = inputAssets.map(normalizeNativeManagedAssetReference);
+  const reference = normalizeNativeManagedAssetReference(inputReference);
+  const assetIds = new Set();
+  const assetSlots = new Set();
+  for (const asset of assets) {
+    if (assetIds.has(asset.assetId) || assetSlots.has(asset.slot)) throw new Error("Native managed asset references must be unique by ID and slot.");
+    assetIds.add(asset.assetId);
+    assetSlots.add(asset.slot);
+  }
+  const matchingId = assets.find((asset) => asset.assetId === reference.assetId);
+  const matchingSlot = assets.find((asset) => asset.slot === reference.slot);
+  if (!matchingId && !matchingSlot) return [...assets, reference];
+  if (!matchingId || !matchingSlot || matchingId !== matchingSlot || !sameManagedAssetReference(matchingId, reference)) {
+    throw new Error("Native managed asset reference conflicts with an existing ID or slot.");
+  }
+  return assets;
+}
+
 export function normalizeNativeActivityPlacement(input) {
   const value = structuredClone(object(input, "Native activity placement"));
   exactKeys(value, ["pageId"], "Native activity placement");

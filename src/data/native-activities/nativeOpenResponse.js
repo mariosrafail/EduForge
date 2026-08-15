@@ -183,12 +183,45 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [] } = 
   const usedSlots = new Set();
   const normalizedArtwork = value.artwork.map((entry, index) => {
     const normalized = artwork(entry, index, logicalSurface, assetSlots);
-    if (artworkIds.has(normalized.id) || usedSlots.has(normalized.assetSlot)) throw new Error("Native Open Response artwork identities and slots must be unique.");
+    if (artworkIds.has(normalized.id)) throw new Error("Native Open Response artwork identities must be unique.");
     artworkIds.add(normalized.id); usedSlots.add(normalized.assetSlot);
     return normalized;
   });
-  if (assets.some((asset) => asset.role !== "activity_artwork" || !usedSlots.has(asset.slot))) throw new Error("Native Open Response managed assets must map one-to-one to artwork.");
+  if (assets.some((asset) => asset.role !== "activity_artwork" || !usedSlots.has(asset.slot))) throw new Error("Every Native Open Response managed asset must be used by artwork.");
   return { kind: "open-response", surface: logicalSurface, artwork: normalizedArtwork, questions };
+}
+
+export function duplicateNativeOpenResponseArtwork(interaction, sourceId, duplicateId) {
+  const value = object(interaction, "Native Open Response interaction");
+  if (!Array.isArray(value.artwork) || value.artwork.length >= NATIVE_OPEN_RESPONSE_LIMITS.artwork) throw new Error("Native Open Response artwork count is invalid.");
+  const source = value.artwork.find((entry) => entry.id === sourceId);
+  if (!source) throw new Error("Native Open Response source artwork does not exist.");
+  if (!isNativeChildId(duplicateId, "art") || value.artwork.some((entry) => entry.id === duplicateId)) throw new Error("Native Open Response duplicate artwork ID is invalid.");
+  const logicalSurface = surface(value.surface);
+  const duplicate = structuredClone(source);
+  duplicate.id = duplicateId;
+  duplicate.area.x = Math.min(source.area.x + 16, logicalSurface.width - source.area.width);
+  duplicate.area.y = Math.min(source.area.y + 16, logicalSurface.height - source.area.height);
+  duplicate.order = value.artwork.length;
+  duplicate.locked = false;
+  value.artwork.push(duplicate);
+  return duplicate;
+}
+
+export function removeNativeOpenResponseArtwork(publicDocument, artworkId) {
+  const value = object(publicDocument, "Native public activity");
+  if (!Array.isArray(value.assets) || !Array.isArray(value.parts) || !value.parts[0]?.interaction) throw new Error("Native Open Response document is invalid.");
+  const interaction = value.parts[0].interaction;
+  if (!Array.isArray(interaction.artwork)) throw new Error("Native Open Response artwork is invalid.");
+  const removed = interaction.artwork.find((entry) => entry.id === artworkId);
+  if (!removed) throw new Error("Native Open Response artwork does not exist.");
+  interaction.artwork = interaction.artwork
+    .filter((entry) => entry.id !== artworkId)
+    .map((entry, order) => ({ ...entry, order }));
+  if (!interaction.artwork.some((entry) => entry.assetSlot === removed.assetSlot)) {
+    value.assets = value.assets.filter((entry) => entry.slot !== removed.assetSlot);
+  }
+  return removed;
 }
 
 export function normalizeNativeOpenResponseSolution(input) {
