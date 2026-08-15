@@ -23,8 +23,8 @@ test("isolated PostgreSQL reuses canonical native assets safely under repeated a
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Asset Actor','native-assets@example.test','hash')", [actor]);
   const sql = tag(pool);
   const create = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
-  const createActivity = async (title) => {
-    const response = await create({ httpMethod: "POST", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ kind: "open-response", pageId: "ub2-sb-unit-1-part-1", title, clientMutationId: randomUUID() }) });
+  const createActivity = async (title, kind = "image") => {
+    const response = await create({ httpMethod: "POST", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ kind, pageId: "ub2-sb-unit-1-part-1", title, clientMutationId: randomUUID() }) });
     assert.equal(response.statusCode, 200);
     return JSON.parse(response.body).activityId;
   };
@@ -56,6 +56,27 @@ test("isolated PostgreSQL reuses canonical native assets safely under repeated a
   const asset = await loadBuilderNativeAsset(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId, assetId });
   assert.equal(asset.source_metadata.asset_slot, "asset-one");
   assert.equal(asset.publication_status, "draft"); assert.equal(asset.storage_profile, "private"); assert.equal(asset.access_level, "internal"); assert.equal(asset.asset_role, "activity_artwork");
+
+  const publicRow = (await pool.query("select revision,payload from builder_component_documents where document_type='native_activity_public' and document_key=$1", [activityId])).rows[0];
+  const teacherRow = (await pool.query("select revision,payload from builder_component_documents where document_type='native_activity_teacher' and document_key=$1", [activityId])).rows[0];
+  publicRow.payload.assets = [{ assetId, checksumSha256, role: "activity_artwork", slot: "asset-one" }];
+  publicRow.payload.parts[0].interaction.images = [
+    { id: `img-${"a".repeat(32)}`, assetSlot: "asset-one", area: { x: 10, y: 20, width: 320, height: 220 }, order: 0, altText: "Diagram", decorative: false, fit: "contain", locked: false },
+    { id: `img-${"b".repeat(32)}`, assetSlot: "asset-one", area: { x: 50, y: 60, width: 320, height: 220 }, order: 1, altText: "Second use", decorative: false, fit: "cover", locked: true },
+  ];
+  const saveResponse = await create({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ expectedPublicRevision: Number(publicRow.revision), expectedTeacherRevision: Number(teacherRow.revision), clientMutationId: randomUUID(), publicDocument: publicRow.payload, teacherDocument: teacherRow.payload }) });
+  assert.equal(saveResponse.statusCode, 200);
+  const composed = JSON.parse(saveResponse.body); assert.equal(composed.publicDocument.parts[0].interaction.images.length, 2); assert.equal(composed.publicDocument.assets.length, 1);
+  const oneUse = structuredClone(composed.publicDocument); oneUse.parts[0].interaction.images = [oneUse.parts[0].interaction.images[0]];
+  const oneUseResponse = await create({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ expectedPublicRevision: 2, expectedTeacherRevision: 2, clientMutationId: randomUUID(), publicDocument: oneUse, teacherDocument: composed.teacherDocument }) });
+  assert.equal(oneUseResponse.statusCode, 200); assert.equal(JSON.parse(oneUseResponse.body).publicDocument.assets.length, 1);
+  const blankAgain = structuredClone(JSON.parse(oneUseResponse.body).publicDocument); blankAgain.parts[0].interaction.images = []; blankAgain.assets = [];
+  const blankResponse = await create({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ expectedPublicRevision: 3, expectedTeacherRevision: 3, clientMutationId: randomUUID(), publicDocument: blankAgain, teacherDocument: JSON.parse(oneUseResponse.body).teacherDocument }) });
+  assert.equal(blankResponse.statusCode, 200); assert.equal(JSON.parse(blankResponse.body).publicDocument.assets.length, 0);
+  const afterDelete = await prepareAndClaim({ slot: "asset-after-delete" }); const afterDeleteAssetId = await finalize({ uploadId: afterDelete.uploadId, checksumSha256 }); assert.equal(afterDeleteAssetId, assetId);
+  const restored = structuredClone(JSON.parse(blankResponse.body).publicDocument); restored.assets = [{ assetId, checksumSha256, role: "activity_artwork", slot: "asset-one" }]; restored.parts[0].interaction.images = [{ id: `img-${"c".repeat(32)}`, assetSlot: "asset-one", area: { x: 20, y: 30, width: 320, height: 220 }, order: 0, altText: "Restored", decorative: false, fit: "contain", locked: false }];
+  const restoredResponse = await create({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ expectedPublicRevision: 4, expectedTeacherRevision: 4, clientMutationId: randomUUID(), publicDocument: restored, teacherDocument: JSON.parse(blankResponse.body).teacherDocument }) });
+  assert.equal(restoredResponse.statusCode, 200); assert.equal((await pool.query("select count(*)::int count from book_assets where storage_bucket='private-assets' and object_key=$1", [canonicalKey])).rows[0].count, 1);
 
   const different = await prepareAndClaim({ slot: "asset-different" });
   const differentChecksum = "d".repeat(64);

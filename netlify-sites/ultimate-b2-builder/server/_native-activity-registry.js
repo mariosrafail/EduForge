@@ -36,7 +36,7 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
 
 const registry = Object.freeze({
   "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology),
-  image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", image: null, altText: "" }), () => ({ kind: "image" })),
+  image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" })),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }

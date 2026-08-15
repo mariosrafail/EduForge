@@ -71,7 +71,10 @@ test("Image paired save requires auth and origin and delegates semantic managed-
   assert.equal((await handler(request({ path, body, headers: { origin: "https://attacker.example" } }))).statusCode, 403);
   const assetSlot = "asset-image";
   publicDocument.assets = [{ assetId: "10000000-0000-4000-8000-000000000099", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: assetSlot }];
-  publicDocument.parts[0].interaction = { kind: "image", image: { assetSlot, fit: "contain", decorative: false }, altText: "Diagram" };
+  publicDocument.parts[0].interaction = { kind: "image", surface: { width: 1024, height: 582 }, images: [
+    { id: `img-${"a".repeat(32)}`, assetSlot, area: { x: 10, y: 20, width: 320, height: 220 }, order: 0, altText: "Diagram", decorative: false, fit: "contain", locked: false },
+    { id: `img-${"b".repeat(32)}`, assetSlot, area: { x: 40, y: 50, width: 320, height: 220 }, order: 1, altText: "Second use", decorative: false, fit: "cover", locked: true },
+  ] };
   const rejected = await handler(request({ path, body: { ...body, publicDocument, clientMutationId: randomUUID() } }));
   assert.equal(rejected.statusCode, 400);
   assert.equal(checked[0].activityId, created.activityId);
@@ -80,6 +83,8 @@ test("Image paired save requires auth and origin and delegates semantic managed-
   const saved = await handler(request({ path, body: { ...body, publicDocument, clientMutationId: randomUUID() } }));
   assert.equal(saved.statusCode, 200);
   assert.equal(JSON.parse(saved.body).publicRevision, 2);
+  assert.equal(JSON.parse(saved.body).publicDocument.parts[0].interaction.images.length, 2);
+  assert.equal(JSON.parse(saved.body).publicDocument.assets.length, 1);
 });
 
 test("one create mutation produces index, public, and Teacher documents and replays the stable ID", async () => {
