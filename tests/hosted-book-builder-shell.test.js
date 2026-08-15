@@ -78,7 +78,7 @@ test("generic shell owns navigation while B2 imports stay inside the adapter bou
   assert.match(adapters, /UltimateB2StudentsBookHostedWorkspace/);
   assert.doesNotMatch(b2Workspace, /NormalizedStudentsBookActivity|ACTIVITY_MODES/);
   assert.match(b2Workspace, /HostedUltimateB2HotspotBuilder/);
-  assert.match(b2Workspace, /HostedViewerPreview/);
+  assert.match(b2Workspace, /UnifiedBuilderReview/);
   assert.doesNotMatch(b2Workspace, /TeacherOfflineLibrary|ClassroomToolsProvider|teacherBookMenuSkins|hostedReviewUiAssets|android-teacher-offline/);
   assert.match(b2Workspace, /HostedTeacherUiController/);
   assert.doesNotMatch(b2Workspace, /window\.location\.hash|history\.replaceState/);

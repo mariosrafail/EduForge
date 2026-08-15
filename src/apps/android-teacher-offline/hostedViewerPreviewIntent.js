@@ -8,6 +8,8 @@ const ALLOWED_PARAMETERS = Object.freeze({
   activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId", "previewAuthorization"]),
 });
 const RELEASE_ALLOWED_PARAMETERS = Object.freeze(Object.fromEntries(Object.entries(ALLOWED_PARAMETERS).map(([view, keys]) => [view, new Set([...keys, "releaseId"])])));
+const ACTIVITY_LOCATION_PARAMETERS = new Set([...ALLOWED_PARAMETERS.activity, "unitNumber", "pageId"]);
+const RELEASE_ACTIVITY_LOCATION_PARAMETERS = new Set([...ACTIVITY_LOCATION_PARAMETERS, "releaseId"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function invalid() {
@@ -75,7 +77,10 @@ export function resolveHostedViewerPreviewIntent({
   const view = parameters.get("view");
   const releaseId = parameters.get("releaseId");
   const previewAuthorization = parameters.get("previewAuthorization") || "";
-  const allowed = releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view];
+  const hasActivityLocation = view === "activity" && (parameters.has("unitNumber") || parameters.has("pageId"));
+  const allowed = hasActivityLocation
+    ? (releaseId ? RELEASE_ACTIVITY_LOCATION_PARAMETERS : ACTIVITY_LOCATION_PARAMETERS)
+    : (releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view]);
   if (!allowed || !hasExactParameters(parameters, allowed) || !/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
   if (releaseId && !UUID.test(releaseId)) return invalid();
 
@@ -103,13 +108,23 @@ export function resolveHostedViewerPreviewIntent({
   const activityId = parameters.get("activityId") || "";
   if (!SAFE_ID.test(activityId)) return invalid();
   const resolved = resolveTeacherOfflineActivityLocation({ activityId, activities, pageUnits });
-  if (!resolved) return invalid();
+  let location = resolved?.location || null;
+  if (!location && hasActivityLocation) {
+    const unitValue = parameters.get("unitNumber") || "";
+    const pageId = parameters.get("pageId") || "";
+    if (!/^[1-9][0-9]?$/.test(unitValue) || !SAFE_ID.test(pageId)) return invalid();
+    const unitNumber = Number(unitValue);
+    const unit = pageUnits.find((candidate) => Number(candidate.number) === unitNumber);
+    if (!unit?.pages?.some((page) => page.id === pageId)) return invalid();
+    location = { unitNumber, tab: "pages", pageId };
+  }
+  if (!location) return invalid();
   return Object.freeze({
     kind: "valid",
     view,
     bookSlug: componentRequest.bookSlug,
     componentSlug: componentRequest.componentSlug,
     ...(releaseId ? { releaseId } : {}),
-    navigation: Object.freeze({ view: "book", location: Object.freeze(resolved.location), activityId }),
+    navigation: Object.freeze({ view: "book", location: Object.freeze(location), activityId }),
   });
 }

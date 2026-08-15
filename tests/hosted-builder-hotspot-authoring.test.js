@@ -23,9 +23,11 @@ test("hosted Hotspot Builder reuses the proven editor and exposes explicit persi
   assert.match(editor, /disabled=\{!dirty \|\| status === "Saving"\}/);
   assert.match(editor, /Drag on the page to create a hotspot/);
   assert.match(editor, /Delete hotspot/);
-  assert.match(editor, /Viewer preview shows the last saved hotspot revision/);
-  assert.match(editor, /intent=\{\{ view: "page", unitNumber: page\.unitNumber, pageId: page\.id \}\}/);
-  assert.match(editor, /refreshKey=\{viewerRefreshKey\}/);
+  assert.match(editor, /registerToolContext\("hotspots"/);
+  assert.match(editor, /view: "page"/);
+  assert.match(editor, /pageId: page\.id/);
+  assert.match(editor, /refreshKey: viewerRefreshKey/);
+  assert.doesNotMatch(editor, /<HostedViewerPreview\b/);
 });
 
 test("hosted conflict handling retains local edits until explicit reload", async () => {

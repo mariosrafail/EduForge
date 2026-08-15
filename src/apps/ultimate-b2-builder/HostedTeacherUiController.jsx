@@ -8,13 +8,13 @@ import {
   saveTeacherUiDocument,
   uploadTeacherUiAsset,
 } from "../book-builder/hosted/builderTeacherUiAssetApi.js";
-import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
 import {
   HOSTED_EDITABLE_UI_BINDINGS,
   HOSTED_TEACHER_UI_CATEGORY_LABELS,
   HOSTED_TEACHER_UI_TITLE_BINDING_IDS,
 } from "../../data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import { normalizeHostedTeacherUiDocument } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
+import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
 const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller" });
 const titleIds = new Set(HOSTED_TEACHER_UI_TITLE_BINDING_IDS);
@@ -72,6 +72,7 @@ function TitleGroup({ bindings, savedAssets, changes, previewUrls, activity, onV
 }
 
 export function HostedTeacherUiController() {
+  const { registerToolContext } = useBuilderReview();
   const [loaded, setLoaded] = useState(null);
   const [changes, setChanges] = useState({});
   const [candidateUploads, setCandidateUploads] = useState({});
@@ -85,6 +86,14 @@ export function HostedTeacherUiController() {
   const previewUrlsRef = useRef(previewUrls);
   previewUrlsRef.current = previewUrls;
   const dirty = Object.keys(changes).length > 0;
+  useEffect(() => {
+    registerToolContext("ui", {
+      view: "page",
+      dirty,
+      refreshKey: viewerRefresh,
+      release: null,
+    });
+  }, [dirty, registerToolContext, viewerRefresh]);
 
   const load = async ({ preserveChanges = false } = {}) => {
     setStatus("Loading"); setError("");
@@ -193,7 +202,6 @@ export function HostedTeacherUiController() {
         {section === "branding-title" ? <TitleGroup bindings={titleBindings} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity["title-animation"]} onValidate={validateFiles} onRevert={() => revert(HOSTED_TEACHER_UI_TITLE_BINDING_IDS)} /> : null}
         {section !== "overview" ? <div className="b2-hosted-ui-slots">{visibleBindings.map((binding) => <AssetSlot key={binding.id} binding={binding} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity[binding.id]} onReplace={(selected, file) => validateFiles([{ bindingId: selected.id, file }])} onRevert={revert} />)}</div> : null}
       </section>
-      <aside className="b2-hosted-ui-viewer"><HostedViewerPreview intent={{ view: "library" }} refreshKey={viewerRefresh} title="Canonical Viewer Teacher interface preview" description="Only the last successfully saved UI revision appears here. Unsaved candidates remain local to the editor." /></aside>
     </div>
   </main>;
 }

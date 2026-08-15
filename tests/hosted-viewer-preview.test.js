@@ -25,9 +25,11 @@ test("Builder creates deterministic canonical Viewer URLs from a fixed trusted o
   const library = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "library", previewAuthorization }));
   const page = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", previewAuthorization }));
   const activity = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "ultimate-b2-sb-u1-p1-o1", previewAuthorization }));
+  const nativeActivity = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", previewAuthorization }));
   assert.deepEqual(Object.fromEntries(library.searchParams), { builderPreview: "1", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", previewAuthorization, view: "library" });
   assert.equal(page.searchParams.get("pageId"), "ub2-sb-unit-1-part-1");
   assert.equal(activity.searchParams.get("activityId"), "ultimate-b2-sb-u1-p1-o1");
+  assert.equal(nativeActivity.searchParams.get("pageId"), "ub2-sb-unit-1-part-1");
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "library" }), /authorization is required/);
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "javascript:alert(1)", previewAuthorization }), /invalid/);
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "x&token=secret", previewAuthorization }), /invalid/);
@@ -38,6 +40,7 @@ test("hosted Viewer resolves strict library, page, and canonical activity intent
   assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=library`, hosted: true, registry }), { kind: "valid", view: "library", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "library" } });
   assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1`, hosted: true, pageUnits, registry }), { kind: "valid", view: "page", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "book", location: { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" } } });
   assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry }), { kind: "valid", view: "activity", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "book", location: { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" }, activityId: "ultimate-b2-sb-u1-p1-o1" } });
+  assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o90&unitNumber=1&pageId=ub2-sb-unit-1-part-1`, hosted: true, activities, pageUnits, registry }), { kind: "valid", view: "activity", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "book", location: { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" }, activityId: "ultimate-b2-sb-u1-p1-o90" } });
 });
 
 test("release preview requires one strict UUID and remains a read-only pinned intent", () => {
@@ -85,7 +88,7 @@ test("Viewer Teacher solutions are unavailable anonymously and fetched only for 
 });
 
 test("hosted Viewer fails closed for malformed, unknown, duplicated, extra, and oversized intents", () => {
-  const invalidSearches = [`?${identity}&view=unknown`, `?${identity}&view=library&token=secret`, `?${identity}&builderPreview=1&view=library`, `?${identity}&view=page&unitNumber=1&pageId=unknown-page`, `?${identity}&view=activity&activityId=unknown-activity`, `?${identity}&view=activity&activityId=${"a".repeat(129)}`, "?builderPreview=1&bookSlug=unknown&componentSlug=unknown&view=library"];
+  const invalidSearches = [`?${identity}&view=unknown`, `?${identity}&view=library&token=secret`, `?${identity}&builderPreview=1&view=library`, `?${identity}&view=page&unitNumber=1&pageId=unknown-page`, `?${identity}&view=activity&activityId=unknown-activity`, `?${identity}&view=activity&activityId=unknown-activity&unitNumber=1`, `?${identity}&view=activity&activityId=unknown-activity&unitNumber=1&pageId=unknown-page`, `?${identity}&view=activity&activityId=${"a".repeat(129)}`, "?builderPreview=1&bookSlug=unknown&componentSlug=unknown&view=library"];
   for (const search of invalidSearches) assert.deepEqual(resolveHostedViewerPreviewIntent({ search, hosted: true, activities, pageUnits, registry }), { kind: "invalid", message: "The requested Builder preview is invalid or unavailable." });
   assert.equal(resolveHostedViewerPreviewIntent({ search: `?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-workbook&previewAuthorization=${previewAuthorization}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry }).kind, "unavailable");
   assert.equal(resolveHostedViewerPreviewIntent({ search: `?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-grammar-book&previewAuthorization=${previewAuthorization}&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1`, hosted: true, activities, pageUnits, registry }).kind, "unavailable");

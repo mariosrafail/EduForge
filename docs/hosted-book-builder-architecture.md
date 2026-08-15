@@ -24,8 +24,9 @@ The hosted catalog remains deterministic, checked in, and independent from LMS r
 Ultimate B2
 ├── Students Book — connected
 │   ├── Hotspot Builder — editable
-│   ├── Activity Builder — read-only; persistence pending
-│   └── UI Controller — read-only; persistence pending
+│   ├── Activity Builder — editable native and supported canonical authoring
+│   ├── UI Controller — editable approved Teacher UI bindings
+│   └── Publication — immutable release preparation and publication
 ├── Workbook — present; authoring adapter pending
 ├── Grammar Book — present; authoring adapter pending
 └── Test Book — present; authoring adapter pending
@@ -84,19 +85,28 @@ The hosted hash routes remain:
 - `#/books`
 - `#/books/ultimate-b2`
 - `#/books/ultimate-b2/components/ultimate-b2-students-book`
-- the same component route ending in `/hotspots`, `/activities`, or `/ui`
+- the same component route ending in `/hotspots`, `/activities`, `/ui`, or `/publication`
 
 ## Canonical Viewer preview boundary
 
-The hosted Builder is the authenticated authoring/control surface; it does not embed a second copy of the Student/Teacher interactive runtime. Activity and UI review render the dedicated Viewer in a cross-origin frame at the single configured origin `https://hhplms-viewer.netlify.app`. Hotspot geometry remains editable on the local Builder canvas, while its Viewer frame represents only the last successfully saved revision and reloads after a successful PUT.
+The hosted Builder is the authenticated authoring/control surface; it does not embed a second copy of the Student/Teacher interactive runtime. One component-owned **Review** launcher remains available across Hotspot Builder, Activity Builder, UI Controller, and Publication. Opening it mounts one shared cross-origin `HostedViewerPreview` frame at `https://hhplms-viewer.netlify.app`; closing it unmounts the frame and its authorization lifecycle. The individual tools no longer own external Viewer frames. Native Activity editors retain separate local Student/Teacher surfaces for immediate unsaved authoring feedback.
+
+The user-facing state model is explicit:
+
+- **Local Preview** may contain unsaved native editor state.
+- **Review · Saved Draft** uses only the latest successfully saved Builder documents in the deployed Viewer.
+- **Review · Release #N · Immutable** is pinned to the exact prepared release. A release whose source snapshot differs from the current saved draft is labelled older/stale, not regenerated.
+- **Publish** moves a reviewed immutable release to the LMS publication head.
+- Bare Viewer remains a separate canonical/public target; it is neither mutable Builder review nor an active-publication-head resolver.
 
 The Builder creates these bounded query intents and appends a signed, short-lived `previewAuthorization` issued for the exact intent. Page intents sign the stable `pageId`; activity intents sign the exact `activityId`; library intents grant neither native scope. The frame uses the issuer's returned `expiresAt` to schedule one replacement authorization thirty seconds before expiry. Intent, release, page, activity, manual-refresh, and unmount changes cancel the previous timer/request. Renewal failure removes the iframe authorization and fails the explicit preview closed rather than downgrading it to bare mode:
 
 - `?builderPreview=1&view=library`
 - `?builderPreview=1&view=page&unitNumber=<number>&pageId=<stable-page-id>`
-- `?builderPreview=1&view=activity&activityId=<stable-activity-id>`
+- `?builderPreview=1&view=activity&activityId=<stable-activity-id>` for installed canonical activities
+- `?builderPreview=1&view=activity&activityId=<stable-native-id>&unitNumber=<number>&pageId=<stable-page-id>` for native activity navigation
 
-The contract is enabled only by the hosted interactive startup provider. It uses an exact parameter allowlist, bounded stable IDs, real Viewer page units, and the canonical activity-location resolver against the validated loaded content pack. Duplicate, extra, malformed, missing-authorization, unknown-page, and unknown-activity values fail visibly. Android providers ignore the query. The server, not the query string alone, authorizes every protected data request by checking the token signature, expiry, action, component, release, and activity scope.
+The contract is enabled only by the hosted interactive startup provider. It uses an exact parameter allowlist, bounded stable IDs, real Viewer page units, and the canonical activity-location resolver against the validated loaded content pack. A newly created native activity may include its authoritative Builder placement as a Viewer navigation hint because it is not in the static catalog; its signed token remains exact-activity scoped and the hint grants no server access. Duplicate, partial, extra, malformed, missing-authorization, unknown-page, and unknown-activity values fail visibly. Android providers ignore the query. The server, not the query string alone, authorizes every protected data request by checking the token signature, expiry, action, component, release, and activity scope.
 
 The frame sends no Builder cookie or mutation data, uses `no-referrer`, and has no postMessage or cross-origin DOM bridge. Its URL contains the short-lived preview authorization so same-origin Viewer requests can forward it to protected proxy routes. The token never contains Teacher answers and cannot protect or excuse private data in static assets. Viewer bundles contain presentation code but no Teacher solution pack or private publication projection.
 
@@ -110,11 +120,7 @@ The hosted hotspot editor shares the established `EditableHotspotLayer`, canonic
 
 A hosted save persists a Builder authoring revision and makes that Student-safe structural revision available to an explicitly authorized draft Viewer. That mode validates its public content pack and performs one no-store preview fetch before becoming ready; failures enter an explicit unavailable state rather than silently using stale committed hotspots. Bare Viewer instead treats the committed manifest as canonical and makes no preview fetch. Revision `0` repository fallback remains an authoritative server response for explicit draft preview. Android uses its bundled hotspot provider and makes no preview request.
 
-A hosted save still does not publish LMS runtime, publish Android packs, mutate production runtime tables, or commit repository files. This is review preview, not publication. Planned follow-ons are:
-
-- Phase 3B: Activity Builder public/private authoring persistence
-- Phase 3C: media/assets and UI Controller persistence
-- Phase 4: explicit validate/publish/project pipeline into deterministic runtime artifacts
+A hosted save still does not publish LMS runtime, publish Android packs, mutate production runtime tables, or commit repository files. Saved Draft Review is review preview, not publication. Publication separately prepares an immutable release, reviews that exact release through the same shared Review surface, and only then permits an explicit publish transition.
 
 ## Naming and operational compatibility
 

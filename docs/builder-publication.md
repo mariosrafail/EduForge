@@ -10,6 +10,8 @@ Only `ultimate-b2/ultimate-b2-students-book` currently advertises a production p
 - A preview release is an immutable cross-document snapshot with deterministic public and Teacher projections.
 - The publication head is the only mutable release state. It points to one immutable release for a component.
 
+The component-wide Builder Review surface presents **Saved Draft** and the selected **Release #N · Immutable** as distinct sources. Release review uses an exact release UUID and page context; merely opening Review never compiles, updates, or replaces a release. If its `sourceSnapshotSha256` differs from the current saved source fingerprint, the release remains valid and immutable but is labelled older/stale. Saved Draft Review then shows the later saved state while the older release remains unchanged.
+
 The release compiler composes canonical Open Response authoring, a committed source import, and a saved public-text document in that order. Hotspots and Teacher UI use their canonical revision-zero state when no saved Builder document exists. The public projection is recursively validated as Student-safe; imported Teacher solutions and Teacher UI remain in the separate Teacher projection.
 
 Publishing revalidates release integrity, runtime compatibility, current source identity, expected head revision, and component ownership. Component-scoped advisory locking serializes the final staleness check and head transition with Builder document/import writes. A concurrent save may commit immediately after publication, but it remains an unpublished draft and cannot alter the release.
@@ -21,6 +23,8 @@ The web LMS requests only the authenticated and entitled active public release. 
 Published binary URLs identify an exact previously published release plus an immutable checksum and extension. The server proves release membership before deriving the configured public object key. Objects are not copied, renamed, or garbage-collected during publication.
 
 Viewer release-preview routes are read-only and pinned to an exact release UUID. Every public, asset, Teacher UI, Teacher solution, and native Teacher release request requires either a valid Builder session or a signed, short-lived `previewAuthorization` whose action/component/release/activity scope is checked server-side. Public and Teacher projections remain separate, and Teacher data is loaded only on demand rather than compiled into the Viewer. This preview authorization is distinct from production LMS authorization; LMS Teacher solutions still require the ordinary Teacher/admin role and package entitlement.
+
+Native readiness remains a hard preparation gate. If compilation reports `native_activity_not_ready` or another safe native readiness code, the Publication workspace renders **Publication blocked**, the stable activity ID, and the canonical issue list, with a route back to Activity Builder. It does not reduce issues to warnings, create a release, expose a Teacher document, or show only the raw server code.
 
 ## Rollout boundary
 

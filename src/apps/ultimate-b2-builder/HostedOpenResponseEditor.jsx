@@ -196,7 +196,7 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
       <button type="button" disabled={dirty || !sourceFiles.length || ["invalid", "preparing", "uploading", "finalizing"].includes(importState)} onClick={importSource}>
         {importState === "preparing" ? "Preparing secure upload…" : importState === "uploading" ? "Uploading source files…" : importState === "finalizing" ? "Validating and finalizing…" : "Upload and import publisher source"}
       </button>
-      {importState === "succeeded" ? <p className="b2-hosted-import-success" role="status">Import committed. The canonical Teacher Review Viewer has refreshed.</p> : null}
+      {importState === "succeeded" ? <p className="b2-hosted-import-success" role="status">Import committed. The saved draft is ready in Review.</p> : null}
     </section>
   </section>;
 }

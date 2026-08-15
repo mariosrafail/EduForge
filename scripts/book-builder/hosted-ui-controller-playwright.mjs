@@ -179,10 +179,16 @@ try {
   await editor.getByText("Revision 0", { exact: true }).waitFor();
   await editor.getByText("Editable runtime bindings").waitFor();
   assert.equal(await editor.getByText("Read-only content artwork - not part of Task 7", { exact: true }).count(), 1);
-  const frame = () => page.frameLocator('iframe[title="Canonical Viewer Teacher interface preview"]');
-  await frame().locator(".teacher-offline-library").waitFor();
-  const canonicalBackground = await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage);
+  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  const frame = () => page.frameLocator(".unified-builder-review-dialog iframe");
+  const initialFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
+  assert.equal(initialFrameUrl.searchParams.get("view"), "page");
+  assert.ok(initialFrameUrl.searchParams.get("pageId"));
+  await frame().locator(".teacher-fixed-stage-host").waitFor();
+  await page.getByRole("button", { name: "Close Review" }).click();
 
+  const expectedHash = createHash("sha256").update(hostedTeacherUiPngFixture.buffer).digest("hex");
   for (const [section, bindingId] of [["Shell / Background", "background.main"], ["Teacher Toolbar", "toolbar.mouse.normal"], ["Navigation / Window Controls", "navigation.home"]]) {
     await editor.getByRole("button", { name: section, exact: true }).click();
     const slot = editor.locator(`[data-binding-id="${bindingId}"]`);
@@ -190,17 +196,21 @@ try {
     await slot.getByText("Unsaved replacement", { exact: true }).waitFor();
   }
   assert.equal(saved, null, "validated candidates must remain unsaved");
-  assert.equal(await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage), canonicalBackground, "unsaved background reached Viewer");
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.getByText("Unsaved changes are not included in Review. Save them first.", { exact: true }).waitFor();
+  assert.equal((await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage)).includes(expectedHash), false, "unsaved background reached Viewer");
+  await page.getByRole("button", { name: "Close Review" }).click();
   await editor.getByRole("button", { name: "Save UI draft", exact: true }).click();
   await editor.getByText("Revision 1", { exact: true }).waitFor();
-  await frame().locator(".teacher-offline-library").waitFor();
-  const expectedHash = createHash("sha256").update(hostedTeacherUiPngFixture.buffer).digest("hex");
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await frame().locator(".teacher-fixed-stage-host").waitFor();
   await frame().locator(".teacher-fixed-stage-host").evaluate((node, hash) => new Promise((resolve, reject) => {
     const started = Date.now();
     const check = () => node.style.backgroundImage.includes(hash) ? resolve() : Date.now() - started > 15_000 ? reject(new Error("saved background did not reach Viewer")) : setTimeout(check, 50);
     check();
   }), expectedHash);
   assert.ok(requestedUiAssets.some((url) => url.includes(expectedHash)), "Viewer did not fetch the immutable saved UI asset");
+  await page.getByRole("button", { name: "Close Review" }).click();
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".b2-hosted-ui-editor").getByText("Revision 1", { exact: true }).waitFor();
@@ -229,7 +239,8 @@ try {
   assert.equal(Boolean(saved.document.assets["background.main"]), false, "canonical revert did not persist");
   assert.equal(Boolean(saved.document.assets["toolbar.mouse.normal"]), true, "unrelated toolbar override was lost");
   assert.equal(Boolean(saved.document.assets["navigation.home"]), true, "unrelated navigation override was lost");
-  await frame().locator(".teacher-offline-library").waitFor();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await frame().locator(".teacher-fixed-stage-host").waitFor();
   assert.equal((await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage)).includes(expectedHash), false, "reverted background remained in Viewer");
   process.stdout.write(`Task 7 hosted UI Controller browser acceptance passed at revision ${saved.revision} with ${overriddenBindings.length} runtime categories exercised.\n`);
 } finally {

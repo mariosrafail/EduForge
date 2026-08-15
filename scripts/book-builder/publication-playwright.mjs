@@ -19,6 +19,7 @@ let savedPrompt = "Draft version A";
 let sourceVersion = 1;
 let headRevision = 0;
 let activeReleaseId = null;
+let publicationFailure = null;
 const releases = [];
 const viewerReleaseRequests = [];
 const lifecycleState = {
@@ -92,6 +93,10 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return sendJson(response, 200, { authenticated: true, builderUser: { id: "task-9", full_name: "Task 9 Browser", role: "developer", status: "active" } });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return sendJson(response, 200, { token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
+  if (url.pathname === "/test/publication-block/open-response" && request.method === "POST") { publicationFailure = { error: "native_activity_not_ready", activityId, issues: ["Question 1 needs a model answer."] }; return sendJson(response, 200, { ok: true }); }
+  if (url.pathname === "/test/publication-block/image" && request.method === "POST") { publicationFailure = { error: "native_activity_not_ready", activityId: imageActivityId, issues: ["Image 1 needs alt text or must be marked decorative."] }; return sendJson(response, 200, { ok: true }); }
+  if (url.pathname === "/test/publication-block/clear" && request.method === "POST") { publicationFailure = null; return sendJson(response, 200, { ok: true }); }
+  if (url.pathname === publication && request.method === "GET" && publicationFailure) return sendJson(response, 409, publicationFailure);
   if (url.pathname === publication && request.method === "GET") return sendJson(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", compilerId: "ultimate-b2-students-book-v2", releaseSchemaVersion: "2.0", currentSourceSha256: sourceSha(), headRevision, published: activeReleaseId ? metadata(releases.find((release) => release.id === activeReleaseId)) : null, releases: [...releases].reverse().map(metadata) });
   if (url.pathname === `${publication}/prepare` && request.method === "POST") {
     const number = releases.length + 1; const release = { id: releaseIds[number - 1], number, sourceSha: sourceSha(), createdAt: `2026-08-14T10:0${number}:00Z`, ...projection(savedPrompt) }; releases.push(release);
@@ -159,11 +164,25 @@ try {
   await page.getByRole("heading", { name: "Publication", exact: true }).waitFor();
   await page.getByText("No release published yet", { exact: true }).waitFor();
   lifecycle("builder-publication-ready");
+  await page.request.post(`${origin}/test/publication-block/open-response`); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("heading", { name: "Publication blocked", exact: true }).waitFor(); await page.getByText(activityId, { exact: true }).waitFor(); await page.getByText("Question 1 needs a model answer.", { exact: true }).waitFor(); assert.equal(releases.length, 0);
+  await page.request.post(`${origin}/test/publication-block/image`); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByText(imageActivityId, { exact: true }).waitFor(); await page.getByText("Image 1 needs alt text or must be marked decorative.", { exact: true }).waitFor(); assert.equal(releases.length, 0);
+  await page.request.post(`${origin}/test/publication-block/clear`); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("heading", { name: "Publication", exact: true }).waitFor();
   await page.getByRole("button", { name: "Prepare Preview" }).click();
   await page.getByText("Release 1 · Current", { exact: true }).waitFor();
   lifecycle("preview-one-prepared");
-  const frameUrl = new URL(await page.locator('iframe[title="Immutable release 1 preview"]').getAttribute("src"));
+  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.getByRole("heading", { name: "Review · Release #1 · Immutable", exact: true }).waitFor();
+  await page.locator(".unified-builder-review-dialog iframe").waitFor();
+  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1);
+  const frameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
   assert.equal(frameUrl.searchParams.get("releaseId"), releaseIds[0]);
+  assert.equal(frameUrl.searchParams.get("view"), "page");
+  await page.getByRole("button", { name: "Saved Draft", exact: true }).click();
+  await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Release #1 · Immutable", exact: true }).click();
+  await page.getByRole("button", { name: "Close Review" }).click();
+  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 0);
 
   const viewer = observePage(await context.newPage(), "preview-viewer");
   const previewToken = encodeURIComponent(`v1.eA.${"a".repeat(43)}`);
@@ -193,11 +212,21 @@ try {
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByText("Release 1 · Stale", { exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Publish Preview" }).isDisabled(), true);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.getByText("Release #1 is immutable and older than the current saved draft.", { exact: true }).waitFor();
+  const staleFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
+  assert.equal(staleFrameUrl.searchParams.get("releaseId"), releaseIds[0]);
+  await page.getByRole("button", { name: "Close Review" }).click();
   const direct = await page.evaluate(async ({ publication, id }) => { const response = await fetch(`${publication}/publish`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ releaseId: id, expectedHeadRevision: 0, clientMutationId: crypto.randomUUID() }) }); return { status: response.status, body: await response.json() }; }, { publication, id: releaseIds[0] });
   assert.deepEqual(direct, { status: 409, body: { error: "stale_release_preview" } });
 
   await page.getByRole("button", { name: "Prepare Preview" }).click();
   await page.getByText("Release 2 · Current", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.getByRole("heading", { name: "Review · Release #2 · Immutable", exact: true }).waitFor();
+  const currentFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
+  assert.equal(currentFrameUrl.searchParams.get("releaseId"), releaseIds[1]);
+  await page.getByRole("button", { name: "Close Review" }).click();
   await page.getByRole("button", { name: "Publish Preview" }).click();
   await page.getByText("Release 2 is now published.", { exact: true }).waitFor();
   await page.getByText("Release 2", { exact: true }).first().waitFor();

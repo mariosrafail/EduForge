@@ -91,6 +91,8 @@ async function verifyBuilderMutationSources() {
     "src/apps/book-builder/hosted/HostedViewerPreview.jsx",
     "src/apps/book-builder/hosted/hostedViewerPreviewUrl.js",
     "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
+    "src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx",
+    "src/apps/ultimate-b2-builder/builderReviewModel.js",
     "src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx",
   ];
   for (const sourcePath of hostedSources) {

@@ -5,16 +5,17 @@ import { nativeActivityKindLabels } from "../../data/native-activities/nativeAct
 import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/openResponseActivityRegistry.js";
 import { getBuilderContent } from "../book-builder/hosted/builderContentApi.js";
 import { createNativeActivity } from "../book-builder/hosted/builderNativeActivityApi.js";
-import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
 import { NativeActivityFoundationEditor } from "../book-builder/hosted/NativeActivityFoundationEditor.jsx";
 import { HostedOpenResponseEditor } from "./HostedOpenResponseEditor.jsx";
 import { HostedPublicationWorkspace } from "./HostedPublicationWorkspace.jsx";
 import { HostedTeacherUiController } from "./HostedTeacherUiController.jsx";
 import { HostedUltimateB2HotspotBuilder } from "./HostedUltimateB2HotspotBuilder.jsx";
+import { UnifiedBuilderReview, useBuilderReview } from "./UnifiedBuilderReview.jsx";
 import "./ultimateB2HotspotBuilder.css";
 import "./hostedUltimateB2BuilderReview.css";
 
 function ActivityReview({ nativeActivities }) {
+  const { registerToolContext } = useBuilderReview();
   const nativePlacements = nativeActivities?.placements || [];
   const nativeKinds = nativeActivities?.kinds || [];
   const firstId = catalog.units?.[0]?.lessons?.[0]?.exercises?.[0]?.stableActivityId || "";
@@ -27,8 +28,19 @@ function ActivityReview({ nativeActivities }) {
   const groups = useMemo(() => (catalog.units || []).map((unit) => ({ ...unit, lessons: (unit.lessons || []).filter((lesson) => lesson.exercises?.length) })), []);
   const selected = groups.flatMap((unit) => unit.lessons).flatMap((lesson) => lesson.exercises).find((exercise) => exercise.stableActivityId === selectedId);
   const nativeSelected = nativeIndex.activities.find((activity) => activity.activityId === selectedId) || null;
+  const nativeSelectedPlacement = nativeSelected ? nativePlacements.find((page) => page.pageId === nativeSelected.placement.pageId) : null;
   const supported = !nativeSelected && isUltimateB2ConfigurableOpenResponse(selectedId);
   const placementFor = (pageId) => nativePlacements.find((page) => page.pageId === pageId);
+  useEffect(() => {
+    registerToolContext("activities", {
+      view: "activity",
+      activityId: selectedId,
+      ...(nativeSelectedPlacement ? { pageId: nativeSelectedPlacement.pageId, unitNumber: nativeSelectedPlacement.unitNumber } : {}),
+      dirty,
+      refreshKey: viewerRefresh,
+      release: null,
+    });
+  }, [dirty, nativeSelectedPlacement, registerToolContext, selectedId, viewerRefresh]);
   const loadNativeIndex = async (signal) => {
     const value = await getBuilderContent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "native-activity-index", documentKey: "" }, { signal });
     setNativeIndex(value.document);
@@ -61,8 +73,7 @@ function ActivityReview({ nativeActivities }) {
       <aside className="activity-builder-sidebar" aria-label="Activity Builder book navigation">{nativeIndex.activities.length ? <section className="native-activity-navigation"><h2>Native drafts</h2>{nativeIndex.activities.map((activity) => { const placement = placementFor(activity.placement.pageId); return <button type="button" key={activity.activityId} aria-current={selectedId === activity.activityId ? "true" : undefined} onClick={() => selectActivity(activity.activityId)}>{activity.activityId}<small>{nativeActivityKindLabels[activity.kind]} · {placement?.pageLabel || activity.placement.pageId}</small></button>; })}</section> : null}{groups.map((unit) => <section key={unit.id}><h2>{unit.title}</h2>{unit.lessons.map((lesson) => <div key={lesson.id}><h3>{lesson.title} - {lesson.pageLabel}</h3>{lesson.exercises.map((exercise) => <button type="button" key={exercise.stableActivityId} aria-current={selectedId === exercise.stableActivityId ? "true" : undefined} onClick={() => selectActivity(exercise.stableActivityId)}>{exercise.title}<small>{isUltimateB2ConfigurableOpenResponse(exercise.stableActivityId) ? "Open Response · Editable" : "Read-only"}</small></button>)}</div>)}</section>)}</aside>
       <div className="b2-hosted-activity-preview">
         <div className="b2-hosted-preview-identity"><strong>{nativeSelected ? nativeActivityKindLabels[nativeSelected.kind] : selected?.title}</strong><code>{selectedId}</code></div>
-        {nativeSelected ? <NativeActivityFoundationEditor key={selectedId} bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={selectedId} kind={nativeSelected.kind} placementLabel={placementFor(nativeSelected.placement.pageId)?.pageLabel || nativeSelected.placement.pageId} onDirtyChange={setDirty} /> : supported ? <HostedOpenResponseEditor key={selectedId} activityId={selectedId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : <section className="b2-hosted-unsupported-activity" role="status"><strong>Read-only canonical activity</strong><p>This activity family has no hosted mutation capability. It remains available for Viewer review only.</p></section>}
-        {!nativeSelected ? <HostedViewerPreview intent={{ view: "activity", activityId: selectedId }} refreshKey={viewerRefresh} title={`Canonical Viewer activity preview: ${selected?.title || selectedId}`} description="This frame is the deployed Viewer runtime and opens the selected stable activity id." /> : null}
+        {nativeSelected ? <NativeActivityFoundationEditor key={selectedId} bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={selectedId} kind={nativeSelected.kind} placementLabel={placementFor(nativeSelected.placement.pageId)?.pageLabel || nativeSelected.placement.pageId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : supported ? <HostedOpenResponseEditor key={selectedId} activityId={selectedId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : <section className="b2-hosted-unsupported-activity" role="status"><strong>Read-only canonical activity</strong><p>This activity family has no hosted mutation capability. Use Review for the deployed Viewer runtime.</p></section>}
       </div>
     </div>
   </main>;
@@ -70,10 +81,12 @@ function ActivityReview({ nativeActivities }) {
 
 export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots", nativeActivities = null }) {
   return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter="ultimate-b2-students-book">
-    {tool === "hotspots" ? <HostedUltimateB2HotspotBuilder /> : null}
-    {tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} /> : null}
-    {tool === "ui" ? <HostedTeacherUiController /> : null}
-    {tool === "publication" ? <HostedPublicationWorkspace /> : null}
+    <UnifiedBuilderReview tool={tool} pages={nativeActivities?.placements || []}>
+      {tool === "hotspots" ? <HostedUltimateB2HotspotBuilder /> : null}
+      {tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} /> : null}
+      {tool === "ui" ? <HostedTeacherUiController /> : null}
+      {tool === "publication" ? <HostedPublicationWorkspace /> : null}
+    </UnifiedBuilderReview>
   </div>;
 }
 

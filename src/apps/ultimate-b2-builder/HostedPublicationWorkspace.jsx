@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
+import { hostedBuilderHash } from "../book-builder/hosted/hostedBuilderRouter.js";
+import { publicationReadinessPresentation } from "./builderReviewModel.js";
+import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
 const endpoint = "/builder/api/publication/books/ultimate-b2/components/ultimate-b2-students-book";
 
@@ -13,27 +15,61 @@ async function request(path = "", options = {}) {
 const short = (value) => value ? String(value).slice(0, 12) : "—";
 const date = (value) => value ? new Date(value).toLocaleString() : "—";
 
+function PublicationBlocked({ failure }) {
+  if (!failure) return null;
+  return <section className="publication-blocked" role="alert">
+    <span>Saved content is incomplete</span>
+    <h2>{failure.title}</h2>
+    {failure.activityId ? <p>Activity: <code>{failure.activityId}</code></p> : null}
+    <h3>Issues</h3>
+    <ul>{failure.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+    <a className="hosted-builder-action" href={hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "activities" })}>Open in Activity Builder</a>
+  </section>;
+}
+
 export function HostedPublicationWorkspace() {
+  const { registerToolContext } = useBuilderReview();
   const [status, setStatus] = useState(null);
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [publicationFailure, setPublicationFailure] = useState(null);
   const refresh = useCallback(async () => {
-    const next = await request();
-    setStatus(next);
-    setSelectedId((current) => current && next.releases.some((release) => release.id === current) ? current : next.releases[0]?.id || "");
+    try {
+      const next = await request();
+      setStatus(next); setPublicationFailure(null);
+      setSelectedId((current) => current && next.releases.some((release) => release.id === current) ? current : next.releases[0]?.id || "");
+    } catch (error) {
+      const failure = publicationReadinessPresentation(error);
+      setPublicationFailure(failure);
+      if (!failure) setMessage(error.message);
+      throw error;
+    }
   }, []);
-  useEffect(() => { refresh().catch((error) => setMessage(error.message)); }, [refresh]);
+  useEffect(() => { refresh().catch(() => {}); }, [refresh]);
   const selected = useMemo(() => status?.releases.find((release) => release.id === selectedId) || null, [selectedId, status]);
+  useEffect(() => {
+    registerToolContext("publication", {
+      view: "page",
+      dirty: false,
+      refreshKey: status?.currentSourceSha256 || 0,
+      release: selected ? {
+        id: selected.id,
+        number: selected.number,
+        state: selected.state,
+        sourceSnapshotSha256: selected.sourceSnapshotSha256,
+      } : null,
+    });
+  }, [registerToolContext, selected, status?.currentSourceSha256]);
   const prepare = async () => {
-    setBusy("prepare"); setMessage("");
+    setBusy("prepare"); setMessage(""); setPublicationFailure(null);
     try {
       const result = await request("/prepare", { method: "POST", body: JSON.stringify({ clientMutationId: crypto.randomUUID(), releaseNote: "" }) });
       setMessage(`Preview release ${result.releaseNumber} prepared from saved Builder state.`);
       await refresh(); setSelectedId(result.releaseId);
     } catch (error) {
       if (error.code === "release_asset_unavailable") setMessage("A referenced immutable asset could not be verified. No release was created.");
-      else if (error.code?.startsWith("native_activity_")) setMessage(`${error.payload?.activityId || "A referenced native activity"}: ${(error.payload?.issues || ["The activity is not ready to publish."]).join(" ")}`);
+      else if (error.code?.startsWith("native_activity_")) setPublicationFailure(publicationReadinessPresentation(error));
       else if (error.code === "publication_schema_unavailable") setMessage("Publication v2 is waiting for migration 039. No release was created.");
       else setMessage(error.message);
     }
@@ -49,7 +85,7 @@ export function HostedPublicationWorkspace() {
     } catch (error) { setMessage(error.code === "stale_release_preview" ? "This preview is stale. Prepare and review a new preview before publishing." : error.message); await refresh().catch(() => {}); }
     finally { setBusy(""); }
   };
-  if (!status) return <main className="publication-workspace"><p role="status">{message || "Loading publication state…"}</p></main>;
+  if (!status) return <main className="publication-workspace">{publicationFailure ? <PublicationBlocked failure={publicationFailure} /> : <p role="status">{message || "Loading publication state…"}</p>}</main>;
   return <main className="publication-workspace">
     <header><span>Ultimate B2 · Students Book</span><h1>Publication</h1><p>Only successfully saved Builder revisions are included. Preview releases are immutable.</p></header>
     <div className="publication-summary">
@@ -58,7 +94,7 @@ export function HostedPublicationWorkspace() {
       <section><h2>Preview release</h2>{selected ? <><strong>Release {selected.number} · {selected.state === "current" ? "Current" : "Stale"}</strong><span>{selected.compilerId} · schema {selected.releaseSchemaVersion}</span><span>{date(selected.createdAt)}</span><code>{short(selected.releaseSha256)}</code></> : <strong>No preview prepared</strong>}</section>
     </div>
     <div className="publication-actions"><button type="button" disabled={Boolean(busy)} onClick={prepare}>{busy === "prepare" ? "Preparing…" : "Prepare Preview"}</button><button type="button" disabled={!selected || selected.state !== "current" || selected.compilerId !== status.compilerId || Boolean(busy)} onClick={publish}>{busy === "publish" ? "Publishing…" : "Publish Preview"}</button>{message ? <p role="status">{message}</p> : null}</div>
-    {selected ? <HostedViewerPreview intent={{ view: "library", releaseId: selected.id }} refreshKey={selected.id} title={`Immutable release ${selected.number} preview`} description="Pinned to this release ID; later draft saves do not alter it." /> : null}
+    <PublicationBlocked failure={publicationFailure} />
     <section className="publication-history"><h2>Recent releases</h2><table><thead><tr><th>Release</th><th>Compiler</th><th>Fingerprint</th><th>Created</th><th>Status</th></tr></thead><tbody>{status.releases.map((release) => <tr key={release.id}><td><button type="button" onClick={() => setSelectedId(release.id)}>#{release.number}</button></td><td>{release.compilerId} / {release.releaseSchemaVersion}</td><td><code>{short(release.releaseSha256)}</code></td><td>{date(release.createdAt)}</td><td>{release.current ? "Published" : release.state === "current" ? "Preview current" : "Stale"}</td></tr>)}</tbody></table></section>
   </main>;
 }

@@ -4,7 +4,6 @@ import { RefreshCw, Save, Scan, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import catalog from "../../../android-content-packs/ultimate-b2-students-book/catalog.json";
 import { EditableHotspotLayer } from "../../components/lms/books/BookPageImagePanel.jsx";
 import { ultimateB2StudentsBookPageUnits } from "../../data/ultimate-b2/ultimateB2PageUnits.js";
-import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
 import {
   BuilderContentApiError,
   getBuilderContent,
@@ -12,6 +11,7 @@ import {
   saveBuilderContent,
 } from "../book-builder/hosted/builderContentApi.js";
 import { getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
+import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
 const contentIdentity = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -49,6 +49,7 @@ function isTextEditingTarget(target) {
 }
 
 export function HostedUltimateB2HotspotBuilder() {
+  const { registerToolContext, rememberPage } = useBuilderReview();
   const [manifest, setManifest] = useState(null);
   const [revision, setRevision] = useState(0);
   const [source, setSource] = useState("repository");
@@ -68,6 +69,18 @@ export function HostedUltimateB2HotspotBuilder() {
   const [nativeActivities, setNativeActivities] = useState([]);
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
+  useEffect(() => {
+    if (!page) return;
+    rememberPage(page.id);
+    registerToolContext("hotspots", {
+      view: "page",
+      pageId: page.id,
+      unitNumber: page.unitNumber,
+      dirty,
+      refreshKey: viewerRefreshKey,
+      release: null,
+    });
+  }, [dirty, page, registerToolContext, rememberPage, viewerRefreshKey]);
   const activities = useMemo(() => [...legacyActivities, ...nativeActivities.map((activity) => {
     const activityPage = pageRows.find((row) => row.id === activity.placement.pageId);
     return {
@@ -257,14 +270,6 @@ export function HostedUltimateB2HotspotBuilder() {
           <button className="builder-delete" type="button" onClick={deleteSelectedHotspot}><Trash2 size={17} /> Delete hotspot</button><small>Delete and Backspace also remove the selected hotspot when you are not typing.</small>
         </>}
       </aside>
-    </section>
-    <section className="b2-hosted-hotspot-viewer-preview">
-      <HostedViewerPreview
-        intent={{ view: "page", unitNumber: page.unitNumber, pageId: page.id }}
-        refreshKey={viewerRefreshKey}
-        title={`Canonical Viewer preview: ${pageLabel(page)}`}
-        description="Viewer preview shows the last saved hotspot revision. Unsaved Builder edits remain only in the authoring canvas until Save succeeds."
-      />
     </section>
   </main>;
 }
