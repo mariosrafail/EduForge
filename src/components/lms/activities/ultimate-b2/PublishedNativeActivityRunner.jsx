@@ -31,4 +31,3 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     {entry.kind === "open-response" && teacherMode && teacherState.document ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} /> : null}
   </article>;
 }
-

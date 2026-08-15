@@ -55,6 +55,7 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "smoke", full_name: "Builder Smoke", role: "developer", status: "active" } });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/native-activity-index" && request.method === "GET") return json(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "native-activity-index", documentKey: "default", schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: [] } });
+  if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", activities: [] });
   if (url.pathname === `/builder/api/open-response-import/status/${activityId}`) return json(response, 200, { activityId, revision: 0, fingerprint: null, updatedAt: null });
   if (url.pathname === `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/open-response/${activityId}`) {
     if (request.method === "GET") return json(response, 200, contentEnvelope(saved || canonical, saved ? "database" : "repository"));

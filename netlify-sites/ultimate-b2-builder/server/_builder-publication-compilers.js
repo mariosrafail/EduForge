@@ -88,4 +88,3 @@ export function verifyImmutableComponentRelease(release) {
 }
 
 export { registry as publicationCompilerRegistry };
-

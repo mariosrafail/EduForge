@@ -57,4 +57,3 @@ export async function loadPublishedNativeTeacherDocument(publication, activityId
   if (payload.releaseId !== publication.releaseId || payload.activityId !== activityId) throw new Error("Prepared Teacher release identity mismatch.");
   return payload.document;
 }
-

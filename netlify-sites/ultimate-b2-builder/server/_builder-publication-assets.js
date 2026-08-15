@@ -18,4 +18,3 @@ export async function materializeNativeReleaseAssets(storage, { bookSlug, compon
     }
   }
 }
-

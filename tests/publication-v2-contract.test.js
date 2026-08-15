@@ -101,4 +101,3 @@ test("referenced native publication readiness rejects incomplete Open Response a
   }
   assert.equal(compilePublicationV2Fixture().publicProjection.nativeActivities[publicationV2Fixture.imageId].document.parts[0].interaction.images.length, 2);
 });
-

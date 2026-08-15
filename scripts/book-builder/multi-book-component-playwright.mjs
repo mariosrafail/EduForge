@@ -37,6 +37,10 @@ const server = createServer(async (request, response) => {
     const body = JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "native-activity-index", documentKey: "default", schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: [] } });
     response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
   }
+  if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" && request.method === "GET") {
+    const body = JSON.stringify({ schemaVersion: "1.0", activities: [] });
+    response.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) }); response.end(body); return;
+  }
   await staticFile(builderRoot, url.pathname, response);
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

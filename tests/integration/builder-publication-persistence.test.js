@@ -121,7 +121,7 @@ test("migration 039 enforces exact v2 native/legacy freshness and serializes nat
     index: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-index"),
     public: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-public", publicationV2Fixture.openResponseId),
     teacher: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-teacher", publicationV2Fixture.openResponseId),
-    legacy: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "open-response", "ultimate-b2-sb-u1-p5-o2"),
+    legacy: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "open-response", "ultimate-b2-sb-u1-p1-o1"),
   };
   const revisions = { hotspots: 0, index: 0, public: 0, teacher: 0, legacy: 0 };
   const save = async (key, document) => {

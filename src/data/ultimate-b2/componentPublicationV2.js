@@ -170,4 +170,3 @@ export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSe
   if (publicProjection && Object.keys(nativeActivities).sort().join("\0") !== Object.keys(publicProjection.nativeActivities).sort().join("\0")) throw new Error("Teacher release v2 native topology is incomplete.");
   return { schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION, bookSlug: value.bookSlug, componentSlug: value.componentSlug, solutions: legacy.solutions, ui: legacy.ui, nativeActivities };
 }
-

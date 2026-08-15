@@ -37,4 +37,3 @@ test("release asset materialization fails closed on source checksum or raster di
   };
   await assert.rejects(materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor, row }] }), /release_asset_unavailable/);
 });
-

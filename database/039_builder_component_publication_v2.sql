@@ -80,4 +80,3 @@ begin
   return true;
 end;
 $$;
-

@@ -3,10 +3,12 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
 import { activeBuildProfile } from "../../config/buildProfiles.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
+import { PublishedNativeActivityRunner } from "../../components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";
 import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOverlay.jsx";
 import multipleChoiceAuthoring from "virtual:ultimate-b2-multiple-choice-presentation";
 import { useHostedOpenResponseDraft, useHostedOpenResponseImport } from "virtual:ultimate-b2-hosted-open-response-drafts";
+import { usePublishedComponentRelease } from "virtual:component-publication";
 
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
@@ -21,6 +23,8 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
   const hostedOpenResponseDraft = useHostedOpenResponseDraft(activityId);
   const hostedOpenResponseImport = useHostedOpenResponseImport(activityId);
+  const publication = usePublishedComponentRelease();
+  const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const activityMode = activeBuildProfile.teacherPresentation
     ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
@@ -112,7 +116,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}
@@ -125,7 +129,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
             onStateChange: onActivityPresentationStateChange,
             multipleChoiceAuthoring: activeBuildProfile.teacherPresentation && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
           }}
-        />
+        />}
       </div>
       {videoOpen && <TeacherOfflineActivityVideoOverlay activityId={activityId} onClose={onCloseVideo} />}
     </div>
