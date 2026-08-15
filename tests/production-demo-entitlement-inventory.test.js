@@ -172,7 +172,7 @@ test("successful inventory returns aggregate-only output and enforces transactio
     matchingEntitlementCount: 2,
     classification: DEMO_ENTITLEMENT_CLASSIFICATIONS.MATCHING_ENTITLEMENTS_PRESENT,
     databaseFingerprintPrefix: productionEnvironment().PRODUCTION_DATABASE_FINGERPRINT.slice(0, 12),
-    manifestFingerprint: "2ddc4c41206fa83324d617daa66ce9b1a4d57718dfc58e5a2c7de190eed83be5",
+    manifestFingerprint: "5b4d5d784c4dab7043bd2b9b31eccbf4bbd8afaed2286110a60b8e0a27548633",
   });
   assert.equal(harness.statements[0], "begin read only");
   assert.ok(harness.statements.includes("set local statement_timeout = '15s'"));
