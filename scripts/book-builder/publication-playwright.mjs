@@ -20,6 +20,63 @@ let sourceVersion = 1;
 let headRevision = 0;
 let activeReleaseId = null;
 const releases = [];
+const lifecycleState = {
+  cleanupStarted: false,
+  browserDisconnected: false,
+  contextClosed: false,
+  pages: new Map(),
+};
+
+function lifecyclePhase() {
+  return lifecycleState.cleanupStarted ? "expected-cleanup" : "unexpected-runtime";
+}
+
+function safeDiagnosticText(value) {
+  return String(value ?? "")
+    .replaceAll(publicationV2Fixture.teacherSentinel, "[teacher-private-redacted]")
+    .replace(/v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[token]")
+    .replace(/https?:\/\/\S+/g, "[url]")
+    .replace(/[A-Za-z]:\\[^\s)]+/g, "[path]")
+    .replace(/\/(?:home|Users|tmp)\/[^\s)]+/g, "[path]")
+    .replace(/[\r\n\t]+/g, " ")
+    .slice(0, 240);
+}
+
+function lifecycle(event, fields = {}) {
+  const details = Object.entries(fields)
+    .map(([key, value]) => `${key}=${safeDiagnosticText(value)}`)
+    .join(" ");
+  process.stderr.write(`[publication-lifecycle] ${new Date().toISOString()} ${event}${details ? ` ${details}` : ""}\n`);
+}
+
+function observePage(page, label) {
+  const state = { closed: false, crashed: false };
+  lifecycleState.pages.set(label, state);
+  page.on("close", () => {
+    state.closed = true;
+    lifecycle("page-close", { page: label, phase: lifecyclePhase() });
+  });
+  page.on("crash", () => {
+    state.crashed = true;
+    lifecycle("page-crash", { page: label, phase: lifecyclePhase() });
+  });
+  page.on("pageerror", (error) => lifecycle("page-error", {
+    page: label,
+    phase: lifecyclePhase(),
+    name: error?.name || "Error",
+    message: error?.message || "unknown",
+  }));
+  lifecycle("page-created", { page: label });
+  return page;
+}
+
+process.on("uncaughtExceptionMonitor", (error, origin) => lifecycle("process-uncaught-exception", {
+  origin,
+  name: error?.name || "Error",
+  message: error?.message || "unknown",
+}));
+process.on("exit", (code) => lifecycle("process-exit", { code, phase: lifecyclePhase() }));
+lifecycle("process-start", { platform: process.platform, arch: process.arch, node: process.version });
 
 function projection(prompt) {
   const compiled = compilePublicationV2Fixture({ prompt });
@@ -47,13 +104,32 @@ const server = createServer(async (request, response) => {
   }
   return staticResponse(builderRoot, url.pathname, response, "index.html");
 });
+server.on("close", () => lifecycle("server-close", { phase: lifecyclePhase() }));
+server.on("error", (error) => {
+  lifecycle("server-error", { phase: lifecyclePhase(), code: error?.code || "unknown", message: error?.message || "unknown" });
+  throw error;
+});
+lifecycle("server-listen-start");
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
+lifecycle("server-ready");
 
 let browser;
+let context;
 try {
+  lifecycle("browser-launch-start");
   browser = await chromium.launch(localPlaywrightLaunchOptions());
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  lifecycle("browser-launched", { version: browser.version() });
+  browser.on("disconnected", () => {
+    lifecycleState.browserDisconnected = true;
+    lifecycle("browser-disconnected", { phase: lifecyclePhase() });
+  });
+  context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  lifecycle("context-created");
+  context.on("close", () => {
+    lifecycleState.contextClosed = true;
+    lifecycle("context-close", { phase: lifecyclePhase() });
+  });
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const url = new URL(route.request().url());
     const match = url.pathname.match(/^\/preview\/releases\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|assets)(?:\/(.*))?$/);
@@ -74,28 +150,40 @@ try {
     const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname).replace(/^\/+/, ""); let file = path.resolve(viewerRoot, relative); let details = file.startsWith(`${viewerRoot}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) file = path.join(viewerRoot, "index.html");
     return route.fulfill({ status: 200, contentType: mime[path.extname(file).toLowerCase()] || "application/octet-stream", body: await readFile(file) });
   });
-  const page = await context.newPage(); page.setDefaultTimeout(60_000); page.on("dialog", (dialog) => dialog.accept());
+  const page = observePage(await context.newPage(), "builder"); page.setDefaultTimeout(60_000); page.on("dialog", (dialog) => dialog.accept());
+  lifecycle("builder-navigation-start");
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/publication`, { waitUntil: "domcontentloaded" });
+  lifecycle("builder-navigation-complete");
   await page.getByRole("heading", { name: "Publication", exact: true }).waitFor();
   await page.getByText("No release published yet", { exact: true }).waitFor();
+  lifecycle("builder-publication-ready");
   await page.getByRole("button", { name: "Prepare Preview" }).click();
   await page.getByText("Release 1 · Current", { exact: true }).waitFor();
+  lifecycle("preview-one-prepared");
   const frameUrl = new URL(await page.locator('iframe[title="Immutable release 1 preview"]').getAttribute("src"));
   assert.equal(frameUrl.searchParams.get("releaseId"), releaseIds[0]);
 
-  const viewer = await context.newPage();
+  const viewer = observePage(await context.newPage(), "preview-viewer");
   const previewToken = encodeURIComponent(`v1.eA.${"a".repeat(43)}`);
   const pagePreviewUrl = (releaseId) => `https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseId}&view=page&unitNumber=1&pageId=${publicationV2Fixture.pageId}&previewAuthorization=${previewToken}`;
+  lifecycle("preview-viewer-navigation-start");
   await viewer.goto(pagePreviewUrl(releaseIds[0]), { waitUntil: "domcontentloaded" });
+  lifecycle("preview-viewer-navigation-complete");
+  lifecycle("open-response-click-start", { attempt: 1 });
   await viewer.getByRole("button", { name: "Native Open Response" }).click();
+  lifecycle("open-response-click-complete", { attempt: 1 });
   await viewer.getByText("Draft version A", { exact: true }).waitFor();
   await viewer.getByRole("button", { name: /Reveal model answer/ }).waitFor();
   assert.equal(await viewer.getByText(publicationV2Fixture.teacherSentinel, { exact: true }).count(), 0);
   await viewer.getByRole("button", { name: /Reveal model answer/ }).click();
   await viewer.getByText(publicationV2Fixture.teacherSentinel, { exact: true }).waitFor();
   savedPrompt = "Draft version B"; sourceVersion = 2;
+  lifecycle("preview-viewer-reload-start");
   await viewer.reload({ waitUntil: "domcontentloaded" });
+  lifecycle("preview-viewer-reload-complete");
+  lifecycle("open-response-click-start", { attempt: 2 });
   await viewer.getByRole("button", { name: "Native Open Response" }).click();
+  lifecycle("open-response-click-complete", { attempt: 2 });
   await viewer.getByText("Draft version A", { exact: true }).waitFor();
 
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -109,9 +197,13 @@ try {
   await page.getByRole("button", { name: "Publish Preview" }).click();
   await page.getByText("Release 2 is now published.", { exact: true }).waitFor();
   await page.getByText("Release 2", { exact: true }).first().waitFor();
-  const publishedViewer = await context.newPage();
+  const publishedViewer = observePage(await context.newPage(), "published-viewer");
+  lifecycle("published-viewer-navigation-start");
   await publishedViewer.goto(pagePreviewUrl(releaseIds[1]), { waitUntil: "domcontentloaded" });
+  lifecycle("published-viewer-navigation-complete");
+  lifecycle("image-composition-click-start");
   await publishedViewer.getByRole("button", { name: "Native Image Composition" }).click();
+  lifecycle("image-composition-click-complete");
   await publishedViewer.getByRole("heading", { name: "Native Image Composition", exact: true }).waitFor();
   assert.equal(await publishedViewer.locator(".native-image-surface img").count(), 2);
   assert.deepEqual(await publishedViewer.locator(".native-image-surface img").evaluateAll((images) => images.map((image) => image.style.objectFit)), ["contain", "cover"]);
@@ -120,8 +212,26 @@ try {
   assert.equal(releases[1].publicProjection.nativeActivities[activityId].document.parts[0].interaction.questions[0].prompt, "Draft version B");
   assert.doesNotMatch(JSON.stringify(releases[1].publicProjection), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.equal(releases[1].publicProjection.nativeActivities[imageActivityId].document.parts[0].interaction.images.length, 2);
+  lifecycle("acceptance-complete");
   process.stdout.write("Phase 5 native Open Response/Image publication, immutable preview, stale block, exact publish, and private Teacher reveal browser acceptance passed.\n");
+} catch (error) {
+  lifecycle("test-error", {
+    name: error?.name || "Error",
+    message: error?.message || "unknown",
+    browserConnected: browser?.isConnected() ?? false,
+    browserDisconnected: lifecycleState.browserDisconnected,
+    contextClosed: lifecycleState.contextClosed,
+    pages: [...lifecycleState.pages.entries()].map(([label, state]) => `${label}:${state.crashed ? "crashed" : state.closed ? "closed" : "open"}`).join(","),
+  });
+  throw error;
 } finally {
+  lifecycleState.cleanupStarted = true;
+  lifecycle("cleanup-begin");
+  lifecycle("browser-close-start");
   await browser?.close();
+  lifecycle("browser-close-complete");
+  lifecycle("server-close-start");
   await new Promise((resolve) => server.close(resolve));
+  lifecycle("server-close-complete");
+  lifecycle("cleanup-complete");
 }
