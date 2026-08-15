@@ -14,3 +14,11 @@ test("native Teacher reveal is an explicit wrapper around the public renderer", 
   assert.match(source, /autoFitNativeOpenResponseAnswer/);
   assert.doesNotMatch(source, /getBoundingClientRect|measureText|canvas/);
 });
+
+test("interactive Student preview is public-only local state with no persistence dependency", async () => {
+  const source = await readFile(new URL("../src/components/native-open-response/NativeOpenResponseStudentSurface.jsx", import.meta.url), "utf8");
+  assert.match(source, /useState/);
+  assert.match(source, /NativeOpenResponseSurface/);
+  assert.match(source, /<textarea/);
+  assert.doesNotMatch(source, /Teacher|teacherDocument|modelAnswers|saveNativeActivityPair|getBuilderContent|fetch\(/);
+});

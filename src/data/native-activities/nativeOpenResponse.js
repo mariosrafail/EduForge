@@ -143,12 +143,14 @@ function question(input, index, logicalSurface) {
 
 function artwork(input, index, logicalSurface, assetSlots) {
   const label = `Native Open Response artwork[${index}]`;
-  exactKeys(input, ["id", "assetSlot", "area", "order", "altText", "decorative", "fit"], label);
+  const legacy = !("locked" in object(input, label));
+  exactKeys(input, legacy ? ["id", "assetSlot", "area", "order", "altText", "decorative", "fit"] : ["id", "assetSlot", "area", "order", "altText", "decorative", "fit", "locked"], label);
   if (!isNativeChildId(input.id, "art")) throw new Error(`${label}.id is invalid.`);
   if (!assetSlots.has(input.assetSlot)) throw new Error(`${label}.assetSlot does not reference a managed asset.`);
   if (!Number.isSafeInteger(input.order) || input.order !== index) throw new Error(`${label}.order must match deterministic array order.`);
   if (!["contain", "cover"].includes(input.fit)) throw new Error(`${label}.fit is invalid.`);
   if (typeof input.decorative !== "boolean") throw new Error(`${label}.decorative is invalid.`);
+  if (!legacy && typeof input.locked !== "boolean") throw new Error(`${label}.locked is invalid.`);
   return {
     id: input.id,
     assetSlot: input.assetSlot,
@@ -157,6 +159,7 @@ function artwork(input, index, logicalSurface, assetSlots) {
     altText: text(input.altText, `${label}.altText`, NATIVE_OPEN_RESPONSE_LIMITS.altTextLength),
     decorative: input.decorative,
     fit: input.fit,
+    locked: legacy ? false : input.locked,
   };
 }
 

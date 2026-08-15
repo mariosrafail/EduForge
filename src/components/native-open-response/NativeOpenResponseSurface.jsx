@@ -24,7 +24,8 @@ export function NativeOpenResponseSurface({ document, assetUrl = () => "", onSel
   return <div className={`native-or-surface ${className}`.trim()} style={{ aspectRatio: `${surface.width} / ${surface.height}` }} data-surface-width={surface.width} data-surface-height={surface.height}>
     {interaction.artwork.map((item) => {
       const reference = assets.get(item.assetSlot);
-      return <button key={item.id} type="button" className={`native-or-artwork native-or-selectable ${selected?.type === "artwork" && selected.id === item.id ? "is-selected" : ""}`} style={{ ...logicalAreaStyle(item.area, surface), zIndex: item.order + 1 }} aria-label={item.decorative ? "Decorative artwork" : item.altText || "Artwork"} onClick={() => onSelect?.({ type: "artwork", id: item.id })} disabled={!onSelect}>
+      const authoringLocked = Boolean(onSelect && item.locked);
+      return <button key={item.id} type="button" className={`native-or-artwork native-or-selectable ${selected?.type === "artwork" && selected.id === item.id ? "is-selected" : ""}`} style={{ ...logicalAreaStyle(item.area, surface), zIndex: item.order + 1, pointerEvents: authoringLocked ? "none" : undefined }} aria-label={`${item.decorative ? "Decorative artwork" : item.altText || "Artwork"}${authoringLocked ? " (locked)" : ""}`} data-locked={authoringLocked || undefined} onClick={() => onSelect?.({ type: "artwork", id: item.id })} disabled={!onSelect}>
         {reference ? <img src={assetUrl(reference.assetId)} alt={item.decorative ? "" : item.altText} style={{ objectFit: item.fit }} /> : null}
       </button>;
     })}

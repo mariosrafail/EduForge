@@ -66,9 +66,12 @@ test("artwork must map one-to-one to managed activity artwork slots", () => {
   const { publicDocument } = pair([q1]);
   publicDocument.assets = [asset];
   publicDocument.parts[0].interaction.artwork = [{ id: art1, assetSlot: asset.slot, area: { x: 10, y: 10, width: 200, height: 100 }, order: 0, altText: "Diagram", decorative: false, fit: "contain" }];
-  assert.doesNotThrow(() => kind.normalizePublic(publicDocument));
+  assert.equal(kind.normalizePublic(publicDocument).parts[0].interaction.artwork[0].locked, false);
+  publicDocument.parts[0].interaction.artwork[0].locked = true;
+  assert.equal(kind.normalizePublic(publicDocument).parts[0].interaction.artwork[0].locked, true);
   for (const mutate of [
     (value) => { value.parts[0].interaction.artwork[0].id = "art-1"; },
+    (value) => { value.parts[0].interaction.artwork[0].locked = "yes"; },
     (value) => { value.parts[0].interaction.artwork[0].assetSlot = "missing"; },
     (value) => { value.assets[0].role = "other_role"; },
     (value) => { value.parts[0].interaction.artwork.push(structuredClone(value.parts[0].interaction.artwork[0])); },
