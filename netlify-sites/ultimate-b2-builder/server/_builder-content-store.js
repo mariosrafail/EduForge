@@ -2,12 +2,12 @@ import { builderDocumentSha256 } from "./_builder-content-security.js";
 
 function rowDocument(row, resource) {
   if (!row) return null;
-  if (row.schema_version !== resource.schemaVersion) throw new Error("Stored Builder document schema is unsupported");
-  const document = resource.validate(row.payload);
-  const checksum = builderDocumentSha256(document);
+  const checksum = builderDocumentSha256(row.payload);
   if (checksum !== row.payload_sha256) throw new Error("Stored Builder document checksum is invalid");
+  if (row.schema_version !== resource.schemaVersion) throw new Error("Stored Builder document schema is unsupported");
   const revision = Number(row.revision);
   if (!Number.isSafeInteger(revision) || revision < 1) throw new Error("Stored Builder document revision is invalid");
+  const document = resource.validate(row.payload);
   return { revision, source: "database", document };
 }
 export async function loadBuilderComponentDocument(sql, resource) {

@@ -18,6 +18,7 @@ const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA
 const nativeDocuments = new Map(); const nativeAssets = new Map(); const requestedPaths = [];
 let indexRevision = 0; let nativeIndex = { schemaVersion: "1.0", activities: [] }; let origin = "";
 let uploadSequence = 10;
+const legacyActivityId = "ultimate-b2-sb-u1-p1-o89";
 
 function json(response, statusCode, value) { const bytes = Buffer.from(JSON.stringify(value)); response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": bytes.length, "Content-Type": "application/json" }); response.end(bytes); }
 async function requestBytes(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); return Buffer.concat(chunks); }
@@ -29,6 +30,15 @@ function nativeDocumentPair(activityId, kind, pageId, title) {
   const teacherDocument = { schemaVersion: "1.0", activityId, kind, parts: [{ id: "part-1", solution: kind === "open-response" ? { kind, modelAnswers: [] } : { kind } }] };
   return { publicRevision: 1, teacherRevision: 1, publicDocument, teacherDocument };
 }
+
+const legacyPair = nativeDocumentPair(legacyActivityId, "open-response", "ub2-sb-unit-1-part-1", "Legacy checksum fixture");
+const legacyAssetId = "10000000-0000-4000-8000-000000000009";
+legacyPair.publicDocument.assets = [{ assetId: legacyAssetId, checksumSha256: "9".repeat(64), role: "activity_artwork", slot: "legacy-background" }];
+legacyPair.publicDocument.parts[0].interaction.artwork = [{ id: `art-${"9".repeat(32)}`, assetSlot: "legacy-background", area: { x: 0, y: 0, width: 1024, height: 582 }, order: 0, altText: "Legacy background", decorative: false, fit: "cover" }];
+nativeDocuments.set(legacyActivityId, legacyPair);
+nativeAssets.set(legacyAssetId, { activityId: legacyActivityId, slot: "legacy-background", bytes: onePixelPng });
+indexRevision = 1;
+nativeIndex = { schemaVersion: "1.0", activities: [{ activityId: legacyActivityId, kind: "open-response", placement: { pageId: "ub2-sb-unit-1-part-1" }, sortOrder: 1 }] };
 
 async function staticResponse(pathname, response) {
   const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(builderRoot, relative);
@@ -43,7 +53,7 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: previewToken, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
   if (url.pathname === `${nativeRoot}/create` && request.method === "POST") {
-    const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${90 + nativeIndex.activities.length}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : "Open Response"}`;
+    const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${89 + nativeIndex.activities.length}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : "Open Response"}`;
     nativeDocuments.set(activityId, nativeDocumentPair(activityId, body.kind, body.pageId, title)); indexRevision += 1;
     nativeIndex = { schemaVersion: "1.0", activities: [...nativeIndex.activities, { activityId, kind: body.kind, placement: { pageId: body.pageId }, sortOrder: indexRevision }] };
     return json(response, 200, { outcome: "created", activityId, indexRevision, publicRevision: 1, teacherRevision: 1, kind: body.kind, placement: { pageId: body.pageId }, idempotent: false });
@@ -85,6 +95,7 @@ try {
   await context.route("https://hhplms-viewer.netlify.app/**", (route) => route.fulfill({ status: route.request().resourceType() === "document" ? 200 : 404, contentType: route.request().resourceType() === "document" ? "text/html" : "application/json", body: route.request().resourceType() === "document" ? "<!doctype html><title>Viewer fixture</title>" : "{}" }));
   const page = await context.newPage(); page.setDefaultTimeout(45_000); await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.locator(".b2-hosted-open-response-editor").waitFor();
+  await page.getByRole("button", { name: new RegExp(legacyActivityId) }).click(); await page.getByRole("heading", { name: "Legacy checksum fixture" }).waitFor(); assert.equal(await page.getByText("builder_content_failed", { exact: true }).count(), 0); await page.getByRole("button", { name: "Layout" }).click(); await page.locator(".native-or-layers button").filter({ hasText: "Legacy background" }).click(); assert.equal(await page.getByLabel("Lock position and size").isChecked(), false);
   await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByLabel("Activity kind").selectOption("open-response"); await page.getByLabel("Initial title (optional)").fill("Browser native response"); await page.getByRole("button", { name: "Create native draft" }).click();
   const openResponseId = "ultimate-b2-sb-u1-p1-o90"; await page.getByRole("heading", { name: "Browser native response" }).waitFor(); await page.getByText(openResponseId, { exact: true }).first().waitFor(); await page.getByText(/not included in publication v1/).waitFor();
   await page.getByLabel("Activity title").fill("Persisted browser response"); await page.getByLabel("Visible instruction").fill("Respond in complete sentences.");

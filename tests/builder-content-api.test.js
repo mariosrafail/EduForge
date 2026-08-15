@@ -190,7 +190,7 @@ test("stable checksums are key-order independent", () => {
   assert.equal(builderDocumentSha256({ b: 2, a: { d: 4, c: 3 } }), builderDocumentSha256({ a: { c: 3, d: 4 }, b: 2 }));
 });
 
-test("stored documents resolve fully before checksum validation and fail corrupt state closed", async () => {
+test("stored documents verify raw checksums before validation and fail corrupt state closed", async () => {
   const document = baseline();
   const row = {
     schema_version: hotspotResource.schemaVersion,
@@ -209,7 +209,7 @@ test("stored documents resolve fully before checksum validation and fail corrupt
   const invalidPage = structuredClone(document);
   invalidPage.pages.unknown = [];
   await assert.rejects(
-    loadBuilderComponentDocument(async () => [{ ...row, payload: invalidPage }], hotspotResource),
+    loadBuilderComponentDocument(async () => [{ ...row, payload: invalidPage, payload_sha256: builderDocumentSha256(invalidPage) }], hotspotResource),
     /Unknown Students Book page id/,
   );
 });

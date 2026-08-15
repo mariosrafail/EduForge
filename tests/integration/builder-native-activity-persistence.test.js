@@ -3,6 +3,8 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
+import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { createBuilderNativeActivity } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
@@ -104,4 +106,68 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
 
   const unauthorized = await createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 4, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "d".repeat(64), schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: "10000000-0000-4000-8000-000000000099", clientMutationId: randomUUID() });
   assert.equal(unauthorized.outcome, "unauthorized_actor");
+});
+
+test("isolated PostgreSQL reads a legacy native payload by its persisted checksum without mutating it", { skip: !enabled }, async (t) => {
+  const schema = `builder_native_checksum_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  const migrations = await applyCanonicalProductionMigrations(pool);
+  assert.equal(migrations.at(-1).filename, "037_builder_native_open_response_authoring.sql");
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Checksum Actor','checksum@example.test','hash')", [actor]);
+
+  const sql = tag(pool);
+  const nativeHandler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {} },
+  });
+  const created = JSON.parse((await nativeHandler(event({ title: "Legacy checksum fixture" }))).body);
+  const stored = (await pool.query(
+    "select payload from builder_component_documents where document_type='native_activity_public' and document_key=$1",
+    [created.activityId],
+  )).rows[0].payload;
+  const legacyPayload = structuredClone(stored);
+  const assetId = "10000000-0000-4000-8000-000000000088";
+  legacyPayload.assets = [{ assetId, checksumSha256: "8".repeat(64), role: "activity_artwork", slot: "legacy-background" }];
+  legacyPayload.parts[0].interaction.artwork = [{
+    id: `art-${"8".repeat(32)}`,
+    assetSlot: "legacy-background",
+    area: { x: 0, y: 0, width: 1024, height: 582 },
+    order: 0,
+    altText: "Legacy background",
+    decorative: false,
+    fit: "cover",
+  }];
+  assert.equal("locked" in legacyPayload.parts[0].interaction.artwork[0], false);
+  const legacyChecksum = builderDocumentSha256(legacyPayload);
+  await pool.query(
+    "update builder_component_documents set payload=$1::jsonb,payload_sha256=$2 where document_type='native_activity_public' and document_key=$3",
+    [JSON.stringify(legacyPayload), legacyChecksum, created.activityId],
+  );
+
+  const snapshotSql = "select revision,payload,payload_sha256,updated_at::text updated_at from builder_component_documents where document_type='native_activity_public' and document_key=$1";
+  const beforeRead = (await pool.query(snapshotSql, [created.activityId])).rows[0];
+  const contentHandler = createBuilderContentHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {} },
+  });
+  const response = await contentHandler({
+    httpMethod: "GET",
+    path: `/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/native-activity-public/${created.activityId}`,
+    headers: { host: "localhost:8888" },
+    body: "",
+  });
+  assert.equal(response.statusCode, 200);
+  const loaded = JSON.parse(response.body);
+  assert.equal(loaded.revision, 1);
+  assert.equal(loaded.document.parts[0].interaction.artwork[0].locked, false);
+
+  const afterRead = (await pool.query(snapshotSql, [created.activityId])).rows[0];
+  assert.deepEqual(afterRead, beforeRead);
+  assert.equal("locked" in afterRead.payload.parts[0].interaction.artwork[0], false);
+  assert.equal(afterRead.payload_sha256, legacyChecksum);
 });
