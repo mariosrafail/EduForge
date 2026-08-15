@@ -7,7 +7,7 @@ import {
   normalizeUltimateB2HostedOpenResponseImport,
   normalizeUltimateB2HostedOpenResponseTeacherImport,
 } from "../../data/ultimate-b2/hostedOpenResponseImport.js";
-import { authorizedHostedPreviewPath, currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 import { createUltimateB2HostedOpenResponseSeed } from "../../data/ultimate-b2/hostedOpenResponseDraft.js";
 import { hydrateUltimateB2ReleaseImport } from "../../data/ultimate-b2/componentPublication.js";
 import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsBookCatalog.js";
@@ -35,9 +35,10 @@ export function useHostedOpenResponseDraft(activityId) {
   useEffect(() => {
     setDraft(null);
     if (!isUltimateB2ConfigurableOpenResponse(activityId)) return undefined;
+    const context = resolveHostedViewerRuntimeContext();
+    if (!context.teacherPreview) return undefined;
     const controller = new AbortController();
-    const releaseId = currentHostedReleaseId();
-    fetch(releaseId ? hostedReleasePath(releaseId, "public") : `${routeRoot}/${encodeURIComponent(activityId)}`, {
+    fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : `${routeRoot}/${encodeURIComponent(activityId)}`, {
       method: "GET",
       credentials: "omit",
       cache: "no-store",
@@ -46,7 +47,7 @@ export function useHostedOpenResponseDraft(activityId) {
       if (response.status === 404) return null;
       if (!response.ok) throw new Error("Hosted Open Response preview is unavailable.");
       const payload = await response.json();
-      return releaseId ? payload?.projection?.activities?.[activityId]?.authoring || null : validateHostedOpenResponsePreviewEnvelope(payload, activityId);
+      return context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? payload?.projection?.activities?.[activityId]?.authoring || null : validateHostedOpenResponsePreviewEnvelope(payload, activityId);
     }).then((document) => {
       if (!controller.signal.aborted) setDraft(document);
     }).catch(() => {
@@ -70,18 +71,19 @@ export function useHostedOpenResponseImport(activityId) {
   useEffect(() => {
     setState({ publicImport: null, teacherSolution: null, revision: 0 });
     if (!isUltimateB2ConfigurableOpenResponse(activityId)) return undefined;
+    const context = resolveHostedViewerRuntimeContext();
+    if (!context.teacherPreview) return undefined;
     const controller = new AbortController();
-    const releaseId = currentHostedReleaseId();
-    if (releaseId) {
+    if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
       Promise.all([
-        fetch(hostedReleasePath(releaseId, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => {
+        fetch(hostedReleasePath(context.releaseId, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => {
           if (!response.ok) return null;
           const imported = (await response.json())?.projection?.activities?.[activityId]?.import || null;
           if (!imported) return null;
           const seed = createUltimateB2HostedOpenResponseSeed(findStudentsBookImplementation(activityId));
-          return hydrateUltimateB2ReleaseImport(imported, activityId, seed.questions.map((question) => question.id), (asset) => hostedReleasePath(releaseId, `assets/${asset.sha256}.${asset.extension}`));
+          return hydrateUltimateB2ReleaseImport(imported, activityId, seed.questions.map((question) => question.id), (asset) => hostedReleasePath(context.releaseId, `assets/${asset.sha256}.${asset.extension}`));
         }),
-        fetch(hostedReleasePath(releaseId, `teacher-solution/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => response.status === 404 ? null : response.ok ? (await response.json()).document : Promise.reject(new Error("Release solution unavailable"))),
+        fetch(hostedReleasePath(context.releaseId, `teacher-solution/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => response.status === 404 ? null : response.ok ? (await response.json()).document : Promise.reject(new Error("Release solution unavailable"))),
       ]).then(([publicImport, teacher]) => {
         if (!controller.signal.aborted) setState({ publicImport, teacherSolution: hostedTeacherImportAsSolution(teacher, activityId), revision: 0 });
       }).catch(() => { if (!controller.signal.aborted) setState({ publicImport: null, teacherSolution: null, revision: 0 }); });
@@ -89,7 +91,7 @@ export function useHostedOpenResponseImport(activityId) {
     }
     const fetchProjection = async (kind) => {
       const path = `/preview/open-response-${kind === "public" ? "import" : "teacher"}/${encodeURIComponent(activityId)}`;
-      const response = await fetch(kind === "teacher" ? authorizedHostedPreviewPath(path) : path, { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal });
+      const response = await fetch(kind === "teacher" ? authorizedHostedPreviewPath(path, context.authorization) : path, { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error("Hosted Open Response import preview is unavailable.");
       const envelope = await response.json();

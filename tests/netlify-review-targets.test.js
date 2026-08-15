@@ -128,8 +128,9 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(BUILD_PROFILE_IDS.BUILDER_HOSTED_REVIEW, "book-builder-hosted-review");
   assert.equal(reviewTargets["ultimate-b2-builder"].appMode, "netlify-book-builder-review");
   assert.equal(reviewTargets["ultimate-b2-interactive"].profile, BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW);
-  assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherSolutions, true);
-  assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherPresentation, true);
+  assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherSolutions, false);
+  assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).teacherPresentation, false);
+  assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW).authorizedTeacherPreview, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE).teacherSolutions, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_TEACHER_OFFLINE).teacherPresentation, true);
   assert.equal(resolveBuildProfile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE).teacherSolutions, false);
@@ -139,11 +140,9 @@ test("Netlify review targets have explicit isolated profiles and outputs", () =>
   assert.equal(Object.keys(buildProfiles).length, 7);
 });
 
-test("dedicated Teacher Review build generates the authoritative solution pack before Vite", async () => {
+test("dedicated public Viewer build does not generate or package Teacher solutions", async () => {
   const buildScript = await read("scripts/netlify/build-review-target.mjs");
-  assert.match(buildScript, /targetName === "ultimate-b2-interactive"[\s\S]*generateTeacherReviewSolutions/);
-  assert.match(buildScript, /scripts\/android-teacher\/build-pack\.mjs/);
-  assert.doesNotMatch(buildScript, /writeFile|teacher-solutions[\s\S]*JSON\.stringify/);
+  assert.doesNotMatch(buildScript, /generateTeacherReviewSolutions|scripts\/android-teacher\/build-pack\.mjs|teacher-solutions/);
 });
 
 test("review build policy allows local and review contexts", () => {
@@ -239,13 +238,14 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
   assert.doesNotMatch(vite, /netlify-ultimate-b2-builder-review|virtual:ultimate-b2-builder-app/);
 });
 
-test("Interactive provider split gives only the Teacher Review a narrow solution lookup while retaining its review pack", async () => {
-  const [app, startup, review, reviewProvider, hostedSolutions, teacher, studentSolutions, validation, vite, embedded, networkGuard, registry] = await Promise.all([
+test("Interactive provider split keeps Viewer answers remote and Android Teacher answers packaged", async () => {
+  const [app, startup, review, reviewProvider, reviewValidation, hostedSolutions, teacher, studentSolutions, validation, vite, embedded, networkGuard, registry] = await Promise.all([
     read("src/apps/android-teacher-offline/TeacherOfflineApp.jsx"),
     read("src/apps/android-teacher-offline/interactiveStartupAssets.js"),
     read("src/apps/android-teacher-offline/reviewPackProvider.js"),
     read("src/apps/android-teacher-offline/reviewContentPackProvider.js"),
-    read("src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"),
+    read("src/apps/android-teacher-offline/reviewPackValidation.js"),
+    read("src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js"),
     read("src/apps/android-teacher-offline/generatedPackProvider.js"),
     read("src/apps/android-teacher-offline/noOfflineSolutions.js"),
     read("src/apps/android-teacher-offline/packValidation.js"),
@@ -265,8 +265,10 @@ test("Interactive provider split gives only the Teacher Review a narrow solution
   assert.doesNotMatch(review, /import teacherSolutions/);
   assert.doesNotMatch(review, /teacher-solutions\.json/);
   assert.doesNotMatch(reviewProvider, /teacherSolutions|teacher-solutions\.json/);
-  assert.match(hostedSolutions, /teacher-solutions\.json/);
-  assert.match(hostedSolutions, /getOfflineTeacherSolution/);
+  assert.match(reviewProvider, /validateReviewContentPack/);
+  assert.doesNotMatch(reviewValidation, /teacherSolutions|teacher-solutions\.json|acceptedAnswers|correctOptionId|modelAnswer|revealText/i);
+  assert.match(hostedSolutions, /hostedReleasePath[\s\S]*teacher-solution/);
+  assert.doesNotMatch(hostedSolutions, /teacher-solutions\.json|acceptedAnswers|correctOptionId|modelAnswer|revealText/i);
   assert.match(teacher, /import teacherSolutions/);
   assert.match(teacher, /getOfflineTeacherSolution/);
   assert.doesNotMatch(studentSolutions, /teacher-solutions\.json|acceptedAnswers/);
@@ -274,10 +276,11 @@ test("Interactive provider split gives only the Teacher Review a narrow solution
   assert.match(validation, /validateReviewContentPack/);
   assert.match(validation, /validateTeacherContentPack/);
   assert.match(vite, /isHostedInteractiveReview/);
-  assert.match(vite, /buildProfile\.teacherPresentation[\s\S]*TeacherAnswerUi\.jsx[\s\S]*NoTeacherAnswerUi\.jsx/);
-  assert.match(vite, /ultimate-b2-interactive-review[\s\S]*hostedReviewTeacherSolutions\.js/);
+  assert.match(vite, /buildProfile\.teacherPresentation \|\| buildProfile\.authorizedTeacherPreview[\s\S]*TeacherAnswerUi\.jsx[\s\S]*NoTeacherAnswerUi\.jsx/);
+  assert.match(vite, /isHostedInteractiveReview[\s\S]*hostedAuthorizedTeacherSolutions\.js/);
+  assert.doesNotMatch(vite, /hostedReviewTeacherSolutions|teacher-solutions\.json/);
   assert.match(vite, /delete authoring\.source/);
-  assert.match(embedded, /activeBuildProfile\.teacherPresentation[\s\S]*TEACHER_PRESENTATION_OFFLINE/);
+  assert.match(embedded, /activeBuildProfile\.authorizedTeacherPreview[\s\S]*resolveHostedViewerRuntimeContext\(\)\.teacherPreview[\s\S]*TEACHER_PRESENTATION_OFFLINE/);
   assert.doesNotMatch(vite, /hostname|window\.location|Netlify URL/i);
   assert.match(networkGuard, /\.netlify\\\/functions\|api\\\/\|auth\\\//);
 });

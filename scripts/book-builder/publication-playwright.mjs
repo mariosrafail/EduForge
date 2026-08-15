@@ -20,6 +20,7 @@ let sourceVersion = 1;
 let headRevision = 0;
 let activeReleaseId = null;
 const releases = [];
+const viewerReleaseRequests = [];
 const lifecycleState = {
   cleanupStarted: false,
   browserDisconnected: false,
@@ -134,6 +135,7 @@ try {
     const url = new URL(route.request().url());
     const match = url.pathname.match(/^\/preview\/releases\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|assets)(?:\/(.*))?$/);
     if (match) {
+      viewerReleaseRequests.push({ pathname: url.pathname, action: match[2], authorization: url.searchParams.get("previewAuthorization") });
       const release = releases.find((item) => item.id === match[1]);
       if (!release) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       if (match[2] === "public") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ releaseId: release.id, releaseNumber: release.number, releaseSha256: release.releaseSha256, compatibility: release.compatibility, compilerId: "ultimate-b2-students-book-v2", releaseSchemaVersion: "2.0", projection: release.publicProjection }) });
@@ -177,6 +179,8 @@ try {
   assert.equal(await viewer.getByText(publicationV2Fixture.teacherSentinel, { exact: true }).count(), 0);
   await viewer.getByRole("button", { name: /Reveal model answer/ }).click();
   await viewer.getByText(publicationV2Fixture.teacherSentinel, { exact: true }).waitFor();
+  assert.ok(viewerReleaseRequests.some((request) => request.action === "native-teacher" && request.pathname.endsWith(`/${activityId}`)), "Teacher reveal must load the protected native Teacher document.");
+  assert.ok(viewerReleaseRequests.every((request) => /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(request.authorization || "")), "Every release projection request must carry preview authorization.");
   savedPrompt = "Draft version B"; sourceVersion = 2;
   lifecycle("preview-viewer-reload-start");
   await viewer.reload({ waitUntil: "domcontentloaded" });

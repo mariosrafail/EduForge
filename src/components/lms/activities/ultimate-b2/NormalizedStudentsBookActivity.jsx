@@ -247,8 +247,9 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   const importedTeacherSolution = activityTeacherSolution?.questions ? activityTeacherSolution : null;
   const legacyPilotObjectOne = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o1";
   const legacyPilotObjectTwo = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o2";
-  const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && activeBuildProfile.teacherPresentation;
-  const teacherOfflineMultipleChoice = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o3" && capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring;
+  const teacherPresentationCode = activeBuildProfile.teacherPresentation || activeBuildProfile.authorizedTeacherPreview;
+  const teacherOfflineListening = legacyPilotObjectTwo && capabilities.isPresentation && teacherPresentationCode;
+  const teacherOfflineMultipleChoice = activity.stableNormalizedId === "ultimate-b2-sb-u1-p2-o3" && capabilities.isPresentation && teacherPresentationCode && activityPresentation?.multipleChoiceAuthoring;
   const imageActivity = isUltimateB2ImageActivity(activity);
   const media = (activity.mediaDependencies || []).filter((dependency) => dependency.logicalKey);
   const frozen = submitted || completed || !capabilities.canEditAnswers;
@@ -331,7 +332,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     if (!capabilities.canRequestSolutions && !capabilities.canUseOfflineSolutions) return null;
     if (solutions) return solutions;
     if (capabilities.canUseOfflineSolutions) {
-      const payload = importedTeacherSolution || getOfflineTeacherSolution(activity.stableNormalizedId);
+      const payload = importedTeacherSolution || await getOfflineTeacherSolution(activity.stableNormalizedId);
       if (!payload) {
         setSolutionError("No verified answer is available for this activity.");
         return null;

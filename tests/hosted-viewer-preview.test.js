@@ -4,6 +4,8 @@ import test from "node:test";
 
 import { HOSTED_VIEWER_ORIGIN, createHostedViewerPreviewUrl } from "../src/apps/book-builder/hosted/hostedViewerPreviewUrl.js";
 import { isHostedViewerPreviewRequest, resolveHostedViewerPreviewIntent } from "../src/apps/android-teacher-offline/hostedViewerPreviewIntent.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "../src/apps/android-teacher-offline/hostedReleasePreview.js";
+import { getOfflineTeacherSolution } from "../src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js";
 import { createReviewComponentRegistry } from "../src/apps/android-teacher-offline/reviewComponentRegistryCore.js";
 
 const pageUnits = [{ number: 1, pages: [{ id: "ub2-sb-unit-1-part-1", activities: [{ activityKey: "ultimate-b2-sb-u1-p1-o1" }] }] }];
@@ -20,13 +22,16 @@ const identity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b
 
 test("Builder creates deterministic canonical Viewer URLs from a fixed trusted origin", () => {
   assert.equal(HOSTED_VIEWER_ORIGIN, "https://hhplms-viewer.netlify.app");
-  assert.equal(createHostedViewerPreviewUrl({ ...runtime, view: "library" }), "https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=library");
-  assert.equal(createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1" }), "https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1");
-  assert.equal(createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "ultimate-b2-sb-u1-p1-o1" }), "https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&view=activity&activityId=ultimate-b2-sb-u1-p1-o1");
-  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "ultimate-b2-sb-u1-p1-o1", previewAuthorization }), /previewAuthorization=v1\./);
-  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "javascript:alert(1)" }), /invalid/);
-  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "x&token=secret" }), /invalid/);
-  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "https://attacker.example" }), /unsupported/);
+  const library = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "library", previewAuthorization }));
+  const page = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", previewAuthorization }));
+  const activity = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "ultimate-b2-sb-u1-p1-o1", previewAuthorization }));
+  assert.deepEqual(Object.fromEntries(library.searchParams), { builderPreview: "1", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", previewAuthorization, view: "library" });
+  assert.equal(page.searchParams.get("pageId"), "ub2-sb-unit-1-part-1");
+  assert.equal(activity.searchParams.get("activityId"), "ultimate-b2-sb-u1-p1-o1");
+  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "library" }), /authorization is required/);
+  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "javascript:alert(1)", previewAuthorization }), /invalid/);
+  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "x&token=secret", previewAuthorization }), /invalid/);
+  assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "https://attacker.example", previewAuthorization }), /unsupported/);
 });
 
 test("hosted Viewer resolves strict library, page, and canonical activity intents", () => {
@@ -40,8 +45,43 @@ test("release preview requires one strict UUID and remains a read-only pinned in
   const intent = resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${releaseId}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry });
   assert.equal(intent.kind, "valid");
   assert.equal(intent.releaseId, releaseId);
-  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "library", releaseId }), /releaseId=10000000-0000-4000-8000-000000000099/);
+  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "library", releaseId, previewAuthorization }), /releaseId=10000000-0000-4000-8000-000000000099/);
   for (const value of ["latest", "../draft", `${releaseId}&releaseId=${releaseId}`]) assert.equal(resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${value}&view=library`, hosted: true, registry }).kind, "invalid");
+});
+
+test("hosted Viewer runtime separates bare, authorized draft, exact release, and invalid contexts", () => {
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  assert.deepEqual(resolveHostedViewerRuntimeContext(""), { kind: HOSTED_VIEWER_RUNTIME_MODES.BARE, teacherPreview: false });
+  assert.deepEqual(resolveHostedViewerRuntimeContext(`?${identity}&view=library`), { kind: HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW, teacherPreview: true, authorization: previewAuthorization });
+  assert.deepEqual(resolveHostedViewerRuntimeContext(`?${identity}&releaseId=${releaseId}&view=library`), { kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW, teacherPreview: true, authorization: previewAuthorization, releaseId });
+  for (const search of ["?builderPreview=1", `?builderPreview=1&previewAuthorization=malformed`, `?previewAuthorization=${previewAuthorization}`, `?${identity}&releaseId=latest&view=library`]) {
+    assert.deepEqual(resolveHostedViewerRuntimeContext(search), { kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
+  }
+});
+
+test("Viewer Teacher solutions are unavailable anonymously and fetched only for an authorized exact release", async () => {
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  const locationDescriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
+  const fetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+  const calls = [];
+  Object.defineProperty(globalThis, "fetch", { configurable: true, value: async (url, options) => {
+    calls.push([url, options]);
+    return { ok: true, status: 200, json: async () => ({ releaseId, activityId: "ultimate-b2-sb-u1-p1-o1", document: { solutionAvailability: "available" } }) };
+  } });
+  try {
+    for (const search of ["", "?builderPreview=1&previewAuthorization=malformed", `?${identity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`]) {
+      Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/${search}`) });
+      assert.equal(await getOfflineTeacherSolution("ultimate-b2-sb-u1-p1-o1"), null);
+    }
+    assert.deepEqual(calls, []);
+    Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?${identity}&releaseId=${releaseId}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`) });
+    assert.deepEqual(await getOfflineTeacherSolution("ultimate-b2-sb-u1-p1-o1"), { solutionAvailability: "available" });
+    assert.match(calls[0][0], new RegExp(`/preview/releases/.*/${releaseId}/teacher-solution/ultimate-b2-sb-u1-p1-o1\\?previewAuthorization=`));
+    assert.deepEqual(calls[0][1], { method: "GET", credentials: "omit", cache: "no-store" });
+  } finally {
+    if (locationDescriptor) Object.defineProperty(globalThis, "location", locationDescriptor); else delete globalThis.location;
+    if (fetchDescriptor) Object.defineProperty(globalThis, "fetch", fetchDescriptor); else delete globalThis.fetch;
+  }
 });
 
 test("hosted Viewer fails closed for malformed, unknown, duplicated, extra, and oversized intents", () => {

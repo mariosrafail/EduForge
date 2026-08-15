@@ -1,12 +1,20 @@
 import { normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
-import { authorizedHostedPreviewPath, currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
 const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 
 export const interactiveUiManifestProvider = Object.freeze({
   async load({ signal } = {}) {
-    const releaseId = currentHostedReleaseId();
-    const response = await fetch(releaseId ? hostedReleasePath(releaseId, "teacher-ui") : authorizedHostedPreviewPath(previewPath), { method: "GET", cache: "no-store", credentials: "omit", signal });
+    const context = resolveHostedViewerRuntimeContext();
+    if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return null;
+    if (!context.teacherPreview) {
+      const error = new Error("The requested Viewer preview context is invalid.");
+      error.code = "LIVE_PREVIEW_UNAVAILABLE";
+      throw error;
+    }
+    const response = await fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
+      ? hostedReleasePath(context.releaseId, "teacher-ui")
+      : authorizedHostedPreviewPath(previewPath, context.authorization), { method: "GET", cache: "no-store", credentials: "omit", signal });
     if (response.status === 404) return null;
     if (!response.ok) {
       const error = new Error("The saved Teacher interface revision could not be loaded.");

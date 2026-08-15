@@ -23,21 +23,17 @@ test("standard web safety scanner accepts learner-only assets and rejects answer
   assert.ok(teacherReviewResult.findings.some((finding) => finding.label === "publisher resource path"));
 });
 
-test("Teacher Review solution provider uses only the canonical generated pack and a null fallback", async () => {
-  const provider = await readFile(
-    "src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js",
-    "utf8",
-  );
-  assert.match(
-    provider,
-    /import teacherSolutions from "\.\.\/\.\.\/\.\.\/android-content-packs\/ultimate-b2-students-book\/teacher-solutions\.json" with \{ type: "json" \};/,
-  );
-  assert.match(
-    provider,
-    /return teacherSolutions\.solutions\?\.\[String\(activityId \|\| ""\)\] \|\| null;/,
-  );
-  assert.equal((provider.match(/^import\s/gm) || []).length, 1);
-  assert.doesNotMatch(provider, /fetch\s*\(|XMLHttpRequest|WebSocket|\/api\/|\/auth\/|database|acceptedAnswers|fallback/i);
+test("public Viewer uses an authorized dynamic solution provider while Android Teacher keeps its generated pack", async () => {
+  const [hostedProvider, androidProvider, config] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/generatedPackProvider.js", "utf8"),
+    readFile("vite.config.js", "utf8"),
+  ]);
+  assert.match(hostedProvider, /RELEASE_PREVIEW[\s\S]*hostedReleasePath[\s\S]*teacher-solution/);
+  assert.doesNotMatch(hostedProvider, /teacher-solutions\.json|acceptedAnswers|correctOptionId|modelAnswer|revealText/i);
+  assert.match(androidProvider, /import teacherSolutions[\s\S]*teacher-solutions\.json/);
+  assert.match(config, /isHostedInteractiveReview[\s\S]*hostedAuthorizedTeacherSolutions\.js/);
+  assert.doesNotMatch(config, /hostedReviewTeacherSolutions|teacher-solutions\.json/);
 });
 
 test("web and student Android builds select the learner-only legacy catalog", async () => {

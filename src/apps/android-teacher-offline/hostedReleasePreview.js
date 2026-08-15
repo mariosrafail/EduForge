@@ -1,18 +1,47 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TOKEN = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
+
+export const HOSTED_VIEWER_RUNTIME_MODES = Object.freeze({
+  BARE: "bare",
+  BUILDER_PREVIEW: "builder-preview",
+  RELEASE_PREVIEW: "release-preview",
+  INVALID: "invalid",
+});
+
+export function resolveHostedViewerRuntimeContext(search = globalThis.location?.search || "") {
+  const parameters = new URLSearchParams(search);
+  const builderPreview = parameters.getAll("builderPreview");
+  const authorizations = parameters.getAll("previewAuthorization");
+  const releaseIds = parameters.getAll("releaseId");
+  const hasPreviewState = builderPreview.length || authorizations.length || releaseIds.length;
+  if (!hasPreviewState) return Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.BARE, teacherPreview: false });
+  if (builderPreview.length !== 1 || builderPreview[0] !== "1" || authorizations.length !== 1 || !TOKEN.test(authorizations[0]) || releaseIds.length > 1) {
+    return Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
+  }
+  if (!releaseIds.length) {
+    return Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW, teacherPreview: true, authorization: authorizations[0] });
+  }
+  if (!UUID.test(releaseIds[0])) return Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
+  return Object.freeze({
+    kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW,
+    teacherPreview: true,
+    authorization: authorizations[0],
+    releaseId: releaseIds[0].toLowerCase(),
+  });
+}
 
 export function currentHostedReleaseId(search = globalThis.location?.search || "") {
-  const parameters = new URLSearchParams(search);
-  const values = parameters.getAll("releaseId");
-  return values.length === 1 && UUID.test(values[0]) ? values[0].toLowerCase() : null;
+  const context = resolveHostedViewerRuntimeContext(search);
+  return context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? context.releaseId : null;
 }
 
 export function currentHostedPreviewAuthorization(search = globalThis.location?.search || "") {
-  const values = new URLSearchParams(search).getAll("previewAuthorization");
-  return values.length === 1 && /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(values[0]) ? values[0] : null;
+  const context = resolveHostedViewerRuntimeContext(search);
+  return context.teacherPreview ? context.authorization : null;
 }
 
 export function authorizedHostedPreviewPath(path, authorization = currentHostedPreviewAuthorization()) {
-  if (!path.startsWith("/preview/") || !authorization) return path;
+  if (!path.startsWith("/preview/") || !TOKEN.test(String(authorization || ""))) throw new Error("Authorized Viewer preview context is required.");
   const url = new URL(path, "https://viewer.invalid");
   url.searchParams.set("previewAuthorization", authorization);
   return `${url.pathname}${url.search}`;

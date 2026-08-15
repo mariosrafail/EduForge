@@ -10,6 +10,17 @@ import {
 } from "../src/data/ultimate-b2/hostedReviewHotspotRuntime.js";
 
 const pageId = "students-book-unit-1-page-8";
+const previewAuthorization = `v1.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
+const builderPreviewSearch = `?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${previewAuthorization}&view=library`;
+
+async function withViewerSearch(search, operation) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
+  Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/${search}`) });
+  try { return await operation(); } finally {
+    if (descriptor) Object.defineProperty(globalThis, "location", descriptor);
+    else delete globalThis.location;
+  }
+}
 
 function manifest(geometry = { left: 1, top: 2, width: 3, height: 4 }) {
   return {
@@ -56,7 +67,7 @@ test("Viewer startup performs one relative no-store fetch and installs revision 
   const runtime = createHostedReviewHotspotRuntime(baseline);
   const calls = [];
 
-  assert.deepEqual(await runtime.prepare({ fetchImpl: successfulFetch(envelope({ document: moved }), calls) }), {
+  assert.deepEqual(await withViewerSearch(builderPreviewSearch, () => runtime.prepare({ fetchImpl: successfulFetch(envelope({ document: moved }), calls) })), {
     revision: 3,
     source: "database",
   });
@@ -85,9 +96,9 @@ test("Viewer startup performs one relative no-store fetch and installs revision 
 test("explicit repository revision zero is accepted as authoritative live preview", async () => {
   const runtime = createHostedReviewHotspotRuntime(manifest());
   const repositoryDocument = manifest({ left: 9, top: 8, width: 7, height: 6 });
-  const result = await runtime.prepare({
+  const result = await withViewerSearch(builderPreviewSearch, () => runtime.prepare({
     fetchImpl: successfulFetch(envelope({ revision: 0, source: "repository", document: repositoryDocument }), []),
-  });
+  }));
   assert.deepEqual(result, { revision: 0, source: "repository" });
   assert.equal(runtime.getActions({ pageId })[0].left, "9%");
 });
@@ -108,7 +119,7 @@ test("malformed envelopes fail startup and preserve the previous in-memory state
     assert.throws(() => validateUltimateB2HotspotPreviewEnvelope(invalid), /invalid/);
     const runtime = createHostedReviewHotspotRuntime(baseline);
     await assert.rejects(
-      runtime.prepare({ fetchImpl: successfulFetch(invalid, []) }),
+      withViewerSearch(builderPreviewSearch, () => runtime.prepare({ fetchImpl: successfulFetch(invalid, []) })),
       (error) => error.code === "LIVE_PREVIEW_UNAVAILABLE"
         && error.message === "Live preview content could not be loaded. Refresh and try again.",
     );
@@ -123,13 +134,33 @@ test("network and non-200 failures fail visibly without silently installing comm
     async () => ({ ok: false, status: 503, json: async () => ({ error: "private server detail" }) }),
   ]) {
     const runtime = createHostedReviewHotspotRuntime(baseline);
-    await assert.rejects(runtime.prepare({ fetchImpl }), (error) => (
+    await assert.rejects(withViewerSearch(builderPreviewSearch, () => runtime.prepare({ fetchImpl })), (error) => (
       error.code === "LIVE_PREVIEW_UNAVAILABLE"
       && error.message === "Live preview content could not be loaded. Refresh and try again."
       && !/private|503/.test(error.message)
     ));
     assert.strictEqual(runtime.currentManifest(), baseline);
   }
+});
+
+test("bare Viewer startup keeps committed hotspots and performs no preview request", async () => {
+  const baseline = manifest();
+  const runtime = createHostedReviewHotspotRuntime(baseline);
+  const calls = [];
+  const result = await withViewerSearch("", () => runtime.prepare({ fetchImpl: async (...arguments_) => { calls.push(arguments_); throw new Error("must not fetch"); } }));
+  assert.deepEqual(result, { revision: 0, source: "repository" });
+  assert.deepEqual(calls, []);
+  assert.strictEqual(runtime.currentManifest(), baseline);
+});
+
+test("malformed Viewer preview context fails closed before any request", async () => {
+  const runtime = createHostedReviewHotspotRuntime(manifest());
+  const calls = [];
+  await assert.rejects(
+    withViewerSearch("?builderPreview=1&previewAuthorization=malformed", () => runtime.prepare({ fetchImpl: async (...arguments_) => { calls.push(arguments_); } })),
+    (error) => error.code === "LIVE_PREVIEW_UNAVAILABLE",
+  );
+  assert.deepEqual(calls, []);
 });
 
 test("network guard naturally allows same-origin preview and static assets while keeping blocked surfaces closed", () => {

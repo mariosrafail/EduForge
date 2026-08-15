@@ -18,6 +18,7 @@ import { UltimateB2DebateClubActivity } from "./UltimateB2DebateClubActivity.jsx
 import { activeBuildProfile } from "../../../../config/buildProfiles.js";
 
 const PdfSaver = registerPlugin("PdfSaver");
+const teacherPresentationCode = activeBuildProfile.teacherPresentation || activeBuildProfile.authorizedTeacherPreview;
 
 function LegacyInstruction({ src, alt }) {
   return <img className="legacy-pilot-instruction" src={src} alt={alt} draggable="false" />;
@@ -281,7 +282,7 @@ function ObjectOne({ images, questionProps }) {
 }
 
 function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation }) {
-  if (questionProps.capabilities.isPresentation && activeBuildProfile.teacherPresentation) {
+  if (questionProps.capabilities.isPresentation && teacherPresentationCode) {
     return (
       <TeacherLegacyListeningActivity
         activity={questionProps.activity}
@@ -313,7 +314,7 @@ function ObjectTwo({ images, mediaPlayers, questionProps, listeningPresentation 
 }
 
 function ObjectThree({ images, questionProps, activityPresentation }) {
-  if (questionProps.capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring) {
+  if (questionProps.capabilities.isPresentation && teacherPresentationCode && activityPresentation?.multipleChoiceAuthoring) {
     return <TeacherLegacyMultipleChoiceActivity authoring={activityPresentation.multipleChoiceAuthoring} images={images} presentation={activityPresentation} />;
   }
   return (
@@ -365,8 +366,8 @@ export function UltimateB2LegacyPilotActivity({
     revealQuestion,
   };
   const bodyProps = { images, mediaPlayers, questionProps, listeningPresentation, activityPresentation };
-  const teacherListening = objectNumber === 2 && capabilities.isPresentation && activeBuildProfile.teacherPresentation;
-  const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && activeBuildProfile.teacherPresentation && activityPresentation?.multipleChoiceAuthoring;
+  const teacherListening = objectNumber === 2 && capabilities.isPresentation && teacherPresentationCode;
+  const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && teacherPresentationCode && activityPresentation?.multipleChoiceAuthoring;
 
   if (objectNumber === 4) return capabilities.isPresentation || capabilities.isReadOnly
     ? <UltimateB2CompleteSentencesActivity activity={activity} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} />

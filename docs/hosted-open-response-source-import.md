@@ -28,6 +28,6 @@ The private staging bucket must allow authenticated Builder origins to perform `
 
 ## Review and publication boundary
 
-The public import preview is GET-only, `no-store` JSON and contains no source XML, archive/private keys, or Teacher answers. Imported Teacher answers are returned only by a narrow GET-only Teacher Review projection for the requested supported activity. The current hosted Teacher Review is intentionally unauthenticated: anyone able to access its URL may inspect the displayed Teacher answer. This is not production Teacher authorization.
+The public import preview is GET-only, `no-store` JSON and contains no source XML, archive/private keys, or Teacher answers. Imported Teacher answers are returned only by a narrow GET-only projection for the requested supported activity, and the Builder server requires a signed, short-lived `previewAuthorization` (or valid Builder session) with matching action and activity scope. Bare Viewer mode requests neither projection. Exact release preview keeps the public document separate and loads the protected Teacher solution/native Teacher document on demand. This preview boundary is separate from production LMS Teacher authorization.
 
 This workflow saves a draft/review revision. It does not implement Draft → Preview → Publish, production asset metadata publication, catalog changes, or garbage collection.

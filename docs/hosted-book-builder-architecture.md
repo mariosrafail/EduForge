@@ -68,12 +68,12 @@ The browser uses only same-origin routes:
 - `/builder/api/auth`
 - `/builder/api/content/books/:bookSlug/components/:componentSlug/:resource`
 
-The dedicated review Viewer separately uses the intentionally public, GET-only Student-safe projection:
+The dedicated Viewer uses a GET-only Student-safe draft projection:
 
 - Builder: `/builder/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots`
 - Viewer: `/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots`
 
-The Viewer route is a narrow Netlify 200 proxy to the Builder route. The Viewer remains a static client with zero Functions and zero database credentials. No Builder session is required or forwarded. Responses contain only `bookSlug`, `componentSlug`, `resource`, `schemaVersion`, `revision`, `source`, and `document`, with JSON, `Cache-Control: no-store`, and `X-Content-Type-Options: nosniff` headers.
+The Viewer route is a narrow Netlify 200 proxy to the Builder route. The Viewer remains a static client with zero Functions and zero database credentials. No Builder session is forwarded. Student-safe hotspot/public projections remain separate from Teacher UI, imported Teacher solutions, release Teacher solutions, and native Teacher documents. Those Teacher projections require a signed, expiring `previewAuthorization` (or a valid Builder session) at the Builder server.
 
 GET requires a valid Builder session and returns `{ bookSlug, componentSlug, resource, schemaVersion, revision, source, document }`.
 
@@ -90,21 +90,23 @@ The hosted hash routes remain:
 
 The hosted Builder is the authenticated authoring/control surface; it does not embed a second copy of the Student/Teacher interactive runtime. Activity and UI review render the dedicated Viewer in a cross-origin frame at the single configured origin `https://hhplms-viewer.netlify.app`. Hotspot geometry remains editable on the local Builder canvas, while its Viewer frame represents only the last successfully saved revision and reloads after a successful PUT.
 
-The Builder creates only these public, non-secret query intents:
+The Builder creates these bounded query intents and appends a signed, short-lived `previewAuthorization` issued for the exact intent:
 
 - `?builderPreview=1&view=library`
 - `?builderPreview=1&view=page&unitNumber=<number>&pageId=<stable-page-id>`
 - `?builderPreview=1&view=activity&activityId=<stable-activity-id>`
 
-The contract is enabled only by the hosted interactive startup provider. It uses an exact parameter allowlist, bounded stable IDs, real Viewer page units, and the canonical activity-location resolver against the validated loaded content pack. Duplicate, extra, malformed, unknown-page, and unknown-activity values fail visibly. Android providers ignore the query. Preview mode may suppress only the decorative intro; content validation, live-hotspot preparation, blocking preload, progress/retry UI, cache behavior, and background video scheduling remain unchanged.
+The contract is enabled only by the hosted interactive startup provider. It uses an exact parameter allowlist, bounded stable IDs, real Viewer page units, and the canonical activity-location resolver against the validated loaded content pack. Duplicate, extra, malformed, missing-authorization, unknown-page, and unknown-activity values fail visibly. Android providers ignore the query. The server, not the query string alone, authorizes every protected data request by checking the token signature, expiry, action, component, release, and activity scope.
 
-The frame sends no Builder cookie, token, or mutation data, uses `no-referrer`, and has no postMessage or cross-origin DOM bridge. The Viewer still fetches only the same-origin public `/preview/content/*` projection. No CORS, CSP, network-guard, or Builder API exception is required.
+The frame sends no Builder cookie or mutation data, uses `no-referrer`, and has no postMessage or cross-origin DOM bridge. Its URL contains the short-lived preview authorization so same-origin Viewer requests can forward it to protected proxy routes. The token never contains Teacher answers and cannot protect or excuse private data in static assets. Viewer bundles contain presentation code but no Teacher solution pack or private publication projection.
+
+The hosted runtime has three explicit valid modes. Bare/canonical Viewer uses committed public content, committed hotspots, tracked UI, and Student activity mode without any preview request. Authorized Builder preview loads the saved Student-safe draft/hotspot state and protected Teacher UI/Teacher import state. Exact release preview loads a protected immutable public projection, then obtains Teacher UI, legacy solutions, and native Teacher documents only on demand from separately protected endpoints. An invalid explicit preview fails closed; it never silently becomes bare mode.
 
 ## Local and publication boundaries
 
 The hosted hotspot editor shares the established `EditableHotspotLayer`, canonical B2 pages, normalized geometry, and Student-safe activity catalog with existing code. Its persistence transport is the Builder content API. The local Ultimate B2 editor remains unauthenticated development tooling and continues to use loopback-only `/__hhplms/ultimate-b2-hotspots` and `/__hhplms/book-menu-skin-selection` middleware. Neither transport calls the other.
 
-A hosted save persists a Builder authoring revision and makes that Student-safe structural revision available to the dedicated live review Viewer. On startup the Viewer validates its public content pack and performs one no-store preview fetch before becoming ready; failures enter an explicit unavailable state rather than silently using stale committed hotspots. Revision `0` repository fallback is an authoritative server response, not a client-side network fallback. Android uses its bundled hotspot provider and makes no preview request.
+A hosted save persists a Builder authoring revision and makes that Student-safe structural revision available to an explicitly authorized draft Viewer. That mode validates its public content pack and performs one no-store preview fetch before becoming ready; failures enter an explicit unavailable state rather than silently using stale committed hotspots. Bare Viewer instead treats the committed manifest as canonical and makes no preview fetch. Revision `0` repository fallback remains an authoritative server response for explicit draft preview. Android uses its bundled hotspot provider and makes no preview request.
 
 A hosted save still does not publish LMS runtime, publish Android packs, mutate production runtime tables, or commit repository files. This is review preview, not publication. Planned follow-ons are:
 

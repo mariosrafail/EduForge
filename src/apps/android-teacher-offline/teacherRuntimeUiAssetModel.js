@@ -1,11 +1,17 @@
 import { hostedTeacherUiAssetPath, normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
 export function createTeacherRuntimeUiAssetModel({ authoring, resolveCanonicalAssetUrl, hostedPreview = null }) {
   if (!authoring || typeof resolveCanonicalAssetUrl !== "function") throw new TypeError("Teacher runtime UI asset factory requires canonical authoring and a URL resolver.");
   const overrides = hostedPreview ? normalizeHostedTeacherUiPreview(hostedPreview).assets : {};
-  const url = (binding) => overrides[binding.id]
-    ? hostedTeacherUiAssetPath(overrides[binding.id])
-    : resolveCanonicalAssetUrl(binding);
+  const context = resolveHostedViewerRuntimeContext();
+  const url = (binding) => {
+    if (!overrides[binding.id]) return resolveCanonicalAssetUrl(binding);
+    const assetPath = hostedTeacherUiAssetPath(overrides[binding.id]);
+    return context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
+      ? authorizedHostedPreviewPath(assetPath, context.authorization)
+      : assetPath;
+  };
   const artwork = (item) => Object.freeze({ id: item.id, label: item.label, controlId: item.controlId, destination: item.destination || null, normal: url(item.normal), hoverPressed: url(item.active) });
   const toolbarItems = Object.freeze(authoring.shell.toolbar.map((item) => Object.freeze({
     id: item.id, label: item.label, controlId: item.controlId, normal: url(item.normal), active: url(item.active), sound: url(item.sound),

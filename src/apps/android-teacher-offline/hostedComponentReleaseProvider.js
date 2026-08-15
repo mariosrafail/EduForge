@@ -5,7 +5,7 @@ import { createUltimateB2HostedOpenResponseSeed } from "../../data/ultimate-b2/h
 import { hydrateUltimateB2ReleaseImport } from "../../data/ultimate-b2/componentPublication.js";
 import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsBookCatalog.js";
 import { getUltimateB2StudentsBookHotspotActions, getUltimateB2StudentsBookHotspotActionsFromManifest } from "../../data/ultimate-b2/studentsBookHotspots.js";
-import { currentHostedReleaseId, hostedReleasePath } from "./hostedReleasePreview.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
 let cached = null;
 let pending = null;
@@ -13,9 +13,9 @@ let pending = null;
 export function clearPublishedComponentReleaseCache() { cached = null; pending = null; }
 
 async function loadRelease(signal) {
-  const releaseId = currentHostedReleaseId();
-  if (!releaseId) return { kind: "none" };
-  const response = await fetch(hostedReleasePath(releaseId, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal });
+  const context = resolveHostedViewerRuntimeContext();
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) return { kind: "none" };
+  const response = await fetch(hostedReleasePath(context.releaseId, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal });
   if (!response.ok) throw new Error("Prepared release is unavailable.");
   return normalizeComponentPublicationEnvelope(await response.json());
 }

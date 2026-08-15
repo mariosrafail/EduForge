@@ -39,21 +39,11 @@ function runMigrationManifestCheck(environment) {
   if (result.status !== 0) throw new Error(`Migration manifest verification failed with status ${result.status || 1}.`);
 }
 
-function generateTeacherReviewSolutions(environment) {
-  const result = spawnSync(process.execPath, [path.resolve("scripts/android-teacher/build-pack.mjs")], {
-    stdio: "inherit",
-    env: environment,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`Teacher Review solution generation failed with status ${result.status || 1}.`);
-}
-
 export async function buildReviewTarget(targetName, environment = process.env) {
   const target = reviewTargets[targetName];
   if (!target) throw new Error(`Unknown Netlify review target: ${targetName}`);
   reviewBuildPolicy(targetName, environment);
   runMigrationManifestCheck(environment);
-  if (targetName === "ultimate-b2-interactive") generateTeacherReviewSolutions(environment);
   process.env.VITE_APP_MODE = target.appMode;
   process.env.HHPLMS_BUILD_PROFILE = target.profile;
   delete process.env.ULTIMATE_B2_CONTENT_ROOT;

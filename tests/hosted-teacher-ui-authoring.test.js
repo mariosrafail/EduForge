@@ -95,6 +95,20 @@ test("runtime factory changes only the selected binding and reaches menu, toolba
   for (const value of [resolved.classroom.branding.bookMenu.units, resolved.toolbarItems, resolved.classroom.bookSwitches, resolved.classroom.revealControls, resolved.classroom.branding.menuTitle, resolved.classroom.sounds, resolved.classroom.controls, resolved.classroom.mediaPlayer]) assert.ok(value);
 });
 
+test("exact release Teacher UI assets carry the preview authorization", () => {
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  const token = `v1.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
+  Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?builderPreview=1&previewAuthorization=${token}&releaseId=${releaseId}`) });
+  try {
+    const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
+    const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview });
+    assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/assets/${checksum}.png?previewAuthorization=${encodeURIComponent(token)}`);
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, "location", descriptor); else delete globalThis.location;
+  }
+});
+
 test("prepare authenticates one allowlisted slot, creates opaque private staging, and rejects excluded or partial groups", async () => {
   const storage = new MemoryStorage();
   let preparedInput;

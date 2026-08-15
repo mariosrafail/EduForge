@@ -45,19 +45,19 @@ export default defineConfig(({ mode }) => {
   const androidOfflineServiceStub = path.resolve(process.cwd(), "src/apps/android-offline/androidOfflineServiceStubs.js");
   const offlineDisabledBookTools = path.resolve(process.cwd(), "src/apps/android-offline/OfflineDisabledBookTools.jsx");
   const bookAuthoringTools = path.resolve(process.cwd(), "src/components/lms/books/BookAuthoringTools.jsx");
-  const teacherAnswerUi = path.resolve(process.cwd(), !isStaticBookRuntime || buildProfile.teacherPresentation
+  const teacherAnswerUi = path.resolve(process.cwd(), !isStaticBookRuntime || buildProfile.teacherPresentation || buildProfile.authorizedTeacherPreview
     ? "src/components/lms/activities/ultimate-b2/TeacherAnswerUi.jsx"
     : "src/apps/android-offline/NoTeacherAnswerUi.jsx");
-  const teacherListeningPlayerAssets = path.resolve(process.cwd(), buildProfile.teacherPresentation
+  const teacherListeningPlayerAssets = path.resolve(process.cwd(), buildProfile.teacherPresentation || buildProfile.authorizedTeacherPreview
     ? "src/apps/android-teacher-offline/TeacherListeningPlayerAssets.js"
     : "src/apps/android-offline/NoTeacherListeningPlayerAssets.js");
   const offlineSolutionProvider = path.resolve(
     process.cwd(),
     buildProfileId === "android-teacher-offline"
       ? "src/apps/android-teacher-offline/generatedPackProvider.js"
-      : buildProfileId === "ultimate-b2-interactive-review"
-        ? "src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"
-      : "src/apps/android-teacher-offline/noOfflineSolutions.js",
+      : isHostedInteractiveReview
+        ? "src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js"
+        : "src/apps/android-teacher-offline/noOfflineSolutions.js",
   );
   const interactivePackProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/reviewPackProvider.js"
@@ -143,7 +143,7 @@ export default defineConfig(({ mode }) => {
     name: "hosted-interactive-title",
     transformIndexHtml(html) {
       return isHostedInteractiveReview
-        ? html.replace("<title>Hamilton House LMS</title>", "<title>Ultimate B2 Teacher Review</title>")
+        ? html.replace("<title>Hamilton House LMS</title>", "<title>Ultimate B2 Viewer</title>")
         : html;
     },
   };

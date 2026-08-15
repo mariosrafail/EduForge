@@ -20,7 +20,7 @@ The web LMS requests only the authenticated and entitled active public release. 
 
 Published binary URLs identify an exact previously published release plus an immutable checksum and extension. The server proves release membership before deriving the configured public object key. Objects are not copied, renamed, or garbage-collected during publication.
 
-The Teacher Review release-preview routes are read-only and pinned to an exact release UUID. They intentionally remain an unauthenticated review boundary to support the existing cross-origin Viewer. They expose neither Builder actors, source snapshots, archives, credentials, nor mutations. This boundary is not production Teacher authorization; normal LMS Teacher solutions always require the ordinary Teacher/admin role and package entitlement.
+Viewer release-preview routes are read-only and pinned to an exact release UUID. Every public, asset, Teacher UI, Teacher solution, and native Teacher release request requires either a valid Builder session or a signed, short-lived `previewAuthorization` whose action/component/release/activity scope is checked server-side. Public and Teacher projections remain separate, and Teacher data is loaded only on demand rather than compiled into the Viewer. This preview authorization is distinct from production LMS authorization; LMS Teacher solutions still require the ordinary Teacher/admin role and package entitlement.
 
 ## Rollout boundary
 

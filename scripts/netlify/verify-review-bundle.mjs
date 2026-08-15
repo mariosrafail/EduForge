@@ -31,19 +31,6 @@ const privateDataPatterns = [
   ["Neon hostname", /[a-z0-9.-]+\.neon\.tech\b/gi],
 ];
 
-const teacherAnswerPatternLabels = new Set([
-  "Teacher solution file",
-  "serialized accepted answers",
-  "serialized correct option",
-  "Complete Sentences answer mapping",
-  "private reveal payload",
-  "model answer payload",
-  "Reading publisher response",
-  "Open Response publisher model answer",
-]);
-
-const teacherReviewPrivateDataPatterns = privateDataPatterns.filter(([label]) => !teacherAnswerPatternLabels.has(label));
-
 const targetPatterns = Object.freeze({
   "ultimate-b2-builder": [
     ...privateDataPatterns,
@@ -56,7 +43,7 @@ const targetPatterns = Object.freeze({
     ["Platform Admin bundle", /Platform Administration|platform-admin-root/gi],
   ],
   "ultimate-b2-interactive": [
-    ...teacherReviewPrivateDataPatterns,
+    ...privateDataPatterns,
     ["Netlify runtime dependency", /["']\/\.netlify\/functions/gi],
     ["API runtime dependency", /["']\/api\//gi],
     ["auth runtime dependency", /["']\/auth\//gi],
@@ -129,24 +116,32 @@ async function verifyBuilderMutationSources() {
   assert.doesNotMatch(`${previewFrame}\n${previewUrl}`, /postMessage|contentWindow|document\.domain|document\.cookie|localStorage|sessionStorage/i);
 }
 
-async function verifyTeacherReviewSourcesAndArtifact(root) {
-  const [profiles, vite, embedded, solutions] = await Promise.all([
+async function verifyPublicViewerSourcesAndArtifact(root) {
+  const [profiles, vite, embedded, hostedSolutions, packagedSolutions, releaseProvider, previewProvider, buildScript] = await Promise.all([
     readFile(path.resolve("src/config/buildProfiles.js"), "utf8"),
     readFile(path.resolve("vite.config.js"), "utf8"),
     readFile(path.resolve("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx"), "utf8"),
-    readFile(path.resolve("src/apps/android-teacher-offline/hostedReviewTeacherSolutions.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/generatedPackProvider.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/hostedComponentReleaseProvider.js"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"), "utf8"),
+    readFile(path.resolve("scripts/netlify/build-review-target.mjs"), "utf8"),
   ]);
-  assert.match(profiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*teacherSolutions:\s*true[\s\S]*teacherPresentation:\s*true/);
-  assert.match(vite, /buildProfile\.teacherPresentation[\s\S]*TeacherAnswerUi\.jsx/);
-  assert.match(vite, /ultimate-b2-interactive-review[\s\S]*hostedReviewTeacherSolutions\.js/);
-  assert.match(embedded, /activeBuildProfile\.teacherPresentation[\s\S]*TEACHER_PRESENTATION_OFFLINE/);
-  assert.match(solutions, /teacher-solutions\.json[\s\S]*getOfflineTeacherSolution/);
+  assert.match(profiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*teacherSolutions:\s*false[\s\S]*teacherPresentation:\s*false[\s\S]*authorizedTeacherPreview:\s*true/);
+  assert.match(vite, /authorizedTeacherPreview[\s\S]*TeacherAnswerUi\.jsx/);
+  assert.doesNotMatch(vite, /hostedReviewTeacherSolutions|teacher-solutions\.json/);
+  assert.match(embedded, /resolveHostedViewerRuntimeContext\(\)\.teacherPreview/);
+  assert.match(hostedSolutions, /hostedReleasePath[\s\S]*teacher-solution/);
+  assert.doesNotMatch(hostedSolutions, /teacher-solutions\.json|acceptedAnswers|correctOptionId|modelAnswers?|revealText/i);
+  assert.match(packagedSolutions, /teacher-solutions\.json[\s\S]*getOfflineTeacherSolution/);
+  assert.match(releaseProvider, /native-teacher/);
+  assert.match(previewProvider, /teacher-solution|open-response-teacher/);
+  assert.doesNotMatch(buildScript, /generateTeacherReviewSolutions|android-teacher\/build-pack/);
 
   const artifactText = (await Promise.all((await textFiles(root)).map((file) => readFile(file, "utf8")))).join("\n");
-  assert.match(artifactText, /Ultimate B2 Teacher Review/);
-  assert.match(artifactText, /Show all answers/);
-  assert.match(artifactText, /Publisher answer/);
-  assert.match(artifactText, /binge-watching/);
+  assert.match(artifactText, /Ultimate B2 Viewer/);
+  assert.match(artifactText, /previewAuthorization/);
+  assert.doesNotMatch(artifactText, /Ultimate B2 Teacher Review|Films are an art form which involve many artistic processes/);
   assert.doesNotMatch(artifactText, /builderContentApiRoot|\/builder\/api\/auth|\/builder\/api\/content/);
 }
 
@@ -208,15 +203,15 @@ export async function verifyReviewBundle(targetName) {
   if (!relativeRoot) throw new Error(`Unknown review bundle target: ${targetName}`);
   const root = path.resolve(relativeRoot);
   assert.ok((await stat(root).catch(() => null))?.isDirectory(), `${targetName} review output is missing.`);
-  const teacherReview = targetName === "ultimate-b2-interactive";
-  const generic = await scanWebBundle(root, { allowTeacherAnswers: teacherReview });
+  const publicViewer = targetName === "ultimate-b2-interactive";
+  const generic = await scanWebBundle(root);
   assert.deepEqual(generic.findings, [], `${targetName} failed generic web safety:\n${JSON.stringify(generic.findings, null, 2)}`);
   if (targetName === "ultimate-b2-builder") {
     await verifyBuilderFunctionLayout();
     await verifyBuilderMutationSources();
     await verifySlimBuilderArtifact(root);
   }
-  if (teacherReview) await verifyTeacherReviewSourcesAndArtifact(root);
+  if (publicViewer) await verifyPublicViewerSourcesAndArtifact(root);
   const findings = [];
   const builderApiRoutes = new Set();
   for (const file of await textFiles(root)) {

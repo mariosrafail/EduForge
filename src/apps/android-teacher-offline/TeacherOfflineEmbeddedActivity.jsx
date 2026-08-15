@@ -9,6 +9,7 @@ import TeacherOfflineActivityVideoOverlay from "./TeacherOfflineActivityVideoOve
 import multipleChoiceAuthoring from "virtual:ultimate-b2-multiple-choice-presentation";
 import { useHostedOpenResponseDraft, useHostedOpenResponseImport } from "virtual:ultimate-b2-hosted-open-response-drafts";
 import { usePublishedComponentRelease } from "virtual:component-publication";
+import { resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
 const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o2": Object.freeze({ width: 1280, height: 728 }),
@@ -26,7 +27,9 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const publication = usePublishedComponentRelease();
   const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
-  const activityMode = activeBuildProfile.teacherPresentation
+  const teacherPreview = activeBuildProfile.teacherPresentation
+    || (activeBuildProfile.authorizedTeacherPreview && resolveHostedViewerRuntimeContext().teacherPreview);
+  const activityMode = teacherPreview
     ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
     : ACTIVITY_MODES.ANDROID_OFFLINE;
 
@@ -116,7 +119,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode /> : <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}
@@ -127,7 +130,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           activityPresentation={{
             command: activityPresentationCommand,
             onStateChange: onActivityPresentationStateChange,
-            multipleChoiceAuthoring: activeBuildProfile.teacherPresentation && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
+            multipleChoiceAuthoring: teacherPreview && activityId === multipleChoiceAuthoring?.activityId ? multipleChoiceAuthoring : null,
           }}
         />}
       </div>

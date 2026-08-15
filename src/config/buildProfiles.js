@@ -21,7 +21,7 @@ export const buildProfiles = Object.freeze({
     builderReadOnly: true, builderMutations: false, publicationAuthoring: true, hostedDocumentWrites: Object.freeze(["hotspots", "open-response", "ui-controller", "native-activity-public", "native-activity-teacher"]), teacherSolutions: false, teacherPresentation: false, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW, {
-    builderReadOnly: true, builderMutations: false, publicationPreview: true, teacherSolutions: true, teacherPresentation: true, staticOnly: true,
+    builderReadOnly: true, builderMutations: false, publicationPreview: true, teacherSolutions: false, teacherPresentation: false, authorizedTeacherPreview: true, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE, {
     builderReadOnly: true, builderMutations: false, teacherSolutions: false, teacherPresentation: false, staticOnly: true,
