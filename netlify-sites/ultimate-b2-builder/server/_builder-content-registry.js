@@ -21,6 +21,19 @@ import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
 
+async function loadUltimateB2HotspotActivityUniverse(loadRelated) {
+  const storedIndex = await loadRelated("native-activity-index", "");
+  const index = storedIndex?.document || createEmptyNativeActivityIndex();
+  const nativeActivities = [];
+  for (const entry of index.activities) {
+    const storedPublic = await loadRelated("native-activity-public", entry.activityId);
+    const publicDocument = storedPublic?.document;
+    if (!publicDocument || publicDocument.kind !== entry.kind || publicDocument.placement.pageId !== entry.placement.pageId) throw new Error(`Native activity ${entry.activityId} is incomplete.`);
+    nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true });
+  }
+  return [...ultimateB2StudentsBookAuthoringActivities, ...nativeActivities];
+}
+
 const ultimateB2HotspotResource = Object.freeze({
   bookSlug: "ultimate-b2",
   componentSlug: "ultimate-b2-students-book",
@@ -38,19 +51,11 @@ const ultimateB2HotspotResource = Object.freeze({
     return validateUltimateB2HotspotManifestStructure(document);
   },
   async validateMutationContext({ document, loadRelated }) {
-    const storedIndex = await loadRelated("native-activity-index", "");
-    const index = storedIndex?.document || createEmptyNativeActivityIndex();
-    const nativeActivities = [];
-    for (const entry of index.activities) {
-      const storedPublic = await loadRelated("native-activity-public", entry.activityId);
-      const publicDocument = storedPublic?.document;
-      if (!publicDocument || publicDocument.kind !== entry.kind || publicDocument.placement.pageId !== entry.placement.pageId) throw new Error(`Native activity ${entry.activityId} is incomplete.`);
-      nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true });
-    }
-    validateAndNormalizeUltimateB2HotspotManifest(document, [...ultimateB2StudentsBookAuthoringActivities, ...nativeActivities]);
+    validateAndNormalizeUltimateB2HotspotManifest(document, await loadUltimateB2HotspotActivityUniverse(loadRelated));
   },
-  projectPreview(document) {
-    return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(document));
+  requiredRelatedForPreview: Object.freeze(["native-activity-index", "native-activity-public"]),
+  async projectPreview(document, { loadRelated }) {
+    return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(document), await loadUltimateB2HotspotActivityUniverse(loadRelated));
   },
 });
 

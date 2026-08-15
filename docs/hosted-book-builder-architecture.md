@@ -59,7 +59,7 @@ Each save also supplies a UUID `clientMutationId`. Retrying the same document id
 
 The public document guard recursively rejects exact normalized private/security key concepts, including answers, correct-option identities, model answers, Teacher solutions, reveal text, passwords, credentials, tokens, secrets, and database URLs. The canonical Ultimate B2 hotspot validator then enforces document identity, page IDs, hotspot IDs, Unit/page relationships, geometry, action type, labels, and Student-safe activity identities.
 
-The same current authoring document can be exposed to the dedicated Viewer only through a separate explicit resource capability: `previewReadable: true` plus `projectPreview(document)`. Authenticated Builder `readable` authorization does not imply public preview authorization. The public handler performs exact registry lookup, stored schema validation, canonical normalization, checksum and revision validation, repository-baseline fallback where appropriate, recursive private-key guarding, explicit projection, and a second guard on the projection. Unknown or non-preview resources fail closed.
+The same current authoring document can be exposed to the dedicated Viewer only through a separate explicit resource capability: `previewReadable: true` plus `projectPreview(document, context)`. Authenticated Builder `readable` authorization does not imply public preview authorization. A resource may explicitly declare the related public document families required by its projection. Hotspot preview declares the native activity index and native public activity documents, then validates against the same canonical-plus-current-native activity universe used at save time. Missing, deleted, malformed, or undeclared related resources fail closed; Teacher documents are never part of this context. The public handler performs exact registry lookup, stored schema validation, canonical normalization, checksum and revision validation, repository-baseline fallback where appropriate, recursive private-key guarding, explicit projection, and a second guard on the projection. Unknown or non-preview resources fail closed.
 
 ## API and routing
 
@@ -90,7 +90,7 @@ The hosted hash routes remain:
 
 The hosted Builder is the authenticated authoring/control surface; it does not embed a second copy of the Student/Teacher interactive runtime. Activity and UI review render the dedicated Viewer in a cross-origin frame at the single configured origin `https://hhplms-viewer.netlify.app`. Hotspot geometry remains editable on the local Builder canvas, while its Viewer frame represents only the last successfully saved revision and reloads after a successful PUT.
 
-The Builder creates these bounded query intents and appends a signed, short-lived `previewAuthorization` issued for the exact intent:
+The Builder creates these bounded query intents and appends a signed, short-lived `previewAuthorization` issued for the exact intent. The frame uses the issuer's returned `expiresAt` to schedule one replacement authorization thirty seconds before expiry. Intent, release, activity, manual-refresh, and unmount changes cancel the previous timer/request. Renewal failure removes the iframe authorization and fails the explicit preview closed rather than downgrading it to bare mode:
 
 - `?builderPreview=1&view=library`
 - `?builderPreview=1&view=page&unitNumber=<number>&pageId=<stable-page-id>`

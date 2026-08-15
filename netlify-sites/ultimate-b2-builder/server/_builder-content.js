@@ -5,6 +5,7 @@ import {
   requireBuilderUser,
 } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
+import { createBuilderRelatedDocumentLoader } from "./_builder-related-context.js";
 import {
   assertPublicBuilderDocument,
   builderClientMutationIdPattern,
@@ -193,10 +194,12 @@ export function createBuilderContentHandler(overrides = {}) {
           await resource.validateMutationContext({
             document,
             currentDocument: currentState?.document || null,
-            loadRelated: async (relatedResource, relatedKey) => {
-              const resolved = await dependencies.resolveResource(resource.bookSlug, resource.componentSlug, relatedResource, relatedKey);
-              return resolved ? dependencies.loadDocument(sql, resolved) : null;
-            },
+            loadRelated: createBuilderRelatedDocumentLoader({
+              sql,
+              resource,
+              resolveResource: dependencies.resolveResource,
+              loadDocument: dependencies.loadDocument,
+            }),
           });
         } catch (error) {
           return json(400, { error: "invalid_document", detail: String(error.message || "Document consistency validation failed").slice(0, 240) });

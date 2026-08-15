@@ -1,8 +1,9 @@
 import { getBuilderSql, json } from "./_builder-auth.js";
-import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
+import { authorizeBuilderPreviewRequestWithDiagnostic, builderPreviewAuthorizationDiagnosticCodes } from "./_builder-preview-authorization.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument } from "./_builder-content-security.js";
 import { loadBuilderComponentDocument } from "./_builder-content-store.js";
+import { createBuilderRelatedDocumentLoader } from "./_builder-related-context.js";
 
 const previewDiagnosticStages = new Set([
   "route",
@@ -16,6 +17,7 @@ const previewDiagnosticStages = new Set([
   "response",
 ]);
 const safeDiagnosticToken = /^[A-Za-z0-9_.-]{1,64}$/;
+const previewAuthorizationDiagnosticCodes = new Set(builderPreviewAuthorizationDiagnosticCodes);
 
 function safeToken(value, fallback) {
   return typeof value === "string" && safeDiagnosticToken.test(value) ? value : fallback;
@@ -71,7 +73,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
     getDatabase: overrides.getDatabase || getBuilderSql,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
-    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequest,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequestWithDiagnostic,
     logger: overrides.logger || console,
   };
 
@@ -88,7 +90,15 @@ export function createBuilderPreviewHandler(overrides = {}) {
 
       stage = "database";
       const sql = dependencies.getDatabase();
-      if (resource.previewAudience === "teacher" && !(await dependencies.authorizePreview(event, sql, { action: "teacher-ui-draft", bookSlug: resource.bookSlug, componentSlug: resource.componentSlug }))) return previewJson(401, { error: "Unauthorized" });
+      if (resource.previewAudience === "teacher") {
+        const decision = await dependencies.authorizePreview(event, sql, { action: "teacher-ui-draft", bookSlug: resource.bookSlug, componentSlug: resource.componentSlug });
+        const authorized = typeof decision === "boolean" ? decision : decision?.authorized === true;
+        if (!authorized) {
+          const code = previewAuthorizationDiagnosticCodes.has(decision?.code) ? decision.code : "authorization_denied";
+          dependencies.logger.warn?.("Builder preview authorization denied", { code });
+          return previewJson(401, { error: "Unauthorized" });
+        }
+      }
       stage = "load_document";
       let state = await dependencies.loadDocument(sql, resource);
       if (!state) {
@@ -100,7 +110,17 @@ export function createBuilderPreviewHandler(overrides = {}) {
       stage = "validate_public_document";
       assertPublicBuilderDocument(state.document);
       stage = "project_preview";
-      const document = resource.projectPreview(state.document);
+      const requiredRelated = resource.requiredRelatedForPreview || [];
+      const projectionContext = requiredRelated.length ? {
+        loadRelated: createBuilderRelatedDocumentLoader({
+          sql,
+          resource,
+          resolveResource: dependencies.resolveResource,
+          loadDocument: dependencies.loadDocument,
+          allowedResources: requiredRelated,
+        }),
+      } : undefined;
+      const document = await resource.projectPreview(state.document, projectionContext);
       stage = "validate_projection";
       assertPublicBuilderDocument(document);
       stage = "response";

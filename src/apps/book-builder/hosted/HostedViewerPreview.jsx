@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createHostedViewerPreviewUrl } from "./hostedViewerPreviewUrl.js";
 import { createBuilderPreviewAuthorization } from "./builderPreviewAuthorizationApi.js";
+import { startHostedViewerAuthorizationLifecycle } from "./hostedViewerAuthorizationLifecycle.js";
 
 export function HostedViewerPreview({
   intent,
@@ -16,12 +17,12 @@ export function HostedViewerPreview({
   const [manualRefresh, setManualRefresh] = useState(0);
   const [frameState, setFrameState] = useState("loading");
   useEffect(() => {
-    const controller = new AbortController();
     setAuthorization(null); setAuthorizationError(false);
-    createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal: controller.signal })
-      .then((value) => { if (!controller.signal.aborted) setAuthorization(value.token); })
-      .catch(() => { if (!controller.signal.aborted) setAuthorizationError(true); });
-    return () => controller.abort();
+    return startHostedViewerAuthorizationLifecycle({
+      requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal }),
+      onAuthorization: (token) => { setAuthorization(token); if (token) setAuthorizationError(false); },
+      onError: () => setAuthorizationError(true),
+    });
   }, [bookSlug, componentSlug, intent.view, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
   const src = authorization ? createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug, previewAuthorization: authorization }) : "";
   const frameKey = `${src}:${refreshKey}:${manualRefresh}`;

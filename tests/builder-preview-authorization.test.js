@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { issueBuilderPreviewAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
+import { classifyBuilderPreviewAuthorization, issueBuilderPreviewAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { createBuilderPreviewAuthorizationHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 
@@ -18,6 +18,20 @@ test("short-lived preview authorization is signed and restricted to exact action
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, action: "release-teacher-solution" }, { environment, now }), false);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now: now + 301_000 }), false);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(`${issued.token.slice(0, -1)}x`), scope, { environment, now }), false);
+});
+
+test("authorization denial classification is bounded and never returns token material", () => {
+  const issued = issueBuilderPreviewAuthorization(intent, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
+  const scope = { action: "open-response-teacher", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, activityId: intent.activityId };
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now }), { authorized: true, code: "authorized" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization({}, scope, { environment, now }), { authorized: false, code: "token_missing" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor("malformed"), scope, { environment, now }), { authorized: false, code: "token_malformed" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now: now + 301_000 }), { authorized: false, code: "token_expired" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(`${issued.token.slice(0, -1)}x`), scope, { environment, now }), { authorized: false, code: "signature_invalid" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, action: "release-teacher-solution" }, { environment, now }), { authorized: false, code: "action_denied" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization(eventFor(issued.token), { ...scope, componentSlug: "ultimate-b2-workbook" }, { environment, now }), { authorized: false, code: "scope_mismatch" });
+  assert.deepEqual(classifyBuilderPreviewAuthorization({ multiValueQueryStringParameters: { previewAuthorization: [issued.token, issued.token] } }, scope, { environment, now }), { authorized: false, code: "token_malformed" });
+  assert.doesNotMatch(JSON.stringify(classifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now })), /v1\.|abcdefghijklmnopQRSTUV/);
 });
 
 test("release authorization cannot cross release, activity, component, or action scope", () => {

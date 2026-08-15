@@ -7,6 +7,17 @@ const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^v1\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]{43})$/;
 const ACTIONS = new Set(["teacher-ui-draft", "open-response-teacher", "release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]);
+export const builderPreviewAuthorizationDiagnosticCodes = Object.freeze([
+  "authorized",
+  "builder_session",
+  "token_missing",
+  "token_malformed",
+  "token_expired",
+  "signature_invalid",
+  "action_denied",
+  "scope_mismatch",
+  "authorization_denied",
+]);
 
 function secret(environment = process.env) {
   const value = String(environment.BUILDER_PREVIEW_AUTH_SECRET || "");
@@ -45,27 +56,45 @@ export function issueBuilderPreviewAuthorization(input, { environment = process.
 
 function tokenFromEvent(event) {
   const values = event?.multiValueQueryStringParameters?.previewAuthorization;
-  if (Array.isArray(values)) return values.length === 1 ? String(values[0]) : "";
-  return String(event?.queryStringParameters?.previewAuthorization || "");
+  if (Array.isArray(values)) {
+    if (values.length === 0) return { token: "", code: "token_missing" };
+    if (values.length !== 1) return { token: "", code: "token_malformed" };
+    return { token: String(values[0]), code: null };
+  }
+  const token = String(event?.queryStringParameters?.previewAuthorization || "");
+  return { token, code: token ? null : "token_missing" };
 }
 
-export function verifyBuilderPreviewAuthorization(event, requestedScope, { environment = process.env, now = Date.now() } = {}) {
-  const match = tokenFromEvent(event).match(TOKEN);
-  if (!match || !ACTIONS.has(requestedScope.action)) return false;
+export function classifyBuilderPreviewAuthorization(event, requestedScope, { environment = process.env, now = Date.now() } = {}) {
+  const selected = tokenFromEvent(event);
+  if (selected.code) return { authorized: false, code: selected.code };
+  const match = selected.token.match(TOKEN);
+  if (!match) return { authorized: false, code: "token_malformed" };
+  if (!ACTIONS.has(requestedScope.action)) return { authorized: false, code: "action_denied" };
   const expected = Buffer.from(signature(match[1], secret(environment)));
   const actual = Buffer.from(match[2]);
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return false;
-  let payload; try { payload = JSON.parse(Buffer.from(match[1], "base64url").toString("utf8")); } catch { return false; }
-  if (!exact(payload, ["version", "expiresAt", "nonce", "actions", "bookSlug", "componentSlug", "view", "activityId", "releaseId"]) || payload.version !== 1 || !Number.isSafeInteger(payload.expiresAt) || payload.expiresAt <= Math.floor(now / 1000) || !/^[A-Za-z0-9_-]{16,64}$/.test(payload.nonce) || !Array.isArray(payload.actions) || !payload.actions.includes(requestedScope.action)) return false;
-  if (payload.bookSlug !== requestedScope.bookSlug || payload.componentSlug !== requestedScope.componentSlug) return false;
-  if (requestedScope.releaseId && payload.releaseId !== String(requestedScope.releaseId).toLowerCase()) return false;
-  if (requestedScope.activityId && payload.activityId !== null && payload.activityId !== requestedScope.activityId) return false;
-  return true;
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return { authorized: false, code: "signature_invalid" };
+  let payload; try { payload = JSON.parse(Buffer.from(match[1], "base64url").toString("utf8")); } catch { return { authorized: false, code: "token_malformed" }; }
+  if (!exact(payload, ["version", "expiresAt", "nonce", "actions", "bookSlug", "componentSlug", "view", "activityId", "releaseId"]) || payload.version !== 1 || !Number.isSafeInteger(payload.expiresAt) || !/^[A-Za-z0-9_-]{16,64}$/.test(payload.nonce) || !Array.isArray(payload.actions)) return { authorized: false, code: "token_malformed" };
+  if (payload.expiresAt <= Math.floor(now / 1000)) return { authorized: false, code: "token_expired" };
+  if (!payload.actions.includes(requestedScope.action)) return { authorized: false, code: "action_denied" };
+  if (payload.bookSlug !== requestedScope.bookSlug || payload.componentSlug !== requestedScope.componentSlug) return { authorized: false, code: "scope_mismatch" };
+  if (requestedScope.releaseId && payload.releaseId !== String(requestedScope.releaseId).toLowerCase()) return { authorized: false, code: "scope_mismatch" };
+  if (requestedScope.activityId && payload.activityId !== null && payload.activityId !== requestedScope.activityId) return { authorized: false, code: "scope_mismatch" };
+  return { authorized: true, code: "authorized" };
+}
+
+export function verifyBuilderPreviewAuthorization(event, requestedScope, options) {
+  return classifyBuilderPreviewAuthorization(event, requestedScope, options).authorized;
+}
+
+export async function authorizeBuilderPreviewRequestWithDiagnostic(event, sql, scope, options) {
+  if (await currentBuilderUserFromEvent(sql, event)) return { authorized: true, code: "builder_session" };
+  return classifyBuilderPreviewAuthorization(event, scope, options);
 }
 
 export async function authorizeBuilderPreviewRequest(event, sql, scope, options) {
-  if (await currentBuilderUserFromEvent(sql, event)) return true;
-  return verifyBuilderPreviewAuthorization(event, scope, options);
+  return (await authorizeBuilderPreviewRequestWithDiagnostic(event, sql, scope, options)).authorized;
 }
 
 export { normalizeIntent as normalizeBuilderPreviewAuthorizationIntent };
