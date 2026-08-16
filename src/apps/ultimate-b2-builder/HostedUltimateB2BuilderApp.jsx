@@ -79,9 +79,9 @@ function ActivityReview({ nativeActivities }) {
   </main>;
 }
 
-export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots", nativeActivities = null }) {
+export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots", nativeActivities = null, bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book" }) {
   return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter="ultimate-b2-students-book">
-    <UnifiedBuilderReview tool={tool} pages={nativeActivities?.placements || []}>
+    <UnifiedBuilderReview tool={tool} pages={nativeActivities?.placements || []} bookSlug={bookSlug} componentSlug={componentSlug}>
       {tool === "hotspots" ? <HostedUltimateB2HotspotBuilder /> : null}
       {tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} /> : null}
       {tool === "ui" ? <HostedTeacherUiController /> : null}

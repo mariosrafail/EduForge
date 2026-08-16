@@ -11,6 +11,7 @@ export function HostedViewerPreview({
   refreshKey = 0,
   title,
   description = "",
+  openPlayerHref = "",
 }) {
   const [authorization, setAuthorization] = useState(null);
   const [authorizationError, setAuthorizationError] = useState(false);
@@ -34,7 +35,7 @@ export function HostedViewerPreview({
       <div><strong>{title}</strong>{description ? <span>{description}</span> : null}</div>
       <div>
         <button type="button" onClick={() => { setFrameState("loading"); setManualRefresh((value) => value + 1); }}>Refresh Viewer</button>
-        {src ? <a href={src} target="_blank" rel="noreferrer">Open in Viewer</a> : null}
+        {openPlayerHref ? <a href={openPlayerHref} target="_blank" rel="noopener noreferrer">Open Player</a> : null}
       </div>
     </header>
     <p className="hosted-viewer-preview-state" role="status" data-state={frameState}>

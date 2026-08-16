@@ -7,6 +7,7 @@ import {
 } from "./hostedBuilderCatalog.js";
 import { resolveHostedBuilderAdapter } from "./hostedBuilderAdapters.jsx";
 import { resolveHostedBuilderTool } from "./hostedBuilderCapabilities.js";
+import { HostedBuilderReviewPage } from "./HostedBuilderReviewPage.jsx";
 import { hostedBuilderHash, parseHostedBuilderHash } from "./hostedBuilderRouter.js";
 import "./hostedBuilder.css";
 
@@ -87,7 +88,7 @@ function Workspace({ book, component, tool }) {
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>
-      <WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} />
+      <WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} bookSlug={book.slug} componentSlug={component.slug} />
     </Suspense>
   </main>;
 }
@@ -105,6 +106,10 @@ export function HostedBookBuilderApp() {
   if (route.kind === "book") return <ComponentSelection book={book} />;
   const component = findHostedBuilderComponent(book, route.componentSlug);
   if (!component) return <NotFound />;
+  if (route.kind === "review") {
+    if (!resolveHostedBuilderAdapter(book, component)) return <UnavailableComponent book={book} component={component} />;
+    return <HostedBuilderReviewPage book={book} component={component} intent={route.intent} />;
+  }
   return <Workspace book={book} component={component} tool={route.tool} />;
 }
 

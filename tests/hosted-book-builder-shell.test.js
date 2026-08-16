@@ -10,6 +10,7 @@ import {
 } from "../src/apps/book-builder/hosted/hostedBuilderCatalog.js";
 import {
   hostedBuilderHash,
+  hostedBuilderReviewHash,
   parseHostedBuilderHash,
 } from "../src/apps/book-builder/hosted/hostedBuilderRouter.js";
 import { PHASE_ONE_VISIBLE_COMPONENTS } from "../src/config/bookCatalogVisibility.js";
@@ -65,9 +66,52 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
 });
 
+test("generic hosted Review routing round-trips strict token-free Viewer intents", () => {
+  const identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
+  const releaseId = "10000000-0000-4000-8000-000000000012";
+  const intents = [
+    { view: "library" },
+    { view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1" },
+    { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o8" },
+    { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o8", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1" },
+    { view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", releaseId },
+  ];
+  for (const intent of intents) {
+    const hash = hostedBuilderReviewHash({ ...identity, intent });
+    assert.deepEqual(parseHostedBuilderHash(hash), { kind: "review", ...identity, intent });
+    assert.doesNotMatch(hash, /previewAuthorization|token|secret/i);
+  }
+  assert.equal(hostedBuilderReviewHash({ ...identity, intent: intents[1] }), "#/books/ultimate-b2/components/ultimate-b2-students-book/review?view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1");
+});
+
+test("generic hosted Review routing rejects malformed and over-scoped input", () => {
+  const base = "#/books/ultimate-b2/components/ultimate-b2-students-book/review";
+  const invalid = [
+    `${base}`,
+    `${base}?view=unknown`,
+    `${base}?view=page&unitNumber=1`,
+    `${base}?view=page&unitNumber=0&pageId=ub2-sb-unit-1-part-1`,
+    `${base}?view=page&unitNumber=01&pageId=ub2-sb-unit-1-part-1`,
+    `${base}?view=activity&activityId=javascript%3Aalert%281%29`,
+    `${base}?view=activity&activityId=ultimate-b2-sb-u1-p1-o8&pageId=ub2-sb-unit-1-part-1`,
+    `${base}?view=activity&activityId=ultimate-b2-sb-u1-p1-o8&unitNumber=1`,
+    `${base}?view=library&view=page`,
+    `${base}?view=library&unknown=value`,
+    `${base}?view=library&previewAuthorization=secret`,
+    `${base}?view=library&token=secret`,
+    `${base}?view=library&releaseId=latest`,
+    `${base}?view=%E0%A4%A`,
+    "#/books/%E0%A4%A/components/ultimate-b2-students-book/review?view=library",
+  ];
+  for (const hash of invalid) assert.deepEqual(parseHostedBuilderHash(hash), { kind: "not-found" }, hash);
+  assert.throws(() => hostedBuilderReviewHash({ bookSlug: "ultimate-b2", componentSlug: "../secret", intent: { view: "library" } }), /identity is invalid/);
+  assert.throws(() => hostedBuilderReviewHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", intent: { view: "activity", activityId: "valid-id", unitNumber: 1 } }), /incomplete/);
+});
+
 test("generic shell owns navigation while B2 imports stay inside the adapter boundary", async () => {
-  const [shell, router, adapters, b2Workspace, entry, root] = await Promise.all([
+  const [shell, reviewPage, router, adapters, b2Workspace, entry, root] = await Promise.all([
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx"),
     read("src/apps/book-builder/hosted/hostedBuilderRouter.js"),
     read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
@@ -75,6 +119,8 @@ test("generic shell owns navigation while B2 imports stay inside the adapter bou
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
   ]);
   assert.doesNotMatch(shell, /ultimate-b2|UltimateB2|StudentsBookActivity|runtime-hotspots|TeacherOffline/i);
+  assert.doesNotMatch(reviewPage, /ultimate-b2|UltimateB2|TeacherOffline|android-teacher-offline|postMessage|localStorage|sessionStorage/i);
+  assert.match(reviewPage, /HostedViewerPreview/);
   assert.match(adapters, /UltimateB2StudentsBookHostedWorkspace/);
   assert.doesNotMatch(b2Workspace, /NormalizedStudentsBookActivity|ACTIVITY_MODES/);
   assert.match(b2Workspace, /HostedUltimateB2HotspotBuilder/);

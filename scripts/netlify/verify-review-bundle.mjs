@@ -87,6 +87,7 @@ async function verifyBuilderMutationSources() {
     "src/apps/book-builder/hosted/hostedBuilderEntry.jsx",
     "src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx",
     "src/apps/book-builder/hosted/HostedBookBuilderApp.jsx",
+    "src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx",
     "src/apps/book-builder/hosted/hostedBuilderAdapters.jsx",
     "src/apps/book-builder/hosted/HostedViewerPreview.jsx",
     "src/apps/book-builder/hosted/hostedViewerPreviewUrl.js",
@@ -101,10 +102,12 @@ async function verifyBuilderMutationSources() {
     assert.doesNotMatch(source, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
   }
 
-  const [html, hostedEntry, hostedWorkspace, previewFrame, previewUrl] = await Promise.all([
+  const [html, hostedEntry, hostedWorkspace, reviewPage, reviewRouter, previewFrame, previewUrl] = await Promise.all([
     readFile(path.resolve("ultimate-b2-builder.html"), "utf8"),
     readFile(path.resolve("src/apps/book-builder/hosted/hostedBuilderEntry.jsx"), "utf8"),
     readFile(path.resolve("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/hostedBuilderRouter.js"), "utf8"),
     readFile(path.resolve("src/apps/book-builder/hosted/HostedViewerPreview.jsx"), "utf8"),
     readFile(path.resolve("src/apps/book-builder/hosted/hostedViewerPreviewUrl.js"), "utf8"),
   ]);
@@ -114,6 +117,10 @@ async function verifyBuilderMutationSources() {
   assert.match(previewUrl, /https:\/\/hhplms-viewer\.netlify\.app/);
   assert.match(previewFrame, /referrerPolicy="no-referrer"/);
   assert.match(previewFrame, /createBuilderPreviewAuthorization/);
+  assert.match(previewFrame, /target="_blank" rel="noopener noreferrer">Open Player/);
+  assert.doesNotMatch(previewFrame, /href=\{src\}/);
+  assert.match(reviewPage, /<HostedViewerPreview/);
+  assert.doesNotMatch(`${reviewPage}\n${reviewRouter}`, /previewAuthorization/);
   assert.match(previewUrl, /previewAuthorization/);
   assert.doesNotMatch(`${previewFrame}\n${previewUrl}`, /postMessage|contentWindow|document\.domain|document\.cookie|localStorage|sessionStorage/i);
 }

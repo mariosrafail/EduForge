@@ -8,6 +8,7 @@ import {
   publicationReadinessPresentation,
   resolveUnifiedReviewIntent,
 } from "../src/apps/ultimate-b2-builder/builderReviewModel.js";
+import { hostedBuilderReviewHash, parseHostedBuilderHash } from "../src/apps/book-builder/hosted/hostedBuilderRouter.js";
 
 const page = { pageId: "ub2-sb-unit-1-part-1", unitNumber: 1 };
 const release = { id: "10000000-0000-4000-8000-000000000012", number: 12, state: "stale" };
@@ -20,6 +21,18 @@ test("unified review resolves exact activity, page, and immutable release intent
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId });
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId, releaseId: release.id });
   assert.equal(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release: null }), null);
+});
+
+test("resolved draft and release intents create deterministic token-free Builder Player URLs", () => {
+  const identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
+  const draftIntent = resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId }, page, release });
+  const releaseIntent = resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release });
+  for (const intent of [draftIntent, releaseIntent]) {
+    const hash = hostedBuilderReviewHash({ ...identity, intent });
+    assert.deepEqual(parseHostedBuilderHash(hash), { kind: "review", ...identity, intent });
+    assert.doesNotMatch(hash, /previewAuthorization|token|secret/i);
+  }
+  assert.match(hostedBuilderReviewHash({ ...identity, intent: releaseIntent }), new RegExp(`releaseId=${release.id}$`));
 });
 
 test("publication readiness errors retain safe actionable activity issues", () => {
@@ -48,4 +61,6 @@ test("only the shared Review owner mounts the external hosted Viewer", async () 
   assert.equal(shared.match(/<HostedViewerPreview\b/g)?.length, 1);
   assert.match(shared, /Unsaved changes are not included in Review\. Save them first\./);
   assert.match(shared, /Release #\{release\.number\} is immutable and older than the current saved draft\./);
+  assert.match(shared, /openPlayerHref=\{hostedBuilderReviewHash/);
+  assert.doesNotMatch(shared, /previewAuthorization/);
 });

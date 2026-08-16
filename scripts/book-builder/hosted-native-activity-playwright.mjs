@@ -134,7 +134,28 @@ try {
   await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByLabel("Activity kind").selectOption("open-response"); await page.getByLabel("Initial title (optional)").fill("Browser native response"); await page.getByRole("button", { name: "Create native draft" }).click();
   const openResponseId = "ultimate-b2-sb-u1-p1-o90"; await page.getByRole("heading", { name: "Browser native response" }).waitFor(); await page.getByText(openResponseId, { exact: true }).first().waitFor(); await page.getByText(/included in Publication v2/).waitFor();
   await page.getByLabel("Activity title").fill("Persisted browser response"); await page.getByLabel("Visible instruction").fill("Respond in complete sentences.");
-  await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); await page.locator(".unified-builder-review-dialog iframe").waitFor(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1); await page.getByText("Unsaved changes are not included in Review. Save them first.", { exact: true }).waitFor(); const unsavedViewer = page.frameLocator(".unified-builder-review-dialog iframe"); await unsavedViewer.getByRole("heading", { name: "Browser native response", exact: true }).waitFor(); assert.equal(await unsavedViewer.getByRole("heading", { name: "Persisted browser response", exact: true }).count(), 0); const firstReviewAuthorizationCount = authorizationIntents.length; await page.keyboard.press("Escape"); await page.locator(".unified-builder-review-dialog iframe").waitFor({ state: "detached" }); assert.equal(await page.getByRole("button", { name: "Review", exact: true }).evaluate((element) => element === document.activeElement), true);
+  await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); await page.locator(".unified-builder-review-dialog iframe").waitFor(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1); await page.getByText("Unsaved changes are not included in Review. Save them first.", { exact: true }).waitFor(); const unsavedViewer = page.frameLocator(".unified-builder-review-dialog iframe"); await unsavedViewer.getByRole("heading", { name: "Browser native response", exact: true }).waitFor(); assert.equal(await unsavedViewer.getByRole("heading", { name: "Persisted browser response", exact: true }).count(), 0); const firstReviewAuthorizationCount = authorizationIntents.length;
+  const activityAuthorizationCount = authorizationIntents.length;
+  const [activityPlayer] = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("link", { name: "Open Player", exact: true }).click(),
+  ]);
+  await activityPlayer.getByRole("heading", { name: "Player Review", exact: true }).waitFor();
+  const activityPlayerUrl = new URL(activityPlayer.url());
+  assert.equal(activityPlayerUrl.origin, origin);
+  assert.equal(activityPlayerUrl.pathname, "/");
+  assert.equal(activityPlayerUrl.search, "");
+  assert.match(activityPlayerUrl.hash, /^#\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/review\?view=activity&activityId=ultimate-b2-sb-u1-p1-o90&unitNumber=1&pageId=ub2-sb-unit-1-part-1$/);
+  assert.doesNotMatch(activityPlayer.url(), /previewAuthorization|token|secret/i);
+  await activityPlayer.locator(".hosted-builder-review-page iframe").waitFor();
+  const activityPlayerFrameUrl = new URL(await activityPlayer.locator(".hosted-builder-review-page iframe").getAttribute("src"));
+  assert.equal(activityPlayerFrameUrl.origin, "https://hhplms-viewer.netlify.app");
+  assert.equal(activityPlayerFrameUrl.searchParams.get("view"), "activity");
+  assert.equal(activityPlayerFrameUrl.searchParams.get("activityId"), openResponseId);
+  assert.ok(authorizationIntents.length > activityAuthorizationCount);
+  await activityPlayer.frameLocator(".hosted-builder-review-page iframe").getByRole("heading", { name: "Browser native response", exact: true }).waitFor();
+  await activityPlayer.close();
+  await page.keyboard.press("Escape"); await page.locator(".unified-builder-review-dialog iframe").waitFor({ state: "detached" }); assert.equal(await page.getByRole("button", { name: "Review", exact: true }).evaluate((element) => element === document.activeElement), true);
   await page.getByRole("button", { name: "Add Question", exact: true }).click(); const firstQuestionId = await page.locator(".native-or-question-workspace aside button").nth(1).locator("code").textContent(); await page.getByLabel("Prompt").fill("First prompt"); await page.getByLabel("Private model answer (Teacher)").fill("First private model answer");
   await page.getByRole("button", { name: "Add Question", exact: true }).click(); const secondQuestionId = await page.locator(".native-or-question-workspace aside button").nth(2).locator("code").textContent(); assert.notEqual(firstQuestionId, secondQuestionId); await page.getByLabel("Prompt").fill("Second prompt"); await page.getByLabel("Private model answer (Teacher)").fill("Second private model answer"); await page.getByRole("button", { name: "Move Up" }).click();
   await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("button", { name: new RegExp(openResponseId) }).click();
@@ -167,6 +188,24 @@ try {
   const protectedDraftRequests = viewerRequests.filter((item) => item.pathname.includes("/preview/native-activities/")); assert.ok(protectedDraftRequests.length >= 4); assert.ok(protectedDraftRequests.every((item) => new URLSearchParams(item.search).getAll("previewAuthorization").length === 1 && !item.headers.cookie));
 
   await page.getByRole("button", { name: "Close Review" }).click(); await page.locator('.hosted-builder-tool-tabs a[href$="/ui"]').click(); await page.getByRole("heading", { name: "UI Controller" }).waitFor(); assert.equal(await page.getByRole("button", { name: "Review", exact: true }).count(), 1); assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0); await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); const uiFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src")); assert.equal(uiFrameUrl.searchParams.get("view"), "page"); assert.equal(uiFrameUrl.searchParams.get("pageId"), "ub2-sb-unit-1-part-1"); assert.equal(authorizationIntents.at(-1).intent.view, "page"); assert.equal(authorizationIntents.at(-1).intent.pageId, "ub2-sb-unit-1-part-1"); viewer = page.frameLocator(".unified-builder-review-dialog iframe"); await viewer.getByRole("button", { name: "Draft Image hotspot" }).waitFor(); await viewer.getByRole("button", { name: "Draft Image hotspot" }).click({ force: true }); await viewer.getByRole("heading", { name: "Production image draft" }).waitFor(); await page.getByRole("button", { name: "Close Review" }).click();
+  await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor();
+  const pageAuthorizationCount = authorizationIntents.length;
+  const [pagePlayer] = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("link", { name: "Open Player", exact: true }).click(),
+  ]);
+  await pagePlayer.getByRole("heading", { name: "Player Review", exact: true }).waitFor();
+  assert.equal(new URL(pagePlayer.url()).origin, origin);
+  assert.match(new URL(pagePlayer.url()).hash, /^#\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/review\?view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1$/);
+  assert.doesNotMatch(pagePlayer.url(), /previewAuthorization|token|secret/i);
+  await pagePlayer.locator(".hosted-builder-review-page iframe").waitFor();
+  const pagePlayerFrameUrl = new URL(await pagePlayer.locator(".hosted-builder-review-page iframe").getAttribute("src"));
+  assert.equal(pagePlayerFrameUrl.origin, "https://hhplms-viewer.netlify.app");
+  assert.equal(pagePlayerFrameUrl.searchParams.get("view"), "page");
+  assert.equal(pagePlayerFrameUrl.searchParams.get("pageId"), "ub2-sb-unit-1-part-1");
+  assert.ok(authorizationIntents.length > pageAuthorizationCount);
+  await pagePlayer.frameLocator(".hosted-builder-review-page iframe").getByRole("button", { name: "Draft Image hotspot" }).waitFor();
+  await pagePlayer.close(); await page.getByRole("button", { name: "Close Review" }).click();
   await page.locator('.hosted-builder-tool-tabs a[href$="/publication"]').click(); await page.getByRole("heading", { name: "Publication", exact: true }).waitFor(); assert.equal(await page.getByRole("button", { name: "Review", exact: true }).count(), 1); assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0); await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); assert.equal(await page.getByRole("button", { name: "No release prepared" }).isDisabled(), true); await page.locator(".unified-builder-review-dialog iframe").waitFor(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1); await page.getByRole("button", { name: "Close Review" }).click(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 0);
 
   const tablet = await context.newPage(); await tablet.setViewportSize({ width: 900, height: 700 }); await tablet.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" }); await tablet.getByRole("button", { name: new RegExp(openResponseId) }).click(); await tablet.getByRole("button", { name: "Preview" }).click(); await tablet.getByRole("button", { name: "Teacher Preview" }).click(); await tablet.getByRole("button", { name: /Reveal model answer/ }).click();

@@ -35,5 +35,25 @@ body { margin: 0; }
 .hosted-builder-tool-tabs a[aria-current="page"] { border-color: #f97316; color: #9a3412; }
 .hosted-builder-tool-tabs a[aria-current="page"] small { color: #9a3412; }
 .hosted-builder-loading { padding: 32px; }
+.hosted-builder-review-page { box-sizing: border-box; min-height: calc(100vh - 62px); padding: clamp(16px, 2.5vw, 34px); background: #eef1f4; }
+.hosted-builder-review-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 1600px; margin: 0 auto 16px; }
+.hosted-builder-review-header span { color: #c2410c; font-size: .76rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.hosted-builder-review-header h1 { margin: 3px 0 5px; font-size: clamp(1.8rem, 3vw, 2.8rem); }
+.hosted-builder-review-header p { margin: 0; color: #526071; }
+.hosted-builder-review-header .hosted-builder-action { margin-top: 0; flex: 0 0 auto; }
+.hosted-builder-review-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; max-width: 1600px; margin: 0 auto 12px; padding: 10px 14px; border-left: 4px solid #f97316; background: #fff; }
+.hosted-builder-review-identity strong { color: #9a3412; }
+.hosted-builder-review-identity span { color: #526071; }
+.hosted-builder-review-identity code { margin-left: auto; color: #475569; font-size: .75rem; overflow-wrap: anywhere; }
+.hosted-builder-review-page > .hosted-viewer-preview { max-width: 1600px; margin: 0 auto; overflow: hidden; border: 1px solid #b9c6d3; border-radius: .65rem; background: #fff; box-shadow: 0 8px 22px rgba(23, 32, 51, .1); }
+.hosted-builder-review-page > .hosted-viewer-preview > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border-bottom: 1px solid #d7e0e8; }
+.hosted-builder-review-page > .hosted-viewer-preview > header > div { display: flex; flex-direction: column; gap: .2rem; }
+.hosted-builder-review-page > .hosted-viewer-preview > header > div:last-child { flex-direction: row; }
+.hosted-builder-review-page > .hosted-viewer-preview > header span { color: #526475; font-size: .78rem; }
+.hosted-builder-review-page > .hosted-viewer-preview button { min-height: 36px; padding: 0 .75rem; border: 1px solid #8aa1b5; border-radius: .35rem; color: #064968; background: #f7fafc; font: inherit; font-weight: 700; }
+.hosted-builder-review-page .hosted-viewer-preview-state { margin: 0; padding: .35rem 1rem; color: #526475; font-size: .75rem; }
+.hosted-builder-review-page .hosted-viewer-preview-state[data-state="error"] { color: #9f1d20; }
+.hosted-builder-review-page > .hosted-viewer-preview iframe { display: block; width: 100%; min-height: calc(100vh - 260px); border: 0; background: #064968; }
 @media (max-width: 720px) { .hosted-builder-title { align-items: flex-start; flex-direction: column; } .hosted-builder-book-card, .hosted-builder-component-card { grid-template-columns: 100px 1fr; } .hosted-builder-page { padding: 20px 14px; } }
+@media (max-width: 720px) { .hosted-builder-review-header { align-items: flex-start; flex-direction: column; } .hosted-builder-review-identity code { width: 100%; margin-left: 0; } .hosted-builder-review-page > .hosted-viewer-preview > header { align-items: flex-start; flex-direction: column; } .hosted-builder-review-page > .hosted-viewer-preview iframe { min-height: calc(100vh - 340px); } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }

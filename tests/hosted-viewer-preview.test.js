@@ -102,13 +102,19 @@ test("non-hosted Android runtime ignores Builder preview query and intro suppres
 });
 
 test("canonical preview frame uses scoped authorization without a DOM bridge or postMessage channel", async () => {
-  const [frame, authorizationClient, app, entry] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8")]);
+  const [frame, standalone, router, authorizationClient, app, entry] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderRouter.js", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8")]);
   assert.match(frame, /referrerPolicy="no-referrer"/);
   assert.match(frame, /title=\{title\}/);
   assert.match(frame, /createBuilderPreviewAuthorization/);
   assert.match(authorizationClient, /credentials: "same-origin"/);
   assert.match(authorizationClient, /\/builder\/api\/preview-authorization/);
+  assert.match(frame, /openPlayerHref/);
+  assert.match(frame, /target="_blank" rel="noopener noreferrer">Open Player/);
+  assert.doesNotMatch(frame, /href=\{src\}/);
+  assert.match(standalone, /<HostedViewerPreview/);
+  assert.doesNotMatch(`${standalone}\n${router}`, /previewAuthorization/);
   assert.doesNotMatch(frame, /postMessage|contentWindow|document\.domain|document\.cookie/i);
+  assert.doesNotMatch(`${frame}\n${standalone}\n${router}`, /postMessage|localStorage|sessionStorage/i);
   assert.match(app, /runInteractiveViewerStartup/);
   assert.match(app, /animationsActive && !hostedPreviewRequested/);
   assert.match(entry, /HostedAuthenticatedBookBuilderApp/);

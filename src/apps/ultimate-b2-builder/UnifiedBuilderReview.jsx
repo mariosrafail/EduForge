@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { HostedViewerPreview } from "../book-builder/hosted/HostedViewerPreview.jsx";
+import { hostedBuilderReviewHash } from "../book-builder/hosted/hostedBuilderRouter.js";
 import { resolveUnifiedReviewIntent } from "./builderReviewModel.js";
 
 const BuilderReviewContext = createContext(null);
@@ -19,7 +20,7 @@ function reviewPageLabel(page) {
   return `Unit ${page.unitNumber} · ${page.pageLabel} · ${page.sectionTitle}`;
 }
 
-export function UnifiedBuilderReview({ tool, pages, children }) {
+export function UnifiedBuilderReview({ tool, pages, bookSlug, componentSlug, children }) {
   const normalizedPages = useMemo(() => [...(pages || [])], [pages]);
   const [toolContexts, setToolContexts] = useState({});
   const [lastPageId, setLastPageId] = useState(normalizedPages[0]?.pageId || "");
@@ -109,6 +110,9 @@ export function UnifiedBuilderReview({ tool, pages, children }) {
         </div>
         {intent ? <HostedViewerPreview
           intent={intent}
+          bookSlug={bookSlug}
+          componentSlug={componentSlug}
+          openPlayerHref={hostedBuilderReviewHash({ bookSlug, componentSlug, intent })}
           refreshKey={`${session.toolContext.refreshKey || 0}:${session.pageId}:${session.sourceMode}`}
           title={sourceTitle}
           description={session.sourceMode === "release" ? "Pinned to the exact selected release." : "Shows only the latest successfully saved Builder state."}
