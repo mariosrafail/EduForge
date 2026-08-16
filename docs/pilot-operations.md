@@ -3,7 +3,7 @@
 ## Deployment sequence
 
 1. Create and verify a restorable database backup before migrations. Record its identifier, timestamp, encryption status, and restore owner outside Git.
-2. With the complete hosted staging environment from `.env.example` still set, run `npm ci`, `npm run staging:preflight`, and `npm run staging:migrate`. `DATABASE_URL` is the hosted application runtime connection and must identify the same host, port, and database as the explicitly confirmed `STAGING_DATABASE_URL`; do not unset or rewrite either variable between these commands. The migration command re-runs the complete hosted preflight, including production-fingerprint and application-origin separation, before it internally hands only the confirmed staging target to the lower-level database guard and opens a pool. The manifest runner must exclude `012_demo_login_passwords.sql`.
+2. With the complete hosted staging environment from `.env.example` still set, run `npm ci`, `npm run staging:preflight`, and `npm run staging:migrate`. `DATABASE_URL` is the hosted application runtime connection and must identify the same host, port, and database as the explicitly confirmed `STAGING_DATABASE_URL`; do not unset or rewrite either variable between these commands. Immediately before migration, refresh `STAGING_PRODUCTION_DATABASE_FINGERPRINTS` with every plausible production direct, pooled, primary, replica, and legacy host/port/database identity and set its completeness confirmation exactly as documented. The migration command re-runs the complete hosted preflight, including all-production-identity and application-origin separation, before it internally hands only the confirmed staging target to the lower-level database guard and opens a pool. The manifest runner must exclude `012_demo_login_passwords.sql`.
 3. Run seed, integrity, smoke, cleanup, and final integrity against the confirmed staging database.
 4. Deploy the exact tested commit. Verify basic/private health, then manually run both scheduled functions from the Netlify Functions page.
 5. Enable the pilot only after SMTP, browser, tenant-isolation, backup-restore, and monitoring evidence is signed off.
@@ -45,7 +45,7 @@ Retain security events, aggregate operational runs, deployment IDs, backup evide
 
 1. Create a branch-deploy or separate staging site with an identifiable staging hostname and HTTPS certificate.
 2. Add staging-only variables from `.env.example` using Netlify secret storage; function secrets do not belong in `netlify.toml`.
-3. Provision a separate staging database and record the production database identity SHA-256 fingerprint.
+3. Provision a separate staging database and record the SHA-256 identity fingerprint for every plausible production database connection variant. Supply the complete comma-separated set and its explicit completeness confirmation; refresh both immediately before staging migration.
 4. Configure a dedicated non-production SMTP inbox and approve staging sender-domain DNS records.
 5. Deploy, confirm both workers show a `Scheduled` badge, use **Run now**, and verify aggregate run rows.
 6. Configure and verify `docs/edge-rate-limiting.md` rules in the Netlify account.

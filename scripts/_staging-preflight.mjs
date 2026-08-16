@@ -5,7 +5,8 @@ import { requireQaPassword } from "./_staging-qa-data.mjs";
 
 const requiredNames = [
   "STAGING_DATABASE_URL", "STAGING_DATABASE_CONFIRMATION", "STAGING_ENVIRONMENT_CONFIRMATION",
-  "DATABASE_URL", "APP_PUBLIC_URL", "STAGING_PRODUCTION_APP_URL", "PRODUCTION_DATABASE_FINGERPRINT",
+  "DATABASE_URL", "APP_PUBLIC_URL", "STAGING_PRODUCTION_APP_URL", "STAGING_PRODUCTION_DATABASE_FINGERPRINTS",
+  "STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION",
   "AUTH_RATE_LIMIT_SALT", "PLATFORM_ADMIN_RATE_LIMIT_SALT", "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET",
   "OPERATIONAL_MONITORING_SECRET", "ACCOUNT_EMAIL_MODE",
 ];
@@ -30,6 +31,22 @@ function databaseFingerprint(value) {
   return createHash("sha256").update(identity).digest("hex");
 }
 
+export function parseStagingProductionDatabaseFingerprints(value) {
+  const source = String(value ?? "");
+  if (!source.trim()) throw new Error("STAGING_PRODUCTION_DATABASE_FINGERPRINTS must contain at least one fingerprint");
+  const fingerprints = source.split(",").map((entry) => entry.trim().toLowerCase());
+  if (fingerprints.some((entry) => !entry)) {
+    throw new Error("STAGING_PRODUCTION_DATABASE_FINGERPRINTS must not contain empty entries");
+  }
+  if (fingerprints.some((entry) => !/^[a-f0-9]{64}$/.test(entry))) {
+    throw new Error("STAGING_PRODUCTION_DATABASE_FINGERPRINTS entries must be SHA-256 fingerprints");
+  }
+  if (new Set(fingerprints).size !== fingerprints.length) {
+    throw new Error("STAGING_PRODUCTION_DATABASE_FINGERPRINTS must not contain duplicate fingerprints");
+  }
+  return Object.freeze([...fingerprints].sort());
+}
+
 export function validateDedicatedStagingRecipient(value, confirmation) {
   if (confirmation !== "dedicated-nonproduction-inbox") throw new Error("STAGING_EMAIL_CONFIRMATION must confirm a dedicated non-production inbox");
   const recipient = String(value || "").trim().toLowerCase();
@@ -44,12 +61,16 @@ export async function checkStagingDeployment(environment = process.env) {
   required(environment);
   requireQaPassword(environment);
   if (environment.STAGING_ENVIRONMENT_CONFIRMATION !== "hosted-nonproduction-staging") throw new Error("Hosted staging confirmation is invalid");
+  if (environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION !== "complete-production-database-identity-set") {
+    throw new Error("STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION must confirm the complete production database identity set");
+  }
+  const productionDatabaseFingerprints = parseStagingProductionDatabaseFingerprints(environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS);
   requireSafeDatabase("staging", { ...environment, DATABASE_URL: "" });
   if (databaseFingerprint(environment.DATABASE_URL) !== databaseFingerprint(environment.STAGING_DATABASE_URL)) {
     throw new Error("Hosted staging DATABASE_URL must identify the verified staging database");
   }
-  if (databaseFingerprint(environment.STAGING_DATABASE_URL) === String(environment.PRODUCTION_DATABASE_FINGERPRINT).toLowerCase()) {
-    throw new Error("Staging database matches the production database fingerprint");
+  if (productionDatabaseFingerprints.includes(databaseFingerprint(environment.STAGING_DATABASE_URL))) {
+    throw new Error("Staging database matches a known production database fingerprint");
   }
   const app = parsedUrl(environment.APP_PUBLIC_URL, "APP_PUBLIC_URL", ["https:"]);
   const productionApp = parsedUrl(environment.STAGING_PRODUCTION_APP_URL, "STAGING_PRODUCTION_APP_URL", ["https:"]);
@@ -75,6 +96,7 @@ export async function checkStagingDeployment(environment = process.env) {
     environment: "hosted-staging",
     app_host: app.hostname,
     email_mode: environment.ACCOUNT_EMAIL_MODE,
+    production_database_fingerprint_count: productionDatabaseFingerprints.length,
     migration_count: manifest.migrationCount,
     latest_migration: manifest.latestMigration,
     manifest_fingerprint: manifest.manifestFingerprint,

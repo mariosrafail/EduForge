@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { constantTimeSecretMatches } from "../netlify/functions/_operations-utils.js";
 import { lifecycleRetentionConfiguration } from "../netlify/functions/_lifecycle-cleanup.js";
-import { checkStagingDeployment, openVerifiedStagingMigrationPool, validateDedicatedStagingRecipient } from "../scripts/_staging-preflight.mjs";
+import {
+  checkStagingDeployment,
+  openVerifiedStagingMigrationPool,
+  parseStagingProductionDatabaseFingerprints,
+  validateDedicatedStagingRecipient,
+} from "../scripts/_staging-preflight.mjs";
 import { requireSafeDatabase } from "../scripts/_staging-db.mjs";
 import { handler as publicDispatcher } from "../netlify/functions/account-email-dispatch.js";
 import { config as dispatchSchedule } from "../netlify/functions/scheduled-account-email-dispatch.js";
@@ -17,6 +22,11 @@ function fingerprint(urlText) {
 
 function hostedStagingEnvironment(overrides = {}) {
   const db = "postgresql://qa:runtime-value@db.staging.test/hhplms_staging";
+  const productionFingerprints = [
+    fingerprint("postgresql://prod:not-used@db.production.test/hhplms_production"),
+    fingerprint("postgresql://prod:not-used@db-primary.production.test/hhplms_production"),
+    fingerprint("postgresql://prod:not-used@db-pool.production.test/hhplms_production"),
+  ];
   return {
     STAGING_DATABASE_URL: db,
     STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
@@ -24,7 +34,8 @@ function hostedStagingEnvironment(overrides = {}) {
     DATABASE_URL: db,
     APP_PUBLIC_URL: "https://hhplms-staging.example.test",
     STAGING_PRODUCTION_APP_URL: "https://app.example.test",
-    PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/hhplms_production"),
+    STAGING_PRODUCTION_DATABASE_FINGERPRINTS: productionFingerprints.join(","),
+    STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION: "complete-production-database-identity-set",
     AUTH_RATE_LIMIT_SALT: "e".repeat(40),
     PLATFORM_ADMIN_RATE_LIMIT_SALT: "f".repeat(40),
     ACCOUNT_RATE_LIMIT_SALT: "a".repeat(40),
@@ -60,13 +71,77 @@ test("public dispatcher rejects unauthenticated calls and workers declare intern
   if (previous.staging === undefined) delete process.env.STAGING_DATABASE_CONFIRMATION; else process.env.STAGING_DATABASE_CONFIRMATION = previous.staging;
 });
 
+test("staging production fingerprint parser normalizes a valid deterministic multi-entry set", () => {
+  const first = "A".repeat(64);
+  const second = "b".repeat(64);
+  assert.deepEqual(parseStagingProductionDatabaseFingerprints(` ${second}, ${first} `), [first.toLowerCase(), second]);
+});
+
+test("staging production fingerprint parser rejects empty, malformed, placeholder, duplicate, and empty-entry sets without echoing input", () => {
+  const privateMarker = "private-database-marker";
+  const invalidSets = [
+    ["", /at least one/],
+    ["   ", /at least one/],
+    ["a".repeat(63), /SHA-256/],
+    [`${privateMarker}-${"a".repeat(64)}`, /SHA-256/],
+    [`${"a".repeat(64)},${"A".repeat(64)}`, /duplicate/],
+    [`${"a".repeat(64)},`, /empty entries/],
+    [`,${"a".repeat(64)}`, /empty entries/],
+    [`${"a".repeat(64)},,${"b".repeat(64)}`, /empty entries/],
+  ];
+  for (const [value, pattern] of invalidSets) {
+    assert.throws(
+      () => parseStagingProductionDatabaseFingerprints(value),
+      (error) => pattern.test(error.message) && !error.message.includes(privateMarker) && !error.message.includes("a".repeat(64)),
+    );
+  }
+});
+
 test("staging preflight rejects unsafe inboxes and accepts non-secret hosted metadata", async () => {
   assert.throws(() => validateDedicatedStagingRecipient("person@gmail.com", "dedicated-nonproduction-inbox"), /personal mailbox/);
   const environment = hostedStagingEnvironment();
   const result = await checkStagingDeployment(environment);
   assert.equal(result.latest_migration, "040_published_native_assignment_runtime.sql");
-  await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(environment.STAGING_DATABASE_URL) }), /matches the production/);
+  assert.equal(result.production_database_fingerprint_count, 3);
+  const resultJson = JSON.stringify(result);
+  for (const productionFingerprint of environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS.split(",")) {
+    assert.equal(resultJson.includes(productionFingerprint), false);
+  }
+  assert.doesNotMatch(resultJson, /runtime-value|postgresql:\/\//);
   await assert.rejects(checkStagingDeployment({ ...environment, HHPLMS_STAGING_QA_PASSWORD: "not-canonical" }), /canonical password/);
+});
+
+test("staging preflight rejects collisions in every production fingerprint set position", async () => {
+  const environment = hostedStagingEnvironment();
+  const stagingFingerprint = fingerprint(environment.STAGING_DATABASE_URL);
+  const safe = environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS.split(",");
+  for (const fingerprints of [
+    [stagingFingerprint, ...safe],
+    [safe[0], stagingFingerprint, ...safe.slice(1)],
+    [...safe, stagingFingerprint],
+  ]) {
+    await assert.rejects(
+      checkStagingDeployment({ ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: fingerprints.join(",") }),
+      /matches a known production database fingerprint/,
+    );
+  }
+});
+
+test("staging preflight fails closed for missing, malformed, or unconfirmed production identity sets", async () => {
+  const environment = hostedStagingEnvironment();
+  const unsafeEnvironments = [
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: undefined },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: "" },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: "a".repeat(63) },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: `${"a".repeat(64)},` },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: `${"a".repeat(64)},${"A".repeat(64)}` },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: "replace-with-production-fingerprint" },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION: undefined },
+    { ...environment, STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION: "partial-production-database-identity-set" },
+  ];
+  for (const unsafeEnvironment of unsafeEnvironments) {
+    await assert.rejects(checkStagingDeployment(unsafeEnvironment));
+  }
 });
 
 test("canonical migration pool opens only after the full hosted staging preflight", async () => {
@@ -95,7 +170,10 @@ test("canonical migration pool cannot bypass hosted staging safety", async () =>
   const valid = hostedStagingEnvironment();
   const unsafeEnvironments = [
     { ...valid, DATABASE_URL: "postgresql://qa:other@db.staging.test/hhplms_other_staging" },
-    { ...valid, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(valid.STAGING_DATABASE_URL) },
+    { ...valid, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: fingerprint(valid.STAGING_DATABASE_URL) },
+    { ...valid, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: undefined },
+    { ...valid, STAGING_PRODUCTION_DATABASE_FINGERPRINTS: `${"a".repeat(64)},` },
+    { ...valid, STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION: "partial-production-database-identity-set" },
     { ...valid, STAGING_ENVIRONMENT_CONFIRMATION: "not-hosted-staging" },
     { ...valid, STAGING_DATABASE_CONFIRMATION: undefined },
     {

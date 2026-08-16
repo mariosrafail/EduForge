@@ -74,3 +74,20 @@ test("fingerprint mismatch and errors never expose database credentials", () => 
     (error) => /does not match/.test(error.message) && !error.message.includes("private-value"),
   );
 });
+
+test("production preflight remains singular and cannot be satisfied by staging set variables", () => {
+  const environment = productionEnvironment();
+  const productionFingerprint = environment.PRODUCTION_DATABASE_FINGERPRINT;
+  assert.throws(
+    () => validateProductionEnvironment({
+      ...environment,
+      PRODUCTION_DATABASE_FINGERPRINT: `${productionFingerprint},${"f".repeat(64)}`,
+    }),
+    /SHA-256 database identity fingerprint/,
+  );
+  const stagingSetOnly = { ...environment };
+  delete stagingSetOnly.PRODUCTION_DATABASE_FINGERPRINT;
+  stagingSetOnly.STAGING_PRODUCTION_DATABASE_FINGERPRINTS = productionFingerprint;
+  stagingSetOnly.STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION = "complete-production-database-identity-set";
+  assert.throws(() => validateProductionEnvironment(stagingSetOnly), /Missing required production variables: PRODUCTION_DATABASE_FINGERPRINT/);
+});

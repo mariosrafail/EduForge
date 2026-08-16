@@ -31,7 +31,7 @@ The repository-authoritative preflight is `npm run staging:preflight`. It failed
 |---|---|---|
 | Dedicated staging URL | Missing | No hosted navigation or deployment allowed |
 | Dedicated staging database URL/confirmation | Missing | No hosted migration, seed, integrity, or cleanup allowed |
-| Production database fingerprint | Missing | Staging/production separation cannot be proven |
+| Complete production database fingerprint set and confirmation | Missing | Staging/production separation cannot be proven against every plausible production identity |
 | Public/staging production URLs | Missing | Host separation cannot be proven |
 | Staging salts/operation secrets | Missing | Hosted runtime cannot pass preflight |
 | Staging QA password | Missing | QA seed cannot run |
@@ -44,7 +44,7 @@ The repository-authoritative preflight is `npm run staging:preflight`. It failed
 
 Missing preflight variables:
 
-`STAGING_DATABASE_URL`, `STAGING_DATABASE_CONFIRMATION`, `STAGING_ENVIRONMENT_CONFIRMATION`, `APP_PUBLIC_URL`, `STAGING_PRODUCTION_APP_URL`, `PRODUCTION_DATABASE_FINGERPRINT`, `ACCOUNT_RATE_LIMIT_SALT`, `INVITE_RATE_LIMIT_SALT`, `ACCOUNT_EMAIL_DISPATCH_SECRET`, `OPERATIONAL_MONITORING_SECRET`, `ACCOUNT_EMAIL_MODE`, and `HHPLMS_STAGING_QA_PASSWORD`.
+`STAGING_DATABASE_URL`, `STAGING_DATABASE_CONFIRMATION`, `STAGING_ENVIRONMENT_CONFIRMATION`, `APP_PUBLIC_URL`, `STAGING_PRODUCTION_APP_URL`, `STAGING_PRODUCTION_DATABASE_FINGERPRINTS`, `STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION`, `ACCOUNT_RATE_LIMIT_SALT`, `INVITE_RATE_LIMIT_SALT`, `ACCOUNT_EMAIL_DISPATCH_SECRET`, `OPERATIONAL_MONITORING_SECRET`, `ACCOUNT_EMAIL_MODE`, and `HHPLMS_STAGING_QA_PASSWORD`.
 
 Missing hosted browser/licensing variables:
 

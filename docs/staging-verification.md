@@ -11,14 +11,15 @@ $env:STAGING_DATABASE_URL = "postgresql://USER:PASSWORD@STAGING_HOST/STAGING_DAT
 $env:DATABASE_URL = $env:STAGING_DATABASE_URL
 $env:STAGING_DATABASE_CONFIRMATION = "isolated-staging-database"
 $env:STAGING_ENVIRONMENT_CONFIRMATION = "hosted-nonproduction-staging"
-$env:PRODUCTION_DATABASE_FINGERPRINT = "SHA256_OF_PRODUCTION_HOST_PORT_DATABASE"
+$env:STAGING_PRODUCTION_DATABASE_FINGERPRINTS = "SHA256_OF_PRIMARY_PRODUCTION_HOST_PORT_DATABASE,SHA256_OF_OTHER_PRODUCTION_HOST_PORT_DATABASE"
+$env:STAGING_PRODUCTION_DATABASE_FINGERPRINTS_CONFIRMATION = "complete-production-database-identity-set"
 $env:HHPLMS_STAGING_QA_PASSWORD = "password123"
 $env:APP_PUBLIC_URL = "https://your-isolated-staging.example"
 $env:STAGING_PRODUCTION_APP_URL = "https://production.example"
 $env:ACCOUNT_EMAIL_MODE = "preview"
 ```
 
-The runtime and staging URLs may use different credentials or query parameters, but their host, port, and database identity must match. The configured production fingerprint must differ. The host or database name must visibly contain `staging`, `stage`, `qa`, `sandbox`, `preview`, or `test`; names containing `prod` or `production` are rejected. Connection strings and passwords are never printed.
+The runtime and staging URLs may use different credentials or query parameters, but their host, port, and database identity must match. `STAGING_PRODUCTION_DATABASE_FINGERPRINTS` is a comma-separated, provider-agnostic deny-set derived from current provider control-plane metadata: include the SHA-256 identity fingerprint for every plausible production connection identity, including direct, pooled, primary, replica, or legacy host/port/database variants. Refresh and re-confirm the complete set immediately before migration. The preflight rejects an absent, empty, malformed, duplicate, or unconfirmed set and rejects the staging identity if it matches any entry. Fingerprints are identity metadata rather than credentials, but the preflight reports only their count and never returns their values; connection strings remain secret. This staging-only deny-set does not replace production's singular `PRODUCTION_DATABASE_FINGERPRINT`, which must continue to exactly match the production runtime identity. The host or database name must visibly contain `staging`, `stage`, `qa`, `sandbox`, `preview`, or `test`; names containing `prod` or `production` are rejected. Connection strings and passwords are never printed.
 
 Run the complete non-destructive sequence:
 
