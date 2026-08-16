@@ -113,8 +113,11 @@ test("migration 039 enforces exact v2 native/legacy freshness and serializes nat
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication v2 Integration','publication-v2@example.test','not-a-real-login-hash')`, [actor]);
   const sql = tag(pool);
   const sources = createPublicationV2FixtureSources();
+  const unpersistedFixtureNativeActivityIds = new Set(
+    Object.keys(sources.native.activities).filter((activityId) => activityId !== publicationV2Fixture.openResponseId),
+  );
   sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId] = sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId]
-    .filter((hotspot) => hotspot.activityKey !== publicationV2Fixture.imageId);
+    .filter((hotspot) => !unpersistedFixtureNativeActivityIds.has(hotspot.activityKey));
 
   const resources = {
     hotspots: await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots"),
