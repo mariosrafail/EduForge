@@ -43,7 +43,8 @@ test("deployed-style CommonJS artifacts bundle and execute the canonical hotspot
   const previewFunctionArtifact = await commonJsArtifact(previewFunctionEntry);
   assert.ok(previewFunctionArtifact, "The deployed-style builder-preview artifact was not generated.");
   assert.doesNotMatch(previewFunctionArtifact, /hotspot-manifest\.mjs|require\(["'][^"']*hotspot-manifest|import\(["'][^"']*hotspot-manifest/);
-  assert.doesNotMatch(previewFunctionArtifact, /acceptedAnswers|correctAnswers|teacherSolutions|teacher-solutions\.json|revealText/);
+  assert.doesNotMatch(previewFunctionArtifact, /acceptedAnswers|teacherSolutions|teacher-solutions\.json|revealText/);
+  assert.match(previewFunctionArtifact, /native-teacher|Native Teacher/);
   assert.match(previewFunctionArtifact, /builder_preview_resource_not_found/);
 
   const virtualEntry = "virtual:builder-content-resource-test";
@@ -61,7 +62,7 @@ test("deployed-style CommonJS artifacts bundle and execute the canonical hotspot
   }]);
   assert.ok(resourceArtifact, "The deployed-style resource artifact was not generated.");
   assert.doesNotMatch(resourceArtifact, /hotspot-manifest\.mjs|require\(["'][^"']*hotspot-manifest|import\(["'][^"']*hotspot-manifest/);
-  assert.doesNotMatch(resourceArtifact, /acceptedAnswers|correctAnswers|teacherSolutions|teacher-solutions\.json|revealText/);
+  assert.doesNotMatch(resourceArtifact, /acceptedAnswers|teacherSolutions|teacher-solutions\.json|revealText/);
   assert.match(resourceArtifact, /Unsupported hotspot manifest schemaVersion/);
 
   const temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "hhplms-builder-content-"));

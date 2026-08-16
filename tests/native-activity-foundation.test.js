@@ -5,12 +5,13 @@ import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builde
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument, resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { createEmptyNativeActivityIndex, normalizeNativeActivityIndex, normalizeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
 import { ultimateB2NativeActivityAdapter, ultimateB2NativeActivityPlacements } from "../src/data/ultimate-b2/nativeActivityAdapter.js";
+import { createNativeChildId } from "../src/data/native-activities/nativeChildIdentity.js";
 
 const placement = ultimateB2NativeActivityPlacements[0];
 const activityId = "ultimate-b2-sb-u1-p1-o99";
 
 test("registered native kinds create deterministic, separate one-Part public and Teacher drafts", () => {
-  assert.deepEqual(NATIVE_ACTIVITY_KINDS, ["open-response", "image"]);
+  assert.deepEqual(NATIVE_ACTIVITY_KINDS, ["open-response", "image", "single-choice"]);
   for (const kindName of NATIVE_ACTIVITY_KINDS) {
     const kind = resolveNativeActivityKind(kindName);
     const firstPublic = kind.createBlankPublic({ activityId, title: `New ${kind.label}`, placement });
@@ -25,8 +26,49 @@ test("registered native kinds create deterministic, separate one-Part public and
     assert.equal(validateNativeActivityPair(firstPublic, teacher), true);
     assert.doesNotThrow(() => assertPublicBuilderDocument(firstPublic));
     assert.equal(JSON.stringify(firstPublic).includes("modelAnswers"), false);
+    assert.equal(JSON.stringify(firstPublic).includes("correctAnswers"), false);
   }
   assert.equal(resolveNativeActivityKind("multiple-choice"), null);
+});
+
+test("Single Choice keeps stable option identity and the answer key exclusively in the Teacher document", () => {
+  const kind = resolveNativeActivityKind("single-choice");
+  const publicDocument = kind.createBlankPublic({ activityId, title: "Multiple Choice", placement });
+  const teacherDocument = kind.createBlankTeacher({ activityId });
+  const questionId = createNativeChildId("q");
+  const options = [createNativeChildId("opt"), createNativeChildId("opt")];
+  publicDocument.parts[0].interaction.questions = [{ id: questionId, prompt: "Choose", options: options.map((id) => ({ id, text: id })) }];
+  teacherDocument.parts[0].solution.correctAnswers = [{ questionId, correctOptionId: options[1] }];
+  assert.equal(kind.validatePair(publicDocument, teacherDocument), true);
+  assert.equal(kind.assessReadiness(publicDocument, teacherDocument).ready, true);
+  assert.doesNotMatch(JSON.stringify(publicDocument), /correctOptionId|correctAnswers/);
+  assert.throws(() => kind.validatePair(publicDocument, { ...teacherDocument, parts: [{ ...teacherDocument.parts[0], solution: { kind: "single-choice", correctAnswers: [{ questionId, correctOptionId: createNativeChildId("opt") }] } }] }), /exactly match/);
+  assert.throws(() => kind.normalizePublic({ ...publicDocument, parts: [{ ...publicDocument.parts[0], interaction: { ...publicDocument.parts[0].interaction, answerKey: [] } }] }));
+});
+
+test("Single Choice enforces exact question, option, prompt, and option-text limits", () => {
+  const kind = resolveNativeActivityKind("single-choice");
+  const publicDocument = kind.createBlankPublic({ activityId, title: "Limits", placement });
+  const teacherDocument = kind.createBlankTeacher({ activityId });
+  for (let index = 0; index < 20; index += 1) {
+    const questionId = createNativeChildId("q");
+    const optionIds = Array.from({ length: 6 }, () => createNativeChildId("opt"));
+    publicDocument.parts[0].interaction.questions.push({ id: questionId, prompt: "p".repeat(2_000), options: optionIds.map((id) => ({ id, text: "o".repeat(1_000) })) });
+    teacherDocument.parts[0].solution.correctAnswers.push({ questionId, correctOptionId: optionIds[0] });
+  }
+  assert.equal(kind.validatePair(publicDocument, teacherDocument), true);
+  const tooManyQuestions = structuredClone(publicDocument);
+  tooManyQuestions.parts[0].interaction.questions.push(structuredClone(publicDocument.parts[0].interaction.questions[0]));
+  assert.throws(() => kind.normalizePublic(tooManyQuestions), /invalid/);
+  const tooManyOptions = structuredClone(publicDocument);
+  tooManyOptions.parts[0].interaction.questions[0].options.push({ id: createNativeChildId("opt"), text: "extra" });
+  assert.throws(() => kind.normalizePublic(tooManyOptions), /invalid/);
+  const longPrompt = structuredClone(publicDocument);
+  longPrompt.parts[0].interaction.questions[0].prompt += "x";
+  assert.throws(() => kind.normalizePublic(longPrompt), /invalid/);
+  const longOption = structuredClone(publicDocument);
+  longOption.parts[0].interaction.questions[0].options[0].text += "x";
+  assert.throws(() => kind.normalizePublic(longOption), /invalid/);
 });
 
 test("native public and Teacher schemas reject missing, extra, duplicate, and mismatched Part structures", () => {

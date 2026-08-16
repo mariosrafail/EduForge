@@ -49,6 +49,12 @@ test("v2 source, public, and Teacher contracts are strict and integrity dispatch
   ]) assert.throws(() => normalize(value), /unsupported fields/);
   assert.doesNotMatch(JSON.stringify(compiled.publicProjection), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.match(JSON.stringify(compiled.teacherProjection), new RegExp(publicationV2Fixture.teacherSentinel));
+  const publicChoice = compiled.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId];
+  const teacherChoice = compiled.teacherProjection.nativeActivities[publicationV2Fixture.singleChoiceId];
+  assert.equal(publicChoice.kind, "single-choice");
+  assert.equal(publicChoice.document.parts[0].interaction.questions.length, 2);
+  assert.doesNotMatch(JSON.stringify(publicChoice), /correctOptionId|correctAnswers/);
+  assert.equal(teacherChoice.document.parts[0].solution.correctAnswers.length, 2);
 });
 
 test("v2 output ordering and content-addressed image reuse are deterministic and exact", () => {
@@ -67,7 +73,17 @@ test("v2 output ordering and content-addressed image reuse are deterministic and
   assert.throws(() => normalizeUltimateB2PublicReleaseV2Projection(extraAsset, ultimateB2PublicationCanonicalSeeds()), /asset manifest is inconsistent/);
 });
 
-test("referenced native publication readiness rejects incomplete Open Response and Image drafts", () => {
+test("Single Choice private key changes deterministically change source and release identity", () => {
+  const first = compilePublicationV2Fixture({ singleChoiceCorrectOptionIndexes: [1, 2] });
+  const same = compilePublicationV2Fixture({ singleChoiceCorrectOptionIndexes: [1, 2] });
+  const changed = compilePublicationV2Fixture({ singleChoiceCorrectOptionIndexes: [0, 2] });
+  assert.equal(first.releaseSha256, same.releaseSha256);
+  assert.notEqual(first.releaseSha256, changed.releaseSha256);
+  assert.notEqual(first.sourceSnapshotSha256, changed.sourceSnapshotSha256);
+  assert.deepEqual(first.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId], changed.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId]);
+});
+
+test("referenced native publication readiness rejects incomplete Open Response, Image, and Single Choice drafts", () => {
   const cases = [];
   const zeroQuestions = createPublicationV2FixtureSources();
   zeroQuestions.native.activities[publicationV2Fixture.openResponseId].public.payload.parts[0].interaction.questions = [];
@@ -91,6 +107,22 @@ test("referenced native publication readiness rejects incomplete Open Response a
   zeroImages.native.activities[publicationV2Fixture.imageId].public.payload.assets = [];
   zeroImages.native.assetRows = [];
   cases.push(zeroImages);
+
+  const tooFewOptions = createPublicationV2FixtureSources();
+  tooFewOptions.native.activities[publicationV2Fixture.singleChoiceId].public.payload.parts[0].interaction.questions[0].options.splice(1);
+  cases.push(tooFewOptions);
+
+  const emptyOption = createPublicationV2FixtureSources();
+  emptyOption.native.activities[publicationV2Fixture.singleChoiceId].public.payload.parts[0].interaction.questions[0].options[0].text = "";
+  cases.push(emptyOption);
+
+  const forgedAnswer = createPublicationV2FixtureSources();
+  forgedAnswer.native.activities[publicationV2Fixture.singleChoiceId].teacher.payload.parts[0].solution.correctAnswers[0].correctOptionId = forgedAnswer.native.activities[publicationV2Fixture.singleChoiceId].public.payload.parts[0].interaction.questions[1].options[0].id;
+  cases.push(forgedAnswer);
+
+  const missingAnswer = createPublicationV2FixtureSources();
+  missingAnswer.native.activities[publicationV2Fixture.singleChoiceId].teacher.payload.parts[0].solution.correctAnswers.pop();
+  cases.push(missingAnswer);
 
   for (const sources of cases) {
     for (const entry of Object.values(sources.native.activities)) {

@@ -22,18 +22,41 @@ const publicDocument = {
   ] } }],
 };
 
-test("native capabilities declare Open Response review and Image display-only policy", () => {
+test("native capabilities derive Open Response review, Single Choice scoring, and Image display-only policy", () => {
   const openResponse = nativeAssignmentCapability("open-response");
   assert.equal(openResponse.assignable, true);
   assert.equal(openResponse.submittable, true);
   assert.equal(openResponse.reviewMode, "teacher-reviewed");
   assert.equal(openResponse.responseSchemaVersion, NATIVE_RESPONSE_SCHEMA_VERSION);
+  const choice = nativeAssignmentCapability("single-choice");
+  assert.equal(choice.assignable, true);
+  assert.equal(choice.submittable, true);
+  assert.equal(choice.reviewMode, "auto-scored");
 
   const image = nativeAssignmentCapability("image");
   assert.equal(image.assignable, false);
   assert.equal(image.submittable, false);
   assert.equal(image.reviewMode, "display-only");
   assert.equal(nativeAssignmentCapability("future-kind"), null);
+});
+
+test("Single Choice validates option ownership and scores the immutable Teacher key with unanswered items incorrect", () => {
+  const compiled = compilePublicationV2Fixture();
+  const publicChoice = compiled.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId].document;
+  const teacherChoice = compiled.teacherProjection.nativeActivities[publicationV2Fixture.singleChoiceId].document;
+  const [first, second] = publicChoice.parts[0].interaction.questions;
+  const capability = nativeAssignmentCapability("single-choice");
+  const normalized = capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: first.id, value: first.options[1].id }] });
+  assert.deepEqual(normalized.payload, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "single-choice", items: [{ id: first.id, value: first.options[1].id }] });
+  assert.deepEqual(capability.evaluateResponse(publicChoice, teacherChoice, normalized.payload), { status: "submitted", correctCount: 1, totalCount: 2, scorePercent: 50 });
+  assert.match(capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: first.id, value: second.options[0].id }] }).error, /belonging/);
+  assert.match(capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: first.id, value: first.options[0].id }, { id: first.id, value: first.options[1].id }] }).error, /Duplicate/);
+  const review = capability.teacherReviewProjection(publicChoice, teacherChoice, normalized.payload);
+  assert.equal(review[0].answer, first.options[1].text);
+  assert.equal(review[0].modelAnswer, first.options[1].text);
+  assert.equal(review[0].isCorrect, true);
+  assert.equal(review[1].answer, "");
+  assert.equal(review[1].isCorrect, false);
 });
 
 test("Open Response adapter canonicalizes stable IDs in document order without changing text", () => {
@@ -180,10 +203,14 @@ test("authorized active catalog exposes capability metadata but never Teacher do
   });
   const open = targets.find((item) => item.target.nativeActivityId === publicationV2Fixture.openResponseId);
   const image = targets.find((item) => item.target.nativeActivityId === publicationV2Fixture.imageId);
+  const choice = targets.find((item) => item.target.nativeActivityId === publicationV2Fixture.singleChoiceId);
   assert.equal(open.assignable, true);
   assert.equal(open.reviewMode, "teacher-reviewed");
   assert.equal(image.assignable, false);
   assert.equal(image.reviewMode, "display-only");
+  assert.equal(choice.assignable, true);
+  assert.equal(choice.submittable, true);
+  assert.equal(choice.reviewMode, "auto-scored");
   assert.doesNotMatch(JSON.stringify(targets), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.match(sql.calls[1].text, /book_component_publication_heads/);
   assert.match(sql.calls[1].text, /book_component_publication_events/);
@@ -222,7 +249,7 @@ test("an assignment pinned to Release A keeps Release A after the publication he
   assert.equal(calls[0].values[1], false);
 });
 
-function nativeSubmissionSql(release, { inserted = true, assignmentOverrides = {}, enrolled = true } = {}) {
+function nativeSubmissionSql(release, { inserted = true, assignmentOverrides = {}, enrolled = true, insertedStatus = "awaiting_review" } = {}) {
   const assignment = {
     id: "10000000-0000-4000-8000-000000000093",
     target_kind: "published_native",
@@ -244,7 +271,7 @@ function nativeSubmissionSql(release, { inserted = true, assignmentOverrides = {
       assignment_exists: true,
       assignment_status: "assigned",
       due_at: null,
-      submission: inserted ? { id: "10000000-0000-4000-8000-000000000096", status: "awaiting_review" } : null,
+      submission: inserted ? { id: "10000000-0000-4000-8000-000000000096", status: insertedStatus } : null,
     }];
     if (text.includes("from activity_assignments aa")) return [assignment];
     if (text.includes("from class_students")) return enrolled ? [{ id: "enrollment" }] : [];
@@ -257,7 +284,7 @@ function nativeSubmissionSql(release, { inserted = true, assignmentOverrides = {
   return { sql, assignment };
 }
 
-test("native submission resolves assignment first, ignores client score, and stores one versioned payload", async () => {
+test("native submission rejects client score ownership and stores one versioned payload", async () => {
   const release = immutableReleaseRow();
   const { sql, assignment } = nativeSubmissionSql(release);
   const questionId = release.public_projection.nativeActivities[publicationV2Fixture.openResponseId]
@@ -268,8 +295,15 @@ test("native submission resolves assignment first, ignores client score, and sto
     score: 100,
     response: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: questionId, value: "Student text" }] },
   }, { id: "10000000-0000-4000-8000-000000000097", school_id: assignment.school_id, role: "student" });
-  assert.equal(response.statusCode, 200);
-  assert.deepEqual(JSON.parse(response.body).submission, {
+  assert.equal(response.statusCode, 400);
+  assert.match(JSON.parse(response.body).error, /score fields/);
+  const accepted = await submitActivity(sql, {
+    assignmentId: assignment.id,
+    target: { kind: "published_native", releaseId: release.id, nativeActivityId: publicationV2Fixture.openResponseId },
+    response: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: questionId, value: "Student text" }] },
+  }, { id: "10000000-0000-4000-8000-000000000097", school_id: assignment.school_id, role: "student" });
+  assert.equal(accepted.statusCode, 200);
+  assert.deepEqual(JSON.parse(accepted.body).submission, {
     id: "10000000-0000-4000-8000-000000000096",
     status: "awaiting_review",
     scorePercent: null,
@@ -281,6 +315,24 @@ test("native submission resolves assignment first, ignores client score, and sto
   assert.match(insert.text, /activity_id, student_id, answers/);
   assert.equal(insert.values.includes(100), false);
   assert.equal(sql.calls.some((call) => call.text.includes("insert into student_answers")), false);
+});
+
+test("Single Choice submission persists only server-derived score and count values", async () => {
+  const release = immutableReleaseRow();
+  const { sql, assignment } = nativeSubmissionSql(release, { assignmentOverrides: { native_activity_id: publicationV2Fixture.singleChoiceId }, insertedStatus: "submitted" });
+  const questions = release.public_projection.nativeActivities[publicationV2Fixture.singleChoiceId].document.parts[0].interaction.questions;
+  const response = await submitActivity(sql, {
+    assignmentId: assignment.id,
+    response: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: questions[0].id, value: questions[0].options[1].id }] },
+  }, { id: "10000000-0000-4000-8000-000000000097", school_id: assignment.school_id, role: "student" });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body).submission, { id: "10000000-0000-4000-8000-000000000096", status: "submitted", scorePercent: 50, correctCount: 1, totalCount: 2 });
+  const insert = sql.calls.find((call) => call.text.includes("response_schema_version, response_payload"));
+  assert.ok(insert.values.includes(50));
+  assert.ok(insert.values.includes(1));
+  assert.ok(insert.values.includes(2));
+  assert.ok(insert.values.includes("submitted"));
+  assert.equal(JSON.parse(insert.values.find((value) => typeof value === "string" && value.includes('"kind":"single-choice"'))).kind, "single-choice");
 });
 
 test("native submission rejects forged target and unknown response before writing", async () => {

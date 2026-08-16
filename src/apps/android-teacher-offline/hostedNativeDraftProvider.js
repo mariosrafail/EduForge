@@ -45,11 +45,15 @@ export async function loadHostedNativeDraftPublicActivity(activityId, { context 
 }
 
 export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), fetchImpl = fetch, signal } = {}) {
-  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || publicEntry?.kind !== "open-response") return null;
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["open-response", "single-choice"].includes(publicEntry?.kind)) return null;
   const activityId = publicEntry.document.activityId;
   const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization), { fetchImpl, signal });
   if (!payload) throw new Error("Native Teacher draft is unavailable.");
   return normalizeEnvelope(payload, { activityId, audience: "teacher", publicDocument: publicEntry.document });
+}
+
+export function shouldLoadHostedNativeDraftTeacherActivity(publicEntry, teacherMode) {
+  return Boolean(teacherMode && ["open-response", "single-choice"].includes(publicEntry?.kind));
 }
 
 export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext()) {
@@ -57,7 +61,7 @@ export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolve
   return nativeDraftPath(activityId, `assets/${String(assetId).toLowerCase()}`, context.authorization);
 }
 
-export function useHostedNativeDraftActivity(activityId) {
+export function useHostedNativeDraftActivity(activityId, { teacherMode = false } = {}) {
   const context = resolveHostedViewerRuntimeContext();
   const contextKey = `${context.kind}:${context.authorization || ""}:${context.releaseId || ""}`;
   const [state, setState] = useState({ activityId: null, kind: "idle", entry: null, teacher: { kind: "idle", entry: null } });
@@ -70,7 +74,7 @@ export function useHostedNativeDraftActivity(activityId) {
       .then((entry) => {
         if (controller.signal.aborted) return;
         if (!entry) { setState({ activityId, kind: "unavailable", entry: null, teacher: { kind: "idle", entry: null } }); return; }
-        if (entry.kind !== "open-response") { setState({ activityId, kind: "ready", entry, teacher: { kind: "idle", entry: null } }); return; }
+        if (!shouldLoadHostedNativeDraftTeacherActivity(entry, teacherMode)) { setState({ activityId, kind: "ready", entry, teacher: { kind: "idle", entry: null } }); return; }
         setState({ activityId, kind: "ready", entry, teacher: { kind: "loading", entry: null } });
         loadHostedNativeDraftTeacherActivity(entry, { context, signal: controller.signal })
           .then((teacher) => { if (!controller.signal.aborted) setState({ activityId, kind: "ready", entry, teacher: { kind: "ready", entry: teacher } }); })
@@ -78,7 +82,7 @@ export function useHostedNativeDraftActivity(activityId) {
       })
       .catch(() => { if (!controller.signal.aborted) setState({ activityId, kind: "error", entry: null, teacher: { kind: "idle", entry: null } }); });
     return () => controller.abort();
-  }, [activityId, contextKey]);
+  }, [activityId, contextKey, teacherMode]);
   return state.activityId === activityId ? state : { activityId, kind: context.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && activityId ? "loading" : "idle", entry: null, teacher: { kind: "idle", entry: null } };
 }
 

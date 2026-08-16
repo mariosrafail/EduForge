@@ -110,5 +110,8 @@ test("prepared native Teacher projection is separately authorized and release-me
   const allowed = await handler(event(`${prefix}/${publicationV2Fixture.openResponseId}`, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
   assert.equal(allowed.statusCode, 200);
   assert.match(allowed.body, new RegExp(publicationV2Fixture.teacherSentinel));
-  assert.equal((await handler(event(`${prefix}/ultimate-b2-sb-u1-p1-o97`, "GET", null, { cookie: "", "x-preview-authorized": "yes" }))).statusCode, 404);
+  const choice = await handler(event(`${prefix}/${publicationV2Fixture.singleChoiceId}`, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
+  assert.equal(choice.statusCode, 200);
+  assert.match(choice.body, /correctAnswers/);
+  assert.equal((await handler(event(`${prefix}/ultimate-b2-sb-u1-p1-o96`, "GET", null, { cookie: "", "x-preview-authorized": "yes" }))).statusCode, 404);
 });

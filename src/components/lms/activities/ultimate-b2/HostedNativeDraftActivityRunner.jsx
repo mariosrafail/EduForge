@@ -1,6 +1,8 @@
 import { NativeImageSurface } from "../../../native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
+import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
+import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";
 
 export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false }) {
@@ -17,5 +19,9 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
     {kind === "open-response" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {kind === "open-response" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {kind === "open-response" && teacherMode && state.teacher.entry ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} /> : null}
+    {kind === "single-choice" && !teacherMode ? <NativeSingleChoiceStudentSurface document={document} /> : null}
+    {kind === "single-choice" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
+    {kind === "single-choice" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
+    {kind === "single-choice" && teacherMode && state.teacher.entry ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} /> : null}
   </article>;
 }

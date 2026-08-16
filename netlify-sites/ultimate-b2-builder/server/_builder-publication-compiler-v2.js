@@ -11,6 +11,7 @@ import {
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
+import { NATIVE_ACTIVITY_KINDS } from "../../../src/data/native-activities/nativeActivityKinds.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" });
@@ -33,7 +34,7 @@ export function ultimateB2PublicationV2Compatibility() {
     hotspotSchemaVersion: repositoryHotspots.schemaVersion,
     nativeActivitySchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION,
-    nativeKinds: ["image", "open-response"],
+    nativeKinds: [...NATIVE_ACTIVITY_KINDS].sort(),
     releaseAssetDescriptorSchemaVersion: "1.0",
   });
 }

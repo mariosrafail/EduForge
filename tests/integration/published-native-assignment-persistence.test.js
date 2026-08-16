@@ -177,12 +177,20 @@ test("published native assignment remains release-pinned through submit, review,
     ) values($1,$2,'published_native',$3,$4,$5,$6,'Mixed target')
   `, [teacher.school_id, legacyActivity.id, releaseA.releaseId, publicationV2Fixture.openResponseId, teacher.id, student.id]), /activity_assignments_target_identity_check/);
 
+  const choiceCreate = await createAssignment(sql, {
+    idempotencyKey: "native-single-choice-create",
+    classIds: [classRow.id],
+    target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.singleChoiceId },
+  }, teacherUser);
+  assert.equal(choiceCreate.statusCode, 200);
+  const choiceAssignment = JSON.parse(choiceCreate.body).assignment;
+
   const releaseB = await insertRelease(pool, {
     packageId: scope.package_id,
     componentId: scope.component_id,
     builderId,
     releaseNumber: 100,
-    fixture: { prompt: "Release B prompt", teacherAnswer: "Release B protected answer" },
+    fixture: { prompt: "Release B prompt", teacherAnswer: "Release B protected answer", singleChoiceCorrectOptionIndexes: [0, 2] },
   });
   const preparedCatalog = await listAssignmentTargets(sql, teacherUser);
   assert.equal(preparedCatalog.some((item) => item.target.releaseId === releaseB.releaseId), false);
@@ -207,11 +215,16 @@ test("published native assignment remains release-pinned through submit, review,
   assert.doesNotMatch(JSON.stringify(hydrated), /Release A protected answer|Release B protected answer/);
 
   const questionId = hydrated.target.entry.document.parts[0].interaction.questions[0].id;
+  const rejectedScore = await submitActivity(sql, {
+    assignmentId: assignment.id,
+    response: { schemaVersion: "native-response.v1", items: [{ id: questionId, value: "Student pinned response" }] },
+    score: 100,
+  }, studentUser);
+  assert.equal(rejectedScore.statusCode, 400);
   const submitResponse = await submitActivity(sql, {
     assignmentId: assignment.id,
     target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.openResponseId },
     response: { schemaVersion: "native-response.v1", items: [{ id: questionId, value: "Student pinned response" }] },
-    score: 100,
   }, studentUser);
   assert.equal(submitResponse.statusCode, 200);
   assert.equal(JSON.parse(submitResponse.body).submission.status, "awaiting_review");
@@ -240,6 +253,65 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(reviewed.teacherFeedback, "Good evidence");
   assert.equal(reviewed.target.releaseId, releaseA.releaseId);
   assert.doesNotMatch(JSON.stringify(reviewed), /Release A protected answer|Release B protected answer/);
+
+  const choiceHydrated = (await listAssignmentsForStudent(sql, student.id, studentUser)).find((item) => item.id === choiceAssignment.id);
+  assert.equal(choiceHydrated.target.releaseId, releaseA.releaseId);
+  assert.equal(choiceHydrated.target.capability.reviewMode, "auto-scored");
+  assert.doesNotMatch(JSON.stringify(choiceHydrated), /correctOptionId|correctAnswers/);
+  const choiceQuestions = choiceHydrated.target.entry.document.parts[0].interaction.questions;
+  const wrongOwnership = await submitActivity(sql, {
+    assignmentId: choiceAssignment.id,
+    response: { schemaVersion: "native-response.v1", items: [{ id: choiceQuestions[0].id, value: choiceQuestions[1].options[0].id }] },
+  }, studentUser);
+  assert.equal(wrongOwnership.statusCode, 400);
+  const duplicateChoice = await submitActivity(sql, {
+    assignmentId: choiceAssignment.id,
+    response: { schemaVersion: "native-response.v1", items: [{ id: choiceQuestions[0].id, value: choiceQuestions[0].options[0].id }, { id: choiceQuestions[0].id, value: choiceQuestions[0].options[1].id }] },
+  }, studentUser);
+  assert.equal(duplicateChoice.statusCode, 400);
+  const teacherInjection = await submitActivity(sql, {
+    assignmentId: choiceAssignment.id,
+    response: { schemaVersion: "native-response.v1", items: [], correctAnswers: [] },
+  }, studentUser);
+  assert.equal(teacherInjection.statusCode, 400);
+  const scoreTamper = await submitActivity(sql, {
+    assignmentId: choiceAssignment.id,
+    score: 100,
+    response: { schemaVersion: "native-response.v1", items: [{ id: choiceQuestions[0].id, value: choiceQuestions[0].options[1].id }] },
+  }, studentUser);
+  assert.equal(scoreTamper.statusCode, 400);
+  const choiceSubmit = await submitActivity(sql, {
+    assignmentId: choiceAssignment.id,
+    response: { schemaVersion: "native-response.v1", items: [{ id: choiceQuestions[0].id, value: choiceQuestions[0].options[1].id }, { id: choiceQuestions[1].id, value: choiceQuestions[1].options[0].id }] },
+  }, studentUser);
+  assert.equal(choiceSubmit.statusCode, 200);
+  assert.deepEqual(JSON.parse(choiceSubmit.body).submission, {
+    id: JSON.parse(choiceSubmit.body).submission.id,
+    status: "submitted", scorePercent: 50, correctCount: 1, totalCount: 2,
+  });
+  const choiceStored = (await pool.query("select response_payload,score_percent,correct_count,total_count,status from activity_submissions where activity_assignment_id=$1", [choiceAssignment.id])).rows[0];
+  assert.equal(choiceStored.response_payload.kind, "single-choice");
+  assert.equal(Number(choiceStored.score_percent), 50);
+  assert.equal(choiceStored.correct_count, 1);
+  assert.equal(choiceStored.total_count, 2);
+  assert.equal(choiceStored.status, "submitted");
+  const studentChoiceResult = (await listAssignmentsForStudent(sql, student.id, studentUser)).find((item) => item.id === choiceAssignment.id);
+  assert.equal(studentChoiceResult.scorePercent, 50);
+  assert.equal(studentChoiceResult.target.releaseId, releaseA.releaseId);
+  assert.doesNotMatch(JSON.stringify(studentChoiceResult), /correctOptionId|correctAnswers/);
+  const choiceResults = JSON.parse((await getAssignmentResults(sql, choiceAssignment.id)).body);
+  assert.equal(choiceResults.rows[0].implementationMode, "auto-scored");
+  assert.equal(choiceResults.rows[0].answerDetails[0].answer, choiceQuestions[0].options[1].text);
+  assert.equal(choiceResults.rows[0].answerDetails[0].modelAnswer, choiceQuestions[0].options[1].text);
+  assert.equal(choiceResults.rows[0].answerDetails[1].isCorrect, false);
+  const scoreOverride = await reviewSubmission(sql, { submissionId: choiceResults.rows[0].submissionId, scorePercent: 100, teacherFeedback: "No override" }, teacherUser);
+  assert.equal(scoreOverride.statusCode, 400);
+  const feedbackOnly = await reviewSubmission(sql, { submissionId: choiceResults.rows[0].submissionId, teacherFeedback: "Server score retained" }, teacherUser);
+  assert.equal(feedbackOnly.statusCode, 200);
+  const choiceAfterReview = (await pool.query("select score_percent,status,teacher_feedback from activity_submissions where activity_assignment_id=$1", [choiceAssignment.id])).rows[0];
+  assert.equal(Number(choiceAfterReview.score_percent), 50);
+  assert.equal(choiceAfterReview.status, "submitted");
+  assert.equal(choiceAfterReview.teacher_feedback, "Server score retained");
 
   await assert.rejects(pool.query(`
     insert into activity_submissions(

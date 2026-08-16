@@ -12,6 +12,50 @@ function openResponseQuestions(document = {}) {
   return document.parts?.[0]?.interaction?.questions || [];
 }
 
+function normalizeSingleChoice(publicDocument, rawEnvelope) {
+  if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)) return { error: "response must be an object" };
+  if (rawEnvelope.schemaVersion !== NATIVE_RESPONSE_SCHEMA_VERSION) return { error: `response.schemaVersion must be ${NATIVE_RESPONSE_SCHEMA_VERSION}` };
+  if (Object.keys(rawEnvelope).some((key) => !["schemaVersion", "items"].includes(key))) return { error: "response contains unsupported fields" };
+  if (!Array.isArray(rawEnvelope.items) || rawEnvelope.items.length > MAX_RESPONSE_ITEMS) return { error: `response.items must be an array with at most ${MAX_RESPONSE_ITEMS} items` };
+  if (JSON.stringify(rawEnvelope).length > MAX_RESPONSE_PAYLOAD) return { error: "response payload is too large" };
+  const questions = openResponseQuestions(publicDocument);
+  const questionById = new Map(questions.map((question) => [String(question.id), question]));
+  const seen = new Set(); const values = new Map();
+  for (const item of rawEnvelope.items) {
+    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "id,value") return { error: "Each response item must contain exactly id and value" };
+    const id = String(item.id || ""); const value = String(item.value || ""); const question = questionById.get(id);
+    if (!question) return { error: `Unexpected response id: ${id}` };
+    if (seen.has(id)) return { error: `Duplicate response id: ${id}` };
+    if (typeof item.value !== "string" || !question.options.some((option) => String(option.id) === value)) return { error: `Response ${id} must select an option belonging to that question` };
+    seen.add(id); values.set(id, value);
+  }
+  return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "single-choice", items: questions.filter((question) => values.has(String(question.id))).map((question) => ({ id: String(question.id), value: values.get(String(question.id)) })) } };
+}
+
+function scoreSingleChoice(publicDocument, teacherDocument, payload) {
+  const questions = openResponseQuestions(publicDocument);
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), String(answer.correctOptionId)]));
+  const correctCount = questions.filter((question) => responses.get(String(question.id)) === correct.get(String(question.id))).length;
+  const totalCount = questions.length;
+  return { status: "submitted", correctCount, totalCount, scorePercent: totalCount ? Math.round((correctCount / totalCount) * 100) : 0 };
+}
+
+function singleChoiceReview(publicDocument, teacherDocument, payload = {}) {
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), String(answer.correctOptionId)]));
+  return openResponseQuestions(publicDocument).map((question) => {
+    const selectedOptionId = responses.get(String(question.id)) || null;
+    const correctOptionId = correct.get(String(question.id));
+    return {
+      questionId: String(question.id), prompt: question.prompt || "",
+      answer: question.options.find((option) => option.id === selectedOptionId)?.text || "",
+      modelAnswer: question.options.find((option) => option.id === correctOptionId)?.text || "",
+      isCorrect: selectedOptionId !== null && selectedOptionId === correctOptionId, feedback: "",
+    };
+  });
+}
+
 function normalizeOpenResponse(publicDocument, rawEnvelope) {
   if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)) {
     return { error: "response must be an object" };
@@ -85,6 +129,16 @@ const capabilities = Object.freeze({
     normalizeResponse: normalizeOpenResponse,
     teacherReviewProjection: openResponseReview,
   }),
+  "single-choice": Object.freeze({
+    kind: "single-choice",
+    assignable: true,
+    submittable: true,
+    reviewMode: "auto-scored",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeSingleChoice,
+    evaluateResponse: scoreSingleChoice,
+    teacherReviewProjection: singleChoiceReview,
+  }),
   image: Object.freeze({
     kind: "image",
     assignable: false,
@@ -101,7 +155,7 @@ export function nativeAssignmentCapability(kind) {
 export function containsClientTeacherMaterial(value) {
   if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
   if (!value || typeof value !== "object") return false;
-  const forbidden = new Set(["modelAnswer", "modelAnswers", "solution", "teacherDocument", "teacherProjection"]);
+  const forbidden = new Set(["modelAnswer", "modelAnswers", "correctOptionId", "correctAnswers", "solution", "teacherDocument", "teacherProjection"]);
   return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsClientTeacherMaterial(child));
 }
 

@@ -3,6 +3,7 @@ import { normalizeNativeActivityPublic } from "../native-activities/nativeActivi
 import { normalizeNativeActivityTeacher, validateNativeActivityDocumentPair } from "../native-activities/nativeActivityTeacher.js";
 import { normalizeNativeImageInteraction, normalizeNativeImageSolution } from "../native-activities/nativeImage.js";
 import { normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, validateNativeOpenResponseTopology } from "../native-activities/nativeOpenResponse.js";
+import { normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "../native-activities/nativeSingleChoice.js";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "./studentsBookAuthoringCatalog.js";
 import {
@@ -43,6 +44,11 @@ function nativeDefinition(kind) {
     normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeImageInteraction }); },
     normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeImageSolution }); },
     validate(publicDocument, teacherDocument) { validateNativeActivityDocumentPair(publicDocument, teacherDocument); },
+  };
+  if (kind === "single-choice") return {
+    normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeSingleChoiceInteraction }); },
+    normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeSingleChoiceSolution }); },
+    validate(publicDocument, teacherDocument) { validateNativeActivityDocumentPair(publicDocument, teacherDocument); validateNativeSingleChoiceTopology(publicDocument, teacherDocument); },
   };
   throw new Error("Published native activity kind is unsupported.");
 }

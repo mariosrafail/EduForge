@@ -1,4 +1,5 @@
 import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds } from "./shared.js";
+import { NATIVE_ASSIGNMENT_TARGET_KIND, loadPinnedNativeAssignmentTarget } from "./native-assignment-runtime.js";
 
 export function studentProgressRow(row = {}) {
   const assignedCount = Number(row.assigned_count || 0);
@@ -115,9 +116,8 @@ export async function reviewSubmission(sql, body, currentUser = null) {
   }
 
   const existingRows = await sql`
-    select s.status, s.score_percent,
-           case when aa.target_kind = 'published_native' then 'teacher-reviewed'
-                else coalesce(a.content_json->>'implementationMode', 'auto-scored') end as implementation_mode
+    select s.status, s.score_percent, aa.target_kind, aa.native_release_id, aa.native_activity_id,
+           coalesce(a.content_json->>'implementationMode', 'auto-scored') as implementation_mode
     from activity_submissions s
     join activity_assignments aa on aa.id = s.activity_assignment_id
     left join activities a on a.id = aa.activity_id
@@ -129,6 +129,11 @@ export async function reviewSubmission(sql, body, currentUser = null) {
   `;
   const existing = existingRows[0];
   if (!existing) return json(404, { error: "Submission not found" });
+  if (existing.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND) {
+    const target = await loadPinnedNativeAssignmentTarget(sql, existing);
+    if (!target?.capability) return json(409, { error: "Assigned published native activity is unavailable" });
+    existing.implementation_mode = target.capability.reviewMode;
+  }
   if (existing.status === "awaiting_review" && scorePercent === null) {
     return badRequest("scorePercent is required to complete teacher review");
   }

@@ -31,10 +31,10 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
   const runtimeContext = resolveHostedViewerRuntimeContext();
   const nativeDraftCandidate = runtimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && !findStudentsBookImplementation(activityId);
-  const hostedNativeDraft = useHostedNativeDraftActivity(nativeDraftCandidate ? activityId : null);
-  const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const teacherPreview = activeBuildProfile.teacherPresentation
     || (activeBuildProfile.authorizedTeacherPreview && resolveHostedViewerRuntimeContext().teacherPreview);
+  const hostedNativeDraft = useHostedNativeDraftActivity(nativeDraftCandidate ? activityId : null, { teacherMode: teacherPreview });
+  const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const activityMode = teacherPreview
     ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
     : ACTIVITY_MODES.ANDROID_OFFLINE;

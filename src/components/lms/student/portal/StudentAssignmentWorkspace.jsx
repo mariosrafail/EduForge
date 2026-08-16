@@ -38,7 +38,7 @@ function ResultPanel({ assignment, presentation }) {
       <span className="eyebrow"><CheckCircle2 size={15} /> Assignment result</span>
       <div className="student-assignment-result-heading">
         <div><h3>{presentation.label}</h3><p>{assignment.submittedAt ? `Submitted ${formatDate(assignment.submittedAt)}` : "This assignment is not open for submission."}</p></div>
-        {presentation.score !== null && <strong>{Math.round(Number(presentation.score))}%</strong>}
+        {presentation.score !== null && <strong>{assignment.correctCount !== null && assignment.correctCount !== undefined && assignment.totalCount !== null && assignment.totalCount !== undefined ? `${assignment.correctCount}/${assignment.totalCount} · ` : ""}{Math.round(Number(presentation.score))}%</strong>}
       </div>
       {assignment.teacherFeedback && (
         <div className="student-assignment-feedback">
@@ -127,7 +127,9 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
         },
         response: {
           schemaVersion: assignment.target.capability.responseSchemaVersion,
-          items: questions.map((question) => ({ id: question.id, value: nativeResponses[question.id] || "" })),
+          items: questions
+            .filter((question) => assignment.target.nativeKind !== "single-choice" || nativeResponses[question.id])
+            .map((question) => ({ id: question.id, value: nativeResponses[question.id] || "" })),
         },
       });
       setSubmitMessage("Assignment submission saved.");

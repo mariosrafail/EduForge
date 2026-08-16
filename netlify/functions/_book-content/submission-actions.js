@@ -10,6 +10,7 @@ import {
 
 async function submitNativeAssignment(sql, body, currentUser, assignment) {
   if (containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
+  if (["score", "scorePercent", "correctCount", "totalCount"].some((key) => Object.hasOwn(body, key))) return badRequest("Client-supplied score fields are not accepted for published native assignments");
   if (body.activityId) return badRequest("activityId is not valid for a published native assignment");
   if (body.target && (
     body.target.kind !== NATIVE_ASSIGNMENT_TARGET_KIND
@@ -28,6 +29,9 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
   }
   const normalized = resolved.capability.normalizeResponse(resolved.publicEntry.document, body.response || body.responsePayload);
   if (normalized.error) return badRequest(normalized.error);
+  const evaluated = typeof resolved.capability.evaluateResponse === "function"
+    ? resolved.capability.evaluateResponse(resolved.publicEntry.document, resolved.teacherEntry.document, normalized.payload)
+    : { status: normalized.status, scorePercent: normalized.scorePercent, correctCount: normalized.correctCount, totalCount: normalized.totalCount };
 
   const stateRows = await withAssignmentLifecycleTransaction(sql, body.assignmentId, (transactionSql) => transactionSql`
     with assignment_state as materialized (
@@ -43,7 +47,7 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
       )
       select assignment_state.id, ${currentUser.school_id}, null, ${currentUser.id}, '{}'::jsonb,
              ${normalized.schemaVersion}, ${JSON.stringify(normalized.payload)}::jsonb,
-             null, null, null, null, ${normalized.status}, now(), 1
+             ${evaluated.scorePercent}, ${evaluated.scorePercent}, ${evaluated.correctCount}, ${evaluated.totalCount}, ${evaluated.status}, now(), 1
       from assignment_state
       where assignment_state.status = 'assigned'
         and (assignment_state.due_at is null or assignment_state.due_at > now())
@@ -69,9 +73,9 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
     submission: {
       id: locked.submission.id,
       status: locked.submission.status,
-      scorePercent: null,
-      correctCount: null,
-      totalCount: null,
+      scorePercent: evaluated.scorePercent,
+      correctCount: evaluated.correctCount,
+      totalCount: evaluated.totalCount,
     },
   });
 }
@@ -272,7 +276,7 @@ export async function getAssignmentResults(sql, assignmentId) {
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            coalesce(a.title, aa.title) as activity_title, a.slug as activity_slug,
            coalesce(a.activity_type, native_public.value->>'kind') as activity_type,
-           case when aa.target_kind = 'published_native' then 'teacher-reviewed' else a.content_json->>'implementationMode' end as implementation_mode,
+           a.content_json->>'implementationMode' as implementation_mode,
            coalesce(bc.title, native_component.title) as component_title,
            coalesce(bp.title, native_package.title) as package_title, c.name as class_name
     from activity_assignments aa
@@ -338,6 +342,7 @@ export async function getAssignmentResults(sql, assignmentId) {
     nativeTarget = await loadPinnedNativeAssignmentTarget(sql, assignment);
     if (!nativeTarget?.capability) return json(409, { error: "Assigned published native activity is unavailable" });
   }
+  const implementationMode = nativeTarget?.capability?.reviewMode || assignment.implementation_mode || "auto-scored";
 
   const resultRows = rows.map((row) => ({
     studentId: row.student_id,
@@ -374,7 +379,7 @@ export async function getAssignmentResults(sql, assignmentId) {
     reviewedBy: row.reviewed_by || null,
     dueAt: assignment.due_at,
     submissionId: row.submission_id,
-    implementationMode: assignment.implementation_mode || "auto-scored",
+    implementationMode,
     targetKind: assignment.target_kind || "legacy_activity",
   }));
   const submitted = resultRows.filter((row) => row.submissionId).length;
@@ -390,7 +395,7 @@ export async function getAssignmentResults(sql, assignmentId) {
       submitted_count: submitted,
       average_score: averageScore,
       latest_submitted_at: resultRows.map((row) => row.submittedAt).filter(Boolean).sort().slice(-1)[0] || null,
-      implementation_mode: assignment.implementation_mode,
+      implementation_mode: implementationMode,
     }),
     summary: {
       totalStudents: resultRows.length,

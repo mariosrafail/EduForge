@@ -5,6 +5,7 @@ import {
   hostedNativeDraftAssetUrl,
   loadHostedNativeDraftPublicActivity,
   loadHostedNativeDraftTeacherActivity,
+  shouldLoadHostedNativeDraftTeacherActivity,
 } from "../src/apps/android-teacher-offline/hostedNativeDraftProvider.js";
 import { HOSTED_VIEWER_RUNTIME_MODES } from "../src/apps/android-teacher-offline/hostedReleasePreview.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
@@ -62,6 +63,20 @@ test("hosted native drafts are Builder-preview-only and image drafts never reque
   assert.equal(imageEntry.kind, "image");
   assert.equal(await loadHostedNativeDraftTeacherActivity(imageEntry, { context, fetchImpl: async () => { requests += 1; return response({}); } }), null);
   assert.equal(requests, 1);
+});
+
+test("Single Choice public drafts exclude the key while authorized Teacher preview validates it separately", async () => {
+  const publicEntry = await loadHostedNativeDraftPublicActivity(publicationV2Fixture.singleChoiceId, {
+    context, fetchImpl: async () => response(envelope(publicationV2Fixture.singleChoiceId, "public")),
+  });
+  assert.equal(publicEntry.kind, "single-choice");
+  assert.doesNotMatch(JSON.stringify(publicEntry), /correctOptionId|correctAnswers/);
+  const teacherEntry = await loadHostedNativeDraftTeacherActivity(publicEntry, {
+    context, fetchImpl: async () => response(envelope(publicationV2Fixture.singleChoiceId, "teacher")),
+  });
+  assert.equal(teacherEntry.document.parts[0].solution.correctAnswers.length, 2);
+  assert.equal(shouldLoadHostedNativeDraftTeacherActivity(publicEntry, false), false);
+  assert.equal(shouldLoadHostedNativeDraftTeacherActivity(publicEntry, true), true);
 });
 
 test("hosted native draft provider fails closed on envelope drift and produces only protected asset URLs", async () => {

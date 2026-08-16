@@ -13,6 +13,7 @@ import {
   validateNativeOpenResponseTopology,
   assessNativeOpenResponseReadiness,
 } from "../../../src/data/native-activities/nativeOpenResponse.js";
+import { assessNativeSingleChoiceReadiness, normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "../../../src/data/native-activities/nativeSingleChoice.js";
 
 function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null, assessReadiness = null) {
   return Object.freeze({
@@ -43,6 +44,7 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
 const registry = Object.freeze({
   "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology, assessNativeOpenResponseReadiness),
   image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" }), null, assessNativeImageReadiness),
+  "single-choice": definition("single-choice", normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, () => ({ kind: "single-choice", questions: [] }), () => ({ kind: "single-choice", correctAnswers: [] }), validateNativeSingleChoiceTopology, assessNativeSingleChoiceReadiness),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }
