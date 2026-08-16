@@ -88,8 +88,44 @@ try {
     assert.equal(await page.getByText("Publisher answer", { exact: true }).count(), 0);
   }
 
+  const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
+  const mobilePage = await mobileContext.newPage();
+  mobilePage.setDefaultTimeout(45_000);
+  const mobileConsoleErrors = [];
+  mobilePage.on("console", (message) => { if (message.type() === "error" && !/favicon|ERR_ABORTED|ERR_CACHE_MISS/i.test(message.text())) mobileConsoleErrors.push(message.text()); });
+  checkpoint = requestCheckpoint();
+  await mobilePage.goto(authorized.toString(), { waitUntil: "domcontentloaded" });
+  await mobilePage.locator(".legacy-home-launcher").waitFor();
+  assert.equal(await mobilePage.getByText("Viewer could not start", { exact: true }).count(), 0);
+  const mobileRequests = requestsSince(checkpoint);
+  assert.equal(mobileRequests.find((url) => url.pathname === uiPath)?.searchParams.get("previewAuthorization"), token);
+  assert.equal(mobileRequests.filter((url) => /teacher-solution|native-teacher|open-response-teacher/.test(url.pathname)).length, 0);
+  const mobileGeometry = await mobilePage.locator(".teacher-fixed-stage").evaluate((stage) => {
+    const stageRect = stage.getBoundingClientRect();
+    const hostRect = stage.parentElement.getBoundingClientRect();
+    const style = getComputedStyle(stage);
+    return {
+      logicalWidth: Number.parseFloat(style.width),
+      logicalHeight: Number.parseFloat(style.height),
+      scale: Number(stage.dataset.teacherStageScale),
+      renderedWidth: stageRect.width,
+      renderedHeight: stageRect.height,
+      hostWidth: hostRect.width,
+      hostHeight: hostRect.height,
+      horizontalScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    };
+  });
+  assert.equal(mobileGeometry.logicalWidth, 1920);
+  assert.equal(mobileGeometry.logicalHeight, 1080);
+  assert.ok(mobileGeometry.scale > 0 && mobileGeometry.scale < 1);
+  assert.ok(mobileGeometry.renderedWidth <= mobileGeometry.hostWidth + 1);
+  assert.ok(mobileGeometry.renderedHeight <= mobileGeometry.hostHeight + 1);
+  assert.equal(mobileGeometry.horizontalScroll, false);
+  assert.deepEqual(mobileConsoleErrors, []);
+  await mobileContext.close();
+
   assert.deepEqual(consoleErrors, []);
-  console.log(JSON.stringify({ status: "public-viewer-boundary-safe", barePreviewRequests: 0, authorizedUiRequest: uiRequest.pathname, authorizedUiToken: "present", authorizedHotspots: true, unauthorizedPreviewRequests: 0, consoleErrors: 0 }, null, 2));
+  console.log(JSON.stringify({ status: "public-viewer-boundary-safe", barePreviewRequests: 0, authorizedUiRequest: uiRequest.pathname, authorizedUiToken: "present", authorizedHotspots: true, unauthorizedPreviewRequests: 0, mobileAuthorizedPreview: "ready", mobileViewport: "390x844-touch", mobileHorizontalScroll: false, consoleErrors: 0 }, null, 2));
   await context.close();
 } finally {
   await browser?.close();

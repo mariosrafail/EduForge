@@ -11,6 +11,7 @@ import {
   createNoopStartupAssets,
   preloadDifferentialAssetGroup,
   preloadAssetGroup,
+  preloadBrowserAsset,
   probeImmutableViewerAsset,
   resolveImmutableViewerAssetUrl,
   runInteractiveViewerStartup,
@@ -172,6 +173,91 @@ test("required manifest assets fail planning when the renderer has no matching r
   assert.throws(
     () => buildHostedViewerAssetLoadPlan({ manifestAssets: [manifestAsset("missing", "audio", 10)] }),
     (error) => error.code === "VIEWER_ASSET_PLAN_INVALID" && /runtime URL/.test(error.message),
+  );
+});
+
+test("required audio readiness depends on complete HTTP bytes, not restricted media-element preload", async () => {
+  let mediaElementTouched = false;
+  let reads = 0;
+  const states = [];
+  const asset = { key: "required-audio", url: "/assets/required.mp3", kind: "audio" };
+  const options = {
+    documentImpl: {
+      createElement() {
+        mediaElementTouched = true;
+        throw new Error("mobile browser blocks eager media setup");
+      },
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      body: {
+        getReader: () => ({
+          async read() {
+            reads += 1;
+            return { done: reads > 1, value: reads === 1 ? new Uint8Array([1, 2, 3]) : undefined };
+          },
+        }),
+      },
+    }),
+  };
+  const result = await runInteractiveViewerStartup({
+    loadContentPack: async () => ({ assetsManifest: { assets: [] } }),
+    prepareHotspots: async () => ({}),
+    startupAssets: {
+      createLoadPlan: () => ({ blocking: [asset], background: [] }),
+      preloadBlocking: async () => preloadBrowserAsset(asset, options),
+      preloadBackground: async () => ({ errors: [] }),
+    },
+    onState: (state) => states.push(state.status),
+  });
+  await result.backgroundPromise;
+  assert.equal(reads, 2);
+  assert.equal(mediaElementTouched, false);
+  assert.equal(states.at(-1), "ready");
+});
+
+test("required asset consumption falls back to arrayBuffer when streaming readers are unavailable", async () => {
+  let consumed = 0;
+  await preloadBrowserAsset(
+    { key: "fallback-audio", url: "/assets/fallback.mp3", kind: "audio" },
+    {
+      fetchImpl: async () => ({
+        ok: true,
+        body: null,
+        async arrayBuffer() {
+          consumed += 1;
+          return Uint8Array.from([4, 5, 6]).buffer;
+        },
+      }),
+    },
+  );
+  assert.equal(consumed, 1);
+});
+
+test("required audio still fails closed for non-OK HTTP and unusable response bodies", async () => {
+  const asset = { key: "required-audio", url: "/assets/required.mp3", kind: "audio" };
+  await assert.rejects(
+    preloadBrowserAsset(asset, { fetchImpl: async () => ({ ok: false, status: 404 }) }),
+    (error) => error.code === "VIEWER_ASSET_LOAD_FAILED" && /required-audio/.test(error.message),
+  );
+  await assert.rejects(
+    preloadBrowserAsset(asset, { fetchImpl: async () => ({ ok: true, body: null }) }),
+    (error) => error.code === "VIEWER_ASSET_LOAD_FAILED" && /consumption/.test(error.message),
+  );
+});
+
+test("required broken images remain fatal without falling back to byte-only readiness", async () => {
+  class BrokenImage {
+    set src(value) {
+      if (value) queueMicrotask(() => this.onerror?.());
+    }
+  }
+  await assert.rejects(
+    preloadBrowserAsset(
+      { key: "broken-page", url: "/assets/broken-page.png", kind: "image" },
+      { ImageCtor: BrokenImage },
+    ),
+    (error) => error.code === "VIEWER_ASSET_LOAD_FAILED" && /broken-page/.test(error.message),
   );
 });
 

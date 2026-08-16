@@ -26,6 +26,7 @@ import {
 } from "./legacyClassroomAssets.js";
 import bookMenuSkinSelections from "../../config/bookMenuSkinSelections.json";
 import { selectedBookMenuSkinId } from "../../config/bookMenuSkins.js";
+import { VIEWER_EXIT_FULLSCREEN_MESSAGE } from "../../shared/viewerPresentationProtocol.js";
 import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
@@ -222,8 +223,14 @@ export default function TeacherOfflineApp() {
     if (Capacitor.isNativePlatform()) await App.exitApp();
   }, []);
   const minimizeApplication = useCallback(async () => {
-    if (Capacitor.isNativePlatform()) await App.minimizeApp();
-  }, []);
+    if (Capacitor.isNativePlatform()) {
+      await App.minimizeApp();
+      return;
+    }
+    if (hosted && globalThis.parent && globalThis.parent !== globalThis) {
+      globalThis.parent.postMessage(VIEWER_EXIT_FULLSCREEN_MESSAGE, "*");
+    }
+  }, [hosted]);
   const updateBookLocation = (location, options) => {
     writeTeacherOfflineLocation(location, activeRuntime);
     navigate({ view: "book", location }, { ...options, replace: true });

@@ -101,8 +101,8 @@ test("non-hosted Android runtime ignores Builder preview query and intro suppres
   assert.equal(isHostedViewerPreviewRequest(search, true), true);
 });
 
-test("canonical preview frame uses scoped authorization without a DOM bridge or postMessage channel", async () => {
-  const [frame, standalone, dialog, styles, router, authorizationClient, app, entry] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx", "utf8"), readFile("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilder.css", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderRouter.js", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8")]);
+test("canonical preview frame permits only the versioned Viewer fullscreen-exit presentation signal", async () => {
+  const [frame, standalone, dialog, styles, router, authorizationClient, app, entry, protocol] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx", "utf8"), readFile("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilder.css", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderRouter.js", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8"), readFile("src/shared/viewerPresentationProtocol.js", "utf8")]);
   assert.match(frame, /referrerPolicy="no-referrer"/);
   assert.match(frame, /title=\{title\}/);
   assert.match(frame, /createBuilderPreviewAuthorization/);
@@ -115,19 +115,32 @@ test("canonical preview frame uses scoped authorization without a DOM bridge or 
   assert.match(standalone, /allowFullscreen=\{true\}/);
   assert.doesNotMatch(dialog, /allowFullscreen/);
   assert.match(frame, /allowFullscreen = false/);
-  assert.match(frame, /previewElement\.requestFullscreen\(\)/);
+  assert.match(frame, /iframeElement\.requestFullscreen\(\)/);
   assert.match(frame, /document\.exitFullscreen\(\)/);
   assert.match(frame, /document\.addEventListener\("fullscreenchange"/);
-  assert.match(frame, /document\.fullscreenElement === previewElement/);
+  assert.match(frame, /document\.fullscreenElement === iframeElement/);
   assert.match(frame, /isFullscreen \? "Exit Fullscreen" : "Fullscreen"/);
   assert.match(frame, /catch \{\s*setFullscreenError\(true\);/);
   assert.doesNotMatch(frame, /alert\(/);
   assert.doesNotMatch(frame, /webkitRequestFullscreen|webkitExitFullscreen|mozRequestFullScreen|msRequestFullscreen/);
-  assert.match(styles, /\.hosted-viewer-preview:fullscreen \{[^}]*display: flex;[^}]*height: 100%;[^}]*max-width: none;[^}]*border-radius: 0;[^}]*box-shadow: none;/);
-  assert.match(styles, /\.hosted-viewer-preview:fullscreen iframe \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;/);
+  assert.doesNotMatch(styles, /\.hosted-viewer-preview:fullscreen/);
+  assert.match(styles, /\.hosted-viewer-preview iframe:fullscreen \{[^}]*width: 100%;[^}]*height: 100%;[^}]*min-height: 0;[^}]*border: 0;/);
   assert.doesNotMatch(`${standalone}\n${router}`, /previewAuthorization/);
-  assert.doesNotMatch(frame, /postMessage|contentWindow|document\.domain|document\.cookie/i);
-  assert.doesNotMatch(`${frame}\n${standalone}\n${router}`, /postMessage|localStorage|sessionStorage/i);
+  assert.match(protocol, /^export const VIEWER_EXIT_FULLSCREEN_MESSAGE = "HHPLMS_VIEWER_EXIT_FULLSCREEN_V1";\s*$/);
+  assert.doesNotMatch(protocol, /previewAuthorization|token|session|book|component|activity|release|teacher|user|content|database/i);
+  assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.minimizeApp\(\)[\s\S]*return;/);
+  assert.match(app, /hosted && globalThis\.parent && globalThis\.parent !== globalThis/);
+  assert.match(app, /globalThis\.parent\.postMessage\(VIEWER_EXIT_FULLSCREEN_MESSAGE, "\*"\)/);
+  assert.equal((app.match(/\.postMessage\(/g) || []).length, 1);
+  assert.match(frame, /window\.addEventListener\("message", exitViewerFullscreen\)/);
+  assert.match(frame, /event\.data !== VIEWER_EXIT_FULLSCREEN_MESSAGE/);
+  assert.match(frame, /event\.origin !== HOSTED_VIEWER_ORIGIN/);
+  assert.match(frame, /event\.source !== iframeElement\.contentWindow/);
+  assert.match(frame, /document\.fullscreenElement !== iframeElement/);
+  assert.doesNotMatch(frame, /\.postMessage\(/);
+  assert.equal((frame.match(/contentWindow/g) || []).length, 1);
+  assert.doesNotMatch(frame, /contentWindow\.(?:document|location|localStorage|sessionStorage)|document\.domain|document\.cookie/i);
+  assert.doesNotMatch(`${frame}\n${standalone}\n${router}\n${protocol}`, /localStorage|sessionStorage|document\.cookie/i);
   assert.match(app, /runInteractiveViewerStartup/);
   assert.match(app, /animationsActive && !hostedPreviewRequested/);
   assert.match(entry, /HostedAuthenticatedBookBuilderApp/);

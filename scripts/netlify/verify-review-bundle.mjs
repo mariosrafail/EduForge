@@ -122,7 +122,35 @@ async function verifyBuilderMutationSources() {
   assert.match(reviewPage, /<HostedViewerPreview/);
   assert.doesNotMatch(`${reviewPage}\n${reviewRouter}`, /previewAuthorization/);
   assert.match(previewUrl, /previewAuthorization/);
-  assert.doesNotMatch(`${previewFrame}\n${previewUrl}`, /postMessage|contentWindow|document\.domain|document\.cookie|localStorage|sessionStorage/i);
+  assert.doesNotMatch(`${previewFrame}\n${previewUrl}`, /document\.domain|document\.cookie|localStorage|sessionStorage/i);
+}
+
+async function verifyViewerExitFullscreenProtocol() {
+  const [protocol, previewFrame, viewerApp] = await Promise.all([
+    readFile(path.resolve("src/shared/viewerPresentationProtocol.js"), "utf8"),
+    readFile(path.resolve("src/apps/book-builder/hosted/HostedViewerPreview.jsx"), "utf8"),
+    readFile(path.resolve("src/apps/android-teacher-offline/TeacherOfflineApp.jsx"), "utf8"),
+  ]);
+  assert.match(protocol, /^export const VIEWER_EXIT_FULLSCREEN_MESSAGE = "HHPLMS_VIEWER_EXIT_FULLSCREEN_V1";\s*$/);
+  assert.doesNotMatch(protocol, /previewAuthorization|token|session|book|component|activity|release|teacher|user|content|database/i);
+  assert.match(viewerApp, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.minimizeApp\(\)[\s\S]*return;/);
+  assert.match(viewerApp, /globalThis\.parent\.postMessage\(VIEWER_EXIT_FULLSCREEN_MESSAGE, "\*"\)/);
+  assert.equal((viewerApp.match(/\.postMessage\(/g) || []).length, 1);
+  assert.match(previewFrame, /event\.data !== VIEWER_EXIT_FULLSCREEN_MESSAGE/);
+  assert.match(previewFrame, /event\.origin !== HOSTED_VIEWER_ORIGIN/);
+  assert.match(previewFrame, /event\.source !== iframeElement\.contentWindow/);
+  assert.match(previewFrame, /document\.fullscreenElement !== iframeElement/);
+  assert.doesNotMatch(previewFrame, /\.postMessage\(|contentWindow\.(?:document|location|localStorage|sessionStorage)|window\.parent\.document/i);
+
+  const postMessageSources = [];
+  const contentWindowSources = [];
+  for (const sourcePath of await sourceFilesUnder(path.resolve("src"))) {
+    const source = await readFile(path.resolve("src", sourcePath), "utf8");
+    if (/\.postMessage\(/.test(source)) postMessageSources.push(sourcePath);
+    if (/contentWindow/.test(source)) contentWindowSources.push(sourcePath);
+  }
+  assert.deepEqual(postMessageSources.sort(), ["apps/android-teacher-offline/TeacherOfflineApp.jsx"]);
+  assert.deepEqual(contentWindowSources.sort(), ["apps/book-builder/hosted/HostedViewerPreview.jsx"]);
 }
 
 async function verifyPublicViewerSourcesAndArtifact(root) {
@@ -221,6 +249,7 @@ export async function verifyReviewBundle(targetName) {
   const root = path.resolve(relativeRoot);
   assert.ok((await stat(root).catch(() => null))?.isDirectory(), `${targetName} review output is missing.`);
   const publicViewer = targetName === "ultimate-b2-interactive";
+  await verifyViewerExitFullscreenProtocol();
   const generic = await scanWebBundle(root);
   assert.deepEqual(generic.findings, [], `${targetName} failed generic web safety:\n${JSON.stringify(generic.findings, null, 2)}`);
   if (targetName === "ultimate-b2-builder") {

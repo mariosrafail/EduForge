@@ -574,6 +574,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(app, /onMinimize=\{minimizeApplication\}/);
   assert.match(app, /onClose=\{closeApplication\}/);
   assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.exitApp\(\)/);
+  assert.match(app, /Capacitor\.isNativePlatform\(\)[\s\S]*App\.minimizeApp\(\)[\s\S]*return;/);
+  assert.match(app, /hosted && globalThis\.parent && globalThis\.parent !== globalThis[\s\S]*globalThis\.parent\.postMessage\(VIEWER_EXIT_FULLSCREEN_MESSAGE, "\*"\)/);
   assert.match(renderer, /mediaElement\.pause\(\)[\s\S]*removeAttribute\("src"\)[\s\S]*mediaElement\.load\(\)/);
   assert.match(renderer, /mediaRef\.current\?\.pause/);
   assert.match(renderer, /visibilitychange/);

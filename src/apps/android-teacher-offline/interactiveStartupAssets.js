@@ -347,15 +347,20 @@ async function drainResponse(response, asset) {
     throw error;
   }
   const reader = response.body?.getReader?.();
-  if (!reader) {
-    const error = new Error(`Streaming asset preload is unavailable: ${asset.key}`);
-    error.code = "VIEWER_ASSET_LOAD_FAILED";
-    throw error;
+  if (reader) {
+    while (true) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+    return;
   }
-  while (true) {
-    const { done } = await reader.read();
-    if (done) break;
+  if (typeof response.arrayBuffer === "function") {
+    await response.arrayBuffer();
+    return;
   }
+  const error = new Error(`Complete asset response consumption is unavailable: ${asset.key}`);
+  error.code = "VIEWER_ASSET_LOAD_FAILED";
+  throw error;
 }
 
 async function fetchAsset(asset, { signal, fetchImpl = globalThis.fetch } = {}) {
@@ -453,7 +458,7 @@ export async function preloadBrowserAsset(asset, options = {}) {
     return;
   }
   await fetchAsset(asset, options);
-  if (asset.kind === "audio" || asset.kind === "video") await waitForMedia(asset, options);
+  if (asset.kind === "video") await waitForMedia(asset, options);
 }
 
 export function createHostedStartupAssets(inventory, {

@@ -6,6 +6,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
+import { VIEWER_EXIT_FULLSCREEN_MESSAGE } from "../../src/shared/viewerPresentationProtocol.js";
 import { createEmptyHostedTeacherUiDocument } from "../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { createUltimateB2HostedOpenResponseSeed } from "../../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../../src/data/ultimate-b2/studentsBookCatalog.js";
@@ -115,7 +116,7 @@ try {
     Object.defineProperty(globalThis, "__hhplmsFullscreenTest", { configurable: true, value: Object.freeze({
       externalExit() { fullscreenElement = null; signal(); },
       rejectNextRequest() { rejectNextRequest = true; },
-      snapshot() { return { requestCount, exitCount, requestedPreviewWrapper: lastRequestedElement?.classList.contains("hosted-viewer-preview") === true }; },
+      snapshot() { return { requestCount, exitCount, requestedTagName: lastRequestedElement?.tagName || null }; },
     }) });
   });
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
@@ -167,18 +168,37 @@ try {
   assert.equal(await activityPlayer.locator(".hosted-builder-review-page iframe").getAttribute("referrerpolicy"), "no-referrer");
   assert.equal(await activityPlayer.locator(".hosted-viewer-preview iframe").evaluate((iframe) => iframe.parentElement?.classList.contains("hosted-viewer-preview")), true);
   assert.ok(authorizationIntents.length > activityAuthorizationCount);
-  await activityPlayer.frameLocator(".hosted-builder-review-page iframe").getByRole("heading", { name: "Browser native response", exact: true }).waitFor();
+  const activityViewer = activityPlayer.frameLocator(".hosted-builder-review-page iframe");
+  await activityViewer.getByRole("heading", { name: "Browser native response", exact: true }).waitFor();
+  await activityViewer.getByRole("button", { name: "Minimize application", exact: true }).waitFor();
   await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).click();
   await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).waitFor();
   assert.equal(await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).getAttribute("aria-pressed"), "true");
   assert.deepEqual(await activityPlayer.evaluate(() => ({
+    activeIframe: document.fullscreenElement === document.querySelector(".hosted-viewer-preview iframe"),
     activeWrapper: document.fullscreenElement === document.querySelector(".hosted-viewer-preview"),
-    iframeInsideWrapper: document.querySelector(".hosted-viewer-preview")?.contains(document.querySelector(".hosted-viewer-preview iframe")) === true,
+    toolbarOutsideFullscreen: !document.fullscreenElement?.contains(document.querySelector(".hosted-viewer-preview > header")),
+    statusOutsideFullscreen: !document.fullscreenElement?.contains(document.querySelector(".hosted-viewer-preview-state")),
     ...globalThis.__hhplmsFullscreenTest.snapshot(),
-  })), { activeWrapper: true, iframeInsideWrapper: true, requestCount: 1, exitCount: 0, requestedPreviewWrapper: true });
-  await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).click();
+  })), { activeIframe: true, activeWrapper: false, toolbarOutsideFullscreen: true, statusOutsideFullscreen: true, requestCount: 1, exitCount: 0, requestedTagName: "IFRAME" });
+
+  await activityPlayer.evaluate((message) => window.postMessage(message, window.origin), VIEWER_EXIT_FULLSCREEN_MESSAGE);
+  await activityPlayer.waitForTimeout(50);
+  assert.equal((await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.snapshot())).exitCount, 0, "top-window sender must be ignored");
+  await activityViewer.locator("body").evaluate(() => window.parent.postMessage("HHPLMS_VIEWER_EXIT_FULLSCREEN_WRONG", "*"));
+  await activityPlayer.waitForTimeout(50);
+  assert.equal((await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.snapshot())).exitCount, 0, "wrong Viewer message must be ignored");
+
+  await activityViewer.getByRole("button", { name: "Minimize application", exact: true }).click();
   await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).waitFor();
   assert.equal((await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.snapshot())).exitCount, 1);
+  assert.equal(await activityPlayer.evaluate(() => document.fullscreenElement), null);
+  assert.equal(await activityPlayer.getByRole("heading", { name: "Player Review", exact: true }).count(), 1);
+
+  await activityViewer.getByRole("button", { name: "Minimize application", exact: true }).click();
+  await activityPlayer.waitForTimeout(50);
+  assert.equal((await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.snapshot())).exitCount, 1, "valid message outside iframe fullscreen must be ignored");
+
   await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).click();
   await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).waitFor();
   await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.externalExit());

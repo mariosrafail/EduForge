@@ -55,11 +55,7 @@ body { margin: 0; }
 .hosted-builder-review-page .hosted-viewer-preview-state[data-state="error"] { color: #9f1d20; }
 .hosted-builder-review-page .hosted-viewer-preview-fullscreen-error { margin: 0; padding: .35rem 1rem; color: #9f1d20; background: #fff; font-size: .75rem; }
 .hosted-builder-review-page > .hosted-viewer-preview iframe { display: block; width: 100%; min-height: calc(100vh - 260px); border: 0; background: #064968; }
-.hosted-builder-review-page > .hosted-viewer-preview:fullscreen { display: flex; box-sizing: border-box; width: 100%; height: 100%; max-width: none; margin: 0; overflow: hidden; flex-direction: column; border: 0; border-radius: 0; background: #064968; box-shadow: none; }
-.hosted-builder-review-page > .hosted-viewer-preview:fullscreen > header { flex: 0 0 auto; background: #fff; }
-.hosted-builder-review-page > .hosted-viewer-preview:fullscreen .hosted-viewer-preview-state,
-.hosted-builder-review-page > .hosted-viewer-preview:fullscreen .hosted-viewer-preview-fullscreen-error { flex: 0 0 auto; background: #fff; }
-.hosted-builder-review-page > .hosted-viewer-preview:fullscreen iframe { flex: 1 1 auto; width: 100%; height: auto; min-height: 0; }
+.hosted-builder-review-page > .hosted-viewer-preview iframe:fullscreen { display: block; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; background: #064968; }
 @media (max-width: 720px) { .hosted-builder-title { align-items: flex-start; flex-direction: column; } .hosted-builder-book-card, .hosted-builder-component-card { grid-template-columns: 100px 1fr; } .hosted-builder-page { padding: 20px 14px; } }
 @media (max-width: 720px) { .hosted-builder-review-header { align-items: flex-start; flex-direction: column; } .hosted-builder-review-identity code { width: 100%; margin-left: 0; } .hosted-builder-review-page > .hosted-viewer-preview > header { align-items: flex-start; flex-direction: column; } .hosted-builder-review-page > .hosted-viewer-preview iframe { min-height: calc(100vh - 340px); } }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
