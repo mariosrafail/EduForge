@@ -3,7 +3,7 @@
 ## Deployment sequence
 
 1. Create and verify a restorable database backup before migrations. Record its identifier, timestamp, encryption status, and restore owner outside Git.
-2. Run `npm ci`, `npm run staging:preflight`, and `npm run staging:migrate`. The manifest runner must exclude `012_demo_login_passwords.sql`.
+2. With the complete hosted staging environment from `.env.example` still set, run `npm ci`, `npm run staging:preflight`, and `npm run staging:migrate`. `DATABASE_URL` is the hosted application runtime connection and must identify the same host, port, and database as the explicitly confirmed `STAGING_DATABASE_URL`; do not unset or rewrite either variable between these commands. The migration command re-runs the complete hosted preflight, including production-fingerprint and application-origin separation, before it internally hands only the confirmed staging target to the lower-level database guard and opens a pool. The manifest runner must exclude `012_demo_login_passwords.sql`.
 3. Run seed, integrity, smoke, cleanup, and final integrity against the confirmed staging database.
 4. Deploy the exact tested commit. Verify basic/private health, then manually run both scheduled functions from the Netlify Functions page.
 5. Enable the pilot only after SMTP, browser, tenant-isolation, backup-restore, and monitoring evidence is signed off.

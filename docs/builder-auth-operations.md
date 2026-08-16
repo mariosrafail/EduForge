@@ -20,13 +20,14 @@ Provision exactly these staging-only identities. Passwords are supplied at runti
 
 ## Migrate the isolated staging database
 
-Set `STAGING_DATABASE_URL` to the isolated staging database and set `STAGING_DATABASE_CONFIRMATION=isolated-staging-database`. Keep `DATABASE_URL` unset in this operator shell because the staging safety guard rejects accidental overlap. Then run:
+Configure the complete hosted staging environment from `.env.example`. Set `STAGING_DATABASE_URL` to the isolated staging database, set `STAGING_DATABASE_CONFIRMATION=isolated-staging-database`, and keep `DATABASE_URL` set to the same hosted database identity. Run canonical preflight and migration without changing the environment between commands:
 
 ```text
+npm run staging:preflight
 npm run staging:migrate
 ```
 
-This applies the production manifest through `032_builder_component_authoring.sql`. Do not run it against a production/shared database. Codex implementation and automated validation must not run this staging command; an operator applies it manually after reviewing the commit.
+The migration command re-runs hosted preflight before opening the confirmed staging target and applies the current production manifest. Do not run it against a production/shared database. Codex implementation and automated validation must not run this staging command; an operator applies it manually after reviewing the commit.
 
 ## Provision the five staging accounts
 

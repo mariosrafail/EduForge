@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { loadProductionMigrationManifest, requireSafeDatabase } from "./_staging-db.mjs";
+import { createSafePool, loadProductionMigrationManifest, requireSafeDatabase } from "./_staging-db.mjs";
 import { migrationManifestSummary } from "./_migration-readiness.mjs";
 import { requireQaPassword } from "./_staging-qa-data.mjs";
 
@@ -78,5 +78,24 @@ export async function checkStagingDeployment(environment = process.env) {
     migration_count: manifest.migrationCount,
     latest_migration: manifest.latestMigration,
     manifest_fingerprint: manifest.manifestFingerprint,
+  };
+}
+
+export async function openVerifiedStagingMigrationPool(environment = process.env, {
+  createPool = (targetEnvironment) => createSafePool("staging", targetEnvironment),
+} = {}) {
+  // Freeze and validate the complete hosted contract before projecting the
+  // confirmed target into the lower-level guard that normally rejects runtime overlap.
+  const verifiedEnvironment = { ...environment };
+  const preflight = await checkStagingDeployment(verifiedEnvironment);
+  const opened = createPool({
+    STAGING_DATABASE_URL: verifiedEnvironment.STAGING_DATABASE_URL,
+    STAGING_DATABASE_CONFIRMATION: verifiedEnvironment.STAGING_DATABASE_CONFIRMATION,
+  });
+  return {
+    preflight,
+    pool: opened.pool,
+    safeLabel: opened.safeLabel,
+    kind: opened.kind,
   };
 }

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { constantTimeSecretMatches } from "../netlify/functions/_operations-utils.js";
 import { lifecycleRetentionConfiguration } from "../netlify/functions/_lifecycle-cleanup.js";
-import { checkStagingDeployment, validateDedicatedStagingRecipient } from "../scripts/_staging-preflight.mjs";
+import { checkStagingDeployment, openVerifiedStagingMigrationPool, validateDedicatedStagingRecipient } from "../scripts/_staging-preflight.mjs";
+import { requireSafeDatabase } from "../scripts/_staging-db.mjs";
 import { handler as publicDispatcher } from "../netlify/functions/account-email-dispatch.js";
 import { config as dispatchSchedule } from "../netlify/functions/scheduled-account-email-dispatch.js";
 import { config as cleanupSchedule } from "../netlify/functions/scheduled-lifecycle-cleanup.js";
@@ -12,6 +13,28 @@ import { inviteRequestFingerprint } from "../netlify/functions/_class-utils.js";
 function fingerprint(urlText) {
   const url = new URL(urlText);
   return createHash("sha256").update(`${url.hostname.toLowerCase()}:${url.port || "5432"}/${url.pathname.replace(/^\//, "").toLowerCase()}`).digest("hex");
+}
+
+function hostedStagingEnvironment(overrides = {}) {
+  const db = "postgresql://qa:runtime-value@db.staging.test/hhplms_staging";
+  return {
+    STAGING_DATABASE_URL: db,
+    STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
+    STAGING_ENVIRONMENT_CONFIRMATION: "hosted-nonproduction-staging",
+    DATABASE_URL: db,
+    APP_PUBLIC_URL: "https://hhplms-staging.example.test",
+    STAGING_PRODUCTION_APP_URL: "https://app.example.test",
+    PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/hhplms_production"),
+    AUTH_RATE_LIMIT_SALT: "e".repeat(40),
+    PLATFORM_ADMIN_RATE_LIMIT_SALT: "f".repeat(40),
+    ACCOUNT_RATE_LIMIT_SALT: "a".repeat(40),
+    INVITE_RATE_LIMIT_SALT: "b".repeat(40),
+    ACCOUNT_EMAIL_DISPATCH_SECRET: "c".repeat(40),
+    OPERATIONAL_MONITORING_SECRET: "d".repeat(40),
+    ACCOUNT_EMAIL_MODE: "preview",
+    HHPLMS_STAGING_QA_PASSWORD: "password123",
+    ...overrides,
+  };
 }
 
 test("operational secrets use constant-time hash comparison and retention values are bounded", () => {
@@ -39,26 +62,55 @@ test("public dispatcher rejects unauthenticated calls and workers declare intern
 
 test("staging preflight rejects unsafe inboxes and accepts non-secret hosted metadata", async () => {
   assert.throws(() => validateDedicatedStagingRecipient("person@gmail.com", "dedicated-nonproduction-inbox"), /personal mailbox/);
-  const db = "postgresql://qa:runtime-value@db.staging.test/hhplms_staging";
-  const environment = {
-    STAGING_DATABASE_URL: db,
-    STAGING_DATABASE_CONFIRMATION: "isolated-staging-database",
-    STAGING_ENVIRONMENT_CONFIRMATION: "hosted-nonproduction-staging",
-    DATABASE_URL: db,
-    APP_PUBLIC_URL: "https://hhplms-staging.example.test",
-    STAGING_PRODUCTION_APP_URL: "https://app.example.test",
-    PRODUCTION_DATABASE_FINGERPRINT: fingerprint("postgresql://prod:not-used@db.production.test/hhplms_production"),
-    AUTH_RATE_LIMIT_SALT: "e".repeat(40),
-    PLATFORM_ADMIN_RATE_LIMIT_SALT: "f".repeat(40),
-    ACCOUNT_RATE_LIMIT_SALT: "a".repeat(40),
-    INVITE_RATE_LIMIT_SALT: "b".repeat(40),
-    ACCOUNT_EMAIL_DISPATCH_SECRET: "c".repeat(40),
-    OPERATIONAL_MONITORING_SECRET: "d".repeat(40),
-    ACCOUNT_EMAIL_MODE: "preview",
-    HHPLMS_STAGING_QA_PASSWORD: "password123",
-  };
+  const environment = hostedStagingEnvironment();
   const result = await checkStagingDeployment(environment);
   assert.equal(result.latest_migration, "040_published_native_assignment_runtime.sql");
-  await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(db) }), /matches the production/);
+  await assert.rejects(checkStagingDeployment({ ...environment, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(environment.STAGING_DATABASE_URL) }), /matches the production/);
   await assert.rejects(checkStagingDeployment({ ...environment, HHPLMS_STAGING_QA_PASSWORD: "not-canonical" }), /canonical password/);
+});
+
+test("canonical migration pool opens only after the full hosted staging preflight", async () => {
+  const openedTargets = [];
+  const createPool = (targetEnvironment) => {
+    openedTargets.push(targetEnvironment);
+    const target = requireSafeDatabase("staging", targetEnvironment);
+    return { ...target, pool: { stub: true } };
+  };
+  const result = await openVerifiedStagingMigrationPool(hostedStagingEnvironment(), { createPool });
+  assert.equal(openedTargets.length, 1);
+  assert.equal(openedTargets[0].DATABASE_URL, undefined);
+  assert.equal(result.pool.stub, true);
+  assert.equal(result.safeLabel, "db.staging.test/hhplms_staging");
+  assert.equal(result.preflight.environment, "hosted-staging");
+  assert.equal("connectionString" in result, false);
+  assert.doesNotMatch(JSON.stringify(result), /runtime-value|postgresql:\/\//);
+});
+
+test("canonical migration pool cannot bypass hosted staging safety", async () => {
+  let connectionAttempts = 0;
+  const createPool = () => {
+    connectionAttempts += 1;
+    throw new Error("connection phase must not be reached");
+  };
+  const valid = hostedStagingEnvironment();
+  const unsafeEnvironments = [
+    { ...valid, DATABASE_URL: "postgresql://qa:other@db.staging.test/hhplms_other_staging" },
+    { ...valid, PRODUCTION_DATABASE_FINGERPRINT: fingerprint(valid.STAGING_DATABASE_URL) },
+    { ...valid, STAGING_ENVIRONMENT_CONFIRMATION: "not-hosted-staging" },
+    { ...valid, STAGING_DATABASE_CONFIRMATION: undefined },
+    {
+      ...valid,
+      STAGING_DATABASE_URL: "postgresql://qa:not-printed@db.production.example/hhplms_staging",
+      DATABASE_URL: "postgresql://qa:not-printed@db.production.example/hhplms_staging",
+    },
+    {
+      ...valid,
+      STAGING_DATABASE_URL: "postgresql://qa:not-printed@db.example/hhplms",
+      DATABASE_URL: "postgresql://qa:not-printed@db.example/hhplms",
+    },
+  ];
+  for (const environment of unsafeEnvironments) {
+    await assert.rejects(openVerifiedStagingMigrationPool(environment, { createPool }));
+  }
+  assert.equal(connectionAttempts, 0);
 });

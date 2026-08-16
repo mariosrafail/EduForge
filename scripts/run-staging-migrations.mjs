@@ -1,6 +1,7 @@
-import { createSafePool, loadProductionMigrationManifest, migrationChecksumMatches, withAdvisoryLock } from "./_staging-db.mjs";
+import { loadProductionMigrationManifest, migrationChecksumMatches, withAdvisoryLock } from "./_staging-db.mjs";
+import { openVerifiedStagingMigrationPool } from "./_staging-preflight.mjs";
 
-const { pool, safeLabel } = createSafePool("staging");
+const { pool, safeLabel } = await openVerifiedStagingMigrationPool();
 const client = await pool.connect();
 
 try {

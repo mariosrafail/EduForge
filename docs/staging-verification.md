@@ -1,20 +1,24 @@
 # Staging verification
 
-This procedure is only for a manually provisioned, isolated PostgreSQL staging database. Never point these commands at production, and never copy the normal `DATABASE_URL` into `STAGING_DATABASE_URL`. Take a provider snapshot or logical backup before the first migration. Restore that snapshot to roll back; the migration runner deliberately has no destructive rollback mode.
+This procedure is only for a manually provisioned, isolated PostgreSQL staging database. Never point these commands at production. In hosted staging, `DATABASE_URL` is the application runtime connection and `STAGING_DATABASE_URL` is the separately named operator target; canonical preflight requires them to identify the same host, port, and database. Take a provider snapshot or logical backup before the first migration. Restore that snapshot to roll back; the migration runner deliberately has no destructive rollback mode.
 
 ## Safe setup and automated verification
 
-In a fresh PowerShell window, set the variables without saving credentials in the repository:
+In a fresh operator environment, configure every hosted staging variable documented in `.env.example` without saving credentials in the repository. The essential identity contract includes:
 
 ```powershell
 $env:STAGING_DATABASE_URL = "postgresql://USER:PASSWORD@STAGING_HOST/STAGING_DATABASE?sslmode=require"
+$env:DATABASE_URL = $env:STAGING_DATABASE_URL
 $env:STAGING_DATABASE_CONFIRMATION = "isolated-staging-database"
+$env:STAGING_ENVIRONMENT_CONFIRMATION = "hosted-nonproduction-staging"
+$env:PRODUCTION_DATABASE_FINGERPRINT = "SHA256_OF_PRODUCTION_HOST_PORT_DATABASE"
 $env:HHPLMS_STAGING_QA_PASSWORD = "password123"
-$env:APP_PUBLIC_URL = "https://your-isolated-preview.example"
+$env:APP_PUBLIC_URL = "https://your-isolated-staging.example"
+$env:STAGING_PRODUCTION_APP_URL = "https://production.example"
 $env:ACCOUNT_EMAIL_MODE = "preview"
 ```
 
-Do not set `DATABASE_URL` to the staging value. If `DATABASE_URL` is already set to the same database, every staging command refuses to run. The host or database name must visibly contain `staging`, `stage`, `qa`, `sandbox`, `preview`, or `test`; names containing `prod` or `production` are rejected. Connection strings and passwords are never printed.
+The runtime and staging URLs may use different credentials or query parameters, but their host, port, and database identity must match. The configured production fingerprint must differ. The host or database name must visibly contain `staging`, `stage`, `qa`, `sandbox`, `preview`, or `test`; names containing `prod` or `production` are rejected. Connection strings and passwords are never printed.
 
 Run the complete non-destructive sequence:
 
@@ -23,16 +27,16 @@ npm ci
 npm run staging:verify
 ```
 
-This runs `staging:migrate`, `staging:seed`, `staging:integrity`, and `staging:smoke` in order. The canonical order comes only from `database/MIGRATIONS.md`; demo password migration `012` is excluded, `013` must be present, and later listed migrations are allowed. Filenames must be unique, every listed file must exist, and applied checksums are verified. The QA seed is idempotent and leaves its data available for UI checks.
+This first runs canonical hosted staging preflight. It then runs `staging:migrate`, `staging:seed`, `staging:integrity`, and `staging:smoke` in order. Migration receives the complete hosted environment and re-runs preflight before opening its connection. Only after that succeeds does the wrapper omit `DATABASE_URL` from the lower-level maintenance subprocesses, preserving the generic collision guard without requiring an operator shell change. The canonical migration order comes only from `database/MIGRATIONS.md`; demo password migration `012` is excluded, `013` must be present, and later listed migrations are allowed. Filenames must be unique, every listed file must exist, and applied checksums are verified. The QA seed is idempotent and leaves its data available for UI checks.
 
-To run individual stages:
+The canonical migration pair is executable with the same unchanged hosted environment:
 
 ```powershell
+npm run staging:preflight
 npm run staging:migrate
-npm run staging:seed
-npm run staging:integrity
-npm run staging:smoke
 ```
+
+Prefer `staging:verify` for the complete sequence. Direct seed, integrity, smoke, and cleanup commands remain lower-level target-only maintenance tools protected by `requireSafeDatabase`; they do not replace the hosted preflight or migration handoff.
 
 For the optional production-oriented licensing and three-school isolation dataset, use the additional explicit guard and commands. This dataset is separate from the smaller canonical QA seed:
 

@@ -70,8 +70,8 @@ export function requireSafeDatabase(kind = "staging", environment = process.env)
   };
 }
 
-export function createSafePool(kind = "staging") {
-  const target = requireSafeDatabase(kind);
+export function createSafePool(kind = "staging", environment = process.env) {
+  const target = requireSafeDatabase(kind, environment);
   return { ...target, pool: new Pool({ connectionString: target.connectionString }) };
 }
 

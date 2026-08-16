@@ -110,6 +110,18 @@ test("staging preflight derives the latest migration rather than hardcoding migr
   assert.match(source, /manifest_fingerprint/);
 });
 
+test("staging migration and verification runners use the explicit hosted-preflight handoff", async () => {
+  const [migrationRunner, verificationRunner] = await Promise.all([
+    readFile("scripts/run-staging-migrations.mjs", "utf8"),
+    readFile("scripts/run-staging-verification.mjs", "utf8"),
+  ]);
+  assert.match(migrationRunner, /openVerifiedStagingMigrationPool/);
+  assert.doesNotMatch(migrationRunner, /createSafePool\("staging"\)/);
+  assert.match(verificationRunner, /await checkStagingDeployment\(verifiedEnvironment\)/);
+  assert.match(verificationRunner, /delete targetOnlyEnvironment\.DATABASE_URL/);
+  assert.match(verificationRunner, /script === "staging:migrate" \? verifiedEnvironment : targetOnlyEnvironment/);
+});
+
 test("staging smoke derives active book-package metrics from retained staging entitlements", async () => {
   const smoke = await readFile("scripts/run-staging-smoke-tests.mjs", "utf8");
   assert.match(smoke, /const expectedActiveBookPackages = await count/);
