@@ -65,6 +65,14 @@ export const requiredRuntimeSchema = Object.freeze({
   ],
   class_students: ["id", "class_id", "student_id", "joined_at", "status", "updated_at"],
   class_invite_attempts: ["id", "request_fingerprint", "succeeded", "attempted_at"],
+  activity_assignments: [
+    "id", "school_id", "activity_id", "teacher_id", "class_id", "student_id",
+    "target_kind", "native_release_id", "native_activity_id", "status", "idempotency_key",
+  ],
+  activity_submissions: [
+    "id", "school_id", "activity_id", "activity_assignment_id", "student_id", "answers",
+    "response_schema_version", "response_payload", "status", "submission_slot",
+  ],
 });
 
 export function runtimeSchemaContractData(migrations) {

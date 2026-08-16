@@ -1,11 +1,84 @@
 import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds, withAssignmentLifecycleTransaction } from "./shared.js";
 
 import { assignmentRowToUi } from "./assignment-actions.js";
+import {
+  NATIVE_ASSIGNMENT_TARGET_KIND,
+  containsClientTeacherMaterial,
+  loadPinnedNativeAssignmentTarget,
+  resolveNativeAssignmentTarget,
+} from "./native-assignment-runtime.js";
+
+async function submitNativeAssignment(sql, body, currentUser, assignment) {
+  if (containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
+  if (body.activityId) return badRequest("activityId is not valid for a published native assignment");
+  if (body.target && (
+    body.target.kind !== NATIVE_ASSIGNMENT_TARGET_KIND
+    || String(body.target.releaseId) !== String(assignment.native_release_id)
+    || String(body.target.nativeActivityId) !== String(assignment.native_activity_id)
+  )) return badRequest("Submitted target does not match the assignment target");
+
+  const resolved = await resolveNativeAssignmentTarget(sql, currentUser, {
+    kind: NATIVE_ASSIGNMENT_TARGET_KIND,
+    releaseId: assignment.native_release_id,
+    nativeActivityId: assignment.native_activity_id,
+  }, { requireActive: false });
+  if (resolved.error) return json(resolved.statusCode || 400, { error: resolved.error });
+  if (!resolved.capability?.submittable || typeof resolved.capability.normalizeResponse !== "function") {
+    return badRequest("This published native activity is display-only and cannot be submitted");
+  }
+  const normalized = resolved.capability.normalizeResponse(resolved.publicEntry.document, body.response || body.responsePayload);
+  if (normalized.error) return badRequest(normalized.error);
+
+  const stateRows = await withAssignmentLifecycleTransaction(sql, body.assignmentId, (transactionSql) => transactionSql`
+    with assignment_state as materialized (
+      select aa.id, aa.status, aa.due_at, aa.target_kind, aa.native_release_id, aa.native_activity_id
+      from activity_assignments aa
+      where aa.id = ${body.assignmentId}
+        and aa.school_id = ${currentUser.school_id}
+    ), inserted as (
+      insert into activity_submissions (
+        activity_assignment_id, school_id, activity_id, student_id, answers,
+        response_schema_version, response_payload, score, score_percent,
+        correct_count, total_count, status, submitted_at, submission_slot
+      )
+      select assignment_state.id, ${currentUser.school_id}, null, ${currentUser.id}, '{}'::jsonb,
+             ${normalized.schemaVersion}, ${JSON.stringify(normalized.payload)}::jsonb,
+             null, null, null, null, ${normalized.status}, now(), 1
+      from assignment_state
+      where assignment_state.status = 'assigned'
+        and (assignment_state.due_at is null or assignment_state.due_at > now())
+        and assignment_state.target_kind = ${NATIVE_ASSIGNMENT_TARGET_KIND}
+        and assignment_state.native_release_id = ${assignment.native_release_id}
+        and assignment_state.native_activity_id = ${assignment.native_activity_id}
+      on conflict (activity_assignment_id, student_id, submission_slot)
+        where activity_assignment_id is not null and submission_slot = 1
+      do nothing
+      returning *
+    )
+    select exists(select 1 from assignment_state) as assignment_exists,
+           (select status from assignment_state) as assignment_status,
+           (select due_at from assignment_state) as due_at,
+           (select row_to_json(inserted) from inserted) as submission
+  `);
+  const locked = stateRows[0];
+  if (!locked?.assignment_exists) return json(404, { error: "This assignment is no longer available." });
+  if (locked.assignment_status === "closed") return json(409, { error: "This assignment has been closed and can no longer be submitted." });
+  if (locked.due_at && new Date(locked.due_at).getTime() <= Date.now()) return forbidden("The assignment deadline has passed");
+  if (!locked.submission) return json(409, { error: "This assignment has already been submitted" });
+  return json(200, {
+    submission: {
+      id: locked.submission.id,
+      status: locked.submission.status,
+      scorePercent: null,
+      correctCount: null,
+      totalCount: null,
+    },
+  });
+}
 
 export async function submitActivity(sql, body, currentUser = null) {
-  if (!body.activityId) return badRequest("activityId is required");
   if (!body.assignmentId) return badRequest("assignmentId is required");
-  if (!isValidUuid(body.activityId)) return invalidUuidResponse("activityId");
+  if (body.activityId && !isValidUuid(body.activityId)) return invalidUuidResponse("activityId");
   if (body.assignmentId && !isValidUuid(body.assignmentId)) return invalidUuidResponse("assignmentId");
   if (!isStudent(currentUser)) return forbidden("Only student accounts can submit assignments");
   const studentId = currentUser.id;
@@ -13,7 +86,8 @@ export async function submitActivity(sql, body, currentUser = null) {
 
   if (body.assignmentId) {
     const assignmentRows = await sql`
-      select aa.id, aa.activity_id, aa.status, aa.student_id, aa.class_id, aa.school_id, aa.due_at
+      select aa.id, aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
+             aa.status, aa.student_id, aa.class_id, aa.school_id, aa.due_at
       from activity_assignments aa
       where aa.id = ${body.assignmentId}
       limit 1
@@ -25,7 +99,8 @@ export async function submitActivity(sql, body, currentUser = null) {
     if (assignment.due_at && new Date(assignment.due_at).getTime() <= Date.now()) {
       return forbidden("The assignment deadline has passed");
     }
-    if (String(assignment.activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
+    if ((assignment.target_kind || "legacy_activity") === "legacy_activity" && !body.activityId) return badRequest("activityId is required");
+    if ((assignment.target_kind || "legacy_activity") === "legacy_activity" && String(assignment.activity_id) !== String(body.activityId)) return badRequest("assignmentId does not match activityId");
     if (assignment.student_id && String(assignment.student_id) !== String(studentId)) return forbidden("This assignment is not assigned to this student");
     if (assignment.class_id) {
       const enrollmentRows = await sql`
@@ -37,6 +112,9 @@ export async function submitActivity(sql, body, currentUser = null) {
         limit 1
       `;
       if (!enrollmentRows.length) return forbidden("This assignment is not assigned to this student");
+    }
+    if (assignment.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND) {
+      return submitNativeAssignment(sql, body, currentUser, assignment);
     }
   }
 
@@ -142,17 +220,24 @@ export async function getStudentGrades(sql, studentId, currentUser) {
   if (!studentId) return [];
   const rows = await sql`
     select s.id, s.submitted_at, s.score_percent, s.correct_count, s.total_count, s.status, s.answers,
-           aa.id as assignment_id, aa.title as assignment_title, aa.teacher_notes, s.teacher_feedback,
-           a.title as activity_title, a.slug as activity_slug, bc.title as component_title, bp.title as package_title,
+           s.response_schema_version, s.response_payload,
+           aa.id as assignment_id, aa.target_kind, aa.native_release_id, aa.native_activity_id,
+           aa.title as assignment_title, aa.teacher_notes, s.teacher_feedback,
+           coalesce(a.title, aa.title) as activity_title, a.slug as activity_slug,
+           coalesce(bc.title, native_component.title) as component_title,
+           coalesce(bp.title, native_package.title) as package_title,
            c.name as class_name
     from activity_submissions s
-    join activities a on a.id = s.activity_id
+    left join activities a on a.id = s.activity_id
     left join activity_assignments aa on aa.id = s.activity_assignment_id
     left join classes c on c.id = aa.class_id
     left join lessons l on l.id = a.lesson_id
     left join units u on u.id = l.unit_id
     left join book_components bc on bc.id = u.book_component_id
     left join book_packages bp on bp.id = bc.book_package_id
+    left join book_component_releases native_release on native_release.id = aa.native_release_id
+    left join book_components native_component on native_component.id = native_release.book_component_id
+    left join book_packages native_package on native_package.id = native_release.book_package_id
     where s.student_id = ${studentId} and s.school_id = ${currentUser.school_id}
     order by s.submitted_at desc
   `;
@@ -174,23 +259,32 @@ export async function getStudentGrades(sql, studentId, currentUser) {
     teacherFeedback: row.teacher_feedback || "",
     teacherNotes: row.teacher_notes || "",
     answers: row.answers || {},
+    targetKind: row.target_kind || "legacy_activity",
+    responsePayload: row.response_payload || null,
   }));
 }
 
 export async function getAssignmentResults(sql, assignmentId) {
   if (!assignmentId) return badRequest("assignmentId is required");
   const assignmentRows = await sql`
-    select aa.id, aa.activity_id, aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
+    select aa.id, aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
+           aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
-           a.title as activity_title, a.slug as activity_slug, a.activity_type,
-           a.content_json->>'implementationMode' as implementation_mode,
-           bc.title as component_title, bp.title as package_title, c.name as class_name
+           coalesce(a.title, aa.title) as activity_title, a.slug as activity_slug,
+           coalesce(a.activity_type, native_public.value->>'kind') as activity_type,
+           case when aa.target_kind = 'published_native' then 'teacher-reviewed' else a.content_json->>'implementationMode' end as implementation_mode,
+           coalesce(bc.title, native_component.title) as component_title,
+           coalesce(bp.title, native_package.title) as package_title, c.name as class_name
     from activity_assignments aa
-    join activities a on a.id = aa.activity_id
+    left join activities a on a.id = aa.activity_id
     left join lessons l on l.id = a.lesson_id
     left join units u on u.id = l.unit_id
     left join book_components bc on bc.id = u.book_component_id
     left join book_packages bp on bp.id = bc.book_package_id
+    left join book_component_releases native_release on native_release.id = aa.native_release_id
+    left join book_components native_component on native_component.id = native_release.book_component_id
+    left join book_packages native_package on native_package.id = native_release.book_package_id
+    left join lateral jsonb_each(native_release.public_projection->'nativeActivities') native_public on native_public.key = aa.native_activity_id
     left join classes c on c.id = aa.class_id
     where aa.id = ${assignmentId}
     limit 1
@@ -220,7 +314,8 @@ export async function getAssignmentResults(sql, assignmentId) {
     )
     select ts.id as student_id, ts.full_name, ts.email, ts.class_name,
            s.id as submission_id, s.score_percent, s.correct_count, s.total_count, s.status as submission_status,
-           s.submitted_at, s.answers, s.teacher_feedback, s.reviewed_at, s.reviewed_by,
+           s.submitted_at, s.answers, s.response_schema_version, s.response_payload,
+           s.teacher_feedback, s.reviewed_at, s.reviewed_by,
            coalesce((
              select jsonb_agg(jsonb_build_object(
                'questionId', q.id,
@@ -237,6 +332,12 @@ export async function getAssignmentResults(sql, assignmentId) {
     left join latest_submissions s on s.student_id = ts.id
     order by ts.full_name asc
   `;
+
+  let nativeTarget = null;
+  if (assignment.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND) {
+    nativeTarget = await loadPinnedNativeAssignmentTarget(sql, assignment);
+    if (!nativeTarget?.capability) return json(409, { error: "Assigned published native activity is unavailable" });
+  }
 
   const resultRows = rows.map((row) => ({
     studentId: row.student_id,
@@ -257,14 +358,24 @@ export async function getAssignmentResults(sql, assignmentId) {
     correctCount: row.correct_count,
     totalCount: row.total_count,
     submittedAt: row.submitted_at || null,
-    answers: row.answers || {},
-    answerDetails: jsonArray(row.answer_details),
+    answers: assignment.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND
+      ? Object.fromEntries((row.response_payload?.items || []).map((item) => [item.id, item.value]))
+      : row.answers || {},
+    responsePayload: row.response_payload || null,
+    answerDetails: assignment.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND && row.submission_id
+      ? nativeTarget.capability.teacherReviewProjection(
+          nativeTarget.publicEntry.document,
+          nativeTarget.teacherEntry.document,
+          row.response_payload || {},
+        )
+      : jsonArray(row.answer_details),
     teacherFeedback: row.teacher_feedback || "",
     reviewedAt: row.reviewed_at || null,
     reviewedBy: row.reviewed_by || null,
     dueAt: assignment.due_at,
     submissionId: row.submission_id,
     implementationMode: assignment.implementation_mode || "auto-scored",
+    targetKind: assignment.target_kind || "legacy_activity",
   }));
   const submitted = resultRows.filter((row) => row.submissionId).length;
   const scoredRows = resultRows.filter((row) => row.scorePercent !== null);

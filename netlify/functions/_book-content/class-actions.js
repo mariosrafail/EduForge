@@ -35,10 +35,10 @@ export async function listClassStudents(sql, classId) {
     ),
     latest_work as (
       select distinct on (s.student_id)
-             s.student_id, a.title as latest_work, s.submitted_at as latest_submitted_at
+             s.student_id, coalesce(a.title, aa.title) as latest_work, s.submitted_at as latest_submitted_at
       from activity_submissions s
       join activity_assignments aa on aa.id = s.activity_assignment_id
-      join activities a on a.id = aa.activity_id
+      left join activities a on a.id = aa.activity_id
       where aa.class_id = ${classId}
       order by s.student_id, s.submitted_at desc
     )
@@ -75,10 +75,10 @@ export async function listTeacherStudents(sql, teacherId, currentUser = null) {
     ),
     latest_work as (
       select distinct on (s.student_id, aa.class_id)
-             s.student_id, aa.class_id, a.title as latest_work, s.submitted_at as latest_submitted_at
+             s.student_id, aa.class_id, coalesce(a.title, aa.title) as latest_work, s.submitted_at as latest_submitted_at
       from activity_submissions s
       join activity_assignments aa on aa.id = s.activity_assignment_id
-      join activities a on a.id = aa.activity_id
+      left join activities a on a.id = aa.activity_id
       order by s.student_id, aa.class_id, s.submitted_at desc
     )
     select u.id as student_id, u.full_name, u.email, c.name as class_name, c.level,
@@ -115,10 +115,12 @@ export async function reviewSubmission(sql, body, currentUser = null) {
   }
 
   const existingRows = await sql`
-    select s.status, s.score_percent, coalesce(a.content_json->>'implementationMode', 'auto-scored') as implementation_mode
+    select s.status, s.score_percent,
+           case when aa.target_kind = 'published_native' then 'teacher-reviewed'
+                else coalesce(a.content_json->>'implementationMode', 'auto-scored') end as implementation_mode
     from activity_submissions s
     join activity_assignments aa on aa.id = s.activity_assignment_id
-    join activities a on a.id = aa.activity_id
+    left join activities a on a.id = aa.activity_id
     where s.id = ${submissionId}
       and s.school_id = ${currentUser.school_id}
       and aa.school_id = ${currentUser.school_id}

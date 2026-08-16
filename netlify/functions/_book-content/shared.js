@@ -146,7 +146,10 @@ export function assignmentIdempotencyKey(body, teacherId, activityId, targetType
   // Idempotency identifies one create request, not the assignment content. Two
   // intentional assignments may legitimately have byte-identical metadata.
   const requestIdentity = supplied || randomUUID();
-  return { value: `request:${requestIdentity}:${targetType}:${targetId}` };
+  const immutableTarget = body.target?.kind === "published_native"
+    ? `:published_native:${body.target.releaseId}:${body.target.nativeActivityId}`
+    : "";
+  return { value: `request:${requestIdentity}:${targetType}:${targetId}${immutableTarget}` };
 }
 
 export function validateSubmittedAnswers(activity = {}, rawAnswers) {

@@ -49,6 +49,11 @@ export async function listTeacherAssignments(teacherId) {
   return payload.assignments || [];
 }
 
+export async function listAssignmentTargets() {
+  const payload = await request("/.netlify/functions/book-content?action=assignment-targets");
+  return payload.targets || [];
+}
+
 export async function createAssignment(payload) {
   const response = await request("/.netlify/functions/book-content?action=create-assignment", {
     method: "POST",

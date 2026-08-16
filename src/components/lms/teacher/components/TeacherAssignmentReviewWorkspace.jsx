@@ -134,7 +134,11 @@ export function TeacherAssignmentReviewWorkspace({ assignmentId, currentUser, na
                       <div className="teacher-review-responses">
                         <strong>Responses</strong>
                         {(selectedRow.answerDetails || []).length ? selectedRow.answerDetails.map((answer, index) => (
-                          <article key={answer.questionId || index}><span>{answer.prompt || `Response ${index + 1}`}</span><p>{answer.answer || "No response"}</p></article>
+                          <article key={answer.questionId || index}>
+                            <span>{answer.prompt || `Response ${index + 1}`}</span>
+                            <p>{answer.answer || "No response"}</p>
+                            {answer.modelAnswer ? <small><strong>Protected model answer:</strong> {answer.modelAnswer}</small> : null}
+                          </article>
                         )) : Object.values(selectedRow.answers || {}).map((answer, index) => <article key={index}><span>Response {index + 1}</span><p>{String(answer || "No response")}</p></article>)}
                         {!(selectedRow.answerDetails || []).length && !Object.keys(selectedRow.answers || {}).length && <p>No response text was stored.</p>}
                       </div>

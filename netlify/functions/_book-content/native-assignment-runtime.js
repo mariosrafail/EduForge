@@ -1,0 +1,219 @@
+import { verifyImmutableComponentRelease } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
+import { accessiblePackageIds, isValidUuid } from "./shared.js";
+
+export const NATIVE_ASSIGNMENT_TARGET_KIND = "published_native";
+export const NATIVE_RESPONSE_SCHEMA_VERSION = "native-response.v1";
+
+const MAX_RESPONSE_ITEMS = 50;
+const MAX_RESPONSE_TEXT = 10_000;
+const MAX_RESPONSE_PAYLOAD = 100_000;
+
+function openResponseQuestions(document = {}) {
+  return document.parts?.[0]?.interaction?.questions || [];
+}
+
+function normalizeOpenResponse(publicDocument, rawEnvelope) {
+  if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)) {
+    return { error: "response must be an object" };
+  }
+  if (rawEnvelope.schemaVersion !== NATIVE_RESPONSE_SCHEMA_VERSION) {
+    return { error: `response.schemaVersion must be ${NATIVE_RESPONSE_SCHEMA_VERSION}` };
+  }
+  if (Object.keys(rawEnvelope).some((key) => !["schemaVersion", "items"].includes(key))) {
+    return { error: "response contains unsupported fields" };
+  }
+  if (!Array.isArray(rawEnvelope.items) || rawEnvelope.items.length > MAX_RESPONSE_ITEMS) {
+    return { error: `response.items must be an array with at most ${MAX_RESPONSE_ITEMS} items` };
+  }
+  if (JSON.stringify(rawEnvelope).length > MAX_RESPONSE_PAYLOAD) {
+    return { error: "response payload is too large" };
+  }
+  const questions = openResponseQuestions(publicDocument);
+  const allowed = new Set(questions.map((question) => String(question.id)));
+  const seen = new Set();
+  const values = new Map();
+  for (const item of rawEnvelope.items) {
+    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).some((key) => !["id", "value"].includes(key))) {
+      return { error: "Each response item must contain only id and value" };
+    }
+    const id = String(item.id || "");
+    if (!allowed.has(id)) return { error: `Unexpected response id: ${id}` };
+    if (seen.has(id)) return { error: `Duplicate response id: ${id}` };
+    if (typeof item.value !== "string") return { error: `Response ${id} must be text` };
+    if (item.value.length > MAX_RESPONSE_TEXT) return { error: `Response ${id} is too long` };
+    seen.add(id);
+    values.set(id, item.value);
+  }
+  return {
+    schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    payload: {
+      schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+      kind: "open-response",
+      items: questions.filter((question) => values.has(String(question.id))).map((question) => ({
+        id: String(question.id),
+        value: values.get(String(question.id)),
+      })),
+    },
+    status: "awaiting_review",
+    scorePercent: null,
+    correctCount: null,
+    totalCount: null,
+  };
+}
+
+function openResponseReview(publicDocument, teacherDocument, payload = {}) {
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
+  const modelAnswers = new Map((teacherDocument?.parts?.[0]?.solution?.modelAnswers || [])
+    .map((answer) => [String(answer.questionId), String(answer.text ?? "")]));
+  return openResponseQuestions(publicDocument).map((question) => ({
+    questionId: String(question.id),
+    prompt: question.prompt || "",
+    answer: responses.get(String(question.id)) || "",
+    modelAnswer: modelAnswers.get(String(question.id)) || "",
+    isCorrect: null,
+    feedback: "",
+  }));
+}
+
+const capabilities = Object.freeze({
+  "open-response": Object.freeze({
+    kind: "open-response",
+    assignable: true,
+    submittable: true,
+    reviewMode: "teacher-reviewed",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeOpenResponse,
+    teacherReviewProjection: openResponseReview,
+  }),
+  image: Object.freeze({
+    kind: "image",
+    assignable: false,
+    submittable: false,
+    reviewMode: "display-only",
+    responseSchemaVersion: null,
+  }),
+});
+
+export function nativeAssignmentCapability(kind) {
+  return capabilities[String(kind || "")] || null;
+}
+
+export function containsClientTeacherMaterial(value) {
+  if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
+  if (!value || typeof value !== "object") return false;
+  const forbidden = new Set(["modelAnswer", "modelAnswers", "solution", "teacherDocument", "teacherProjection"]);
+  return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsClientTeacherMaterial(child));
+}
+
+async function releaseRow(sql, { releaseId, requireActive = false }) {
+  const rows = await sql`
+    select release.*, package.slug as package_slug, package.title as package_title,
+           component.slug as component_slug, component.title as component_title
+    from book_component_releases release
+    join book_packages package on package.id = release.book_package_id and package.status = 'active'
+    join book_components component on component.id = release.book_component_id and component.book_package_id = package.id
+    where release.id = ${releaseId}
+      and exists (
+        select 1 from book_component_publication_events event
+        where event.release_id = release.id and event.book_component_id = release.book_component_id
+      )
+      and (${requireActive} = false or exists (
+        select 1 from book_component_publication_heads head
+        where head.book_component_id = release.book_component_id and head.release_id = release.id
+      ))
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+function verifiedNative(row, nativeActivityId) {
+  if (!row) return null;
+  const verified = verifyImmutableComponentRelease(row);
+  const publicEntry = verified.publicProjection?.nativeActivities?.[nativeActivityId];
+  const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
+  if (!publicEntry || !teacherEntry || publicEntry.kind !== teacherEntry.kind) return null;
+  return { row, verified, publicEntry, teacherEntry, capability: nativeAssignmentCapability(publicEntry.kind) };
+}
+
+export async function resolveNativeAssignmentTarget(sql, currentUser, rawTarget, { requireActive = true } = {}) {
+  if (!rawTarget || rawTarget.kind !== NATIVE_ASSIGNMENT_TARGET_KIND) return { error: "target.kind must be published_native" };
+  if (Object.keys(rawTarget).some((key) => !["kind", "releaseId", "nativeActivityId"].includes(key))) return { error: "target contains unsupported fields" };
+  if (!isValidUuid(rawTarget.releaseId)) return { error: "target.releaseId must be a valid UUID" };
+  const nativeActivityId = String(rawTarget.nativeActivityId || "");
+  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(nativeActivityId)) return { error: "target.nativeActivityId is invalid" };
+  const row = await releaseRow(sql, { releaseId: rawTarget.releaseId, requireActive });
+  const target = verifiedNative(row, nativeActivityId);
+  if (!target) return { error: "Published native activity not found", statusCode: 404 };
+  const allowed = await accessiblePackageIds(sql, currentUser);
+  if (!allowed.includes(String(row.book_package_id))) return { error: "This account cannot access the published activity", statusCode: 403 };
+  return { ...target, nativeActivityId };
+}
+
+export async function loadPinnedNativeAssignmentTarget(sql, assignment) {
+  const row = await releaseRow(sql, { releaseId: assignment.native_release_id, requireActive: false });
+  return verifiedNative(row, String(assignment.native_activity_id || ""));
+}
+
+export function nativeTargetToStudent(target, nativeActivityId) {
+  return {
+    kind: NATIVE_ASSIGNMENT_TARGET_KIND,
+    releaseId: target.row.id,
+    nativeActivityId,
+    nativeKind: target.publicEntry.kind,
+    capability: {
+      assignable: Boolean(target.capability?.assignable),
+      submittable: Boolean(target.capability?.submittable),
+      reviewMode: target.capability?.reviewMode || "unsupported",
+      responseSchemaVersion: target.capability?.responseSchemaVersion || null,
+    },
+    entry: target.publicEntry,
+    publication: {
+      kind: "published",
+      releaseId: target.row.id,
+      releaseNumber: Number(target.row.release_number),
+      bookSlug: target.row.package_slug,
+      componentSlug: target.row.component_slug,
+      projection: { assets: target.verified.publicProjection.assets || [] },
+    },
+  };
+}
+
+export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
+  const allowed = new Set((await accessiblePackageIds(sql, currentUser)).map(String));
+  const rows = await sql`
+    select release.*, package.slug as package_slug, package.title as package_title,
+           component.slug as component_slug, component.title as component_title
+    from book_component_publication_heads head
+    join book_component_releases release on release.id = head.release_id and release.book_component_id = head.book_component_id
+    join book_packages package on package.id = release.book_package_id and package.status = 'active'
+    join book_components component on component.id = release.book_component_id and component.book_package_id = package.id
+    where exists (
+      select 1 from book_component_publication_events event
+      where event.release_id = release.id and event.book_component_id = release.book_component_id
+    )
+    order by package.title, component.title, release.release_number desc
+  `;
+  const targets = [];
+  for (const row of rows) {
+    if (!allowed.has(String(row.book_package_id))) continue;
+    const verified = verifyImmutableComponentRelease(row);
+    for (const [nativeActivityId, publicEntry] of Object.entries(verified.publicProjection?.nativeActivities || {})) {
+      const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
+      if (!teacherEntry || teacherEntry.kind !== publicEntry.kind) continue;
+      const capability = nativeAssignmentCapability(publicEntry.kind);
+      targets.push({
+        target: { kind: NATIVE_ASSIGNMENT_TARGET_KIND, releaseId: row.id, nativeActivityId },
+        title: publicEntry.document?.metadata?.title || nativeActivityId,
+        nativeKind: publicEntry.kind,
+        source: "Published native",
+        packageTitle: row.package_title,
+        componentTitle: row.component_title,
+        releaseNumber: Number(row.release_number),
+        assignable: Boolean(capability?.assignable),
+        submittable: Boolean(capability?.submittable),
+        reviewMode: capability?.reviewMode || "unsupported",
+      });
+    }
+  }
+  return targets;
+}

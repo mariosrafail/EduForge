@@ -5,7 +5,7 @@ import { NativeOpenResponseStudentSurface } from "../../../native-open-response/
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 
-export function PublishedNativeActivityRunner({ entry, publication, teacherMode = false }) {
+export function PublishedNativeActivityRunner({ entry, publication, teacherMode = false, responses = null, initialResponses = null, onResponsesChange = null, readOnly = false }) {
   const [teacherState, setTeacherState] = useState({ kind: "idle", document: null });
   const document = entry.document;
   useEffect(() => {
@@ -25,7 +25,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
   return <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
     <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header>
     {entry.kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" /> : null}
-    {entry.kind === "open-response" && !teacherMode ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} /> : null}
+    {entry.kind === "open-response" && !teacherMode ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.document ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} /> : null}

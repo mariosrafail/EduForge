@@ -13,7 +13,7 @@ import {
 } from "./_book-content/shared.js";
 import {
   assignmentRowToUi, createAssignment, listTeacherAssignments, listAssignmentsForStudent,
-  listUserBookAccess, deleteAssignment, closeAssignment
+  listUserBookAccess, deleteAssignment, closeAssignment, listAssignmentTargets
 } from "./_book-content/assignment-actions.js";
 import {
   submitActivity, getStudentGrades, getAssignmentResults
@@ -143,6 +143,10 @@ export async function handler(event) {
         if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
         const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId || "";
         return json(200, { assignments: await listTeacherAssignments(sql, teacherId, currentUser) });
+      }
+      if (query.action === "assignment-targets") {
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        return roleError || json(200, { targets: await listAssignmentTargets(sql, currentUser) });
       }
       if (query.action === "assignments") {
         const roleError = requireResourceRole(currentUser, ["student", "admin"]);

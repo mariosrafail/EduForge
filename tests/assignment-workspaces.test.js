@@ -65,8 +65,8 @@ test("assignment review backend keeps auto scores server-authoritative", async (
   assert.match(source, /aa\.school_id = \$\{currentUser\.school_id\}/);
   assert.match(source, /aa\.teacher_id = \$\{currentUser\.id\}/);
   assert.match(assignmentsSource, /l\.id as lesson_id, l\.slug as lesson_slug/);
-  assert.match(assignmentsSource, /bc\.id as component_id, bc\.slug as component_slug/);
-  assert.match(assignmentsSource, /bp\.id as package_id, bp\.slug as package_slug/);
+  assert.match(assignmentsSource, /coalesce\(bc\.id, native_component\.id\) as component_id/);
+  assert.match(assignmentsSource, /coalesce\(bp\.id, native_package\.id\) as package_id/);
 });
 
 test("assignment results are routed to the full-page workspace instead of the results modal", async () => {

@@ -35,14 +35,16 @@ export async function loadSchoolAdoptionSummary(sql, schoolId) {
         and ba.role_scope in ('student','teacher')
       group by ba.book_package_id
     ), assignment_scope as (
-      select aa.id,aa.status,bp.id package_id
+      select aa.id,aa.status,coalesce(bp.id,native_bp.id) package_id
       from activity_assignments aa
-      join activities a on a.id=aa.activity_id
-      join lessons l on l.id=a.lesson_id
-      join units u on u.id=l.unit_id
-      join book_components bc on bc.id=u.book_component_id
-      join book_packages bp on bp.id=bc.book_package_id and bp.status='active'
-      where aa.school_id=${schoolId}
+      left join activities a on a.id=aa.activity_id
+      left join lessons l on l.id=a.lesson_id
+      left join units u on u.id=l.unit_id
+      left join book_components bc on bc.id=u.book_component_id
+      left join book_packages bp on bp.id=bc.book_package_id and bp.status='active'
+      left join book_component_releases native_release on native_release.id=aa.native_release_id
+      left join book_packages native_bp on native_bp.id=native_release.book_package_id and native_bp.status='active'
+      where aa.school_id=${schoolId} and coalesce(bp.id,native_bp.id) is not null
     ), assignment_metrics as (
       select package_id,
         count(distinct id) filter (where status='assigned')::int active_assignments,
@@ -152,14 +154,16 @@ export async function loadSchoolAdoptionRows(sql, schoolId) {
         and ba.role_scope in ('student','teacher')
       group by ba.book_package_id
     ), assignment_scope as (
-      select aa.id,aa.status,bp.id package_id
+      select aa.id,aa.status,coalesce(bp.id,native_bp.id) package_id
       from activity_assignments aa
-      join activities a on a.id=aa.activity_id
-      join lessons l on l.id=a.lesson_id
-      join units u on u.id=l.unit_id
-      join book_components bc on bc.id=u.book_component_id
-      join book_packages bp on bp.id=bc.book_package_id and bp.status='active'
-      where aa.school_id=${schoolId}
+      left join activities a on a.id=aa.activity_id
+      left join lessons l on l.id=a.lesson_id
+      left join units u on u.id=l.unit_id
+      left join book_components bc on bc.id=u.book_component_id
+      left join book_packages bp on bp.id=bc.book_package_id and bp.status='active'
+      left join book_component_releases native_release on native_release.id=aa.native_release_id
+      left join book_packages native_bp on native_bp.id=native_release.book_package_id and native_bp.status='active'
+      where aa.school_id=${schoolId} and coalesce(bp.id,native_bp.id) is not null
     ), assignment_metrics as (
       select package_id,
         count(distinct id) filter (where status='assigned')::int active_assignments,

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { listStudentAssignments, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
 import { buildStudentSectionHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
+import { PublishedNativeActivityRunner } from "../../activities/ultimate-b2/PublishedNativeActivityRunner.jsx";
 import { BookPackageBrowser } from "../../books/BookPackageBrowser.jsx";
 import { Card, Tag } from "../../Shared.jsx";
 import { resolveStudentAssignmentBookContext } from "./studentAssignmentBookContext.js";
@@ -16,13 +17,17 @@ function formatDate(value) {
 
 function normalizeAssignment(assignment = {}) {
   const activity = assignment.activity || {};
+  const nativeDocument = assignment.target?.entry?.document;
   return {
     ...assignment,
     assignmentId: assignment.assignmentId || assignment.id,
     activityId: activity.id || assignment.activityId,
     title: assignment.title || activity.title || "Untitled assignment",
     dbActivity: activity,
-    demoActivityKey: activity.stableActivityId || activity.demoActivityKey || activity.slug,
+    demoActivityKey: assignment.target?.nativeActivityId || activity.stableActivityId || activity.demoActivityKey || activity.slug,
+    pageId: nativeDocument?.placement?.pageId || assignment.pageId,
+    packageSlug: assignment.target?.publication?.bookSlug || assignment.packageSlug,
+    componentSlug: assignment.target?.publication?.componentSlug || assignment.componentSlug,
   };
 }
 
@@ -52,6 +57,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
   const [submitError, setSubmitError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
   const [selectedPage, setSelectedPage] = useState(null);
+  const [nativeResponses, setNativeResponses] = useState({});
 
   const reload = async () => {
     setLoading(true);
@@ -60,7 +66,9 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
       const rows = await listStudentAssignments(currentUser?.id);
       const match = rows.find((row) => String(row.assignmentId || row.id) === String(assignmentId));
       if (!match) throw new Error("This assignment is not available.");
-      setAssignment(normalizeAssignment(match));
+      const normalized = normalizeAssignment(match);
+      setAssignment(normalized);
+      setNativeResponses(Object.fromEntries((normalized.responsePayload?.items || []).map((item) => [item.id, item.value])));
     } catch (loadError) {
       setAssignment(null);
       setError(loadError.message || "This assignment is not available.");
@@ -101,6 +109,32 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
     } catch (submitFailure) {
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
       throw submitFailure;
+    }
+  };
+
+  const submitNativeActivity = async () => {
+    if (!presentation?.canSubmit) return;
+    setSubmitError("");
+    setSubmitMessage("");
+    try {
+      const questions = assignment.target?.entry?.document?.parts?.[0]?.interaction?.questions || [];
+      await submitStudentAssignment({
+        assignmentId: assignment.assignmentId,
+        target: {
+          kind: "published_native",
+          releaseId: assignment.target.releaseId,
+          nativeActivityId: assignment.target.nativeActivityId,
+        },
+        response: {
+          schemaVersion: assignment.target.capability.responseSchemaVersion,
+          items: questions.map((question) => ({ id: question.id, value: nativeResponses[question.id] || "" })),
+        },
+      });
+      setSubmitMessage("Assignment submission saved.");
+      await reload();
+      onAssignmentSubmitted?.();
+    } catch (submitFailure) {
+      setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
     }
   };
 
@@ -159,7 +193,23 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
                   : "The deadline has passed. You can view the activity for practice, but it cannot be submitted."}
               </div>
             )}
-            {(assignment.status !== "closed" || assignment.submissionId) && (
+            {assignment.targetKind === "published_native" && assignment.target && (assignment.status !== "closed" || assignment.submissionId) && (
+              <>
+                <PublishedNativeActivityRunner
+                  key={`${assignment.assignmentId}:${assignment.target.releaseId}`}
+                  entry={assignment.target.entry}
+                  publication={assignment.target.publication}
+                  responses={nativeResponses}
+                  onResponsesChange={setNativeResponses}
+                  readOnly={!presentation.canSubmit}
+                />
+                {assignment.target.capability.submittable && presentation.canSubmit && (
+                  <button className="primary-action" type="button" onClick={submitNativeActivity}>Submit assignment</button>
+                )}
+                {!assignment.target.capability.submittable && <div className="inline-status">This published activity is display-only and cannot be submitted.</div>}
+              </>
+            )}
+            {assignment.targetKind !== "published_native" && (assignment.status !== "closed" || assignment.submissionId) && (
               <UltimateB2ActivityRunner
                 key={assignment.assignmentId}
                 activityKey={context.activityKey}

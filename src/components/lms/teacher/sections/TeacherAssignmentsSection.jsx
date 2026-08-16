@@ -7,6 +7,7 @@ import {
   createAssignmentRequestKey,
   deleteAssignment as deleteLiveAssignment,
   exportAssignmentResultsCsv,
+  listAssignmentTargets,
   listTeacherAssignments,
 } from "../../../../services/assignmentsApi.js";
 import { buildTeacherAssignmentReviewHash } from "../../../../utils/hashRoutes.js";
@@ -55,7 +56,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
 
   useEffect(() => {
     let mounted = true;
-    getBookPackageTreeWithFallback("ultimate-b2").then((packageTree) => {
+    Promise.all([getBookPackageTreeWithFallback("ultimate-b2"), listAssignmentTargets()]).then(([packageTree, nativeTargets]) => {
       if (!mounted) return;
       const options = [];
       for (const component of packageTree.components || []) {
@@ -67,6 +68,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
               if (!assignmentActivityId) continue;
               options.push({
                 id: assignmentActivityId,
+                targetKind: "legacy_activity",
                 stableActivityId: exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.slug,
                 title: exercise.title,
                 label: `${component.title} / ${unit.title} / ${exercise.title}`,
@@ -77,8 +79,19 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
           }
         }
       }
+      for (const native of nativeTargets) {
+        options.push({
+          id: `native:${native.target.releaseId}:${native.target.nativeActivityId}`,
+          targetKind: "published_native",
+          target: native.target,
+          title: native.title,
+          label: `${native.packageTitle} / ${native.componentTitle} / ${native.title} (${native.nativeKind}${native.assignable ? "" : ", display only"})`,
+          component: native.componentTitle,
+          assignable: native.assignable,
+        });
+      }
       setActivityOptions(options);
-      setSelectedActivityId((current) => current || options[0]?.id || "");
+      setSelectedActivityId((current) => current || options.find((option) => option.assignable !== false)?.id || "");
     }).catch((error) => {
       if (!mounted) return;
       setActivityOptions([]);
@@ -125,7 +138,9 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
       const selectedActivity = activityOptions.find((item) => item.id === selectedActivityId);
       await createAssignment({
         idempotencyKey: createAssignmentRequestKey(),
-        activityId: selectedActivityId,
+        ...(selectedActivity?.targetKind === "published_native"
+          ? { target: selectedActivity.target }
+          : { activityId: selectedActivityId }),
         teacherId: currentUser.id,
         classIds,
         dueAt: dueDate ? `${dueDate}T23:59:00` : null,
@@ -266,7 +281,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
           <label>
             Exercise/activity
             <select value={selectedActivityId} onChange={(event) => { setSelectedActivityId(event.target.value); setAssigned(""); }}>
-              {activityOptions.length ? activityOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>) : (
+              {activityOptions.length ? activityOptions.map((activity) => <option key={activity.id} value={activity.id} disabled={activity.assignable === false}>{activity.label}</option>) : (
                 <option value="">Loading activities...</option>
               )}
             </select>

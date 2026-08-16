@@ -1,4 +1,11 @@
 import { badRequest, requestsHiddenPhaseOneComponent, teacherSolutionHeaders, withTeacherSolutionHeaders, teacherSolutionResponse, uuidPattern, isValidUuid, invalidUuidResponse, jsonArray, numericOrNull, studentHiddenAnswerFields, stripStudentAnswerKeys, studentSafeActivityPayload, parseOptionalDeadline, assignmentIdempotencyKey, validateSubmittedAnswers, studentSafePackageTree, normalizeSubmittedAnswer, isSubmittedAnswerCorrect, packageIdForQuery, verifyPackageAccess, supportedBookActivityTypes, supportedBookMediaKinds, supportedHotspotActionTypes, requireText, optionalJson, getUserSchoolId, getUserAccessRow, resolveScopedUserId, getClassAccessRow, getAssignmentAccessRow, getSubmissionAccessRow, canAccessTeacherScopedRow, canAccessStudentScopedRow, verifyClassAccess, verifyAssignmentAccess, verifyStudentAccess, verifyContentEditorReferences, createTeacherClass, enforceInviteRateLimit, findClassByInviteCode, joinClass, listTeacherClasses, publicClassInviteRow, recordInviteAttempt, forbidden, requireAuth, safeServerError, unauthorized, isAdmin, isStudent, isTeacher, requireResourceRole, sameSchool, fetchActivity, fetchBookPackages, fetchPackageTree, databaseNotConfiguredResponse, getSql, isDatabaseNotConfiguredError, json, parseBody, readQuery, getBookAssetAccess, accessiblePackageIds, withAssignmentLifecycleTransaction } from "./shared.js";
+import {
+  NATIVE_ASSIGNMENT_TARGET_KIND,
+  containsClientTeacherMaterial,
+  listPublishedNativeAssignmentTargets,
+  nativeTargetToStudent,
+  resolveNativeAssignmentTarget,
+} from "./native-assignment-runtime.js";
 
 export async function listUserBookAccess(sql, userId) {
   if (!userId) return [];
@@ -46,7 +53,10 @@ export function assignmentRowToUi(row = {}) {
 
   return {
     id: row.id,
+    targetKind: row.target_kind || "legacy_activity",
     activityId: row.activity_id,
+    nativeReleaseId: row.native_release_id || null,
+    nativeActivityId: row.native_activity_id || null,
     teacherId: row.teacher_id,
     classId: row.class_id,
     studentId: row.student_id,
@@ -178,6 +188,7 @@ export async function closeAssignment(sql, body, currentUser) {
 
 export async function createAssignment(sql, body, currentUser = null) {
   const activityId = body.activityId || body.bookActivityId;
+  const requestedNativeTarget = body.target?.kind === NATIVE_ASSIGNMENT_TARGET_KIND ? body.target : null;
   let teacherId = isTeacher(currentUser) ? currentUser.id : body.teacherId;
   const classIds = toArray(body.classIds || body.classId);
   const studentIds = toArray(body.studentIds || body.studentId);
@@ -190,8 +201,11 @@ export async function createAssignment(sql, body, currentUser = null) {
   const attachedFiles = Array.isArray(body.attachedFiles) ? body.attachedFiles : [];
   const title = String(body.title || "").trim() || null;
 
-  if (!activityId) return badRequest("activityId is required");
-  if (!isValidUuid(activityId)) return invalidUuidResponse("activityId");
+  if (!activityId && !requestedNativeTarget) return badRequest("activityId or a published native target is required");
+  if (activityId && requestedNativeTarget) return badRequest("Choose either a legacy activityId or a published native target");
+  if (activityId && !isValidUuid(activityId)) return invalidUuidResponse("activityId");
+  if (body.target && !requestedNativeTarget) return badRequest("target.kind must be published_native");
+  if (requestedNativeTarget && containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
   if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
   if (isAdmin(currentUser)) {
     if (!teacherId) return badRequest("teacherId is required for admin assignment creation");
@@ -229,21 +243,34 @@ export async function createAssignment(sql, body, currentUser = null) {
     }
   }
 
-  const activityRows = await sql`
-    select id, title, is_assignable, content_json
-    from activities
-    where id = ${activityId}
-    limit 1
-  `;
-  const activity = activityRows[0];
-  if (!activity) return json(404, { error: "Activity not found" });
-  if (
-    activity.is_assignable === false
-    || activity.content_json?.implementationMode === "unsupported-disabled"
-    || activity.content_json?.implementationStatus === "disabled-editorial-only"
-  ) return forbidden("This activity is not assignable");
-  const packageError = await verifyPackageAccess(sql, currentUser, { activityId });
-  if (packageError) return packageError;
+  let activity = null;
+  let nativeTarget = null;
+  if (requestedNativeTarget) {
+    nativeTarget = await resolveNativeAssignmentTarget(sql, currentUser, requestedNativeTarget, { requireActive: true });
+    if (nativeTarget.error) return json(nativeTarget.statusCode || 400, { error: nativeTarget.error });
+    if (!nativeTarget.capability?.assignable) return forbidden("This published native activity is not assignable");
+  } else {
+    const activityRows = await sql`
+      select id, title, is_assignable, content_json
+      from activities
+      where id = ${activityId}
+      limit 1
+    `;
+    activity = activityRows[0];
+    if (!activity) return json(404, { error: "Activity not found" });
+    if (
+      activity.is_assignable === false
+      || activity.content_json?.implementationMode === "unsupported-disabled"
+      || activity.content_json?.implementationStatus === "disabled-editorial-only"
+    ) return forbidden("This activity is not assignable");
+    const packageError = await verifyPackageAccess(sql, currentUser, { activityId });
+    if (packageError) return packageError;
+  }
+
+  const targetKind = nativeTarget ? NATIVE_ASSIGNMENT_TARGET_KIND : "legacy_activity";
+  const nativeReleaseId = nativeTarget?.row.id || null;
+  const nativeActivityId = nativeTarget?.nativeActivityId || null;
+  const canonicalTitle = nativeTarget?.publicEntry.document?.metadata?.title || activity?.title;
 
   const inserted = [];
   for (const classId of classIds) {
@@ -253,6 +280,9 @@ export async function createAssignment(sql, body, currentUser = null) {
       insert into activity_assignments (
         school_id,
         activity_id,
+        target_kind,
+        native_release_id,
+        native_activity_id,
         teacher_id,
         class_id,
         student_id,
@@ -266,13 +296,16 @@ export async function createAssignment(sql, body, currentUser = null) {
       )
       values (
         ${currentUser.school_id},
-        ${activityId},
+        ${activityId || null},
+        ${targetKind},
+        ${nativeReleaseId},
+        ${nativeActivityId},
         ${teacherId},
         ${classId},
         null,
         ${dueAt},
         ${status},
-        ${title || activity.title},
+        ${title || canonicalTitle},
         ${teacherNotes},
         ${JSON.stringify(worksheetLinks)}::jsonb,
         ${JSON.stringify(attachedFiles)}::jsonb,
@@ -293,6 +326,9 @@ export async function createAssignment(sql, body, currentUser = null) {
       insert into activity_assignments (
         school_id,
         activity_id,
+        target_kind,
+        native_release_id,
+        native_activity_id,
         teacher_id,
         class_id,
         student_id,
@@ -306,13 +342,16 @@ export async function createAssignment(sql, body, currentUser = null) {
       )
       values (
         ${currentUser.school_id},
-        ${activityId},
+        ${activityId || null},
+        ${targetKind},
+        ${nativeReleaseId},
+        ${nativeActivityId},
         ${teacherId},
         null,
         ${studentId},
         ${dueAt},
         ${status},
-        ${title || activity.title},
+        ${title || canonicalTitle},
         ${teacherNotes},
         ${JSON.stringify(worksheetLinks)}::jsonb,
         ${JSON.stringify(attachedFiles)}::jsonb,
@@ -331,14 +370,20 @@ export async function createAssignment(sql, body, currentUser = null) {
 
 export async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
   const rows = await sql`
-    select aa.id, aa.activity_id, aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
+    select aa.id, aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
+           aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
-           a.title as activity_title, a.slug as activity_slug, a.activity_type,
-           a.content_json->>'implementationMode' as implementation_mode,
+           coalesce(a.title, aa.title) as activity_title, a.slug as activity_slug,
+           coalesce(a.activity_type, native_public.value->>'kind') as activity_type,
+           case when aa.target_kind = 'published_native' then 'teacher-reviewed' else a.content_json->>'implementationMode' end as implementation_mode,
            l.id as lesson_id, l.slug as lesson_slug, l.title as lesson_title,
            u.id as unit_id, u.slug as unit_slug, u.title as unit_title,
-           bc.id as component_id, bc.slug as component_slug, bc.title as component_title,
-           bp.id as package_id, bp.slug as package_slug, bp.title as package_title,
+           coalesce(bc.id, native_component.id) as component_id,
+           coalesce(bc.slug, native_component.slug) as component_slug,
+           coalesce(bc.title, native_component.title) as component_title,
+           coalesce(bp.id, native_package.id) as package_id,
+           coalesce(bp.slug, native_package.slug) as package_slug,
+           coalesce(bp.title, native_package.title) as package_title,
            c.name as class_name, teacher.full_name as teacher_name,
            case
              when aa.class_id is not null then (
@@ -357,18 +402,23 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
            avg(s.score_percent) as average_score,
            max(s.submitted_at) as latest_submitted_at
     from activity_assignments aa
-    join activities a on a.id = aa.activity_id
+    left join activities a on a.id = aa.activity_id
     left join lessons l on l.id = a.lesson_id
     left join units u on u.id = l.unit_id
     left join book_components bc on bc.id = u.book_component_id
     left join book_packages bp on bp.id = bc.book_package_id
+    left join book_component_releases native_release on native_release.id = aa.native_release_id
+    left join book_components native_component on native_component.id = native_release.book_component_id
+    left join book_packages native_package on native_package.id = native_release.book_package_id
+    left join lateral jsonb_each(native_release.public_projection->'nativeActivities') native_public on native_public.key = aa.native_activity_id
     left join classes c on c.id = aa.class_id
     left join app_users teacher on teacher.id = aa.teacher_id
     left join activity_submissions s on s.activity_assignment_id = aa.id
     where (${teacherId || null}::uuid is null or aa.teacher_id = ${teacherId || null})
       and aa.school_id = ${currentUser.school_id}
-    group by aa.id, a.id, l.id, l.slug, l.title, u.id, u.slug, u.title,
-             bc.id, bc.slug, bc.title, bp.id, bp.slug, bp.title, c.name, teacher.full_name
+    group by aa.id, a.id, native_public.value, l.id, l.slug, l.title, u.id, u.slug, u.title,
+             bc.id, bc.slug, bc.title, bp.id, bp.slug, bp.title,
+             native_component.id, native_package.id, c.name, teacher.full_name
     order by aa.assigned_at desc
   `;
 
@@ -378,23 +428,31 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
 export async function listAssignmentsForStudent(sql, studentId, currentUser) {
   if (!studentId) return [];
   const rows = await sql`
-    select aa.id, aa.assigned_at, aa.due_at, aa.status,
+    select aa.id, aa.target_kind, aa.native_release_id, aa.native_activity_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.id as activity_id, a.title as activity_title, a.slug as activity_slug, a.activity_type,
            a.content_json, a.timer_seconds, a.estimated_minutes,
            l.id as lesson_id, l.slug as lesson_slug, l.title as lesson_title,
            u.id as unit_id, u.slug as unit_slug, u.title as unit_title,
-           bc.id as component_id, bc.slug as component_slug, bc.title as component_title,
-           bp.id as package_id, bp.slug as package_slug, bp.title as package_title,
+           coalesce(bc.id, native_component.id) as component_id,
+           coalesce(bc.slug, native_component.slug) as component_slug,
+           coalesce(bc.title, native_component.title) as component_title,
+           coalesce(bp.id, native_package.id) as package_id,
+           coalesce(bp.slug, native_package.slug) as package_slug,
+           coalesce(bp.title, native_package.title) as package_title,
            c.name as class_name, teacher.full_name as teacher_name,
            latest.id as submission_id, latest.score_percent, latest.correct_count, latest.total_count, latest.status as submission_status,
-           latest.submitted_at, latest.teacher_feedback, latest.reviewed_at
+           latest.submitted_at, latest.teacher_feedback, latest.reviewed_at,
+           latest.response_payload, latest.response_schema_version
     from activity_assignments aa
-    join activities a on a.id = aa.activity_id
+    left join activities a on a.id = aa.activity_id
     left join lessons l on l.id = a.lesson_id
     left join units u on u.id = l.unit_id
     left join book_components bc on bc.id = u.book_component_id
     left join book_packages bp on bp.id = bc.book_package_id
+    left join book_component_releases native_release on native_release.id = aa.native_release_id
+    left join book_components native_component on native_component.id = native_release.book_component_id
+    left join book_packages native_package on native_package.id = native_release.book_package_id
     left join classes c on c.id = aa.class_id
     left join app_users teacher on teacher.id = aa.teacher_id
     left join lateral (
@@ -410,14 +468,24 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
     order by aa.assigned_at desc
   `;
 
-  const activityIds = [...new Set(rows.map((row) => String(row.activity_id)))];
+  const activityIds = [...new Set(rows.filter((row) => row.activity_id).map((row) => String(row.activity_id)))];
   const hydratedActivities = new Map();
   for (const activityId of activityIds) {
     const activity = await fetchActivity(sql, { activityId });
     if (activity) hydratedActivities.set(activityId, isStudent(currentUser) ? studentSafeActivityPayload(activity) : activity);
   }
 
-  return rows.map((row) => ({
+  const nativeTargets = new Map();
+  for (const row of rows.filter((candidate) => candidate.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND)) {
+    const target = await resolveNativeAssignmentTarget(sql, currentUser, {
+      kind: NATIVE_ASSIGNMENT_TARGET_KIND,
+      releaseId: row.native_release_id,
+      nativeActivityId: row.native_activity_id,
+    }, { requireActive: false });
+    if (!target.error) nativeTargets.set(String(row.id), nativeTargetToStudent(target, row.native_activity_id));
+  }
+
+  return rows.filter((row) => row.target_kind !== NATIVE_ASSIGNMENT_TARGET_KIND || nativeTargets.has(String(row.id))).map((row) => ({
     id: row.id,
     assignmentId: row.id,
     assignedAt: row.assigned_at,
@@ -448,7 +516,10 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
     scorePercent: numericOrNull(row.score_percent),
     correctCount: row.correct_count,
     totalCount: row.total_count,
-    activity: hydratedActivities.get(String(row.activity_id)) || {
+    targetKind: row.target_kind || "legacy_activity",
+    target: nativeTargets.get(String(row.id)) || null,
+    responsePayload: row.response_payload || null,
+    activity: row.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND ? null : hydratedActivities.get(String(row.activity_id)) || {
       id: row.activity_id,
       title: row.activity_title,
       slug: row.activity_slug,
@@ -473,4 +544,8 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
     packageId: row.package_id,
     packageSlug: row.package_slug,
   }));
+}
+
+export async function listAssignmentTargets(sql, currentUser) {
+  return listPublishedNativeAssignmentTargets(sql, currentUser);
 }
