@@ -84,12 +84,14 @@ try {
   for (const tab of ["Hotspot Builder", "Activity Builder", "UI Controller"]) await page.getByRole("link", { name: new RegExp(tab) }).waitFor();
 
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
-  const frame = page.locator('iframe[title^="Canonical Viewer activity preview"]');
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  const frame = page.locator(".unified-builder-review-dialog iframe");
   await frame.waitFor();
   const frameUrl = new URL(await frame.getAttribute("src"));
   assert.equal(frameUrl.searchParams.get("bookSlug"), "ultimate-b2");
   assert.equal(frameUrl.searchParams.get("componentSlug"), "ultimate-b2-students-book");
   assert.ok(frameUrl.searchParams.get("activityId"));
+  await page.getByRole("button", { name: "Close Review" }).click();
 
   await page.goto(`https://hhplms-viewer.netlify.app/?builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-workbook&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Preview unavailable" }).waitFor();

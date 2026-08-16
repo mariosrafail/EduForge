@@ -108,7 +108,7 @@ test("hosted editor stays slim and Viewer integration is no-store, fail-safe, an
   assert.match(editor, /Conflict — unsaved changes retained/);
   assert.match(editor, /onSaved\?\.\(payload\.revision\)/);
   assert.match(workspace, /setViewerRefresh/);
-  assert.match(workspace, /Unsupported type · Read-only/);
+  assert.match(workspace, /Canonical activity · Read-only/);
   assert.match(provider, /credentials: "omit"/);
   assert.match(provider, /cache: "no-store"/);
   assert.match(provider, /response\.status === 404/);

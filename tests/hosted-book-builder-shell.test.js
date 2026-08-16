@@ -157,6 +157,7 @@ test("hosted shell exposes only narrow content persistence and local authoring r
   ].map(read));
   const source = hostedSources.join("\n");
   assert.doesNotMatch(source, /__hhplms|writeFile|FormData|repositoryFileTarget|write-capability/i);
+  assert.doesNotMatch(source, /(?:\.\.\/)+(?:lms|components\/teacher|components\/student)|SoundContext|TeacherDashboard|StudentDashboard/);
   const local = await read("src/apps/ultimate-b2-builder/UltimateB2BuilderApp.jsx");
   assert.match(local, /__hhplms\/ultimate-b2-publisher-activities/);
 });

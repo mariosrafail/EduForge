@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
+import { Boxes, MapPinned, PanelsTopLeft, Rocket } from "lucide-react";
 
 import {
   findHostedBuilderBook,
@@ -9,7 +10,9 @@ import { resolveHostedBuilderAdapter } from "./hostedBuilderAdapters.jsx";
 import { resolveHostedBuilderTool } from "./hostedBuilderCapabilities.js";
 import { HostedBuilderReviewPage } from "./HostedBuilderReviewPage.jsx";
 import { hostedBuilderHash, parseHostedBuilderHash } from "./hostedBuilderRouter.js";
+import { HostedBuilderRouteTransition } from "./HostedBuilderRouteTransition.jsx";
 import "./hostedBuilder.css";
+import "./hostedBuilderModern.css";
 
 function useHostedBuilderRoute() {
   const [route, setRoute] = useState(() => parseHostedBuilderHash(window.location.hash));
@@ -75,20 +78,20 @@ function Workspace({ book, component, tool }) {
   if (!resolveHostedBuilderTool(adapter, tool)) return <NotFound />;
   const WorkspaceComponent = adapter.Workspace;
   const tools = [
-    { id: "hotspots", label: "Hotspot Builder", capability: "hotspots" },
-    { id: "activities", label: "Activity Builder", capability: "activities" },
-    { id: "ui", label: "UI Controller", capability: "uiController" },
-    { id: "publication", label: "Publication", capability: "publication" },
+    { id: "hotspots", label: "Hotspot Builder", description: "Place interactive targets", capability: "hotspots", Icon: MapPinned },
+    { id: "activities", label: "Activity Builder", description: "Author learning activities", capability: "activities", Icon: Boxes },
+    { id: "ui", label: "UI Controller", description: "Tune teacher controls", capability: "uiController", Icon: PanelsTopLeft },
+    { id: "publication", label: "Publication", description: "Review release readiness", capability: "publication", Icon: Rocket },
   ];
   return <main className="hosted-builder-workspace" id="main-content">
     <div className="hosted-builder-workspace-chrome">
       <Breadcrumbs book={book} component={component} tool={tool} />
       <nav className="hosted-builder-tool-tabs" aria-label={`${component.title} tools`}>
-        {tools.filter(({ capability }) => adapter.capabilities[capability]?.readable).map(({ id, label, capability }) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}><span>{label}</span><small>{adapter.capabilities[capability].writable ? "Editable" : "Read-only"}</small></a>)}
+        {tools.filter(({ capability }) => adapter.capabilities[capability]?.readable).map(({ id, label, description, capability, Icon }) => <a key={id} aria-current={tool === id ? "page" : undefined} href={hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug, tool: id })}><Icon aria-hidden="true" /><span><strong>{label}</strong><small>{description} · {adapter.capabilities[capability].writable ? "Editable" : "Read-only"}</small></span></a>)}
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>
-      <WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} bookSlug={book.slug} componentSlug={component.slug} />
+      <HostedBuilderRouteTransition routeKey={`${book.slug}/${component.slug}/${tool}`}><WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} bookSlug={book.slug} componentSlug={component.slug} /></HostedBuilderRouteTransition>
     </Suspense>
   </main>;
 }
@@ -99,11 +102,11 @@ function NotFound() {
 
 export function HostedBookBuilderApp() {
   const route = useHostedBuilderRoute();
-  if (route.kind === "library") return <BookLibrary />;
-  if (route.kind === "not-found") return <NotFound />;
+  if (route.kind === "library") return <HostedBuilderRouteTransition routeKey="library"><BookLibrary /></HostedBuilderRouteTransition>;
+  if (route.kind === "not-found") return <HostedBuilderRouteTransition routeKey="not-found"><NotFound /></HostedBuilderRouteTransition>;
   const book = findHostedBuilderBook(route.bookSlug);
   if (!book) return <NotFound />;
-  if (route.kind === "book") return <ComponentSelection book={book} />;
+  if (route.kind === "book") return <HostedBuilderRouteTransition routeKey={`book/${book.slug}`}><ComponentSelection book={book} /></HostedBuilderRouteTransition>;
   const component = findHostedBuilderComponent(book, route.componentSlug);
   if (!component) return <NotFound />;
   if (route.kind === "review") {
