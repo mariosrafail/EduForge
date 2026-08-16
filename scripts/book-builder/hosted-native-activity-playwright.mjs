@@ -106,6 +106,18 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin =
 let browser;
 try {
   browser = await chromium.launch(localPlaywrightLaunchOptions()); const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await context.addInitScript(() => {
+    let fullscreenElement = null; let requestCount = 0; let exitCount = 0; let lastRequestedElement = null; let rejectNextRequest = false;
+    const signal = () => document.dispatchEvent(new Event("fullscreenchange"));
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => fullscreenElement });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", { configurable: true, value: async function requestFullscreen() { requestCount += 1; lastRequestedElement = this; if (rejectNextRequest) { rejectNextRequest = false; throw new DOMException("Fullscreen request rejected", "NotAllowedError"); } fullscreenElement = this; signal(); } });
+    Object.defineProperty(document, "exitFullscreen", { configurable: true, value: async () => { exitCount += 1; fullscreenElement = null; signal(); } });
+    Object.defineProperty(globalThis, "__hhplmsFullscreenTest", { configurable: true, value: Object.freeze({
+      externalExit() { fullscreenElement = null; signal(); },
+      rejectNextRequest() { rejectNextRequest = true; },
+      snapshot() { return { requestCount, exitCount, requestedPreviewWrapper: lastRequestedElement?.classList.contains("hosted-viewer-preview") === true }; },
+    }) });
+  });
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const viewerRequest = route.request(); const url = new URL(viewerRequest.url());
     viewerRequests.push({ pathname: url.pathname, search: url.search, headers: viewerRequest.headers(), method: viewerRequest.method() });
@@ -134,7 +146,7 @@ try {
   await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByLabel("Activity kind").selectOption("open-response"); await page.getByLabel("Initial title (optional)").fill("Browser native response"); await page.getByRole("button", { name: "Create native draft" }).click();
   const openResponseId = "ultimate-b2-sb-u1-p1-o90"; await page.getByRole("heading", { name: "Browser native response" }).waitFor(); await page.getByText(openResponseId, { exact: true }).first().waitFor(); await page.getByText(/included in Publication v2/).waitFor();
   await page.getByLabel("Activity title").fill("Persisted browser response"); await page.getByLabel("Visible instruction").fill("Respond in complete sentences.");
-  await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); await page.locator(".unified-builder-review-dialog iframe").waitFor(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1); await page.getByText("Unsaved changes are not included in Review. Save them first.", { exact: true }).waitFor(); const unsavedViewer = page.frameLocator(".unified-builder-review-dialog iframe"); await unsavedViewer.getByRole("heading", { name: "Browser native response", exact: true }).waitFor(); assert.equal(await unsavedViewer.getByRole("heading", { name: "Persisted browser response", exact: true }).count(), 0); const firstReviewAuthorizationCount = authorizationIntents.length;
+  await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); await page.locator(".unified-builder-review-dialog iframe").waitFor(); assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1); assert.equal(await page.getByRole("button", { name: "Fullscreen", exact: true }).count(), 0); await page.getByText("Unsaved changes are not included in Review. Save them first.", { exact: true }).waitFor(); const unsavedViewer = page.frameLocator(".unified-builder-review-dialog iframe"); await unsavedViewer.getByRole("heading", { name: "Browser native response", exact: true }).waitFor(); assert.equal(await unsavedViewer.getByRole("heading", { name: "Persisted browser response", exact: true }).count(), 0); const firstReviewAuthorizationCount = authorizationIntents.length;
   const activityAuthorizationCount = authorizationIntents.length;
   const [activityPlayer] = await Promise.all([
     context.waitForEvent("page"),
@@ -152,8 +164,32 @@ try {
   assert.equal(activityPlayerFrameUrl.origin, "https://hhplms-viewer.netlify.app");
   assert.equal(activityPlayerFrameUrl.searchParams.get("view"), "activity");
   assert.equal(activityPlayerFrameUrl.searchParams.get("activityId"), openResponseId);
+  assert.equal(await activityPlayer.locator(".hosted-builder-review-page iframe").getAttribute("referrerpolicy"), "no-referrer");
+  assert.equal(await activityPlayer.locator(".hosted-viewer-preview iframe").evaluate((iframe) => iframe.parentElement?.classList.contains("hosted-viewer-preview")), true);
   assert.ok(authorizationIntents.length > activityAuthorizationCount);
   await activityPlayer.frameLocator(".hosted-builder-review-page iframe").getByRole("heading", { name: "Browser native response", exact: true }).waitFor();
+  await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).click();
+  await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).waitFor();
+  assert.equal(await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).getAttribute("aria-pressed"), "true");
+  assert.deepEqual(await activityPlayer.evaluate(() => ({
+    activeWrapper: document.fullscreenElement === document.querySelector(".hosted-viewer-preview"),
+    iframeInsideWrapper: document.querySelector(".hosted-viewer-preview")?.contains(document.querySelector(".hosted-viewer-preview iframe")) === true,
+    ...globalThis.__hhplmsFullscreenTest.snapshot(),
+  })), { activeWrapper: true, iframeInsideWrapper: true, requestCount: 1, exitCount: 0, requestedPreviewWrapper: true });
+  await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).click();
+  await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).waitFor();
+  assert.equal((await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.snapshot())).exitCount, 1);
+  await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).click();
+  await activityPlayer.getByRole("button", { name: "Exit Fullscreen", exact: true }).waitFor();
+  await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.externalExit());
+  await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).waitFor();
+  assert.equal(await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).getAttribute("aria-pressed"), "false");
+  assert.equal(await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).evaluate((element) => element === document.activeElement), true);
+  await activityPlayer.evaluate(() => globalThis.__hhplmsFullscreenTest.rejectNextRequest());
+  await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).click();
+  await activityPlayer.getByText("Fullscreen could not be changed.", { exact: true }).waitFor();
+  assert.equal(await activityPlayer.getByRole("button", { name: "Fullscreen", exact: true }).getAttribute("aria-pressed"), "false");
+  assert.equal(await activityPlayer.locator(".hosted-viewer-preview iframe").count(), 1);
   await activityPlayer.close();
   await page.keyboard.press("Escape"); await page.locator(".unified-builder-review-dialog iframe").waitFor({ state: "detached" }); assert.equal(await page.getByRole("button", { name: "Review", exact: true }).evaluate((element) => element === document.activeElement), true);
   await page.getByRole("button", { name: "Add Question", exact: true }).click(); const firstQuestionId = await page.locator(".native-or-question-workspace aside button").nth(1).locator("code").textContent(); await page.getByLabel("Prompt").fill("First prompt"); await page.getByLabel("Private model answer (Teacher)").fill("First private model answer");

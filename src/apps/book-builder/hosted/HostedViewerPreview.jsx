@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { createHostedViewerPreviewUrl } from "./hostedViewerPreviewUrl.js";
 import { createBuilderPreviewAuthorization } from "./builderPreviewAuthorizationApi.js";
@@ -12,11 +12,16 @@ export function HostedViewerPreview({
   title,
   description = "",
   openPlayerHref = "",
+  allowFullscreen = false,
 }) {
+  const previewRef = useRef(null);
   const [authorization, setAuthorization] = useState(null);
   const [authorizationError, setAuthorizationError] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(0);
   const [frameState, setFrameState] = useState("loading");
+  const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState(false);
   useEffect(() => {
     setAuthorization(null); setAuthorizationError(false);
     return startHostedViewerAuthorizationLifecycle({
@@ -30,14 +35,48 @@ export function HostedViewerPreview({
 
   useEffect(() => setFrameState("loading"), [frameKey]);
 
-  return <section className="hosted-viewer-preview" aria-label={title}>
+  useEffect(() => {
+    const previewElement = previewRef.current;
+    const available = Boolean(allowFullscreen
+      && previewElement
+      && typeof previewElement.requestFullscreen === "function"
+      && typeof document.exitFullscreen === "function");
+    setFullscreenAvailable(available);
+    if (!available) {
+      setIsFullscreen(false);
+      return undefined;
+    }
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === previewElement);
+      setFullscreenError(false);
+    };
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    syncFullscreenState();
+    return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
+  }, [allowFullscreen]);
+
+  const toggleFullscreen = async () => {
+    const previewElement = previewRef.current;
+    if (!fullscreenAvailable || !previewElement) return;
+    setFullscreenError(false);
+    try {
+      if (document.fullscreenElement === previewElement) await document.exitFullscreen();
+      else await previewElement.requestFullscreen();
+    } catch {
+      setFullscreenError(true);
+    }
+  };
+
+  return <section ref={previewRef} className="hosted-viewer-preview" aria-label={title}>
     <header>
       <div><strong>{title}</strong>{description ? <span>{description}</span> : null}</div>
       <div>
         <button type="button" onClick={() => { setFrameState("loading"); setManualRefresh((value) => value + 1); }}>Refresh Viewer</button>
+        {allowFullscreen && fullscreenAvailable ? <button type="button" aria-pressed={isFullscreen} onClick={toggleFullscreen}>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</button> : null}
         {openPlayerHref ? <a href={openPlayerHref} target="_blank" rel="noopener noreferrer">Open Player</a> : null}
       </div>
     </header>
+    {fullscreenError ? <p className="hosted-viewer-preview-fullscreen-error" role="status">Fullscreen could not be changed.</p> : null}
     <p className="hosted-viewer-preview-state" role="status" data-state={frameState}>
       {authorizationError ? "Secure Viewer authorization could not be created." : frameState === "loading" ? "Loading canonical Viewer..." : frameState === "error" ? "The canonical Viewer could not be loaded." : "Canonical Viewer loaded."}
     </p>

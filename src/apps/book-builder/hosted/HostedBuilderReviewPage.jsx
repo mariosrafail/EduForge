@@ -30,6 +30,7 @@ export function HostedBuilderReviewPage({ book, component, intent }) {
       intent={intent}
       bookSlug={book.slug}
       componentSlug={component.slug}
+      allowFullscreen={true}
       title={`Player Review · ${sourceLabel}`}
       description={immutable ? "Pinned to the exact immutable release." : "Shows only the latest successfully saved Builder state."}
     />

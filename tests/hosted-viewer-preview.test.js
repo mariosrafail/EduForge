@@ -102,7 +102,7 @@ test("non-hosted Android runtime ignores Builder preview query and intro suppres
 });
 
 test("canonical preview frame uses scoped authorization without a DOM bridge or postMessage channel", async () => {
-  const [frame, standalone, router, authorizationClient, app, entry] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderRouter.js", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8")]);
+  const [frame, standalone, dialog, styles, router, authorizationClient, app, entry] = await Promise.all([readFile("src/apps/book-builder/hosted/HostedViewerPreview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/HostedBuilderReviewPage.jsx", "utf8"), readFile("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilder.css", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderRouter.js", "utf8"), readFile("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js", "utf8"), readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"), readFile("src/apps/book-builder/hosted/hostedBuilderEntry.jsx", "utf8")]);
   assert.match(frame, /referrerPolicy="no-referrer"/);
   assert.match(frame, /title=\{title\}/);
   assert.match(frame, /createBuilderPreviewAuthorization/);
@@ -112,6 +112,19 @@ test("canonical preview frame uses scoped authorization without a DOM bridge or 
   assert.match(frame, /target="_blank" rel="noopener noreferrer">Open Player/);
   assert.doesNotMatch(frame, /href=\{src\}/);
   assert.match(standalone, /<HostedViewerPreview/);
+  assert.match(standalone, /allowFullscreen=\{true\}/);
+  assert.doesNotMatch(dialog, /allowFullscreen/);
+  assert.match(frame, /allowFullscreen = false/);
+  assert.match(frame, /previewElement\.requestFullscreen\(\)/);
+  assert.match(frame, /document\.exitFullscreen\(\)/);
+  assert.match(frame, /document\.addEventListener\("fullscreenchange"/);
+  assert.match(frame, /document\.fullscreenElement === previewElement/);
+  assert.match(frame, /isFullscreen \? "Exit Fullscreen" : "Fullscreen"/);
+  assert.match(frame, /catch \{\s*setFullscreenError\(true\);/);
+  assert.doesNotMatch(frame, /alert\(/);
+  assert.doesNotMatch(frame, /webkitRequestFullscreen|webkitExitFullscreen|mozRequestFullScreen|msRequestFullscreen/);
+  assert.match(styles, /\.hosted-viewer-preview:fullscreen \{[^}]*display: flex;[^}]*height: 100%;[^}]*max-width: none;[^}]*border-radius: 0;[^}]*box-shadow: none;/);
+  assert.match(styles, /\.hosted-viewer-preview:fullscreen iframe \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;/);
   assert.doesNotMatch(`${standalone}\n${router}`, /previewAuthorization/);
   assert.doesNotMatch(frame, /postMessage|contentWindow|document\.domain|document\.cookie/i);
   assert.doesNotMatch(`${frame}\n${standalone}\n${router}`, /postMessage|localStorage|sessionStorage/i);
