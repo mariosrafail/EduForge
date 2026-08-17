@@ -39,9 +39,10 @@ function runMigrationManifestCheck(environment) {
   if (result.status !== 0) throw new Error(`Migration manifest verification failed with status ${result.status || 1}.`);
 }
 
-export async function buildReviewTarget(targetName, environment = process.env) {
+export async function buildReviewTarget(targetName, environment = process.env, options = {}) {
   const target = reviewTargets[targetName];
   if (!target) throw new Error(`Unknown Netlify review target: ${targetName}`);
+  const outDir = options.outDir || target.outDir;
   reviewBuildPolicy(targetName, environment);
   runMigrationManifestCheck(environment);
   process.env.VITE_APP_MODE = target.appMode;
@@ -49,11 +50,11 @@ export async function buildReviewTarget(targetName, environment = process.env) {
   delete process.env.ULTIMATE_B2_CONTENT_ROOT;
   await build({
     configFile: path.resolve("vite.config.js"),
-    build: { outDir: path.resolve(target.outDir), emptyOutDir: true },
+    build: { outDir: path.resolve(outDir), emptyOutDir: true },
   });
   if (targetName === "ultimate-b2-builder") {
-    const emittedEntry = path.resolve(target.outDir, "ultimate-b2-builder.html");
-    const rootEntry = path.resolve(target.outDir, "index.html");
+    const emittedEntry = path.resolve(outDir, "ultimate-b2-builder.html");
+    const rootEntry = path.resolve(outDir, "index.html");
     if (!existsSync(emittedEntry)) throw new Error(`Builder review entry was not emitted: ${emittedEntry}`);
     renameSync(emittedEntry, rootEntry);
   }

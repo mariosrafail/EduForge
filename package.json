@@ -46,9 +46,11 @@
     "build": "vite build",
     "verify:web-bundle-safety": "node scripts/verify-web-bundle-safety.mjs",
     "build:netlify:lms": "node scripts/netlify/build-review-target.mjs lms",
+    "build:cloudflare:lms": "node scripts/cloudflare/build-lms.mjs",
     "build:netlify:ultimate-b2-builder": "node scripts/netlify/build-review-target.mjs ultimate-b2-builder",
     "build:netlify:ultimate-b2-interactive": "node scripts/netlify/build-review-target.mjs ultimate-b2-interactive",
     "verify:netlify:lms": "node scripts/netlify/verify-review-bundle.mjs lms",
+    "verify:cloudflare:lms": "node scripts/cloudflare/verify-lms.mjs",
     "verify:netlify:ultimate-b2-builder": "node scripts/netlify/verify-review-bundle.mjs ultimate-b2-builder",
     "verify:netlify:ultimate-b2-interactive": "node scripts/netlify/verify-review-bundle.mjs ultimate-b2-interactive",
     "build:android-offline": "cross-env VITE_APP_MODE=android-offline vite build",
@@ -161,6 +163,7 @@
     "pg": "^8.22.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "4.123.0"
   }
 }
