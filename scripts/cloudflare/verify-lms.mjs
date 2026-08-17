@@ -8,6 +8,7 @@ import { LMS_PUBLIC_HANDLER_NAMES } from "../../cloudflare/lms/worker.js";
 const root = path.resolve("dist-cloudflare/lms");
 const configSource = await readFile(path.resolve("cloudflare/lms/wrangler.jsonc"), "utf8");
 const config = JSON.parse(configSource);
+assert.equal(config.name, "lms");
 assert.equal(config.assets.directory, "../../dist-cloudflare/lms");
 assert.deepEqual(config.assets.run_worker_first, ["/.netlify/functions/*", "/platform-admin/*"]);
 assert.equal(config.assets.not_found_handling, "single-page-application");
