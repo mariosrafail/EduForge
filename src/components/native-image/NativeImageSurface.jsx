@@ -7,8 +7,11 @@ export function NativeImageSurface({ document, assetUrl = () => "", onSelect = n
     {interaction.images.map((item) => {
       const reference = assets.get(item.assetSlot);
       const authoringLocked = Boolean(onSelect && item.locked);
-      return <button key={item.id} type="button" className={`native-or-artwork native-or-selectable ${selectedId === item.id ? "is-selected" : ""}`} style={{ ...logicalAreaStyle(item.area, interaction.surface), zIndex: item.order + 1, pointerEvents: authoringLocked ? "none" : undefined }} aria-label={`${item.decorative ? "Decorative image" : item.altText || "Image"}${authoringLocked ? " (locked)" : ""}`} data-locked={authoringLocked || undefined} onClick={() => onSelect?.(item.id)} disabled={!onSelect}>
-        {reference ? <img src={assetUrl(reference.assetId)} alt={item.decorative ? "" : item.altText} style={{ objectFit: item.fit }} /> : null}
+      const content = reference ? <img src={assetUrl(reference.assetId)} alt={item.decorative ? "" : item.altText} style={{ objectFit: item.fit }} /> : null;
+      const style = { ...logicalAreaStyle(item.area, interaction.surface), zIndex: item.order + 1 };
+      if (!onSelect) return <div key={item.id} className="native-or-artwork" style={{ ...style, position: "absolute", pointerEvents: "none" }}>{content}</div>;
+      return <button key={item.id} type="button" className={`native-or-artwork native-or-selectable ${selectedId === item.id ? "is-selected" : ""}`} style={{ ...style, pointerEvents: authoringLocked ? "none" : undefined }} aria-label={`${item.decorative ? "Decorative image" : item.altText || "Image"}${authoringLocked ? " (locked)" : ""}`} data-locked={authoringLocked || undefined} onClick={() => onSelect(item.id)}>
+        {content}
       </button>;
     })}
     {!interaction.images.length ? <p>No images added yet.</p> : null}

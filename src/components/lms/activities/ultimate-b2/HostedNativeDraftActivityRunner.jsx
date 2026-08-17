@@ -5,7 +5,7 @@ import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/
 import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";
 
-export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false }) {
+export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false, showMetadataHeader = true }) {
   if (state.kind === "loading") return <p role="status">Loading native activity draft…</p>;
   if (state.kind === "unavailable") return <p role="alert">Native activity draft was not found.</p>;
   if (state.kind === "error") return <p role="alert">Native activity draft could not be loaded.</p>;
@@ -13,7 +13,7 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
   const { kind, document } = state.entry;
   const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId);
   return <article className="hosted-native-draft-activity" data-native-kind={kind} data-native-draft="true">
-    <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header>
+    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" /> : null}
     {kind === "open-response" && (!teacherMode || state.teacher.kind !== "ready") ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} /> : null}
     {kind === "open-response" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}

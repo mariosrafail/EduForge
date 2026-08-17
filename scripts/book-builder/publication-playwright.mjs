@@ -237,7 +237,9 @@ try {
   lifecycle("image-composition-click-start");
   await publishedViewer.getByRole("button", { name: "Native Image Composition" }).click();
   lifecycle("image-composition-click-complete");
-  await publishedViewer.getByRole("heading", { name: "Native Image Composition", exact: true }).waitFor();
+  await publishedViewer.locator(".native-image-surface img").first().waitFor();
+  assert.equal(await publishedViewer.getByText("Native Image Composition", { exact: true }).count(), 0);
+  assert.equal(await publishedViewer.getByText("Inspect both composed image layers.", { exact: true }).count(), 0);
   assert.equal(await publishedViewer.locator(".native-image-surface img").count(), 2);
   assert.deepEqual(await publishedViewer.locator(".native-image-surface img").evaluateAll((images) => images.map((image) => image.style.objectFit)), ["contain", "cover"]);
   assert.equal(activeReleaseId, releaseIds[1]);
