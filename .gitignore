@@ -31,6 +31,9 @@ android-content-packs/ultimate-b2-students-book/teacher-solutions.json
 # Local Netlify folder
 .netlify
 
+# Local Wrangler generated files
+.wrangler/
+
 # Local Codex workspace
 .codex/
 

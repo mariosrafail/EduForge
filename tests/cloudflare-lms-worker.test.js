@@ -90,20 +90,48 @@ test("unknown functions return JSON 404 and static requests remain on the asset 
   assert.equal(new URL(assetRequest.url).pathname, "/assets/app-abc.js");
 });
 
-test("Platform Admin aliases and SPA fallback preserve the Netlify contracts", async () => {
+test("Platform Admin aliases and canonical SPA fallback preserve the Netlify contracts", async () => {
   assert.equal(resolveLmsRoute("/platform-admin/api/auth")?.name, "platform-admin-auth");
   assert.equal(resolveLmsRoute("/platform-admin/api/control")?.name, "platform-admin");
-  let assetPath;
-  const response = await worker.fetch(new Request("https://lms.test/platform-admin/schools/one"), {
-    ASSETS: { fetch(request) { assetPath = new URL(request.url).pathname; return new Response("admin"); } },
-  });
-  assert.equal(await response.text(), "admin");
-  assert.equal(assetPath, "/platform-admin/index.html");
+  const assetPaths = [];
+  const env = { ASSETS: { fetch(request) {
+    const pathname = new URL(request.url).pathname;
+    assetPaths.push(pathname);
+    if (pathname === "/platform-admin") return new Response(null, { status: 307, headers: { Location: "/platform-admin/" } });
+    if (pathname === "/platform-admin/index.html") return new Response(null, { status: 307, headers: { Location: "/platform-admin/" } });
+    if (pathname === "/platform-admin/") return new Response("PLATFORM_ADMIN_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
+    if (pathname === "/platform-admin/app.js") return new Response("PLATFORM_ADMIN_ASSET", { status: 200, headers: { "Content-Type": "text/javascript" } });
+    if (pathname === "/platform-admin/missing.js") return new Response("LMS_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
+    return new Response("LMS_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
+  } } };
+
+  const redirect = await worker.fetch(new Request("https://lms.test/platform-admin"), env);
+  assert.equal(redirect.status, 307);
+  assert.equal(redirect.headers.get("location"), "/platform-admin/");
+  const root = await worker.fetch(new Request("https://lms.test/platform-admin/"), env);
+  assert.equal(root.status, 200);
+  assert.equal(root.headers.get("location"), null);
+  assert.equal(await root.text(), "PLATFORM_ADMIN_APPLICATION");
+  const nested = await worker.fetch(new Request("https://lms.test/platform-admin/schools/one"), env);
+  assert.equal(nested.status, 200);
+  assert.equal(await nested.text(), "PLATFORM_ADMIN_APPLICATION");
+  const asset = await worker.fetch(new Request("https://lms.test/platform-admin/app.js"), env);
+  assert.equal(asset.status, 200);
+  assert.equal(await asset.text(), "PLATFORM_ADMIN_ASSET");
+  const missingAsset = await worker.fetch(new Request("https://lms.test/platform-admin/missing.js"), env);
+  assert.equal(missingAsset.status, 404);
+  assert.equal(assetPaths.includes("/platform-admin/index.html"), false);
+  assert.deepEqual(assetPaths, [
+    "/platform-admin", "/platform-admin/", "/platform-admin/", "/platform-admin/app.js", "/platform-admin/missing.js",
+  ]);
 });
 
 test("Wrangler config is asset-first and contains no tracked runtime secrets", async () => {
   const source = await readFile(new URL("../cloudflare/lms/wrangler.jsonc", import.meta.url), "utf8");
   const config = JSON.parse(source);
+  assert.equal(config.name, "lms");
+  assert.equal(config.workers_dev, true);
+  assert.equal(config.keep_vars, true);
   assert.deepEqual(config.assets.run_worker_first, ["/.netlify/functions/*", "/platform-admin/*"]);
   assert.equal(config.assets.not_found_handling, "single-page-application");
   assert.equal(config.routes, undefined);

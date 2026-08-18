@@ -75,6 +75,20 @@ function notFound() {
   });
 }
 
+function staticNotFound() {
+  return new Response("Static asset not found", {
+    status: 404,
+    headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+  });
+}
+
+async function servePlatformAdminStaticAsset(request, env) {
+  const response = await env.ASSETS.fetch(request);
+  const contentType = response.headers.get("Content-Type") || "";
+  if (response.status === 200 && contentType.toLowerCase().startsWith("text/html")) return staticNotFound();
+  return response;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -85,9 +99,11 @@ export default {
     if (url.pathname.startsWith("/platform-admin/")) {
       const finalSegment = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
       if (!finalSegment.includes(".")) {
-        const adminUrl = new URL("/platform-admin/index.html", url);
+        const adminUrl = new URL(url);
+        adminUrl.pathname = "/platform-admin/";
         return env.ASSETS.fetch(new Request(adminUrl, request));
       }
+      return servePlatformAdminStaticAsset(request, env);
     }
     return env.ASSETS.fetch(request);
   },
