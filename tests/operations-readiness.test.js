@@ -111,6 +111,30 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
   await assert.rejects(checkStagingDeployment({ ...environment, HHPLMS_STAGING_QA_PASSWORD: "not-canonical" }), /canonical password/);
 });
 
+test("staging preflight accepts visible staging hosts and only the exact known Cloudflare LMS origin", async () => {
+  const environment = hostedStagingEnvironment();
+  for (const appPublicUrl of ["https://staging.example.test", "https://lms.hhplms.workers.dev"]) {
+    const result = await checkStagingDeployment({ ...environment, APP_PUBLIC_URL: appPublicUrl });
+    assert.equal(result.app_host, new URL(appPublicUrl).hostname);
+  }
+
+  for (const appPublicUrl of [
+    "https://builder.hhplms.workers.dev",
+    "https://random-worker.example.workers.dev",
+    "https://lms.other-account.workers.dev",
+  ]) {
+    await assert.rejects(
+      checkStagingDeployment({ ...environment, APP_PUBLIC_URL: appPublicUrl }),
+      /must visibly identify staging or match the known hosted staging origin/,
+    );
+  }
+
+  await assert.rejects(
+    checkStagingDeployment({ ...environment, APP_PUBLIC_URL: environment.STAGING_PRODUCTION_APP_URL }),
+    /staging and production application URLs must differ/,
+  );
+});
+
 test("staging preflight rejects collisions in every production fingerprint set position", async () => {
   const environment = hostedStagingEnvironment();
   const stagingFingerprint = fingerprint(environment.STAGING_DATABASE_URL);

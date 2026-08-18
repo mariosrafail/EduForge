@@ -12,6 +12,7 @@ const requiredNames = [
 ];
 const placeholderPattern = /(replace|placeholder|example\.invalid|changeme|change-me|your[_-]|dummy|secret123)/i;
 const commonMailboxDomains = new Set(["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "icloud.com"]);
+const explicitKnownHostedStagingOrigins = new Set(["https://lms.hhplms.workers.dev"]);
 
 function required(environment, names = requiredNames) {
   const missing = names.filter((name) => !String(environment[name] || "").trim());
@@ -75,7 +76,10 @@ export async function checkStagingDeployment(environment = process.env) {
   const app = parsedUrl(environment.APP_PUBLIC_URL, "APP_PUBLIC_URL", ["https:"]);
   const productionApp = parsedUrl(environment.STAGING_PRODUCTION_APP_URL, "STAGING_PRODUCTION_APP_URL", ["https:"]);
   if (app.origin === productionApp.origin) throw new Error("Hosted staging and production application URLs must differ");
-  if (!/(staging|stage|qa|sandbox|preview|test)/i.test(app.hostname)) throw new Error("APP_PUBLIC_URL hostname must visibly identify staging");
+  const isVisiblyStagingHostname = /(staging|stage|qa|sandbox|preview|test)/i.test(app.hostname);
+  if (!isVisiblyStagingHostname && !explicitKnownHostedStagingOrigins.has(app.origin)) {
+    throw new Error("APP_PUBLIC_URL hostname must visibly identify staging or match the known hosted staging origin");
+  }
   for (const name of ["AUTH_RATE_LIMIT_SALT", "PLATFORM_ADMIN_RATE_LIMIT_SALT", "ACCOUNT_RATE_LIMIT_SALT", "INVITE_RATE_LIMIT_SALT", "ACCOUNT_EMAIL_DISPATCH_SECRET", "OPERATIONAL_MONITORING_SECRET"]) {
     const value = String(environment[name]);
     if (value.length < 32 || placeholderPattern.test(value)) throw new Error(`${name} must be a non-placeholder secret of at least 32 characters`);
