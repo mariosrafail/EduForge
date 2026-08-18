@@ -150,16 +150,27 @@ test("static composition keeps Builder and Player fallbacks isolated", async () 
     const pathname = new URL(assetRequest.url).pathname;
     calls.push(pathname);
     if (pathname === "/" || pathname === "/index.html") return new Response("BUILDER_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
-    if (pathname === "/player/index.html") return new Response("PLAYER_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
+    if (pathname === "/player/index.html") return new Response(null, { status: 307, headers: { Location: "/player/" } });
+    if (pathname === "/player/") return new Response("PLAYER_APPLICATION", { status: 200, headers: { "Content-Type": "text/html" } });
     return new Response("missing", { status: 404 });
   } } };
   const worker = createBuilderWorker();
   assert.equal(await (await worker.fetch(request("/", { cookie: null }), env)).text(), "BUILDER_APPLICATION");
-  assert.equal(await (await worker.fetch(request("/player/", { cookie: null }), env)).text(), "PLAYER_APPLICATION");
-  assert.equal(await (await worker.fetch(request("/player/library", { cookie: null }), env)).text(), "PLAYER_APPLICATION");
+  const playerRedirect = await worker.fetch(request("/player?view=library", { cookie: null }), env);
+  assert.equal(playerRedirect.status, 307);
+  assert.equal(playerRedirect.headers.get("location"), "https://builder.hhplms.workers.dev/player/?view=library");
+  const playerRoot = await worker.fetch(request("/player/", { cookie: null }), env);
+  assert.equal(playerRoot.status, 200);
+  assert.equal(playerRoot.headers.get("location"), null);
+  assert.equal(await playerRoot.text(), "PLAYER_APPLICATION");
+  const playerRoute = await worker.fetch(request("/player/library", { cookie: null }), env);
+  assert.equal(playerRoute.status, 200);
+  assert.equal(playerRoute.headers.get("location"), null);
+  assert.equal(await playerRoute.text(), "PLAYER_APPLICATION");
   const missingPlayerAsset = await worker.fetch(request("/player/assets/missing.js", { cookie: null }), env);
   assert.equal(missingPlayerAsset.status, 404);
-  assert.deepEqual(calls, ["/", "/player/index.html", "/player/index.html", "/player/assets/missing.js"]);
+  assert.deepEqual(calls, ["/", "/player/", "/player/", "/player/assets/missing.js"]);
+  assert.equal(calls.includes("/player/index.html"), false);
 });
 
 test("Player media streams an allowlisted full GET and returns metadata-only HEAD", async () => {

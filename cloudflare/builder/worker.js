@@ -90,17 +90,22 @@ function isPlayerMediaNamespace(pathname) {
 }
 
 function shouldUsePlayerFallback(pathname) {
-  if (pathname === "/player" || pathname === "/player/") return true;
+  if (pathname === "/player/") return true;
   if (!pathname.startsWith("/player/") || pathname.startsWith("/player/assets/")) return false;
   const finalSegment = pathname.slice(pathname.lastIndexOf("/") + 1);
   return !finalSegment.includes(".");
 }
 
 async function serveStaticAsset(request, env) {
-  const pathname = new URL(request.url).pathname;
+  const requestUrl = new URL(request.url);
+  const { pathname } = requestUrl;
+  if (pathname === "/player") {
+    requestUrl.pathname = "/player/";
+    return Response.redirect(requestUrl.toString(), 307);
+  }
   if (shouldUsePlayerFallback(pathname)) {
-    const playerUrl = new URL("/player/index.html", request.url);
-    return env.ASSETS.fetch(new Request(playerUrl, request));
+    requestUrl.pathname = "/player/";
+    return env.ASSETS.fetch(new Request(requestUrl, request));
   }
   return env.ASSETS.fetch(request);
 }
