@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import sharp from "sharp";
 
+import { inspectRasterBytes } from "../../lib/book-assets/raster-inspection.js";
 import { OPEN_RESPONSE_IMPORT_LIMITS } from "./open-response-import-limits.js";
 
 import {
@@ -14,7 +14,7 @@ import {
 export const OPEN_RESPONSE_PARAMETER_BASENAMES = Object.freeze(["obj_params", "ebook_obj_params"]);
 export { OPEN_RESPONSE_IMPORT_LIMITS } from "./open-response-import-limits.js";
 
-const rasterExtensions = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const rasterExtensions = new Set([".png", ".jpg", ".jpeg"]);
 const parser = new XMLParser({
   allowBooleanAttributes: false,
   ignoreAttributes: false,
@@ -151,14 +151,24 @@ function linesForArea(lines, responseArea) {
   return lines.filter((line) => line.y >= responseArea.y && line.y < responseArea.y + responseArea.height && line.x < responseArea.x + responseArea.width && line.x + line.width > responseArea.x);
 }
 
-async function validateRaster(file) {
+export async function inspectOpenResponseRaster(file) {
   if (file.bytes.length > OPEN_RESPONSE_IMPORT_LIMITS.rasterBytes) throw new Error(`${file.name} exceeds the raster size limit.`);
-  const metadata = await sharp(file.bytes, { failOn: "warning", limitInputPixels: OPEN_RESPONSE_IMPORT_LIMITS.pixels }).metadata();
-  const expectedFormat = { ".png": "png", ".jpg": "jpeg", ".jpeg": "jpeg", ".webp": "webp" }[path.extname(file.name).toLowerCase()];
-  if (metadata.format !== expectedFormat || !metadata.width || !metadata.height) throw new Error(`${file.name} bytes do not match its supported raster extension.`);
-  if ((metadata.pages || 1) !== 1) throw new Error(`${file.name} must be a single-frame raster.`);
-  if (metadata.width > OPEN_RESPONSE_IMPORT_LIMITS.width || metadata.height > OPEN_RESPONSE_IMPORT_LIMITS.height) throw new Error(`${file.name} exceeds the raster dimension limit.`);
-  return { ...file, sha256: sha256(file.bytes), width: metadata.width, height: metadata.height };
+  let inspected;
+  try {
+    inspected = await inspectRasterBytes(file.bytes, {
+      allowedFormats: ["png", "jpeg"],
+      maximumBytes: OPEN_RESPONSE_IMPORT_LIMITS.rasterBytes,
+      maximumDimension: Math.max(OPEN_RESPONSE_IMPORT_LIMITS.width, OPEN_RESPONSE_IMPORT_LIMITS.height),
+      maximumPixels: OPEN_RESPONSE_IMPORT_LIMITS.pixels,
+    });
+  } catch (error) {
+    if (error?.code === "raster_dimension_limit") throw new Error(`${file.name} exceeds the raster dimension limit.`);
+    if (error?.code === "raster_pixel_limit") throw new Error(`${file.name} exceeds the raster pixel limit.`);
+    throw new Error(`${file.name} bytes do not match its supported raster extension.`);
+  }
+  const expectedFormat = { ".png": "png", ".jpg": "jpeg", ".jpeg": "jpeg" }[path.extname(file.name).toLowerCase()];
+  if (inspected.format !== expectedFormat) throw new Error(`${file.name} bytes do not match its supported raster extension.`);
+  return { ...file, sha256: inspected.checksumSha256, width: inspected.width, height: inspected.height };
 }
 
 function normalizeFiles(files) {
@@ -188,7 +198,7 @@ export async function importUltimateB2OpenResponsePublisherBundle({ activityId, 
   const primary = parseUltimateB2OpenResponsePublisherXml(byLogicalParameterName.obj_params.bytes.toString("utf8"), byLogicalParameterName.obj_params.name);
   const ebook = parseUltimateB2OpenResponsePublisherXml(byLogicalParameterName.ebook_obj_params.bytes.toString("utf8"), byLogicalParameterName.ebook_obj_params.name);
   assertEquivalent(primary, ebook);
-  const suppliedRasters = await Promise.all(supplied.filter((file) => rasterExtensions.has(path.extname(file.name).toLowerCase())).map(validateRaster));
+  const suppliedRasters = await Promise.all(supplied.filter((file) => rasterExtensions.has(path.extname(file.name).toLowerCase())).map(inspectOpenResponseRaster));
   const rasterLogicalNames = new Map();
   for (const raster of suppliedRasters) {
     const logicalName = path.parse(raster.name).name.toLowerCase();

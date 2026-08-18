@@ -24,7 +24,7 @@ export const openResponseImportSessionTtlSeconds = 15 * 60;
 const maximumRequestBytes = 128 * 1024;
 const safeBasenamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/;
 const uuidV4Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const rasterExtensions = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const rasterExtensions = new Set([".png", ".jpg", ".jpeg"]);
 const mimeByExtension = Object.freeze({ ".xml": "application/xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" });
 const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "open-response" });
 
