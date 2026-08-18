@@ -11,7 +11,7 @@ import {
 } from "../../data/ultimate-b2/openResponseAuthoringData.js";
 import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherAppAuthoring.js";
 import { resolveUltimateB2AuthoredAssetUrl } from "../../data/ultimate-b2/ultimateB2AuthoredAssetUrls.js";
-import { ultimateB2StudentsBookMedia } from "../../data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js";
+import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
 import { ultimateB2Unit1Part2LegacyImages } from "../../data/ultimate-b2/unit1Part2LegacyPilotAssets.js";
 import { createUltimateB2TeacherRuntimeUiAssets } from "./legacyClassroomAssets.js";
 import {

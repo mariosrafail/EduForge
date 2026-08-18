@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "bucketName": "hhplms-book-public-dev",
+  "binding": "PLAYER_MEDIA",
+  "objectPrefix": "cloudflare-player-media/ultimate-b2/",
+  "markerObjectKey": "cloudflare-player-media/ultimate-b2/manifest-v1.json",
+  "objects": [
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.video-intro",
+      "sourcePath": "src/assets/books/ultimate-b2/legacy-pilot/unit-1/part-2/obj1/video/obj1.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-1-reading-video-intro.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-1-reading-video-intro.mp4",
+      "byteSize": 61715797,
+      "sha256": "7817dc0361571c6c5e6f3837b9368835ea7de3fe7df24f4e0d58fd3d37932574"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-1",
+      "sourcePath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-1.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-1-reading-extra-video-1.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-1-reading-extra-video-1.mp4",
+      "byteSize": 45447124,
+      "sha256": "3dfe38f55c7f4ce9fba3833834ade01d45ba71ad48b6039ae2785184988ee761"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-2",
+      "sourcePath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-2.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-1-reading-extra-video-2.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-1-reading-extra-video-2.mp4",
+      "byteSize": 50048310,
+      "sha256": "7cf9c8975618d96fd60a8e0455f0ac41917bb32a476666932e4dfb1ca08902d6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.reading.extra-video-3",
+      "sourcePath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-extra-3.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-1-reading-extra-video-3.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-1-reading-extra-video-3.mp4",
+      "byteSize": 34363236,
+      "sha256": "e00cbeda15123321b466c76da1409fa946d0493eb5b3dcee1994463d5ca31e15"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-1.grammar.video-intro",
+      "sourcePath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-1-grammar-intro.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-1-grammar-video-intro.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-1-grammar-video-intro.mp4",
+      "byteSize": 56277150,
+      "sha256": "8825ffce6010afd7ccb498df8c494aa19c19a2ffcbbb04d8aa0ac8af72a0b1cd"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.reading.video-intro",
+      "sourcePath": "src/assets/books/ultimate-b2/media/unit_2_reading_video.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-2-reading-video-intro.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-2-reading-video-intro.mp4",
+      "byteSize": 57490529,
+      "sha256": "7841d5fa890083a06e75220357426948c60f5a8dc1044fb9d4e373daa7f172a6"
+    },
+    {
+      "logicalKey": "ultimate-b2.students-book.unit-2.grammar.video-intro",
+      "sourcePath": "src/assets/books/ultimate-b2/teacher-offline-media/unit-2-grammar-intro.mp4",
+      "publicPath": "/player-media/ultimate-b2/unit-2-grammar-video-intro.mp4",
+      "objectKey": "cloudflare-player-media/ultimate-b2/unit-2-grammar-video-intro.mp4",
+      "byteSize": 72648243,
+      "sha256": "6133b9407aa34bf0b6fa7febda3bf267f5139ed8708a428b3041ed5c000915cf"
+    }
+  ]
+}

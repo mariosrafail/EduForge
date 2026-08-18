@@ -59,10 +59,11 @@ export function StudentsBookMediaPlayer({
   const announcePlayback = useExclusiveMediaPlayback(mediaRef);
   const [mediaError, setMediaError] = useState("");
   const offlineAsset = ultimateB2StudentsBookMedia[logicalKey] || null;
-  const isOfflineApp = ["android-offline", "android-teacher-offline"].includes(import.meta.env.VITE_APP_MODE);
-  const androidLocalUrl = isOfflineApp ? offlineAsset?.localUrl : null;
-  const asset = useBookAsset(androidLocalUrl ? null : logicalKey, {
-    devFallbackUrl: androidLocalUrl || (import.meta.env.DEV ? offlineAsset?.devFallbackUrl : null),
+  const usesPackagedMedia = ["android-offline", "android-teacher-offline"].includes(import.meta.env.VITE_APP_MODE)
+    || import.meta.env.VITE_CLOUDFLARE_PLAYER_MEDIA === "true";
+  const packagedMediaUrl = usesPackagedMedia ? offlineAsset?.localUrl : null;
+  const asset = useBookAsset(packagedMediaUrl ? null : logicalKey, {
+    devFallbackUrl: packagedMediaUrl || (import.meta.env.DEV ? offlineAsset?.devFallbackUrl : null),
   });
   useEffect(() => {
     setMediaError("");

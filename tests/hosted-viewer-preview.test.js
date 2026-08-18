@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { HOSTED_VIEWER_ORIGIN, createHostedViewerPreviewUrl } from "../src/apps/book-builder/hosted/hostedViewerPreviewUrl.js";
+import {
+  DEFAULT_HOSTED_VIEWER_BASE_URL,
+  HOSTED_VIEWER_BASE_URL,
+  HOSTED_VIEWER_ORIGIN,
+  createHostedViewerPreviewUrl,
+  normalizeHostedViewerBaseUrl,
+} from "../src/apps/book-builder/hosted/hostedViewerPreviewUrl.js";
 import { isHostedViewerPreviewRequest, resolveHostedViewerPreviewIntent } from "../src/apps/android-teacher-offline/hostedViewerPreviewIntent.js";
 import { HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "../src/apps/android-teacher-offline/hostedReleasePreview.js";
 import { getOfflineTeacherSolution } from "../src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js";
@@ -21,6 +27,8 @@ const previewAuthorization = `v1.${Buffer.from("scope").toString("base64url")}.$
 const identity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${previewAuthorization}`;
 
 test("Builder creates deterministic canonical Viewer URLs from a fixed trusted origin", () => {
+  assert.equal(DEFAULT_HOSTED_VIEWER_BASE_URL, "https://hhplms-viewer.netlify.app/");
+  assert.equal(HOSTED_VIEWER_BASE_URL, "https://hhplms-viewer.netlify.app/");
   assert.equal(HOSTED_VIEWER_ORIGIN, "https://hhplms-viewer.netlify.app");
   const library = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "library", previewAuthorization }));
   const page = new URL(createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", previewAuthorization }));
@@ -34,6 +42,16 @@ test("Builder creates deterministic canonical Viewer URLs from a fixed trusted o
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "activity", activityId: "javascript:alert(1)", previewAuthorization }), /invalid/);
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "page", unitNumber: 1, pageId: "x&token=secret", previewAuthorization }), /invalid/);
   assert.throws(() => createHostedViewerPreviewUrl({ ...runtime, view: "https://attacker.example", previewAuthorization }), /unsupported/);
+  const cloudflare = new URL(createHostedViewerPreviewUrl(
+    { ...runtime, view: "library", previewAuthorization },
+    { baseUrl: "https://builder.hhplms.workers.dev/player/" },
+  ));
+  assert.equal(cloudflare.origin, "https://builder.hhplms.workers.dev");
+  assert.equal(cloudflare.pathname, "/player/");
+  assert.equal(normalizeHostedViewerBaseUrl("https://builder.hhplms.workers.dev/player"), "https://builder.hhplms.workers.dev/player/");
+  for (const unsafe of ["http://builder.hhplms.workers.dev/player/", "https://user@example.com/player/", "https://example.com/player/?secret=x", "javascript:alert(1)"]) {
+    assert.throws(() => normalizeHostedViewerBaseUrl(unsafe), /invalid/);
+  }
 });
 
 test("hosted Viewer resolves strict library, page, and canonical activity intents", () => {

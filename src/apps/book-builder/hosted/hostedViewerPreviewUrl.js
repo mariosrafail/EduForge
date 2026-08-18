@@ -1,4 +1,15 @@
-export const HOSTED_VIEWER_ORIGIN = "https://hhplms-viewer.netlify.app";
+export const DEFAULT_HOSTED_VIEWER_BASE_URL = "https://hhplms-viewer.netlify.app/";
+
+export function normalizeHostedViewerBaseUrl(value = DEFAULT_HOSTED_VIEWER_BASE_URL) {
+  const url = new URL(String(value || ""));
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) throw new TypeError("Hosted Viewer base URL is invalid.");
+  if (!url.pathname.endsWith("/")) url.pathname += "/";
+  return url.toString();
+}
+
+const configuredHostedViewerBaseUrl = import.meta.env && import.meta.env.VITE_HOSTED_VIEWER_BASE_URL;
+export const HOSTED_VIEWER_BASE_URL = normalizeHostedViewerBaseUrl(configuredHostedViewerBaseUrl || DEFAULT_HOSTED_VIEWER_BASE_URL);
+export const HOSTED_VIEWER_ORIGIN = new URL(HOSTED_VIEWER_BASE_URL).origin;
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -47,8 +58,8 @@ export function normalizeHostedViewerIntent(intent) {
   return normalized;
 }
 
-export function createHostedViewerPreviewUrl(intent) {
-  const url = new URL(HOSTED_VIEWER_ORIGIN);
+export function createHostedViewerPreviewUrl(intent, { baseUrl = HOSTED_VIEWER_BASE_URL } = {}) {
+  const url = new URL(normalizeHostedViewerBaseUrl(baseUrl));
   if (!/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(String(intent?.previewAuthorization || ""))) throw new TypeError("Viewer preview authorization is required.");
   const normalized = normalizeHostedViewerIntent(intent);
   url.searchParams.set("builderPreview", "1");

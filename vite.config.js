@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
   const appMode = env.VITE_APP_MODE || process.env.VITE_APP_MODE || "web";
   const isHostedBuilderReview = appMode === "netlify-book-builder-review";
   const isHostedInteractiveReview = appMode === "netlify-ultimate-b2-interactive-review";
+  const isCloudflarePlayer = isHostedInteractiveReview
+    && (env.VITE_CLOUDFLARE_PLAYER_MEDIA === "true" || process.env.VITE_CLOUDFLARE_PLAYER_MEDIA === "true");
   const isHostedReview = isHostedBuilderReview || isHostedInteractiveReview;
   const isAndroidTeacherProject = appMode === "android-teacher-project";
   const isAndroidTeacherOffline = appMode === "android-teacher-offline";
@@ -108,7 +110,9 @@ export default defineConfig(({ mode }) => {
       : "src/data/ultimate-b2/ultimateB2PageAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2PageAssets.web.js");
   const ultimateB2MediaAssets = path.resolve(process.cwd(), isStaticBookRuntime
-      ? isTeacherVisualRuntime
+      ? isCloudflarePlayer
+      ? "src/data/ultimate-b2/ultimateB2MediaAssets.cloudflare-player.js"
+      : isTeacherVisualRuntime
       ? "src/data/ultimate-b2/ultimateB2MediaAssets.teacher-offline.js"
       : "src/data/ultimate-b2/ultimateB2MediaAssets.offline.js"
     : "src/data/ultimate-b2/ultimateB2MediaAssets.web.js");

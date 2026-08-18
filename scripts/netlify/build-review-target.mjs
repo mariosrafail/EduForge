@@ -50,6 +50,7 @@ export async function buildReviewTarget(targetName, environment = process.env, o
   delete process.env.ULTIMATE_B2_CONTENT_ROOT;
   await build({
     configFile: path.resolve("vite.config.js"),
+    ...(options.base ? { base: options.base } : {}),
     build: { outDir: path.resolve(outDir), emptyOutDir: true },
   });
   if (targetName === "ultimate-b2-builder") {
