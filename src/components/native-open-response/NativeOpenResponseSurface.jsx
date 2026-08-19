@@ -21,7 +21,7 @@ export function NativeOpenResponseSurface({ document, assetUrl = () => "", onSel
   const interaction = document.parts[0].interaction;
   const { surface } = interaction;
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
-  return <div className={`native-or-surface ${className}`.trim()} style={{ aspectRatio: `${surface.width} / ${surface.height}` }} data-surface-width={surface.width} data-surface-height={surface.height}>
+  return <div className={`native-or-surface ${className}`.trim()} style={{ aspectRatio: `${surface.width} / ${surface.height}` }} data-studio-stage data-surface-width={surface.width} data-surface-height={surface.height}>
     {interaction.artwork.map((item) => {
       const reference = assets.get(item.assetSlot);
       const authoringLocked = Boolean(onSelect && item.locked);

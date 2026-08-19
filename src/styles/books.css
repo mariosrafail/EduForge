@@ -1821,16 +1821,18 @@
 
 .editable-hotspot-resize-handle {
   position: absolute;
-  right: -7px;
-  bottom: -7px;
   width: 16px;
   height: 16px;
   background: #fff;
   border: 2px solid #0b4ea2;
   border-radius: 50%;
   box-shadow: 0 8px 18px rgba(16, 24, 40, 0.18);
-  cursor: nwse-resize;
 }
+.editable-hotspot-resize-handle::before { content: ""; position: absolute; inset: -5px; }
+.editable-hotspot-resize-handle[data-handle="nw"] { top: -7px; left: -7px; cursor: nwse-resize; }
+.editable-hotspot-resize-handle[data-handle="ne"] { top: -7px; right: -7px; cursor: nesw-resize; }
+.editable-hotspot-resize-handle[data-handle="sw"] { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.editable-hotspot-resize-handle[data-handle="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
 
 .book-page-viewer-shell.with-hotspot-settings {
   grid-template-columns: auto minmax(0, 1fr) minmax(260px, 320px) auto;

@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+
+test("the shared selection frame exposes four corners, pointer cancellation, locks, and keyboard movement", async () => {
+  const [frame, geometry] = await Promise.all([
+    read("src/components/builder-studio/StageSelectionFrame.jsx"),
+    read("src/components/builder-studio/stageGeometry.js"),
+  ]);
+  assert.match(geometry, /\["nw", "ne", "sw", "se"\]/);
+  assert.match(frame, /STAGE_RESIZE_HANDLES\.map/);
+  assert.match(frame, /onPointerCancel=\{\(event\) => finish\(event, true\)\}/);
+  assert.match(frame, /locked \? <LockKeyhole/);
+  assert.match(frame, /ArrowLeft/);
+  assert.match(frame, /event\.shiftKey \? 10 : 1/);
+  assert.match(frame, /\["Delete", "Backspace"\]/);
+  assert.match(frame, /event\.key === "Escape"/);
+});
+
+test("Image and Open Response use the same scaled transform frame", async () => {
+  const [imageEditor, openResponseEditor] = await Promise.all([
+    read("src/apps/book-builder/hosted/NativeImageEditor.jsx"),
+    read("src/apps/book-builder/hosted/NativeOpenResponseEditor.jsx"),
+  ]);
+  assert.match(imageEditor, /<StageSelectionFrame/);
+  assert.match(imageEditor, /preserveAspectRatio/);
+  assert.match(imageEditor, /locked=\{selectedImage\.locked\}/);
+  assert.match(openResponseEditor, /<StageSelectionFrame/);
+  assert.match(openResponseEditor, /selection\.type === "artwork"/);
+  assert.match(openResponseEditor, /moveFromGrip=\{selection\.type !== "artwork"\}/);
+  assert.doesNotMatch(`${imageEditor}\n${openResponseEditor}`, /native-or-resize/);
+});
+
+test("hotspots share geometry utilities and expose selected-only four-corner handles", async () => {
+  const layer = await read("src/components/lms/books/BookPageImagePanel.jsx");
+  assert.match(layer, /transformStageGeometry/);
+  assert.match(layer, /stageGeometryToPercent/);
+  assert.match(layer, /editing && selected && STAGE_RESIZE_HANDLES\.map/);
+  assert.match(layer, /startResize\(event, area, handle\)/);
+  assert.match(layer, /onPointerCancel=\{\(event\) => finishDrag\(event, true\)\}/);
+});
+
+test("studio controls are scoped, semantic, responsive, and authored regions disable native resizing", async () => {
+  const [controls, studioCss, surfaceCss] = await Promise.all([
+    read("src/components/builder-studio/StudioControls.jsx"),
+    read("src/apps/ultimate-b2-builder/studioAuthoring.css"),
+    read("src/components/native-open-response/nativeOpenResponseSurface.css"),
+  ]);
+  assert.match(controls, /role="tablist"/);
+  assert.match(controls, /role="tab"/);
+  assert.match(controls, /ArrowRight/);
+  assert.match(studioCss, /\.studio-editor/);
+  assert.match(studioCss, /@media \(max-width: 1180px\)/);
+  assert.match(studioCss, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(surfaceCss, /resize:none/);
+});

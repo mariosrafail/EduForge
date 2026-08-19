@@ -2,6 +2,13 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { publishedHotspotActions, usePublishedComponentRelease } from "virtual:component-publication";
 
+import {
+  percentGeometryToStage,
+  STAGE_RESIZE_HANDLES,
+  stageGeometryToPercent,
+  transformStageGeometry,
+} from "../../builder-studio/stageGeometry.js";
+
 export function BookPageHotspots({ actions = [], onAction, className = "", highlightedActivityKey = null }) {
   if (!actions.length) return null;
   return (
@@ -122,6 +129,7 @@ export function EditableHotspotLayer({
   pageId = "",
   areas = [],
   editing = false,
+  creating = editing,
   selectedAreaId = null,
   onSelectArea,
   onChangeAreas,
@@ -136,7 +144,7 @@ export function EditableHotspotLayer({
   };
 
   const startDrawing = (event) => {
-    if (!editing || event.target !== event.currentTarget) return;
+    if (!editing || !creating || event.target !== event.currentTarget) return;
     event.preventDefault();
     event.stopPropagation();
     const point = getPointerPercent(event, event.currentTarget);
@@ -157,14 +165,14 @@ export function EditableHotspotLayer({
     onSelectArea?.(area.id);
   };
 
-  const startResize = (event, area) => {
+  const startResize = (event, area, handle) => {
     if (!editing) return;
     event.preventDefault();
     event.stopPropagation();
     const layer = event.currentTarget.closest(".editable-hotspot-layer");
     const point = getPointerPercent(event, layer);
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setDragState({ type: "resize", pointerId: event.pointerId, areaId: area.id, startX: point.x, startY: point.y, area });
+    setDragState({ type: "resize", handle, pointerId: event.pointerId, areaId: area.id, startX: point.x, startY: point.y, area });
     onSelectArea?.(area.id);
   };
 
@@ -198,22 +206,29 @@ export function EditableHotspotLayer({
     }
 
     if (dragState.type === "resize") {
-      const dx = point.x - dragState.startX;
-      const dy = point.y - dragState.startY;
+      const nextGeometry = transformStageGeometry({
+        geometry: percentGeometryToStage(dragState.area),
+        operation: "resize",
+        handle: dragState.handle,
+        startPoint: { x: dragState.startX, y: dragState.startY },
+        currentPoint: point,
+        stage: { width: 100, height: 100 },
+        minWidth: 3,
+        minHeight: 3,
+      });
       updateArea(dragState.areaId, (area) => ({
         ...area,
-        width: clamp(dragState.area.width + dx, 3, 100 - area.left),
-        height: clamp(dragState.area.height + dy, 3, 100 - area.top),
+        ...stageGeometryToPercent(nextGeometry),
       }));
     }
   };
 
-  const finishDrag = (event) => {
+  const finishDrag = (event, cancelled = false) => {
     if (!editing || !dragState) return;
     event.preventDefault();
     event.stopPropagation();
 
-    if (dragState.type === "draw" && draftArea) {
+    if (!cancelled && dragState.type === "draw" && draftArea) {
       const minWidth = (20 / Math.max(dragState.rect.width, 1)) * 100;
       const minHeight = (20 / Math.max(dragState.rect.height, 1)) * 100;
       if (draftArea.width >= minWidth && draftArea.height >= minHeight) {
@@ -237,6 +252,9 @@ export function EditableHotspotLayer({
       }
     }
 
+    if (cancelled && ["move", "resize"].includes(dragState.type)) {
+      updateArea(dragState.areaId, (area) => ({ ...area, ...dragState.area }));
+    }
     setDraftArea(null);
     setDragState(null);
   };
@@ -249,7 +267,7 @@ export function EditableHotspotLayer({
       onPointerDown={startDrawing}
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
-      onPointerCancel={finishDrag}
+      onPointerCancel={(event) => finishDrag(event, true)}
       aria-label="Editable clickable areas"
     >
       {areas.map((area, index) => {
@@ -279,15 +297,29 @@ export function EditableHotspotLayer({
               onActivateArea?.(area);
             }}
             data-sound-click={editing ? "tab" : "submit"}
+            onKeyDown={(event) => {
+              if (!editing || !selected) return;
+              const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+              const direction = directions[event.key];
+              if (!direction) return;
+              event.preventDefault();
+              const step = event.shiftKey ? 1 : .1;
+              updateArea(area.id, (current) => ({
+                ...current,
+                left: clamp(current.left + direction[0] * step, 0, 100 - current.width),
+                top: clamp(current.top + direction[1] * step, 0, 100 - current.height),
+              }));
+            }}
           >
             <span>{area.label || `Area ${index + 1}`}</span>
-            {editing && (
-              <span
-                className="editable-hotspot-resize-handle"
-                role="presentation"
-                onPointerDown={(event) => startResize(event, area)}
-              />
-            )}
+            {editing && selected && STAGE_RESIZE_HANDLES.map((handle) => <span
+              key={handle}
+              className="editable-hotspot-resize-handle"
+              data-handle={handle}
+              role="presentation"
+              aria-hidden="true"
+              onPointerDown={(event) => startResize(event, area, handle)}
+            />)}
           </button>
         );
       })}
