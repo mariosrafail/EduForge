@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, Save, Scan, Trash2, ZoomIn, ZoomOut } from "lucide-react";
+import { Crosshair, Layers3, RefreshCw, Save, Scan, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 
 import catalog from "../../../android-content-packs/ultimate-b2-students-book/catalog.json";
 import { EditableHotspotLayer } from "../../components/lms/books/BookPageImagePanel.jsx";
@@ -57,6 +57,7 @@ export function HostedUltimateB2HotspotBuilder() {
   const unitPages = useMemo(() => pageRows.filter((page) => page.unitNumber === unitNumber), [unitNumber]);
   const [pageId, setPageId] = useState(pageRows[0]?.id || "");
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
+  const [creatingHotspot, setCreatingHotspot] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState("Loading");
   const [error, setError] = useState("");
@@ -141,6 +142,9 @@ export function HostedUltimateB2HotspotBuilder() {
 
   useEffect(() => {
     const deleteWithKeyboard = (event) => {
+      if (event.key === "Escape" && !isTextEditingTarget(event.target)) {
+        setCreatingHotspot(false); setSelectedHotspotId(null); return;
+      }
       if (!selectedHotspotId || isTextEditingTarget(event.target)) return;
       if (!["Delete", "Backspace"].includes(event.key)) return;
       event.preventDefault();
@@ -172,6 +176,18 @@ export function HostedUltimateB2HotspotBuilder() {
 
   function updateSelectedHotspot(patch) {
     updatePageHotspots(hotspots.map((hotspot) => hotspot.id === selectedHotspotId ? { ...hotspot, ...patch } : hotspot));
+  }
+
+  function updateSelectedGeometry(key, rawValue) {
+    if (!selectedHotspot) return;
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) return;
+    const next = { ...selectedHotspot };
+    next[key] = key === "left" ? Math.min(Math.max(value, 0), 100 - next.width)
+      : key === "top" ? Math.min(Math.max(value, 0), 100 - next.height)
+        : key === "width" ? Math.min(Math.max(value, 3), 100 - next.left)
+          : Math.min(Math.max(value, 3), 100 - next.top);
+    updateSelectedHotspot({ [key]: Math.round(next[key] * 1000) / 1000 });
   }
 
   function deleteSelectedHotspot() {
@@ -254,19 +270,26 @@ export function HostedUltimateB2HotspotBuilder() {
       </div>
     </section>
 
-    <section className="builder-workspace">
+    <section className="builder-workspace studio-hotspot-workspace">
+      <aside className="builder-object-navigator" aria-label="Hotspots on this page">
+        <header><div><Layers3 aria-hidden="true" /><div><h2>Hotspots</h2><p>{hotspots.length} on this page</p></div></div></header>
+        <button className="builder-add-hotspot" type="button" aria-pressed={creatingHotspot} onClick={() => { setCreatingHotspot(true); setSelectedHotspotId(null); }}><Crosshair aria-hidden="true" />Add hotspot</button>
+        <div className="builder-hotspot-list">{hotspots.map((hotspot, index) => <button type="button" key={hotspot.id} aria-current={selectedHotspotId === hotspot.id ? "true" : undefined} onClick={() => { setCreatingHotspot(false); setSelectedHotspotId(hotspot.id); }}><span>{index + 1}</span><span><strong>{hotspot.label || `Hotspot ${index + 1}`}</strong><small>{hotspot.activityKey ? "Activity assigned" : "Needs an action"}</small></span></button>)}</div>
+        {!hotspots.length ? <div className="builder-hotspot-empty"><Crosshair aria-hidden="true" /><strong>No hotspots yet</strong><p>Add a hotspot, then drag its rectangle on the page.</p></div> : null}
+        <p className="builder-keyboard-help">Arrow keys nudge · Shift moves farther · Delete removes · Escape clears</p>
+      </aside>
       <div className="builder-canvas-scroll"><div className={`builder-page-surface ${fitToScreen ? "fit" : "zoomed"}`} style={{ width: naturalSize.width ? `${naturalSize.width * (fitToScreen ? 1 : zoom)}px` : "100%", maxWidth: fitToScreen ? "100%" : "none" }}>
         <img src={page.images[0]} alt={`${pageLabel(page)} Students Book page`} draggable="false" onLoad={(event) => setNaturalSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
-        <EditableHotspotLayer pageId={page.id} areas={hotspots} editing selectedAreaId={selectedHotspotId} onSelectArea={setSelectedHotspotId} onChangeAreas={updatePageHotspots} createArea={(geometry) => ({ id: newHotspotId(), unitNumber: page.unitNumber, pageId: page.id, pageNumber: page.pageNumber, ...geometry, label: "Clickable area", actionType: "normalized_activity", activityKey: "" })} />
+        <EditableHotspotLayer pageId={page.id} areas={hotspots} editing creating={creatingHotspot} selectedAreaId={selectedHotspotId} onSelectArea={(id) => { setSelectedHotspotId(id); if (id) setCreatingHotspot(false); }} onChangeAreas={updatePageHotspots} createArea={(geometry) => ({ id: newHotspotId(), unitNumber: page.unitNumber, pageId: page.id, pageNumber: page.pageNumber, ...geometry, label: "Clickable area", actionType: "normalized_activity", activityKey: "" })} />
       </div></div>
       <aside className="builder-properties">
         <h2>Hotspot properties</h2>
-        {!selectedHotspot ? <p>Drag on the page to create a hotspot, or select an existing rectangle.</p> : <>
+        {!selectedHotspot ? <div className="builder-inspector-empty"><Crosshair aria-hidden="true" /><strong>{creatingHotspot ? "Draw on the page" : "Select a hotspot"}</strong><p>{creatingHotspot ? "Drag on the page to create a hotspot. Escape cancels create mode." : "Choose a hotspot in the navigator or on the page to edit its action and geometry."}</p></div> : <>
           <label>Activity<select value={selectedHotspot.activityKey || ""} onChange={(event) => selectActivity(event.target.value)}><option value="">Choose an implemented activity…</option>{currentPageActivities.length ? <optgroup label={`Current ${pageLabel(page)}`}>{currentPageActivities.map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup> : null}{[1, 2].map((unit) => <optgroup key={unit} label={`Unit ${unit}`}>{otherActivities.filter((activity) => activity.unitNumber === unit).map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.pageLabel} — {activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup>)}</select></label>
           <label>Label<input maxLength="200" value={selectedHotspot.label || ""} onChange={(event) => { setCustomLabels((current) => new Set(current).add(selectedHotspot.id)); updateSelectedHotspot({ label: event.target.value }); }} /></label>
           <div className="builder-stable-id"><span>Stable normalized activity id</span><code>{selectedHotspot.activityKey || "Not assigned"}</code></div>
           {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey)?.native ? <p role="status">Native {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).kind} · {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).ready ? "Ready to publish" : "Incomplete draft — Prepare Preview will explain what is missing"}</p> : null}
-          <dl><div><dt>Left</dt><dd>{selectedHotspot.left.toFixed(2)}%</dd></div><div><dt>Top</dt><dd>{selectedHotspot.top.toFixed(2)}%</dd></div><div><dt>Width</dt><dd>{selectedHotspot.width.toFixed(2)}%</dd></div><div><dt>Height</dt><dd>{selectedHotspot.height.toFixed(2)}%</dd></div></dl>
+          <section className="builder-transform-fields"><h3>Transform</h3><div>{["left", "top", "width", "height"].map((key) => <label key={key}><span>{key[0].toUpperCase() + key.slice(1)} (%)</span><input type="number" min={["width", "height"].includes(key) ? 3 : 0} max="100" step="0.1" value={Number(selectedHotspot[key].toFixed(3))} onChange={(event) => updateSelectedGeometry(key, event.target.value)} /></label>)}</div><p>Resize from any corner. Geometry remains in percentages at every zoom level.</p></section>
           <button className="builder-delete" type="button" onClick={deleteSelectedHotspot}><Trash2 size={17} /> Delete hotspot</button><small>Delete and Backspace also remove the selected hotspot when you are not typing.</small>
         </>}
       </aside>

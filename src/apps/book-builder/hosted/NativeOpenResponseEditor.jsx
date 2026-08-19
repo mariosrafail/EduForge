@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Eye, FileText, LayoutPanelTop, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
 
-import { NativeOpenResponseSurface, logicalAreaStyle } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
+import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
+import { StudioButton, StudioCanvasToolbar, StudioField, StudioStatus, StudioTabs } from "../../../components/builder-studio/StudioControls.jsx";
+import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../components/native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../components/native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
@@ -18,6 +21,11 @@ function assetPreviewRoot(bookSlug, componentSlug, activityId, assetId) {
 }
 
 function geometryLabel(type) { return type === "prompt" ? "Prompt" : type === "response" ? "Response region" : "Artwork"; }
+const tabs = [
+  { id: "content", label: "Content", icon: FileText },
+  { id: "layout", label: "Layout", icon: LayoutPanelTop },
+  { id: "preview", label: "Local Preview", icon: Eye },
+];
 
 export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
   const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
@@ -29,7 +37,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [selection, setSelection] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const drag = useRef(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,15 +93,17 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     const question = questions.find((item) => item.id === selection.id);
     return selection.type === "prompt" ? question?.promptArea : question?.responseRegion.area;
   })();
-  const updateSelectedArea = (key, raw) => {
-    const value = Number(raw); if (!Number.isFinite(value) || !selectedArea || selectedArtwork?.locked) return;
+  const commitSelectedArea = (nextArea) => {
+    if (!selectedArea || selectedArtwork?.locked) return;
     const surface = interaction.surface;
     mutatePublic((next) => {
       const target = selection.type === "artwork" ? next.parts[0].interaction.artwork.find((item) => item.id === selection.id)
         : next.parts[0].interaction.questions.find((item) => item.id === selection.id);
       const area = selection.type === "artwork" ? target.area : selection.type === "prompt" ? target.promptArea : target.responseRegion.area;
-      area[key] = key === "x" ? clamp(value, 0, surface.width - area.width) : key === "y" ? clamp(value, 0, surface.height - area.height)
-        : key === "width" ? clamp(value, 1, surface.width - area.x) : clamp(value, 1, surface.height - area.y);
+      area.x = clamp(nextArea.x, 0, surface.width - nextArea.width);
+      area.y = clamp(nextArea.y, 0, surface.height - nextArea.height);
+      area.width = clamp(nextArea.width, 1, surface.width - area.x);
+      area.height = clamp(nextArea.height, 1, surface.height - area.y);
       if (selection.type === "response") {
         const p = target.responseRegion.presentation;
         p.lineWidth = Math.min(p.lineWidth, Math.max(1, area.width - 2 * p.paddingX));
@@ -102,19 +112,14 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       }
     });
   };
-
-  const beginDrag = (event, mode) => {
-    if (!selectedArea || selectedArtwork?.locked) return; event.preventDefault(); event.currentTarget.setPointerCapture?.(event.pointerId);
-    drag.current = { mode, x: event.clientX, y: event.clientY, area: clone(selectedArea) };
-  };
-  const moveDrag = (event) => {
-    if (!drag.current || !selection) return;
-    const surfaceElement = event.currentTarget.closest(".native-or-surface");
-    const scale = interaction.surface.width / surfaceElement.getBoundingClientRect().width;
-    const dx = (event.clientX - drag.current.x) * scale; const dy = (event.clientY - drag.current.y) * scale;
-    const original = drag.current.area;
-    if (drag.current.mode === "move") { updateSelectedArea("x", original.x + dx); updateSelectedArea("y", original.y + dy); }
-    else { updateSelectedArea("width", original.width + dx); updateSelectedArea("height", original.height + dy); }
+  const updateSelectedArea = (key, raw) => {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || !selectedArea || selectedArtwork?.locked) return;
+    const surface = interaction.surface;
+    const next = { ...selectedArea };
+    next[key] = key === "x" ? clamp(value, 0, surface.width - next.width) : key === "y" ? clamp(value, 0, surface.height - next.height)
+      : key === "width" ? clamp(value, 1, surface.width - next.x) : clamp(value, 1, surface.height - next.y);
+    commitSelectedArea(next);
   };
 
   const uploadArtwork = async (file) => {
@@ -159,17 +164,17 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const previewAsset = (assetId) => assetPreviewRoot(bookSlug, componentSlug, activityId, assetId);
   const fit = selectedQuestion && answer ? autoFitNativeOpenResponseAnswer({ text: answer.text, responseRegion: selectedQuestion.responseRegion }) : null;
 
-  return <section className="native-activity-foundation native-or-editor">
-    <header><div><span>Native draft · {readiness.ready ? "Content complete" : "Content incomplete"}</span><h2>{publicDraft.metadata.title}</h2><p>{placementLabel} · Open Response</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
-    <nav className="native-or-tabs" aria-label="Open Response authoring"><button type="button" aria-current={tab === "content" ? "page" : undefined} onClick={() => setTab("content")}>Content</button><button type="button" aria-current={tab === "layout" ? "page" : undefined} onClick={() => setTab("layout")}>Layout</button><button type="button" aria-current={tab === "preview" ? "page" : undefined} onClick={() => setTab("preview")}>Local Preview</button></nav>
+  return <section className="native-activity-foundation native-or-editor studio-editor studio-open-response">
+    <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Open Response</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : "Content needs attention"}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
+    <StudioTabs value={tab} onChange={setTab} tabs={tabs} label="Open Response authoring modes" />
     {tab === "content" ? <div className="native-or-content">
       <div className="native-activity-foundation-fields"><label><span>Activity title</span><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></label><label><span>Visible instruction</span><textarea value={publicDraft.metadata.visibleInstructionText} maxLength={2000} rows={3} onChange={(event) => mutatePublic((next) => { next.metadata.visibleInstructionText = event.target.value; })} /></label></div>
-      <div className="native-or-question-workspace"><aside><button type="button" disabled={questions.length >= 20} onClick={addQuestion}>Add Question</button>{questions.map((question, index) => <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><code>{question.id}</code></button>)}</aside>
-      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button type="button" onClick={() => deleteQuestion(selectedQuestion.id)}>Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label><span>Private model answer (Teacher)</span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
+      <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><code>{question.id}</code></button>)}</aside>
+      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
     </div> : null}
-    {tab === "layout" ? <div className="native-or-layout"><div><NativeOpenResponseSurface document={publicDraft} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value.type !== "artwork") setSelectedQuestionId(value.id); }}>
-      {selectedArea && !selectedArtwork?.locked ? <span className="native-or-manipulator" style={{ ...logicalAreaStyle(selectedArea, interaction.surface), zIndex: selection.type === "artwork" ? 39 : 90 }} onPointerDown={(event) => beginDrag(event, "move")} onPointerMove={moveDrag} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}><span className="native-or-resize" onPointerDown={(event) => { event.stopPropagation(); beginDrag(event, "resize"); }} /></span> : null}
-    </NativeOpenResponseSurface></div><aside className="native-or-properties"><label className="native-or-upload"><span>{uploading ? "Uploading…" : "Upload graphic"}</span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0]); event.target.value = ""; }} /></label>{selection && selectedArea ? <><h3>{geometryLabel(selection.type)}</h3>{["x","y","width","height"].map((key) => <label key={key}><span>{key.toUpperCase()}</span><input type="number" min={key === "width" || key === "height" ? 1 : 0} step="1" value={selectedArea[key]} disabled={Boolean(selectedArtwork?.locked)} onChange={(event) => updateSelectedArea(key, event.target.value)} /></label>)}</> : <p>Select artwork, a prompt, or a response region.</p>}
+    {tab === "layout" ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={setZoom} /><div className="studio-canvas-viewport"><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}><NativeOpenResponseSurface className="studio-artboard" document={publicDraft} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value.type !== "artwork") setSelectedQuestionId(value.id); }}>
+      {selectedArea ? <StageSelectionFrame geometry={selectedArea} stage={interaction.surface} label={geometryLabel(selection.type)} locked={Boolean(selectedArtwork?.locked)} minWidth={selection.type === "response" ? Math.max(80, 2 * selectedQuestion.responseRegion.presentation.paddingX + 1) : 24} minHeight={selection.type === "response" ? Math.max(44, 2 * selectedQuestion.responseRegion.presentation.paddingY + selectedQuestion.responseRegion.presentation.lineSpacing) : 24} preserveAspectRatio={selection.type === "artwork"} moveFromGrip={selection.type !== "artwork"} onChange={commitSelectedArea} onClear={() => setSelection(null)} onDelete={selection.type === "artwork" ? () => removeArtwork(selection.id) : undefined} zIndex={selection.type === "artwork" ? 39 : 90} /> : null}
+    </NativeOpenResponseSurface></div></div><p className="studio-canvas-hint">Move using the selection grip · Resize from any corner · Arrow keys nudge</p></div><aside className="native-or-properties studio-inspector"><label className="native-or-upload studio-upload-action"><Upload aria-hidden="true" /><span>{uploading ? "Uploading…" : "Upload graphic"}</span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0]); event.target.value = ""; }} /></label>{selection && selectedArea ? <><h3>{geometryLabel(selection.type)}</h3>{["x","y","width","height"].map((key) => <label className="studio-field" key={key}><span>{key[0].toUpperCase() + key.slice(1)}</span><input type="number" min={key === "width" || key === "height" ? 1 : 0} step="1" value={selectedArea[key]} disabled={Boolean(selectedArtwork?.locked)} onChange={(event) => updateSelectedArea(key, event.target.value)} /></label>)}</> : <p>Select artwork, a prompt, or a response region.</p>}
       {selection?.type === "prompt" && selectedQuestion ? <><label><span>Prompt font size</span><input type="number" min="8" max="96" value={selectedQuestion.promptStyle.fontSize} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.promptStyle.fontSize = Number(event.target.value); })} /></label><label><span>Prompt alignment</span><select value={selectedQuestion.promptStyle.align} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></label></> : null}
       {selection?.type === "response" && selectedQuestion ? <ResponseProperties question={selectedQuestion} update={(mutator) => updateQuestion(selectedQuestion.id, mutator)} fit={fit} /> : null}
       {selection?.type === "artwork" ? <ArtworkProperties item={interaction.artwork.find((item) => item.id === selection.id)} update={(mutator) => mutatePublic((next) => mutator(next.parts[0].interaction.artwork.find((item) => item.id === selection.id), next.parts[0].interaction.artwork))} duplicate={() => duplicateArtwork(selection.id)} remove={() => removeArtwork(selection.id)} /> : null}
@@ -177,7 +182,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     </aside></div> : null}
     {tab === "preview" ? <div className="native-or-preview"><p><strong>Local Preview</strong> may include unsaved editor changes. Use the shared Review button for the last saved deployed Viewer state.</p><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}<div hidden={preview !== "student"}><NativeOpenResponseStudentSurface document={publicDraft} assetUrl={previewAsset} /></div>{preview === "teacher" ? <NativeOpenResponseTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAsset} /> : null}</div> : null}
     <aside className="native-or-readiness" role="status"><strong>{readiness.ready ? "Content complete" : "Content incomplete"}</strong>{readiness.issues.length ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}</aside>
-    <footer><span data-dirty={dirty || undefined} role="status">{dirty ? "Unsaved changes" : state.message}</span><button type="button" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim()} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</button></footer>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim()} reason={!dirty ? "No unsaved changes" : "Add an activity title before saving"} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }
 

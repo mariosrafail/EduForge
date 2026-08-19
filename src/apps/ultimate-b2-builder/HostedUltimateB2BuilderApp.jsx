@@ -16,6 +16,7 @@ import { UnifiedBuilderReview, useBuilderReview } from "./UnifiedBuilderReview.j
 import "./ultimateB2HotspotBuilder.css";
 import "./hostedUltimateB2BuilderReview.css";
 import "./hostedUltimateB2BuilderModern.css";
+import "./studioAuthoring.css";
 
 const kindIcons = { "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks };
 
