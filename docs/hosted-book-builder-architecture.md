@@ -80,6 +80,8 @@ GET requires a valid Builder session and returns `{ bookSlug, componentSlug, res
 
 PUT additionally requires same-origin Host/Origin validation, JSON content type, a bounded body, and exactly `{ expectedRevision, clientMutationId, document }`. The actor always comes from the HttpOnly Builder session. No `__hhplms`, direct Function URL, LMS API, Platform Admin API, workspace token, or database credential is exposed to the client.
 
+Native activity artwork, Open Response publisher-source files, and Teacher UI assets share one separate byte-upload boundary: authenticated same-origin prepare, short-lived exact-object presigned `PUT` to private storage with only the signed `Content-Type` request header, then authenticated finalize and server-side inspection. The signed object request targets R2 rather than the Builder Worker. For Cloudflare DEV, CI preserves and verifies an exact `https://builder.hhplms.workers.dev` / `PUT` / `Content-Type` CORS rule on `hhplms-book-private-dev` before deploying the Builder; credentials remain server/CI-only and the private bucket remains non-public.
+
 The hosted hash routes remain:
 
 - `#/books`

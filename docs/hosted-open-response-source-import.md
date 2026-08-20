@@ -24,7 +24,9 @@ The existing `BOOK_ASSET_*` server environment variables configure storage. Neve
 
 ## Object-storage CORS
 
-The private staging bucket must allow authenticated Builder origins to perform `PUT` with `Content-Type` against presigned URLs. It should allow only required methods/headers and should not expose credentials. Repository tests cannot verify an external bucket's CORS, credentials, CDN, or public-base configuration; configure and validate those separately in the non-production hosting environment.
+The private staging bucket must allow authenticated Builder origins to perform `PUT` with `Content-Type` against presigned URLs. This is also the transport used by native Open Response/Image artwork and Teacher UI asset uploads. Presigned query parameters are not request headers; the browser sends only the server-issued `Content-Type` header. The private bucket remains non-public and no storage credential enters the browser.
+
+Cloudflare DEV is intentionally exact: origin `https://builder.hhplms.workers.dev`, method `PUT`, header `Content-Type`, and bucket `hhplms-book-private-dev`. `npm run check:cloudflare:builder-private-upload-cors` validates that tracked contract without network access. The exact-SHA `deploy-cloudflare-builder` job runs `npm run ensure:cloudflare:builder-private-upload-cors` with server/CI credentials, preserves every existing CORS rule, adds the narrow rule only when missing, and re-reads the control plane before the Worker deploy. Operators may use the read-only `preflight:` or `verify:` scripts with the same suffix; only `ensure:` can mutate, and every mode refuses a non-DEV bucket.
 
 ## Review and publication boundary
 
