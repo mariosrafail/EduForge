@@ -1,203 +1,105 @@
-import { BookOpen, ListChecks, LockKeyhole, Trash2 } from "lucide-react";
+import { ListChecks, LockKeyhole, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
 import {
   closeAssignment as closeLiveAssignment,
-  createAssignment,
-  createAssignmentRequestKey,
   deleteAssignment as deleteLiveAssignment,
   exportAssignmentResultsCsv,
   listAssignmentTargets,
   listTeacherAssignments,
+  listTeacherHomeworks,
 } from "../../../../services/assignmentsApi.js";
 import { buildTeacherAssignmentReviewHash } from "../../../../utils/hashRoutes.js";
-import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import Modal from "../../../ui/Modal.jsx";
-import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
+import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { assignmentReviewAction } from "../assignmentReviewPresentation.js";
+import { buildHomeworkActivityOptions } from "../homeworkUiModel.js";
+import { HomeworkCreator } from "../components/HomeworkCreator.jsx";
 import { TeacherAssignmentReviewWorkspace } from "../components/TeacherAssignmentReviewWorkspace.jsx";
+import { TeacherHomeworkList } from "../components/TeacherHomeworkList.jsx";
+import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
 
-export function TeacherAssignments({ currentUser = null, classes = [], classOptions = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
+export function TeacherAssignments({ currentUser = null, classes = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
+  const [homeworks, setHomeworks] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [loadingAssignments, setLoadingAssignments] = useState(false);
-  const [assignmentError, setAssignmentError] = useState("");
   const [activityOptions, setActivityOptions] = useState([]);
-  const [selectedActivityId, setSelectedActivityId] = useState("");
-  const [selectedClasses, setSelectedClasses] = useState([]);
-  const [assignmentTitle, setAssignmentTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [teacherNotes, setTeacherNotes] = useState("");
-  const [worksheetLinks, setWorksheetLinks] = useState("");
-  const [assigned, setAssigned] = useState("");
-  const [savingAssignment, setSavingAssignment] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
   const [lifecycleAction, setLifecycleAction] = useState(null);
   const [savingLifecycle, setSavingLifecycle] = useState(false);
-  const [lifecycleStatus, setLifecycleStatus] = useState("");
-  const visibleAssignments = assignments;
 
-  const loadAssignments = async () => {
-    setLoadingAssignments(true);
-    setAssignmentError("");
+  const loadWork = async () => {
+    setLoading(true);
+    setError("");
     try {
-      const liveAssignments = await listTeacherAssignments(currentUser?.id || "");
-      setAssignments(liveAssignments);
-    } catch (error) {
-      console.warn("Teacher assignments could not be loaded.", error);
+      const [nextHomeworks, nextAssignments] = await Promise.all([
+        listTeacherHomeworks(currentUser?.id || ""),
+        listTeacherAssignments(currentUser?.id || ""),
+      ]);
+      setHomeworks(nextHomeworks);
+      setAssignments(nextAssignments);
+    } catch (loadError) {
+      console.warn("Teacher Homework could not be loaded.", loadError);
+      setHomeworks([]);
       setAssignments([]);
-      setAssignmentError(error.message || "Assignments could not be loaded.");
+      setError(loadError.message || "Homework could not be loaded.");
     } finally {
-      setLoadingAssignments(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadAssignments();
-  }, [currentUser?.id]);
-
+  useEffect(() => { loadWork(); }, [currentUser?.id]);
   useEffect(() => {
     let mounted = true;
-    Promise.all([getBookPackageTreeWithFallback("ultimate-b2"), listAssignmentTargets()]).then(([packageTree, nativeTargets]) => {
-      if (!mounted) return;
-      const options = [];
-      for (const component of packageTree.components || []) {
-        for (const unit of component.units || []) {
-          for (const lesson of unit.lessons || []) {
-            for (const exercise of lesson.exercises || []) {
-              if (exercise.assignable === false || exercise.isAssignable === false) continue;
-              const assignmentActivityId = exercise.assignmentActivityId || exercise.dbActivity?.id;
-              if (!assignmentActivityId) continue;
-              options.push({
-                id: assignmentActivityId,
-                targetKind: "legacy_activity",
-                stableActivityId: exercise.stableActivityId || exercise.activityKey || exercise.demoActivityKey || exercise.slug,
-                title: exercise.title,
-                label: `${component.title} / ${unit.title} / ${exercise.title}`,
-                component: component.title,
-                dbActivity: exercise.dbActivity || exercise,
-              });
-            }
-          }
-        }
-      }
-      for (const native of nativeTargets) {
-        options.push({
-          id: `native:${native.target.releaseId}:${native.target.nativeActivityId}`,
-          targetKind: "published_native",
-          target: native.target,
-          title: native.title,
-          label: `${native.packageTitle} / ${native.componentTitle} / ${native.title} (${native.nativeKind}${native.assignable ? "" : ", display only"})`,
-          component: native.componentTitle,
-          assignable: native.assignable,
-        });
-      }
-      setActivityOptions(options);
-      setSelectedActivityId((current) => current || options.find((option) => option.assignable !== false)?.id || "");
-    }).catch((error) => {
-      if (!mounted) return;
-      setActivityOptions([]);
-      setSelectedActivityId("");
-      setAssignmentError(error.message || "Assignable activities could not be loaded.");
-    });
-    return () => {
-      mounted = false;
-    };
+    Promise.all([getBookPackageTreeWithFallback("ultimate-b2"), listAssignmentTargets()])
+      .then(([packageTree, nativeTargets]) => {
+        if (mounted) setActivityOptions(buildHomeworkActivityOptions(packageTree, nativeTargets));
+      })
+      .catch((loadError) => {
+        if (!mounted) return;
+        setActivityOptions([]);
+        setError(loadError.message || "Assignable activities could not be loaded.");
+      });
+    return () => { mounted = false; };
   }, []);
 
-  const toggleListItem = (value, list, setter) => {
-    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
-    setAssigned("");
-  };
-
-  useEffect(() => {
-    setSelectedClasses((currentClasses) => {
-      const validClasses = currentClasses.filter((className) => classOptions.includes(className));
-      return validClasses.length ? validClasses : classOptions.slice(0, 1);
-    });
-  }, [classOptions]);
-
-  const createLiveAssignment = async (event) => {
-    event.preventDefault();
-    setAssigned("");
-    setAssignmentError("");
-    if (!currentUser?.id) {
-      setAssignmentError("Sign in as a teacher before creating assignments.");
-      return;
-    }
-    if (!selectedActivityId) {
-      setAssignmentError("Choose an exercise before assigning.");
-      return;
-    }
-    const classIds = classes.filter((classItem) => selectedClasses.includes(classItem.name)).map((classItem) => classItem.id).filter(Boolean);
-    if (!classIds.length) {
-      setAssignmentError("Choose at least one live class before assigning.");
-      return;
-    }
-
-    setSavingAssignment(true);
-    try {
-      const selectedActivity = activityOptions.find((item) => item.id === selectedActivityId);
-      await createAssignment({
-        idempotencyKey: createAssignmentRequestKey(),
-        ...(selectedActivity?.targetKind === "published_native"
-          ? { target: selectedActivity.target }
-          : { activityId: selectedActivityId }),
-        teacherId: currentUser.id,
-        classIds,
-        dueAt: dueDate ? `${dueDate}T23:59:00` : null,
-        title: assignmentTitle.trim() || selectedActivity?.title || "",
-        teacherNotes,
-        worksheetLinks,
-        attachedFiles: [],
-        status: "assigned",
-      });
-      setAssigned(`Assignment created for ${selectedClasses.join(", ")}.`);
-      setAssignmentTitle("");
-      setTeacherNotes("");
-      setWorksheetLinks("");
-      await loadAssignments();
-    } catch (error) {
-      setAssignmentError(error.message || "Assignment could not be saved.");
-    } finally {
-      setSavingAssignment(false);
-    }
-  };
-
+  const standaloneAssignments = assignments.filter((assignment) => !assignment.homeworkId);
   const openResults = (assignment) => navigateTo?.(buildTeacherAssignmentReviewHash(assignment.id));
-
   const exportResults = async (assignment) => {
-    if (!assignment.id) {
-      setAssignmentError("Only live assignments can be exported.");
-      return;
-    }
     try {
       await exportAssignmentResultsCsv(assignment.id);
-    } catch (error) {
-      setAssignmentError(error.message || "CSV export failed.");
+    } catch (exportError) {
+      setError(exportError.message || "CSV export failed.");
     }
+  };
+  const created = async (homework) => {
+    setStatus(`Homework “${homework.title}” created with ${homework.itemCount} activities.`);
+    await loadWork();
   };
 
   const confirmLifecycleAction = async () => {
     if (!lifecycleAction?.assignment?.id) return;
     setSavingLifecycle(true);
-    setAssignmentError("");
-    setLifecycleStatus("");
+    setError("");
+    setStatus("");
     const { assignment, type } = lifecycleAction;
     try {
       if (type === "delete") {
         await deleteLiveAssignment(assignment.id);
         setAssignments((current) => current.filter((item) => item.id !== assignment.id));
-        setLifecycleStatus("Assignment deleted.");
+        setStatus("Standalone assignment deleted.");
       } else {
         await closeLiveAssignment(assignment.id);
         setAssignments((current) => current.map((item) => item.id === assignment.id ? { ...item, status: "closed" } : item));
-        setLifecycleStatus("Assignment closed. Existing results were preserved.");
+        setStatus("Standalone assignment closed. Existing results were preserved.");
       }
       setLifecycleAction(null);
-      await loadAssignments();
-    } catch (error) {
+      await loadWork();
+    } catch (lifecycleError) {
       setLifecycleAction(null);
-      setAssignmentError(error.message || `Assignment could not be ${type === "delete" ? "deleted" : "closed"}.`);
-      await loadAssignments();
+      setError(lifecycleError.message || "Assignment lifecycle action failed.");
+      await loadWork();
     } finally {
       setSavingLifecycle(false);
     }
@@ -209,131 +111,45 @@ export function TeacherAssignments({ currentUser = null, classes = [], classOpti
 
   return (
     <section className="teacher-section-stack">
-      <SectionTitle
-        eyebrow="Assignments"
-        title="Assigned digital book exercises."
-        text="Track submit status by class and assign implemented Ultimate B2 exercises."
-      />
+      <SectionTitle eyebrow="Homework" title="Multi-activity Homework" text="Create one class Homework containing ordered book and published-native activities, then review each activity with the existing results workspace." />
+      {error && <div className="inline-status error">{error}</div>}
+      {status && <div className="inline-status success">{status}</div>}
+
+      <TeacherHomeworkList homeworks={homeworks} loading={loading} onOpenResults={openResults} onExportResults={exportResults} />
 
       <Card>
         <div className="card-heading">
-          <div>
-            <span className="eyebrow"><ListChecks size={15} /> Active assignments</span>
-            <h2>Submit status</h2>
-          </div>
-          <Tag tone={assignmentError ? "gold" : "green"}>{assignmentError ? "Unavailable" : "Database"}</Tag>
+          <div><span className="eyebrow"><ListChecks size={15} /> Standalone assignments</span><h2>Earlier single-activity work</h2></div>
+          <Tag tone={error ? "gold" : "green"}>{error ? "Unavailable" : "Compatible"}</Tag>
         </div>
-        {assignmentError && <div className="inline-status error">{assignmentError}</div>}
-        {lifecycleStatus && <div className="inline-status success">{lifecycleStatus}</div>}
-        {loadingAssignments && <div className="teacher-loading-state">Loading assignments...</div>}
         <div className="teacher-assignment-table">
-          {!loadingAssignments && visibleAssignments.length === 0 && <div className="teacher-loading-state">No assignments yet. Create one below.</div>}
-          {!loadingAssignments && visibleAssignments.map((assignment) => (
-            <article key={assignment.id || `${assignment.title}-${assignment.className}`}>
-              <div>
-                <strong>{assignment.title}</strong>
-                <small>{assignment.component} / {assignment.className}</small>
-                <small>Assigned {assignment.assignedDate || (assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : "Today")} / Due {assignment.dueDate || assignment.dueAt ? new Date(assignment.dueDate || assignment.dueAt).toLocaleDateString() : "No due date"}</small>
-              </div>
-              {assignment.status === "closed" ? <Tag tone="slate">Closed</Tag> : (
-                <Tag tone={dueDateTone(assignment.dueDate || assignment.dueAt) === "overdue" ? "red" : dueDateTone(assignment.dueDate || assignment.dueAt) === "soon" ? "gold" : "green"}>
-                  {dueDateLabel(assignment.dueDate || assignment.dueAt)}
-                </Tag>
-              )}
+          {!loading && standaloneAssignments.length === 0 && <div className="teacher-loading-state">No standalone assignments.</div>}
+          {standaloneAssignments.map((assignment) => (
+            <article key={assignment.id}>
+              <div><strong>{assignment.title}</strong><small>{assignment.component} / {assignment.className}</small><small>Due {assignment.dueAt ? new Date(assignment.dueAt).toLocaleDateString() : "No due date"}</small></div>
+              {assignment.status === "closed" ? <Tag tone="slate">Closed</Tag> : <Tag tone={dueDateTone(assignment.dueAt) === "overdue" ? "red" : dueDateTone(assignment.dueAt) === "soon" ? "gold" : "green"}>{dueDateLabel(assignment.dueAt)}</Tag>}
               <span>{assignment.submitted}/{assignment.total} submitted</span>
               <span>{assignment.awaitingReviewCount} awaiting · {assignment.reviewedCount} reviewed · {assignment.missingCount} missing</span>
-              <span>{assignment.averageScore == null ? "Unscored" : `${assignment.averageScore}% average`}</span>
-              <button
-                className="secondary-action compact-action"
-                type="button"
-                onClick={() => openResults(assignment)}
-                data-sound-click="tab"
-              >
-                {assignmentReviewAction(assignment)}
-              </button>
-              <button className="secondary-action compact-action" type="button" onClick={() => exportResults(assignment)} data-sound-click="submit">Export CSV</button>
-              {assignment.status !== "closed" && Number(assignment.submittedCount ?? assignment.submitted ?? 0) === 0 && (
-                <button className="danger-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "delete", assignment })}>
-                  <Trash2 size={15} /> Delete assignment
-                </button>
-              )}
-              {assignment.status !== "closed" && Number(assignment.submittedCount ?? assignment.submitted ?? 0) > 0 && (
-                <button className="warning-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "close", assignment })}>
-                  <LockKeyhole size={15} /> Close assignment
-                </button>
-              )}
+              <button className="secondary-action compact-action" type="button" onClick={() => openResults(assignment)}>{assignmentReviewAction(assignment)}</button>
+              <button className="secondary-action compact-action" type="button" onClick={() => exportResults(assignment)}>Export CSV</button>
+              {assignment.status !== "closed" && assignment.submittedCount === 0 && <button className="danger-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "delete", assignment })}><Trash2 size={15} /> Delete assignment</button>}
+              {assignment.status !== "closed" && assignment.submittedCount > 0 && <button className="warning-action compact-action" type="button" onClick={() => setLifecycleAction({ type: "close", assignment })}><LockKeyhole size={15} /> Close assignment</button>}
             </article>
           ))}
         </div>
       </Card>
-      <Card className="teacher-book-assign-panel">
-        <form onSubmit={createLiveAssignment}>
-        <div className="card-heading">
-          <div>
-            <span className="eyebrow"><BookOpen size={15} /> Assign from book</span>
-            <h2>Ultimate B2 Unit 2</h2>
-            <p>Select an exercise, classes, a due date, and optional worksheet links.</p>
-          </div>
-          <button className="primary-action" type="submit" disabled={savingAssignment} data-sound-click="submit">{savingAssignment ? "Assigning..." : "Assign selected exercise"}</button>
-        </div>
 
-        <div className="teacher-book-assign-grid">
-          <label>
-            Exercise/activity
-            <select value={selectedActivityId} onChange={(event) => { setSelectedActivityId(event.target.value); setAssigned(""); }}>
-              {activityOptions.length ? activityOptions.map((activity) => <option key={activity.id} value={activity.id} disabled={activity.assignable === false}>{activity.label}</option>) : (
-                <option value="">Loading activities...</option>
-              )}
-            </select>
-          </label>
-          <label>
-            Due date
-            <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setAssigned(""); }} />
-          </label>
-          <label>
-            Assignment title
-            <input type="text" maxLength={240} value={assignmentTitle} placeholder="Use the activity title" onChange={(event) => { setAssignmentTitle(event.target.value); setAssigned(""); }} />
-          </label>
-          <div className="teacher-checkbox-panel">
-            <strong>Classes</strong>
-            {classOptions.map((className) => (
-              <label key={className}>
-                <input type="checkbox" checked={selectedClasses.includes(className)} onChange={() => toggleListItem(className, selectedClasses, setSelectedClasses)} />
-                <span>{className}</span>
-              </label>
-            ))}
-            {!classOptions.length && <small>No live classes yet. Create a class first.</small>}
-          </div>
-          <label>
-            Instructions / teacher notes
-            <textarea value={teacherNotes} rows={4} placeholder="Focus on text evidence and submit by Friday." onChange={(event) => setTeacherNotes(event.target.value)} />
-          </label>
-          <label>
-            Worksheet/link URLs
-            <textarea value={worksheetLinks} rows={4} placeholder="One URL per line, or comma separated" onChange={(event) => setWorksheetLinks(event.target.value)} />
-          </label>
-        </div>
-        {assigned && <div className="inline-status success">{assigned}</div>}
-        </form>
-      </Card>
+      <HomeworkCreator currentUser={currentUser} classes={classes} activityOptions={activityOptions} onCreated={created} onError={setError} />
+
       <Modal
         open={Boolean(lifecycleAction)}
         title={lifecycleAction?.type === "delete" ? "Delete assignment?" : "Close assignment?"}
-        description={lifecycleAction?.type === "delete"
-          ? "This assignment has no submissions and will be permanently deleted. This cannot be undone."
-          : "Students who have not submitted will no longer be able to submit. Existing submissions, scores and feedback will be preserved."}
+        description={lifecycleAction?.type === "delete" ? "This assignment has no submissions and will be permanently deleted. This cannot be undone." : "Students who have not submitted will no longer be able to submit. Existing submissions, scores and feedback will be preserved."}
         onClose={() => { if (!savingLifecycle) setLifecycleAction(null); }}
         className="assignment-lifecycle-modal"
         backdropClassName="assignment-lifecycle-modal-backdrop"
-        footer={<>
-          <button className="secondary-action" type="button" disabled={savingLifecycle} onClick={() => setLifecycleAction(null)}>Cancel</button>
-          <button className={lifecycleAction?.type === "delete" ? "danger-action" : "warning-action"} type="button" disabled={savingLifecycle} onClick={confirmLifecycleAction}>
-            {savingLifecycle ? "Saving..." : lifecycleAction?.type === "delete" ? "Delete assignment" : "Close assignment"}
-          </button>
-        </>}
-      >
-        <p><strong>{lifecycleAction?.assignment?.title || "Assignment"}</strong></p>
-      </Modal>
+        footer={<><button className="secondary-action" type="button" disabled={savingLifecycle} onClick={() => setLifecycleAction(null)}>Cancel</button><button className={lifecycleAction?.type === "delete" ? "danger-action" : "warning-action"} type="button" disabled={savingLifecycle} onClick={confirmLifecycleAction}>{savingLifecycle ? "Saving..." : lifecycleAction?.type === "delete" ? "Delete assignment" : "Close assignment"}</button></>}
+      ><p><strong>{lifecycleAction?.assignment?.title || "Assignment"}</strong></p></Modal>
     </section>
   );
 }

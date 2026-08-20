@@ -66,6 +66,22 @@ test("hard-delete safely rejects submitted, missing, and unauthorized assignment
   }
 });
 
+test("Homework-managed assignments reject individual delete and close mutations", async () => {
+  const homeworkId = "44444444-4444-4444-8444-444444444444";
+  for (const [action, mutate] of [["delete", deleteAssignment], ["close", closeAssignment]]) {
+    const response = await mutate(lifecycleSql({
+      assignment_exists: true,
+      authorized: true,
+      has_submissions: action === "close",
+      homework_id: homeworkId,
+      assignment_status: "assigned",
+      mutated: false,
+    }), { assignmentId }, teacher);
+    assert.equal(response.statusCode, 409);
+    assert.equal(responseBody(response).conflict, "homework-managed-assignment");
+  }
+});
+
 test("close requires submissions, preserves the row, and is idempotent once closed", async () => {
   const closedSql = lifecycleSql({ assignment_exists: true, authorized: true, has_submissions: true, assignment_status: "assigned", mutated: true });
   const closed = await closeAssignment(closedSql, { assignmentId }, teacher);

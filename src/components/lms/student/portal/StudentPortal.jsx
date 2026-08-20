@@ -16,7 +16,8 @@ import {
 } from "../../../../utils/hashRoutes.js";
 import { PortalShell } from "../../shared/PortalShell.jsx";
 import { studentNavItems } from "./studentPortalConfig.js";
-import { StudentActivitySection, StudentAssignments, StudentBooks, StudentDashboard, StudentGrades } from "./StudentPortalSections.jsx";
+import { StudentActivitySection, StudentBooks, StudentDashboard, StudentGrades } from "./StudentPortalSections.jsx";
+import { StudentAssignments } from "./StudentAssignmentsSection.jsx";
 import { StudentAssignmentWorkspace } from "./StudentAssignmentWorkspace.jsx";
 
 export function StudentPortal({

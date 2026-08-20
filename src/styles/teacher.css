@@ -394,3 +394,65 @@
 .assignment-lifecycle-modal .modal-body { padding: 18px 0; }
 .assignment-lifecycle-modal .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
 .assignment-lifecycle-modal .icon-button { display: grid; place-items: center; width: 38px; height: 38px; color: #40566d; background: #f2f6fa; border: 1px solid #d8e2ef; border-radius: 10px; }
+
+.teacher-homework-list,
+.teacher-homework-card,
+.teacher-homework-items,
+.homework-selected-activities { display: grid; gap: 14px; }
+
+.teacher-homework-card {
+  padding: 18px;
+  border: 1px solid #dce6f1;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff, #f7faff);
+}
+
+.teacher-homework-card > header,
+.homework-progress-summary,
+.teacher-homework-items > li,
+.homework-item-assignments > span,
+.homework-selected-activities li,
+.homework-activity-picker > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-homework-card header > div,
+.teacher-homework-items li > div:first-child,
+.homework-selected-activities li > span { display: grid; gap: 3px; }
+
+.teacher-homework-card small,
+.teacher-homework-items small,
+.homework-selected-activities small,
+.homework-lifecycle-note { color: #667085; }
+
+.homework-progress-summary {
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  color: #344054;
+  background: #edf5ff;
+  border-radius: 12px;
+}
+
+.teacher-homework-items,
+.homework-selected-activities ol { margin: 0; padding-left: 24px; }
+
+.teacher-homework-items > li,
+.homework-selected-activities li { padding: 11px 0; border-bottom: 1px solid #e4ebf3; }
+
+.homework-item-assignments { display: grid; gap: 7px; }
+.homework-item-assignments > span { justify-content: flex-end; }
+.homework-activity-picker { display: grid; gap: 7px; }
+.homework-activity-picker select { flex: 1; min-width: 0; }
+.homework-selected-activities { margin-top: 18px; }
+.homework-selected-activities p { margin: 0; color: #667085; }
+
+@media (max-width: 760px) {
+  .teacher-homework-card > header,
+  .homework-progress-summary,
+  .teacher-homework-items > li,
+  .homework-selected-activities li { align-items: flex-start; flex-direction: column; }
+  .homework-item-assignments > span { flex-wrap: wrap; justify-content: flex-start; }
+}

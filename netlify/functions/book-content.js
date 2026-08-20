@@ -16,6 +16,9 @@ import {
   listUserBookAccess, deleteAssignment, closeAssignment, listAssignmentTargets
 } from "./_book-content/assignment-actions.js";
 import {
+  createHomework, getTeacherHomework, listStudentHomeworks, listTeacherHomeworks,
+} from "./_book-content/homework-actions.js";
+import {
   submitActivity, getStudentGrades, getAssignmentResults
 } from "./_book-content/submission-actions.js";
 import {
@@ -144,6 +147,40 @@ export async function handler(event) {
         const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId || "";
         return json(200, { assignments: await listTeacherAssignments(sql, teacherId, currentUser) });
       }
+      if (query.action === "teacher-homeworks") {
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+        if (isTeacher(currentUser) && query.teacherId && String(query.teacherId) !== String(currentUser.id)) return forbidden();
+        const teacherId = isTeacher(currentUser) ? currentUser.id : query.teacherId || "";
+        return json(200, { homeworks: await listTeacherHomeworks(sql, teacherId, currentUser) });
+      }
+      if (query.action === "student-homeworks") {
+        const roleError = requireResourceRole(currentUser, ["student", "admin"]);
+        if (roleError) return roleError;
+        const studentId = isStudent(currentUser) ? currentUser.id : query.studentId;
+        const accessError = await verifyStudentAccess(sql, currentUser, studentId);
+        return accessError || json(200, { homeworks: await listStudentHomeworks(sql, studentId, currentUser) });
+      }
+      if (query.action === "homework") {
+        if (!query.homeworkId) return badRequest("homeworkId is required");
+        if (!isValidUuid(query.homeworkId)) return invalidUuidResponse("homeworkId");
+        if (query.teacherId && !isValidUuid(query.teacherId)) return invalidUuidResponse("teacherId");
+        if (isStudent(currentUser)) {
+          const homework = (await listStudentHomeworks(sql, currentUser.id, currentUser))
+            .find((item) => String(item.id) === String(query.homeworkId));
+          return homework ? json(200, { homework }) : json(404, { error: "Homework not found" });
+        }
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        const homework = await getTeacherHomework(
+          sql,
+          query.homeworkId,
+          isTeacher(currentUser) ? currentUser.id : query.teacherId || "",
+          currentUser,
+        );
+        return homework ? json(200, { homework }) : json(404, { error: "Homework not found" });
+      }
       if (query.action === "assignment-targets") {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         return roleError || json(200, { targets: await listAssignmentTargets(sql, currentUser) });
@@ -225,6 +262,11 @@ export async function handler(event) {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         return createAssignment(sql, body, currentUser);
+      }
+      if (query.action === "create-homework") {
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        return createHomework(sql, body, currentUser);
       }
       if (query.action === "delete-assignment") {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);

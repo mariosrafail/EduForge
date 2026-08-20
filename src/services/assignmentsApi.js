@@ -42,6 +42,12 @@ export function createAssignmentRequestKey() {
   return `assignment-${id}`;
 }
 
+export function createHomeworkRequestKey() {
+  const id = globalThis.crypto?.randomUUID?.()
+    || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `homework-${id}`;
+}
+
 export async function listTeacherAssignments(teacherId) {
   const query = new URLSearchParams({ action: "teacher-assignments" });
   if (teacherId) query.set("teacherId", teacherId);
@@ -52,6 +58,34 @@ export async function listTeacherAssignments(teacherId) {
 export async function listAssignmentTargets() {
   const payload = await request("/.netlify/functions/book-content?action=assignment-targets");
   return payload.targets || [];
+}
+
+export async function listTeacherHomeworks(teacherId) {
+  const query = new URLSearchParams({ action: "teacher-homeworks" });
+  if (teacherId) query.set("teacherId", teacherId);
+  const payload = await request(`/.netlify/functions/book-content?${query}`);
+  return payload.homeworks || [];
+}
+
+export async function listStudentHomeworks(studentId) {
+  const query = new URLSearchParams({ action: "student-homeworks" });
+  if (studentId) query.set("studentId", studentId);
+  const payload = await request(`/.netlify/functions/book-content?${query}`);
+  return payload.homeworks || [];
+}
+
+export async function getHomework(homeworkId) {
+  const query = new URLSearchParams({ action: "homework", homeworkId });
+  const payload = await request(`/.netlify/functions/book-content?${query}`);
+  return payload.homework;
+}
+
+export async function createHomework(payload) {
+  const response = await request("/.netlify/functions/book-content?action=create-homework", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.homework;
 }
 
 export async function createAssignment(payload) {

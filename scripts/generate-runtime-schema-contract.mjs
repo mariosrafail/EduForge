@@ -68,6 +68,15 @@ export const requiredRuntimeSchema = Object.freeze({
   activity_assignments: [
     "id", "school_id", "activity_id", "teacher_id", "class_id", "student_id",
     "target_kind", "native_release_id", "native_activity_id", "status", "idempotency_key",
+    "homework_id", "homework_item_id",
+  ],
+  homeworks: [
+    "id", "school_id", "teacher_id", "title", "teacher_notes", "worksheet_links",
+    "due_at", "status", "idempotency_key", "request_sha256", "created_at", "updated_at",
+  ],
+  homework_items: [
+    "id", "homework_id", "position", "target_kind", "activity_id",
+    "native_release_id", "native_activity_id", "created_at",
   ],
   activity_submissions: [
     "id", "school_id", "activity_id", "activity_assignment_id", "student_id", "answers",

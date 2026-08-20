@@ -116,7 +116,7 @@ test("ordinary sign-in limiter is distributed, atomic, recoverable, and privacy 
   });
 
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "040_published_native_assignment_runtime.sql");
+  assert.equal(migrations.at(-1).filename, "041_homework_phase_one.sql");
 
   const columns = (await pool.query(`
     select column_name from information_schema.columns

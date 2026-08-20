@@ -695,3 +695,44 @@
   .student-assignment-workspace-header .tag { justify-self: start; }
   .student-assignment-panel-label { align-items: flex-start; flex-direction: column; }
 }
+
+.student-homework-detail { display: grid; gap: 16px; }
+
+.homework-resource-links { display: grid; gap: 7px; }
+.homework-resource-links a { color: var(--brand-primary); overflow-wrap: anywhere; }
+
+.student-homework-progress {
+  height: 9px;
+  overflow: hidden;
+  background: #e8eef5;
+  border-radius: 999px;
+}
+
+.student-homework-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-primary), #47a4f5);
+  border-radius: inherit;
+}
+
+.student-homework-items { display: grid; gap: 10px; margin: 0; padding-left: 26px; }
+
+.student-homework-items > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #dde6ef;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.student-homework-items li > div { display: grid; gap: 3px; }
+.student-homework-items small { color: #667085; }
+
+@media (max-width: 720px) {
+  .student-homework-items > li { grid-template-columns: 1fr; }
+  .student-homework-items .tag,
+  .student-homework-items button { justify-self: start; }
+}

@@ -53,6 +53,8 @@ export function assignmentRowToUi(row = {}) {
 
   return {
     id: row.id,
+    homeworkId: row.homework_id || null,
+    homeworkItemId: row.homework_item_id || null,
     targetKind: row.target_kind || "legacy_activity",
     activityId: row.activity_id,
     nativeReleaseId: row.native_release_id || null,
@@ -98,6 +100,12 @@ export function assignmentRowToUi(row = {}) {
 function assignmentLifecycleResponse(row, action) {
   if (!row?.assignment_exists) return json(404, { error: "Assignment not found" });
   if (!row.authorized) return forbidden();
+  if (row.homework_id) {
+    return json(409, {
+      error: "Homework-managed assignments cannot be changed individually.",
+      conflict: "homework-managed-assignment",
+    });
+  }
   if (action === "delete" && row.has_submissions) {
     return json(409, { error: "This assignment now has submissions and cannot be deleted. Close it instead.", conflict: "assignment-has-submissions" });
   }
@@ -117,6 +125,7 @@ export async function deleteAssignment(sql, body, currentUser) {
     with target as materialized (
       select aa.id,
              aa.status,
+             aa.homework_id,
              coalesce(aa.school_id, c.school_id, teacher.school_id, student.school_id) as effective_school_id,
              aa.teacher_id,
              exists (select 1 from activity_submissions s where s.activity_assignment_id = aa.id) as has_submissions
@@ -134,12 +143,13 @@ export async function deleteAssignment(sql, body, currentUser) {
     ), deleted as (
       delete from activity_assignments aa
       using authorized_target target
-      where aa.id = target.id and target.authorized and not target.has_submissions
+      where aa.id = target.id and target.authorized and target.homework_id is null and not target.has_submissions
       returning aa.id
     )
     select exists(select 1 from target) as assignment_exists,
            coalesce((select authorized from authorized_target), false) as authorized,
            coalesce((select has_submissions from target), false) as has_submissions,
+           (select homework_id from target) as homework_id,
            (select status from target) as assignment_status,
            exists(select 1 from deleted) as mutated
   `);
@@ -155,6 +165,7 @@ export async function closeAssignment(sql, body, currentUser) {
     with target as materialized (
       select aa.id,
              aa.status,
+             aa.homework_id,
              coalesce(aa.school_id, c.school_id, teacher.school_id, student.school_id) as effective_school_id,
              aa.teacher_id,
              exists (select 1 from activity_submissions s where s.activity_assignment_id = aa.id) as has_submissions
@@ -173,12 +184,13 @@ export async function closeAssignment(sql, body, currentUser) {
       update activity_assignments aa
       set status = 'closed'
       from authorized_target target
-      where aa.id = target.id and target.authorized and target.has_submissions and aa.status <> 'closed'
+      where aa.id = target.id and target.authorized and target.homework_id is null and target.has_submissions and aa.status <> 'closed'
       returning aa.id
     )
     select exists(select 1 from target) as assignment_exists,
            coalesce((select authorized from authorized_target), false) as authorized,
            coalesce((select has_submissions from target), false) as has_submissions,
+           (select homework_id from target) as homework_id,
            (select status from target) as assignment_status,
            exists(select 1 from closed) as mutated
   `);
@@ -370,7 +382,8 @@ export async function createAssignment(sql, body, currentUser = null) {
 
 export async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
   const rows = await sql`
-    select aa.id, aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
+    select aa.id, aa.homework_id, aa.homework_item_id,
+           aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
            aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            coalesce(a.title, aa.title) as activity_title, a.slug as activity_slug,
@@ -428,7 +441,8 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
 export async function listAssignmentsForStudent(sql, studentId, currentUser) {
   if (!studentId) return [];
   const rows = await sql`
-    select aa.id, aa.target_kind, aa.native_release_id, aa.native_activity_id, aa.assigned_at, aa.due_at, aa.status,
+    select aa.id, aa.homework_id, aa.homework_item_id,
+           aa.target_kind, aa.native_release_id, aa.native_activity_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.id as activity_id, a.title as activity_title, a.slug as activity_slug, a.activity_type,
            a.content_json, a.timer_seconds, a.estimated_minutes,
@@ -488,6 +502,8 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
   return rows.filter((row) => row.target_kind !== NATIVE_ASSIGNMENT_TARGET_KIND || nativeTargets.has(String(row.id))).map((row) => ({
     id: row.id,
     assignmentId: row.id,
+    homeworkId: row.homework_id || null,
+    homeworkItemId: row.homework_item_id || null,
     assignedAt: row.assigned_at,
     dueAt: row.due_at,
     status: row.status,
