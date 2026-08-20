@@ -1821,10 +1821,8 @@
 
 .editable-hotspot-resize-handle {
   position: absolute;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border: 2px solid #0b4ea2;
+  width: 16px; height: 16px;
+  background: #fff; border: 2px solid #0b4ea2;
   border-radius: 50%;
   box-shadow: 0 8px 18px rgba(16, 24, 40, 0.18);
 }
