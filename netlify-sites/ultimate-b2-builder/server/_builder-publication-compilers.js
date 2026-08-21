@@ -31,12 +31,33 @@ function verifyManifest(release, expected) {
   if (stableBuilderJson(actual) !== stableBuilderJson(expected)) throw new Error("release_integrity_failed");
 }
 
+export const RELEASE_INTEGRITY_CHECK_NAMES = Object.freeze([
+  "compatibilityMatches",
+  "sourceSnapshotMatches",
+  "publicProjectionMatches",
+  "teacherProjectionMatches",
+  "releaseHashMatches",
+]);
+
+export class ReleaseIntegrityError extends Error {
+  constructor(checks) {
+    super("release_integrity_failed");
+    this.name = "ReleaseIntegrityError";
+    this.code = "release_integrity_failed";
+    this.integrityChecks = Object.freeze(Object.fromEntries(RELEASE_INTEGRITY_CHECK_NAMES.map((name) => [name, checks[name] === true])));
+    this.failedIntegrityChecks = Object.freeze(RELEASE_INTEGRITY_CHECK_NAMES.filter((name) => !this.integrityChecks[name]));
+  }
+}
+
 function verifyHashes(release, compatibility, sourceSnapshot, publicProjection, teacherProjection) {
-  if (release.runtime_compatibility_sha256 !== compatibility
-    || builderDocumentSha256(sourceSnapshot) !== release.source_snapshot_sha256
-    || builderDocumentSha256(publicProjection) !== release.public_projection_sha256
-    || builderDocumentSha256(teacherProjection) !== release.teacher_projection_sha256
-    || builderDocumentSha256({ compatibility, sourceSnapshot, publicProjection, teacherProjection }) !== release.release_sha256) throw new Error("release_integrity_failed");
+  const checks = {
+    compatibilityMatches: release.runtime_compatibility_sha256 === compatibility,
+    sourceSnapshotMatches: builderDocumentSha256(sourceSnapshot) === release.source_snapshot_sha256,
+    publicProjectionMatches: builderDocumentSha256(publicProjection) === release.public_projection_sha256,
+    teacherProjectionMatches: builderDocumentSha256(teacherProjection) === release.teacher_projection_sha256,
+    releaseHashMatches: builderDocumentSha256({ compatibility, sourceSnapshot, publicProjection, teacherProjection }) === release.release_sha256,
+  };
+  if (RELEASE_INTEGRITY_CHECK_NAMES.some((name) => !checks[name])) throw new ReleaseIntegrityError(checks);
 }
 
 const v1 = Object.freeze({

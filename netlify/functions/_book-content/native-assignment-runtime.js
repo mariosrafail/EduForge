@@ -1,4 +1,7 @@
-import { verifyImmutableComponentRelease } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
+import {
+  RELEASE_INTEGRITY_CHECK_NAMES,
+  verifyImmutableComponentRelease,
+} from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
 import { accessiblePackageIds, isValidUuid } from "./shared.js";
 
 export const NATIVE_ASSIGNMENT_TARGET_KIND = "published_native";
@@ -232,6 +235,26 @@ export function nativeTargetToStudent(target, nativeActivityId) {
   };
 }
 
+function releaseVerificationDiagnostic(row, error) {
+  const integrityChecks = error?.code === "release_integrity_failed" && error.integrityChecks
+    ? Object.fromEntries(RELEASE_INTEGRITY_CHECK_NAMES.map((name) => [name, error.integrityChecks[name] === true]))
+    : null;
+  return {
+    releaseId: String(row.id),
+    bookPackageId: String(row.book_package_id),
+    bookPackageSlug: String(row.package_slug),
+    componentId: String(row.book_component_id),
+    componentSlug: String(row.component_slug),
+    releaseNumber: Number(row.release_number),
+    compilerId: String(row.compiler_id),
+    releaseSchemaVersion: String(row.release_schema_version),
+    integrityChecks,
+    failedIntegrityChecks: integrityChecks
+      ? Object.entries(integrityChecks).filter(([, matches]) => !matches).map(([name]) => name)
+      : [],
+  };
+}
+
 export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
   const allowed = new Set((await accessiblePackageIds(sql, currentUser)).map(String));
   const rows = await sql`
@@ -250,7 +273,13 @@ export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
   const targets = [];
   for (const row of rows) {
     if (!allowed.has(String(row.book_package_id))) continue;
-    const verified = verifyImmutableComponentRelease(row);
+    let verified;
+    try {
+      verified = verifyImmutableComponentRelease(row);
+    } catch (error) {
+      console.error(releaseVerificationDiagnostic(row, error));
+      throw error;
+    }
     for (const [nativeActivityId, publicEntry] of Object.entries(verified.publicProjection?.nativeActivities || {})) {
       const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
       if (!teacherEntry || teacherEntry.kind !== publicEntry.kind) continue;

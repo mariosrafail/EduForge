@@ -13,6 +13,10 @@ import {
 import { assignmentIdempotencyKey } from "../netlify/functions/_book-content/shared.js";
 import { submitActivity } from "../netlify/functions/_book-content/submission-actions.js";
 import { createAssignment } from "../netlify/functions/_book-content/assignment-actions.js";
+import {
+  ReleaseIntegrityError,
+  verifyImmutableComponentRelease,
+} from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const publicDocument = {
@@ -214,6 +218,104 @@ test("authorized active catalog exposes capability metadata but never Teacher do
   assert.doesNotMatch(JSON.stringify(targets), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.match(sql.calls[1].text, /book_component_publication_heads/);
   assert.match(sql.calls[1].text, /book_component_publication_events/);
+});
+
+test("immutable release verification diagnoses every hash predicate while remaining strict", async (t) => {
+  const columnsByCheck = {
+    compatibilityMatches: "runtime_compatibility_sha256",
+    sourceSnapshotMatches: "source_snapshot_sha256",
+    publicProjectionMatches: "public_projection_sha256",
+    teacherProjectionMatches: "teacher_projection_sha256",
+    releaseHashMatches: "release_sha256",
+  };
+  const allChecksPassing = Object.fromEntries(Object.keys(columnsByCheck).map((name) => [name, true]));
+
+  for (const [failedCheck, column] of Object.entries(columnsByCheck)) {
+    await t.test(failedCheck, () => {
+      const release = immutableReleaseRow();
+      release[column] = "0".repeat(64);
+      let failure;
+      try {
+        verifyImmutableComponentRelease(release);
+      } catch (error) {
+        failure = error;
+      }
+      assert.ok(failure instanceof ReleaseIntegrityError);
+      assert.equal(failure.message, "release_integrity_failed");
+      assert.equal(failure.code, "release_integrity_failed");
+      assert.deepEqual(failure.integrityChecks, { ...allChecksPassing, [failedCheck]: false });
+      assert.deepEqual(failure.failedIntegrityChecks, [failedCheck]);
+      const diagnostic = JSON.stringify({
+        integrityChecks: failure.integrityChecks,
+        failedIntegrityChecks: failure.failedIntegrityChecks,
+      });
+      assert.doesNotMatch(diagnostic, new RegExp(publicationV2Fixture.teacherSentinel));
+      assert.doesNotMatch(diagnostic, /"publicProjection":/);
+      assert.doesNotMatch(diagnostic, /"teacherProjection":/);
+      assert.doesNotMatch(diagnostic, /"sourceSnapshot":/);
+    });
+  }
+});
+
+test("valid immutable releases still verify normally", () => {
+  const release = immutableReleaseRow();
+  const verified = verifyImmutableComponentRelease(release);
+  assert.equal(verified.compiler.compilerId, release.compiler_id);
+  assert.deepEqual(verified.publicProjection, release.public_projection);
+  assert.deepEqual(verified.teacherProjection, release.teacher_projection);
+});
+
+test("catalog verification logs only allowlisted release identity and boolean integrity diagnostics", async (t) => {
+  const release = immutableReleaseRow();
+  release.teacher_projection_sha256 = "0".repeat(64);
+  const sql = nativeSql(release);
+  const logCalls = [];
+  const originalConsoleError = console.error;
+  console.error = (...args) => logCalls.push(args);
+  t.after(() => { console.error = originalConsoleError; });
+
+  await assert.rejects(
+    listPublishedNativeAssignmentTargets(sql, { id: "teacher", school_id: "school", role: "teacher" }),
+    (error) => error instanceof ReleaseIntegrityError && error.failedIntegrityChecks[0] === "teacherProjectionMatches",
+  );
+  assert.equal(logCalls.length, 1);
+  assert.equal(logCalls[0].length, 1);
+  const diagnostic = logCalls[0][0];
+  assert.deepEqual(Object.keys(diagnostic).sort(), [
+    "bookPackageId",
+    "bookPackageSlug",
+    "compilerId",
+    "componentId",
+    "componentSlug",
+    "failedIntegrityChecks",
+    "integrityChecks",
+    "releaseId",
+    "releaseNumber",
+    "releaseSchemaVersion",
+  ].sort());
+  assert.deepEqual(diagnostic, {
+    releaseId: release.id,
+    bookPackageId: release.book_package_id,
+    bookPackageSlug: release.package_slug,
+    componentId: release.book_component_id,
+    componentSlug: release.component_slug,
+    releaseNumber: release.release_number,
+    compilerId: release.compiler_id,
+    releaseSchemaVersion: release.release_schema_version,
+    integrityChecks: {
+      compatibilityMatches: true,
+      sourceSnapshotMatches: true,
+      publicProjectionMatches: true,
+      teacherProjectionMatches: false,
+      releaseHashMatches: true,
+    },
+    failedIntegrityChecks: ["teacherProjectionMatches"],
+  });
+  const serialized = JSON.stringify(diagnostic);
+  assert.doesNotMatch(serialized, new RegExp(publicationV2Fixture.teacherSentinel));
+  assert.doesNotMatch(serialized, /"publicProjection":/);
+  assert.doesNotMatch(serialized, /"teacherProjection":/);
+  assert.doesNotMatch(serialized, /"sourceSnapshot":/);
 });
 
 test("an assignment pinned to Release A keeps Release A after the publication head moves to Release B", async () => {
