@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GripHorizontal, LockKeyhole } from "lucide-react";
 
-import { logicalAreaStyle } from "../native-open-response/NativeOpenResponseSurface.jsx";
-import { clientPointToStage, moveStageGeometry, STAGE_RESIZE_HANDLES, transformStageGeometry } from "./stageGeometry.js";
+import { clientPointToStage, logicalAreaStyle, moveStageGeometry, STAGE_RESIZE_HANDLES, transformStageGeometry } from "./stageGeometry.js";
 
 const HANDLE_LABELS = Object.freeze({ nw: "top left", ne: "top right", sw: "bottom left", se: "bottom right" });
 

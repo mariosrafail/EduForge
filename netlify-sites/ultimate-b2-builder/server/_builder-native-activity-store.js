@@ -98,11 +98,11 @@ export function isBuilderNativeDraftAssetRecord(asset, { activityId, reference =
     && asset.source_metadata?.asset_slot === reference.slot;
 }
 
-export async function validateBuilderNativeAssetReferences(sql, { bookSlug, componentSlug, activityId, assets }) {
+export async function validateBuilderNativeAssetReferences(sql, { bookSlug, componentSlug, activityId, assets, requirements = [] }) {
   if (!assets.length) return true;
   const ids = assets.map((asset) => asset.assetId);
   const rows = await sql`
-    select asset.id,asset.checksum_sha256,asset.asset_role,asset.publication_status,asset.access_level,asset.storage_profile,asset.source_metadata
+    select asset.id,asset.checksum_sha256,asset.asset_role,asset.publication_status,asset.access_level,asset.storage_profile,asset.source_metadata,asset.width,asset.height
     from book_assets asset
     join book_packages package on package.id=asset.book_package_id
     join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
@@ -115,6 +115,13 @@ export async function validateBuilderNativeAssetReferences(sql, { bookSlug, comp
       || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
       || asset.source_metadata?.native_activity_id !== activityId || asset.source_metadata?.asset_slot !== reference.slot) {
       throw new Error("Native managed asset reference is not owned by this activity.");
+    }
+  }
+  for (const requirement of requirements) {
+    const reference = assets.find((asset) => asset.slot === requirement.slot);
+    const asset = reference ? byId.get(reference.assetId) : null;
+    if (!asset || Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height) {
+      throw new Error("Native visual panel dimensions do not match its managed background.");
     }
   }
   return true;

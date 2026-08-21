@@ -126,3 +126,12 @@ export function stageGeometryToPercent(area, precision = DEFAULT_PRECISION) {
     height: roundStageValue(area.height, precision),
   };
 }
+
+export function logicalAreaStyle(area, stage) {
+  return {
+    left: `${(area.x / stage.width) * 100}%`,
+    top: `${(area.y / stage.height) * 100}%`,
+    width: `${(area.width / stage.width) * 100}%`,
+    height: `${(area.height / stage.height) * 100}%`,
+  };
+}

@@ -31,7 +31,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.document ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} /> : null}
-    {entry.kind === "single-choice" && !teacherMode ? <NativeSingleChoiceStudentSurface document={document} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
+    {entry.kind === "single-choice" && !teacherMode ? <NativeSingleChoiceStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} /> : null}

@@ -1,5 +1,6 @@
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { createEmptyNativeActivityIndex, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import {
   normalizeUltimateB2PublicReleaseV2Projection,
@@ -117,6 +118,15 @@ function validateAssetRows(nativeEntries, assetRows) {
         descriptor: { sha256: reference.checksumSha256, extension, mediaType: row.mime_type, role: "activity_artwork" },
         row,
       });
+    }
+    if (entry.publicDocument.kind === "single-choice") {
+      for (const requirement of nativeSingleChoicePresentationAssetRequirements(entry.publicDocument)) {
+        const reference = entry.publicDocument.assets.find((asset) => asset.slot === requirement.slot);
+        const row = reference ? byId.get(reference.assetId) : null;
+        if (!row || Number(row.width) !== requirement.width || Number(row.height) !== requirement.height) {
+          throw new NativePublicationError("native_activity_asset_invalid", activityId, ["Visual panel dimensions do not match the managed background."]);
+        }
+      }
     }
   }
   return [...sources.values()].sort((left, right) => `${left.descriptor.sha256}.${left.descriptor.extension}`.localeCompare(`${right.descriptor.sha256}.${right.descriptor.extension}`));

@@ -1,21 +1,85 @@
 import { useState } from "react";
+
+import { selectNativeSingleChoiceResponse, updateNativeSingleChoiceVisualNavigation, visibleNativeSingleChoicePanelIndexes } from "../../data/native-activities/nativeSingleChoiceRuntime.js";
+import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 import "./nativeSingleChoice.css";
 
-export function NativeSingleChoiceStudentSurface({ document, responses: controlledResponses = null, initialResponses = null, onResponsesChange = null, readOnly = false }) {
+function TextSingleChoice({ questions, responses, update, readOnly }) {
+  return questions.map((question, questionIndex) => <fieldset key={question.id} disabled={readOnly}>
+    <legend>{questionIndex + 1}. {question.prompt}</legend>
+    {question.options.map((option) => <label key={option.id}>
+      <input type="radio" name={question.id} value={option.id} checked={responses[question.id] === option.id} onChange={() => update(question.id, option.id)} />
+      <span>{option.text}</span>
+    </label>)}
+  </fieldset>);
+}
+
+function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update, readOnly }) {
+  const questions = document.parts[0].interaction.questions;
+  const questionById = new Map(questions.map((question) => [question.id, question]));
+  const reference = document.assets.find((asset) => asset.slot === panel.backgroundAssetSlot);
+  const panelQuestionIds = [...new Set(panel.hotspots.map((hotspot) => hotspot.questionId))];
+  return <section className="native-single-choice-visual-panel" aria-labelledby={`${panel.id}-title`}>
+    <h3 id={`${panel.id}-title`}>Panel {panelIndex + 1}</h3>
+    <div className="native-single-choice-visual-stage" style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}` }}>
+      {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}
+      {panel.hotspots.map((hotspot) => {
+        const question = questionById.get(hotspot.questionId);
+        const option = question?.options.find((entry) => entry.id === hotspot.optionId);
+        const selected = responses[hotspot.questionId] === hotspot.optionId;
+        return <button
+          key={hotspot.id}
+          type="button"
+          className="native-single-choice-hotspot"
+          style={logicalAreaStyle(hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight })}
+          aria-label={`${question?.prompt || "Question"}: ${option?.text || "Option"}`}
+          aria-pressed={selected}
+          data-selected={selected || undefined}
+          disabled={readOnly}
+          onClick={() => update(hotspot.questionId, hotspot.optionId)}
+        ><span className="native-single-choice-sr-only">{selected ? "Selected: " : "Select "}{option?.text || "option"}</span></button>;
+      })}
+    </div>
+    <div className="native-single-choice-sr-only">
+      {panelQuestionIds.map((questionId) => {
+        const question = questionById.get(questionId);
+        return question ? <section key={question.id}><h4>{question.prompt}</h4><ul>{question.options.map((option) => <li key={option.id}>{option.text}</li>)}</ul></section> : null;
+      })}
+    </div>
+  </section>;
+}
+
+function VisualSingleChoice({ document, assetUrl, responses, update, readOnly }) {
+  const panels = document.parts[0].interaction.presentation.panels;
+  const [navigation, setNavigation] = useState({ panelIndex: 0, showAll: false });
+  if (!panels.length) return <p role="status">No visual panels are available.</p>;
+  const normalized = updateNativeSingleChoiceVisualNavigation(navigation, panels.length, "normalize");
+  const visiblePanels = visibleNativeSingleChoicePanelIndexes(normalized, panels.length).map((index) => ({ panel: panels[index], index }));
+  return <div className="native-single-choice-visual">
+    <div className="native-single-choice-visual-navigation" role="group" aria-label="Visual panel navigation">
+      <button type="button" aria-pressed={normalized.showAll} onClick={() => setNavigation((current) => updateNativeSingleChoiceVisualNavigation(current, panels.length, "toggle-all"))}>{normalized.showAll ? "Paged View" : "Show All"}</button>
+      {!normalized.showAll ? <button type="button" disabled={normalized.panelIndex >= panels.length - 1} onClick={() => setNavigation((current) => updateNativeSingleChoiceVisualNavigation(current, panels.length, "next"))}>Next</button> : null}
+      <span role="status">{normalized.showAll ? `Showing all ${panels.length} panels` : `Panel ${normalized.panelIndex + 1} of ${panels.length}`}</span>
+    </div>
+    <div className={normalized.showAll ? "native-single-choice-visual-panels is-show-all" : "native-single-choice-visual-panels"}>
+      {visiblePanels.map(({ panel, index }) => panel ? <VisualPanel key={panel.id} panel={panel} panelIndex={index} document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} /> : null)}
+    </div>
+  </div>;
+}
+
+export function NativeSingleChoiceStudentSurface({ document, assetUrl = () => "", responses: controlledResponses = null, initialResponses = null, onResponsesChange = null, readOnly = false }) {
   const [localResponses, setLocalResponses] = useState(() => ({ ...(initialResponses || {}) }));
   const responses = controlledResponses && typeof controlledResponses === "object" ? controlledResponses : localResponses;
   const update = (questionId, optionId) => {
-    const next = { ...responses, [questionId]: optionId };
+    if (readOnly) return;
+    const next = selectNativeSingleChoiceResponse(responses, questionId, optionId);
     if (controlledResponses === null) setLocalResponses(next);
     onResponsesChange?.(next);
   };
+  const interaction = document.parts[0].interaction;
   return <div className="native-single-choice-student">
-    {document.parts[0].interaction.questions.map((question, questionIndex) => <fieldset key={question.id} disabled={readOnly}>
-      <legend>{questionIndex + 1}. {question.prompt}</legend>
-      {question.options.map((option) => <label key={option.id}>
-        <input type="radio" name={question.id} value={option.id} checked={responses[question.id] === option.id} onChange={() => update(question.id, option.id)} />
-        <span>{option.text}</span>
-      </label>)}
-    </fieldset>)}
+    {interaction.presentation?.kind === "image-hotspot"
+      ? <VisualSingleChoice document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} />
+      : <TextSingleChoice questions={interaction.questions} responses={responses} update={update} readOnly={readOnly} />}
   </div>;
 }

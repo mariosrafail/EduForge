@@ -1,13 +1,7 @@
 import "./nativeOpenResponseSurface.css";
+import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 
-export function logicalAreaStyle(area, surface) {
-  return {
-    left: `${(area.x / surface.width) * 100}%`,
-    top: `${(area.y / surface.height) * 100}%`,
-    width: `${(area.width / surface.width) * 100}%`,
-    height: `${(area.height / surface.height) * 100}%`,
-  };
-}
+export { logicalAreaStyle };
 
 function ResponseLines({ region, surface, onActivate, selected }) {
   const { presentation } = region;
