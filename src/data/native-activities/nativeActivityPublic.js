@@ -1,6 +1,8 @@
 export const NATIVE_ACTIVITY_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_PART_ID = "part-1";
+export const NATIVE_READABLE_TEXT_MAXIMUM_DIMENSION = 8_192;
+export const NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM = 300;
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const SAFE_ASSET_ROLE = /^[a-z][a-z0-9_]{1,63}$/;
@@ -72,10 +74,48 @@ export function normalizeNativeActivityPlacement(input) {
   return { pageId: safeId(value.pageId, "Native activity page ID") };
 }
 
+export function normalizeNativeReadableText(input, assets) {
+  const value = structuredClone(object(input, "Native readable text"));
+  exactKeys(value, ["kind", "assetSlot", "sourceWidth", "sourceHeight", "altText"], "Native readable text");
+  if (value.kind !== "image") throw new Error("Native readable text kind is invalid.");
+  const reference = assets.find((asset) => asset.slot === value.assetSlot);
+  if (!reference || reference.role !== "activity_artwork") throw new Error("Native readable text must reference managed activity artwork.");
+  for (const [key, label] of [["sourceWidth", "width"], ["sourceHeight", "height"]]) {
+    if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > NATIVE_READABLE_TEXT_MAXIMUM_DIMENSION) {
+      throw new Error(`Native readable text ${label} is invalid.`);
+    }
+  }
+  return {
+    kind: "image",
+    assetSlot: reference.slot,
+    sourceWidth: value.sourceWidth,
+    sourceHeight: value.sourceHeight,
+    altText: text(value.altText, "Native readable text alt text", NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM, { required: true }),
+  };
+}
+
+export function nativeReadableTextAssetRequirements(publicDocument) {
+  const readableText = publicDocument?.readableText;
+  return readableText ? [{ slot: readableText.assetSlot, width: readableText.sourceWidth, height: readableText.sourceHeight, label: "Readable Text" }] : [];
+}
+
+export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
+  const interaction = publicDocument?.parts?.[0]?.interaction;
+  return publicDocument?.readableText?.assetSlot === slot
+    || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
+    || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
+    || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
+}
+
+export function removeNativeManagedAssetReferenceIfUnused(publicDocument, slot) {
+  if (!nativeActivityUsesManagedAssetSlot(publicDocument, slot)) publicDocument.assets = publicDocument.assets.filter((asset) => asset.slot !== slot);
+}
+
 export function normalizeNativeActivityPublic(input, { normalizeInteraction, expectedActivityId = null, expectedKind = null } = {}) {
   if (typeof normalizeInteraction !== "function") throw new Error("Native public interaction normalizer is required.");
   const value = structuredClone(object(input, "Native public activity"));
-  exactKeys(value, ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts"], "Native public activity");
+  const hasReadableText = Object.hasOwn(value, "readableText");
+  exactKeys(value, hasReadableText ? ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts", "readableText"] : ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts"], "Native public activity");
   if (value.schemaVersion !== NATIVE_ACTIVITY_SCHEMA_VERSION) throw new Error("Unsupported native public activity schema version.");
   const activityId = safeId(value.activityId, "Native activity ID");
   const kind = safeId(value.kind, "Native activity kind");
@@ -94,7 +134,8 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   const part = structuredClone(object(value.parts[0], "Native activity Part"));
   exactKeys(part, ["id", "interaction"], "Native activity Part");
   if (part.id !== NATIVE_ACTIVITY_PART_ID) throw new Error("Native activity schema v1 requires stable Part ID part-1.");
-  return {
+  const readableText = hasReadableText ? normalizeNativeReadableText(value.readableText, assets) : null;
+  const normalized = {
     schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     activityId,
     kind,
@@ -104,8 +145,10 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
     },
     placement: normalizeNativeActivityPlacement(value.placement),
     assets,
-    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction: normalizeInteraction(part.interaction, { assets }) }],
+    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction: normalizeInteraction(part.interaction, { assets, commonAssetSlots: new Set(readableText ? [readableText.assetSlot] : []) }) }],
   };
+  if (readableText) normalized.readableText = readableText;
+  return normalized;
 }
 
 export function normalizeNativeActivityIndex(input, { allowedKinds = null } = {}) {

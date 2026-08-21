@@ -4,7 +4,7 @@ import path from "node:path";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
-import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
@@ -139,7 +139,10 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
     await dependencies.validateAssets(sql, {
       ...parsedRoute,
       assets: publicDocument.assets,
-      requirements: publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : [],
+      requirements: [
+        ...nativeReadableTextAssetRequirements(publicDocument),
+        ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
+      ],
     });
   } catch (error) {
     return json(400, { error: "invalid_native_activity_pair", detail: String(error.message || "Invalid pair").slice(0, 240) });
@@ -259,11 +262,15 @@ async function nativeCatalog(dependencies, sql) {
             || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
             || asset.source_metadata?.native_activity_id !== entry.activityId || asset.source_metadata?.asset_slot !== reference.slot) issues.push("Managed artwork is invalid.");
         }
-        if (publicDocument.kind === "single-choice") {
-          for (const requirement of nativeSingleChoicePresentationAssetRequirements(publicDocument)) {
+        {
+          const requirements = [
+            ...nativeReadableTextAssetRequirements(publicDocument),
+            ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
+          ];
+          for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
             const asset = reference ? assetRows.get(reference.assetId) : null;
-            if (!asset || Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height) issues.push("Visual panel dimensions do not match the managed background.");
+            if (!asset || Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height) issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
           }
         }
         ready = issues.length === 0;

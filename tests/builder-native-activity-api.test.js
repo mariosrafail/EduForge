@@ -81,11 +81,13 @@ test("Image paired save requires auth and origin and delegates semantic managed-
   assert.equal(checked[0].activityId, created.activityId);
   assert.equal(checked[0].componentSlug, "ultimate-b2-students-book");
   publicDocument.assets[0].checksumSha256 = "a".repeat(64);
+  publicDocument.readableText = { kind: "image", assetSlot, sourceWidth: 1000, sourceHeight: 1800, altText: "Readable passage" };
   const saved = await handler(request({ path, body: { ...body, publicDocument, clientMutationId: randomUUID() } }));
   assert.equal(saved.statusCode, 200);
   assert.equal(JSON.parse(saved.body).publicRevision, 2);
   assert.equal(JSON.parse(saved.body).publicDocument.parts[0].interaction.images.length, 2);
   assert.equal(JSON.parse(saved.body).publicDocument.assets.length, 1);
+  assert.deepEqual(checked.at(-1).requirements, [{ slot: assetSlot, width: 1000, height: 1800, label: "Readable Text" }]);
 });
 
 test("one create mutation produces index, public, and Teacher documents and replays the stable ID", async () => {

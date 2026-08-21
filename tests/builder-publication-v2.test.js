@@ -81,6 +81,26 @@ test("v2 compiles only hotspot-reachable native pairs into strict public and Tea
   assert.match(JSON.stringify(compiled.teacherProjection), /TEACHER_SENTINEL_5_PRIVATE/);
 });
 
+test("v2 validates and materializes a public Readable Text image without Builder preview URLs", () => {
+  const input = sources({ ids: [openId] });
+  const publicDocument = input.native.activities[openId].public.payload;
+  const readableAsset = { assetId: "10000000-0000-4000-8000-000000000044", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "readable-text" };
+  publicDocument.assets = [readableAsset];
+  publicDocument.readableText = { kind: "image", assetSlot: readableAsset.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Public reading passage" };
+  input.native.activities[openId].public.sha256 = builderDocumentSha256(publicDocument);
+  input.native.assetRows.push({ id: readableAsset.assetId, checksum_sha256: readableAsset.checksumSha256, asset_role: readableAsset.role, object_key: "builder-native-assets/readable.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 200, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: readableAsset.slot } });
+
+  const compiled = compileUltimateB2ComponentReleaseV2(input);
+  assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.readableText, publicDocument.readableText);
+  assert.equal(compiled.nativeAssetSources.some((asset) => asset.row.object_key.endsWith("readable.png")), true);
+  assert.equal(compiled.assetManifest.some((asset) => asset.sha256 === readableAsset.checksumSha256 && asset.role === "activity_artwork"), true);
+  assert.doesNotMatch(JSON.stringify(compiled.publicProjection), /builder\/api|TEACHER_SENTINEL_5_PRIVATE/);
+
+  const mismatch = structuredClone(input);
+  mismatch.native.assetRows.find((row) => row.id === readableAsset.assetId).height = 1799;
+  assert.throws(() => compileUltimateB2ComponentReleaseV2(mismatch), (error) => error.code === "native_activity_asset_invalid" && error.issues.includes("Readable Text dimensions do not match the managed asset."));
+});
+
 test("unreferenced incomplete native drafts do not block v2 publication", () => {
   const compiled = compileUltimateB2ComponentReleaseV2(sources({ ids: [openId], incompleteUnreferenced: true }));
   assert.deepEqual(Object.keys(compiled.publicProjection.nativeActivities), [openId]);

@@ -103,7 +103,7 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
-  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null });
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
   const onActivityPresentationStateChange = useCallback((state) => {
     const next = normalizeTeacherActivityPresentationState(state);
@@ -111,6 +111,7 @@ export default function TeacherOfflinePages({
       current.view === next.view
       && current.panelIndex === next.panelIndex
       && current.panelCount === next.panelCount
+      && current.readableTextAvailable === next.readableTextAvailable
       && current.reveal?.supported === next.reveal?.supported
       && current.reveal?.total === next.reveal?.total
       && current.reveal?.revealed === next.reveal?.revealed
@@ -132,6 +133,7 @@ export default function TeacherOfflinePages({
       panelIndex: 0,
       panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
       reveal: null,
+      readableTextAvailable: false,
     });
     setActivityPresentationCommand(null);
   }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
@@ -311,7 +313,7 @@ export default function TeacherOfflinePages({
     { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
     { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
   ] : [];
-  const standardContextActions = videoAvailable ? [{
+  const standardContextActions = [...(videoAvailable ? [{
     id: "video",
     label: "Video",
     title: "Video",
@@ -319,7 +321,7 @@ export default function TeacherOfflinePages({
     active: activityVideoOpen,
     iconName: "video",
     onClick: () => setActivityVideoOpen((open) => !open),
-  }] : listeningAvailable ? [{
+  }] : []), ...(!videoAvailable && listeningAvailable ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
@@ -328,7 +330,7 @@ export default function TeacherOfflinePages({
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => setListeningShowTextCommand((command) => command + 1),
-  }] : multipleChoiceAvailable || showTextAvailable ? [{
+  }] : []), ...(!listeningAvailable && (activityPresentationState.readableTextAvailable || (!videoAvailable && (multipleChoiceAvailable || showTextAvailable))) ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
@@ -337,7 +339,7 @@ export default function TeacherOfflinePages({
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => sendActivityCommand("toggle-text"),
-  }] : [];
+  }] : [])];
   const contextActions = [...revealActions, ...standardContextActions];
   const internalNavigation = multipleChoiceAvailable || internalPartsAvailable ? {
     previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,

@@ -125,7 +125,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} /> : <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}

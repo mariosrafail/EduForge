@@ -43,6 +43,7 @@ test("the shell presentation contract exposes progress but strips answer-bearing
     panelIndex: 1,
     panelCount: 2,
     reveal: { supported: true, total: 3, revealed: 3, pristine: false },
+    readableTextAvailable: false,
   });
   assert.equal(normalizeTeacherActivityPresentationState({ reveal: { supported: false, total: 9 } }).reveal, null);
 });

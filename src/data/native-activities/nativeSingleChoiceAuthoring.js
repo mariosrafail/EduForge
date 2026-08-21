@@ -1,4 +1,5 @@
 import { createNativeChildId } from "./nativeChildIdentity.js";
+import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 import { createNativeSingleChoiceQuestion } from "./nativeSingleChoice.js";
 
 function interaction(publicDocument) {
@@ -64,5 +65,7 @@ export function enableNativeSingleChoiceVisualPresentation(publicDocument, creat
 }
 
 export function removeNativeSingleChoiceVisualPresentation(publicDocument) {
+  const slots = interaction(publicDocument).presentation?.panels.map((panel) => panel.backgroundAssetSlot).filter(Boolean) || [];
   delete interaction(publicDocument).presentation;
+  slots.forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
 }

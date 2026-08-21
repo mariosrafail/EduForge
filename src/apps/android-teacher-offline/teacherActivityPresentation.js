@@ -11,5 +11,5 @@ export function normalizeTeacherActivityPresentationState(value, fallback = {}) 
     revealed: Math.min(nonNegativeInteger(revealSource.revealed), nonNegativeInteger(revealSource.total)),
     pristine: revealSource.pristine === true,
   } : null;
-  return { view: source.view === "text" ? "text" : "questions", panelIndex, panelCount, reveal };
+  return { view: source.view === "text" ? "text" : "questions", panelIndex, panelCount, reveal, readableTextAvailable: source.readableTextAvailable === true };
 }

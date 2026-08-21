@@ -6,7 +6,7 @@ import { NativeSingleChoiceHotspotCanvas } from "../../../components/native-sing
 import { NativeSingleChoiceStudentSurface } from "../../../components/native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeSingleChoiceTeacherSurface } from "../../../components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
-import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
+import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeSingleChoiceReadiness, NATIVE_SINGLE_CHOICE_LIMITS } from "../../../data/native-activities/nativeSingleChoice.js";
 import {
   addUnansweredNativeSingleChoiceQuestion,
@@ -20,6 +20,7 @@ import {
 } from "../../../data/native-activities/nativeSingleChoiceAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -39,6 +40,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const [drawBinding, setDrawBinding] = useState("");
   const [drawing, setDrawing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
 
@@ -136,7 +138,11 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const deletePanel = () => {
     if (!selectedPanel || !globalThis.confirm("Delete this visual panel and all of its hotspots?")) return;
     const index = panels.findIndex((panel) => panel.id === selectedPanel.id);
-    mutatePublic((next) => { next.parts[0].interaction.presentation.panels = next.parts[0].interaction.presentation.panels.filter((panel) => panel.id !== selectedPanel.id); });
+    mutatePublic((next) => {
+      const slot = next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id)?.backgroundAssetSlot;
+      next.parts[0].interaction.presentation.panels = next.parts[0].interaction.presentation.panels.filter((panel) => panel.id !== selectedPanel.id);
+      if (slot) removeNativeManagedAssetReferenceIfUnused(next, slot);
+    });
     setSelectedPanelId(panels[index + 1]?.id || panels[index - 1]?.id || null); setSelectedHotspotId(null);
   };
   const uploadBackground = async (file) => {
@@ -146,12 +152,14 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
       const uploaded = await uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot: createNativeChildId("asset"), file });
       if (!uploaded.metadata || !Number.isSafeInteger(uploaded.metadata.width) || !Number.isSafeInteger(uploaded.metadata.height)) throw new Error("Uploaded image dimensions are unavailable.");
       mutatePublic((next) => {
+        const previousSlot = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === selectedPanel.id)?.backgroundAssetSlot;
         next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
         const panel = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === selectedPanel.id);
         panel.backgroundAssetSlot = uploaded.reference.slot;
         panel.sourceWidth = uploaded.metadata.width;
         panel.sourceHeight = uploaded.metadata.height;
         panel.hotspots = [];
+        if (previousSlot && previousSlot !== uploaded.reference.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
       });
       setSelectedHotspotId(null); setState((current) => ({ ...current, message: "Background uploaded. Redraw hotspots for its intrinsic dimensions." }));
     } catch (error) { setState((current) => ({ ...current, message: error.message || "Background upload failed." })); }
@@ -224,7 +232,8 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
       <section className="native-or-preview"><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}{preview === "student" ? <NativeSingleChoiceStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeSingleChoiceTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} />}</section>
     </div> : null}
 
-    <aside className="studio-readiness" role="status" data-ready={readiness.ready || undefined}><strong>{readiness.ready ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : <span>Semantic, answer, visual, and security checks pass.</span>}</aside>
-    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready} reason={!dirty ? "No unsaved changes" : !readiness.ready ? "Resolve all authoring issues before saving" : ""} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
+    <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
+    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length || readableTextIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}</ul> : <span>Semantic, answer, visual, and security checks pass.</span>}</aside>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready || readableTextIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : !readiness.ready ? "Resolve all authoring issues before saving" : ""} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }

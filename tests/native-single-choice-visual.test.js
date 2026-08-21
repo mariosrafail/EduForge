@@ -243,7 +243,7 @@ test("Builder Front is public-only while Back owns answers, managed upload, and 
   assert.match(editor, /<NativeSingleChoiceStudentSurface document=\{publicDraft\} assetUrl=\{assetUrl\}/);
   assert.doesNotMatch(editor, /NativeSingleChoiceStudentSurface[^>]+teacherDocument/);
   assert.match(editor, /addUnansweredNativeSingleChoiceQuestion/);
-  assert.match(editor, /disabled=\{!dirty \|\| state\.saving \|\| !readiness\.ready\}/);
+  assert.match(editor, /disabled=\{!dirty \|\| state\.saving \|\| !readiness\.ready \|\| readableTextIncomplete\}/);
   assert.match(editor, /uploadNativeActivityAsset/);
   assert.match(editor, /NativeSingleChoiceHotspotCanvas/);
   assert.match(editor, /Needs answer/);

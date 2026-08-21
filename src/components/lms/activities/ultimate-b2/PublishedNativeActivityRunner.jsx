@@ -5,9 +5,10 @@ import { NativeOpenResponseStudentSurface } from "../../../native-open-response/
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 
-export function PublishedNativeActivityRunner({ entry, publication, teacherMode = false, responses = null, initialResponses = null, onResponsesChange = null, readOnly = false, showMetadataHeader = true }) {
+export function PublishedNativeActivityRunner({ entry, publication, teacherMode = false, responses = null, initialResponses = null, onResponsesChange = null, readOnly = false, showMetadataHeader = true, presentation = null }) {
   const [teacherState, setTeacherState] = useState({ kind: "idle", document: null });
   const document = entry.document;
   useEffect(() => {
@@ -24,7 +25,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     const reference = document.assets.find((asset) => asset.assetId === assetId);
     return publishedNativeAssetUrl(publication, reference);
   };
-  return <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
+  return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}><article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {entry.kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" /> : null}
     {entry.kind === "open-response" && !teacherMode ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
@@ -35,5 +36,5 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} /> : null}
-  </article>;
+  </article></NativeReadableTextPresentation>;
 }

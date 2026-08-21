@@ -12,6 +12,7 @@ import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, du
 import { autoFitNativeOpenResponseAnswer } from "../../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
+import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -38,6 +39,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const [selection, setSelection] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -181,8 +183,9 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       <section className="native-or-layers"><h3>Artwork Layers</h3>{[...interaction.artwork].sort((left, right) => right.order - left.order).map((item) => <button type="button" key={item.id} aria-current={selection?.type === "artwork" && selection.id === item.id ? "true" : undefined} onClick={() => setSelection({ type: "artwork", id: item.id })}><span>{item.altText || (item.decorative ? "Decorative graphic" : item.id)}</span>{item.locked ? <small>Locked</small> : null}</button>)}</section>
     </aside></div> : null}
     {tab === "preview" ? <div className="native-or-preview"><p><strong>Local Preview</strong> may include unsaved editor changes. Use the shared Review button for the last saved deployed Viewer state.</p><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}<div hidden={preview !== "student"}><NativeOpenResponseStudentSurface document={publicDraft} assetUrl={previewAsset} /></div>{preview === "teacher" ? <NativeOpenResponseTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAsset} /> : null}</div> : null}
-    <aside className="native-or-readiness" role="status"><strong>{readiness.ready ? "Content complete" : "Content incomplete"}</strong>{readiness.issues.length ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}</aside>
-    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim()} reason={!dirty ? "No unsaved changes" : "Add an activity title before saving"} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
+    <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewAsset} onIncompleteChange={setReadableTextIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
+    <aside className="native-or-readiness" role="status"><strong>{readiness.ready && !readableTextIncomplete ? "Content complete" : "Content incomplete"}</strong>{readiness.issues.length || readableTextIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}</ul> : null}</aside>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : "Add an activity title before saving"} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }
 

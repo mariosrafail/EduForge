@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 
 export const NATIVE_IMAGE_LIMITS = Object.freeze({ images: 32, altTextLength: 2_000, surfaceMaximum: 10_000 });
 export const NATIVE_IMAGE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
@@ -71,26 +72,27 @@ function normalizeImage(input, index, logicalSurface, assetSlots) {
   };
 }
 
-function normalizeLegacyInteraction(value, assets) {
+function normalizeLegacyInteraction(value, assets, commonAssetSlots) {
   exactKeys(value, ["kind", "image", "altText"], "Native Image interaction");
   const altText = text(value.altText, "Native Image alt text", NATIVE_IMAGE_LIMITS.altTextLength);
   if (value.image === null) {
-    if (assets.length) throw new Error("Blank Native Image drafts cannot retain managed assets.");
+    if (assets.some((asset) => !commonAssetSlots.has(asset.slot))) throw new Error("Blank Native Image drafts cannot retain unused managed assets.");
     return { kind: "image", surface: { ...NATIVE_IMAGE_DEFAULT_SURFACE }, images: [] };
   }
   exactKeys(value.image, ["assetSlot", "fit", "decorative"], "Native Image descriptor");
-  if (assets.length !== 1 || assets[0].slot !== value.image.assetSlot || assets[0].role !== "activity_artwork") throw new Error("Legacy Native Image must map exactly one managed activity artwork asset by slot.");
+  const imageAsset = assets.find((asset) => asset.slot === value.image.assetSlot);
+  if (!imageAsset || imageAsset.role !== "activity_artwork" || assets.some((asset) => asset !== imageAsset && !commonAssetSlots.has(asset.slot))) throw new Error("Legacy Native Image must map managed activity artwork by slot without unused assets.");
   return normalizeNativeImageInteraction({
     kind: "image",
     surface: { ...NATIVE_IMAGE_DEFAULT_SURFACE },
     images: [{ id: LEGACY_IMAGE_ID, assetSlot: value.image.assetSlot, area: { x: 0, y: 0, ...NATIVE_IMAGE_DEFAULT_SURFACE }, order: 0, altText, decorative: value.image.decorative, fit: value.image.fit, locked: false }],
-  }, { assets });
+  }, { assets, commonAssetSlots });
 }
 
-export function normalizeNativeImageInteraction(input, { assets = [] } = {}) {
+export function normalizeNativeImageInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Image interaction"));
   if (value.kind !== "image") throw new Error("Native Image interaction kind is invalid.");
-  if (Object.hasOwn(value, "image") || Object.hasOwn(value, "altText")) return normalizeLegacyInteraction(value, assets);
+  if (Object.hasOwn(value, "image") || Object.hasOwn(value, "altText")) return normalizeLegacyInteraction(value, assets, commonAssetSlots);
   exactKeys(value, ["kind", "surface", "images"], "Native Image interaction");
   const logicalSurface = surface(value.surface);
   if (!Array.isArray(value.images) || value.images.length > NATIVE_IMAGE_LIMITS.images) throw new Error("Native Image image count is invalid.");
@@ -103,7 +105,7 @@ export function normalizeNativeImageInteraction(input, { assets = [] } = {}) {
     ids.add(normalized.id); usedSlots.add(normalized.assetSlot);
     return normalized;
   });
-  if (assets.some((asset) => asset.role !== "activity_artwork" || !usedSlots.has(asset.slot))) throw new Error("Every Native Image managed asset must be used by an image instance.");
+  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Image managed asset must be used by an image instance or common supporting content.");
   return { kind: "image", surface: logicalSurface, images };
 }
 
@@ -132,7 +134,7 @@ export function removeNativeImage(publicDocument, imageId) {
   const removed = interaction.images.find((entry) => entry.id === imageId);
   if (!removed) throw new Error("Native Image instance does not exist.");
   interaction.images = interaction.images.filter((entry) => entry.id !== imageId).map((entry, order) => ({ ...entry, order }));
-  if (!interaction.images.some((entry) => entry.assetSlot === removed.assetSlot)) value.assets = value.assets.filter((entry) => entry.slot !== removed.assetSlot);
+  removeNativeManagedAssetReferenceIfUnused(value, removed.assetSlot);
   return removed;
 }
 

@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
 
 export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
@@ -163,7 +164,7 @@ function artwork(input, index, logicalSurface, assetSlots) {
   };
 }
 
-export function normalizeNativeOpenResponseInteraction(input, { assets = [] } = {}) {
+export function normalizeNativeOpenResponseInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Open Response interaction"));
   exactKeys(value, ["kind", "surface", "artwork", "questions"], "Native Open Response interaction");
   if (value.kind !== "open-response") throw new Error("Native Open Response interaction kind is invalid.");
@@ -187,7 +188,7 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [] } = 
     artworkIds.add(normalized.id); usedSlots.add(normalized.assetSlot);
     return normalized;
   });
-  if (assets.some((asset) => asset.role !== "activity_artwork" || !usedSlots.has(asset.slot))) throw new Error("Every Native Open Response managed asset must be used by artwork.");
+  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by artwork or common supporting content.");
   return { kind: "open-response", surface: logicalSurface, artwork: normalizedArtwork, questions };
 }
 
@@ -218,9 +219,7 @@ export function removeNativeOpenResponseArtwork(publicDocument, artworkId) {
   interaction.artwork = interaction.artwork
     .filter((entry) => entry.id !== artworkId)
     .map((entry, order) => ({ ...entry, order }));
-  if (!interaction.artwork.some((entry) => entry.assetSlot === removed.assetSlot)) {
-    value.assets = value.assets.filter((entry) => entry.slot !== removed.assetSlot);
-  }
+  removeNativeManagedAssetReferenceIfUnused(value, removed.assetSlot);
   return removed;
 }
 

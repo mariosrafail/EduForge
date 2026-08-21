@@ -1,5 +1,5 @@
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
-import { createEmptyNativeActivityIndex, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import {
@@ -119,12 +119,16 @@ function validateAssetRows(nativeEntries, assetRows) {
         row,
       });
     }
-    if (entry.publicDocument.kind === "single-choice") {
-      for (const requirement of nativeSingleChoicePresentationAssetRequirements(entry.publicDocument)) {
+    {
+      const requirements = [
+        ...nativeReadableTextAssetRequirements(entry.publicDocument),
+        ...(entry.publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(entry.publicDocument) : []),
+      ];
+      for (const requirement of requirements) {
         const reference = entry.publicDocument.assets.find((asset) => asset.slot === requirement.slot);
         const row = reference ? byId.get(reference.assetId) : null;
         if (!row || Number(row.width) !== requirement.width || Number(row.height) !== requirement.height) {
-          throw new NativePublicationError("native_activity_asset_invalid", activityId, ["Visual panel dimensions do not match the managed background."]);
+          throw new NativePublicationError("native_activity_asset_invalid", activityId, [`${requirement.label || "Managed image"} dimensions do not match the managed asset.`]);
         }
       }
     }

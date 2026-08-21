@@ -121,7 +121,7 @@ export async function validateBuilderNativeAssetReferences(sql, { bookSlug, comp
     const reference = assets.find((asset) => asset.slot === requirement.slot);
     const asset = reference ? byId.get(reference.assetId) : null;
     if (!asset || Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height) {
-      throw new Error("Native visual panel dimensions do not match its managed background.");
+      throw new Error(`${requirement.label || "Native managed image"} dimensions do not match its managed asset.`);
     }
   }
   return true;
