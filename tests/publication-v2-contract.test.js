@@ -2,13 +2,28 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
-import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
-import { resolvePublicationCompiler, verifyImmutableComponentRelease } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
+import {
+  compileUltimateB2ComponentReleaseV2,
+  isUltimateB2PublicationV2NativeKind,
+  reconstructUltimateB2PublicationV2Compatibility,
+  resolveUltimateB2PublicationV2CompatibilityVariant,
+  ultimateB2PublicationV2Compatibility,
+  ultimateB2PublicationV2CompatibilityDescriptor,
+  ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS,
+} from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
+import {
+  ReleaseCompatibilityVariantError,
+  resolvePublicationCompiler,
+  verifyImmutableComponentRelease,
+} from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
 import {
   normalizeUltimateB2PublicReleaseV2Projection,
   normalizeUltimateB2ReleaseV2SourceSnapshot,
   normalizeUltimateB2TeacherReleaseV2Projection,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
 } from "../src/data/ultimate-b2/componentPublicationV2.js";
+import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { ultimateB2PublicationCanonicalSeeds } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
 import { compilePublicationV2Fixture, createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
@@ -31,6 +46,159 @@ function releaseRow(compiled) {
 function refreshSource(source) {
   source.sha256 = builderDocumentSha256(source.payload);
 }
+
+function historicalV2Release() {
+  const sources = createPublicationV2FixtureSources();
+  sources.native.index.payload.activities = sources.native.index.payload.activities
+    .filter((entry) => entry.activityId !== publicationV2Fixture.singleChoiceId);
+  delete sources.native.activities[publicationV2Fixture.singleChoiceId];
+  for (const hotspots of Object.values(sources.documents.hotspots.payload.pages)) {
+    const index = hotspots.findIndex((hotspot) => hotspot.activityKey === publicationV2Fixture.singleChoiceId);
+    if (index >= 0) hotspots.splice(index, 1);
+  }
+  refreshSource(sources.native.index);
+  refreshSource(sources.documents.hotspots);
+
+  const compiled = compileUltimateB2ComponentReleaseV2(sources);
+  const historicalVariant = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS
+    .find((variant) => variant.name === "initial-image-open-response");
+  const publicProjection = { ...compiled.publicProjection, compatibility: historicalVariant.compatibility };
+  return {
+    ...compiled,
+    compatibility: historicalVariant.compatibility,
+    publicProjection,
+    publicProjectionSha256: builderDocumentSha256(publicProjection),
+    releaseSha256: builderDocumentSha256({
+      compatibility: historicalVariant.compatibility,
+      sourceSnapshot: compiled.sourceSnapshot,
+      publicProjection,
+      teacherProjection: compiled.teacherProjection,
+    }),
+  };
+}
+
+function refreshReleaseHashes(release) {
+  release.source_snapshot_sha256 = builderDocumentSha256(release.source_snapshot);
+  release.public_projection_sha256 = builderDocumentSha256(release.public_projection);
+  release.teacher_projection_sha256 = builderDocumentSha256(release.teacher_projection);
+  release.release_sha256 = builderDocumentSha256({
+    compatibility: release.runtime_compatibility_sha256,
+    sourceSnapshot: release.source_snapshot,
+    publicProjection: release.public_projection,
+    teacherProjection: release.teacher_projection,
+  });
+}
+
+test("v2 compatibility variants and capability sets are frozen and reproducible", () => {
+  assert.deepEqual(
+    ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.map(({ name, nativeKinds }) => ({ name, nativeKinds })),
+    [
+      { name: "initial-image-open-response", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS },
+      { name: "single-choice-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS },
+    ],
+  );
+  for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {
+    const descriptor = ultimateB2PublicationV2CompatibilityDescriptor(variant.nativeKinds);
+    assert.deepEqual(descriptor.nativeKinds, variant.nativeKinds);
+    assert.ok(builderDocumentSha256(descriptor) === variant.compatibility, `${variant.name} compatibility descriptor drifted`);
+    assert.ok(reconstructUltimateB2PublicationV2Compatibility(variant.nativeKinds) === variant.compatibility, `${variant.name} compatibility reconstruction drifted`);
+    assert.equal(resolveUltimateB2PublicationV2CompatibilityVariant(variant.compatibility), variant);
+  }
+  const expanded = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS[1];
+  assert.ok(ultimateB2PublicationV2Compatibility() === expanded.compatibility);
+  assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS, ["image", "open-response", "single-choice"]);
+  assert.equal(isUltimateB2PublicationV2NativeKind("future-native-kind"), false);
+  assert.ok(reconstructUltimateB2PublicationV2Compatibility([...NATIVE_ACTIVITY_KINDS, "future-native-kind"]) !== ultimateB2PublicationV2Compatibility());
+});
+
+test("a reconstructed pre-Single-Choice v2 release preserves every stored document hash and verifies its historical aggregate", () => {
+  const compiled = historicalV2Release();
+  const release = releaseRow(compiled);
+  const storedHashes = {
+    source: release.source_snapshot_sha256,
+    public: release.public_projection_sha256,
+    teacher: release.teacher_projection_sha256,
+    aggregate: release.release_sha256,
+  };
+  const verified = verifyImmutableComponentRelease(release);
+  assert.deepEqual({
+    compatibilityMatches: release.runtime_compatibility_sha256 === verified.compatibility,
+    sourceSnapshotMatches: builderDocumentSha256(verified.sourceSnapshot) === release.source_snapshot_sha256,
+    publicProjectionMatches: builderDocumentSha256(verified.publicProjection) === release.public_projection_sha256,
+    teacherProjectionMatches: builderDocumentSha256(verified.teacherProjection) === release.teacher_projection_sha256,
+    releaseHashMatches: builderDocumentSha256({
+      compatibility: verified.compatibility,
+      sourceSnapshot: verified.sourceSnapshot,
+      publicProjection: verified.publicProjection,
+      teacherProjection: verified.teacherProjection,
+    }) === release.release_sha256,
+  }, {
+    compatibilityMatches: true,
+    sourceSnapshotMatches: true,
+    publicProjectionMatches: true,
+    teacherProjectionMatches: true,
+    releaseHashMatches: true,
+  });
+  assert.deepEqual(Object.keys(verified.sourceSnapshot.nativeActivities).sort(), [publicationV2Fixture.imageId, publicationV2Fixture.openResponseId].sort());
+  assert.deepEqual(Object.keys(verified.publicProjection.nativeActivities).sort(), [publicationV2Fixture.imageId, publicationV2Fixture.openResponseId].sort());
+  assert.deepEqual(Object.keys(verified.teacherProjection.nativeActivities).sort(), [publicationV2Fixture.imageId, publicationV2Fixture.openResponseId].sort());
+  assert.ok(builderDocumentSha256(verified.sourceSnapshot) === storedHashes.source);
+  assert.ok(builderDocumentSha256(verified.publicProjection) === storedHashes.public);
+  assert.ok(builderDocumentSha256(verified.teacherProjection) === storedHashes.teacher);
+  assert.ok(builderDocumentSha256({
+    compatibility: verified.compatibility,
+    sourceSnapshot: verified.sourceSnapshot,
+    publicProjection: verified.publicProjection,
+    teacherProjection: verified.teacherProjection,
+  }) === storedHashes.aggregate);
+  assert.deepEqual({
+    source: release.source_snapshot_sha256,
+    public: release.public_projection_sha256,
+    teacher: release.teacher_projection_sha256,
+    aggregate: release.release_sha256,
+  }, storedHashes);
+});
+
+test("the historical v2 variant rejects Single Choice in source, public, and Teacher identities", () => {
+  const expanded = compilePublicationV2Fixture();
+  const mutations = [
+    (release) => { release.source_snapshot.nativeActivities[publicationV2Fixture.singleChoiceId] = structuredClone(expanded.sourceSnapshot.nativeActivities[publicationV2Fixture.singleChoiceId]); },
+    (release) => { release.public_projection.nativeActivities[publicationV2Fixture.singleChoiceId] = structuredClone(expanded.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId]); },
+    (release) => { release.teacher_projection.nativeActivities[publicationV2Fixture.singleChoiceId] = structuredClone(expanded.teacherProjection.nativeActivities[publicationV2Fixture.singleChoiceId]); },
+  ];
+  for (const mutate of mutations) {
+    const release = releaseRow(historicalV2Release());
+    release.source_snapshot = structuredClone(release.source_snapshot);
+    release.public_projection = structuredClone(release.public_projection);
+    release.teacher_projection = structuredClone(release.teacher_projection);
+    mutate(release);
+    refreshReleaseHashes(release);
+    assert.throws(() => verifyImmutableComponentRelease(release), /unsupported by this release compatibility variant/);
+  }
+});
+
+test("the expanded v2 variant verifies Single Choice but unknown stored compatibility remains fail-closed", () => {
+  const expanded = compilePublicationV2Fixture();
+  const verified = verifyImmutableComponentRelease(releaseRow(expanded));
+  assert.equal(verified.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId].kind, "single-choice");
+
+  const release = releaseRow(expanded);
+  const unknownCompatibility = "0".repeat(64);
+  release.runtime_compatibility_sha256 = unknownCompatibility;
+  release.public_projection = { ...release.public_projection, compatibility: unknownCompatibility };
+  refreshReleaseHashes(release);
+  assert.ok(builderDocumentSha256({
+    compatibility: release.runtime_compatibility_sha256,
+    sourceSnapshot: release.source_snapshot,
+    publicProjection: release.public_projection,
+    teacherProjection: release.teacher_projection,
+  }) === release.release_sha256);
+  assert.equal(resolveUltimateB2PublicationV2CompatibilityVariant(unknownCompatibility), null);
+  assert.throws(() => verifyImmutableComponentRelease(release), (error) => error instanceof ReleaseCompatibilityVariantError && error.code === "release_integrity_failed");
+  const diagnostic = JSON.stringify(new ReleaseCompatibilityVariantError());
+  assert.doesNotMatch(diagnostic, new RegExp(publicationV2Fixture.teacherSentinel));
+  assert.doesNotMatch(diagnostic, /publicProjection|teacherProjection|sourceSnapshot|[a-f0-9]{64}/i);
+});
 
 test("v2 source, public, and Teacher contracts are strict and integrity dispatch is compiler/schema-bound", () => {
   const compiled = compilePublicationV2Fixture();

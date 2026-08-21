@@ -103,3 +103,16 @@ test("referenced readiness, pair, target, and asset failures are safe and determ
   ambiguous.native.activities = { "ultimate-b2-sb-u1-p1-o1": { index: ambiguous.native.index.payload.activities[0], public: source(pair.publicDocument), teacher: source(pair.teacherDocument) } };
   assert.throws(() => compileUltimateB2ComponentReleaseV2(ambiguous), (error) => error.code === "native_activity_pair_invalid");
 });
+
+test("v2 publication rejects a future native kind at its frozen capability boundary", () => {
+  const future = sources({ ids: [openId] });
+  future.native.index.payload.activities[0].kind = "future-native-kind";
+  future.native.activities[openId].index.kind = "future-native-kind";
+  future.native.index.sha256 = builderDocumentSha256(future.native.index.payload);
+  assert.throws(
+    () => compileUltimateB2ComponentReleaseV2(future),
+    (error) => error instanceof NativePublicationError
+      && error.code === "native_activity_pair_invalid"
+      && error.issues.every((issue) => !issue.includes("TEACHER_SENTINEL")),
+  );
+});

@@ -6,15 +6,38 @@ import {
   normalizeUltimateB2ReleaseV2SourceSnapshot,
   normalizeUltimateB2TeacherReleaseV2Projection,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
 } from "../../../src/data/ultimate-b2/componentPublicationV2.js";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
-import { NATIVE_ACTIVITY_KINDS } from "../../../src/data/native-activities/nativeActivityKinds.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" });
+const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS);
+const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
+  initialImageOpenResponse: "ab4b8255596ce01a0e7132d37c33b62683e384f2f178eed313bfeef62091027e",
+  singleChoiceExpanded: "f1fca746955e58c0c4153c97a717a2f5e024cb5d12eb9263ad8c6b2a7caf9316",
+});
+
+export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
+  Object.freeze({
+    name: "initial-image-open-response",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.initialImageOpenResponse,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
+  }),
+  Object.freeze({
+    name: "single-choice-expanded",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.singleChoiceExpanded,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+  }),
+]);
+
+const v2CompatibilityVariantsByIdentity = new Map(
+  ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.map((variant) => [variant.compatibility, variant]),
+);
 
 export class NativePublicationError extends Error {
   constructor(code, activityId, issues = []) {
@@ -26,17 +49,33 @@ export class NativePublicationError extends Error {
   }
 }
 
-export function ultimateB2PublicationV2Compatibility() {
-  return builderDocumentSha256({
+export function ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds) {
+  return Object.freeze({
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     legacyRuntimeCompatibility: ultimateB2PublicationCompatibility(),
     hotspotSchemaVersion: repositoryHotspots.schemaVersion,
     nativeActivitySchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION,
-    nativeKinds: [...NATIVE_ACTIVITY_KINDS].sort(),
+    nativeKinds: Object.freeze([...nativeKinds].sort()),
     releaseAssetDescriptorSchemaVersion: "1.0",
   });
+}
+
+export function reconstructUltimateB2PublicationV2Compatibility(nativeKinds) {
+  return builderDocumentSha256(ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds));
+}
+
+export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility) {
+  return v2CompatibilityVariantsByIdentity.get(compatibility) || null;
+}
+
+export function ultimateB2PublicationV2Compatibility() {
+  return V2_COMPATIBILITY_IDENTITIES.singleChoiceExpanded;
+}
+
+export function isUltimateB2PublicationV2NativeKind(kind) {
+  return V2_PUBLISHABLE_NATIVE_KINDS.has(kind);
 }
 
 function activityCatalog(nativeActivities) {
@@ -88,6 +127,7 @@ function collectNativeEntries(sources, hotspots) {
   for (const activityId of referencedNativeIds(hotspots, sources.native.activities)) {
     const source = sources.native.activities[activityId];
     if (!source?.public || !source?.teacher) throw new NativePublicationError("native_activity_not_found", activityId, ["The saved native activity pair is incomplete."]);
+    if (!isUltimateB2PublicationV2NativeKind(source.index.kind)) throw new NativePublicationError("native_activity_pair_invalid", activityId, ["The native activity kind is unsupported by publication v2."]);
     const kind = resolveNativeActivityKind(source.index.kind);
     if (!kind) throw new NativePublicationError("native_activity_pair_invalid", activityId, ["The native activity kind is unsupported."]);
     let publicDocument;
@@ -138,7 +178,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
       public: { revision: entry.source.public.revision, sha256: entry.source.public.sha256 },
       teacher: { revision: entry.source.teacher.revision, sha256: entry.source.teacher.sha256 },
     }])),
-  }, seeds);
+  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS });
   const publicProjection = normalizeUltimateB2PublicReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -148,7 +188,10 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     activities: legacy.publicProjection.activities,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }])),
     assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor)],
-  }, seeds);
+  }, seeds, {
+    allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+    expectedCompatibility: compatibility,
+  });
   const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -156,7 +199,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     solutions: legacy.teacherProjection.solutions,
     ui: legacy.teacherProjection.ui,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.teacherDocument.kind, document: entry.teacherDocument }])),
-  }, seeds, publicProjection);
+  }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS });
   const assetManifest = [...legacy.assetManifest, ...nativeAssetSources.map((asset) => asset.descriptor)]
     .sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
   const hashes = {

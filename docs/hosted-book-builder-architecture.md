@@ -126,6 +126,8 @@ A hosted save persists a Builder authoring revision and makes that Student-safe 
 
 A hosted save still does not publish LMS runtime, publish Android packs, mutate production runtime tables, or commit repository files. Saved Draft Review is review preview, not publication. Publication separately prepares an immutable release, reviews that exact release through the same shared Review surface, and only then permits an explicit publish transition.
 
+Published compiler and release-schema contracts are append-only. Any future change to v2 normalization semantics, required runtime semantics, supported native capability set, or compatibility descriptor identity must introduce a new compiler ID and/or release schema version; an already-published v2 contract must never inherit capability additions from the mutable global native-activity registry.
+
 ## Naming and operational compatibility
 
 Generic infrastructure uses `HostedBookBuilderApp`, `hostedBuilderCatalog`, `hostedBuilderRouter`, `builder_component_documents`, `book-builder-hosted-review`, `netlify-book-builder-review`, and `virtual:book-builder-app`. Ultimate B2 page, hotspot, activity, and Teacher shell implementation keeps title-specific names because those describe real content.

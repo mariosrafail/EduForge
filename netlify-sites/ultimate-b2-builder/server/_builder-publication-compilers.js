@@ -14,7 +14,10 @@ import {
   ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
 } from "../../../src/data/ultimate-b2/componentPublicationV2.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
-import { compileUltimateB2ComponentReleaseV2, ultimateB2PublicationV2Compatibility } from "./_builder-publication-compiler-v2.js";
+import {
+  compileUltimateB2ComponentReleaseV2,
+  resolveUltimateB2PublicationV2CompatibilityVariant,
+} from "./_builder-publication-compiler-v2.js";
 import { collectUltimateB2PublicationSources, collectUltimateB2PublicationV2Sources } from "./_builder-publication-store.js";
 
 function expectedAssetManifest(publicProjection, teacherProjection) {
@@ -47,6 +50,14 @@ export class ReleaseIntegrityError extends Error {
     this.integrityChecks = Object.freeze(Object.fromEntries(RELEASE_INTEGRITY_CHECK_NAMES.map((name) => [name, checks[name] === true])));
     this.failedIntegrityChecks = Object.freeze(RELEASE_INTEGRITY_CHECK_NAMES.filter((name) => !this.integrityChecks[name]));
     this.storedCompatibilityReleaseHashMatches = checks.storedCompatibilityReleaseHashMatches === true;
+  }
+}
+
+export class ReleaseCompatibilityVariantError extends Error {
+  constructor() {
+    super("release_integrity_failed");
+    this.name = "ReleaseCompatibilityVariantError";
+    this.code = "release_integrity_failed";
   }
 }
 
@@ -90,11 +101,17 @@ const v2 = Object.freeze({
   collect: collectUltimateB2PublicationV2Sources,
   compile: compileUltimateB2ComponentReleaseV2,
   verifyRelease(release) {
+    const variant = resolveUltimateB2PublicationV2CompatibilityVariant(release.runtime_compatibility_sha256);
+    if (!variant) throw new ReleaseCompatibilityVariantError();
     const seeds = ultimateB2PublicationCanonicalSeeds();
-    const compatibility = ultimateB2PublicationV2Compatibility();
-    const sourceSnapshot = normalizeUltimateB2ReleaseV2SourceSnapshot(release.source_snapshot, seeds);
-    const publicProjection = normalizeUltimateB2PublicReleaseV2Projection(release.public_projection, seeds);
-    const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection(release.teacher_projection, seeds, publicProjection);
+    const compatibility = variant.compatibility;
+    const normalizationOptions = { allowedNativeKinds: variant.nativeKinds };
+    const sourceSnapshot = normalizeUltimateB2ReleaseV2SourceSnapshot(release.source_snapshot, seeds, normalizationOptions);
+    const publicProjection = normalizeUltimateB2PublicReleaseV2Projection(release.public_projection, seeds, {
+      ...normalizationOptions,
+      expectedCompatibility: compatibility,
+    });
+    const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection(release.teacher_projection, seeds, publicProjection, normalizationOptions);
     verifyManifest(release, expectedAssetManifest(publicProjection, teacherProjection));
     verifyHashes(release, compatibility, sourceSnapshot, publicProjection, teacherProjection);
     return { compatibility, sourceSnapshot, publicProjection, teacherProjection };

@@ -15,6 +15,8 @@ import {
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION = "2.0";
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID = "ultimate-b2-students-book-v2";
+export const ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS = Object.freeze(["image", "open-response"]);
+export const ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS = Object.freeze(["image", "open-response", "single-choice"]);
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -34,7 +36,8 @@ function sourceIdentity(value, label, { nullableZeroSha = false } = {}) {
   return { revision: value.revision, sha256: value.sha256 };
 }
 
-function nativeDefinition(kind) {
+function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS) {
+  if (!allowedNativeKinds.includes(kind)) throw new Error("Published native activity kind is unsupported by this release compatibility variant.");
   if (kind === "open-response") return {
     normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeOpenResponseInteraction }); },
     normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeOpenResponseSolution }); },
@@ -63,7 +66,7 @@ function normalizeAsset(value, label) {
 
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById) {
+export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS } = {}) {
   exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities"], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
@@ -78,7 +81,7 @@ export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeeds
     if (!SAFE_ID.test(activityId)) throw new Error("Release v2 native source identity is invalid.");
     const entry = value.nativeActivities[activityId];
     exactObject(entry, ["kind", "public", "teacher"], `Release v2 native source ${activityId}`);
-    nativeDefinition(entry.kind);
+    nativeDefinition(entry.kind, allowedNativeKinds);
     nativeActivities[activityId] = {
       kind: entry.kind,
       public: sourceIdentity(entry.public, `Release v2 native source ${activityId} public`),
@@ -95,14 +98,14 @@ export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeeds
   };
 }
 
-function normalizeNativePublicMap(value) {
+function normalizeNativePublicMap(value, allowedNativeKinds) {
   exactObject(value, Object.keys(value || {}), "Published native activity map");
   const nativeActivities = {};
   for (const activityId of Object.keys(value).sort()) {
     if (!SAFE_ID.test(activityId)) throw new Error("Published native activity identity is invalid.");
     const entry = value[activityId];
     exactObject(entry, ["kind", "document"], `Published native activity ${activityId}`);
-    const definition = nativeDefinition(entry.kind);
+    const definition = nativeDefinition(entry.kind, allowedNativeKinds);
     nativeActivities[activityId] = { kind: entry.kind, document: definition.normalizePublic(entry.document, activityId) };
   }
   return nativeActivities;
@@ -121,10 +124,13 @@ function hotspotCatalog(nativeActivities) {
   ];
 }
 
-export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSeedsById) {
+export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSeedsById, {
+  allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+  expectedCompatibility = null,
+} = {}) {
   exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets"], "Public release v2");
-  if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book" || !SHA256.test(String(value.compatibility || ""))) throw new Error("Public release v2 identity is invalid.");
-  const nativeActivities = normalizeNativePublicMap(value.nativeActivities);
+  if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book" || !SHA256.test(String(value.compatibility || "")) || (expectedCompatibility !== null && value.compatibility !== expectedCompatibility)) throw new Error("Public release v2 identity is invalid.");
+  const nativeActivities = normalizeNativePublicMap(value.nativeActivities, allowedNativeKinds);
   const hotspots = validateAndNormalizeUltimateB2HotspotManifest(value.hotspots, hotspotCatalog(nativeActivities));
   const rawAssets = Array.isArray(value.assets) ? value.assets.map((asset, index) => normalizeAsset(asset, `Public release v2 assets[${index}]`)) : null;
   if (!rawAssets) throw new Error("Public release v2 assets are invalid.");
@@ -157,7 +163,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   return normalized;
 }
 
-export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null) {
+export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS } = {}) {
   exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "solutions", "ui", "nativeActivities"], "Teacher release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book") throw new Error("Teacher release v2 identity is invalid.");
   const legacy = normalizeUltimateB2TeacherReleaseProjection({ schemaVersion: "1.0", bookSlug: value.bookSlug, componentSlug: value.componentSlug, solutions: value.solutions, ui: value.ui }, canonicalSeedsById);
@@ -166,7 +172,7 @@ export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSe
   for (const activityId of Object.keys(value.nativeActivities).sort()) {
     const entry = value.nativeActivities[activityId];
     exactObject(entry, ["kind", "document"], `Teacher release v2 native activity ${activityId}`);
-    const definition = nativeDefinition(entry.kind);
+    const definition = nativeDefinition(entry.kind, allowedNativeKinds);
     const teacherDocument = definition.normalizeTeacher(entry.document, activityId);
     const publicEntry = publicProjection?.nativeActivities?.[activityId];
     if (publicProjection && (!publicEntry || publicEntry.kind !== entry.kind)) throw new Error("Teacher release v2 native topology is inconsistent.");

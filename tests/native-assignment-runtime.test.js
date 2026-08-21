@@ -14,6 +14,7 @@ import { assignmentIdempotencyKey } from "../netlify/functions/_book-content/sha
 import { submitActivity } from "../netlify/functions/_book-content/submission-actions.js";
 import { createAssignment } from "../netlify/functions/_book-content/assignment-actions.js";
 import {
+  ReleaseCompatibilityVariantError,
   ReleaseIntegrityError,
   verifyImmutableComponentRelease,
 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
@@ -221,17 +222,18 @@ test("authorized active catalog exposes capability metadata but never Teacher do
   assert.match(sql.calls[1].text, /book_component_publication_events/);
 });
 
-test("immutable release verification diagnoses every hash predicate while remaining strict", async (t) => {
+test("immutable release verification diagnoses every document and aggregate hash mismatch after variant resolution", async (t) => {
   const columnsByCheck = {
-    compatibilityMatches: "runtime_compatibility_sha256",
     sourceSnapshotMatches: "source_snapshot_sha256",
     publicProjectionMatches: "public_projection_sha256",
     teacherProjectionMatches: "teacher_projection_sha256",
     releaseHashMatches: "release_sha256",
   };
-  const allChecksPassing = Object.fromEntries(Object.keys(columnsByCheck).map((name) => [name, true]));
+  const allChecksPassing = {
+    compatibilityMatches: true,
+    ...Object.fromEntries(Object.keys(columnsByCheck).map((name) => [name, true])),
+  };
   const storedCompatibilityAggregateByFailedCheck = {
-    compatibilityMatches: false,
     sourceSnapshotMatches: true,
     publicProjectionMatches: true,
     teacherProjectionMatches: true,
@@ -267,7 +269,7 @@ test("immutable release verification diagnoses every hash predicate while remain
   }
 });
 
-test("stored publication compatibility proves an otherwise intact release across additive runtime drift", () => {
+test("an unknown stored compatibility identity remains rejected even when its aggregate hash matches", () => {
   const release = immutableReleaseRow();
   const publicationCompatibility = "0".repeat(64);
   release.runtime_compatibility_sha256 = publicationCompatibility;
@@ -284,9 +286,9 @@ test("stored publication compatibility proves an otherwise intact release across
   assert.throws(
     () => verifyImmutableComponentRelease(release),
     (error) => {
-      assert.ok(error instanceof ReleaseIntegrityError);
-      assert.deepEqual(error.failedIntegrityChecks, ["compatibilityMatches", "releaseHashMatches"]);
-      assert.equal(error.storedCompatibilityReleaseHashMatches, true);
+      assert.ok(error instanceof ReleaseCompatibilityVariantError);
+      assert.equal(error.code, "release_integrity_failed");
+      assert.equal("storedCompatibilityReleaseHashMatches" in error, false);
       return true;
     },
   );
