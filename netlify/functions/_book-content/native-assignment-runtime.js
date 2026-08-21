@@ -252,6 +252,9 @@ function releaseVerificationDiagnostic(row, error) {
     failedIntegrityChecks: integrityChecks
       ? Object.entries(integrityChecks).filter(([, matches]) => !matches).map(([name]) => name)
       : [],
+    ...(typeof error?.storedCompatibilityReleaseHashMatches === "boolean"
+      ? { storedCompatibilityReleaseHashMatches: error.storedCompatibilityReleaseHashMatches }
+      : {}),
   };
 }
 

@@ -46,6 +46,7 @@ export class ReleaseIntegrityError extends Error {
     this.code = "release_integrity_failed";
     this.integrityChecks = Object.freeze(Object.fromEntries(RELEASE_INTEGRITY_CHECK_NAMES.map((name) => [name, checks[name] === true])));
     this.failedIntegrityChecks = Object.freeze(RELEASE_INTEGRITY_CHECK_NAMES.filter((name) => !this.integrityChecks[name]));
+    this.storedCompatibilityReleaseHashMatches = checks.storedCompatibilityReleaseHashMatches === true;
   }
 }
 
@@ -56,6 +57,12 @@ function verifyHashes(release, compatibility, sourceSnapshot, publicProjection, 
     publicProjectionMatches: builderDocumentSha256(publicProjection) === release.public_projection_sha256,
     teacherProjectionMatches: builderDocumentSha256(teacherProjection) === release.teacher_projection_sha256,
     releaseHashMatches: builderDocumentSha256({ compatibility, sourceSnapshot, publicProjection, teacherProjection }) === release.release_sha256,
+    storedCompatibilityReleaseHashMatches: builderDocumentSha256({
+      compatibility: release.runtime_compatibility_sha256,
+      sourceSnapshot,
+      publicProjection,
+      teacherProjection,
+    }) === release.release_sha256,
   };
   if (RELEASE_INTEGRITY_CHECK_NAMES.some((name) => !checks[name])) throw new ReleaseIntegrityError(checks);
 }

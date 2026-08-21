@@ -17,6 +17,7 @@ import {
   ReleaseIntegrityError,
   verifyImmutableComponentRelease,
 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
+import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const publicDocument = {
@@ -229,6 +230,13 @@ test("immutable release verification diagnoses every hash predicate while remain
     releaseHashMatches: "release_sha256",
   };
   const allChecksPassing = Object.fromEntries(Object.keys(columnsByCheck).map((name) => [name, true]));
+  const storedCompatibilityAggregateByFailedCheck = {
+    compatibilityMatches: false,
+    sourceSnapshotMatches: true,
+    publicProjectionMatches: true,
+    teacherProjectionMatches: true,
+    releaseHashMatches: false,
+  };
 
   for (const [failedCheck, column] of Object.entries(columnsByCheck)) {
     await t.test(failedCheck, () => {
@@ -245,9 +253,11 @@ test("immutable release verification diagnoses every hash predicate while remain
       assert.equal(failure.code, "release_integrity_failed");
       assert.deepEqual(failure.integrityChecks, { ...allChecksPassing, [failedCheck]: false });
       assert.deepEqual(failure.failedIntegrityChecks, [failedCheck]);
+      assert.equal(failure.storedCompatibilityReleaseHashMatches, storedCompatibilityAggregateByFailedCheck[failedCheck]);
       const diagnostic = JSON.stringify({
         integrityChecks: failure.integrityChecks,
         failedIntegrityChecks: failure.failedIntegrityChecks,
+        storedCompatibilityReleaseHashMatches: failure.storedCompatibilityReleaseHashMatches,
       });
       assert.doesNotMatch(diagnostic, new RegExp(publicationV2Fixture.teacherSentinel));
       assert.doesNotMatch(diagnostic, /"publicProjection":/);
@@ -255,6 +265,31 @@ test("immutable release verification diagnoses every hash predicate while remain
       assert.doesNotMatch(diagnostic, /"sourceSnapshot":/);
     });
   }
+});
+
+test("stored publication compatibility proves an otherwise intact release across additive runtime drift", () => {
+  const release = immutableReleaseRow();
+  const publicationCompatibility = "0".repeat(64);
+  release.runtime_compatibility_sha256 = publicationCompatibility;
+  release.public_projection = structuredClone(release.public_projection);
+  release.public_projection.compatibility = publicationCompatibility;
+  release.public_projection_sha256 = builderDocumentSha256(release.public_projection);
+  release.release_sha256 = builderDocumentSha256({
+    compatibility: publicationCompatibility,
+    sourceSnapshot: release.source_snapshot,
+    publicProjection: release.public_projection,
+    teacherProjection: release.teacher_projection,
+  });
+
+  assert.throws(
+    () => verifyImmutableComponentRelease(release),
+    (error) => {
+      assert.ok(error instanceof ReleaseIntegrityError);
+      assert.deepEqual(error.failedIntegrityChecks, ["compatibilityMatches", "releaseHashMatches"]);
+      assert.equal(error.storedCompatibilityReleaseHashMatches, true);
+      return true;
+    },
+  );
 });
 
 test("valid immutable releases still verify normally", () => {
@@ -292,6 +327,7 @@ test("catalog verification logs only allowlisted release identity and boolean in
     "releaseId",
     "releaseNumber",
     "releaseSchemaVersion",
+    "storedCompatibilityReleaseHashMatches",
   ].sort());
   assert.deepEqual(diagnostic, {
     releaseId: release.id,
@@ -310,6 +346,7 @@ test("catalog verification logs only allowlisted release identity and boolean in
       releaseHashMatches: true,
     },
     failedIntegrityChecks: ["teacherProjectionMatches"],
+    storedCompatibilityReleaseHashMatches: true,
   });
   const serialized = JSON.stringify(diagnostic);
   assert.doesNotMatch(serialized, new RegExp(publicationV2Fixture.teacherSentinel));
