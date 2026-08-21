@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { loadProductionMigrationFiles, loadProductionMigrationManifest, migrationChecksumMatches, parseProductionMigrationManifest, requireSafeDatabase } from "../scripts/_staging-db.mjs";
+import { loadProductionMigrationFiles, loadProductionMigrationManifest, migrationChecksumMatches, parseProductionMigrationManifest, postgresTemplate, requireSafeDatabase } from "../scripts/_staging-db.mjs";
 import { classifyQaCleanupState } from "../scripts/_staging-cleanup-safety.mjs";
 
 function withEnvironment(values, callback) {
@@ -56,6 +56,66 @@ test("staging database guard accepts a visibly isolated confirmed target without
     assert.equal(target.safeLabel, "localhost/hhplms_staging");
     assert.equal(target.safeLabel.includes("top-secret"), false);
   });
+});
+
+function assignmentLifecycleHarness({ rollbackError = null } = {}) {
+  const events = [];
+  const client = {
+    async query(text, values = []) {
+      events.push({ kind: "query", text, values });
+      if (text === "rollback" && rollbackError) throw rollbackError;
+      return { rows: [{ source: "transaction-client" }] };
+    },
+    release() {
+      events.push({ kind: "release" });
+    },
+  };
+  const pool = {
+    async connect() {
+      events.push({ kind: "connect" });
+      return client;
+    },
+    async query() {
+      throw new Error("transaction callback must not use the pool query method");
+    },
+  };
+  return { events, sql: postgresTemplate(pool) };
+}
+
+test("staging PostgreSQL adapter commits assignment lifecycle work under the canonical advisory lock", async () => {
+  const assignmentId = "11111111-1111-4111-8111-111111111111";
+  const { events, sql } = assignmentLifecycleHarness();
+
+  const result = await sql.assignmentLifecycleTransaction(assignmentId, async (transactionSql) => {
+    events.push({ kind: "callback" });
+    assert.deepEqual(await transactionSql`select ${"probe"} as source`, [{ source: "transaction-client" }]);
+    return { status: "committed" };
+  });
+
+  assert.deepEqual(result, { status: "committed" });
+  assert.deepEqual(events.map((event) => event.kind), ["connect", "query", "query", "callback", "query", "query", "release"]);
+  assert.equal(events[1].text, "begin");
+  assert.match(events[2].text, /pg_advisory_xact_lock\(hashtextextended\(\$1, 0\)\)/);
+  assert.deepEqual(events[2].values, [`activity-assignment:${assignmentId}`]);
+  assert.equal(events[5].text, "commit");
+  assert.equal(events.some((event) => event.text === "rollback"), false);
+});
+
+test("staging PostgreSQL adapter rolls back assignment lifecycle failures and preserves the original error", async () => {
+  const callbackError = new Error("callback failed");
+  const { events, sql } = assignmentLifecycleHarness({ rollbackError: new Error("rollback failed") });
+
+  await assert.rejects(
+    sql.assignmentLifecycleTransaction("22222222-2222-4222-8222-222222222222", async () => {
+      events.push({ kind: "callback" });
+      throw callbackError;
+    }),
+    (error) => error === callbackError,
+  );
+
+  assert.deepEqual(events.map((event) => event.kind), ["connect", "query", "query", "callback", "query", "release"]);
+  assert.equal(events[4].text, "rollback");
+  assert.equal(events.some((event) => event.text === "commit"), false);
 });
 
 test("production migration manifest excludes demo passwords, includes phase 2, and supports later migrations", async () => {

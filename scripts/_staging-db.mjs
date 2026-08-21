@@ -114,6 +114,22 @@ export function postgresTemplate(pool) {
       client.release();
     }
   };
+  template.assignmentLifecycleTransaction = async (assignmentId, callback) => {
+    const client = await pool.connect();
+    const transactionSql = queryTemplate(client);
+    try {
+      await client.query("begin");
+      await transactionSql`select pg_advisory_xact_lock(hashtextextended(${"activity-assignment:" + assignmentId}, 0))`;
+      const result = await callback(transactionSql);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback").catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
   return template;
 }
 
