@@ -448,6 +448,9 @@
 .homework-activity-picker select { flex: 1; min-width: 0; }
 .homework-selected-activities { margin-top: 18px; }
 .homework-selected-activities p { margin: 0; color: #667085; }
+.homework-editor-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.teacher-homework-card header > .homework-editor-actions { display: flex; }
+.homework-selected-activities li > .homework-editor-actions { display: flex; }
 
 @media (max-width: 760px) {
   .teacher-homework-card > header,

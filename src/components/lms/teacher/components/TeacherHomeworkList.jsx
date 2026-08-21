@@ -1,4 +1,4 @@
-import { ClipboardList, Play } from "lucide-react";
+import { ClipboardList, Pencil, Play } from "lucide-react";
 import { Card, Tag } from "../../Shared.jsx";
 
 function progressLabel(progress = {}) {
@@ -6,7 +6,7 @@ function progressLabel(progress = {}) {
   return `${progress.submitted}/${progress.expected} completed · ${progress.missing} missing`;
 }
 
-export function TeacherHomeworkList({ homeworks = [], loading = false, onOpenResults, onExportResults }) {
+export function TeacherHomeworkList({ homeworks = [], loading = false, onOpenResults, onExportResults, onEdit }) {
   return (
     <Card>
       <div className="card-heading">
@@ -24,7 +24,10 @@ export function TeacherHomeworkList({ homeworks = [], loading = false, onOpenRes
                 <small>{homework.classes.map((item) => item.name).join(", ") || "No classes"} · {homework.itemCount} activities</small>
                 <small>Due {homework.dueAt ? new Date(homework.dueAt).toLocaleDateString() : "No due date"}</small>
               </div>
-              <Tag tone={homework.status === "closed" ? "slate" : "green"}>{homework.status === "closed" ? "Closed" : "Assigned"}</Tag>
+              <div className="homework-editor-actions">
+                {homework.status !== "closed" && <button className="secondary-action compact-action" type="button" onClick={() => onEdit?.(homework)}><Pencil size={14} /> Edit</button>}
+                <Tag tone={homework.status === "closed" ? "slate" : "green"}>{homework.status === "closed" ? "Closed" : "Assigned"}</Tag>
+              </div>
             </header>
             <div className="homework-progress-summary">
               <strong>{progressLabel(homework.progress)}</strong>
@@ -47,7 +50,7 @@ export function TeacherHomeworkList({ homeworks = [], loading = false, onOpenRes
                 </li>
               ))}
             </ol>
-            <small className="homework-lifecycle-note">Phase 1 preserves lifecycle safety at the underlying assignment boundary; grouped destructive actions are intentionally unavailable.</small>
+            <small className="homework-lifecycle-note">{homework.status === "closed" ? "Closed Homework is read-only." : homework.structureLocked ? "Learner work exists; activity order and classes are locked, while Homework details remain editable." : "Activities, order, classes, and Homework details can be edited until learner work exists."}</small>
           </article>
         ))}
       </div>

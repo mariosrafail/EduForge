@@ -88,6 +88,14 @@ export async function createHomework(payload) {
   return response.homework;
 }
 
+export async function updateHomework(payload) {
+  const response = await request("/.netlify/functions/book-content?action=update-homework", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.homework;
+}
+
 export async function createAssignment(payload) {
   const response = await request("/.netlify/functions/book-content?action=create-assignment", {
     method: "POST",

@@ -85,6 +85,13 @@ export async function withAssignmentLifecycleTransaction(sql, assignmentId, call
   throw new Error("Assignment lifecycle mutations require transaction-capable PostgreSQL");
 }
 
+export async function withHomeworkMutationTransaction(sql, homeworkId, callback) {
+  if (typeof sql.homeworkMutationTransaction === "function") {
+    return sql.homeworkMutationTransaction(homeworkId, callback);
+  }
+  throw new Error("Homework mutations require interactive transaction-capable PostgreSQL");
+}
+
 export function jsonArray(value) {
   return Array.isArray(value) ? value : [];
 }

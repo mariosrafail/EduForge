@@ -41,6 +41,37 @@ export function removeSelectedHomeworkActivity(selected, id) {
   return selected.filter((item) => item.id !== id);
 }
 
+export function moveSelectedHomeworkActivity(selected, index, direction) {
+  const nextIndex = index + direction;
+  if (index < 0 || index >= selected.length || nextIndex < 0 || nextIndex >= selected.length) return selected;
+  const reordered = [...selected];
+  [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+  return reordered;
+}
+
+export function homeworkItemSelection(item, activityOptions = []) {
+  const optionId = item.targetKind === "published_native"
+    ? `native:${item.nativeReleaseId}:${item.nativeActivityId}`
+    : item.activityId;
+  return activityOptions.find((option) => String(option.id) === String(optionId)) || {
+    id: optionId,
+    targetKind: item.targetKind,
+    target: item.targetKind === "published_native" ? {
+      kind: "published_native",
+      releaseId: item.nativeReleaseId,
+      nativeActivityId: item.nativeActivityId,
+    } : undefined,
+    title: item.title,
+    label: item.title,
+    component: item.componentTitle || item.packageTitle || "Homework",
+    assignable: true,
+  };
+}
+
+export function homeworkDueDateInputValue(dueAt) {
+  return typeof dueAt === "string" && /^\d{4}-\d{2}-\d{2}/.test(dueAt) ? dueAt.slice(0, 10) : "";
+}
+
 export function homeworkItemRequest(option) {
   return option.targetKind === "published_native"
     ? option.target

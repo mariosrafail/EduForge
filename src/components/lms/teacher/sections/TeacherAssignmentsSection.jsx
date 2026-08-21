@@ -5,6 +5,7 @@ import {
   closeAssignment as closeLiveAssignment,
   deleteAssignment as deleteLiveAssignment,
   exportAssignmentResultsCsv,
+  getHomework,
   listAssignmentTargets,
   listTeacherAssignments,
   listTeacherHomeworks,
@@ -15,6 +16,7 @@ import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { assignmentReviewAction } from "../assignmentReviewPresentation.js";
 import { buildHomeworkActivityOptions } from "../homeworkUiModel.js";
 import { HomeworkCreator } from "../components/HomeworkCreator.jsx";
+import { HomeworkEditor } from "../components/HomeworkEditor.jsx";
 import { TeacherAssignmentReviewWorkspace } from "../components/TeacherAssignmentReviewWorkspace.jsx";
 import { TeacherHomeworkList } from "../components/TeacherHomeworkList.jsx";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
@@ -28,6 +30,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
   const [status, setStatus] = useState("");
   const [lifecycleAction, setLifecycleAction] = useState(null);
   const [savingLifecycle, setSavingLifecycle] = useState(false);
+  const [editingHomework, setEditingHomework] = useState(null);
 
   const loadWork = async () => {
     setLoading(true);
@@ -77,6 +80,20 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
     setStatus(`Homework “${homework.title}” created with ${homework.itemCount} activities.`);
     await loadWork();
   };
+  const openHomeworkEditor = async (homework) => {
+    setError("");
+    setStatus("");
+    try {
+      setEditingHomework(await getHomework(homework.id));
+    } catch (editError) {
+      setError(editError.message || "Homework could not be opened for editing.");
+    }
+  };
+  const saved = async (homework) => {
+    setEditingHomework(null);
+    setStatus(`Homework “${homework.title}” updated.`);
+    await loadWork();
+  };
 
   const confirmLifecycleAction = async () => {
     if (!lifecycleAction?.assignment?.id) return;
@@ -115,7 +132,19 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
       {error && <div className="inline-status error">{error}</div>}
       {status && <div className="inline-status success">{status}</div>}
 
-      <TeacherHomeworkList homeworks={homeworks} loading={loading} onOpenResults={openResults} onExportResults={exportResults} />
+      <TeacherHomeworkList homeworks={homeworks} loading={loading} onOpenResults={openResults} onExportResults={exportResults} onEdit={openHomeworkEditor} />
+
+      {editingHomework && (
+        <HomeworkEditor
+          key={`${editingHomework.id}:${editingHomework.updatedAt}`}
+          homework={editingHomework}
+          classes={classes}
+          activityOptions={activityOptions}
+          onSaved={saved}
+          onCancel={() => { setEditingHomework(null); setError(""); }}
+          onError={setError}
+        />
+      )}
 
       <Card>
         <div className="card-heading">

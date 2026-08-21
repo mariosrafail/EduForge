@@ -1,5 +1,5 @@
 import { randomBytes, createHash } from "node:crypto";
-import { neon } from "@neondatabase/serverless";
+import { neon, Pool as NeonPool } from "@neondatabase/serverless";
 import pg from "pg";
 import {
   requireRuntimeSchema,
@@ -19,15 +19,35 @@ export const jsonHeaders = {
 let testSqlOverride = null;
 let localPool = null;
 
-function localPostgresTemplate(connectionString) {
-  localPool ||= new pg.Pool({ connectionString });
-  const queryTemplate = (queryable) => async (strings, ...values) => {
+function queryTemplate(queryable) {
+  return async (strings, ...values) => {
     let text = strings[0];
     for (let index = 0; index < values.length; index += 1) {
       text += `$${index + 1}${strings[index + 1]}`;
     }
     return (await queryable.query(text, values)).rows;
   };
+}
+
+async function runLockedTransaction(pool, lockName, callback) {
+  const client = await pool.connect();
+  const transactionSql = queryTemplate(client);
+  try {
+    await client.query("begin");
+    await transactionSql`select pg_advisory_xact_lock(hashtextextended(${lockName}, 0))`;
+    const result = await callback(transactionSql);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function localPostgresTemplate(connectionString) {
+  localPool ||= new pg.Pool({ connectionString });
   const template = queryTemplate(localPool);
   template.authLoginTransaction = async (lockValues, callback) => {
     const client = await localPool.connect();
@@ -69,19 +89,22 @@ function localPostgresTemplate(connectionString) {
     }
   };
   template.assignmentLifecycleTransaction = async (assignmentId, callback) => {
-    const client = await localPool.connect();
-    const transactionSql = queryTemplate(client);
+    return runLockedTransaction(localPool, `activity-assignment:${assignmentId}`, callback);
+  };
+  template.homeworkMutationTransaction = async (homeworkId, callback) => {
+    return runLockedTransaction(localPool, `homework:${homeworkId}`, callback);
+  };
+  return template;
+}
+
+function hostedPostgresTemplate(connectionString) {
+  const template = neon(connectionString);
+  template.homeworkMutationTransaction = async (homeworkId, callback) => {
+    const pool = new NeonPool({ connectionString });
     try {
-      await client.query("begin");
-      await transactionSql`select pg_advisory_xact_lock(hashtextextended(${"activity-assignment:" + assignmentId}, 0))`;
-      const result = await callback(transactionSql);
-      await client.query("commit");
-      return result;
-    } catch (error) {
-      await client.query("rollback").catch(() => {});
-      throw error;
+      return await runLockedTransaction(pool, `homework:${homeworkId}`, callback);
     } finally {
-      client.release();
+      await pool.end().catch(() => {});
     }
   };
   return template;
@@ -153,7 +176,7 @@ export function getSql() {
     }
     return localPostgresTemplate(databaseUrl);
   }
-  return neon(databaseUrl);
+  return hostedPostgresTemplate(databaseUrl);
 }
 
 export function normalizeEmail(email) {

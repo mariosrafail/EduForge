@@ -30,8 +30,9 @@ function homeworkHeaderToUi(row, progress = {}) {
   };
 }
 
-export function assembleTeacherHomeworks({ headers = [], items = [], assignments = [], progress = [] } = {}) {
+export function assembleTeacherHomeworks({ headers = [], items = [], assignments = [], progress = [], structureLocks = [] } = {}) {
   const progressByHomework = new Map(progress.map((row) => [String(row.homework_id), row]));
+  const structureLockByHomework = new Map(structureLocks.map((row) => [String(row.homework_id), Boolean(row.structure_locked)]));
   return headers.map((header) => {
     const homeworkItems = items
       .filter((item) => String(item.homework_id) === String(header.id))
@@ -42,6 +43,8 @@ export function assembleTeacherHomeworks({ headers = [], items = [], assignments
       .map((assignment) => [String(assignment.classId), { id: assignment.classId, name: assignment.className }])).values()];
     return {
       ...homeworkHeaderToUi(header, progressByHomework.get(String(header.id))),
+      structureLocked: structureLockByHomework.get(String(header.id)) || false,
+      canEditStructure: header.status !== "closed" && !structureLockByHomework.get(String(header.id)),
       classes,
       itemCount: homeworkItems.length,
       items: homeworkItems.map((item) => ({

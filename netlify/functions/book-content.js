@@ -16,7 +16,7 @@ import {
   listUserBookAccess, deleteAssignment, closeAssignment, listAssignmentTargets
 } from "./_book-content/assignment-actions.js";
 import {
-  createHomework, getTeacherHomework, listStudentHomeworks, listTeacherHomeworks,
+  createHomework, getTeacherHomework, listStudentHomeworks, listTeacherHomeworks, updateHomework,
 } from "./_book-content/homework-actions.js";
 import {
   submitActivity, getStudentGrades, getAssignmentResults
@@ -267,6 +267,11 @@ export async function handler(event) {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
         if (roleError) return roleError;
         return createHomework(sql, body, currentUser);
+      }
+      if (query.action === "update-homework") {
+        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+        if (roleError) return roleError;
+        return updateHomework(sql, body, currentUser);
       }
       if (query.action === "delete-assignment") {
         const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);

@@ -39,6 +39,7 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
       from activity_assignments aa
       where aa.id = ${body.assignmentId}
         and aa.school_id = ${currentUser.school_id}
+      for key share of aa
     ), inserted as (
       insert into activity_submissions (
         activity_assignment_id, school_id, activity_id, student_id, answers,
@@ -148,6 +149,7 @@ export async function submitActivity(sql, body, currentUser = null) {
       from activity_assignments aa
       where aa.id = ${body.assignmentId}
         and aa.school_id = ${currentUser.school_id}
+      for key share of aa
     ), inserted as (
       insert into activity_submissions (
         activity_assignment_id,
