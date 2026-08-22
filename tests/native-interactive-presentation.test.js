@@ -101,6 +101,31 @@ test("Native Image keeps selectable button behavior and locked state in authorin
   });
 });
 
+test("generic public audio-focus cues render on Image and Open Response visual stages", async () => {
+  await withVite(async (vite) => {
+    const [{ NativeImageSurface }, { NativeOpenResponseStudentSurface }] = await Promise.all([
+      vite.ssrLoadModule("/src/components/native-image/NativeImageSurface.jsx"),
+      vite.ssrLoadModule("/src/components/native-open-response/NativeOpenResponseStudentSurface.jsx"),
+    ]);
+    const readableAsset = { assetId: "10000000-0000-4000-8000-000000000097", slot: "readable-text" };
+    const audioAsset = { assetId: "10000000-0000-4000-8000-000000000096", slot: "audio-one" };
+    const hotspot = { id: `aud-${"1".repeat(32)}`, panelId: null, activityArea: { x: 64, y: 64, width: 48, height: 48 }, readableFocusArea: { x: 20, y: 40, width: 600, height: 240 }, audioAssetSlot: audioAsset.slot, label: "Listen to public excerpt" };
+    const presentation = { hotspots: [hotspot], activeHotspotId: hotspot.id, onToggle() {} };
+    const imagePublic = imageDocument({ images: [image("image-1")] }); imagePublic.assets.push(readableAsset, audioAsset);
+    const openPublic = { ...imagePublic, kind: "open-response", parts: [{ interaction: { kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] } }] };
+    for (const element of [
+      React.createElement(NativeImageSurface, { document: imagePublic, assetUrl: () => "/managed", audioHotspotPresentation: presentation }),
+      React.createElement(NativeOpenResponseStudentSurface, { document: openPublic, assetUrl: () => "/managed", audioHotspotPresentation: presentation }),
+    ]) {
+      const markup = renderToStaticMarkup(element);
+      assert.match(markup, /aria-label="Listen to public excerpt"/);
+      assert.match(markup, /aria-pressed="true"/);
+      assert.match(markup, /audio-text-hotspot-pressed/);
+      assert.doesNotMatch(markup, /teacher|correctAnswer|modelAnswer/i);
+    }
+  });
+});
+
 test("native runner metadata is default-on and can be suppressed without removing the activity surface", async () => {
   await withVite(async (vite) => {
     const [{ HostedNativeDraftActivityRunner }, { PublishedNativeActivityRunner }] = await Promise.all([

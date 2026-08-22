@@ -1,3 +1,5 @@
+import { candidateNativeAudioTextAssetSlots, normalizeNativeAudioTextHotspots } from "./nativeAudioTextHotspots.js";
+
 export const NATIVE_ACTIVITY_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_PART_ID = "part-1";
@@ -102,6 +104,7 @@ export function nativeReadableTextAssetRequirements(publicDocument) {
 export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
   return publicDocument?.readableText?.assetSlot === slot
+    || Boolean(publicDocument?.audioTextHotspots?.hotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
@@ -115,7 +118,9 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   if (typeof normalizeInteraction !== "function") throw new Error("Native public interaction normalizer is required.");
   const value = structuredClone(object(input, "Native public activity"));
   const hasReadableText = Object.hasOwn(value, "readableText");
-  exactKeys(value, hasReadableText ? ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts", "readableText"] : ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts"], "Native public activity");
+  const hasAudioTextHotspots = Object.hasOwn(value, "audioTextHotspots");
+  const optionalKeys = [...(hasReadableText ? ["readableText"] : []), ...(hasAudioTextHotspots ? ["audioTextHotspots"] : [])];
+  exactKeys(value, ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts", ...optionalKeys], "Native public activity");
   if (value.schemaVersion !== NATIVE_ACTIVITY_SCHEMA_VERSION) throw new Error("Unsupported native public activity schema version.");
   const activityId = safeId(value.activityId, "Native activity ID");
   const kind = safeId(value.kind, "Native activity kind");
@@ -135,6 +140,11 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   exactKeys(part, ["id", "interaction"], "Native activity Part");
   if (part.id !== NATIVE_ACTIVITY_PART_ID) throw new Error("Native activity schema v1 requires stable Part ID part-1.");
   const readableText = hasReadableText ? normalizeNativeReadableText(value.readableText, assets) : null;
+  const commonAssetSlots = new Set([
+    ...(readableText ? [readableText.assetSlot] : []),
+    ...(hasAudioTextHotspots ? candidateNativeAudioTextAssetSlots(value.audioTextHotspots) : []),
+  ]);
+  const interaction = normalizeInteraction(part.interaction, { assets, commonAssetSlots });
   const normalized = {
     schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     activityId,
@@ -145,9 +155,10 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
     },
     placement: normalizeNativeActivityPlacement(value.placement),
     assets,
-    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction: normalizeInteraction(part.interaction, { assets, commonAssetSlots: new Set(readableText ? [readableText.assetSlot] : []) }) }],
+    parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction }],
   };
   if (readableText) normalized.readableText = readableText;
+  if (hasAudioTextHotspots) normalized.audioTextHotspots = normalizeNativeAudioTextHotspots(value.audioTextHotspots, normalized);
   return normalized;
 }
 

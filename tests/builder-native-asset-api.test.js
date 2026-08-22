@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { inspectManagedMp3 } from "../lib/book-assets/audio-inspection.js";
 import { inspectManagedRaster } from "../lib/book-assets/raster-inspection.js";
 
 const actor = "10000000-0000-4000-8000-000000000001";
@@ -11,15 +12,16 @@ const activityId = "ultimate-b2-sb-u1-p1-o99";
 const uploadId = "10000000-0000-4000-8000-000000000010";
 const assetId = "10000000-0000-4000-8000-000000000011";
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
 const base = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
-function harness({ bytes = png, inspectRaster = inspectManagedRaster, resolvedSlot = "asset-one" } = {}) {
+function harness({ bytes = png, contentType = "image/png", inspectRaster = inspectManagedRaster, inspectAudio = inspectManagedMp3, resolvedSlot = "asset-one" } = {}) {
   let prepared = null; let completed = null; let failed = null;
   const storage = {
-    signedPutUrl: async () => ({ url: "https://storage.example/signed-put", headers: { "Content-Type": "image/png" }, expiresIn: 900 }),
+    signedPutUrl: async () => ({ url: "https://storage.example/signed-put", headers: { "Content-Type": contentType }, expiresIn: 900 }),
     signedGetUrl: async () => "https://storage.example/signed-get",
-    head: async () => ({ byteSize: bytes.length, contentType: "image/png" }),
+    head: async () => ({ byteSize: bytes.length, contentType }),
     download: async () => bytes,
     upload: async (input) => ({ ...input, reused: false }),
     delete: async () => {},
@@ -31,11 +33,12 @@ function harness({ bytes = png, inspectRaster = inspectManagedRaster, resolvedSl
     randomUuid: () => uploadId,
     storage: () => storage,
     inspectRaster,
+    inspectAudio,
     prepareAsset: async (_sql, input) => { prepared = input; return { outcome: "prepared", uploadId, state: "prepared", fileDescriptor: input.fileDescriptor, stagingObjectKey: input.stagingObjectKey }; },
     claimAsset: async (_sql, input) => ({ outcome: "claimed", activityId, assetSlot: prepared.assetSlot, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey }),
     completeAsset: async (_sql, input) => { completed = input; return assetId; },
     failAsset: async (_sql, input) => { failed = input; },
-    loadAsset: async (_sql, input) => input.activityId === activityId && input.assetId === assetId ? { id: assetId, checksum_sha256: completed?.checksumSha256 || "a".repeat(64), asset_role: "activity_artwork", object_key: completed?.objectKey || "builder-native-assets/object.png", storage_profile: "private", storage_bucket: "private-assets", mime_type: "image/png", byte_size: png.length, width: 1, height: 1, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: resolvedSlot } } : null,
+    loadAsset: async (_sql, input) => input.activityId === activityId && input.assetId === assetId ? { id: assetId, checksum_sha256: completed?.checksumSha256 || "a".repeat(64), asset_role: "activity_artwork", object_key: completed?.objectKey || "builder-native-assets/object.png", storage_profile: "private", storage_bucket: "private-assets", mime_type: completed?.mimeType || contentType, byte_size: completed?.byteSize || bytes.length, width: completed?.width ?? (contentType.startsWith("image/") ? 1 : null), height: completed?.height ?? (contentType.startsWith("image/") ? 1 : null), publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: resolvedSlot } } : null,
     logger: { error() {} },
   });
   return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed };
@@ -79,6 +82,30 @@ test("native raster finalize inspects real bytes, creates a private book asset r
   const preview = await handler(request(`${base}/${assetId}/preview`, null, { method: "GET" }));
   assert.equal(preview.statusCode, 302); assert.equal(preview.headers.Location, "https://storage.example/signed-get"); assert.equal(preview.headers["Cache-Control"], "private, no-store");
   assert.equal((await handler(request(`${base}/${assetId}/preview`, null, { method: "GET", headers: { cookie: "" } }))).statusCode, 401);
+});
+
+test("native MP3 prepare/finalize inspects bytes and persists dimensionless private managed audio", async () => {
+  const { handler, getCompleted } = harness({ bytes: mp3, contentType: "audio/mpeg", resolvedSlot: "audio-one" });
+  const clientMutationId = randomUUID();
+  const prepared = await handler(request(`${base}/prepare`, { name: "excerpt.mp3", size: mp3.length, type: "audio/mpeg", assetSlot: "audio-one", clientMutationId }));
+  assert.equal(prepared.statusCode, 200);
+  const finalized = await handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(finalized.statusCode, 200);
+  const payload = JSON.parse(finalized.body);
+  assert.deepEqual(payload.reference, { assetId, checksumSha256: getCompleted().checksumSha256, role: "activity_artwork", slot: "audio-one" });
+  assert.deepEqual(payload.metadata, { mimeType: "audio/mpeg", byteSize: mp3.length, width: null, height: null });
+  assert.match(getCompleted().objectKey, /\/audio-one\/[0-9a-f]{64}\.mp3$/);
+});
+
+test("native MP3 finalization rejects malformed audio with a safe failure code", async () => {
+  const bytes = Buffer.from("not an mp3");
+  const current = harness({ bytes, contentType: "audio/mpeg" });
+  const clientMutationId = randomUUID();
+  await current.handler(request(`${base}/prepare`, { name: "excerpt.mp3", size: bytes.length, type: "audio/mpeg", assetSlot: "audio-one", clientMutationId }));
+  const response = await current.handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(response.statusCode, 400);
+  assert.equal(JSON.parse(response.body).error, "invalid_audio");
+  assert.equal(current.getFailed().failureCode, "invalid_audio");
 });
 
 test("native finalize rejects malformed and MIME-spoofed rasters and records safe failure codes", async () => {

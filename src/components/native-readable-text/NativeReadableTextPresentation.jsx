@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { NativeAudioTextFocusContent } from "./NativeAudioTextHotspots.jsx";
 import "./nativeReadableText.css";
 
 export function nextNativeReadableTextView(current, commandType, available) {
@@ -41,6 +42,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const available = Boolean(document.readableText);
   const [view, setView] = useState("questions");
   const [activityState, setActivityState] = useState(() => defaultActivityState(document));
+  const [activeHotspotId, setActiveHotspotId] = useState(null);
   const viewportRef = useRef(null);
   const [overflowing, setOverflowing] = useState(false);
   const lastCommandToken = useRef(presentation?.command?.token);
@@ -50,6 +52,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     setView("questions");
     setActivityState(defaultActivityState(document));
     setOverflowing(false);
+    setActiveHotspotId(null);
     lastCommandToken.current = presentation?.command?.token;
   }, [document.activityId]);
 
@@ -57,6 +60,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     const command = presentation?.command;
     if (!command || command.token === lastCommandToken.current) return;
     lastCommandToken.current = command.token;
+    if (["toggle-text", "reset-activity", "show-all", "show-next", "previous-panel", "next-panel"].includes(command.type)) setActiveHotspotId(null);
     setView((current) => nextNativeReadableTextView(current, command.type, available));
   }, [available, presentation?.command]);
 
@@ -72,6 +76,9 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     });
   }, []);
 
+  const hotspots = useMemo(() => document.audioTextHotspots?.hotspots || [], [document.audioTextHotspots]);
+  const activeHotspot = hotspots.find((hotspot) => hotspot.id === activeHotspotId) || null;
+
   useEffect(() => {
     onStateChange?.({
       view: available ? view : "questions",
@@ -79,13 +86,26 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       panelIndex: activityState.panelIndex,
       panelCount: activityState.panelCount,
       reveal: activityState.reveal,
+      audioFocusActive: Boolean(activeHotspot),
     });
-  }, [activityState, available, onStateChange, view]);
+  }, [activeHotspot, activityState, available, onStateChange, view]);
 
   const childPresentation = useMemo(() => presentation ? {
     command: presentation.command,
     onStateChange: onChildStateChange,
   } : null, [onChildStateChange, presentation?.command]);
+
+  const hotspotPresentation = useMemo(() => ({
+    hotspots,
+    activeHotspotId,
+    onToggle(hotspotId) { setView("questions"); setActiveHotspotId((current) => current === hotspotId ? null : hotspotId); },
+    onPanelChange(panelId) {
+      setActiveHotspotId((current) => {
+        const active = hotspots.find((hotspot) => hotspot.id === current);
+        return active && active.panelId !== panelId ? null : current;
+      });
+    },
+  }), [activeHotspotId, hotspots]);
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -102,9 +122,11 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
 
   const reference = available ? document.assets.find((asset) => asset.slot === document.readableText.assetSlot) : null;
   const effectiveView = available ? view : "questions";
-  const activity = typeof children === "function" ? children(childPresentation) : children;
-  return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-presentation-view={effectiveView}>
-    <div className="native-readable-text-activity-view" hidden={effectiveView === "text"}>{activity}</div>
+  const activity = typeof children === "function" ? children(childPresentation, hotspotPresentation) : children;
+  const focusOpen = effectiveView === "questions" && Boolean(activeHotspot);
+  return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined}>
+    <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay onClose={() => setActiveHotspotId(null)} /> : null}</div>
+    <div className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
       <div ref={viewportRef} className="native-readable-text-scroll" tabIndex={0} data-overflowing={overflowing || undefined}>
         <img src={assetUrl(reference.assetId)} alt={document.readableText.altText} width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} onLoad={() => {

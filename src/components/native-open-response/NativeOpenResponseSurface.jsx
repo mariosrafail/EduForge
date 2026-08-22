@@ -1,5 +1,6 @@
 import "./nativeOpenResponseSurface.css";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
+import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
 
 export { logicalAreaStyle };
 
@@ -11,7 +12,7 @@ function ResponseLines({ region, surface, onActivate, selected }) {
   return <button type="button" className={`native-or-response native-or-selectable ${selected ? "is-selected" : ""}`} style={style} aria-label={region.ariaLabel} onClick={onActivate}>{content}</button>;
 }
 
-export function NativeOpenResponseSurface({ document, assetUrl = () => "", onSelect = null, selected = null, children = null, className = "" }) {
+export function NativeOpenResponseSurface({ document, assetUrl = () => "", onSelect = null, selected = null, children = null, className = "", audioHotspotPresentation = null }) {
   const interaction = document.parts[0].interaction;
   const { surface } = interaction;
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
@@ -27,6 +28,7 @@ export function NativeOpenResponseSurface({ document, assetUrl = () => "", onSel
       <button type="button" className={`native-or-prompt native-or-selectable ${selected?.type === "prompt" && selected.id === question.id ? "is-selected" : ""}`} style={{ ...logicalAreaStyle(question.promptArea, surface), fontFamily: question.promptStyle.fontFamily, fontSize: `${(question.promptStyle.fontSize / surface.width) * 100}cqw`, color: question.promptStyle.color, textAlign: question.promptStyle.align }} onClick={() => onSelect?.({ type: "prompt", id: question.id })} disabled={!onSelect}>{question.prompt || "Prompt"}</button>
       <ResponseLines region={question.responseRegion} surface={surface} selected={selected?.type === "response" && selected.id === question.id} onActivate={onSelect ? () => onSelect({ type: "response", id: question.id }) : null} />
     </div>)}
+    <NativeAudioTextHotspotButtons surface={surface} presentation={audioHotspotPresentation} />
     {children}
   </div>;
 }

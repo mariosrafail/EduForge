@@ -9,6 +9,7 @@ export function NativeOpenResponseStudentSurface({
   initialResponses = null,
   onResponsesChange = null,
   readOnly = false,
+  audioHotspotPresentation = null,
 }) {
   const [localResponses, setLocalResponses] = useState(() => new Map(Object.entries(initialResponses || {})));
   const responses = controlledResponses instanceof Map
@@ -22,7 +23,7 @@ export function NativeOpenResponseStudentSurface({
     onResponsesChange?.(Object.fromEntries(next));
   };
   const interaction = document.parts[0].interaction;
-  return <NativeOpenResponseSurface document={document} assetUrl={assetUrl}>
+  return <NativeOpenResponseSurface document={document} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
     {interaction.questions.map((question) => {
       const { responseRegion } = question;
       const { presentation } = responseRegion;

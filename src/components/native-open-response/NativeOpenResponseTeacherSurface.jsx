@@ -4,7 +4,7 @@ import { autoFitNativeOpenResponseAnswer } from "../../data/native-activities/na
 import { logicalAreaStyle, NativeOpenResponseSurface } from "./NativeOpenResponseSurface.jsx";
 import { updateNativeOpenResponseReveals } from "./nativeOpenResponseTeacherRuntime.js";
 
-function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, assetUrl, onOverflow, presentation }) {
+function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, assetUrl, onOverflow, presentation, audioHotspotPresentation }) {
   const [revealed, setRevealed] = useState(() => new Set());
   const interaction = publicDocument.parts[0].interaction;
   const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
@@ -28,7 +28,7 @@ function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, ass
   }, [onStateChange, questionIds.length, revealed]);
 
   const toggle = (questionId) => setRevealed((current) => { const next = new Set(current); if (next.has(questionId)) next.delete(questionId); else next.add(questionId); return next; });
-  return <NativeOpenResponseSurface document={publicDocument} assetUrl={assetUrl}>
+  return <NativeOpenResponseSurface document={publicDocument} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
     {interaction.questions.map((question) => {
       const visible = revealed.has(question.id);
       const fit = autoFitNativeOpenResponseAnswer({ text: answers.get(question.id) || "", responseRegion: question.responseRegion });
@@ -40,6 +40,6 @@ function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, ass
   </NativeOpenResponseSurface>;
 }
 
-export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", onOverflow = () => {}, presentation = null }) {
-  return <NativeOpenResponseTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} onOverflow={onOverflow} presentation={presentation} />;
+export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", onOverflow = () => {}, presentation = null, audioHotspotPresentation = null }) {
+  return <NativeOpenResponseTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} onOverflow={onOverflow} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />;
 }

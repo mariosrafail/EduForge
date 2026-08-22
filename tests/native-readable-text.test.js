@@ -6,11 +6,14 @@ import { createServer } from "vite";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
+import { nativeAudioTextAssetRequirements } from "../src/data/native-activities/nativeAudioTextHotspots.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
 
 const reference = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "readable-text" };
 const readableText = { kind: "image", assetSlot: reference.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Readable passage" };
+const audioReference = { assetId: "10000000-0000-4000-8000-000000000005", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "audio-one" };
+const audioHotspot = { id: `aud-${"1".repeat(32)}`, panelId: null, activityArea: { x: 20, y: 30, width: 48, height: 48 }, readableFocusArea: { x: 100, y: 200, width: 700, height: 400 }, audioAssetSlot: audioReference.slot, label: "Listen to the first paragraph" };
 const pageId = "page-1";
 const q = "q-00000000000040008000000000000001";
 
@@ -69,6 +72,49 @@ test("Readable Text rejects unknown keys, direct URLs, invalid kind, slot, dimen
   for (const mutate of mutations) { const invalid = structuredClone(valid); mutate(invalid); assert.throws(() => kind.normalizePublic(invalid)); }
 });
 
+test("Audio / Readable-Text hotspots are strict, public, visual-surface-bound managed capabilities", () => {
+  for (const kindName of ["open-response", "image"]) {
+    const kind = resolveNativeActivityKind(kindName);
+    const document = kind.createBlankPublic({ activityId: `${kindName}-audio`, title: "Audio focus", placement: { pageId } });
+    document.assets = [reference, audioReference];
+    document.readableText = readableText;
+    document.audioTextHotspots = { hotspots: [audioHotspot] };
+    const normalized = kind.normalizePublic(document);
+    assert.deepEqual(normalized.audioTextHotspots, document.audioTextHotspots);
+    assert.deepEqual(nativeAudioTextAssetRequirements(normalized), [{ slot: audioReference.slot, mediaType: "audio/mpeg", label: "Audio hotspot 1" }]);
+    assert.doesNotThrow(() => assertPublicBuilderDocument(normalized));
+    assert.doesNotMatch(JSON.stringify(normalized), /modelAnswer|correctOption|teacher|https?:\/\//i);
+  }
+});
+
+test("Audio / Readable-Text hotspots reject each incomplete or unsafe relationship", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const valid = kind.createBlankPublic({ activityId: "open-audio", title: "Audio focus", placement: { pageId } });
+  valid.assets = [reference, audioReference];
+  valid.readableText = readableText;
+  valid.audioTextHotspots = { hotspots: [audioHotspot] };
+  const mutations = [
+    (value) => { delete value.readableText; },
+    (value) => { value.audioTextHotspots.extra = true; },
+    (value) => { value.audioTextHotspots.hotspots[0].privateAnswer = "secret"; },
+    (value) => { value.audioTextHotspots.hotspots[0].audioAssetSlot = reference.slot; },
+    (value) => { value.audioTextHotspots.hotspots[0].panelId = "missing-panel"; },
+    (value) => { value.audioTextHotspots.hotspots[0].activityArea.width = 47; },
+    (value) => { value.audioTextHotspots.hotspots[0].activityArea.x = 1000; },
+    (value) => { value.audioTextHotspots.hotspots[0].readableFocusArea.height = 1800; },
+    (value) => { value.audioTextHotspots.hotspots[0].label = "<unsafe>"; },
+  ];
+  for (const mutate of mutations) {
+    const invalid = structuredClone(valid);
+    mutate(invalid);
+    assert.throws(() => kind.normalizePublic(invalid));
+  }
+  const textChoiceKind = resolveNativeActivityKind("single-choice");
+  const textChoice = textChoiceKind.createBlankPublic({ activityId: "choice-audio", title: "No stage", placement: { pageId } });
+  textChoice.assets = [reference, audioReference]; textChoice.readableText = readableText; textChoice.audioTextHotspots = { hotspots: [audioHotspot] };
+  assert.throws(() => textChoiceKind.normalizePublic(textChoice), /visual activity surface/);
+});
+
 test("managed Readable Text dimensions and activity ownership fail closed", async () => {
   const row = { id: reference.assetId, checksum_sha256: reference.checksumSha256, asset_role: reference.role, publication_status: "draft", access_level: "internal", storage_profile: "private", source_metadata: { native_activity_id: "open-readable", asset_slot: reference.slot }, width: 1000, height: 1800 };
   const sql = async () => [row];
@@ -76,6 +122,13 @@ test("managed Readable Text dimensions and activity ownership fail closed", asyn
   await assert.doesNotReject(() => validateBuilderNativeAssetReferences(sql, input));
   await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, width: 999 }], input), /Readable Text dimensions/);
   await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, source_metadata: { ...row.source_metadata, native_activity_id: "other" } }], input), /not owned/);
+});
+
+test("managed hotspot audio requires audio/mpeg and no image dimensions", async () => {
+  const row = { id: audioReference.assetId, checksum_sha256: audioReference.checksumSha256, asset_role: audioReference.role, publication_status: "draft", access_level: "internal", storage_profile: "private", source_metadata: { native_activity_id: "open-audio", asset_slot: audioReference.slot }, mime_type: "audio/mpeg", width: null, height: null };
+  const input = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: "open-audio", assets: [audioReference], requirements: nativeAudioTextAssetRequirements({ audioTextHotspots: { hotspots: [audioHotspot] } }) };
+  await assert.doesNotReject(() => validateBuilderNativeAssetReferences(async () => [row], input));
+  await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, mime_type: "image/png" }], input), /media type/);
 });
 
 test("managed reference cleanup retains a slot until every activity use is removed", () => {
@@ -101,8 +154,25 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   files.forEach((source) => assert.match(source, /<NativeReadableTextEditor/));
   const shared = await readFile(new URL("../src/apps/book-builder/hosted/NativeReadableTextEditor.jsx", import.meta.url), "utf8");
   assert.match(shared, /uploadNativeActivityAsset/); assert.match(shared, /Upload a readable-text image/); assert.doesNotMatch(shared, /teacherDocument|correctAnswer|modelAnswer/);
+  assert.match(shared, /<NativeAudioTextHotspotEditor/);
+  const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
+  assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
   assert.match(pages, /videoAvailable \? \[\{/); assert.match(pages, /!listeningAvailable && \(activityPresentationState\.readableTextAvailable \|\| \(!videoAvailable/); assert.match(pages, /activeIconName: "showTextPressed"/);
+});
+
+test("shared hotspot artwork embeds the exact canonical repository cue bytes without importing the Teacher-only asset tree", async () => {
+  for (const state of ["active", "pressed"]) {
+    const [sharedSvg, canonicalPng] = await Promise.all([
+      readFile(new URL(`../src/assets/native-activities/audio-text-hotspot-${state}.svg`, import.meta.url), "utf8"),
+      readFile(new URL(`../src/assets/books/ultimate-b2/legacy-classroom-ui/icons/media/activity-audio/ab-button-${state}.png`, import.meta.url)),
+    ]);
+    const embedded = sharedSvg.match(/base64,([^"']+)/)?.[1];
+    assert.ok(embedded);
+    assert.deepEqual(Buffer.from(embedded, "base64"), canonicalPng);
+  }
+  const runtime = await readFile(new URL("../src/components/native-readable-text/NativeAudioTextHotspots.jsx", import.meta.url), "utf8");
+  assert.doesNotMatch(runtime, /legacyClassroomAssets|legacy-classroom-ui/);
 });
 
 test("native Readable Text presentation toggles only when available and uses bounded internal scrolling", async () => {

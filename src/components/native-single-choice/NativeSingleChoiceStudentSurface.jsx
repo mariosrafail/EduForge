@@ -1,6 +1,6 @@
 import { NativeSingleChoicePresentation } from "./NativeSingleChoicePresentation.jsx";
 
-export function NativeSingleChoiceStudentSurface({ document, assetUrl = () => "", responses: controlledResponses = null, initialResponses = null, onResponsesChange = null, readOnly = false }) {
+export function NativeSingleChoiceStudentSurface({ document, assetUrl = () => "", responses: controlledResponses = null, initialResponses = null, onResponsesChange = null, readOnly = false, audioHotspotPresentation = null }) {
   return <NativeSingleChoicePresentation
     document={document}
     assetUrl={assetUrl}
@@ -9,5 +9,6 @@ export function NativeSingleChoiceStudentSurface({ document, assetUrl = () => ""
     onResponsesChange={onResponsesChange}
     readOnly={readOnly}
     className="native-single-choice-student"
+    audioHotspotPresentation={audioHotspotPresentation}
   />;
 }

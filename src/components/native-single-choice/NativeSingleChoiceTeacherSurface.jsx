@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { NativeSingleChoicePresentation } from "./NativeSingleChoicePresentation.jsx";
 import { createNativeSingleChoiceTeacherSession, nativeSingleChoiceTeacherPresentationState, updateNativeSingleChoiceTeacherSession } from "./nativeSingleChoiceTeacherRuntime.js";
 
-function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, assetUrl, presentation }) {
+function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, assetUrl, presentation, audioHotspotPresentation }) {
   const [session, setSession] = useState(createNativeSingleChoiceTeacherSession);
   const [announcement, setAnnouncement] = useState("");
   const lastCommandToken = useRef(presentation?.command?.token);
@@ -39,11 +39,12 @@ function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, ass
       navigationMode={presentation ? "external" : "inline"}
       panelIndex={session.panelIndex}
       className="native-single-choice-teacher"
+      audioHotspotPresentation={audioHotspotPresentation}
     />
     <span className="native-single-choice-sr-only" role="status" aria-live="polite">{announcement}</span>
   </>;
 }
 
-export function NativeSingleChoiceTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null }) {
-  return <NativeSingleChoiceTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} presentation={presentation} />;
+export function NativeSingleChoiceTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null, audioHotspotPresentation = null }) {
+  return <NativeSingleChoiceTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />;
 }

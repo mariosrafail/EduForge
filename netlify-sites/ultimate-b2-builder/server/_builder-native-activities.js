@@ -2,8 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
+import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-assets/audio-inspection.js";
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
+import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
 import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
@@ -32,7 +34,7 @@ const safeId = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const uploadTtlSeconds = 15 * 60;
 const previewTtlSeconds = 5 * 60;
 const declaredRasterTypes = new Set(Object.values(MANAGED_RASTER_TYPES));
-const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"]]);
+const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"]]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 
@@ -141,6 +143,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
       assets: publicDocument.assets,
       requirements: [
         ...nativeReadableTextAssetRequirements(publicDocument),
+        ...nativeAudioTextAssetRequirements(publicDocument),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
       ],
     });
@@ -170,8 +173,9 @@ function normalizeAssetDescriptor(input) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/.test(name) || path.basename(name) !== name || /^(?:[a-z]:|\\\\|\/)|%2f|%5c|[\u0000-\u001f\u007f]/i.test(name)) throw new Error("invalid_filename");
   const extension = path.extname(name).toLowerCase();
   const type = String(input.type || "").toLowerCase();
-  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || !declaredRasterTypes.has(type)) throw new Error("declared_mime_mismatch");
-  if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > MANAGED_RASTER_MAXIMUM_BYTES) throw new Error("declared_file_too_large");
+  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (!declaredRasterTypes.has(type) && type !== "audio/mpeg")) throw new Error("declared_mime_mismatch");
+  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
+  if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > maximumBytes) throw new Error("declared_file_too_large");
   if (!safeId.test(String(input.assetSlot || ""))) throw new Error("invalid_asset_slot");
   return { name, size: input.size, type, assetSlot: input.assetSlot };
 }
@@ -201,6 +205,7 @@ async function assetResponse(dependencies, sql, parsedRoute, assetId) {
     asset,
     reference: { assetId: String(asset.id), checksumSha256: asset.checksum_sha256, role: asset.asset_role, slot: asset.source_metadata.asset_slot },
     previewUrl: `/builder/api/native-activities/books/${encodeURIComponent(parsedRoute.bookSlug)}/components/${encodeURIComponent(parsedRoute.componentSlug)}/activities/${encodeURIComponent(parsedRoute.activityId)}/assets/${encodeURIComponent(asset.id)}/preview`,
+    metadata: { mimeType: asset.mime_type, byteSize: Number(asset.byte_size), width: asset.width === null ? null : Number(asset.width), height: asset.height === null ? null : Number(asset.height) },
   };
 }
 
@@ -211,7 +216,7 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   if (!claimed) throw new Error("Native asset claim returned no result");
   if (claimed.outcome === "idempotent") {
     const result = await assetResponse(dependencies, sql, parsedRoute, claimed.resultingAssetId);
-    return result ? json(200, { reference: result.reference, previewUrl: result.previewUrl, idempotent: true }) : json(404, { error: "asset_not_found" });
+    return result ? json(200, { reference: result.reference, previewUrl: result.previewUrl, metadata: result.metadata, idempotent: true }) : json(404, { error: "asset_not_found" });
   }
   if (claimed.outcome !== "claimed" || claimed.activityId !== parsedRoute.activityId) return json(claimed.outcome === "session_not_found" ? 404 : claimed.outcome === "expired_session" ? 410 : 409, { error: claimed.outcome });
   const storage = dependencies.storage();
@@ -220,9 +225,9 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
     if (head.byteSize !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
     const bytes = await storage.download({ profile: "private", objectKey: claimed.stagingObjectKey });
     if (bytes.length !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
-    const inspected = await dependencies.inspectRaster(bytes);
+    const inspected = claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : await dependencies.inspectRaster(bytes);
     if (inspected.mimeType !== claimed.fileDescriptor.type || extensionTypes.get(path.extname(claimed.fileDescriptor.name).toLowerCase()) !== inspected.mimeType) throw new Error("actual_mime_mismatch");
-    const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, checksum: inspected.checksumSha256, extension: inspected.extension });
+    const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, assetSlot: claimed.assetSlot, checksum: inspected.checksumSha256, extension: inspected.extension });
     await storage.upload({ profile: "private", objectKey, body: inspected.bytes, contentType: inspected.mimeType, checksumSha256: inspected.checksumSha256, byteSize: inspected.byteSize });
     const assetId = await dependencies.completeAsset(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id, objectKey, storageBucket: storage.bucket("private"), ...inspected });
     await storage.delete({ profile: "private", objectKey: claimed.stagingObjectKey }).catch(() => {});
@@ -265,12 +270,18 @@ async function nativeCatalog(dependencies, sql) {
         {
           const requirements = [
             ...nativeReadableTextAssetRequirements(publicDocument),
+            ...nativeAudioTextAssetRequirements(publicDocument),
             ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
           ];
           for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
             const asset = reference ? assetRows.get(reference.assetId) : null;
-            if (!asset || Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height) issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
+            if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) {
+              issues.push(`${requirement.label || "Native managed asset"} media type does not match the managed asset.`);
+            } else if (requirement.width !== undefined
+              && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) {
+              issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
+            }
           }
         }
         ready = issues.length === 0;
@@ -303,6 +314,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     collectCatalog: overrides.collectCatalog || collectUltimateB2PublicationV2Sources,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
+    inspectAudio: overrides.inspectAudio || inspectManagedMp3,
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
     logger: overrides.logger || console,

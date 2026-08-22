@@ -4,21 +4,26 @@ import { BookOpen, Upload } from "lucide-react";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NativeAudioTextHotspotEditor } from "./NativeAudioTextHotspotEditor.jsx";
 
 function detachReadableText(document) {
   const slot = document.readableText?.assetSlot;
+  const audioSlots = (document.audioTextHotspots?.hotspots || []).map((hotspot) => hotspot.audioAssetSlot).filter(Boolean);
   delete document.readableText;
+  delete document.audioTextHotspots;
   if (slot) removeNativeManagedAssetReferenceIfUnused(document, slot);
+  audioSlots.forEach((audioSlot) => removeNativeManagedAssetReferenceIfUnused(document, audioSlot));
 }
 
 export function NativeReadableTextEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, previewUrl, onIncompleteChange, onIntentChange, onStatusChange }) {
   const [enabled, setEnabled] = useState(Boolean(publicDraft.readableText));
   const [uploading, setUploading] = useState(false);
+  const [hotspotsIncomplete, setHotspotsIncomplete] = useState(false);
   const readableText = publicDraft.readableText || null;
   const reference = readableText ? publicDraft.assets.find((asset) => asset.slot === readableText.assetSlot) : null;
 
   useEffect(() => setEnabled(Boolean(publicDraft.readableText)), [activityId]);
-  const incomplete = enabled && (!readableText || !readableText.altText.trim());
+  const incomplete = enabled && (!readableText || !readableText.altText.trim() || hotspotsIncomplete);
   useEffect(() => { onIncompleteChange(incomplete); }, [incomplete, onIncompleteChange]);
 
   const toggle = () => {
@@ -80,6 +85,7 @@ export function NativeReadableTextEditor({ bookSlug, componentSlug, activityId, 
       </figure> : null}
       <label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading…" : readableText ? "Replace image" : "Upload Readable Text Image"}</strong><small>PNG, JPEG or WebP</small></span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ""; }} /></label>
       {readableText ? <label className="studio-field"><span>Accessibility label</span><input value={readableText.altText} maxLength={300} onChange={(event) => mutatePublic((next) => { next.readableText.altText = event.target.value; })} /></label> : null}
+      {readableText ? <NativeAudioTextHotspotEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewUrl} onIncompleteChange={setHotspotsIncomplete} onStatusChange={onStatusChange} /> : null}
       {readableText ? <button type="button" className="studio-button studio-button--danger-ghost" onClick={toggle}>Remove / Disable Readable Text</button> : null}
     </div> : null}
   </section>;

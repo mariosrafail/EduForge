@@ -102,7 +102,7 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
-  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false });
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false, audioFocusActive: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
   const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
   const onActivityPresentationStateChange = useCallback((state) => {
@@ -112,6 +112,7 @@ export default function TeacherOfflinePages({
       && current.panelIndex === next.panelIndex
       && current.panelCount === next.panelCount
       && current.readableTextAvailable === next.readableTextAvailable
+      && current.audioFocusActive === next.audioFocusActive
       && current.reveal?.supported === next.reveal?.supported
       && current.reveal?.total === next.reveal?.total
       && current.reveal?.revealed === next.reveal?.revealed
@@ -134,6 +135,7 @@ export default function TeacherOfflinePages({
       panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
       reveal: null,
       readableTextAvailable: false,
+      audioFocusActive: false,
     });
     setActivityPresentationCommand(null);
     setActivitySessionEpoch(0);
@@ -318,12 +320,13 @@ export default function TeacherOfflinePages({
       panelCount: current.panelCount,
       reveal: current.reveal ? { ...current.reveal, revealed: 0, pristine: true } : null,
       readableTextAvailable: current.readableTextAvailable,
+      audioFocusActive: false,
     }));
     setActivitySessionEpoch((current) => current + 1);
     sendActivityCommand("reset-activity");
   };
   const revealActions = activityActive ? [
-    { id: "reload", controlId: "reveal:reload", label: "Reload", disabled: revealSupported && revealState.pristine && activityPresentationState.view === "questions", artwork: legacyClassroomAssets.revealControls.reload, onClick: resetActivity },
+    { id: "reload", controlId: "reveal:reload", label: "Reload", disabled: revealSupported && revealState.pristine && activityPresentationState.view === "questions" && !activityPresentationState.audioFocusActive, artwork: legacyClassroomAssets.revealControls.reload, onClick: resetActivity },
     { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
     { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
   ] : [];

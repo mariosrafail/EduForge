@@ -44,8 +44,10 @@ test("the shell presentation contract exposes progress but strips answer-bearing
     panelCount: 2,
     reveal: { supported: true, total: 3, revealed: 3, pristine: false },
     readableTextAvailable: false,
+    audioFocusActive: false,
   });
   assert.equal(normalizeTeacherActivityPresentationState({ reveal: { supported: false, total: 9 } }).reveal, null);
+  assert.equal(normalizeTeacherActivityPresentationState({ audioFocusActive: true, privateAnswer: "hidden" }).audioFocusActive, true);
 });
 
 test("legacy and native Teacher activities implement the command/progress boundary without exposing answers", async () => {
@@ -86,4 +88,5 @@ test("legacy and native Teacher activities implement the command/progress bounda
   assert.match(pages, /setActivitySessionEpoch\(\(current\) => current \+ 1\)/);
   assert.match(pages, /activityPresentationState\.panelCount > 1/);
   assert.match(pages, /disabled: !revealSupported/);
+  assert.match(pages, /!activityPresentationState\.audioFocusActive/);
 });

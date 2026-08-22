@@ -6,6 +6,7 @@ import { buildComponentReleaseAssetObjectKey } from "../lib/book-assets/object-k
 import { materializeNativeReleaseAssets } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-assets.js";
 
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
 const checksum = createHash("sha256").update(png).digest("hex");
 const descriptor = { sha256: checksum, extension: "png", mediaType: "image/png", role: "activity_artwork" };
 const row = { object_key: "builder-native-assets/source.png", byte_size: png.length, width: 1, height: 1 };
@@ -36,4 +37,20 @@ test("release asset materialization fails closed on source checksum or raster di
     async upload() { throw new Error("must not upload"); },
   };
   await assert.rejects(materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor, row }] }), /release_asset_unavailable/);
+});
+
+test("managed MP3 bytes materialize to the immutable private release content address", async () => {
+  const audioChecksum = createHash("sha256").update(mp3).digest("hex");
+  const audioDescriptor = { sha256: audioChecksum, extension: "mp3", mediaType: "audio/mpeg", role: "activity_artwork" };
+  const audioRow = { object_key: "builder-native-assets/source.mp3", byte_size: mp3.length, width: null, height: null };
+  const uploads = [];
+  const storage = {
+    async head() { return { checksumSha256: audioChecksum, byteSize: mp3.length, contentType: "audio/mpeg" }; },
+    async download() { return mp3; },
+    async upload(input) { uploads.push(input); return { reused: false }; },
+  };
+  await materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor: audioDescriptor, row: audioRow }] });
+  assert.equal(uploads.length, 1);
+  assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${audioChecksum}.mp3`);
+  assert.equal(uploads[0].contentType, "audio/mpeg");
 });
