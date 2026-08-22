@@ -69,7 +69,7 @@ function mutateVisual(mutator) {
   return pair;
 }
 
-test("legacy text-only Single Choice canonical JSON and immutable publication hashes remain unchanged", () => {
+test("legacy text-only Single Choice canonical JSON remains unchanged while current publication uses the latest compatibility", () => {
   const document = {
     schemaVersion: "1.0", activityId: "choice-compat", kind: "single-choice",
     metadata: { title: "Compatibility", visibleInstructionText: "" }, placement: { pageId: "page-1" }, assets: [],
@@ -88,11 +88,11 @@ test("legacy text-only Single Choice canonical JSON and immutable publication ha
     teacher: compiled.teacherProjectionSha256,
     release: compiled.releaseSha256,
   }, {
-    compatibility: "f1fca746955e58c0c4153c97a717a2f5e024cb5d12eb9263ad8c6b2a7caf9316",
+    compatibility: "bc5b6c72383a155d51b4dabadbc717a442df2878d57245882cba91f27bf74985",
     source: "2471477ceb9d4d454528baa58f644717b1f40fd2246de3bcf035cc5ceeaa1427",
-    public: "f74cc28b0aafc76dacb990ed1bc9a72229134c9923fd6cfb6608c6b0a26bdac6",
+    public: "fbf91e80ef34e6c07966423b6a9dcc2460785321e83b04381b445757effd1235",
     teacher: "0f8211a405cc7074054d5aab9e74e0f035d07eb94f56c9ca2c34655b289dd5a1",
-    release: "4ec25bc0fe4a738a1c4e4aae2b2420eb628e819f77a297f40a45c73592aa8c8d",
+    release: "cf4d6efc2477a701dc0d0449635de9507b170aa2984eaba690d6adaf3722847b",
   });
 });
 

@@ -28,7 +28,7 @@ const publicDocument = {
   ] } }],
 };
 
-test("native capabilities derive Open Response review, Single Choice scoring, and Image display-only policy", () => {
+test("native capabilities derive Open Response and Complete the Sentences review, Single Choice scoring, and Image display-only policy", () => {
   const openResponse = nativeAssignmentCapability("open-response");
   assert.equal(openResponse.assignable, true);
   assert.equal(openResponse.submittable, true);
@@ -38,12 +38,39 @@ test("native capabilities derive Open Response review, Single Choice scoring, an
   assert.equal(choice.assignable, true);
   assert.equal(choice.submittable, true);
   assert.equal(choice.reviewMode, "auto-scored");
+  const completeSentences = nativeAssignmentCapability("complete-sentences");
+  assert.equal(completeSentences.assignable, true);
+  assert.equal(completeSentences.submittable, true);
+  assert.equal(completeSentences.reviewMode, "teacher-reviewed");
 
   const image = nativeAssignmentCapability("image");
   assert.equal(image.assignable, false);
   assert.equal(image.submittable, false);
   assert.equal(image.reviewMode, "display-only");
   assert.equal(nativeAssignmentCapability("future-kind"), null);
+});
+
+test("Complete the Sentences response uses public item order and joins private answers only in Teacher review", () => {
+  const first = "item-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const second = "item-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const publicComplete = { parts: [{ interaction: { kind: "complete-sentences", items: [
+    { id: first, prompt: "I spent the weekend ____ the series." },
+    { id: second, prompt: "The final ____ was surprising." },
+  ] } }] };
+  const teacherComplete = { parts: [{ solution: { kind: "complete-sentences", answers: [
+    { itemId: first, text: "catching up on" }, { itemId: second, text: "episode" },
+  ] } }] };
+  const capability = nativeAssignmentCapability("complete-sentences");
+  const normalized = capability.normalizeResponse(publicComplete, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [
+    { id: second, value: "episode" }, { id: first, value: "catching up" },
+  ] });
+  assert.deepEqual(normalized.payload.items.map((item) => item.id), [first, second]);
+  assert.equal(normalized.status, "awaiting_review");
+  assert.doesNotMatch(JSON.stringify(normalized.payload), /catching up on/);
+  assert.deepEqual(capability.teacherReviewProjection(publicComplete, teacherComplete, normalized.payload).map(({ questionId, modelAnswer }) => ({ questionId, modelAnswer })), [
+    { questionId: first, modelAnswer: "catching up on" }, { questionId: second, modelAnswer: "episode" },
+  ]);
+  assert.match(capability.normalizeResponse(publicComplete, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "forged", value: "x" }] }).error, /invalid/);
 });
 
 test("Single Choice validates option ownership and scores the immutable Teacher key with unanswered items incorrect", () => {

@@ -10,7 +10,7 @@ import {
   newBuilderClientMutationId,
   saveBuilderContent,
 } from "../book-builder/hosted/builderContentApi.js";
-import { getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
+import { getActivityLifecycle, getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
 import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
 const contentIdentity = Object.freeze({
@@ -30,6 +30,7 @@ const legacyActivities = (catalog.units || []).flatMap((unit) => (unit.lessons |
     unitNumber: Number(activity.unitNumber),
     pageSpread: String(activity.pageSpread || activity.pageNumber),
     pageLabel: activity.pageLabel,
+    pageId: lesson.pageId || lesson.id,
   }))
 )));
 
@@ -68,6 +69,7 @@ export function HostedUltimateB2HotspotBuilder() {
   const [customLabels, setCustomLabels] = useState(() => new Set());
   const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
   const [nativeActivities, setNativeActivities] = useState([]);
+  const [activityLifecycle, setActivityLifecycle] = useState({ activities: {} });
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
   useEffect(() => {
@@ -82,7 +84,12 @@ export function HostedUltimateB2HotspotBuilder() {
       release: null,
     });
   }, [dirty, page, registerToolContext, rememberPage, viewerRefreshKey]);
-  const activities = useMemo(() => [...legacyActivities, ...nativeActivities.map((activity) => {
+  const activities = useMemo(() => [...legacyActivities.flatMap((activity) => {
+    const override = activityLifecycle.activities?.[activity.activityKey];
+    if (override?.status === "retired") return [];
+    const effectivePage = pageRows.find((row) => row.id === (override?.pageId || activity.pageId));
+    return [{ ...activity, unitNumber: effectivePage?.unitNumber || activity.unitNumber, pageSpread: String(effectivePage?.spreadNumber || activity.pageSpread), pageLabel: effectivePage ? pageLabel(effectivePage) : activity.pageLabel }];
+  }), ...nativeActivities.map((activity) => {
     const activityPage = pageRows.find((row) => row.id === activity.placement.pageId);
     return {
       activityKey: activity.activityId,
@@ -95,13 +102,17 @@ export function HostedUltimateB2HotspotBuilder() {
       ready: activity.ready,
       issues: activity.issues,
     };
-  })], [nativeActivities]);
+  })], [activityLifecycle, nativeActivities]);
   const hotspots = manifest?.pages?.[page?.id] || [];
   const selectedHotspot = hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
   const currentPageActivities = activities.filter((activity) => (
     activity.unitNumber === page?.unitNumber && activity.pageSpread === String(page?.spreadNumber)
   ));
-  const otherActivities = activities.filter((activity) => !currentPageActivities.includes(activity));
+  // Native placement and canonical lifecycle overrides are authoritative. They
+  // become selectable only on their destination canvas, which makes post-move
+  // launch placement deliberate and prevents an old-page hotspot resurrection.
+  const otherActivities = activities.filter((activity) => !currentPageActivities.includes(activity)
+    && !activity.native && !activityLifecycle.activities?.[activity.activityKey]);
 
   async function loadLatest({ signal } = {}) {
     setStatus("Loading");
@@ -122,6 +133,7 @@ export function HostedUltimateB2HotspotBuilder() {
     Promise.all([
       loadLatest({ signal: controller.signal }),
       getNativeActivityCatalog(contentIdentity, { signal: controller.signal }).then(setNativeActivities),
+      getActivityLifecycle(contentIdentity, { signal: controller.signal }).then((value) => setActivityLifecycle(value.document)),
     ]).catch((requestError) => {
       if (requestError.name === "AbortError") return;
       setError(requestError.message);

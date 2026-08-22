@@ -19,6 +19,7 @@ function tag(pool) { return async (strings, ...values) => { let text = strings[0
 function event({ kind = "open-response", title = "Integration native", mutationId = randomUUID() } = {}) { return { httpMethod: "POST", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ kind, pageId: "ub2-sb-unit-1-part-1", title, clientMutationId: mutationId }) }; }
 function pairEvent(activityId, body) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify(body) }; }
 function deleteEvent(activityId, mutationId = randomUUID()) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/delete`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ clientMutationId: mutationId }) }; }
+function lifecycleEvent(activityId, action, sourcePageId, destinationPageId = null, mutationId = randomUUID()) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/${action}`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ sourcePageId, ...(destinationPageId ? { destinationPageId } : {}), clientMutationId: mutationId }) }; }
 function hotspotEvent(method, body = null) { return { httpMethod: method, path: "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: body ? JSON.stringify(body) : "" }; }
 
 test("isolated PostgreSQL creates native index/public/Teacher drafts atomically, idempotently, and without identity races", { skip: !enabled }, async (t) => {
@@ -28,7 +29,7 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
+  assert.equal(migrations.at(-1).filename, "043_builder_activity_lifecycle.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Native Actor','native@example.test','hash')", [actor]);
   const sql = tag(pool);
   const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
@@ -195,6 +196,66 @@ test("isolated PostgreSQL logically deletes native activity membership and hotsp
   assert.doesNotMatch(JSON.stringify(audit), /payload|document|answer|solution|token|secret|checksum/i);
 });
 
+test("isolated PostgreSQL atomically relocates native and canonical identities and logically retires canonical activity membership", { skip: !enabled }, async (t) => {
+  const schema = `builder_lifecycle_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Lifecycle Actor','lifecycle@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const native = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const content = createBuilderContentHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const sourcePage = "ub2-sb-unit-1-part-1";
+  const destinationPage = "reading-19";
+
+  const created = JSON.parse((await native(event({ title: "Move integration" }))).body);
+  const nativeBefore = (await pool.query("select document_type,revision,payload from builder_component_documents where document_key=$1 and document_type in ('native_activity_public','native_activity_teacher') order by document_type", [created.activityId])).rows;
+  const nativeMutationId = randomUUID();
+  const nativeMoved = await native(lifecycleEvent(created.activityId, "move", sourcePage, destinationPage, nativeMutationId));
+  assert.equal(nativeMoved.statusCode, 200);
+  assert.equal(JSON.parse(nativeMoved.body).outcome, "moved");
+  assert.equal(JSON.parse((await native(lifecycleEvent(created.activityId, "move", sourcePage, destinationPage, nativeMutationId))).body).idempotent, true);
+  assert.equal((await native(lifecycleEvent(created.activityId, "move", sourcePage, destinationPage))).statusCode, 409);
+  const nativeAfter = (await pool.query("select document_type,revision,payload from builder_component_documents where document_key=$1 and document_type in ('native_activity_public','native_activity_teacher') order by document_type", [created.activityId])).rows;
+  assert.equal(nativeAfter.find((row) => row.document_type === "native_activity_public").payload.placement.pageId, destinationPage);
+  assert.deepEqual(nativeAfter.find((row) => row.document_type === "native_activity_teacher").payload, nativeBefore.find((row) => row.document_type === "native_activity_teacher").payload);
+  assert.equal(Number(nativeAfter.find((row) => row.document_type === "native_activity_teacher").revision), Number(nativeBefore.find((row) => row.document_type === "native_activity_teacher").revision));
+
+  const canonicalId = "ultimate-b2-sb-u1-p1-o1";
+  assert.equal((await native(lifecycleEvent(canonicalId, "move", "reading-16", destinationPage))).statusCode, 409);
+  const canonicalMutationId = randomUUID();
+  const canonicalMoved = await native(lifecycleEvent(canonicalId, "move", sourcePage, destinationPage, canonicalMutationId));
+  assert.equal(canonicalMoved.statusCode, 200);
+  assert.equal(JSON.parse((await native(lifecycleEvent(canonicalId, "move", sourcePage, destinationPage, canonicalMutationId))).body).idempotent, true);
+  assert.equal((await native(lifecycleEvent(canonicalId, "move", sourcePage, destinationPage))).statusCode, 409);
+  let lifecycle = (await pool.query("select revision,payload from builder_component_documents where document_type='activity_lifecycle' and document_key='default'")).rows[0];
+  assert.deepEqual(lifecycle.payload.activities[canonicalId], { status: "active", pageId: destinationPage });
+
+  const currentHotspots = JSON.parse((await content(hotspotEvent("GET"))).body);
+  const destinationHotspots = structuredClone(currentHotspots.document);
+  destinationHotspots.pages[destinationPage] ||= [];
+  destinationHotspots.pages[destinationPage].push({ id: "moved-canonical-launch", unitNumber: 2, pageId: destinationPage, pageNumber: 19, left: 1, top: 1, width: 10, height: 10, label: "Moved canonical", actionType: "normalized_activity", activityKey: canonicalId });
+  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: currentHotspots.revision, clientMutationId: randomUUID(), document: destinationHotspots }))).statusCode, 200);
+
+  const retireMutationId = randomUUID();
+  const retired = await native(lifecycleEvent(canonicalId, "retire", destinationPage, null, retireMutationId));
+  assert.equal(retired.statusCode, 200);
+  assert.equal(JSON.parse(retired.body).removedHotspotCount, 1);
+  assert.equal(JSON.parse((await native(lifecycleEvent(canonicalId, "retire", destinationPage, null, retireMutationId))).body).idempotent, true);
+  assert.equal((await native(lifecycleEvent(canonicalId, "retire", destinationPage))).statusCode, 404);
+  assert.equal((await native(lifecycleEvent(canonicalId, "move", destinationPage, sourcePage))).statusCode, 404);
+  lifecycle = (await pool.query("select revision,payload from builder_component_documents where document_type='activity_lifecycle' and document_key='default'")).rows[0];
+  assert.deepEqual(lifecycle.payload.activities[canonicalId], { status: "retired", pageId: destinationPage });
+  const hotspots = (await pool.query("select payload from builder_component_documents where document_type='hotspots' and document_key='default'")).rows[0].payload;
+  assert.equal(Object.values(hotspots.pages).flat().some((entry) => entry.activityKey === canonicalId), false);
+  assert.equal((await pool.query("select count(*)::int count from builder_activity_lifecycle_mutations where activity_id in ($1,$2)", [created.activityId, canonicalId])).rows[0].count, 3);
+  const audit = (await pool.query("select metadata from builder_audit_log where action in ('activity_moved','activity_retired') order by id")).rows;
+  assert.equal(audit.length, 3);
+  assert.doesNotMatch(JSON.stringify(audit), /payload|document|answer|solution|token|secret|checksum/i);
+});
+
 test("isolated PostgreSQL reads a legacy native payload by its persisted checksum without mutating it", { skip: !enabled }, async (t) => {
   const schema = `builder_native_checksum_${randomBytes(8).toString("hex")}`;
   const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
@@ -202,7 +263,7 @@ test("isolated PostgreSQL reads a legacy native payload by its persisted checksu
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
+  assert.equal(migrations.at(-1).filename, "043_builder_activity_lifecycle.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Checksum Actor','checksum@example.test','hash')", [actor]);
 
   const sql = tag(pool);

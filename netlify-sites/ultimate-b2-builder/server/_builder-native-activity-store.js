@@ -55,6 +55,32 @@ export async function deleteBuilderNativeActivity(sql, input) {
   };
 }
 
+export async function mutateBuilderActivityLifecycle(sql, input) {
+  const rows = await sql`
+    select * from mutate_builder_activity_lifecycle(
+      ${input.bookSlug},${input.componentSlug},${input.activityId},${input.activityFamily},${input.operation},
+      ${input.sourcePageId},${input.authoritativeSourcePageId},${input.destinationPageId},
+      ${input.expectedLifecycleRevision},${JSON.stringify(input.lifecycleDocument)}::jsonb,${input.lifecycleSha256},${input.lifecycleSchemaVersion},
+      ${input.expectedIndexRevision},${JSON.stringify(input.indexDocument)}::jsonb,${input.indexSha256},${input.indexSchemaVersion},
+      ${input.expectedPublicRevision},${JSON.stringify(input.publicDocument)}::jsonb,${input.publicSha256},${input.publicSchemaVersion},
+      ${input.expectedHotspotRevision},${JSON.stringify(input.hotspotDocument)}::jsonb,${input.hotspotSha256},${input.hotspotSchemaVersion},
+      ${input.hotspotChanged},${input.removedHotspotCount},${input.requestSha256},
+      ${input.builderUserId}::uuid,${input.clientMutationId}::uuid
+    )
+  `;
+  const row = rows[0];
+  if (!row) throw new Error("Activity lifecycle mutation returned no result");
+  return {
+    outcome: row.outcome,
+    activityId: row.activity_id || null,
+    lifecycleRevision: Number(row.lifecycle_revision || 0),
+    indexRevision: Number(row.index_revision || 0),
+    publicRevision: Number(row.public_revision || 0),
+    hotspotRevision: Number(row.hotspot_revision || 0),
+    removedHotspotCount: Number(row.removed_hotspot_count || 0),
+  };
+}
+
 export async function saveBuilderNativeActivityPair(sql, input) {
   const rows = await sql`
     select * from save_builder_native_activity_pair(

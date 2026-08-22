@@ -20,8 +20,11 @@ import {
 import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
+import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle, normalizeUltimateB2ActivityLifecycle, ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 
 async function loadUltimateB2HotspotActivityUniverse(loadRelated) {
+  const storedLifecycle = await loadRelated("activity-lifecycle", "");
+  const lifecycle = storedLifecycle?.document || createEmptyUltimateB2ActivityLifecycle();
   const storedIndex = await loadRelated("native-activity-index", "");
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
   const nativeActivities = [];
@@ -31,7 +34,7 @@ async function loadUltimateB2HotspotActivityUniverse(loadRelated) {
     if (!publicDocument || publicDocument.kind !== entry.kind || publicDocument.placement.pageId !== entry.placement.pageId) throw new Error(`Native activity ${entry.activityId} is incomplete.`);
     nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true });
   }
-  return [...ultimateB2StudentsBookAuthoringActivities, ...nativeActivities];
+  return [...applyUltimateB2ActivityLifecycle(ultimateB2StudentsBookAuthoringActivities, lifecycle), ...nativeActivities];
 }
 
 const ultimateB2HotspotResource = Object.freeze({
@@ -53,7 +56,7 @@ const ultimateB2HotspotResource = Object.freeze({
   async validateMutationContext({ document, loadRelated }) {
     validateAndNormalizeUltimateB2HotspotManifest(document, await loadUltimateB2HotspotActivityUniverse(loadRelated));
   },
-  requiredRelatedForPreview: Object.freeze(["native-activity-index", "native-activity-public"]),
+  requiredRelatedForPreview: Object.freeze(["activity-lifecycle", "native-activity-index", "native-activity-public"]),
   async projectPreview(document, { loadRelated }) {
     return validateAndNormalizeUltimateB2HotspotManifest(structuredClone(document), await loadUltimateB2HotspotActivityUniverse(loadRelated));
   },
@@ -61,6 +64,19 @@ const ultimateB2HotspotResource = Object.freeze({
 
 const registry = Object.freeze({
   "ultimate-b2/ultimate-b2-students-book/hotspots": ultimateB2HotspotResource,
+  "ultimate-b2/ultimate-b2-students-book/activity-lifecycle": Object.freeze({
+    bookSlug: "ultimate-b2",
+    componentSlug: "ultimate-b2-students-book",
+    resource: "activity-lifecycle",
+    documentType: "activity_lifecycle",
+    documentKey: "default",
+    schemaVersion: ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION,
+    readable: true,
+    writeAllowed: false,
+    previewReadable: false,
+    baseline: createEmptyUltimateB2ActivityLifecycle,
+    validate: normalizeUltimateB2ActivityLifecycle,
+  }),
   "ultimate-b2/ultimate-b2-students-book/ui-controller": Object.freeze({
     bookSlug: "ultimate-b2",
     componentSlug: "ultimate-b2-students-book",

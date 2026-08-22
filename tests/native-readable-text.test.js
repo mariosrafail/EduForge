@@ -44,7 +44,7 @@ test("legacy native canonical documents omit Readable Text and preserve fixed ha
 });
 
 test("Readable Text is one strict generic student-safe optional managed image contract", () => {
-  for (const kindName of ["open-response", "image", "single-choice"]) {
+  for (const kindName of ["open-response", "image", "single-choice", "complete-sentences"]) {
     const kind = resolveNativeActivityKind(kindName);
     const document = kind.createBlankPublic({ activityId: `${kindName}-readable`, title: "Readable", placement: { pageId } });
     document.assets = [reference]; document.readableText = readableText;
@@ -198,13 +198,15 @@ test("native Readable Text presentation toggles only when available and uses bou
     readFile(new URL("../src/components/native-readable-text/NativeAudioTextHotspots.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-readable-text/nativeReadableText.css", import.meta.url), "utf8"),
   ]);
-  assert.match(component, /hidden=\{effectiveView === "text"\}/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /SCROLL ↓/);
+  assert.match(component, /hidden=\{effectiveView === "text"\}/); assert.match(css, /\.native-readable-text-activity-view\[hidden\]\s*\{\s*display:\s*none\s*!important/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /role="scrollbar"/);
+  assert.match(component, /aria-valuenow/); assert.match(component, /ArrowUp/); assert.match(component, /PageDown/); assert.match(component, /setPointerCapture/);
   assert.match(component, /event\.key === "Escape"/);
   assert.match(focus, /<audio ref=\{audioRef\} hidden autoPlay=\{autoPlay\}/);
   assert.match(focus, /const audio = audioRef\.current/);
   assert.match(focus, /audio\.pause\(\); audio\.currentTime = 0/);
   assert.doesNotMatch(focus, /<header|<strong|>Close<|\bcontrols\b/);
-  assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /width: 100%; height: auto/); assert.match(css, /pointer-events: none/);
+  assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /scrollbar-width: none/); assert.match(css, /::-webkit-scrollbar/); assert.match(css, /width: 100%; height: auto/);
+  assert.match(css, /native-readable-text-scroll-control/); assert.match(css, /native-readable-text-scroll-thumb/);
   assert.match(css, /\.native-audio-text-focus\s*\{[^}]*display: grid;[^}]*width: 100%;[^}]*height: 100%;[^}]*overflow: hidden/);
   assert.doesNotMatch(css, /native-audio-text-focus header|native-audio-text-focus audio/);
   assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);

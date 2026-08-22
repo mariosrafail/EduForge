@@ -82,6 +82,7 @@ export async function collectUltimateB2PublicationSources(sql) {
       from builder_component_documents document
       where document.book_component_id=component.id and (
         (document.document_type='hotspots' and document.document_key='default')
+        or (document.document_type='activity_lifecycle' and document.document_key='default')
         or (document.document_type='teacher_ui' and document.document_key='default')
         or (document.document_type='open_response' and document.document_key in (select jsonb_array_elements_text(${JSON.stringify(activityIds)}::jsonb)))
       )), '[]'::jsonb) as documents,
@@ -99,6 +100,7 @@ export async function collectUltimateB2PublicationSources(sql) {
   const documentRows = new Map(rows[0].documents.map((row) => [`${row.document_type}/${row.document_key}`, row]));
   const importRows = new Map(rows[0].imports.map((row) => [row.activity_key, row]));
   const hotspotsResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots");
+  const lifecycleResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "activity-lifecycle");
   const teacherUiResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "ui-controller");
   const openResponse = {};
   const imports = {};
@@ -112,6 +114,7 @@ export async function collectUltimateB2PublicationSources(sql) {
   return {
     documents: {
       hotspots: document(documentRows.get("hotspots/default"), hotspotsResource),
+      activityLifecycle: document(documentRows.get("activity_lifecycle/default"), lifecycleResource),
       teacherUi: document(documentRows.get("teacher_ui/default"), teacherUiResource),
       openResponse,
     },

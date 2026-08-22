@@ -1,6 +1,7 @@
 .native-readable-text-presentation { width: 100%; height: 100%; min-height: 0; }
 .native-readable-text-presentation[data-audio-focus] { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(6px, .8vw, 12px); overflow: hidden; }
 .native-readable-text-activity-view { width: 100%; height: 100%; }
+.native-readable-text-activity-view[hidden] { display: none !important; }
 .native-readable-text-activity-view.is-audio-focus { display: grid; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus > article { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus .native-or-surface { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
@@ -20,7 +21,11 @@
 .native-audio-text-hotspot img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .native-audio-text-hotspot:focus-visible { outline: 4px solid #ffdc42; outline-offset: 3px; }
 .native-readable-text-view { position: relative; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; max-height: none; padding: clamp(8px, 1.4vw, 18px); overflow: hidden; background: #e9eef5; border-radius: 12px; }
-.native-readable-text-scroll { box-sizing: border-box; width: 100%; height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; background: #fff; border: 1px solid #b7c3d4; border-radius: 8px; box-shadow: 0 3px 14px rgb(15 23 42 / 14%); touch-action: pan-y; }
+.native-readable-text-scroll { box-sizing: border-box; width: 100%; height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; background: #fff; border: 1px solid #b7c3d4; border-radius: 8px; box-shadow: 0 3px 14px rgb(15 23 42 / 14%); touch-action: pan-y; }
+.native-readable-text-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .native-readable-text-scroll:focus-visible { outline: 3px solid #2783d8; outline-offset: 2px; }
 .native-readable-text-scroll img { display: block; width: 100%; height: auto; max-width: none; object-fit: contain; }
-.native-readable-text-scroll-affordance { position: absolute; right: clamp(16px, 2.3vw, 28px); bottom: clamp(16px, 2.3vw, 28px); z-index: 2; padding: 5px 8px; color: #fff; background: rgb(17 53 86 / 84%); border-radius: 999px; box-shadow: 0 2px 7px rgb(15 23 42 / 24%); font-size: clamp(9px, .8vw, 12px); font-weight: 850; letter-spacing: .08em; pointer-events: none; }
+.native-readable-text-scroll-control { position: absolute; right: clamp(10px, 1vw, 16px); bottom: clamp(12px, 1.2vw, 18px); z-index: 3; box-sizing: border-box; width: 18px; height: clamp(74px, 12vh, 104px); padding: 2px; background: rgb(17 53 86 / 32%); border: 1px solid rgb(255 255 255 / 72%); border-radius: 999px; box-shadow: 0 2px 9px rgb(15 23 42 / 28%); cursor: pointer; touch-action: none; }
+.native-readable-text-scroll-control:focus-visible { outline: 3px solid #ffdc42; outline-offset: 3px; }
+.native-readable-text-scroll-thumb { position: absolute; top: calc((100% - var(--scroll-thumb-size)) * var(--scroll-progress)); left: 2px; display: block; width: 12px; height: var(--scroll-thumb-size); min-height: 24px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgb(15 23 42 / 40%); cursor: grab; }
+.native-readable-text-scroll-thumb:active { cursor: grabbing; }

@@ -44,14 +44,16 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const [activityState, setActivityState] = useState(() => defaultActivityState(document));
   const [activeHotspotId, setActiveHotspotId] = useState(null);
   const viewportRef = useRef(null);
-  const [overflowing, setOverflowing] = useState(false);
+  const trackRef = useRef(null);
+  const dragRef = useRef(null);
+  const [scrollState, setScrollState] = useState({ overflowing: false, top: 0, maximum: 0, viewport: 0, content: 0 });
   const lastCommandToken = useRef(presentation?.command?.token);
   const onStateChange = presentation?.onStateChange;
 
   useEffect(() => {
     setView("questions");
     setActivityState(defaultActivityState(document));
-    setOverflowing(false);
+    setScrollState({ overflowing: false, top: 0, maximum: 0, viewport: 0, content: 0 });
     setActiveHotspotId(null);
     lastCommandToken.current = presentation?.command?.token;
   }, [document.activityId]);
@@ -119,15 +121,41 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport || view !== "text") return undefined;
-    const update = () => setOverflowing(viewport.scrollHeight > viewport.clientHeight + 2);
+    const update = () => setScrollState({ overflowing: viewport.scrollHeight > viewport.clientHeight + 2, top: viewport.scrollTop, maximum: Math.max(0, viewport.scrollHeight - viewport.clientHeight), viewport: viewport.clientHeight, content: viewport.scrollHeight });
     update();
+    viewport.addEventListener("scroll", update, { passive: true });
     globalThis.addEventListener("resize", update);
-    if (typeof ResizeObserver === "undefined") return () => globalThis.removeEventListener("resize", update);
+    if (typeof ResizeObserver === "undefined") return () => { viewport.removeEventListener("scroll", update); globalThis.removeEventListener("resize", update); };
     const observer = new ResizeObserver(update);
     observer.observe(viewport);
     if (viewport.firstElementChild) observer.observe(viewport.firstElementChild);
-    return () => { observer.disconnect(); globalThis.removeEventListener("resize", update); };
+    return () => { observer.disconnect(); viewport.removeEventListener("scroll", update); globalThis.removeEventListener("resize", update); };
   }, [document.activityId, view]);
+
+  const scrollTo = useCallback((top) => {
+    const viewport = viewportRef.current;
+    if (viewport) viewport.scrollTop = Math.min(Math.max(0, top), Math.max(0, viewport.scrollHeight - viewport.clientHeight));
+  }, []);
+  const scrollControlKeyDown = (event) => {
+    const viewport = viewportRef.current; if (!viewport) return;
+    const increments = { ArrowUp: -40, ArrowDown: 40, PageUp: -viewport.clientHeight * 0.85, PageDown: viewport.clientHeight * 0.85 };
+    if (event.key === "Home") { event.preventDefault(); scrollTo(0); }
+    else if (event.key === "End") { event.preventDefault(); scrollTo(scrollState.maximum); }
+    else if (Object.hasOwn(increments, event.key)) { event.preventDefault(); scrollTo(viewport.scrollTop + increments[event.key]); }
+  };
+  const scrollFromTrackPoint = (clientY, grabRatio = 0.5) => {
+    const track = trackRef.current; if (!track || !scrollState.maximum) return;
+    const rect = track.getBoundingClientRect(); const thumbRatio = Math.min(1, Math.max(0.34, scrollState.viewport / Math.max(1, scrollState.content)));
+    const thumbPixels = Math.max(24, rect.height * thumbRatio); const travel = Math.max(1, rect.height - thumbPixels);
+    scrollTo(((clientY - rect.top - thumbPixels * grabRatio) / travel) * scrollState.maximum);
+  };
+  const beginThumbDrag = (event) => {
+    event.preventDefault(); event.stopPropagation(); const thumb = event.currentTarget.getBoundingClientRect();
+    dragRef.current = { pointerId: event.pointerId, grabRatio: Math.min(1, Math.max(0, (event.clientY - thumb.top) / Math.max(1, thumb.height))) };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveThumb = (event) => { if (dragRef.current?.pointerId === event.pointerId) scrollFromTrackPoint(event.clientY, dragRef.current.grabRatio); };
+  const endThumb = (event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; };
 
   const reference = available ? document.assets.find((asset) => asset.slot === document.readableText.assetSlot) : null;
   const effectiveView = available ? view : "questions";
@@ -137,13 +165,13 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
     <div className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
-      <div ref={viewportRef} className="native-readable-text-scroll" tabIndex={0} data-overflowing={overflowing || undefined}>
+      <div id={`${document.activityId}-readable-scroll`} ref={viewportRef} className="native-readable-text-scroll" tabIndex={0} data-overflowing={scrollState.overflowing || undefined}>
         <img src={assetUrl(reference.assetId)} alt={document.readableText.altText} width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} onLoad={() => {
           const viewport = viewportRef.current;
-          if (viewport) setOverflowing(viewport.scrollHeight > viewport.clientHeight + 2);
+          if (viewport) setScrollState({ overflowing: viewport.scrollHeight > viewport.clientHeight + 2, top: viewport.scrollTop, maximum: Math.max(0, viewport.scrollHeight - viewport.clientHeight), viewport: viewport.clientHeight, content: viewport.scrollHeight });
         }} />
       </div>
-      {overflowing ? <span className="native-readable-text-scroll-affordance" aria-hidden="true">SCROLL ↓</span> : null}
+      {scrollState.overflowing ? <div ref={trackRef} className="native-readable-text-scroll-control" role="scrollbar" aria-label="Readable text vertical scroll" aria-controls={`${document.activityId}-readable-scroll`} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={Math.round(scrollState.maximum)} aria-valuenow={Math.round(scrollState.top)} tabIndex={0} onKeyDown={scrollControlKeyDown} onPointerDown={(event) => { if (event.target === event.currentTarget) scrollFromTrackPoint(event.clientY); }}><span className="native-readable-text-scroll-thumb" style={{ "--scroll-thumb-size": `${Math.max(0.34, scrollState.viewport / Math.max(1, scrollState.content)) * 100}%`, "--scroll-progress": `${scrollState.maximum ? scrollState.top / scrollState.maximum : 0}` }} onPointerDown={beginThumbDrag} onPointerMove={moveThumb} onPointerUp={endThumb} onPointerCancel={endThumb} /></div> : null}
     </section> : null}
   </div>;
 }

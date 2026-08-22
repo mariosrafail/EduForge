@@ -14,8 +14,9 @@ import {
   assessNativeOpenResponseReadiness,
 } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { assessNativeSingleChoiceReadiness, normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "../../../src/data/native-activities/nativeSingleChoice.js";
+import { assessNativeCompleteSentencesReadiness, normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, validateNativeCompleteSentencesTopology } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 
-function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null, assessReadiness = null) {
+function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null, assessReadiness = null, readinessAllowsIncompleteTopology = false) {
   return Object.freeze({
     kind,
     label: nativeActivityKindLabels[kind],
@@ -35,7 +36,13 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
       return true;
     },
     assessReadiness(publicDocument, teacherDocument) {
-      this.validatePair(publicDocument, teacherDocument);
+      if (readinessAllowsIncompleteTopology) {
+        const normalizedPublic = this.normalizePublic(publicDocument);
+        const normalizedTeacher = this.normalizeTeacher(teacherDocument);
+        validateNativeActivityDocumentPair(normalizedPublic, normalizedTeacher);
+      } else {
+        this.validatePair(publicDocument, teacherDocument);
+      }
       return assessReadiness ? assessReadiness(publicDocument, teacherDocument) : { ready: true, issues: [] };
     },
   });
@@ -45,6 +52,7 @@ const registry = Object.freeze({
   "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology, assessNativeOpenResponseReadiness),
   image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" }), null, assessNativeImageReadiness),
   "single-choice": definition("single-choice", normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, () => ({ kind: "single-choice", questions: [] }), () => ({ kind: "single-choice", correctAnswers: [] }), validateNativeSingleChoiceTopology, assessNativeSingleChoiceReadiness),
+  "complete-sentences": definition("complete-sentences", normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, () => ({ kind: "complete-sentences", items: [], presentation: { kind: "image-hotspot", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, hotspots: [] } }), () => ({ kind: "complete-sentences", answers: [] }), validateNativeCompleteSentencesTopology, assessNativeCompleteSentencesReadiness, true),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }

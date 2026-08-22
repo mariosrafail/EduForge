@@ -5,6 +5,7 @@ import { NativeOpenResponseStudentSurface } from "../../../native-open-response/
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
+import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 
@@ -13,7 +14,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
   const document = entry.document;
   useEffect(() => {
     setTeacherState({ kind: "idle", document: null });
-    if (!teacherMode || !["open-response", "single-choice"].includes(entry.kind)) return undefined;
+    if (!teacherMode || !["open-response", "single-choice", "complete-sentences"].includes(entry.kind)) return undefined;
     const controller = new AbortController();
     setTeacherState({ kind: "loading", document: null });
     loadPublishedNativeTeacherDocument(publication, document.activityId, { signal: controller.signal })
@@ -36,5 +37,9 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
+    {entry.kind === "complete-sentences" && !teacherMode ? <NativeCompleteSentencesStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={audioHotspotPresentation} /> : null}
+    {entry.kind === "complete-sentences" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
+    {entry.kind === "complete-sentences" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
+    {entry.kind === "complete-sentences" && teacherMode && teacherState.document ? <NativeCompleteSentencesTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
   </article>}</NativeReadableTextPresentation>;
 }

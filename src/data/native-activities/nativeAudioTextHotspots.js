@@ -48,6 +48,9 @@ export function nativeAudioTextHotspotTargets(publicDocument) {
   if (publicDocument?.kind === "single-choice" && interaction?.presentation?.kind === "image-hotspot") {
     return interaction.presentation.panels.map((panel) => ({ panelId: panel.id, width: panel.sourceWidth, height: panel.sourceHeight }));
   }
+  if (publicDocument?.kind === "complete-sentences" && interaction?.presentation?.kind === "image-hotspot") {
+    return [{ panelId: null, width: interaction.presentation.sourceWidth, height: interaction.presentation.sourceHeight }];
+  }
   return [];
 }
 

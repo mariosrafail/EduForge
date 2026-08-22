@@ -57,7 +57,7 @@ test("post-delete compilation excludes retired activity, launch references, and 
   const sources = createPublicationV2FixtureSources();
   const oldRelease = compileUltimateB2ComponentReleaseV2(sources);
   const immutableSnapshot = oldRelease.stableJson;
-  const removed = removeNativeActivityIndexEntry(sources.native.index.payload, publicationV2Fixture.imageId, { allowedKinds: ["open-response", "image", "single-choice"] });
+  const removed = removeNativeActivityIndexEntry(sources.native.index.payload, publicationV2Fixture.imageId, { allowedKinds: ["open-response", "image", "single-choice", "complete-sentences"] });
   sources.native.index.payload = removed.index;
   sources.native.index.revision += 1;
   sources.native.index.sha256 = builderDocumentSha256(removed.index);
@@ -95,17 +95,19 @@ test("migration 042 makes retirement atomic, auditable, idempotent, and race-saf
   assert.doesNotMatch(migration, /update\s+(?:builder_component_document_revisions|book_component_releases|book_assets)/i);
 });
 
-test("Builder exposes delete only for the selected native activity and confirms retention and unsaved-work consequences", async () => {
+test("Builder exposes logical retirement for native and canonical activities and confirms retention and unsaved-work consequences", async () => {
   const [app, api] = await Promise.all([
     readFile(new URL("../src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/builderNativeActivityApi.js", import.meta.url), "utf8"),
   ]);
-  assert.match(app, /nativeSelected &&[\s\S]*Delete Activity/);
+  assert.match(app, /selection\?\.item\?\.retirable/);
+  assert.match(app, /disabled=\{dirty\} title=\{dirty \? "Save or discard changes before moving this activity\."/);
   assert.match(app, /deleteNativeActivity/);
+  assert.match(app, /retireCanonicalActivity/);
   assert.match(app, /Unsaved changes/);
-  assert.match(app, /immutable historical releases and revision history will not be changed/);
-  assert.match(app, /nativeSelected\?\.title/);
-  assert.match(app, /nativeSelected\?\.id/);
+  assert.match(app, /immutable historical releases will not be changed/);
+  assert.match(app, /selection\?\.item\?\.title/);
+  assert.match(app, /selection\?\.item\?\.id/);
   assert.match(api, /fetch\(`\$\{activityRoot\(bookSlug, componentSlug, activityId\)\}\/delete`/);
   assert.match(api, /body: JSON\.stringify\(\{ clientMutationId: newBuilderClientMutationId\(\) \}\)/);
   const deletionFunction = api.match(/export async function deleteNativeActivity[\s\S]*?\n\}/)?.[0] || "";

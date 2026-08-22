@@ -26,9 +26,10 @@ const secondPixelPng = Buffer.concat([onePixelPng, Buffer.from([0])]);
 const tallReadablePng = await sharp({ create: { width: 1000, height: 1800, channels: 4, background: { r: 247, g: 244, b: 232, alpha: 1 } } }).png().toBuffer();
 const replacementTallReadablePng = Buffer.concat([tallReadablePng, Buffer.from([0])]);
 const hotspotMp3 = (marker) => Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(32).fill(marker)]);
-const nativeDocuments = new Map(); const nativeAssets = new Map(); const nativeUploads = new Map(); const nativeAssetByContent = new Map(); const deleteMutations = new Map(); const requestedPaths = []; const viewerRequests = []; const authorizationIntents = [];
+const nativeDocuments = new Map(); const nativeAssets = new Map(); const nativeUploads = new Map(); const nativeAssetByContent = new Map(); const deleteMutations = new Map(); const lifecycleMutations = new Map(); const requestedPaths = []; const viewerRequests = []; const authorizationIntents = [];
 let indexRevision = 0; let nativeIndex = { schemaVersion: "1.0", activities: [] }; let origin = "";
 let hotspotRevision = 0; let hotspotManifest = structuredClone(repositoryHotspots);
+let lifecycleRevision = 0; let activityLifecycle = { schemaVersion: "1.0", activities: {} };
 let uploadSequence = 10; let nextNativeOrdinal = 90;
 const legacyActivityId = "ultimate-b2-sb-u1-p1-o89";
 
@@ -59,8 +60,9 @@ async function uploadReadableText(page, buffer, name, altText) {
 function nativeDocumentPair(activityId, kind, pageId, title) {
   const interaction = kind === "open-response" ? { kind, surface: { width: 1024, height: 582 }, artwork: [], questions: [] }
     : kind === "image" ? { kind, surface: { width: 1024, height: 582 }, images: [] }
-      : { kind, questions: [] };
-  const solution = kind === "open-response" ? { kind, modelAnswers: [] } : kind === "single-choice" ? { kind, correctAnswers: [] } : { kind };
+      : kind === "complete-sentences" ? { kind, items: [], presentation: { kind: "image-hotspot", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, hotspots: [] } }
+        : { kind, questions: [] };
+  const solution = kind === "open-response" ? { kind, modelAnswers: [] } : kind === "single-choice" ? { kind, correctAnswers: [] } : kind === "complete-sentences" ? { kind, answers: [] } : { kind };
   const publicDocument = { schemaVersion: "1.0", activityId, kind, metadata: { title, visibleInstructionText: "" }, placement: { pageId }, assets: [], parts: [{ id: "part-1", interaction }] };
   const teacherDocument = { schemaVersion: "1.0", activityId, kind, parts: [{ id: "part-1", solution }] };
   return { publicRevision: 1, teacherRevision: 1, publicDocument, teacherDocument };
@@ -91,12 +93,36 @@ const server = createServer(async (request, response) => {
   if (url.pathname === `${contentRoot}/ui-controller` && request.method === "GET") return json(response, 200, envelope("ui-controller", "default", 0, createEmptyHostedTeacherUiDocument()));
   if (url.pathname === publicationRoot && request.method === "GET") return json(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", compilerId: "ultimate-b2-students-book-v2", releaseSchemaVersion: "2.0", currentSourceSha256: "1".repeat(64), headRevision: 0, published: null, releases: [] });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
+  if (url.pathname === `${nativeRoot}/lifecycle` && request.method === "GET") return json(response, 200, envelope("activity-lifecycle", "default", lifecycleRevision, activityLifecycle));
   if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
   if (url.pathname === `${nativeRoot}/create` && request.method === "POST") {
-    const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${nextNativeOrdinal++}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : body.kind === "single-choice" ? "Multiple Choice" : "Open Response"}`;
+    const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${nextNativeOrdinal++}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : body.kind === "single-choice" ? "Multiple Choice" : body.kind === "complete-sentences" ? "Complete the Sentences" : "Open Response"}`;
     nativeDocuments.set(activityId, nativeDocumentPair(activityId, body.kind, body.pageId, title)); indexRevision += 1;
     nativeIndex = { schemaVersion: "1.0", activities: [...nativeIndex.activities, { activityId, kind: body.kind, placement: { pageId: body.pageId }, sortOrder: indexRevision }] };
     return json(response, 200, { outcome: "created", activityId, indexRevision, publicRevision: 1, teacherRevision: 1, kind: body.kind, placement: { pageId: body.pageId }, idempotent: false });
+  }
+  const lifecycleMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/(retire|move)$`));
+  if (lifecycleMatch && request.method === "POST") {
+    const body = await requestJson(request); const activityId = lifecycleMatch[1]; const operation = lifecycleMatch[2]; const replay = lifecycleMutations.get(body.clientMutationId);
+    if (replay) return replay.activityId === activityId && replay.operation === operation ? json(response, 200, { ...replay.result, outcome: "idempotent", idempotent: true }) : json(response, 409, { error: "mutation_id_conflict" });
+    const nativeEntry = nativeIndex.activities.find((entry) => entry.activityId === activityId);
+    const currentLifecycle = activityLifecycle.activities[activityId];
+    const canonicalActive = !nativeEntry && currentLifecycle?.status !== "retired";
+    const currentPageId = nativeEntry?.placement.pageId || currentLifecycle?.pageId || body.sourcePageId;
+    if ((!nativeEntry && !canonicalActive) || currentPageId !== body.sourcePageId) return json(response, operation === "move" ? 409 : 404, { error: operation === "move" ? "location_conflict" : "activity_not_found" });
+    if (operation === "move" && nativeEntry) {
+      nativeEntry.placement = { pageId: body.destinationPageId };
+      nativeDocuments.get(activityId).publicDocument.placement = { pageId: body.destinationPageId };
+      indexRevision += 1; nativeDocuments.get(activityId).publicRevision += 1;
+    } else {
+      activityLifecycle = { ...activityLifecycle, activities: { ...activityLifecycle.activities, [activityId]: { status: operation === "retire" ? "retired" : "active", pageId: operation === "move" ? body.destinationPageId : currentPageId } } };
+      lifecycleRevision += 1;
+    }
+    let removedHotspotCount = 0; const pages = {};
+    for (const [pageId, hotspots] of Object.entries(hotspotManifest.pages)) { const retained = hotspots.filter((hotspot) => { const remove = hotspot.activityKey === activityId; if (remove) removedHotspotCount += 1; return !remove; }); if (retained.length) pages[pageId] = retained; }
+    if (removedHotspotCount) { hotspotManifest = { ...hotspotManifest, pages }; hotspotRevision += 1; }
+    const result = { outcome: operation === "move" ? "moved" : "retired", activityId, lifecycleRevision, indexRevision, publicRevision: nativeDocuments.get(activityId)?.publicRevision || 0, hotspotRevision, removedHotspotCount, destinationPageId: operation === "move" ? body.destinationPageId : null, destinationHotspotRequired: operation === "move", idempotent: false };
+    lifecycleMutations.set(body.clientMutationId, { activityId, operation, result }); return json(response, 200, result);
   }
   const deleteMatch = url.pathname.match(new RegExp(`^${nativeRoot}/activities/([a-z0-9-]+)/delete$`));
   if (deleteMatch && request.method === "POST") {
@@ -173,7 +199,7 @@ try {
     const nativePreview = url.pathname.match(/^\/preview\/native-activities\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/activities\/([a-z0-9-]+)\/(public|teacher)$/);
     if (nativePreview) {
       const state = nativeDocuments.get(nativePreview[1]); const audience = nativePreview[2];
-      if (!state || !nativeIndex.activities.some((entry) => entry.activityId === nativePreview[1]) || (audience === "teacher" && !["open-response", "single-choice"].includes(state.publicDocument.kind))) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+      if (!state || !nativeIndex.activities.some((entry) => entry.activityId === nativePreview[1]) || (audience === "teacher" && !["open-response", "single-choice", "complete-sentences"].includes(state.publicDocument.kind))) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       const document = state[`${audience}Document`]; const revision = state[`${audience}Revision`];
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: nativePreview[1], kind: state.publicDocument.kind, audience, schemaVersion: "1.0", revision, document }) });
     }
@@ -361,7 +387,7 @@ try {
   const readableScroll = viewer.locator(".native-readable-text-scroll");
   await readableScroll.waitFor();
   assert.equal(await showText.getAttribute("aria-pressed"), "true");
-  assert.equal(await viewer.locator(".native-or-surface").count(), 1);
+  assert.equal(await viewer.locator(".native-or-surface:visible").count(), 0);
   const readableGeometry = await readableScroll.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const view = element.closest(".native-readable-text-view");
@@ -381,9 +407,13 @@ try {
   assert.ok(Math.abs(readableGeometry.presentationHeight - readableGeometry.contentHeight) <= 2, JSON.stringify(readableGeometry));
   assert.ok(Math.abs(readableGeometry.viewHeight - readableGeometry.presentationHeight) <= 2, JSON.stringify(readableGeometry));
   assert.ok(Math.abs(readableGeometry.scrollBoxHeight - (readableGeometry.viewHeight - readableGeometry.renderedPaddingY)) <= 3, JSON.stringify(readableGeometry));
-  assert.equal(await viewer.locator(".native-readable-text-scroll-affordance").count(), 1);
+  const readableControl = viewer.getByRole("scrollbar", { name: "Readable text vertical scroll" });
+  await readableControl.waitFor();
+  assert.equal(await readableScroll.evaluate((element) => getComputedStyle(element).scrollbarWidth), "none");
   await readableScroll.hover(); await page.mouse.wheel(0, 600); await page.waitForTimeout(100);
   assert.ok(await readableScroll.evaluate((element) => element.scrollTop) > 0);
+  await readableControl.focus(); await readableControl.press("End"); await page.waitForTimeout(50); assert.equal(await readableScroll.evaluate((element) => Math.round(element.scrollTop)), Math.round(await readableControl.getAttribute("aria-valuemax")));
+  await readableControl.press("Home"); await page.waitForTimeout(50); assert.equal(await readableScroll.evaluate((element) => element.scrollTop), 0);
   assert.ok(await viewer.locator("body").evaluate((body) => body.scrollHeight) <= outerHeightBeforeText + 2);
   await showText.click(); await readableScroll.waitFor({ state: "detached" });
   assert.equal(await showText.getAttribute("aria-pressed"), "false");
@@ -476,7 +506,7 @@ try {
   const secondWrongHotspot = teacherChoice.getByRole("button", { name: `${secondChoiceQuestion.prompt}: ${secondWrongOption.text}` });
   const secondCorrectHotspot = teacherChoice.getByRole("button", { name: `${secondChoiceQuestion.prompt}: ${secondCorrectOption.text}` });
   await secondWrongHotspot.click(); await secondCorrectHotspot.click(); assert.equal(await secondWrongHotspot.getAttribute("data-answer-state"), "incorrect"); assert.equal(await secondCorrectHotspot.getAttribute("data-answer-state"), "correct");
-  const choiceShowText = viewer.locator(".teacher-book-navigation-context--show-text"); await choiceShowText.waitFor(); await panelTwoAudioCue.click(); await focusView.waitFor(); await choiceShowText.click(); await focusView.waitFor({ state: "detached" }); await viewer.locator(".native-readable-text-scroll").waitFor(); assert.equal(await choiceShowText.getAttribute("aria-pressed"), "true"); await choiceShowText.click(); await secondWrongHotspot.waitFor(); assert.equal(await secondWrongHotspot.getAttribute("data-answer-state"), "incorrect"); assert.equal(await secondCorrectHotspot.getAttribute("data-answer-state"), "correct");
+  const choiceShowText = viewer.locator(".teacher-book-navigation-context--show-text"); await choiceShowText.waitFor(); await panelTwoAudioCue.click(); await focusView.waitFor(); await choiceShowText.click(); await focusView.waitFor({ state: "detached" }); await viewer.locator(".native-readable-text-scroll").waitFor(); assert.equal(await viewer.locator(".native-single-choice-visual-stage:visible").count(), 0); assert.equal(await viewer.locator(".native-readable-text-scroll img:visible").count(), 1); assert.equal(await choiceShowText.getAttribute("aria-pressed"), "true"); await choiceShowText.click(); await secondWrongHotspot.waitFor(); assert.equal(await secondWrongHotspot.getAttribute("data-answer-state"), "incorrect"); assert.equal(await secondCorrectHotspot.getAttribute("data-answer-state"), "correct");
   await choiceShowText.click(); await viewer.locator(".native-readable-text-scroll").waitFor(); assert.equal(await previousInternal.isDisabled(), true); assert.equal(await nextInternal.isDisabled(), true);
   await choiceShowText.click(); await viewer.locator(".native-readable-text-scroll").waitFor({ state: "detached" }); await previousInternal.click(); await firstBackground.waitFor(); await openingAudioCue.focus(); await openingAudioCue.press("Enter"); await focusView.waitFor(); assert.equal(await choiceReload.isDisabled(), false); await choiceReload.click(); await focusView.waitFor({ state: "detached" }); await firstBackground.waitFor(); assert.equal(await previousInternal.isDisabled(), true); assert.equal(await nextInternal.isDisabled(), false); assert.equal(await teacherChoice.locator("[data-answer-state]").count(), 0);
   await choiceShowNext.click(); await page.waitForTimeout(25); assert.equal(await firstCorrectHotspot.getAttribute("data-answer-state"), "correct"); assert.equal(await firstWrongHotspot.getAttribute("data-answer-state"), null); assert.equal(await choiceShowNext.isDisabled(), false);
@@ -517,18 +547,26 @@ try {
   hotspotManifest.pages["ub2-sb-unit-1-part-2"].push({ id: "browser-delete-two", unitNumber: 1, pageId: "ub2-sb-unit-1-part-2", pageNumber: 6, left: 2, top: 2, width: 8, height: 8, label: "Retired launch two", actionType: "normalized_activity", activityKey: singleChoiceId });
   hotspotRevision += 1;
   await page.locator('.hosted-builder-tool-tabs a[href$="/activities"]').click(); await page.getByRole("heading", { name: "Activity authoring" }).waitFor();
-  await page.getByRole("button", { name: /ultimate-b2-sb-u1-p1-o1/ }).click(); assert.equal(await page.getByRole("button", { name: "Delete Activity", exact: true }).count(), 0);
+  const canonicalRetiredId = "ultimate-b2-sb-u1-p1-o1";
+  await page.getByRole("button", { name: new RegExp(canonicalRetiredId) }).click(); assert.equal(await page.getByRole("button", { name: "Delete Activity", exact: true }).count(), 1);
+  await page.getByRole("button", { name: "Delete Activity", exact: true }).click(); const canonicalDeleteDialog = page.getByRole("dialog", { name: "Delete activity?" }); await canonicalDeleteDialog.getByRole("button", { name: "Delete Activity", exact: true }).click(); await canonicalDeleteDialog.waitFor({ state: "detached" }); assert.deepEqual(activityLifecycle.activities[canonicalRetiredId], { status: "retired", pageId: "ub2-sb-unit-1-part-1" }); assert.equal(Object.values(hotspotManifest.pages).flat().some((hotspot) => hotspot.activityKey === canonicalRetiredId), false); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.getByRole("button", { name: new RegExp(canonicalRetiredId) }).waitFor({ state: "detached" });
   await page.getByRole("button", { name: new RegExp(singleChoiceId) }).click(); await page.getByRole("button", { name: "Delete Activity", exact: true }).click();
-  const deleteDialog = page.getByRole("dialog", { name: "Delete activity?" }); await deleteDialog.waitFor(); await deleteDialog.getByText("Persisted browser multiple choice", { exact: true }).waitFor(); await deleteDialog.getByText(singleChoiceId, { exact: true }).waitFor(); await deleteDialog.getByText(/every Students Book page hotspot/).waitFor(); await deleteDialog.getByText(/immutable historical releases and revision history/).waitFor(); await deleteDialog.getByRole("button", { name: "Cancel" }).click(); await deleteDialog.waitFor({ state: "detached" });
+  const deleteDialog = page.getByRole("dialog", { name: "Delete activity?" }); await deleteDialog.waitFor(); await deleteDialog.getByText("Persisted browser multiple choice", { exact: true }).waitFor(); await deleteDialog.getByText(singleChoiceId, { exact: true }).waitFor(); await deleteDialog.getByText(/every Students Book page hotspot/).waitFor(); await deleteDialog.getByText(/revision history.*immutable historical releases/).waitFor(); await deleteDialog.getByRole("button", { name: "Cancel" }).click(); await deleteDialog.waitFor({ state: "detached" });
   await page.getByLabel("Activity title").fill("Unsaved title before delete"); await page.locator(".native-activity-identity-actions").getByRole("button", { name: "Delete Activity", exact: true }).click(); await deleteDialog.getByText(/Unsaved changes in this editor will be discarded/).waitFor(); await deleteDialog.getByRole("button", { name: "Delete Activity", exact: true }).click(); await deleteDialog.waitFor({ state: "detached" });
   assert.equal(nativeIndex.activities.some((entry) => entry.activityId === singleChoiceId), false); assert.ok(nativeDocuments.has(singleChoiceId)); assert.equal(Object.values(hotspotManifest.pages).flat().some((hotspot) => hotspot.activityKey === singleChoiceId), false); assert.equal(await page.getByRole("button", { name: new RegExp(singleChoiceId) }).count(), 0);
   const retiredPreview = await context.newPage(); const retiredPreviewResponse = await retiredPreview.goto(`https://hhplms-viewer.netlify.app/preview/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${singleChoiceId}/public?previewAuthorization=${encodeURIComponent(previewToken)}`); assert.equal(retiredPreviewResponse.status(), 404); await retiredPreview.close();
   await page.locator('.hosted-builder-tool-tabs a[href$="/hotspots"]').click(); await page.getByRole("heading", { name: "Students Book hotspot builder" }).waitFor(); assert.equal(await page.getByText("Retired launch one", { exact: true }).count(), 0); await page.locator(".editable-hotspot-box").first().click(); assert.equal(await page.getByLabel("Activity").locator(`option[value="${singleChoiceId}"]`).count(), 0);
   await page.locator('.hosted-builder-tool-tabs a[href$="/activities"]').click(); await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByRole("radio", { name: /Multiple Choice/ }).check(); await page.getByLabel(/Initial title/).fill("Post-delete identity"); await page.getByRole("button", { name: "Create activity" }).click(); const replacementId = `ultimate-b2-sb-u1-p1-o${nextNativeOrdinal - 1}`; await page.getByText(replacementId, { exact: true }).first().waitFor(); assert.ok(Number(replacementId.match(/-o(\d+)$/)[1]) > Number(singleChoiceId.match(/-o(\d+)$/)[1]));
 
+  await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByRole("radio", { name: /Complete the Sentences/ }).check(); await page.getByLabel(/Initial title/).fill("Browser native complete sentences"); await page.getByRole("button", { name: "Create activity" }).click();
+  const completeSentencesId = `ultimate-b2-sb-u1-p1-o${nextNativeOrdinal - 1}`; await page.getByRole("heading", { name: "Browser native complete sentences" }).waitFor(); await page.getByRole("button", { name: "Add Sentence" }).click(); await page.getByLabel("Sentence / prompt").fill("I spent the weekend ____ the series."); await page.getByLabel("Private correct word or phrase").fill("catching up on");
+  await page.locator(".native-single-choice-visual-authoring input[type=file]").setInputFiles({ name: "complete-background.png", mimeType: "image/png", buffer: onePixelPng }); await page.locator(".native-single-choice-hotspot-canvas img").waitFor(); await page.getByLabel("Sentence to map").selectOption({ index: 1 }); await page.getByRole("button", { name: "Draw blank hotspot" }).click(); const completeCanvasBox = await page.locator(".native-single-choice-hotspot-canvas").boundingBox(); assert.ok(completeCanvasBox); await page.mouse.move(completeCanvasBox.x + completeCanvasBox.width * .2, completeCanvasBox.y + completeCanvasBox.height * .35); await page.mouse.down(); await page.mouse.move(completeCanvasBox.x + completeCanvasBox.width * .55, completeCanvasBox.y + completeCanvasBox.height * .45); await page.mouse.up(); await uploadReadableText(page, tallReadablePng, "readable-complete-sentences.png", "Complete the Sentences readable passage"); await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor();
+  assert.match(JSON.stringify(nativeDocuments.get(completeSentencesId).teacherDocument), /catching up on/); assert.doesNotMatch(JSON.stringify(nativeDocuments.get(completeSentencesId).publicDocument), /catching up on/); await page.reload({ waitUntil: "domcontentloaded" }); await page.getByRole("button", { name: new RegExp(completeSentencesId) }).click(); await page.getByLabel("Sentence / prompt").waitFor(); assert.equal(await page.getByLabel("Sentence / prompt").inputValue(), "I spent the weekend ____ the series."); await page.getByRole("tab", { name: "Front" }).click(); await page.locator(".native-complete-sentences-blank input").fill("catching up"); assert.equal(await page.locator(".native-complete-sentences-blank input").inputValue(), "catching up");
+  await page.getByRole("button", { name: "Move Activity", exact: true }).click(); const moveDialog = page.getByRole("dialog", { name: "Move activity" }); await moveDialog.getByLabel("Destination").selectOption("reading-19"); await moveDialog.getByRole("button", { name: "Move Activity", exact: true }).click(); await moveDialog.waitFor({ state: "detached" }); await page.getByText(/Activity moved.*destination page.*Hotspots/i).waitFor(); assert.equal(nativeDocuments.get(completeSentencesId).publicDocument.placement.pageId, "reading-19"); assert.equal(nativeIndex.activities.find((entry) => entry.activityId === completeSentencesId).placement.pageId, "reading-19"); await page.reload({ waitUntil: "domcontentloaded" }); const movedSearch = page.getByPlaceholder("Search title, type, or ID"); await movedSearch.fill(completeSentencesId); const movedUnit = page.locator(".activity-navigation-tree > section").filter({ hasText: "Unit 2" }); await movedUnit.locator(":scope > .activity-tree-toggle").click(); await movedUnit.locator(".activity-tree-page > .activity-tree-toggle").click(); await page.getByRole("button", { name: new RegExp(completeSentencesId) }).click(); await page.getByRole("heading", { name: "Browser native complete sentences" }).waitFor(); await movedSearch.fill("");
+
   const tablet = await context.newPage(); await tablet.setViewportSize({ width: 900, height: 700 }); await tablet.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" }); await tablet.getByRole("button", { name: new RegExp(openResponseId) }).click(); await tablet.getByRole("tab", { name: "Local Preview" }).click(); await tablet.getByRole("button", { name: "Teacher Preview" }).click(); await tablet.getByRole("button", { name: /Reveal model answer/ }).click();
   const geometry = await tablet.locator(".native-or-surface:visible").evaluate((surface) => { const rect = surface.getBoundingClientRect(); const line = surface.querySelector(".native-or-line"); const answer = surface.querySelector(".native-or-answer-line"); return { ratio: rect.width / rect.height, lineTop: line?.style.top, answerTop: answer?.style.top }; });
   assert.ok(Math.abs(geometry.ratio - (1024 / 582)) < 0.02); assert.equal(geometry.answerTop, geometry.lineTop); await tablet.close();
   const mobile = await context.newPage(); await mobile.setViewportSize({ width: 768, height: 900 }); await mobile.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" }); await mobile.getByRole("button", { name: "Add Activity" }).waitFor(); assert.deepEqual(await mobile.evaluate(() => ({ viewport: innerWidth, body: document.body.scrollWidth, root: document.documentElement.scrollWidth })), await mobile.evaluate(() => ({ viewport: innerWidth, body: innerWidth, root: innerWidth }))); await mobile.waitForTimeout(250); await mobile.screenshot({ path: path.join(screenshotRoot, "activity-builder-768.png"), fullPage: true }); await mobile.close();
-  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted native draft authoring and real Viewer acceptance passed for ${openResponseId}, ${imageId}, ${singleChoiceId}, and ${onePanelChoiceId}.\n`);
+  assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted native draft authoring and real Viewer acceptance passed for ${openResponseId}, ${imageId}, ${singleChoiceId}, ${onePanelChoiceId}, and ${completeSentencesId}.\n`);
 } finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }

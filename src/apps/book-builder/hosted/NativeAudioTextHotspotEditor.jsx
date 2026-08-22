@@ -38,6 +38,10 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
   let content = null;
   if (document.kind === "image") content = <NativeImageSurface document={document} assetUrl={assetUrl} />;
   else if (document.kind === "open-response") content = <NativeOpenResponseSurface document={document} assetUrl={assetUrl} />;
+  else if (document.kind === "complete-sentences") {
+    const reference = document.assets.find((asset) => asset.slot === interaction.presentation?.backgroundAssetSlot);
+    content = reference ? <img className="native-audio-hotspot-panel-image" src={assetUrl(reference.assetId)} alt="Complete the Sentences background" /> : null;
+  }
   else {
     const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId);
     const reference = document.assets.find((asset) => asset.slot === panel?.backgroundAssetSlot);

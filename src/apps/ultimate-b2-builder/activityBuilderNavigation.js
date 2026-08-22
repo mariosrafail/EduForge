@@ -33,8 +33,9 @@ export function buildUltimateB2ActivityNavigation(activities, editorMetadata = {
   return units;
 }
 
-export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], isEditable = () => false } = {}) {
+export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], lifecycle = null, isEditable = () => false } = {}) {
   const placementByPage = new Map(placements.map((placement) => [placement.pageId, placement]));
+  const lifecycleEntries = lifecycle?.activities && typeof lifecycle.activities === "object" ? lifecycle.activities : {};
   const pageById = new Map();
   const model = units.map((unit, unitIndex) => {
     const pages = (unit.lessons || []).filter((lesson) => lesson.exercises?.length).map((lesson, pageIndex) => {
@@ -45,7 +46,10 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
         title: lesson.sectionTitle || lesson.title || lesson.pageLabel || pageId,
         pageLabel: lesson.pageLabel || placementByPage.get(pageId)?.pageLabel || "",
         sortOrder: pageIndex,
-        activities: (lesson.exercises || []).map((exercise, activityIndex) => ({
+        activities: (lesson.exercises || []).flatMap((exercise, activityIndex) => {
+          const override = lifecycleEntries[exercise.stableActivityId];
+          if (override?.status === "retired") return [];
+          return [{
           id: exercise.stableActivityId,
           title: exercise.title || exercise.stableActivityId,
           description: exercise.description || "",
@@ -53,15 +57,29 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
           kind: exercise.activityType || "canonical",
           native: false,
           editable: Boolean(isEditable(exercise.stableActivityId)),
+          retirable: true,
+          movable: true,
+          placement: { pageId: override?.pageId || pageId },
           ready: true,
           sortOrder: activityIndex,
-        })),
+          }];
+        }),
       };
       pageById.set(pageId, page);
       return page;
     });
     return { id: unit.id || `unit-${unit.unitNumber || unit.number || unitIndex + 1}`, title: unit.title || `Unit ${unit.unitNumber || unit.number || unitIndex + 1}`, unitNumber: unit.unitNumber || unit.number || unitIndex + 1, sortOrder: unitIndex, pages };
   });
+
+  for (const unit of model) for (const page of unit.pages) {
+    for (const item of [...page.activities]) {
+      const destination = pageById.get(item.placement?.pageId);
+      if (destination && destination !== page) {
+        page.activities = page.activities.filter((candidate) => candidate !== item);
+        destination.activities.push(item);
+      }
+    }
+  }
 
   const unplaced = [];
   for (const activity of nativeActivities) {
@@ -75,6 +93,8 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
       kind: activity.kind,
       native: true,
       editable: true,
+      retirable: true,
+      movable: true,
       ready: Boolean(activity.ready),
       issues: [...(activity.issues || [])],
       placement,

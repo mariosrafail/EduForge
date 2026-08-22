@@ -41,7 +41,7 @@ test("public Builder preview returns the canonical repository revision without a
   assert.equal(response.headers["Content-Type"], "application/json");
   assert.equal(response.headers["Cache-Control"], "no-store");
   assert.equal(response.headers["X-Content-Type-Options"], "nosniff");
-  assert.equal(databaseReads, 2);
+  assert.equal(databaseReads, 3);
   assert.deepEqual(Object.keys(body), [
     "bookSlug", "componentSlug", "resource", "schemaVersion", "revision", "source", "document",
   ]);

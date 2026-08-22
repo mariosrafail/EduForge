@@ -6,8 +6,11 @@ import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
+import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
+import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
+import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
@@ -22,6 +25,7 @@ import {
   loadBuilderNativeAsset,
   isBuilderNativeDraftAssetRecord,
   loadBuilderNativeActivityIds,
+  mutateBuilderActivityLifecycle,
   prepareBuilderNativeAssetUpload,
   saveBuilderNativeActivityPair,
   validateBuilderNativeAssetReferences,
@@ -49,11 +53,14 @@ function route(event) {
   const scope = { bookSlug: decode(prefix[1]), componentSlug: decode(prefix[2]) };
   const suffix = pathname.slice(prefix.index + prefix[0].length).replace(/^\/+|\/+$/g, "");
   if (suffix === "catalog") return { ...scope, action: "catalog" };
+  if (suffix === "lifecycle") return { ...scope, action: "lifecycle" };
   if (suffix === "create") return { ...scope, action: "create" };
   let match = suffix.match(/^activities\/([a-z0-9-]+)\/save$/);
   if (match) return { ...scope, activityId: match[1], action: "save" };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/delete$/);
   if (match) return { ...scope, activityId: match[1], action: "delete" };
+  match = suffix.match(/^activities\/([a-z0-9-]+)\/(retire|move)$/);
+  if (match) return { ...scope, activityId: match[1], action: match[2] };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/assets\/(prepare|finalize)$/);
   if (match) return { ...scope, activityId: match[1], action: `asset-${match[2]}` };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/assets\/([0-9a-f-]+)\/preview$/);
@@ -182,6 +189,127 @@ async function deleteActivity(dependencies, sql, auth, parsedRoute, event) {
   return json(200, { ...result, idempotent: result.outcome === "idempotent" });
 }
 
+async function activityLifecycleCatalog(dependencies, sql, parsedRoute) {
+  const resource = await dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "activity-lifecycle", "");
+  if (!resource) return json(404, { error: "native_activity_component_not_found" });
+  const stored = await dependencies.loadDocument(sql, resource);
+  return json(200, {
+    schemaVersion: resource.schemaVersion,
+    revision: stored?.revision || 0,
+    document: stored?.document || createEmptyUltimateB2ActivityLifecycle(),
+  });
+}
+
+async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, event) {
+  const move = parsedRoute.action === "move";
+  const parsed = parseJson(event, move ? ["sourcePageId", "destinationPageId", "clientMutationId"] : ["sourcePageId", "clientMutationId"]);
+  if (parsed.error) return parsed.error;
+  const input = parsed.value;
+  if (!safeId.test(String(input.sourcePageId || "")) || (move && !safeId.test(String(input.destinationPageId || "")))
+    || !builderClientMutationIdPattern.test(String(input.clientMutationId || ""))
+    || (move && input.destinationPageId === input.sourcePageId)) return json(400, { error: "invalid_request" });
+  const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
+  if (!adapter) return json(404, { error: "native_activity_component_not_found" });
+  let destination = null;
+  if (move) {
+    try { destination = adapter.normalizePlacement({ pageId: input.destinationPageId }); }
+    catch { return json(400, { error: "invalid_native_activity_placement" }); }
+  }
+  const [lifecycleResource, indexResource, hotspotResource] = await Promise.all([
+    dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "activity-lifecycle", ""),
+    dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-index", ""),
+    dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "hotspots", ""),
+  ]);
+  if (!lifecycleResource || !indexResource || !hotspotResource) return json(404, { error: "native_activity_component_not_found" });
+  const [storedLifecycle, storedIndex, storedHotspots] = await Promise.all([
+    dependencies.loadDocument(sql, lifecycleResource), dependencies.loadDocument(sql, indexResource), dependencies.loadDocument(sql, hotspotResource),
+  ]);
+  const lifecycle = storedLifecycle?.document || createEmptyUltimateB2ActivityLifecycle();
+  const index = storedIndex?.document || createEmptyNativeActivityIndex();
+  const nativeEntry = index.activities.find((entry) => entry.activityId === parsedRoute.activityId) || null;
+  const canonical = ultimateB2StudentsBookAuthoringActivities.find((entry) => entry.activityKey === parsedRoute.activityId) || null;
+  if (!nativeEntry && !canonical) return json(404, { error: "activity_not_found" });
+  const family = nativeEntry ? "native" : "canonical";
+  if (!move && family === "native") return json(400, { error: "use_native_retirement" });
+
+  let currentPageId;
+  let lifecycleDocument = null;
+  let indexDocument = null;
+  let publicDocument = null;
+  let storedPublic = null;
+  if (family === "canonical") {
+    const current = currentUltimateB2ActivityLifecycleEntry(lifecycle, parsedRoute.activityId, canonical.pageId);
+    // Retire replays must reach the mutation function, whose request digest is
+    // the authoritative idempotency check. A fresh mutation against an already
+    // retired activity is still rejected there as activity_not_active.
+    if (move && current.status !== "active") return json(404, { error: "activity_not_found" });
+    currentPageId = current.pageId;
+    lifecycleDocument = updateUltimateB2ActivityLifecycle(lifecycle, parsedRoute.activityId, {
+      status: move ? "active" : "retired",
+      pageId: move ? destination.pageId : current.pageId,
+    });
+  } else {
+    currentPageId = nativeEntry.placement.pageId;
+    const publicResource = await dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-public", parsedRoute.activityId);
+    storedPublic = publicResource ? await dependencies.loadDocument(sql, publicResource) : null;
+    const kind = resolveNativeActivityKind(nativeEntry.kind);
+    if (!storedPublic || !kind || storedPublic.document.placement.pageId !== currentPageId) return json(409, { error: "native_activity_pair_invalid" });
+    indexDocument = normalizeNativeActivityIndex({
+      ...index,
+      activities: index.activities.map((entry) => entry.activityId === parsedRoute.activityId
+        ? { ...entry, placement: { pageId: destination.pageId } }
+        : entry),
+    }, { allowedKinds: adapter.kinds });
+    publicDocument = kind.normalizePublic({ ...storedPublic.document, placement: { pageId: destination.pageId } }, parsedRoute.activityId);
+    assertPublicBuilderDocument(publicDocument);
+  }
+  const currentHotspots = storedHotspots?.document || hotspotResource.baseline();
+  const pruned = pruneUltimateB2ActivityHotspots(currentHotspots, parsedRoute.activityId);
+  const requestSha256 = sha256(stableBuilderJson({
+    bookSlug: parsedRoute.bookSlug,
+    componentSlug: parsedRoute.componentSlug,
+    activityId: parsedRoute.activityId,
+    family,
+    operation: move ? "move" : "retire",
+    sourcePageId: input.sourcePageId,
+    authoritativeSourcePageId: currentPageId,
+    destinationPageId: destination?.pageId || null,
+  }));
+  const result = await dependencies.mutateLifecycle(sql, {
+    ...parsedRoute,
+    activityFamily: family,
+    operation: move ? "move" : "retire",
+    sourcePageId: input.sourcePageId,
+    destinationPageId: destination?.pageId || null,
+    expectedLifecycleRevision: storedLifecycle?.revision || 0,
+    lifecycleDocument,
+    lifecycleSha256: lifecycleDocument ? builderDocumentSha256(lifecycleDocument) : null,
+    lifecycleSchemaVersion: lifecycleResource.schemaVersion,
+    expectedIndexRevision: storedIndex?.revision || 0,
+    indexDocument,
+    indexSha256: indexDocument ? builderDocumentSha256(indexDocument) : null,
+    indexSchemaVersion: indexResource.schemaVersion,
+    expectedPublicRevision: storedPublic?.revision || 0,
+    publicDocument,
+    publicSha256: publicDocument ? builderDocumentSha256(publicDocument) : null,
+    publicSchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
+    expectedHotspotRevision: storedHotspots?.revision || 0,
+    hotspotDocument: pruned.manifest,
+    hotspotSha256: builderDocumentSha256(pruned.manifest),
+    hotspotSchemaVersion: hotspotResource.schemaVersion,
+    hotspotChanged: pruned.removedCount > 0,
+    removedHotspotCount: pruned.removedCount,
+    requestSha256,
+    builderUserId: auth.builderUser.id,
+    clientMutationId: input.clientMutationId,
+  });
+  if (["revision_conflict", "location_conflict", "mutation_id_conflict"].includes(result.outcome)) return json(409, { error: result.outcome, ...result });
+  if (["resource_not_found", "activity_not_active"].includes(result.outcome)) return json(404, { error: "activity_not_found" });
+  if (result.outcome === "unauthorized_actor") return json(401, { error: "Unauthorized" });
+  if (![move ? "moved" : "retired", "idempotent"].includes(result.outcome)) return json(400, { error: result.outcome });
+  return json(200, { ...result, family, destinationPageId: destination?.pageId || null, destinationHotspotRequired: move, idempotent: result.outcome === "idempotent" });
+}
+
 async function savePair(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["expectedPublicRevision", "expectedTeacherRevision", "clientMutationId", "publicDocument", "teacherDocument"]);
   if (parsed.error) return parsed.error;
@@ -214,6 +342,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...nativeReadableTextAssetRequirements(publicDocument),
         ...nativeAudioTextAssetRequirements(publicDocument),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
+        ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
       ],
     });
   } catch (error) {
@@ -361,6 +490,7 @@ async function nativeCatalog(dependencies, sql) {
             ...nativeReadableTextAssetRequirements(publicDocument),
             ...nativeAudioTextAssetRequirements(publicDocument),
             ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
+            ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
           ];
           for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
@@ -394,6 +524,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
     create: overrides.create || createBuilderNativeActivity,
     delete: overrides.delete || deleteBuilderNativeActivity,
+    mutateLifecycle: overrides.mutateLifecycle || mutateBuilderActivityLifecycle,
     loadKnownActivityIds: overrides.loadKnownActivityIds || loadBuilderNativeActivityIds,
     savePair: overrides.savePair || saveBuilderNativeActivityPair,
     validateAssets: overrides.validateAssets || validateBuilderNativeAssetReferences,
@@ -418,6 +549,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
       if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? nativeCatalog(dependencies, sql) : json(405, { error: "method_not_allowed" });
+      if (parsedRoute.action === "lifecycle") return event.httpMethod === "GET" ? activityLifecycleCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "asset-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });
         const result = await assetResponse(dependencies, sql, parsedRoute, parsedRoute.assetId);
@@ -430,6 +562,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       if (parsedRoute.action === "create") return createActivity(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "save") return savePair(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "delete") return deleteActivity(dependencies, sql, auth, parsedRoute, event);
+      if (["retire", "move"].includes(parsedRoute.action)) return mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "asset-prepare") return prepareAsset(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "asset-finalize") return finalizeAsset(dependencies, sql, auth, parsedRoute, event);
       return json(404, { error: "native_activity_route_not_found" });

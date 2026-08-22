@@ -44,6 +44,14 @@ export async function saveNativeActivityPair({ bookSlug, componentSlug, activity
   return value;
 }
 
+export async function getActivityLifecycle({ bookSlug, componentSlug }, { signal } = {}) {
+  for (const value of [bookSlug, componentSlug]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid activity lifecycle identity.");
+  const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/lifecycle`, { method: "GET", credentials: "same-origin", cache: "no-store", signal });
+  const value = await payload(response);
+  if (!response.ok || value.schemaVersion !== "1.0" || !value.document || typeof value.document !== "object") throw new Error(value.error || "Activity lifecycle could not be loaded.");
+  return value;
+}
+
 export async function deleteNativeActivity({ bookSlug, componentSlug, activityId }) {
   const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/delete`, {
     method: "POST",
@@ -60,6 +68,24 @@ export async function deleteNativeActivity({ bookSlug, componentSlug, activityId
   }
   return value;
 }
+
+async function mutateActivity({ bookSlug, componentSlug, activityId, action, sourcePageId, destinationPageId }) {
+  if (!SAFE_ID.test(String(sourcePageId || "")) || (action === "move" && !SAFE_ID.test(String(destinationPageId || "")))) throw new Error("Invalid activity placement.");
+  const body = { sourcePageId, ...(action === "move" ? { destinationPageId } : {}), clientMutationId: newBuilderClientMutationId() };
+  const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/${action}`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  const value = await payload(response);
+  if (!response.ok) {
+    const error = new Error(value.error || `Activity ${action} failed.`);
+    error.status = response.status; error.payload = value; throw error;
+  }
+  return value;
+}
+
+export function retireCanonicalActivity(input) { return mutateActivity({ ...input, action: "retire" }); }
+
+export function moveActivity(input) { return mutateActivity({ ...input, action: "move" }); }
 
 export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file }) {
   const base = activityRoot(bookSlug, componentSlug, activityId);

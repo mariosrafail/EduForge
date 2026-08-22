@@ -117,7 +117,8 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
     setSubmitError("");
     setSubmitMessage("");
     try {
-      const questions = assignment.target?.entry?.document?.parts?.[0]?.interaction?.questions || [];
+      const interaction = assignment.target?.entry?.document?.parts?.[0]?.interaction || {};
+      const questions = interaction.questions || interaction.items || [];
       await submitStudentAssignment({
         assignmentId: assignment.assignmentId,
         target: {

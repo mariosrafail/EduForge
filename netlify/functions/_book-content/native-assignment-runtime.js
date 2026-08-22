@@ -122,6 +122,32 @@ function openResponseReview(publicDocument, teacherDocument, payload = {}) {
   }));
 }
 
+function completeSentenceItems(document = {}) {
+  return document.parts?.[0]?.interaction?.items || [];
+}
+
+function normalizeCompleteSentences(publicDocument, rawEnvelope) {
+  if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)
+    || rawEnvelope.schemaVersion !== NATIVE_RESPONSE_SCHEMA_VERSION
+    || Object.keys(rawEnvelope).some((key) => !["schemaVersion", "items"].includes(key))
+    || !Array.isArray(rawEnvelope.items) || rawEnvelope.items.length > MAX_RESPONSE_ITEMS
+    || JSON.stringify(rawEnvelope).length > MAX_RESPONSE_PAYLOAD) return { error: "response is invalid" };
+  const items = completeSentenceItems(publicDocument); const allowed = new Set(items.map((item) => String(item.id))); const values = new Map();
+  for (const item of rawEnvelope.items) {
+    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "id,value") return { error: "Each response item must contain exactly id and value" };
+    const id = String(item.id || "");
+    if (!allowed.has(id) || values.has(id) || typeof item.value !== "string" || item.value.length > MAX_RESPONSE_TEXT) return { error: `Response ${id} is invalid` };
+    values.set(id, item.value);
+  }
+  return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "complete-sentences", items: items.filter((item) => values.has(String(item.id))).map((item) => ({ id: String(item.id), value: values.get(String(item.id)) })) }, status: "awaiting_review", scorePercent: null, correctCount: null, totalCount: null };
+}
+
+function completeSentencesReview(publicDocument, teacherDocument, payload = {}) {
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
+  const answers = new Map((teacherDocument?.parts?.[0]?.solution?.answers || []).map((answer) => [String(answer.itemId), String(answer.text ?? "")]));
+  return completeSentenceItems(publicDocument).map((item) => ({ questionId: String(item.id), prompt: item.prompt || "", answer: responses.get(String(item.id)) || "", modelAnswer: answers.get(String(item.id)) || "", isCorrect: null, feedback: "" }));
+}
+
 const capabilities = Object.freeze({
   "open-response": Object.freeze({
     kind: "open-response",
@@ -141,6 +167,15 @@ const capabilities = Object.freeze({
     normalizeResponse: normalizeSingleChoice,
     evaluateResponse: scoreSingleChoice,
     teacherReviewProjection: singleChoiceReview,
+  }),
+  "complete-sentences": Object.freeze({
+    kind: "complete-sentences",
+    assignable: true,
+    submittable: true,
+    reviewMode: "teacher-reviewed",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeCompleteSentences,
+    teacherReviewProjection: completeSentencesReview,
   }),
   image: Object.freeze({
     kind: "image",

@@ -107,6 +107,7 @@ export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
     || Boolean(publicDocument?.audioTextHotspots?.hotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
+    || interaction?.presentation?.backgroundAssetSlot === slot
     || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
 }
 
