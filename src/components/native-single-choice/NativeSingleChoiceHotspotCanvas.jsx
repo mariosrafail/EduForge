@@ -25,7 +25,11 @@ export function NativeSingleChoiceHotspotCanvas({ panel, assetUrl = "", question
   const questionById = new Map(questions.map((question) => [question.id, question]));
 
   const beginDraw = (event) => {
-    if (!drawingEnabled || event.target !== event.currentTarget) return;
+    if (event.target !== event.currentTarget) return;
+    if (!drawingEnabled) {
+      onSelect?.(null);
+      return;
+    }
     event.preventDefault();
     const point = clientPointToStage(event, event.currentTarget.getBoundingClientRect(), stage);
     event.currentTarget.setPointerCapture?.(event.pointerId);

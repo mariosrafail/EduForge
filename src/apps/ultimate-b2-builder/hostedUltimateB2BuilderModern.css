@@ -73,6 +73,11 @@
 .native-activity-create footer button, .builder-confirm-actions button { min-height: 42px; padding: 8px 15px; border: 1px solid var(--b-border); border-radius: 9px; color: var(--b-text-soft); background: #fff; font-weight: 750; }
 .native-activity-create footer .hosted-builder-action { margin: 0; border-color: var(--b-primary); color: #fff; background: var(--b-primary); }
 .builder-danger-action { border-color: #fda29b !important; color: #b42318 !important; background: #fff5f3 !important; }
+.native-activity-identity-actions { align-items: flex-end; display: flex; flex-direction: column; gap: 8px; }
+.native-activity-identity-actions .builder-danger-action { align-items: center; border: 1px solid; border-radius: 8px; cursor: pointer; display: inline-flex; gap: 6px; min-height: 36px; padding: 6px 10px; font-weight: 800; }
+.native-activity-delete-confirm { display: grid; gap: 10px; }
+.native-activity-delete-confirm p { margin: 0; }
+.native-activity-delete-confirm code { overflow-wrap: anywhere; }
 .builder-inline-error { margin: 0; padding: 10px; border-radius: 8px; color: #b42318; background: #fff5f3; }
 .native-activity-foundation { color: var(--b-text); background: transparent; }
 .native-activity-foundation > header { border-bottom-color: var(--b-border); background: #fbfcfe; }

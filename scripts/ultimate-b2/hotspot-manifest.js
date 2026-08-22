@@ -86,3 +86,18 @@ export function validateAndNormalizeUltimateB2HotspotManifest(input, activities 
 export function validateUltimateB2HotspotManifestStructure(input) {
   return validateAndNormalizeUltimateB2HotspotManifest(input, null);
 }
+
+export function pruneUltimateB2ActivityHotspots(input, activityId) {
+  const manifest = validateUltimateB2HotspotManifestStructure(input);
+  let removedCount = 0;
+  const pages = {};
+  for (const [pageId, hotspots] of Object.entries(manifest.pages)) {
+    const retained = hotspots.filter((hotspot) => {
+      const remove = hotspot.activityKey === activityId;
+      if (remove) removedCount += 1;
+      return !remove;
+    });
+    if (retained.length) pages[pageId] = retained;
+  }
+  return { manifest: { ...manifest, pages }, removedCount };
+}

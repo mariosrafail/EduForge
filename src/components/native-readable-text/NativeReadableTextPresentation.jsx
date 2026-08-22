@@ -80,6 +80,15 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const activeHotspot = hotspots.find((hotspot) => hotspot.id === activeHotspotId) || null;
 
   useEffect(() => {
+    if (!activeHotspot) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape" && !event.defaultPrevented) setActiveHotspotId(null);
+    };
+    globalThis.addEventListener("keydown", closeOnEscape);
+    return () => globalThis.removeEventListener("keydown", closeOnEscape);
+  }, [activeHotspot]);
+
+  useEffect(() => {
     onStateChange?.({
       view: available ? view : "questions",
       readableTextAvailable: available,
@@ -125,7 +134,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const activity = typeof children === "function" ? children(childPresentation, hotspotPresentation) : children;
   const focusOpen = effectiveView === "questions" && Boolean(activeHotspot);
   return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined}>
-    <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay onClose={() => setActiveHotspotId(null)} /> : null}</div>
+    <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
     <div className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
       <div ref={viewportRef} className="native-readable-text-scroll" tabIndex={0} data-overflowing={overflowing || undefined}>

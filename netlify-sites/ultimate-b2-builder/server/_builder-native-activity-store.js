@@ -20,6 +20,41 @@ export async function createBuilderNativeActivity(sql, input) {
   };
 }
 
+export async function loadBuilderNativeActivityIds(sql, { bookSlug, componentSlug }) {
+  const rows = await sql`
+    select document.document_key as activity_id
+    from builder_component_documents document
+    join book_components component on component.id=document.book_component_id
+      and component.book_package_id=document.book_package_id
+    join book_packages package on package.id=document.book_package_id
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+      and document.document_type='native_activity_public'
+    order by document.document_key
+  `;
+  return rows.map((row) => row.activity_id);
+}
+
+export async function deleteBuilderNativeActivity(sql, input) {
+  const rows = await sql`
+    select * from delete_builder_native_activity(
+      ${input.bookSlug},${input.componentSlug},${input.activityId},
+      ${input.expectedIndexRevision},${JSON.stringify(input.indexDocument)}::jsonb,${input.indexSha256},${input.indexSchemaVersion},
+      ${input.expectedHotspotRevision},${JSON.stringify(input.hotspotDocument)}::jsonb,${input.hotspotSha256},${input.hotspotSchemaVersion},
+      ${input.hotspotChanged},${input.removedHotspotCount},${input.requestSha256},
+      ${input.builderUserId}::uuid,${input.clientMutationId}::uuid
+    )
+  `;
+  const row = rows[0];
+  if (!row) throw new Error("Native activity deletion returned no result");
+  return {
+    outcome: row.outcome,
+    activityId: row.activity_id || null,
+    indexRevision: row.index_revision === null ? null : Number(row.index_revision),
+    hotspotRevision: row.hotspot_revision === null ? null : Number(row.hotspot_revision),
+    removedHotspotCount: row.removed_hotspot_count === null ? null : Number(row.removed_hotspot_count),
+  };
+}
+
 export async function saveBuilderNativeActivityPair(sql, input) {
   const rows = await sql`
     select * from save_builder_native_activity_pair(

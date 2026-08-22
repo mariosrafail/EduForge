@@ -15,13 +15,18 @@ const request = (overrides = {}) => ({ httpMethod: overrides.method || "POST", p
 
 function harness(overrides = {}) {
   let indexState = null;
+  let hotspotState = null;
   const documents = new Map();
   const mutations = new Map();
   const pairMutations = new Map();
+  const deleteMutations = new Map();
   const handler = createBuilderNativeActivitiesHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
-    loadDocument: async (_sql, resource) => resource.documentType === "native_activity_index" ? indexState : documents.get(`${resource.documentType}:${resource.documentKey}`) || null,
+    loadDocument: async (_sql, resource) => resource.documentType === "native_activity_index" ? indexState
+      : resource.documentType === "hotspots" ? hotspotState
+        : documents.get(`${resource.documentType}:${resource.documentKey}`) || null,
+    loadKnownActivityIds: async () => [...documents.keys()].filter((key) => key.startsWith("native_activity_public:")).map((key) => key.slice("native_activity_public:".length)),
     create: async (_sql, input) => {
       const replay = mutations.get(input.clientMutationId);
       if (replay) return replay.requestSha256 === input.requestSha256 ? { ...replay.result, outcome: "idempotent" } : { ...replay.result, outcome: "mutation_id_conflict" };
@@ -34,6 +39,21 @@ function harness(overrides = {}) {
       mutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
       return result;
     },
+    delete: async (_sql, input) => {
+      const replay = deleteMutations.get(input.clientMutationId);
+      if (replay) return replay.requestSha256 === input.requestSha256 ? { ...replay.result, outcome: "idempotent" } : { ...replay.result, outcome: "mutation_id_conflict" };
+      if (!indexState?.document.activities.some((entry) => entry.activityId === input.activityId)) return { outcome: "activity_not_active" };
+      if (indexState.revision !== input.expectedIndexRevision || (hotspotState?.revision || 0) !== input.expectedHotspotRevision) return {
+        outcome: "revision_conflict", indexRevision: indexState.revision, hotspotRevision: hotspotState?.revision || 0,
+      };
+      indexState = { revision: indexState.revision + 1, source: "database", document: input.indexDocument };
+      if (input.hotspotChanged) hotspotState = { revision: (hotspotState?.revision || 0) + 1, source: "database", document: input.hotspotDocument };
+      const result = { outcome: "deleted", activityId: input.activityId, indexRevision: indexState.revision, hotspotRevision: hotspotState?.revision || 0, removedHotspotCount: input.removedHotspotCount };
+      deleteMutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
+      return result;
+    },
+    prepareAsset: overrides.prepareAsset,
+    claimAsset: overrides.claimAsset,
     validateAssets: overrides.validateAssets || (async () => true),
     savePair: async (_sql, input) => {
       const replay = pairMutations.get(input.clientMutationId);
@@ -48,7 +68,7 @@ function harness(overrides = {}) {
     },
     logger: { error() {} },
   });
-  return { handler, documents, getIndex: () => indexState };
+  return { handler, documents, getIndex: () => indexState, getHotspots: () => hotspotState, setHotspots: (document, revision = 1) => { hotspotState = { revision, source: "database", document }; } };
 }
 
 test("native creation HTTP boundary rejects missing auth, wrong origin, unknown scope, kind, and placement", async () => {
@@ -106,6 +126,73 @@ test("one create mutation produces index, public, and Teacher documents and repl
   const changed = await handler(request({ clientMutationId, body: { kind: "image", pageId, title: "Different", clientMutationId } }));
   assert.equal(changed.statusCode, 409);
   assert.equal(JSON.parse(changed.body).error, "mutation_id_conflict");
+});
+
+test("native deletion prunes every page reference, preserves history, is idempotent, and never reuses the stable ID", async () => {
+  const { handler, documents, getIndex, getHotspots, setHotspots } = harness();
+  const first = JSON.parse((await handler(request())).body);
+  const unrelated = "legacy-u1-p1-a1";
+  const hotspot = (id, activityKey, hotspotPageId = pageId) => ({
+    id, unitNumber: 1, pageId: hotspotPageId, pageNumber: hotspotPageId === pageId ? 5 : 6,
+    left: 10, top: 10, width: 20, height: 20, label: id, actionType: "normalized_activity", activityKey,
+  });
+  setHotspots({ schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug: "students-book", pages: {
+    [pageId]: [hotspot("delete-one", first.activityId), hotspot("keep-one", unrelated)],
+    "ub2-sb-unit-1-part-2": [hotspot("delete-two", first.activityId, "ub2-sb-unit-1-part-2")],
+  } }, 7);
+  const mutationId = randomUUID();
+  const path = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${first.activityId}/delete`;
+  assert.equal((await handler(request({ path, body: { clientMutationId: mutationId }, headers: { cookie: "" } }))).statusCode, 401);
+  assert.equal((await handler(request({ path, body: { clientMutationId: mutationId }, headers: { origin: "https://attacker.example" } }))).statusCode, 403);
+  assert.equal((await handler(request({ path, body: { clientMutationId: mutationId, activityId: first.activityId } }))).statusCode, 400);
+  const deletion = await handler(request({ path, body: { clientMutationId: mutationId } }));
+  assert.equal(deletion.statusCode, 200);
+  assert.deepEqual(JSON.parse(deletion.body), {
+    outcome: "deleted", activityId: first.activityId, indexRevision: 2, hotspotRevision: 8, removedHotspotCount: 2, idempotent: false,
+  });
+  assert.equal(getIndex().document.activities.some((entry) => entry.activityId === first.activityId), false);
+  assert.deepEqual(Object.values(getHotspots().document.pages).flat().map((entry) => entry.activityKey), [unrelated]);
+  assert.ok(documents.has(`native_activity_public:${first.activityId}`), "public history remains");
+  assert.ok(documents.has(`native_activity_teacher:${first.activityId}`), "Teacher history remains");
+  assert.equal(JSON.parse((await handler(request({ path, body: { clientMutationId: mutationId } }))).body).idempotent, true);
+  assert.equal((await handler(request({ path, body: { clientMutationId: randomUUID() } }))).statusCode, 404);
+
+  const second = JSON.parse((await handler(request({ body: { kind: "open-response", pageId, title: "Replacement", clientMutationId: randomUUID() } }))).body);
+  assert.notEqual(second.activityId, first.activityId);
+  assert.ok(Number(second.activityId.match(/-o(\d+)$/)?.[1]) > Number(first.activityId.match(/-o(\d+)$/)?.[1]));
+  assert.equal((await handler(request({ path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${second.activityId}/delete`, body: { clientMutationId: mutationId } }))).statusCode, 409);
+  assert.equal((await handler(request({ path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/ultimate-b2-sb-u1-p1-o1/delete", body: { clientMutationId: randomUUID() } }))).statusCode, 404);
+});
+
+test("deleted native activities reject stale paired saves and asset preparation without invoking mutation stores", async () => {
+  let validated = 0;
+  let prepared = 0;
+  let claimed = 0;
+  const { handler, documents } = harness({
+    validateAssets: async () => { validated += 1; },
+    prepareAsset: async () => { prepared += 1; throw new Error("must not prepare"); },
+    claimAsset: async () => { claimed += 1; throw new Error("must not claim"); },
+  });
+  const created = JSON.parse((await handler(request())).body);
+  const path = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${created.activityId}`;
+  assert.equal((await handler(request({ path: `${path}/delete`, body: { clientMutationId: randomUUID() } }))).statusCode, 200);
+  const staleSave = await handler(request({ path: `${path}/save`, body: {
+    expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID(),
+    publicDocument: documents.get(`native_activity_public:${created.activityId}`).document,
+    teacherDocument: documents.get(`native_activity_teacher:${created.activityId}`).document,
+  } }));
+  assert.equal(staleSave.statusCode, 404);
+  assert.equal(validated, 0);
+  const stalePrepare = await handler(request({ path: `${path}/assets/prepare`, body: {
+    name: "audio.mp3", size: 100, type: "audio/mpeg", assetSlot: "audio-one", clientMutationId: randomUUID(),
+  } }));
+  assert.equal(stalePrepare.statusCode, 404);
+  assert.equal(prepared, 0);
+  const staleFinalize = await handler(request({ path: `${path}/assets/finalize`, body: {
+    uploadId: randomUUID(), clientMutationId: randomUUID(),
+  } }));
+  assert.equal(staleFinalize.statusCode, 404);
+  assert.equal(claimed, 0);
 });
 
 test("native documents are authenticated reads and paired writes are the only mutation boundary", async () => {

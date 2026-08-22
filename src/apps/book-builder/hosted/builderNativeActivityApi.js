@@ -44,6 +44,23 @@ export async function saveNativeActivityPair({ bookSlug, componentSlug, activity
   return value;
 }
 
+export async function deleteNativeActivity({ bookSlug, componentSlug, activityId }) {
+  const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/delete`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientMutationId: newBuilderClientMutationId() }),
+  });
+  const value = await payload(response);
+  if (!response.ok) {
+    const error = new Error(value.error || "Native activity could not be deleted.");
+    error.status = response.status;
+    error.payload = value;
+    throw error;
+  }
+  return value;
+}
+
 export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file }) {
   const base = activityRoot(bookSlug, componentSlug, activityId);
   const clientMutationId = newBuilderClientMutationId();

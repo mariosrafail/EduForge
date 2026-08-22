@@ -30,6 +30,7 @@ function harness({ bytes = png, contentType = "image/png", inspectRaster = inspe
   const handler = createBuilderNativeActivitiesHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
+    loadDocument: async (_sql, resource) => resource.documentType === "native_activity_index" ? { revision: 1, source: "database", document: { schemaVersion: "1.0", activities: [{ activityId }] } } : null,
     randomUuid: () => uploadId,
     storage: () => storage,
     inspectRaster,

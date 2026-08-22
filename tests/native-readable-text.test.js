@@ -193,12 +193,20 @@ test("native Readable Text presentation toggles only when available and uses bou
       modelAnswers: ["private"],
     }), { panelIndex: 1, panelCount: 2, reveal: { supported: true, total: 2, revealed: 2, pristine: false } });
   } finally { await vite.close(); }
-  const [component, css] = await Promise.all([
+  const [component, focus, css] = await Promise.all([
     readFile(new URL("../src/components/native-readable-text/NativeReadableTextPresentation.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-readable-text/NativeAudioTextHotspots.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-readable-text/nativeReadableText.css", import.meta.url), "utf8"),
   ]);
   assert.match(component, /hidden=\{effectiveView === "text"\}/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /SCROLL ↓/);
+  assert.match(component, /event\.key === "Escape"/);
+  assert.match(focus, /<audio ref=\{audioRef\} hidden autoPlay=\{autoPlay\}/);
+  assert.match(focus, /const audio = audioRef\.current/);
+  assert.match(focus, /audio\.pause\(\); audio\.currentTime = 0/);
+  assert.doesNotMatch(focus, /<header|<strong|>Close<|\bcontrols\b/);
   assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /width: 100%; height: auto/); assert.match(css, /pointer-events: none/);
+  assert.match(css, /\.native-audio-text-focus\s*\{[^}]*display: grid;[^}]*width: 100%;[^}]*height: 100%;[^}]*overflow: hidden/);
+  assert.doesNotMatch(css, /native-audio-text-focus header|native-audio-text-focus audio/);
   assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);
   assert.doesNotMatch(css, /max-height: min\(76vh, 760px\)/);
 });

@@ -48,7 +48,7 @@ test("isolated PostgreSQL persists current state, strict history, idempotency, c
     await admin.end();
   });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "041_homework_phase_one.sql");
+  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
   await pool.query(`
     insert into builder_users(id,full_name,email,password_hash)
     values($1,'Builder Integration','builder-integration@example.test','not-a-real-login-hash')

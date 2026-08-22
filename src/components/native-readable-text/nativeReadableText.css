@@ -4,20 +4,18 @@
 .native-readable-text-activity-view.is-audio-focus { display: grid; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus > article { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus .native-or-surface { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-visual,
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-visual-panels,
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-visual-panel { width: 100%; height: 100%; min-height: 0; }
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-student,
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-teacher { width: 100%; height: 100%; min-height: 0; max-width: 920px; overflow: hidden; }
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-visual-panel { place-items: center; }
-.native-readable-text-activity-view.is-audio-focus .native-single-choice-visual-stage { justify-self: center; width: auto; height: 100%; max-width: 100%; max-height: 100%; margin-inline: auto; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) { display: grid; min-height: 0; place-items: center; overflow: hidden; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) > article { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; overflow: hidden; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual,
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panels,
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { width: 100%; height: 100%; min-height: 0; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-student,
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-teacher { width: 100%; height: 100%; min-height: 0; max-width: 920px; overflow: hidden; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { place-items: center; }
 .native-audio-text-focus-slot { min-height: 0; overflow: hidden; }
-.native-audio-text-focus { box-sizing: border-box; display: grid; grid-template: auto minmax(0, 1fr) auto / minmax(0, 1fr); gap: 6px; width: 100%; height: 100%; min-height: 0; padding: clamp(6px, .8vw, 12px); background: #eef4f8; border: 1px solid #aebdca; border-radius: 10px; }
-.native-audio-text-focus header { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #123d54; }
-.native-audio-text-focus header button { min-width: 58px; min-height: 30px; border: 1px solid #66889c; border-radius: 999px; background: #fff; color: #123d54; font-weight: 800; cursor: pointer; }
-.native-audio-text-focus-crop { min-height: 0; overflow: hidden; background: #fff; border: 1px solid #c3ced7; border-radius: 7px; }
+.native-audio-text-focus { box-sizing: border-box; display: grid; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
+.native-audio-text-focus-crop { display: grid; min-height: 0; overflow: hidden; place-items: center; }
 .native-audio-text-focus-crop svg { display: block; width: 100%; height: 100%; }
-.native-audio-text-focus audio { width: 100%; height: 32px; }
 .native-audio-text-hotspot { position: absolute; z-index: 50; box-sizing: border-box; display: grid; place-items: center; padding: 0; overflow: visible; border: 0; border-radius: 50%; background: transparent; box-shadow: 0 2px 7px rgb(0 0 0 / 30%); cursor: pointer; }
 .native-audio-text-hotspot img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .native-audio-text-hotspot:focus-visible { outline: 4px solid #ffdc42; outline-offset: 3px; }

@@ -189,3 +189,15 @@ export function createEmptyNativeActivityIndex() {
 export function appendNativeActivityIndexEntry(index, entry, options) {
   return normalizeNativeActivityIndex({ ...structuredClone(index), activities: [...index.activities, entry] }, options);
 }
+
+export function removeNativeActivityIndexEntry(index, activityId, options) {
+  const normalized = normalizeNativeActivityIndex(index, options);
+  if (!normalized.activities.some((entry) => entry.activityId === activityId)) return { index: normalized, removed: false };
+  return {
+    index: normalizeNativeActivityIndex({
+      ...normalized,
+      activities: normalized.activities.filter((entry) => entry.activityId !== activityId),
+    }, options),
+    removed: true,
+  };
+}

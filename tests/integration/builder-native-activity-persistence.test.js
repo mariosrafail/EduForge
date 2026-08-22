@@ -6,7 +6,7 @@ import pg from "pg";
 import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
-import { createBuilderNativeActivity } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
+import { claimBuilderNativeAssetUpload, completeBuilderNativeAssetUpload, createBuilderNativeActivity, prepareBuilderNativeAssetUpload } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;
@@ -18,6 +18,8 @@ function scoped(base, schema) { const url = new URL(base); url.searchParams.set(
 function tag(pool) { return async (strings, ...values) => { let text = strings[0]; for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`; return (await pool.query(text, values)).rows; }; }
 function event({ kind = "open-response", title = "Integration native", mutationId = randomUUID() } = {}) { return { httpMethod: "POST", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ kind, pageId: "ub2-sb-unit-1-part-1", title, clientMutationId: mutationId }) }; }
 function pairEvent(activityId, body) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/save`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify(body) }; }
+function deleteEvent(activityId, mutationId = randomUUID()) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/delete`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ clientMutationId: mutationId }) }; }
+function hotspotEvent(method, body = null) { return { httpMethod: method, path: "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: body ? JSON.stringify(body) : "" }; }
 
 test("isolated PostgreSQL creates native index/public/Teacher drafts atomically, idempotently, and without identity races", { skip: !enabled }, async (t) => {
   const schema = `builder_native_${randomBytes(8).toString("hex")}`;
@@ -26,7 +28,7 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "041_homework_phase_one.sql");
+  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Native Actor','native@example.test','hash')", [actor]);
   const sql = tag(pool);
   const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
@@ -108,6 +110,91 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   assert.equal(unauthorized.outcome, "unauthorized_actor");
 });
 
+test("isolated PostgreSQL logically deletes native activity membership and hotspots while retaining immutable history", { skip: !enabled }, async (t) => {
+  const schema = `builder_native_delete_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Delete Actor','delete@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const native = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const content = createBuilderContentHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const created = JSON.parse((await native(event({ title: "Delete integration" }))).body);
+
+  const baseline = JSON.parse((await content(hotspotEvent("GET"))).body);
+  const candidate = structuredClone(baseline.document);
+  candidate.pages["ub2-sb-unit-1-part-1"] ||= [];
+  candidate.pages["ub2-sb-unit-1-part-2"] ||= [];
+  candidate.pages["ub2-sb-unit-1-part-1"].push({ id: "delete-integration-one", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", pageNumber: 5, left: 1, top: 1, width: 10, height: 10, label: "Delete one", actionType: "normalized_activity", activityKey: created.activityId });
+  candidate.pages["ub2-sb-unit-1-part-2"].push({ id: "delete-integration-two", unitNumber: 1, pageId: "ub2-sb-unit-1-part-2", pageNumber: 6, left: 1, top: 1, width: 10, height: 10, label: "Delete two", actionType: "normalized_activity", activityKey: created.activityId });
+  const savedHotspots = await content(hotspotEvent("PUT", { expectedRevision: 0, clientMutationId: randomUUID(), document: candidate }));
+  assert.equal(savedHotspots.statusCode, 200);
+
+  const completedUploadId = randomUUID();
+  const completedMutationId = randomUUID();
+  const uploadInput = (uploadId, clientMutationId, slot) => ({
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: created.activityId, assetSlot: slot,
+    clientMutationId, uploadId, requestSha256: randomBytes(32).toString("hex"),
+    fileDescriptor: { name: `${slot}.png`, size: 68, type: "image/png", assetSlot: slot },
+    stagingObjectKey: `builder-native-assets/ultimate-b2/ultimate-b2-students-book/${created.activityId}/${uploadId}/staging/asset`,
+    builderUserId: actor, expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  });
+  assert.equal((await prepareBuilderNativeAssetUpload(sql, uploadInput(completedUploadId, completedMutationId, "retained-asset"))).outcome, "prepared");
+  assert.equal((await claimBuilderNativeAssetUpload(sql, { uploadId: completedUploadId, clientMutationId: completedMutationId, builderUserId: actor })).outcome, "claimed");
+  const retainedAssetId = await completeBuilderNativeAssetUpload(sql, {
+    uploadId: completedUploadId, builderUserId: actor,
+    objectKey: `builder-native-assets/ultimate-b2/ultimate-b2-students-book/${created.activityId}/assets/${"a".repeat(64)}.png`,
+    storageBucket: "private-assets", mimeType: "image/png", byteSize: 68, checksumSha256: "a".repeat(64), width: 1, height: 1,
+  });
+  const pendingUploadId = randomUUID();
+  const pendingMutationId = randomUUID();
+  assert.equal((await prepareBuilderNativeAssetUpload(sql, uploadInput(pendingUploadId, pendingMutationId, "pending-asset"))).outcome, "prepared");
+
+  const beforeDocuments = await pool.query("select document_type,revision from builder_component_documents where document_key=$1 and document_type in ('native_activity_public','native_activity_teacher') order by document_type", [created.activityId]);
+  const deletionMutationId = randomUUID();
+  const deleted = await native(deleteEvent(created.activityId, deletionMutationId));
+  assert.equal(deleted.statusCode, 200);
+  assert.equal(JSON.parse(deleted.body).removedHotspotCount, 2);
+  assert.equal(JSON.parse(deleted.body).hotspotRevision, 2);
+  assert.equal(JSON.parse((await native(deleteEvent(created.activityId, deletionMutationId))).body).idempotent, true);
+  assert.equal((await native(deleteEvent(created.activityId))).statusCode, 404);
+
+  const activeIndex = (await pool.query("select payload from builder_component_documents where document_type='native_activity_index' and document_key='default'")).rows[0].payload;
+  assert.equal(activeIndex.activities.some((entry) => entry.activityId === created.activityId), false);
+  const activeHotspots = (await pool.query("select revision,payload from builder_component_documents where document_type='hotspots' and document_key='default'")).rows[0];
+  assert.equal(Number(activeHotspots.revision), 2);
+  assert.equal(Object.values(activeHotspots.payload.pages).flat().some((entry) => entry.activityKey === created.activityId), false);
+  assert.deepEqual((await pool.query("select document_type,revision from builder_component_documents where document_key=$1 and document_type in ('native_activity_public','native_activity_teacher') order by document_type", [created.activityId])).rows, beforeDocuments.rows);
+  assert.equal((await pool.query("select count(*)::int count from book_assets where id=$1", [retainedAssetId])).rows[0].count, 1);
+  assert.ok((await pool.query("select count(*)::int count from builder_component_document_revisions revision join builder_component_documents document on document.id=revision.document_id where document.document_key=$1 and document.document_type in ('native_activity_public','native_activity_teacher')", [created.activityId])).rows[0].count >= 2);
+
+  const stalePublic = (await pool.query("select payload from builder_component_documents where document_type='native_activity_public' and document_key=$1", [created.activityId])).rows[0].payload;
+  const staleTeacher = (await pool.query("select payload from builder_component_documents where document_type='native_activity_teacher' and document_key=$1", [created.activityId])).rows[0].payload;
+  assert.equal((await native(pairEvent(created.activityId, { expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID(), publicDocument: stalePublic, teacherDocument: staleTeacher }))).statusCode, 404);
+  await assert.rejects(claimBuilderNativeAssetUpload(sql, { uploadId: pendingUploadId, clientMutationId: pendingMutationId, builderUserId: actor }), /native activity is not active/);
+
+  const staleHotspotSave = await content(hotspotEvent("PUT", { expectedRevision: 1, clientMutationId: randomUUID(), document: candidate }));
+  assert.ok([400, 409].includes(staleHotspotSave.statusCode));
+  const resurrection = structuredClone(activeHotspots.payload);
+  resurrection.pages["ub2-sb-unit-1-part-1"] ||= [];
+  resurrection.pages["ub2-sb-unit-1-part-1"].push(candidate.pages["ub2-sb-unit-1-part-1"].at(-1));
+  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: 2, clientMutationId: randomUUID(), document: resurrection }))).statusCode, 400);
+
+  const replacement = JSON.parse((await native(event({ title: "Replacement integration" }))).body);
+  assert.notEqual(replacement.activityId, created.activityId);
+  assert.ok(Number(replacement.activityId.match(/-o(\d+)$/)?.[1]) > Number(created.activityId.match(/-o(\d+)$/)?.[1]));
+  const hotspotRevisionBeforeZeroDelete = Number((await pool.query("select revision from builder_component_documents where document_type='hotspots' and document_key='default'")).rows[0].revision);
+  const zeroDelete = JSON.parse((await native(deleteEvent(replacement.activityId))).body);
+  assert.equal(zeroDelete.removedHotspotCount, 0);
+  assert.equal(zeroDelete.hotspotRevision, hotspotRevisionBeforeZeroDelete);
+
+  const audit = (await pool.query("select metadata from builder_audit_log where action='native_activity_deleted' order by id")).rows;
+  assert.equal(audit.length, 2);
+  assert.doesNotMatch(JSON.stringify(audit), /payload|document|answer|solution|token|secret|checksum/i);
+});
+
 test("isolated PostgreSQL reads a legacy native payload by its persisted checksum without mutating it", { skip: !enabled }, async (t) => {
   const schema = `builder_native_checksum_${randomBytes(8).toString("hex")}`;
   const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
@@ -115,7 +202,7 @@ test("isolated PostgreSQL reads a legacy native payload by its persisted checksu
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "041_homework_phase_one.sql");
+  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Checksum Actor','checksum@example.test','hash')", [actor]);
 
   const sql = tag(pool);

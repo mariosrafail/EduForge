@@ -363,6 +363,8 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /Needs answer/);
   assert.match(canvas, /StageSelectionFrame/);
   assert.match(canvas, /onPointerDown=\{beginDraw\}/);
+  assert.match(canvas, /if \(!drawingEnabled\) \{\s*onSelect\?\.\(null\);\s*return;/);
+  assert.match(canvas, /event\.target !== event\.currentTarget/);
   assert.match(canvas, /onPointerMove=\{moveDraw\}/);
   assert.match(canvas, /onDelete=\{onDelete\}/);
   assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);

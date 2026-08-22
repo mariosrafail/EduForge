@@ -43,6 +43,7 @@ Apply production migrations in this exact order:
 39. `039_builder_component_publication_v2.sql`
 40. `040_published_native_assignment_runtime.sql`
 41. `041_homework_phase_one.sql`
+42. `042_builder_native_activity_retirement.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

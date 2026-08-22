@@ -31,7 +31,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
   const questionById = new Map(questions.map((question) => [question.id, question]));
   const reference = document.assets.find((asset) => asset.slot === panel.backgroundAssetSlot);
   const panelQuestionIds = [...new Set(panel.hotspots.map((hotspot) => hotspot.questionId))];
-  return <section className="native-single-choice-visual-panel" aria-labelledby={headingVisible ? `${panel.id}-title` : undefined} aria-label={headingVisible ? undefined : `Panel ${panelIndex + 1}`}>
+  return <section className={`native-single-choice-visual-panel${headingVisible ? " has-heading" : ""}`} style={{ "--native-single-choice-stage-aspect": panel.sourceWidth / panel.sourceHeight }} aria-labelledby={headingVisible ? `${panel.id}-title` : undefined} aria-label={headingVisible ? undefined : `Panel ${panelIndex + 1}`}>
     {headingVisible ? <h3 id={`${panel.id}-title`}>Panel {panelIndex + 1}</h3> : null}
     <div className="native-single-choice-visual-stage" style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}` }}>
       {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}

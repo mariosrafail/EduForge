@@ -19,11 +19,12 @@ export function normalizeUltimateB2NativeActivityPlacement(input) {
   return page;
 }
 
-export function nextUltimateB2NativeActivityIdentity({ placement, nativeIndex }) {
+export function nextUltimateB2NativeActivityIdentity({ placement, nativeIndex, occupiedActivityIds = [] }) {
   const page = normalizeUltimateB2NativeActivityPlacement({ pageId: placement.pageId });
   const occupiedIds = [
     ...ultimateB2StudentsBookAuthoringActivities.map((activity) => activity.activityKey),
     ...(nativeIndex?.activities || []).map((activity) => activity.activityId),
+    ...occupiedActivityIds,
   ];
   return nextUltimateB2PublisherActivityId(page, occupiedIds);
 }

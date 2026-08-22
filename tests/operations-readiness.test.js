@@ -101,7 +101,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
   assert.throws(() => validateDedicatedStagingRecipient("person@gmail.com", "dedicated-nonproduction-inbox"), /personal mailbox/);
   const environment = hostedStagingEnvironment();
   const result = await checkStagingDeployment(environment);
-  assert.equal(result.latest_migration, "041_homework_phase_one.sql");
+  assert.equal(result.latest_migration, "042_builder_native_activity_retirement.sql");
   assert.equal(result.production_database_fingerprint_count, 3);
   const resultJson = JSON.stringify(result);
   for (const productionFingerprint of environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS.split(",")) {

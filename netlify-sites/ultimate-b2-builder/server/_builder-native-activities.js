@@ -6,8 +6,9 @@ import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
+import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument, builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
@@ -16,9 +17,11 @@ import {
   claimBuilderNativeAssetUpload,
   completeBuilderNativeAssetUpload,
   createBuilderNativeActivity,
+  deleteBuilderNativeActivity,
   failBuilderNativeAssetUpload,
   loadBuilderNativeAsset,
   isBuilderNativeDraftAssetRecord,
+  loadBuilderNativeActivityIds,
   prepareBuilderNativeAssetUpload,
   saveBuilderNativeActivityPair,
   validateBuilderNativeAssetReferences,
@@ -49,6 +52,8 @@ function route(event) {
   if (suffix === "create") return { ...scope, action: "create" };
   let match = suffix.match(/^activities\/([a-z0-9-]+)\/save$/);
   if (match) return { ...scope, activityId: match[1], action: "save" };
+  match = suffix.match(/^activities\/([a-z0-9-]+)\/delete$/);
+  if (match) return { ...scope, activityId: match[1], action: "delete" };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/assets\/(prepare|finalize)$/);
   if (match) return { ...scope, activityId: match[1], action: `asset-${match[2]}` };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/assets\/([0-9a-f-]+)\/preview$/);
@@ -90,10 +95,11 @@ async function createActivity(dependencies, sql, auth, parsedRoute, event) {
   const requestSha256 = sha256(stableBuilderJson({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, kind: kind.kind, pageId: placement.pageId, title }));
   const indexResource = await dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-index", "");
   if (!indexResource) return json(404, { error: "native_activity_component_not_found" });
+  const occupiedActivityIds = await dependencies.loadKnownActivityIds(sql, parsedRoute);
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const storedIndex = await dependencies.loadDocument(sql, indexResource);
     const index = storedIndex?.document || createEmptyNativeActivityIndex();
-    const activityId = adapter.nextActivityId({ placement, nativeIndex: index });
+    const activityId = adapter.nextActivityId({ placement, nativeIndex: index, occupiedActivityIds });
     const publicDocument = kind.createBlankPublic({ activityId, title, placement });
     const teacherDocument = kind.createBlankTeacher({ activityId, placement });
     validateNativeActivityPair(publicDocument, teacherDocument); assertPublicBuilderDocument(publicDocument);
@@ -114,12 +120,75 @@ async function createActivity(dependencies, sql, auth, parsedRoute, event) {
   return json(409, { error: "native_activity_creation_conflict" });
 }
 
+function isInactiveActivityError(error) {
+  return String(error?.message || "").includes("native activity is not active");
+}
+
+async function requireActiveActivity(dependencies, sql, parsedRoute) {
+  const resource = await dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-index", "");
+  if (!resource) return false;
+  const stored = await dependencies.loadDocument(sql, resource);
+  const activities = stored?.document?.activities;
+  return Array.isArray(activities) && activities.some((entry) => entry?.activityId === parsedRoute.activityId);
+}
+
+async function deleteActivity(dependencies, sql, auth, parsedRoute, event) {
+  const parsed = parseJson(event, ["clientMutationId"]);
+  if (parsed.error) return parsed.error;
+  if (!builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_client_mutation_id" });
+  const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
+  if (!adapter) return json(404, { error: "native_activity_component_not_found" });
+  const [indexResource, hotspotResource] = await Promise.all([
+    dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-index", ""),
+    dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "hotspots", ""),
+  ]);
+  if (!indexResource || !hotspotResource) return json(404, { error: "native_activity_component_not_found" });
+  const [storedIndex, storedHotspots] = await Promise.all([
+    dependencies.loadDocument(sql, indexResource), dependencies.loadDocument(sql, hotspotResource),
+  ]);
+  const index = storedIndex?.document || createEmptyNativeActivityIndex();
+  const removed = removeNativeActivityIndexEntry(index, parsedRoute.activityId, { allowedKinds: adapter.kinds });
+  const currentHotspots = storedHotspots?.document || hotspotResource.baseline();
+  const pruned = pruneUltimateB2ActivityHotspots(currentHotspots, parsedRoute.activityId);
+  const requestSha256 = sha256(stableBuilderJson({
+    bookSlug: parsedRoute.bookSlug,
+    componentSlug: parsedRoute.componentSlug,
+    activityId: parsedRoute.activityId,
+  }));
+  const result = await dependencies.delete(sql, {
+    ...parsedRoute,
+    expectedIndexRevision: storedIndex?.revision || 0,
+    indexDocument: removed.index,
+    indexSha256: builderDocumentSha256(removed.index),
+    indexSchemaVersion: indexResource.schemaVersion,
+    expectedHotspotRevision: storedHotspots?.revision || 0,
+    hotspotDocument: pruned.manifest,
+    hotspotSha256: builderDocumentSha256(pruned.manifest),
+    hotspotSchemaVersion: hotspotResource.schemaVersion,
+    hotspotChanged: pruned.removedCount > 0,
+    removedHotspotCount: pruned.removedCount,
+    requestSha256,
+    builderUserId: auth.builderUser.id,
+    clientMutationId: parsed.value.clientMutationId,
+  });
+  if (["revision_conflict", "mutation_id_conflict"].includes(result.outcome)) return json(409, {
+    error: result.outcome,
+    currentIndexRevision: result.indexRevision,
+    currentHotspotRevision: result.hotspotRevision,
+  });
+  if (["resource_not_found", "activity_not_active"].includes(result.outcome)) return json(404, { error: "native_activity_not_found" });
+  if (result.outcome === "unauthorized_actor") return json(401, { error: "Unauthorized" });
+  if (!["deleted", "idempotent"].includes(result.outcome)) throw new Error("Unexpected native activity deletion outcome");
+  return json(200, { ...result, idempotent: result.outcome === "idempotent" });
+}
+
 async function savePair(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["expectedPublicRevision", "expectedTeacherRevision", "clientMutationId", "publicDocument", "teacherDocument"]);
   if (parsed.error) return parsed.error;
   const input = parsed.value;
   if (![input.expectedPublicRevision, input.expectedTeacherRevision].every((revision) => Number.isSafeInteger(revision) && revision >= 1)
     || !builderClientMutationIdPattern.test(String(input.clientMutationId || ""))) return json(400, { error: "invalid_request" });
+  if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
   let publicDocument; let teacherDocument;
   try {
     const [publicResource, teacherResource] = await Promise.all([
@@ -154,12 +223,18 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
     expectedPublicRevision: input.expectedPublicRevision, expectedTeacherRevision: input.expectedTeacherRevision,
     publicDocument, teacherDocument,
   }));
-  const result = await dependencies.savePair(sql, {
-    ...parsedRoute, schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
-    expectedPublicRevision: input.expectedPublicRevision, expectedTeacherRevision: input.expectedTeacherRevision,
-    publicDocument, publicSha256: builderDocumentSha256(publicDocument), teacherDocument, teacherSha256: builderDocumentSha256(teacherDocument),
-    requestSha256, builderUserId: auth.builderUser.id, clientMutationId: input.clientMutationId,
-  });
+  let result;
+  try {
+    result = await dependencies.savePair(sql, {
+      ...parsedRoute, schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
+      expectedPublicRevision: input.expectedPublicRevision, expectedTeacherRevision: input.expectedTeacherRevision,
+      publicDocument, publicSha256: builderDocumentSha256(publicDocument), teacherDocument, teacherSha256: builderDocumentSha256(teacherDocument),
+      requestSha256, builderUserId: auth.builderUser.id, clientMutationId: input.clientMutationId,
+    });
+  } catch (error) {
+    if (isInactiveActivityError(error)) return json(404, { error: "native_activity_not_found" });
+    throw error;
+  }
   if (["revision_conflict", "mutation_id_conflict"].includes(result.outcome)) return json(409, { error: result.outcome, currentPublicRevision: result.currentPublicRevision, currentTeacherRevision: result.currentTeacherRevision });
   if (result.outcome === "resource_not_found") return json(404, { error: "native_activity_not_found" });
   if (result.outcome === "unauthorized_actor") return json(401, { error: "Unauthorized" });
@@ -184,11 +259,18 @@ async function prepareAsset(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["name", "size", "type", "assetSlot", "clientMutationId"]);
   if (parsed.error) return parsed.error;
   if (!builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_client_mutation_id" });
+  if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
   let descriptor; try { descriptor = normalizeAssetDescriptor({ name: parsed.value.name, size: parsed.value.size, type: parsed.value.type, assetSlot: parsed.value.assetSlot }); } catch (error) { return json(400, { error: failureCode(error) }); }
   const uploadId = dependencies.randomUuid();
   const stagingObjectKey = buildNativeActivityAssetStagingKey({ ...parsedRoute, uploadId });
   const requestSha256 = sha256(stableBuilderJson(descriptor));
-  const result = await dependencies.prepareAsset(sql, { ...parsedRoute, assetSlot: descriptor.assetSlot, clientMutationId: parsed.value.clientMutationId, uploadId, requestSha256, fileDescriptor: descriptor, stagingObjectKey, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + uploadTtlSeconds * 1000).toISOString() });
+  let result;
+  try {
+    result = await dependencies.prepareAsset(sql, { ...parsedRoute, assetSlot: descriptor.assetSlot, clientMutationId: parsed.value.clientMutationId, uploadId, requestSha256, fileDescriptor: descriptor, stagingObjectKey, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + uploadTtlSeconds * 1000).toISOString() });
+  } catch (error) {
+    if (isInactiveActivityError(error)) return json(404, { error: "native_activity_not_found" });
+    throw error;
+  }
   if (!result) throw new Error("Native asset preparation returned no result");
   if (result.outcome === "mutation_id_conflict") return json(409, { error: result.outcome });
   if (result.outcome === "resource_not_found") return json(404, { error: "native_activity_not_found" });
@@ -212,7 +294,14 @@ async function assetResponse(dependencies, sql, parsedRoute, assetId) {
 async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["uploadId", "clientMutationId"]); if (parsed.error) return parsed.error;
   if (!uuidV4.test(String(parsed.value.uploadId || "")) || !builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_finalize_identity" });
-  const claimed = await dependencies.claimAsset(sql, { uploadId: parsed.value.uploadId, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
+  if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
+  let claimed;
+  try {
+    claimed = await dependencies.claimAsset(sql, { uploadId: parsed.value.uploadId, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
+  } catch (error) {
+    if (isInactiveActivityError(error)) return json(404, { error: "native_activity_not_found" });
+    throw error;
+  }
   if (!claimed) throw new Error("Native asset claim returned no result");
   if (claimed.outcome === "idempotent") {
     const result = await assetResponse(dependencies, sql, parsedRoute, claimed.resultingAssetId);
@@ -304,6 +393,8 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
     create: overrides.create || createBuilderNativeActivity,
+    delete: overrides.delete || deleteBuilderNativeActivity,
+    loadKnownActivityIds: overrides.loadKnownActivityIds || loadBuilderNativeActivityIds,
     savePair: overrides.savePair || saveBuilderNativeActivityPair,
     validateAssets: overrides.validateAssets || validateBuilderNativeAssetReferences,
     prepareAsset: overrides.prepareAsset || prepareBuilderNativeAssetUpload,
@@ -338,6 +429,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       const originError = requireBuilderOrigin(event); if (originError) return originError;
       if (parsedRoute.action === "create") return createActivity(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "save") return savePair(dependencies, sql, auth, parsedRoute, event);
+      if (parsedRoute.action === "delete") return deleteActivity(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "asset-prepare") return prepareAsset(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "asset-finalize") return finalizeAsset(dependencies, sql, auth, parsedRoute, event);
       return json(404, { error: "native_activity_route_not_found" });

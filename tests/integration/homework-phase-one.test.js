@@ -97,7 +97,7 @@ test("Homework persists mixed ordered targets atomically and idempotently with t
     await admin.end();
   });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "041_homework_phase_one.sql");
+  assert.equal(migrations.at(-1).filename, "042_builder_native_activity_retirement.sql");
 
   const teacher = (await pool.query("select id,school_id from app_users where role='teacher' and school_id is not null limit 1")).rows[0];
   const student = (await pool.query("select id from app_users where role='student' and school_id=$1 limit 1", [teacher.school_id])).rows[0];
