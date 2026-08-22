@@ -10,6 +10,7 @@ import { validateNativeActivityPair } from "./_native-activity-registry.js";
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const previewTtlSeconds = 5 * 60;
+const NATIVE_TEACHER_PREVIEW_KINDS = new Set(["open-response", "single-choice"]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 
@@ -93,7 +94,7 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
 
       if (parsed.action === "public") return privateJson(200, envelope(parsed, publicState, "public", publicState.document));
       if (parsed.action === "teacher") {
-        if (publicState.entry.kind !== "open-response") return privateJson(404, { error: "native_teacher_draft_not_found" });
+        if (!NATIVE_TEACHER_PREVIEW_KINDS.has(publicState.entry.kind)) return privateJson(404, { error: "native_teacher_draft_not_found" });
         const teacherResource = await dependencies.resolveResource(parsed.bookSlug, parsed.componentSlug, "native-activity-teacher", parsed.activityId);
         const storedTeacher = teacherResource ? await dependencies.loadDocument(sql, teacherResource) : null;
         if (!storedTeacher) return privateJson(404, { error: "native_teacher_draft_not_found" });

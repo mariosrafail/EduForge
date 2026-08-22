@@ -63,6 +63,22 @@ test("native draft public and teacher endpoints enforce audience separation", as
   assert.equal(teacherResponse.statusCode, 200);
   assert.equal(JSON.parse(teacherResponse.body).audience, "teacher");
   assert.match(teacherResponse.body, new RegExp(publicationV2Fixture.teacherSentinel));
+
+  const choicePublicResponse = await handler(request(publicationV2Fixture.singleChoiceId, "public"));
+  assert.equal(choicePublicResponse.statusCode, 200);
+  assert.equal(JSON.parse(choicePublicResponse.body).kind, "single-choice");
+  assert.doesNotMatch(choicePublicResponse.body, /correctAnswers|correctOptionId/);
+
+  const choiceTeacherResponse = await handler(request(publicationV2Fixture.singleChoiceId, "teacher"));
+  assert.equal(choiceTeacherResponse.statusCode, 200);
+  const choiceTeacherEnvelope = JSON.parse(choiceTeacherResponse.body);
+  assert.equal(choiceTeacherEnvelope.audience, "teacher");
+  assert.equal(choiceTeacherEnvelope.kind, "single-choice");
+  assert.deepEqual(
+    choiceTeacherEnvelope.document,
+    createPublicationV2FixtureSources().native.activities[publicationV2Fixture.singleChoiceId].teacher.payload,
+  );
+  assert.equal(choiceTeacherEnvelope.document.parts[0].solution.correctAnswers.length, 2);
   assert.equal((await handler(request(publicationV2Fixture.imageId, "teacher"))).statusCode, 404);
 });
 
@@ -71,6 +87,7 @@ test("page and activity preview scopes are least-privilege and library/release s
   const activityToken = tokenFor({ view: "activity", pageId: null, activityId: publicationV2Fixture.openResponseId });
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", activityToken))).statusCode, 200);
   assert.equal((await handler(request(publicationV2Fixture.imageId, "public", activityToken))).statusCode, 401);
+  assert.equal((await handler(request(publicationV2Fixture.singleChoiceId, "teacher", activityToken))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ pageId: "ub2-sb-unit-1-part-2" })))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ view: "library", pageId: null })))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ componentSlug: "ultimate-b2-workbook" })))).statusCode, 401);
@@ -104,5 +121,15 @@ test("native draft endpoint fails closed for missing and inconsistent authoritat
   const malformedPair = createPublicationV2FixtureSources();
   malformedPair.native.activities[publicationV2Fixture.openResponseId].teacher.payload.activityId = publicationV2Fixture.imageId;
   assert.equal((await harness({ sources: malformedPair })(request(publicationV2Fixture.openResponseId, "teacher"))).statusCode, 500);
+
+  const missingChoiceTeacher = createPublicationV2FixtureSources();
+  delete missingChoiceTeacher.native.activities[publicationV2Fixture.singleChoiceId].teacher;
+  assert.equal((await harness({ sources: missingChoiceTeacher })(request(publicationV2Fixture.singleChoiceId, "teacher"))).statusCode, 404);
+
+  const invalidChoiceTopology = createPublicationV2FixtureSources();
+  invalidChoiceTopology.native.activities[publicationV2Fixture.singleChoiceId].teacher.payload.parts[0].solution.correctAnswers[0].correctOptionId = "opt-10000000000040008000000000000026";
+  const invalidChoiceResponse = await harness({ sources: invalidChoiceTopology })(request(publicationV2Fixture.singleChoiceId, "teacher"));
+  assert.equal(invalidChoiceResponse.statusCode, 500);
+  assert.doesNotMatch(invalidChoiceResponse.body, /correctAnswers|correctOptionId/);
   assert.equal((await harness()(request(publicationV2Fixture.openResponseId, "public", tokenFor(), "POST"))).statusCode, 405);
 });
