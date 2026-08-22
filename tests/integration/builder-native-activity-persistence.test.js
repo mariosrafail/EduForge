@@ -125,11 +125,16 @@ test("isolated PostgreSQL logically deletes native activity membership and hotsp
   const created = JSON.parse((await native(event({ title: "Delete integration" }))).body);
 
   const baseline = JSON.parse((await content(hotspotEvent("GET"))).body);
+  const offPlacement = structuredClone(baseline.document);
+  offPlacement.pages["ub2-sb-unit-1-part-2"] ||= [];
+  offPlacement.pages["ub2-sb-unit-1-part-2"].push({ id: "delete-integration-off-placement", unitNumber: 1, pageId: "ub2-sb-unit-1-part-2", pageNumber: 6, left: 1, top: 1, width: 10, height: 10, label: "Invalid placement", actionType: "normalized_activity", activityKey: created.activityId });
+  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: baseline.revision, clientMutationId: randomUUID(), document: offPlacement }))).statusCode, 500);
+  assert.equal(JSON.parse((await content(hotspotEvent("GET"))).body).revision, baseline.revision);
+
   const candidate = structuredClone(baseline.document);
   candidate.pages["ub2-sb-unit-1-part-1"] ||= [];
-  candidate.pages["ub2-sb-unit-1-part-2"] ||= [];
   candidate.pages["ub2-sb-unit-1-part-1"].push({ id: "delete-integration-one", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", pageNumber: 5, left: 1, top: 1, width: 10, height: 10, label: "Delete one", actionType: "normalized_activity", activityKey: created.activityId });
-  candidate.pages["ub2-sb-unit-1-part-2"].push({ id: "delete-integration-two", unitNumber: 1, pageId: "ub2-sb-unit-1-part-2", pageNumber: 6, left: 1, top: 1, width: 10, height: 10, label: "Delete two", actionType: "normalized_activity", activityKey: created.activityId });
+  candidate.pages["ub2-sb-unit-1-part-1"].push({ id: "delete-integration-two", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", pageNumber: 5, left: 12, top: 12, width: 10, height: 10, label: "Delete two", actionType: "normalized_activity", activityKey: created.activityId });
   const savedHotspots = await content(hotspotEvent("PUT", { expectedRevision: 0, clientMutationId: randomUUID(), document: candidate }));
   assert.equal(savedHotspots.statusCode, 200);
 

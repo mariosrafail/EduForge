@@ -52,6 +52,7 @@ function harness(overrides = {}) {
       deleteMutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result });
       return result;
     },
+    mutateLifecycle: overrides.mutateLifecycle,
     prepareAsset: overrides.prepareAsset,
     claimAsset: overrides.claimAsset,
     validateAssets: overrides.validateAssets || (async () => true),
@@ -126,6 +127,29 @@ test("one create mutation produces index, public, and Teacher documents and repl
   const changed = await handler(request({ clientMutationId, body: { kind: "image", pageId, title: "Different", clientMutationId } }));
   assert.equal(changed.statusCode, 409);
   assert.equal(JSON.parse(changed.body).error, "mutation_id_conflict");
+});
+
+test("activity relocation forwards the server-derived authoritative source page independently of the client expectation", async () => {
+  const captured = [];
+  const { handler } = harness({
+    mutateLifecycle: async (_sql, input) => {
+      captured.push(input);
+      return { outcome: "location_conflict" };
+    },
+  });
+  const created = JSON.parse((await handler(request())).body);
+  const clientExpectedSource = "ub2-sb-unit-1-part-2";
+  const path = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${created.activityId}/move`;
+  const moved = await handler(request({ path, body: {
+    sourcePageId: clientExpectedSource,
+    destinationPageId: "reading-19",
+    clientMutationId: randomUUID(),
+  } }));
+
+  assert.equal(moved.statusCode, 409);
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].sourcePageId, clientExpectedSource);
+  assert.equal(captured[0].authoritativeSourcePageId, pageId);
 });
 
 test("native deletion prunes every page reference, preserves history, is idempotent, and never reuses the stable ID", async () => {

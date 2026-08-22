@@ -272,7 +272,6 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
     family,
     operation: move ? "move" : "retire",
     sourcePageId: input.sourcePageId,
-    authoritativeSourcePageId: currentPageId,
     destinationPageId: destination?.pageId || null,
   }));
   const result = await dependencies.mutateLifecycle(sql, {
@@ -280,6 +279,7 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
     activityFamily: family,
     operation: move ? "move" : "retire",
     sourcePageId: input.sourcePageId,
+    authoritativeSourcePageId: currentPageId,
     destinationPageId: destination?.pageId || null,
     expectedLifecycleRevision: storedLifecycle?.revision || 0,
     lifecycleDocument,
