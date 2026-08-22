@@ -200,6 +200,53 @@ test("student surface keeps text radios unchanged and renders accessible managed
   } finally { await vite.close(); }
 });
 
+test("teacher surface uses the shared classroom presentation without rendering a primary answer-key list", async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
+  try {
+    const [{ NativeSingleChoiceTeacherSurface }, { NativeSingleChoicePresentation }] = await Promise.all([
+      vite.ssrLoadModule("/src/components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx"),
+      vite.ssrLoadModule("/src/components/native-single-choice/NativeSingleChoicePresentation.jsx"),
+    ]);
+    const pair = visualPair();
+    const teacherVisual = renderToStaticMarkup(React.createElement(NativeSingleChoiceTeacherSurface, {
+      publicDocument: pair.publicDocument,
+      teacherDocument: pair.teacherDocument,
+      assetUrl: () => "/teacher/background.png",
+    }));
+    assert.match(teacherVisual, /data-native-single-choice-presentation="visual"/);
+    assert.match(teacherVisual, /teacher\/background\.png/);
+    assert.match(teacherVisual, /native-single-choice-visual-stage/);
+    assert.match(teacherVisual, /left:8\.333333333333332%;top:25%;width:25%;height:15%/);
+    assert.match(teacherVisual, /Show All/);
+    assert.match(teacherVisual, />Next</);
+    assert.doesNotMatch(teacherVisual, /Correct answer|correctAnswers|correctOptionId/);
+
+    const neutralFeedback = renderToStaticMarkup(React.createElement(NativeSingleChoicePresentation, {
+      document: pair.publicDocument,
+      assetUrl: () => "/teacher/background.png",
+      responses: { [ids.questions[0]]: ids.options[0][1] },
+      optionStates: { [ids.options[0][0]]: "incorrect", [ids.options[0][1]]: "correct" },
+      disabledQuestionIds: new Set([ids.questions[0]]),
+      className: "native-single-choice-teacher",
+    }));
+    assert.match(neutralFeedback, /data-answer-state="incorrect"/);
+    assert.match(neutralFeedback, /data-answer-state="correct"/);
+    assert.match(neutralFeedback, /Try again\./);
+    assert.match(neutralFeedback, /Correct\./);
+    assert.match(neutralFeedback, /disabled=""/);
+
+    const textDocument = kind.createBlankPublic({ activityId, title: "Text", placement: { pageId } });
+    textDocument.parts[0].interaction.questions = pair.publicDocument.parts[0].interaction.questions;
+    const teacherText = renderToStaticMarkup(React.createElement(NativeSingleChoiceTeacherSurface, {
+      publicDocument: textDocument,
+      teacherDocument: pair.teacherDocument,
+    }));
+    assert.match(teacherText, /data-native-single-choice-presentation="text"/);
+    assert.match(teacherText, /type="radio"/);
+    assert.doesNotMatch(teacherText, /native-single-choice-visual-stage|Correct answer/);
+  } finally { await vite.close(); }
+});
+
 test("visual background is materialized through publication and dimension mismatches fail closed", () => {
   const sources = createPublicationV2FixtureSources();
   const entry = sources.native.activities[activityId];
@@ -233,11 +280,14 @@ test("authoring save validates managed background ownership and intrinsic dimens
   await assert.rejects(validateBuilderNativeAssetReferences(sql, { ...input, requirements: [{ slot: visualAsset.slot, width: 1199, height: 800 }] }), /dimensions do not match/);
 });
 
-test("Builder Front is public-only while Back owns answers, managed upload, and shared hotspot transforms", async () => {
-  const [editor, canvas, publishedRunner, teacherSurface] = await Promise.all([
+test("Student and Teacher share a public classroom renderer while only Teacher owns private answer interpretation", async () => {
+  const [editor, canvas, hostedRunner, publishedRunner, studentSurface, presentation, teacherSurface] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceHotspotCanvas.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceStudentSurface.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-single-choice/NativeSingleChoicePresentation.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /<NativeSingleChoiceStudentSurface document=\{publicDraft\} assetUrl=\{assetUrl\}/);
@@ -251,6 +301,14 @@ test("Builder Front is public-only while Back owns answers, managed upload, and 
   assert.match(canvas, /onPointerDown=\{beginDraw\}/);
   assert.match(canvas, /onPointerMove=\{moveDraw\}/);
   assert.match(canvas, /onDelete=\{onDelete\}/);
+  assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);
   assert.match(publishedRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
+  assert.match(publishedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{teacherState\.document\} assetUrl=\{assetUrl\}/);
+  assert.match(editor, /NativeSingleChoiceTeacherSurface publicDocument=\{publicDraft\} teacherDocument=\{teacherDraft\} assetUrl=\{assetUrl\}/);
+  assert.match(studentSurface, /NativeSingleChoicePresentation/);
+  assert.match(teacherSurface, /NativeSingleChoicePresentation/);
+  assert.doesNotMatch(studentSurface, /teacherDocument|correctAnswers|correctOptionId/);
+  assert.doesNotMatch(presentation, /teacherDocument|correctAnswers|correctOptionId|solution/);
+  assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.correctAnswers/);
   assert.doesNotMatch(teacherSurface, /NativeSingleChoiceEditor|Front|Back|HotspotCanvas/);
 });

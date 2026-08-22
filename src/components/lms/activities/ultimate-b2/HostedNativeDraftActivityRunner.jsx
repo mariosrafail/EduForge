@@ -23,6 +23,6 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
     {kind === "single-choice" && !teacherMode ? <NativeSingleChoiceStudentSurface document={document} assetUrl={assetUrl} /> : null}
     {kind === "single-choice" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {kind === "single-choice" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
-    {kind === "single-choice" && teacherMode && state.teacher.entry ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} /> : null}
+    {kind === "single-choice" && teacherMode && state.teacher.entry ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} /> : null}
   </article></NativeReadableTextPresentation>;
 }
