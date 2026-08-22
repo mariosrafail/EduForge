@@ -88,11 +88,11 @@ test("legacy text-only Single Choice canonical JSON remains unchanged while curr
     teacher: compiled.teacherProjectionSha256,
     release: compiled.releaseSha256,
   }, {
-    compatibility: "bc5b6c72383a155d51b4dabadbc717a442df2878d57245882cba91f27bf74985",
+    compatibility: "705a2e4a5dbe5db38d17720e80d811496b8816a8778df89ddf616ad9617a857c",
     source: "2471477ceb9d4d454528baa58f644717b1f40fd2246de3bcf035cc5ceeaa1427",
-    public: "fbf91e80ef34e6c07966423b6a9dcc2460785321e83b04381b445757effd1235",
+    public: "5797d01f3f64d2f3d0205007a5f78874ef7a85c6748cdb80461f3cf1c0647826",
     teacher: "0f8211a405cc7074054d5aab9e74e0f035d07eb94f56c9ca2c34655b289dd5a1",
-    release: "cf4d6efc2477a701dc0d0449635de9507b170aa2984eaba690d6adaf3722847b",
+    release: "401f25d3bf676165c6f350f49fbe03504601d122ecc4bd8289f2410fde10257f",
   });
 });
 

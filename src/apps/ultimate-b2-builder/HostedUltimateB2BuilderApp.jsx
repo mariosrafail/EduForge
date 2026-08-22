@@ -18,7 +18,14 @@ import "./hostedUltimateB2BuilderReview.css";
 import "./hostedUltimateB2BuilderModern.css";
 import "./studioAuthoring.css";
 
-const kindIcons = { "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks };
+const kindIcons = { "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks, listening: MessageSquareText };
+const kindDescriptions = {
+  "open-response": "Learners write a free response for Teacher review.",
+  image: "Present an authored image with optional guidance.",
+  "complete-sentences": "Learners type words or phrases into visual blanks; answers stay Teacher-only.",
+  listening: "Learners listen, follow a synchronized transcript, and write responses for Teacher review.",
+  "single-choice": "Learners choose one answer; the key stays Teacher-only.",
+};
 
 function firstAvailableActivityId(lifecycle, nativeActivities, excluded = "") {
   const retired = lifecycle?.activities || {};
@@ -144,7 +151,7 @@ function ActivityReview({ nativeActivities }) {
     <header className="activity-builder-header"><div><span>Ultimate B2 · Activity Builder</span><h1>Activity authoring</h1><p>Find, edit, and preview activities in their book placement.</p></div><div><button ref={addTriggerRef} className="hosted-builder-action" type="button" onClick={openCreate}><Plus aria-hidden="true" /> Add Activity</button><div className="b2-hosted-review-banner" role="status"><strong>{nativeSelected ? `${nativeActivityKindLabels[nativeSelected.kind]} · Native draft` : supported ? "Open Response · Editable" : "Canonical activity · Read-only"}</strong><span>{nativeSelected ? nativeSelected.ready ? "Content complete" : "Content incomplete" : "Teacher answer content remains separately protected."}</span></div></div></header>
 
     <BuilderModal open={addOpen} title="Add activity" description="Choose an activity type and its location in the Students Book." busy={createState.saving} onClose={() => setAddOpen(false)} returnFocusRef={addTriggerRef}><form className="native-activity-create" onSubmit={submitNativeActivity}>
-      <fieldset><legend>Activity type</legend><div className="native-activity-kind-cards">{nativeKinds.map((kind) => { const Icon = kindIcons[kind] || Boxes; const description = kind === "open-response" ? "Learners write a free response for Teacher review." : kind === "image" ? "Present an authored image with optional guidance." : kind === "complete-sentences" ? "Learners type words or phrases into visual blanks; answers stay Teacher-only." : "Learners choose one answer; the key stays Teacher-only."; return <label key={kind} data-selected={createState.kind === kind || undefined}><input type="radio" name="activity-kind" value={kind} checked={createState.kind === kind} onChange={() => setCreateState((current) => ({ ...current, kind }))} /><Icon aria-hidden="true" /><strong>{nativeActivityKindLabels[kind]}</strong><span>{description}</span></label>; })}</div></fieldset>
+      <fieldset><legend>Activity type</legend><div className="native-activity-kind-cards">{nativeKinds.map((kind) => { const Icon = kindIcons[kind] || Boxes; return <label key={kind} data-selected={createState.kind === kind || undefined}><input type="radio" name="activity-kind" value={kind} checked={createState.kind === kind} onChange={() => setCreateState((current) => ({ ...current, kind }))} /><Icon aria-hidden="true" /><strong>{nativeActivityKindLabels[kind]}</strong><span>{kindDescriptions[kind]}</span></label>; })}</div></fieldset>
       <label><span>Placement</span><select autoFocus value={createState.pageId} onChange={(event) => setCreateState((current) => ({ ...current, pageId: event.target.value }))}>{[...new Set(nativePlacements.map((page) => page.unitNumber))].map((unitNumber) => <optgroup key={unitNumber} label={`Unit ${unitNumber}`}>{nativePlacements.filter((page) => page.unitNumber === unitNumber).map((page) => <option key={page.pageId} value={page.pageId}>{`${page.pageLabel} · ${page.sectionTitle}`}</option>)}</optgroup>)}</select></label>
       <label><span>Initial title <small>Optional</small></span><input value={createState.title} maxLength={300} onChange={(event) => setCreateState((current) => ({ ...current, title: event.target.value }))} placeholder={`New ${nativeActivityKindLabels[createState.kind] || "activity"}`} /></label>
       {createState.error ? <p className="builder-inline-error" role="alert" aria-live="assertive">{createState.error}</p> : null}<footer><button type="button" disabled={createState.saving} onClick={() => setAddOpen(false)}>Cancel</button><button className="hosted-builder-action" type="submit" disabled={createState.saving || !createState.kind || !createState.pageId}>{createState.saving ? "Creating…" : "Create activity"}</button></footer>

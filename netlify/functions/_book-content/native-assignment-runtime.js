@@ -59,7 +59,7 @@ function singleChoiceReview(publicDocument, teacherDocument, payload = {}) {
   });
 }
 
-function normalizeOpenResponse(publicDocument, rawEnvelope) {
+function normalizeTextResponses(publicDocument, rawEnvelope, responseKind) {
   if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)) {
     return { error: "response must be an object" };
   }
@@ -95,7 +95,7 @@ function normalizeOpenResponse(publicDocument, rawEnvelope) {
     schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
     payload: {
       schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
-      kind: "open-response",
+      kind: responseKind,
       items: questions.filter((question) => values.has(String(question.id))).map((question) => ({
         id: String(question.id),
         value: values.get(String(question.id)),
@@ -107,6 +107,9 @@ function normalizeOpenResponse(publicDocument, rawEnvelope) {
     totalCount: null,
   };
 }
+
+function normalizeOpenResponse(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "open-response"); }
+function normalizeListening(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "listening"); }
 
 function openResponseReview(publicDocument, teacherDocument, payload = {}) {
   const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
@@ -176,6 +179,15 @@ const capabilities = Object.freeze({
     responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
     normalizeResponse: normalizeCompleteSentences,
     teacherReviewProjection: completeSentencesReview,
+  }),
+  listening: Object.freeze({
+    kind: "listening",
+    assignable: true,
+    submittable: true,
+    reviewMode: "teacher-reviewed",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeListening,
+    teacherReviewProjection: openResponseReview,
   }),
   image: Object.freeze({
     kind: "image",

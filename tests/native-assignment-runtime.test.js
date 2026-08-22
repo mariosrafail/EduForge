@@ -28,7 +28,7 @@ const publicDocument = {
   ] } }],
 };
 
-test("native capabilities derive Open Response and Complete the Sentences review, Single Choice scoring, and Image display-only policy", () => {
+test("native capabilities derive Open Response, Listening, and Complete the Sentences review, Single Choice scoring, and Image display-only policy", () => {
   const openResponse = nativeAssignmentCapability("open-response");
   assert.equal(openResponse.assignable, true);
   assert.equal(openResponse.submittable, true);
@@ -42,12 +42,32 @@ test("native capabilities derive Open Response and Complete the Sentences review
   assert.equal(completeSentences.assignable, true);
   assert.equal(completeSentences.submittable, true);
   assert.equal(completeSentences.reviewMode, "teacher-reviewed");
+  const listening = nativeAssignmentCapability("listening");
+  assert.equal(listening.assignable, true);
+  assert.equal(listening.submittable, true);
+  assert.equal(listening.reviewMode, "teacher-reviewed");
 
   const image = nativeAssignmentCapability("image");
   assert.equal(image.assignable, false);
   assert.equal(image.submittable, false);
   assert.equal(image.reviewMode, "display-only");
   assert.equal(nativeAssignmentCapability("future-kind"), null);
+});
+
+test("Listening responses reuse ordered text semantics while keeping model answers Teacher-only", () => {
+  const teacherDocument = { parts: [{ solution: { kind: "listening", modelAnswers: [
+    { questionId: "q-first", text: "Private first" }, { questionId: "q-second", text: "Private second" },
+  ] } }] };
+  const capability = nativeAssignmentCapability("listening");
+  const normalized = capability.normalizeResponse(publicDocument, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [
+    { id: "q-second", value: "Student second" }, { id: "q-first", value: "Student first" },
+  ] });
+  assert.equal(normalized.payload.kind, "listening");
+  assert.deepEqual(normalized.payload.items.map((item) => item.id), ["q-first", "q-second"]);
+  assert.doesNotMatch(JSON.stringify(normalized.payload), /Private/);
+  assert.deepEqual(capability.teacherReviewProjection(publicDocument, teacherDocument, normalized.payload).map(({ questionId, modelAnswer }) => ({ questionId, modelAnswer })), [
+    { questionId: "q-first", modelAnswer: "Private first" }, { questionId: "q-second", modelAnswer: "Private second" },
+  ]);
 });
 
 test("Complete the Sentences response uses public item order and joins private answers only in Teacher review", () => {

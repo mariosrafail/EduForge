@@ -11,7 +11,7 @@ const placement = ultimateB2NativeActivityPlacements[0];
 const activityId = "ultimate-b2-sb-u1-p1-o99";
 
 test("registered native kinds create deterministic, separate one-Part public and Teacher drafts", () => {
-  assert.deepEqual(NATIVE_ACTIVITY_KINDS, ["open-response", "image", "single-choice", "complete-sentences"]);
+  assert.deepEqual(NATIVE_ACTIVITY_KINDS, ["open-response", "image", "single-choice", "complete-sentences", "listening"]);
   for (const kindName of NATIVE_ACTIVITY_KINDS) {
     const kind = resolveNativeActivityKind(kindName);
     const firstPublic = kind.createBlankPublic({ activityId, title: `New ${kind.label}`, placement });

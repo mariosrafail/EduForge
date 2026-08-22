@@ -9,6 +9,7 @@ import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activ
 import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
+import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
 import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
@@ -343,6 +344,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...nativeAudioTextAssetRequirements(publicDocument),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
+        ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
       ],
     });
   } catch (error) {
@@ -491,6 +493,7 @@ async function nativeCatalog(dependencies, sql) {
             ...nativeAudioTextAssetRequirements(publicDocument),
             ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
+            ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
           ];
           for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);

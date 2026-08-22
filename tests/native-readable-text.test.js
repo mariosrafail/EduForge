@@ -7,6 +7,7 @@ import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-s
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeAudioTextAssetRequirements } from "../src/data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
 
@@ -44,7 +45,7 @@ test("legacy native canonical documents omit Readable Text and preserve fixed ha
 });
 
 test("Readable Text is one strict generic student-safe optional managed image contract", () => {
-  for (const kindName of ["open-response", "image", "single-choice", "complete-sentences"]) {
+  for (const kindName of NATIVE_ACTIVITY_KINDS) {
     const kind = resolveNativeActivityKind(kindName);
     const document = kind.createBlankPublic({ activityId: `${kindName}-readable`, title: "Readable", placement: { pageId } });
     document.assets = [reference]; document.readableText = readableText;
@@ -149,7 +150,7 @@ test("managed reference cleanup retains a slot until every activity use is remov
 
 test("shared Builder and Teacher runtime wire all native kinds without duplicating private data or toolbars", async () => {
   const files = await Promise.all([
-    "NativeOpenResponseEditor.jsx", "NativeImageEditor.jsx", "NativeSingleChoiceEditor.jsx",
+    "NativeOpenResponseEditor.jsx", "NativeImageEditor.jsx", "NativeSingleChoiceEditor.jsx", "NativeListeningEditor.jsx",
   ].map((name) => readFile(new URL(`../src/apps/book-builder/hosted/${name}`, import.meta.url), "utf8")));
   files.forEach((source) => assert.match(source, /<NativeReadableTextEditor/));
   const shared = await readFile(new URL("../src/apps/book-builder/hosted/NativeReadableTextEditor.jsx", import.meta.url), "utf8");

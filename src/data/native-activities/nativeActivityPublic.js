@@ -108,7 +108,9 @@ export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
     || interaction?.presentation?.backgroundAssetSlot === slot
-    || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
+    || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot))
+    || interaction?.audioAssetSlot === slot
+    || Boolean(interaction?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
 }
 
 export function removeNativeManagedAssetReferenceIfUnused(publicDocument, slot) {

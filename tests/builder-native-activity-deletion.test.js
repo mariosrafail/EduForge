@@ -6,6 +6,7 @@ import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { pruneUltimateB2ActivityHotspots } from "../scripts/ultimate-b2/hotspot-manifest.js";
 import { createEmptyNativeActivityIndex, removeNativeActivityIndexEntry } from "../src/data/native-activities/nativeActivityPublic.js";
+import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { nextUltimateB2NativeActivityIdentity } from "../src/data/ultimate-b2/nativeActivityAdapter.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
@@ -57,7 +58,7 @@ test("post-delete compilation excludes retired activity, launch references, and 
   const sources = createPublicationV2FixtureSources();
   const oldRelease = compileUltimateB2ComponentReleaseV2(sources);
   const immutableSnapshot = oldRelease.stableJson;
-  const removed = removeNativeActivityIndexEntry(sources.native.index.payload, publicationV2Fixture.imageId, { allowedKinds: ["open-response", "image", "single-choice", "complete-sentences"] });
+  const removed = removeNativeActivityIndexEntry(sources.native.index.payload, publicationV2Fixture.imageId, { allowedKinds: NATIVE_ACTIVITY_KINDS });
   sources.native.index.payload = removed.index;
   sources.native.index.revision += 1;
   sources.native.index.sha256 = builderDocumentSha256(removed.index);
