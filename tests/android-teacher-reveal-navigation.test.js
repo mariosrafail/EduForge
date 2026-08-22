@@ -48,12 +48,18 @@ test("the shell presentation contract exposes progress but strips answer-bearing
   assert.equal(normalizeTeacherActivityPresentationState({ reveal: { supported: false, total: 9 } }).reveal, null);
 });
 
-test("only the three supported activity renderers implement the generic reveal command boundary", async () => {
-  const [page5, complete, debate, embedded] = await Promise.all([
+test("legacy and native Teacher activities implement the command/progress boundary without exposing answers", async () => {
+  const [page5, complete, debate, embedded, singleChoice, singleChoiceRuntime, openResponse, openResponseRuntime, readable, pages] = await Promise.all([
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2LegacyUnitOpenerActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2CompleteSentencesActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx", "utf8"),
+    readFile("src/components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx", "utf8"),
+    readFile("src/components/native-single-choice/nativeSingleChoiceTeacherRuntime.js", "utf8"),
+    readFile("src/components/native-open-response/NativeOpenResponseTeacherSurface.jsx", "utf8"),
+    readFile("src/components/native-open-response/nativeOpenResponseTeacherRuntime.js", "utf8"),
+    readFile("src/components/native-readable-text/NativeReadableTextPresentation.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
   ]);
   for (const source of [page5, complete, debate]) {
     assert.match(source, /command\.type === "reset-activity"/);
@@ -66,4 +72,18 @@ test("only the three supported activity renderers implement the generic reveal c
   assert.match(complete, /runtime\?\.blanks\.find\(\(blank\) => !revealedBlankIds\.includes/);
   assert.match(debate, /parts\.findIndex\(\(part\) => !revealedPartIds\.includes/);
   assert.match(embedded, /activityPresentation=\{\{[\s\S]*command: activityPresentationCommand,[\s\S]*onStateChange: onActivityPresentationStateChange/);
+  for (const source of [singleChoice + singleChoiceRuntime, openResponse + openResponseRuntime]) {
+    assert.match(source, /reset-activity/);
+    assert.match(source, /show-all/);
+    assert.match(source, /show-next/);
+    assert.match(source, /onStateChange\?\.\(/);
+  }
+  assert.match(singleChoice, /nativeSingleChoiceTeacherPresentationState/);
+  assert.match(openResponse, /reveal: \{ supported: true, total: questionIds\.length, revealed: revealed\.size/);
+  assert.match(readable, /normalizeNativeChildPresentationState/);
+  assert.match(readable, /panelIndex: activityState\.panelIndex/);
+  assert.doesNotMatch(readable, /correctOptionIds|modelAnswers|teacherDocument/);
+  assert.match(pages, /setActivitySessionEpoch\(\(current\) => current \+ 1\)/);
+  assert.match(pages, /activityPresentationState\.panelCount > 1/);
+  assert.match(pages, /disabled: !revealSupported/);
 });

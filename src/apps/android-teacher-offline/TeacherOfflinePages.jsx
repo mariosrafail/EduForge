@@ -83,7 +83,6 @@ export default function TeacherOfflinePages({
   const multipleChoiceAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o3";
   const readingPresentationFeatures = getUltimateB2ReadingExercisePresentationFeatures(embeddedActivityId);
   const showTextAvailable = readingPresentationFeatures.showTextEnabled;
-  const internalPartsAvailable = readingPresentationFeatures.internalPartCount > 1;
   const classroomSurfaceKey = activityActive
     ? `students-book:activity:${embeddedActivityId}`
     : page ? `students-book:page:${page.id}` : "students-book:overview";
@@ -105,6 +104,7 @@ export default function TeacherOfflinePages({
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
   const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
+  const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
   const onActivityPresentationStateChange = useCallback((state) => {
     const next = normalizeTeacherActivityPresentationState(state);
     setActivityPresentationState((current) => (
@@ -136,6 +136,7 @@ export default function TeacherOfflinePages({
       readableTextAvailable: false,
     });
     setActivityPresentationCommand(null);
+    setActivitySessionEpoch(0);
   }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
 
   useEffect(() => {
@@ -308,10 +309,23 @@ export default function TeacherOfflinePages({
   };
   const sendActivityCommand = (type) => setActivityPresentationCommand((current) => ({ type, token: (current?.token || 0) + 1 }));
   const revealState = activityPresentationState.reveal;
-  const revealActions = revealState?.supported ? [
-    { id: "reload", controlId: "reveal:reload", label: "Reload", disabled: revealState.pristine, artwork: legacyClassroomAssets.revealControls.reload, onClick: () => sendActivityCommand("reset-activity") },
-    { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
-    { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
+  const revealSupported = revealState?.supported === true;
+  const resetActivity = () => {
+    setActivityVideoOpen(false);
+    setActivityPresentationState((current) => ({
+      view: "questions",
+      panelIndex: 0,
+      panelCount: current.panelCount,
+      reveal: current.reveal ? { ...current.reveal, revealed: 0, pristine: true } : null,
+      readableTextAvailable: current.readableTextAvailable,
+    }));
+    setActivitySessionEpoch((current) => current + 1);
+    sendActivityCommand("reset-activity");
+  };
+  const revealActions = activityActive ? [
+    { id: "reload", controlId: "reveal:reload", label: "Reload", disabled: revealSupported && revealState.pristine && activityPresentationState.view === "questions", artwork: legacyClassroomAssets.revealControls.reload, onClick: resetActivity },
+    { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
+    { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
   ] : [];
   const standardContextActions = [...(videoAvailable ? [{
     id: "video",
@@ -341,7 +355,7 @@ export default function TeacherOfflinePages({
     onClick: () => sendActivityCommand("toggle-text"),
   }] : [])];
   const contextActions = [...revealActions, ...standardContextActions];
-  const internalNavigation = multipleChoiceAvailable || internalPartsAvailable ? {
+  const internalNavigation = activityActive && activityPresentationState.panelCount > 1 ? {
     previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,
     nextDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
     onPrevious: () => sendActivityCommand("previous-panel"),
@@ -381,6 +395,7 @@ export default function TeacherOfflinePages({
           <ClassroomStageTransform surfaceKey={classroomSurfaceKey}>
           {activityActive ? (
             <TeacherOfflineEmbeddedActivity
+              key={`${embeddedActivityId}:${activitySessionEpoch}`}
               activityId={embeddedActivityId}
               title={activeActivity?.title}
               videoOpen={activityVideoOpen}

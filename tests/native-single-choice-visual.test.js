@@ -18,6 +18,7 @@ import {
   setNativeSingleChoiceCorrectAnswer,
 } from "../src/data/native-activities/nativeSingleChoiceAuthoring.js";
 import { selectNativeSingleChoiceResponse, updateNativeSingleChoiceVisualNavigation, visibleNativeSingleChoicePanelIndexes } from "../src/data/native-activities/nativeSingleChoiceRuntime.js";
+import { createNativeSingleChoiceTeacherSession, nativeSingleChoiceTeacherPresentationState, updateNativeSingleChoiceTeacherSession } from "../src/components/native-single-choice/nativeSingleChoiceTeacherRuntime.js";
 import { createPublicationV2FixtureSources } from "./fixtures/publication-v2.js";
 
 const kind = resolveNativeActivityKind("single-choice");
@@ -200,6 +201,44 @@ test("student surface keeps text radios unchanged and renders accessible managed
   } finally { await vite.close(); }
 });
 
+test("Teacher external navigation and answer reveal commands preserve attempts and follow semantic question order", () => {
+  const pair = visualPair();
+  let session = createNativeSingleChoiceTeacherSession();
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "select", questionId: ids.questions[0], optionId: ids.options[0][0] });
+  assert.equal(session.optionStates[ids.options[0][0]], "incorrect");
+  assert.equal(nativeSingleChoiceTeacherPresentationState(session, pair.publicDocument, pair.teacherDocument).reveal.revealed, 0, "wrong attempts are not revealed answers");
+
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "show-next" });
+  assert.equal(session.optionStates[ids.options[0][0]], "incorrect", "wrong feedback survives reveal");
+  assert.equal(session.optionStates[ids.options[0][1]], "correct");
+  assert.equal(session.panelIndex, 0);
+  assert.equal(nativeSingleChoiceTeacherPresentationState(session, pair.publicDocument, pair.teacherDocument).reveal.revealed, 1);
+
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "show-next" });
+  assert.equal(session.optionStates[ids.options[1][1]], "correct");
+  assert.equal(session.panelIndex, 1, "cross-panel reveal navigates to the revealed question");
+  assert.equal(nativeSingleChoiceTeacherPresentationState(session, pair.publicDocument, pair.teacherDocument).reveal.revealed, 2);
+  assert.equal(updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "show-next" }), session, "completed reveal is stable");
+
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "previous-panel" });
+  assert.equal(session.panelIndex, 0);
+  assert.equal(session.optionStates[ids.options[1][1]], "correct", "navigation preserves answers on other panels");
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "reset-activity" });
+  assert.deepEqual(session.responses, {});
+  assert.deepEqual(session.optionStates, {});
+  assert.equal(session.solvedQuestionIds.size, 0);
+  assert.equal(session.panelIndex, 0);
+});
+
+test("Teacher presentation state contains counts only and never answer identities", () => {
+  const pair = visualPair();
+  let session = createNativeSingleChoiceTeacherSession();
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "show-all" });
+  const outward = nativeSingleChoiceTeacherPresentationState(session, pair.publicDocument, pair.teacherDocument);
+  assert.deepEqual(outward, { panelIndex: 0, panelCount: 2, reveal: { supported: true, total: 2, revealed: 2, pristine: false } });
+  assert.doesNotMatch(JSON.stringify(outward), new RegExp(ids.questions.concat(ids.options.flat()).join("|")));
+});
+
 test("teacher surface uses the shared classroom presentation without rendering a primary answer-key list", async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
   try {
@@ -220,6 +259,31 @@ test("teacher surface uses the shared classroom presentation without rendering a
     assert.match(teacherVisual, /Show All/);
     assert.match(teacherVisual, />Next</);
     assert.doesNotMatch(teacherVisual, /Correct answer|correctAnswers|correctOptionId/);
+
+    const classroomTeacherVisual = renderToStaticMarkup(React.createElement(NativeSingleChoiceTeacherSurface, {
+      publicDocument: pair.publicDocument,
+      teacherDocument: pair.teacherDocument,
+      assetUrl: () => "/teacher/background.png",
+      presentation: { command: null, onStateChange: () => {} },
+    }));
+    assert.doesNotMatch(classroomTeacherVisual, /native-single-choice-visual-navigation/);
+    assert.doesNotMatch(classroomTeacherVisual, /<button[^>]*>Show All<|<button[^>]*>Next</);
+    assert.match(classroomTeacherVisual, /aria-live="polite" aria-label="Panel 1 of 2"/);
+    assert.doesNotMatch(classroomTeacherVisual, />Panel [12](?: of 2)?</);
+
+    const onePanelPair = visualPair();
+    onePanelPair.publicDocument.parts[0].interaction.questions = onePanelPair.publicDocument.parts[0].interaction.questions.slice(0, 1);
+    onePanelPair.publicDocument.parts[0].interaction.presentation.panels = onePanelPair.publicDocument.parts[0].interaction.presentation.panels.slice(0, 1);
+    onePanelPair.teacherDocument.parts[0].solution.correctAnswers = onePanelPair.teacherDocument.parts[0].solution.correctAnswers.slice(0, 1);
+    const onePanelClassroom = renderToStaticMarkup(React.createElement(NativeSingleChoiceTeacherSurface, {
+      publicDocument: onePanelPair.publicDocument,
+      teacherDocument: onePanelPair.teacherDocument,
+      assetUrl: () => "/teacher/one-panel.png",
+      presentation: { command: null, onStateChange: () => {} },
+    }));
+    assert.equal((onePanelClassroom.match(/<section class="native-single-choice-visual-panel"/g) || []).length, 1);
+    assert.doesNotMatch(onePanelClassroom, /native-single-choice-visual-navigation|<button[^>]*>Next</);
+    assert.equal(nativeSingleChoiceTeacherPresentationState(createNativeSingleChoiceTeacherSession(), onePanelPair.publicDocument, onePanelPair.teacherDocument).panelCount, 1);
 
     const neutralFeedback = renderToStaticMarkup(React.createElement(NativeSingleChoicePresentation, {
       document: pair.publicDocument,

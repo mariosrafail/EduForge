@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { autoFitNativeOpenResponseAnswer } from "../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { logicalAreaStyle, NativeOpenResponseSurface } from "./NativeOpenResponseSurface.jsx";
+import { updateNativeOpenResponseReveals } from "./nativeOpenResponseTeacherRuntime.js";
 
-export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", onOverflow = () => {} }) {
+function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, assetUrl, onOverflow, presentation }) {
   const [revealed, setRevealed] = useState(() => new Set());
   const interaction = publicDocument.parts[0].interaction;
   const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
+  const questionIds = interaction.questions.map((question) => question.id);
+  const lastCommandToken = useRef(presentation?.command?.token);
+  const onStateChange = presentation?.onStateChange;
+
+  useEffect(() => {
+    const command = presentation?.command;
+    if (!command || command.token === lastCommandToken.current) return;
+    lastCommandToken.current = command.token;
+    setRevealed((current) => updateNativeOpenResponseReveals(current, questionIds, command.type));
+  }, [presentation?.command, questionIds.join("\u0000")]);
+
+  useEffect(() => {
+    onStateChange?.({
+      panelIndex: 0,
+      panelCount: 0,
+      reveal: { supported: true, total: questionIds.length, revealed: revealed.size, pristine: revealed.size === 0 },
+    });
+  }, [onStateChange, questionIds.length, revealed]);
+
   const toggle = (questionId) => setRevealed((current) => { const next = new Set(current); if (next.has(questionId)) next.delete(questionId); else next.add(questionId); return next; });
   return <NativeOpenResponseSurface document={publicDocument} assetUrl={assetUrl}>
     {interaction.questions.map((question) => {
@@ -18,4 +38,8 @@ export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocume
       </button>;
     })}
   </NativeOpenResponseSurface>;
+}
+
+export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", onOverflow = () => {}, presentation = null }) {
+  return <NativeOpenResponseTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} onOverflow={onOverflow} presentation={presentation} />;
 }

@@ -225,7 +225,8 @@ test("Teacher runtime exposes Show Text for Object 4 and two-part navigation for
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2DebateClubActivity.jsx", "utf8"),
   ]);
   assert.match(pages, /showTextAvailable/);
-  assert.match(pages, /internalPartsAvailable/);
+  assert.match(pages, /panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" \? 2 : readingPresentationFeatures\.internalPartCount/);
+  assert.match(pages, /activityPresentationState\.panelCount > 1/);
   assert.match(embedded, /ultimate-b2-sb-u1-p2-o4[\s\S]*1024[\s\S]*582/);
   assert.match(pilot, /UltimateB2CompleteSentencesActivity/);
   assert.match(pilot, /UltimateB2DebateClubActivity/);

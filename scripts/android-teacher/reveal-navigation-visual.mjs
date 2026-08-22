@@ -35,6 +35,7 @@ try {
   page.on("console", (message) => { if (message.type() === "error" && !/favicon/i.test(message.text())) consoleErrors.push(message.text()); });
   page.on("request", (request) => { if (!request.url().startsWith(baseURL)) externalRequests.push(request.url()); });
   await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+  await page.locator('.legacy-home-launcher, [role="dialog"][aria-label="Ultimate B2 opening"]').first().waitFor();
   const intro = page.getByRole("dialog", { name: "Ultimate B2 opening" });
   if (await intro.count()) await intro.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended")));
   await page.locator(".legacy-home-launcher").waitFor();
@@ -131,7 +132,15 @@ try {
   const unsupported = lessons.locator("article").filter({ hasText: /Unit opener.*Exercise 2/i }).first();
   await unsupported.getByRole("button", { name: "Present" }).click();
   await page.locator('[data-embedded-activity-id="ultimate-b2-sb-u1-p1-o2"]').waitFor();
-  for (const label of ["Reload", "Show All", "Show Next"]) assert.equal(await navigation.getByRole("button", { name: label, exact: true }).count(), 0);
+  const unsupportedControls = controls();
+  assert.equal(await unsupportedControls.reload.count(), 1);
+  assert.equal(await unsupportedControls.reload.isDisabled(), false);
+  assert.equal(await unsupportedControls.all.isDisabled(), true);
+  assert.equal(await unsupportedControls.next.isDisabled(), true);
+  await assertIconState(unsupportedControls.all, "disabled");
+  await assertIconState(unsupportedControls.next, "disabled");
+  await unsupportedControls.reload.click();
+  await page.locator('[data-embedded-activity-id="ultimate-b2-sb-u1-p1-o2"]').waitFor();
   assert.deepEqual({ navigation: await navigation.boundingBox(), toolbar: await toolbar.boundingBox() }, chromeGeometry, "Unsupported activity keeps the fixed Teacher chrome geometry");
   await closeActivity();
 
@@ -192,7 +201,7 @@ try {
     canonicalOrder: "reveal controls before SB/GB/WB",
     canonicalArtworkStates: ["active", "pressed", "disabled"],
     sequentialCounts: { page5: 3, completeSentences: 8, debateClubParts: 2 },
-    unsupportedActivityControls: 0,
+    unsupportedActivityControls: { reload: "active", showAll: "disabled", showNext: "disabled" },
     teacherChromeUnchanged: true,
     artifactRoot,
   };

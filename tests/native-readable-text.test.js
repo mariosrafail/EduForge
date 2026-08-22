@@ -108,11 +108,20 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
 test("native Readable Text presentation toggles only when available and uses bounded internal scrolling", async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
   try {
-    const { nextNativeReadableTextView } = await vite.ssrLoadModule("/src/components/native-readable-text/NativeReadableTextPresentation.jsx");
+    const { nextNativeReadableTextView, normalizeNativeChildPresentationState } = await vite.ssrLoadModule("/src/components/native-readable-text/NativeReadableTextPresentation.jsx");
     assert.equal(nextNativeReadableTextView("questions", "toggle-text", true), "text");
     assert.equal(nextNativeReadableTextView("text", "toggle-text", true), "questions");
     assert.equal(nextNativeReadableTextView("questions", "toggle-text", false), "questions");
     assert.equal(nextNativeReadableTextView("questions", "next-panel", true), "questions");
+    assert.equal(nextNativeReadableTextView("text", "show-next", true), "questions");
+    assert.equal(nextNativeReadableTextView("text", "show-all", true), "questions");
+    assert.equal(nextNativeReadableTextView("text", "reset-activity", true), "questions");
+    assert.deepEqual(normalizeNativeChildPresentationState({
+      panelIndex: 7,
+      panelCount: 2,
+      reveal: { supported: true, total: 2, revealed: 9, pristine: false, correctOptionIds: ["private"] },
+      modelAnswers: ["private"],
+    }), { panelIndex: 1, panelCount: 2, reveal: { supported: true, total: 2, revealed: 2, pristine: false } });
   } finally { await vite.close(); }
   const [component, css] = await Promise.all([
     readFile(new URL("../src/components/native-readable-text/NativeReadableTextPresentation.jsx", import.meta.url), "utf8"),
@@ -120,4 +129,6 @@ test("native Readable Text presentation toggles only when available and uses bou
   ]);
   assert.match(component, /hidden=\{effectiveView === "text"\}/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /SCROLL ↓/);
   assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /width: 100%; height: auto/); assert.match(css, /pointer-events: none/);
+  assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);
+  assert.doesNotMatch(css, /max-height: min\(76vh, 760px\)/);
 });

@@ -25,16 +25,16 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     const reference = document.assets.find((asset) => asset.assetId === assetId);
     return publishedNativeAssetUrl(publication, reference);
   };
-  return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}><article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
+  return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {entry.kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" /> : null}
     {entry.kind === "open-response" && !teacherMode ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
-    {entry.kind === "open-response" && teacherMode && teacherState.document ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} /> : null}
+    {entry.kind === "open-response" && teacherMode && teacherState.document ? <NativeOpenResponseTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
     {entry.kind === "single-choice" && !teacherMode ? <NativeSingleChoiceStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {entry.kind === "single-choice" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
-    {entry.kind === "single-choice" && teacherMode && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} /> : null}
-  </article></NativeReadableTextPresentation>;
+    {entry.kind === "single-choice" && teacherMode && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
+  </article>}</NativeReadableTextPresentation>;
 }

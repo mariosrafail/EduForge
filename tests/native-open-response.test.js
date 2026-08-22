@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { updateNativeOpenResponseReveals } from "../src/components/native-open-response/nativeOpenResponseTeacherRuntime.js";
+
 import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
@@ -16,6 +18,19 @@ const q2 = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000002");
 const art1 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000003");
 const art2 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000005");
 const asset = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "asset-one" };
+
+test("Teacher Open Response reveal commands advance exactly once, reveal all, and reset", () => {
+  let revealed = new Set();
+  revealed = updateNativeOpenResponseReveals(revealed, [q1, q2], "show-next");
+  assert.deepEqual([...revealed], [q1]);
+  revealed = updateNativeOpenResponseReveals(revealed, [q1, q2], "show-next");
+  assert.deepEqual([...revealed], [q1, q2]);
+  assert.equal(updateNativeOpenResponseReveals(revealed, [q1, q2], "show-next"), revealed);
+  revealed = updateNativeOpenResponseReveals(new Set([q2]), [q1, q2], "show-all");
+  assert.deepEqual([...revealed], [q1, q2]);
+  revealed = updateNativeOpenResponseReveals(revealed, [q1, q2], "reset-activity");
+  assert.equal(revealed.size, 0);
+});
 
 function pair(questionIds = []) {
   const publicDocument = kind.createBlankPublic({ activityId, title: "Native OR", placement });
