@@ -1,111 +1,79 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
-import { findNativeListeningCue, formatNativeListeningTime, transcriptScrollTarget } from "./nativeListeningRuntime.js";
+import { LegacyListeningPlayer } from "../listening-player/LegacyListeningPlayer.jsx";
+import { NativeOpenResponseStudentSurface } from "../native-open-response/NativeOpenResponseStudentSurface.jsx";
+import { NativeOpenResponseTeacherSurface } from "../native-open-response/NativeOpenResponseTeacherSurface.jsx";
+import { formatNativeListeningTime, resolveNativeListeningHighlightedCueIds, transcriptScrollTarget } from "./nativeListeningRuntime.js";
+import { nativeListeningPlayerAssets } from "./nativeListeningPlayerAssets.js";
 import "./nativeListening.css";
 
 function referenceForSlot(document, slot) { return document.assets.find((asset) => asset.slot === slot) || null; }
 
-function ListeningPlayer({ audioRef, audioUrl, durationMs, panelIndex, setPanelIndex, currentMs, setCurrentMs, playing, setAudioError, finishedRef }) {
-  const togglePlay = () => {
-    const audio = audioRef.current;
-    if (!audio || !audioUrl) return;
-    if (audio.paused) {
-      setPanelIndex(1);
-      if (finishedRef.current || audio.ended || (durationMs > 0 && (currentMs >= durationMs || audio.currentTime * 1_000 >= durationMs))) {
-        audio.currentTime = 0;
-        setCurrentMs(0);
-      }
-      finishedRef.current = false;
-      setAudioError(false);
-      const promise = audio.play();
-      if (promise?.catch) promise.catch(() => setAudioError(true));
-    } else audio.pause();
+function asOpenResponseDocument(document) {
+  const listening = document.parts[0].interaction;
+  return {
+    ...document,
+    kind: "open-response",
+    parts: [{ ...document.parts[0], interaction: {
+      kind: "open-response",
+      surface: { width: listening.panels[0].sourceWidth, height: listening.panels[0].sourceHeight },
+      artwork: listening.artwork,
+      questions: listening.questions,
+    } }],
   };
-  const seek = (event) => {
-    const next = Number(event.target.value);
-    if (!audioRef.current || !Number.isFinite(next)) return;
-    audioRef.current.currentTime = next / 1_000;
-    finishedRef.current = false;
-    setCurrentMs(next);
-  };
-  return <div className="native-listening-player" data-panel={panelIndex + 1}>
-    <button type="button" className="native-listening-play" onClick={togglePlay} disabled={!audioUrl} aria-label={playing ? "Pause Listening audio" : "Play Listening audio"}>{playing ? "Pause" : "Play"}</button>
-    <input type="range" min="0" max={Math.max(durationMs, 1)} step="100" value={Math.min(currentMs, Math.max(durationMs, 1))} onChange={seek} aria-label="Listening audio position" disabled={!audioUrl || !durationMs} />
-    <output aria-label="Listening audio time">{formatNativeListeningTime(currentMs)} / {formatNativeListeningTime(durationMs)}</output>
-  </div>;
 }
 
-function ListeningQuestions({ interaction, responses, updateResponse, readOnly, modelAnswers, revealed, toggleReveal, activeSnippet, setActiveSnippet }) {
-  const snippetPresentation = {
-    hotspots: interaction.snippetHotspots.map((hotspot) => ({ ...hotspot, panelId: null, activityArea: hotspot.area })),
-    activeHotspotId: activeSnippet,
-    onToggle: (id) => setActiveSnippet((current) => current === id ? null : id),
-  };
-  const selectedSnippet = interaction.snippetHotspots.find((hotspot) => hotspot.id === activeSnippet);
-  const cueById = new Map(interaction.cues.map((cue) => [cue.id, cue]));
-  const surface = { width: interaction.panels[0].sourceWidth, height: interaction.panels[0].sourceHeight };
-  return <section className="native-listening-panel native-listening-questions" aria-label="Panel 1: Questions">
-    <div className="native-listening-snippet-space" aria-live="polite">
-      {selectedSnippet ? <blockquote>{selectedSnippet.cueIds.map((id) => cueById.get(id)?.text).filter(Boolean).join(" ")}</blockquote> : <p>Use a transcript control to focus an excerpt, or press Play to begin.</p>}
-    </div>
-    <div className="native-listening-question-list">
-      {interaction.questions.map((question, index) => <label key={question.id} className="native-listening-question">
-        <strong>{index + 1}. {question.prompt}</strong>
-        {modelAnswers ? <button type="button" className="native-listening-model-answer" aria-pressed={revealed.has(question.id)} onClick={() => toggleReveal(question.id)}>{revealed.has(question.id) ? modelAnswers.get(question.id) : "Reveal model answer"}</button> : <textarea aria-label={`Response to question ${index + 1}`} value={responses.get(question.id) || ""} readOnly={readOnly} onChange={(event) => updateResponse(question.id, event.target.value)} />}
-      </label>)}
-      {!interaction.questions.length ? <p>No pre-listening questions.</p> : null}
-    </div>
-    <div className="native-listening-snippet-stage" style={{ aspectRatio: `${surface.width} / ${surface.height}` }}>
-      <NativeAudioTextHotspotButtons surface={surface} presentation={snippetPresentation} />
-    </div>
-  </section>;
-}
-
-function ListeningTranscript({ document, interaction, assetUrl, activeCueId, cueRefs, transcriptRef }) {
+function ListeningTranscript({ document, interaction, assetUrl, highlightedCueIds, playbackFocus, cueRefs, transcriptRef }) {
   const panel = interaction.panels[1];
   const background = referenceForSlot(document, panel.backgroundAssetSlot);
+  const focused = new Set(highlightedCueIds);
   const style = {
-    left: `${panel.transcriptArea.x / panel.sourceWidth * 100}%`,
-    top: `${panel.transcriptArea.y / panel.sourceHeight * 100}%`,
-    width: `${panel.transcriptArea.width / panel.sourceWidth * 100}%`,
-    height: `${panel.transcriptArea.height / panel.sourceHeight * 100}%`,
+    left: `${panel.transcriptArea.x / panel.sourceWidth * 100}%`, top: `${panel.transcriptArea.y / panel.sourceHeight * 100}%`,
+    width: `${panel.transcriptArea.width / panel.sourceWidth * 100}%`, height: `${panel.transcriptArea.height / panel.sourceHeight * 100}%`,
   };
-  return <section className="native-listening-panel native-listening-transcript-panel" aria-label="Panel 2: Synchronized transcript">
+  return <section className="native-listening-panel native-listening-transcript-panel" aria-label="Show Text: synchronized transcript" data-focus-mode={playbackFocus ? "playback" : "reference"}>
     <div className="native-listening-transcript-stage" style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}`, backgroundImage: background ? `url(${assetUrl(background.assetId)})` : undefined }}>
       <div ref={transcriptRef} className="native-listening-transcript" style={style} tabIndex="0" aria-label="Listening transcript">
-        {interaction.cues.map((cue) => <p key={cue.id} ref={(node) => { if (node) cueRefs.current.set(cue.id, node); else cueRefs.current.delete(cue.id); }} className={cue.id === activeCueId ? "is-active" : ""} data-cue-id={cue.id} aria-current={cue.id === activeCueId ? "true" : undefined}>{cue.text}</p>)}
+        {interaction.cues.map((cue) => {
+          const playbackActive = playbackFocus && focused.has(cue.id);
+          const referenceActive = !playbackFocus && focused.has(cue.id);
+          return <p key={cue.id} ref={(node) => { if (node) cueRefs.current.set(cue.id, node); else cueRefs.current.delete(cue.id); }} className={playbackActive ? "is-active" : referenceActive ? "is-reference" : ""} tabIndex={referenceActive ? -1 : undefined} data-cue-id={cue.id} data-reference-focus={referenceActive || undefined} aria-current={playbackActive || referenceActive ? "true" : undefined}>{cue.text}</p>;
+        })}
       </div>
     </div>
   </section>;
 }
 
-export function NativeListeningSurface({ publicDocument, teacherDocument = null, assetUrl = () => "", responses: controlledResponses = null, initialResponses = null, onResponsesChange = null, readOnly = false, presentation = null }) {
+export function NativeListeningSurface({ publicDocument, teacherDocument = null, assetUrl = () => "", responses = null, initialResponses = null, onResponsesChange = null, readOnly = false, presentation = null }) {
   const interaction = publicDocument.parts[0].interaction;
-  const [panelIndex, setPanelIndex] = useState(0);
+  const [view, setView] = useState("questions");
   const [currentMs, setCurrentMs] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [activeSnippet, setActiveSnippet] = useState(null);
-  const [localResponses, setLocalResponses] = useState(() => new Map(Object.entries(initialResponses || {})));
-  const [revealed, setRevealed] = useState(() => new Set());
-  const audioRef = useRef(null);
-  const transcriptRef = useRef(null);
-  const cueRefs = useRef(new Map());
-  const lastCommand = useRef(null);
-  const raf = useRef(0);
-  const lastSample = useRef(0);
-  const finishedRef = useRef(false);
+  const [focusedCueIds, setFocusedCueIds] = useState([]);
+  const [focusMode, setFocusMode] = useState("playback");
+  const [revealState, setRevealState] = useState({ supported: Boolean(teacherDocument), total: interaction.questions.length, revealed: 0, pristine: true });
+  const audioRef = useRef(null); const transcriptRef = useRef(null); const cueRefs = useRef(new Map());
+  const lastCommand = useRef(null); const raf = useRef(0); const lastSample = useRef(0); const finishedRef = useRef(false);
   const audioReference = referenceForSlot(publicDocument, interaction.audioAssetSlot);
   const audioUrl = audioReference ? assetUrl(audioReference.assetId) : "";
-  const activeCue = useMemo(() => findNativeListeningCue(interaction.cues, currentMs), [interaction.cues, currentMs]);
-  const modelAnswers = teacherDocument ? new Map(teacherDocument.parts[0].solution.modelAnswers.map((entry) => [entry.questionId, entry.text])) : null;
-  const responses = controlledResponses instanceof Map ? controlledResponses : controlledResponses && typeof controlledResponses === "object" ? new Map(Object.entries(controlledResponses)) : localResponses;
-  const updateResponse = (questionId, value) => {
-    const next = new Map(responses).set(questionId, value);
-    if (controlledResponses === null) setLocalResponses(next);
-    onResponsesChange?.(Object.fromEntries(next));
-  };
+  const openResponsePublic = useMemo(() => asOpenResponseDocument(publicDocument), [publicDocument]);
+  const openResponseTeacher = useMemo(() => teacherDocument ? { ...teacherDocument, kind: "open-response", parts: [{ ...teacherDocument.parts[0], solution: { ...teacherDocument.parts[0].solution, kind: "open-response" } }] } : null, [teacherDocument]);
+  const playbackFocus = focusMode === "playback";
+  const highlightedCueIds = useMemo(() => resolveNativeListeningHighlightedCueIds({ cues: interaction.cues, milliseconds: currentMs, focusMode, focusedCueIds }), [currentMs, focusMode, focusedCueIds, interaction.cues]);
+
+  const selectSnippet = useCallback((id) => {
+    const hotspot = interaction.snippetHotspots.find((entry) => entry.id === id);
+    if (!hotspot) return;
+    if (view === "transcript" && focusMode === "reference" && activeSnippet === id) { setView("questions"); setActiveSnippet(null); setFocusedCueIds([]); return; }
+    if (playing) { setActiveSnippet(null); setFocusedCueIds([]); setFocusMode("playback"); setView("transcript"); return; }
+    setActiveSnippet(id); setFocusedCueIds(hotspot.cueIds); setFocusMode("reference"); setView("transcript");
+  }, [activeSnippet, focusMode, interaction.snippetHotspots, playing, view]);
+  const hotspotPresentation = useMemo(() => ({ hotspots: interaction.snippetHotspots.map((hotspot) => ({ ...hotspot, panelId: null, activityArea: hotspot.area })), activeHotspotId: activeSnippet, onToggle: selectSnippet }), [activeSnippet, interaction.snippetHotspots, selectSnippet]);
+  const onOpenResponseState = useCallback((state) => { if (state?.reveal) setRevealState(state.reveal); }, []);
+  const openResponsePresentation = useMemo(() => presentation ? { command: presentation.command, onStateChange: onOpenResponseState } : null, [onOpenResponseState, presentation?.command]);
 
   useEffect(() => {
     if (!playing) return undefined;
@@ -117,38 +85,53 @@ export function NativeListeningSurface({ publicDocument, teacherDocument = null,
     return () => cancelAnimationFrame(raf.current);
   }, [playing]);
 
+  const scrollCueId = highlightedCueIds[0];
   useEffect(() => {
-    if (panelIndex !== 1 || !activeCue || !transcriptRef.current) return;
-    const pane = transcriptRef.current;
-    const node = cueRefs.current.get(activeCue.id);
-    if (!node) return;
+    if (view !== "transcript" || !scrollCueId || !transcriptRef.current) return;
+    const pane = transcriptRef.current; const node = cueRefs.current.get(scrollCueId); if (!node) return;
     const target = transcriptScrollTarget({ cueTop: node.offsetTop, cueBottom: node.offsetTop + node.offsetHeight, scrollTop: pane.scrollTop, viewportHeight: pane.clientHeight, scrollHeight: pane.scrollHeight });
     if (Math.abs(target - pane.scrollTop) > 1) pane.scrollTo({ top: target, behavior: globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth" });
-  }, [activeCue?.id, panelIndex]);
+    node.focus?.({ preventScroll: true });
+  }, [scrollCueId, view]);
 
   useEffect(() => {
     const command = presentation?.command;
     if (!command || command.token === lastCommand.current) return;
     lastCommand.current = command.token;
-    if (command.type === "reset-activity") { setRevealed(new Set()); setPanelIndex(0); finishedRef.current = false; if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } setCurrentMs(0); }
-    if (command.type === "show-all") setRevealed(new Set(interaction.questions.map((question) => question.id)));
-    if (command.type === "show-next") setRevealed((current) => { const nextId = interaction.questions.find((question) => !current.has(question.id))?.id; return nextId ? new Set(current).add(nextId) : current; });
-  }, [presentation?.command, interaction.questions]);
+    if (command.type === "reset-activity") {
+      audioRef.current?.pause(); if (audioRef.current) audioRef.current.currentTime = 0;
+      finishedRef.current = false; setCurrentMs(0); setView("questions"); setFocusMode("playback"); setFocusedCueIds([]); setActiveSnippet(null);
+    }
+  }, [presentation?.command]);
 
   useEffect(() => {
-    presentation?.onStateChange?.({ panelIndex, panelCount: 2, reveal: teacherDocument ? { supported: true, total: interaction.questions.length, revealed: revealed.size, pristine: revealed.size === 0 } : { supported: false, total: 0, revealed: 0, pristine: true } });
-  }, [panelIndex, presentation?.onStateChange, revealed, teacherDocument, interaction.questions.length]);
+    presentation?.onStateChange?.({ panelIndex: view === "questions" ? 0 : 1, panelCount: 2, reveal: teacherDocument ? revealState : { supported: false, total: 0, revealed: 0, pristine: true } });
+  }, [presentation?.onStateChange, revealState, teacherDocument, view]);
 
-  const toggleReveal = (id) => setRevealed((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  return <div className="native-listening" data-panel={panelIndex + 1}>
-    <div className="native-listening-panel-tabs" role="tablist" aria-label="Listening panels">
-      <button type="button" role="tab" aria-selected={panelIndex === 0} onClick={() => setPanelIndex(0)}>Panel 1</button>
-      <button type="button" role="tab" aria-selected={panelIndex === 1} onClick={() => setPanelIndex(1)}>Panel 2</button>
+  const play = () => {
+    const audio = audioRef.current; if (!audio || !audioUrl) return;
+    setView("transcript"); setFocusMode("playback"); setActiveSnippet(null); setFocusedCueIds([]);
+    if (finishedRef.current || audio.ended || (interaction.audioDurationMs > 0 && currentMs >= interaction.audioDurationMs)) { audio.currentTime = 0; setCurrentMs(0); }
+    finishedRef.current = false; setAudioError(false); audio.play().catch(() => setAudioError(true));
+  };
+  const pause = () => audioRef.current?.pause();
+  const stop = () => { const audio = audioRef.current; audio?.pause(); if (audio) audio.currentTime = 0; finishedRef.current = false; setCurrentMs(0); setView("questions"); setFocusMode("playback"); setActiveSnippet(null); setFocusedCueIds([]); };
+  const seek = (nextMs) => { if (!audioRef.current || !Number.isFinite(nextMs)) return; audioRef.current.currentTime = nextMs / 1_000; finishedRef.current = false; setCurrentMs(nextMs); setView("transcript"); setFocusMode("playback"); setActiveSnippet(null); setFocusedCueIds([]); };
+  const toggleMute = () => { const next = !muted; setMuted(next); if (audioRef.current) audioRef.current.muted = next; };
+
+  return <div className="native-listening" data-panel={view === "questions" ? 1 : 2} data-view={view}>
+    <div className="native-listening-panel-tabs" role="tablist" aria-label="Listening views">
+      <button type="button" role="tab" aria-selected={view === "questions"} disabled={playing} onClick={() => setView("questions")}>Questions</button>
+      <button type="button" role="tab" aria-selected={view === "transcript"} onClick={() => { setView("transcript"); setFocusMode("playback"); setActiveSnippet(null); setFocusedCueIds([]); }}>Show Text</button>
     </div>
-    {panelIndex === 0 ? <ListeningQuestions {...{ interaction, responses, updateResponse, readOnly, modelAnswers, revealed, toggleReveal, activeSnippet, setActiveSnippet }} /> : <ListeningTranscript {...{ document: publicDocument, interaction, assetUrl, activeCueId: activeCue?.id || null, cueRefs, transcriptRef }} />}
+    <div className="native-listening-local-stage">
+      {view === "questions" && !teacherDocument ? <NativeOpenResponseStudentSurface document={openResponsePublic} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={hotspotPresentation} /> : null}
+      {view === "questions" && teacherDocument ? <NativeOpenResponseTeacherSurface publicDocument={openResponsePublic} teacherDocument={openResponseTeacher} assetUrl={assetUrl} presentation={openResponsePresentation} audioHotspotPresentation={hotspotPresentation} /> : null}
+      {view === "transcript" ? <ListeningTranscript document={publicDocument} interaction={interaction} assetUrl={assetUrl} highlightedCueIds={highlightedCueIds} playbackFocus={playbackFocus} cueRefs={cueRefs} transcriptRef={transcriptRef} /> : null}
+      <div className="native-listening-player-anchor"><LegacyListeningPlayer assets={nativeListeningPlayerAssets} currentMs={currentMs} durationMs={interaction.audioDurationMs} playing={playing} muted={muted} disabled={!audioUrl} formatTime={formatNativeListeningTime} onPlay={play} onPause={pause} onStop={stop} onSeek={seek} onToggleMute={toggleMute} /></div>
+    </div>
     {!audioUrl ? <p className="native-listening-error" role="alert">Listening audio is unavailable.</p> : null}
     {audioError ? <p className="native-listening-error" role="alert">Listening audio could not be played.</p> : null}
-    <ListeningPlayer {...{ audioRef, audioUrl, durationMs: interaction.audioDurationMs, panelIndex, setPanelIndex, currentMs, setCurrentMs, playing, setAudioError, finishedRef }} />
     <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onEnded={() => { finishedRef.current = true; setPlaying(false); setCurrentMs(interaction.audioDurationMs); }} onError={() => setAudioError(true)} />
   </div>;
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { findNativeListeningCue, formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt, transcriptScrollTarget } from "../src/components/native-listening/nativeListeningRuntime.js";
+import { findNativeListeningCue, formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt, resolveNativeListeningHighlightedCueIds, transcriptScrollTarget } from "../src/components/native-listening/nativeListeningRuntime.js";
 import { normalizeNativeActivityPublic } from "../src/data/native-activities/nativeActivityPublic.js";
 import { normalizeNativeActivityTeacher } from "../src/data/native-activities/nativeActivityTeacher.js";
 import { assessNativeListeningReadiness, nativeListeningAssetRequirements, normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "../src/data/native-activities/nativeListening.js";
@@ -62,6 +62,24 @@ test("Listening public and Teacher documents normalize, remain separated, and ar
   assert.equal(publicJson.includes("Teacher secret answer"), false);
   assert.equal(publicJson.includes("modelAnswers"), false);
   assert.equal(JSON.stringify(teacherDocument).includes("Teacher secret answer"), true);
+  assert.deepEqual(publicDocument.parts[0].interaction.artwork, []);
+  assert.equal(publicDocument.parts[0].interaction.questions[0].responseRegion.id, `${publicDocument.parts[0].interaction.questions[0].id}-response`);
+  assert.deepEqual(publicDocument.parts[0].interaction.questions[0].promptArea, { x: 72, y: 24, width: 880, height: 38 });
+});
+
+test("legacy Listening questions upgrade to canonical Open Response geometry and new visual fields round-trip deterministically", () => {
+  const { publicDocument } = pair();
+  const normalizedLegacy = normalizeNativeActivityPublic(publicDocument, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" });
+  const canonical = structuredClone(normalizedLegacy);
+  canonical.parts[0].interaction.questions[0].promptArea = { x: 48.125, y: 35.5, width: 700.25, height: 55.75 };
+  canonical.parts[0].interaction.questions[0].responseRegion.area = { x: 110.5, y: 160.25, width: 760, height: 140 };
+  canonical.parts[0].interaction.questions[0].responseRegion.presentation.lineWidth = 736;
+  const roundTrip = normalizeNativeActivityPublic(canonical, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" });
+  assert.deepEqual(roundTrip, normalizeNativeActivityPublic(roundTrip, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" }));
+  assert.deepEqual(roundTrip.parts[0].interaction.questions[0].promptArea, canonical.parts[0].interaction.questions[0].promptArea);
+  assert.equal(roundTrip.parts[0].interaction.cues[0].startMs, 0);
+  const malformed = structuredClone(roundTrip); malformed.parts[0].interaction.questions[0].promptArea.x = 1_000;
+  assert.throws(() => normalizeNativeActivityPublic(malformed, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" }), /logical surface/);
 });
 
 test("Listening rejects overlapping, reversed, duplicate, and unknown cue mappings", () => {
@@ -105,6 +123,16 @@ test("Listening synchronization is deterministic at all boundaries and seeks", (
   assert.equal(findNativeListeningCue(cues, 1_000)?.id, cues[0].id);
   assert.equal(formatNativeListeningTime(3_723_999), "62:03");
   assert.equal(parseNativeListeningDisplayTime("62:03"), 3_723_000);
+  assert.equal(formatNativeListeningTime(88_999), "01:28");
+  assert.doesNotMatch(formatNativeListeningTime(88_999), /\.\d{3}/);
+});
+
+test("reference cue focus is explicit until playback takes authority", () => {
+  const interaction = pair().publicDocument.parts[0].interaction;
+  const mapped = interaction.snippetHotspots[0].cueIds;
+  assert.deepEqual(resolveNativeListeningHighlightedCueIds({ cues: interaction.cues, milliseconds: 4_500, focusMode: "reference", focusedCueIds: mapped }), mapped);
+  assert.deepEqual(resolveNativeListeningHighlightedCueIds({ cues: interaction.cues, milliseconds: 4_500, focusMode: "playback", focusedCueIds: mapped }), [interaction.cues[1].id]);
+  assert.deepEqual(resolveNativeListeningHighlightedCueIds({ cues: interaction.cues, milliseconds: 3_500, focusMode: "playback", focusedCueIds: mapped }), []);
 });
 
 test("Listening transcript scrolling preserves a comfort zone and clamps bounds", () => {
@@ -114,9 +142,22 @@ test("Listening transcript scrolling preserves a comfort zone and clamps bounds"
 });
 
 test("Listening renders imported markup through React text nodes without an HTML execution sink", async () => {
-  const source = await readFile(new URL("../src/components/native-listening/NativeListeningSurface.jsx", import.meta.url), "utf8");
+  const [source, css, player] = await Promise.all([
+    readFile(new URL("../src/components/native-listening/NativeListeningSurface.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-listening/nativeListening.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/listening-player/LegacyListeningPlayer.jsx", import.meta.url), "utf8"),
+  ]);
   assert.match(source, /\{cue\.text\}/);
   assert.doesNotMatch(source, /dangerouslySetInnerHTML|innerHTML|insertAdjacentHTML/);
+  assert.match(source, /NativeOpenResponseStudentSurface/);
+  assert.match(source, /setView\("transcript"\)/);
+  assert.match(source, /node\.focus\?\.\(\{ preventScroll: true \}\)/);
+  assert.match(source, /focusMode === "playback"/);
+  assert.match(source, /disabled=\{playing\}/);
+  assert.match(player, /Stop Listening audio/);
+  assert.match(player, /Mute Listening audio/);
+  assert.match(css, /native-listening-player-anchor\{position:absolute;z-index:120;right:24px;bottom:18px/);
+  assert.doesNotMatch(css, /position:fixed/);
 });
 
 test("Replacing audio with a shorter duration keeps cues invalid instead of clamping them", () => {

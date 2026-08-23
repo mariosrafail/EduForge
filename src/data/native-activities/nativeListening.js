@@ -1,4 +1,9 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
+import {
+  createNativeOpenResponseQuestion,
+  normalizeNativeOpenResponseInteraction,
+} from "./nativeOpenResponse.js";
 
 export const NATIVE_LISTENING_LIMITS = Object.freeze({
   questions: 20,
@@ -44,11 +49,14 @@ function area(input, label, surface) {
   return value;
 }
 
-function normalizeQuestion(input, index) {
+function normalizeLegacyQuestion(input, index) {
   const label = `Native Listening questions[${index}]`;
   exactKeys(input, ["id", "prompt"], label);
   if (!isNativeChildId(input.id, "q")) throw new Error(`${label}.id is invalid.`);
-  return { id: input.id, prompt: text(input.prompt, `${label}.prompt`, NATIVE_LISTENING_LIMITS.promptLength) };
+  return {
+    ...createNativeOpenResponseQuestion(input.id, index),
+    prompt: text(input.prompt, `${label}.prompt`, NATIVE_LISTENING_LIMITS.promptLength),
+  };
 }
 
 function normalizeCue(input, index) {
@@ -76,7 +84,10 @@ function normalizeSnippet(input, index, cueIds, surface) {
 
 export function normalizeNativeListeningInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Listening interaction"));
-  exactKeys(value, ["kind", "audioAssetSlot", "audioDurationMs", "panels", "questions", "cues", "snippetHotspots"], "Native Listening interaction");
+  const legacy = !Object.hasOwn(value, "artwork");
+  exactKeys(value, legacy
+    ? ["kind", "audioAssetSlot", "audioDurationMs", "panels", "questions", "cues", "snippetHotspots"]
+    : ["kind", "audioAssetSlot", "audioDurationMs", "panels", "artwork", "questions", "cues", "snippetHotspots"], "Native Listening interaction");
   if (value.kind !== "listening") throw new Error("Native Listening interaction kind is invalid.");
   if (!Array.isArray(value.questions) || value.questions.length > NATIVE_LISTENING_LIMITS.questions) throw new Error("Native Listening question count is invalid.");
   if (!Array.isArray(value.cues) || value.cues.length > NATIVE_LISTENING_LIMITS.cues) throw new Error("Native Listening cue count is invalid.");
@@ -97,7 +108,16 @@ export function normalizeNativeListeningInteraction(input, { assets = [], common
   const surfaceOne = normalizeSurface(panelOne, "Native Listening Panel 1");
   const surfaceTwo = normalizeSurface(panelTwo, "Native Listening Panel 2");
   if (panelTwo.backgroundAssetSlot && !assetSlots.has(panelTwo.backgroundAssetSlot)) throw new Error("Native Listening background must reference a managed asset.");
-  const questions = value.questions.map(normalizeQuestion);
+  const questionSurface = normalizeNativeOpenResponseInteraction({
+    kind: "open-response",
+    surface: surfaceOne,
+    artwork: legacy ? [] : value.artwork,
+    questions: legacy ? value.questions.map(normalizeLegacyQuestion) : value.questions,
+  }, {
+    assets,
+    commonAssetSlots: new Set([...commonAssetSlots, value.audioAssetSlot, panelTwo.backgroundAssetSlot].filter(Boolean)),
+  });
+  const questions = questionSurface.questions;
   const questionIds = questions.map((entry) => entry.id);
   if (new Set(questionIds).size !== questionIds.length) throw new Error("Native Listening question identities must be unique.");
   const cues = value.cues.map(normalizeCue);
@@ -109,8 +129,6 @@ export function normalizeNativeListeningInteraction(input, { assets = [], common
   const cueIdSet = new Set(cueIds);
   const snippets = value.snippetHotspots.map((entry, index) => normalizeSnippet(entry, index, cueIdSet, surfaceOne));
   if (new Set(snippets.map((entry) => entry.id)).size !== snippets.length) throw new Error("Native Listening snippet identities must be unique.");
-  const usedSlots = new Set([value.audioAssetSlot, panelTwo.backgroundAssetSlot].filter(Boolean));
-  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Listening managed asset must be used.");
   return {
     kind: "listening",
     audioAssetSlot: value.audioAssetSlot,
@@ -119,6 +137,7 @@ export function normalizeNativeListeningInteraction(input, { assets = [], common
       { id: "panel-1", kind: "questions", sourceWidth: surfaceOne.width, sourceHeight: surfaceOne.height },
       { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: panelTwo.backgroundAssetSlot, sourceWidth: surfaceTwo.width, sourceHeight: surfaceTwo.height, transcriptArea: area(panelTwo.transcriptArea, "Native Listening transcript area", surfaceTwo) },
     ],
+    artwork: questionSurface.artwork,
     questions,
     cues,
     snippetHotspots: snippets,
@@ -177,7 +196,12 @@ export function assessNativeListeningReadiness(publicDocument, teacherDocument) 
   const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((entry) => [entry.questionId, entry.text]));
   interaction.questions.forEach((question, index) => {
     if (!question.prompt) issues.push(`Question ${index + 1} needs a prompt.`);
-    if (!(answers.get(question.id) || "").trim()) issues.push(`Question ${index + 1} needs a model answer.`);
+    const modelAnswer = answers.get(question.id) || "";
+    if (!modelAnswer.trim()) issues.push(`Question ${index + 1} needs a model answer.`);
+    else if (question.responseRegion && !autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: question.responseRegion }).fits) issues.push(`Question ${index + 1} model answer does not fit its authored lines.`);
+  });
+  (interaction.artwork || []).forEach((item, index) => {
+    if (!item.decorative && !item.altText.trim()) issues.push(`Artwork ${index + 1} needs alt text or must be marked decorative.`);
   });
   return { ready: issues.length === 0, issues };
 }
@@ -191,6 +215,7 @@ export function createEmptyNativeListeningInteraction() {
       { id: "panel-1", kind: "questions", sourceWidth: 1024, sourceHeight: 582 },
       { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 1801, transcriptArea: { x: 72, y: 120, width: 880, height: 1500 } },
     ],
+    artwork: [],
     questions: [],
     cues: [],
     snippetHotspots: [],

@@ -1,4 +1,4 @@
-import { Headphones, Volume2, VolumeX } from "lucide-react";
+import { Headphones } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import listeningAuthoring from "virtual:ultimate-b2-listening-authoring";
@@ -6,6 +6,7 @@ import { ultimateB2Unit1Part2LegacyAudio } from "virtual:ultimate-b2-unit1-part2
 import { ultimateB2StudentsBookMedia } from "virtual:ultimate-b2-media-assets";
 import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { useTeacherListeningPlayerAssets } from "virtual:teacher-listening-player-assets";
+import { LegacyListeningPlayer } from "../../../listening-player/LegacyListeningPlayer.jsx";
 import { useExclusiveMediaPlayback } from "./shared/useExclusiveMediaPlayback.js";
 import { findListeningCue, findListeningScrollEntry, formatListeningTime } from "./listeningRuntime.js";
 import "./teacherLegacyListeningActivity.css";
@@ -20,42 +21,10 @@ function useResolvedListeningAsset(configuredAsset) {
   });
 }
 
-function PlayerButton({ label, source, pressedSource, disabled = false, onClick }) {
-  return (
-    <button type="button" className="teacher-listening-player-button" aria-label={label} title={label} disabled={disabled} onClick={onClick}>
-      <img className="normal" src={source} alt="" draggable="false" />
-      <img className="pressed" src={pressedSource} alt="" draggable="false" />
-    </button>
-  );
-}
-
 function TeacherListeningAudioPlayer({ currentMs, durationMs, playing, muted, onPlay, onPause, onStop, onSeek, onToggleMute }) {
   const player = useTeacherListeningPlayerAssets();
   const maximum = Math.max(durationMs, listeningAuthoring.karaoke.cues.at(-1).endMs);
-  return (
-    <div className="teacher-listening-audio-player" aria-label="Full reading audio player">
-      <img className="teacher-listening-player-background" src={player.background} alt="" draggable="false" />
-      <input
-        className="teacher-listening-player-seek"
-        type="range"
-        min="0"
-        max={maximum}
-        step="1"
-        value={Math.min(currentMs, maximum)}
-        aria-label="Reading position"
-        onChange={(event) => onSeek(Number(event.target.value))}
-      />
-      <div className="teacher-listening-player-controls">
-        <PlayerButton label="Play full reading" source={player.play.active} pressedSource={player.play.pressed} onClick={onPlay} />
-        <PlayerButton label="Pause full reading" source={player.pause.active} pressedSource={player.pause.pressed} disabled={!playing} onClick={onPause} />
-        <PlayerButton label="Stop full reading" source={player.stop.active} pressedSource={player.stop.pressed} disabled={!currentMs && !playing} onClick={onStop} />
-        <button type="button" className="teacher-listening-mute" aria-label={muted ? "Unmute" : "Mute"} aria-pressed={muted} onClick={onToggleMute}>
-          {muted ? <VolumeX /> : <Volume2 />}
-        </button>
-      </div>
-      <output className="teacher-listening-player-time">{formatListeningTime(currentMs)} / {formatListeningTime(maximum)}</output>
-    </div>
-  );
+  return <LegacyListeningPlayer assets={player} currentMs={currentMs} durationMs={maximum} playing={playing} muted={muted} formatTime={formatListeningTime} onPlay={onPlay} onPause={onPause} onStop={onStop} onSeek={onSeek} onToggleMute={onToggleMute} ariaLabel="Full reading audio player" playLabel="Play full reading" pauseLabel="Pause full reading" stopLabel="Stop full reading" />;
 }
 
 function TeacherListeningQuestions({ activity, images, error, questionProps, onPlaySegment, player }) {

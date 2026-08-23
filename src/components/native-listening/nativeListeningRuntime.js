@@ -17,6 +17,15 @@ export function findNativeListeningCue(cues, milliseconds) {
   return findTimedTextCue(cues, milliseconds);
 }
 
+export function resolveNativeListeningHighlightedCueIds({ cues, milliseconds, focusMode = "playback", focusedCueIds = [] }) {
+  if (focusMode === "playback") {
+    const active = findNativeListeningCue(cues, milliseconds);
+    return active ? [active.id] : [];
+  }
+  const valid = new Set(cues.map((cue) => cue.id));
+  return [...new Set(focusedCueIds)].filter((id) => valid.has(id));
+}
+
 export function parseNativeListeningSrt(input, { createId } = {}) {
   return parseTimedTextSrt(input, { createId, label: "SRT" });
 }
