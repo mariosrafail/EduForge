@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { NativeImageSurface } from "../../../native-image/NativeImageSurface.jsx";
+import { NativeImagePresentation } from "../../../native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
@@ -29,7 +29,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
   };
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
-    {entry.kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
+    {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "open-response" && !teacherMode ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {entry.kind === "open-response" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}

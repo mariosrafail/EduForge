@@ -6,7 +6,7 @@ import { createServer } from "vite";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { nativeAudioTextAssetRequirements } from "../src/data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements } from "../src/data/native-activities/nativeAudioTextHotspots.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
@@ -88,6 +88,24 @@ test("Audio / Readable-Text hotspots are strict, public, visual-surface-bound ma
   }
 });
 
+test("optional readable-focus highlight tokens preserve old shapes and validate new colors", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const document = kind.createBlankPublic({ activityId: "open-highlight", title: "Highlight", placement: { pageId } });
+  document.assets = [reference, audioReference];
+  document.readableText = readableText;
+  document.audioTextHotspots = { hotspots: [audioHotspot] };
+  const oldNormalized = kind.normalizePublic(document);
+  assert.equal(Object.hasOwn(oldNormalized.audioTextHotspots.hotspots[0], "highlightColor"), false);
+  for (const highlightColor of NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS) {
+    const colored = structuredClone(document);
+    colored.audioTextHotspots.hotspots[0].highlightColor = highlightColor;
+    assert.equal(kind.normalizePublic(colored).audioTextHotspots.hotspots[0].highlightColor, highlightColor);
+  }
+  const unsafe = structuredClone(document);
+  unsafe.audioTextHotspots.hotspots[0].highlightColor = "url(javascript:unsafe)";
+  assert.throws(() => kind.normalizePublic(unsafe), /highlightColor/);
+});
+
 test("Audio / Readable-Text hotspots reject each incomplete or unsafe relationship", () => {
   const kind = resolveNativeActivityKind("open-response");
   const valid = kind.createBlankPublic({ activityId: "open-audio", title: "Audio focus", placement: { pageId } });
@@ -158,6 +176,8 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   assert.match(shared, /<NativeAudioTextHotspotEditor/);
   const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
+  assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Readable text focus"/); assert.match(hotspotEditor, /Highlight color/);
+  assert.match(hotspotEditor, /NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS\.map/); assert.match(hotspotEditor, /data-studio-stage/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
   assert.match(pages, /nativeVideoAvailable/); assert.match(pages, /nativeVideoAvailable \? sendActivityCommand\("toggle-video"\)/); assert.match(pages, /activeIconName: "showTextPressed"/);
 });
@@ -210,6 +230,9 @@ test("native Readable Text presentation toggles only when available and uses bou
   assert.match(focus, /<audio ref=\{audioRef\} hidden autoPlay=\{autoPlay\}/);
   assert.match(focus, /const audio = audioRef\.current/);
   assert.match(focus, /audio\.pause\(\); audio\.currentTime = 0/);
+  assert.match(focus, /data-highlight-color=\{nativeAudioTextHighlightColor\(hotspot\.highlightColor\)\}/);
+  assert.match(focus, /style=\{\{ aspectRatio: `\$\{focus\.width\} \/ \$\{focus\.height\}` \}\}/);
+  assert.doesNotMatch(focus, /preserveAspectRatio="none"/);
   assert.doesNotMatch(focus, /<header|<strong|>Close<|\bcontrols\b/);
   assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /scrollbar-width: none/); assert.match(css, /::-webkit-scrollbar/); assert.match(css, /width: 100%; height: auto/);
   assert.match(css, /native-readable-text-scroll-control/); assert.match(css, /native-readable-text-scroll-thumb/);
@@ -217,4 +240,5 @@ test("native Readable Text presentation toggles only when available and uses bou
   assert.doesNotMatch(css, /native-audio-text-focus header|native-audio-text-focus audio/);
   assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);
   assert.doesNotMatch(css, /max-height: min\(76vh, 760px\)/);
+  assert.match(css, /native-audio-text-focus-crop::after[^}]*22%/);
 });

@@ -1,4 +1,4 @@
-import { NativeImageSurface } from "../../../native-image/NativeImageSurface.jsx";
+import { NativeImagePresentation } from "../../../native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
@@ -17,7 +17,7 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
   const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId);
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="hosted-native-draft-activity" data-native-kind={kind} data-native-draft="true">
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
-    {kind === "image" ? <NativeImageSurface document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
+    {kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {kind === "open-response" && (!teacherMode || state.teacher.kind !== "ready") ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {kind === "open-response" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {kind === "open-response" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}

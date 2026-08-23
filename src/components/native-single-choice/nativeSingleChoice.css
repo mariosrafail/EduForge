@@ -3,7 +3,7 @@
   display: grid;
   gap: 1rem;
   margin: 0 auto;
-  max-width: 920px;
+  max-width: 1200px;
 }
 
 .native-single-choice-student fieldset,
@@ -147,24 +147,15 @@
   align-self: center;
   height: auto;
   justify-self: center;
-  max-height: 100%;
   max-width: 100%;
   width: 100%;
-}
-
-.native-single-choice-visual-panel:not(.has-heading) {
-  container-type: size;
-}
-
-.native-single-choice-visual-panel:not(.has-heading) .native-single-choice-visual-stage {
-  width: min(100cqw, calc(100cqh * var(--native-single-choice-stage-aspect)));
 }
 
 .native-single-choice-visual-stage > img,
 .native-single-choice-hotspot-canvas > img {
   display: block;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
   pointer-events: none;
   user-select: none;
   width: 100%;

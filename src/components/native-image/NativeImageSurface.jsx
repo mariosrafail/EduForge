@@ -1,5 +1,16 @@
 import { logicalAreaStyle } from "../native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
+import "./nativeImage.css";
+
+export function NativeImagePresentation(props) {
+  const contentText = props.document.parts[0].interaction.contentText;
+  const surface = <NativeImageSurface {...props} />;
+  if (!contentText) return surface;
+  return <div className="native-image-presentation">
+    {surface}
+    <div className="native-image-content-text" aria-label="Activity content">{contentText}</div>
+  </div>;
+}
 
 export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "", audioHotspotPresentation = null }) {
   const interaction = document.parts[0].interaction;

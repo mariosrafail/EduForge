@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import audioHotspotActive from "../../assets/native-activities/audio-text-hotspot-active.svg";
 import audioHotspotPressed from "../../assets/native-activities/audio-text-hotspot-pressed.svg";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
+import { nativeAudioTextHighlightColor } from "../../data/native-activities/nativeAudioTextHotspots.js";
 
 export const nativeAudioHotspotArtwork = Object.freeze({ active: audioHotspotActive, pressed: audioHotspotPressed });
 
@@ -36,9 +37,13 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
   if (!hotspot || !readableReference || !audioReference) return null;
   const focus = hotspot.readableFocusArea;
   return <section className="native-audio-text-focus" aria-label={`Focused readable text: ${hotspot.label}`}>
-    <div className="native-audio-text-focus-crop">
+    <div
+      className="native-audio-text-focus-crop"
+      data-highlight-color={nativeAudioTextHighlightColor(hotspot.highlightColor)}
+      style={{ aspectRatio: `${focus.width} / ${focus.height}` }}
+    >
       <svg viewBox={`${focus.x} ${focus.y} ${focus.width} ${focus.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`${document.readableText.altText}: ${hotspot.label}`}>
-        <image href={assetUrl(readableReference.assetId)} x="0" y="0" width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} preserveAspectRatio="none" />
+        <image href={assetUrl(readableReference.assetId)} x="0" y="0" width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} preserveAspectRatio="xMidYMid meet" />
       </svg>
     </div>
     <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} />

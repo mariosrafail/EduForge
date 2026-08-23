@@ -378,3 +378,18 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.correctAnswers/);
   assert.doesNotMatch(teacherSurface, /NativeSingleChoiceEditor|Front|Back|HotspotCanvas/);
 });
+
+test("visual Viewer sizing is width-first, aspect-safe, scrollable, and keeps image and hotspots on one stage", async () => {
+  const [css, readableCss, presentation] = await Promise.all([
+    readFile(new URL("../src/components/native-single-choice/nativeSingleChoice.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-readable-text/nativeReadableText.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-single-choice/NativeSingleChoicePresentation.jsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(css, /\.native-single-choice-visual-stage\s*\{[^}]*width:\s*100%/s);
+  assert.match(css, /\.native-single-choice-student,[\s\S]*max-width:\s*1200px/);
+  assert.match(css, /\.native-single-choice-visual-stage > img,[\s\S]*object-fit:\s*contain/);
+  assert.doesNotMatch(css, /100cqh|container-type:\s*size|object-fit:\s*fill/);
+  assert.match(readableCss, /:has\(\.native-single-choice-visual-stage\):not\(\.is-audio-focus\)[^{]*\{[^}]*overflow:\s*auto/s);
+  assert.match(presentation, /style=\{\{ aspectRatio: `\$\{panel\.sourceWidth\} \/ \$\{panel\.sourceHeight\}` \}\}/);
+  assert.match(presentation, /style=\{logicalAreaStyle\(hotspot\.area, \{ width: panel\.sourceWidth, height: panel\.sourceHeight \}\)\}/);
+});

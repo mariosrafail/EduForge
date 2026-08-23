@@ -1,0 +1,19 @@
+.native-image-presentation {
+  display: grid;
+  gap: clamp(14px, 2vw, 24px);
+  width: 100%;
+}
+
+.native-image-content-text {
+  box-sizing: border-box;
+  width: min(100%, 72ch);
+  margin-inline: auto;
+  padding: clamp(14px, 2vw, 22px);
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: 400 clamp(1rem, 1.2vw, 1.125rem) / 1.65 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

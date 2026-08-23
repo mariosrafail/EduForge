@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assessNativeImageReadiness, duplicateNativeImage, removeNativeImage } from "../src/data/native-activities/nativeImage.js";
+import { assessNativeImageReadiness, duplicateNativeImage, NATIVE_IMAGE_LIMITS, removeNativeImage } from "../src/data/native-activities/nativeImage.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o98";
 const kind = resolveNativeActivityKind("image");
@@ -30,6 +30,25 @@ test("blank and multi-image Native Image document pairs normalize exactly", () =
   const normalized = kind.normalizePublic(complete.publicDocument).parts[0].interaction;
   assert.equal(normalized.images[0].fit, "cover");
   assert.equal(normalized.images[1].locked, true);
+  assert.equal(Object.hasOwn(normalized, "contentText"), false);
+});
+
+test("Native Image learner content is optional, multiline, deterministic, and public", () => {
+  const complete = pair();
+  complete.publicDocument.assets = [asset];
+  complete.publicDocument.parts[0].interaction.images = [image("a", asset.slot, 0)];
+  const oldNormalized = kind.normalizePublic(complete.publicDocument);
+  assert.equal(Object.hasOwn(oldNormalized.parts[0].interaction, "contentText"), false);
+  complete.publicDocument.parts[0].interaction.contentText = "  Library notice\r\nCloses at 4:30 p.m.  ";
+  const normalized = kind.normalizePublic(complete.publicDocument);
+  assert.equal(normalized.parts[0].interaction.contentText, "Library notice\nCloses at 4:30 p.m.");
+  assert.equal(Object.hasOwn(normalized.parts[0].interaction, "contentText"), true);
+  assert.equal("contentText" in kind.normalizeTeacher(complete.teacherDocument).parts[0].solution, false);
+  for (const contentText of ["x".repeat(NATIVE_IMAGE_LIMITS.contentTextLength + 1), "unsafe\u0000text"]) {
+    const invalid = structuredClone(complete.publicDocument);
+    invalid.parts[0].interaction.contentText = contentText;
+    assert.throws(() => kind.normalizePublic(invalid), /content text/);
+  }
 });
 
 test("legacy singular Native Image drafts normalize transparently to a stable full-surface instance", () => {

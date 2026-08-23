@@ -7,6 +7,13 @@ export const NATIVE_AUDIO_TEXT_HOTSPOT_LIMITS = Object.freeze({
   maximumSize: 192,
 });
 
+export const NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS = Object.freeze(["yellow", "green", "cyan", "pink"]);
+export const NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR = "yellow";
+
+export function nativeAudioTextHighlightColor(value) {
+  return NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.includes(value) ? value : NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR;
+}
+
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
   return value;
@@ -74,7 +81,8 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
   return {
     hotspots: value.hotspots.map((entry, index) => {
       const label = `Native audio/text hotspots[${index}]`;
-      exactKeys(entry, ["id", "panelId", "activityArea", "readableFocusArea", "audioAssetSlot", "label"], label);
+      const hasHighlightColor = Object.hasOwn(entry, "highlightColor");
+      exactKeys(entry, ["id", "panelId", "activityArea", "readableFocusArea", "audioAssetSlot", "label", ...(hasHighlightColor ? ["highlightColor"] : [])], label);
       if (!isNativeChildId(entry.id, "aud") || ids.has(entry.id)) throw new Error(`${label}.id is invalid or duplicate.`);
       ids.add(entry.id);
       if (entry.panelId !== null && typeof entry.panelId !== "string") throw new Error(`${label}.panelId is invalid.`);
@@ -86,7 +94,8 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
       }
       if (typeof entry.label !== "string" || !entry.label.trim() || entry.label.length > NATIVE_AUDIO_TEXT_HOTSPOT_LIMITS.labelLength
         || /[<>\u0000-\u001f\u007f]/.test(entry.label)) throw new Error(`${label}.label is invalid.`);
-      return {
+      if (hasHighlightColor && !NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.includes(entry.highlightColor)) throw new Error(`${label}.highlightColor is invalid.`);
+      const normalized = {
         id: entry.id,
         panelId: entry.panelId,
         activityArea: area(entry.activityArea, `${label}.activityArea`, target, { circular: true }),
@@ -97,6 +106,8 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
         audioAssetSlot: audio.slot,
         label: entry.label.trim(),
       };
+      if (hasHighlightColor) normalized.highlightColor = entry.highlightColor;
+      return normalized;
     }),
   };
 }

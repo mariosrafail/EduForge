@@ -30,6 +30,7 @@ function imagePair() {
   const kind = resolveNativeActivityKind("image");
   const publicDocument = kind.createBlankPublic({ activityId: imageId, title: "Published image composition", placement: { pageId } });
   publicDocument.assets = [assetReference];
+  publicDocument.parts[0].interaction.contentText = "Public learner notice\nSecond line";
   publicDocument.parts[0].interaction.images = [{ id: `img-${"a".repeat(32)}`, assetSlot: assetReference.slot, area: { x: 20, y: 30, width: 400, height: 260 }, order: 0, altText: "A publication diagram", decorative: false, fit: "contain", locked: true }];
   return { publicDocument, teacherDocument: kind.createBlankTeacher({ activityId: imageId }) };
 }
@@ -77,6 +78,8 @@ test("v2 compiles only hotspot-reachable native pairs into strict public and Tea
   assert.deepEqual(Object.keys(compiled.teacherProjection.nativeActivities), [imageId, openId].sort());
   assert.equal(compiled.sourceSnapshot.nativeActivities[openId].public.revision, 3);
   assert.equal(compiled.assetManifest.filter((asset) => asset.role === "activity_artwork").length, 1);
+  assert.equal(compiled.publicProjection.nativeActivities[imageId].document.parts[0].interaction.contentText, "Public learner notice\nSecond line");
+  assert.doesNotMatch(JSON.stringify(compiled.teacherProjection.nativeActivities[imageId]), /Public learner notice/);
   assert.doesNotMatch(JSON.stringify(compiled.publicProjection), /TEACHER_SENTINEL_5_PRIVATE/);
   assert.match(JSON.stringify(compiled.teacherProjection), /TEACHER_SENTINEL_5_PRIVATE/);
 });
@@ -89,7 +92,7 @@ test("v2 validates and materializes a public Readable Text image without Builder
   const videoAsset = { assetId: "10000000-0000-4000-8000-000000000046", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "video-one" };
   publicDocument.assets = [readableAsset, audioAsset, videoAsset];
   publicDocument.readableText = { kind: "image", assetSlot: readableAsset.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Public reading passage" };
-  publicDocument.audioTextHotspots = { hotspots: [{ id: `aud-${"1".repeat(32)}`, panelId: null, activityArea: { x: 20, y: 20, width: 48, height: 48 }, readableFocusArea: { x: 50, y: 100, width: 800, height: 400 }, audioAssetSlot: audioAsset.slot, label: "Listen to paragraph one" }] };
+  publicDocument.audioTextHotspots = { hotspots: [{ id: `aud-${"1".repeat(32)}`, panelId: null, activityArea: { x: 20, y: 20, width: 48, height: 48 }, readableFocusArea: { x: 50, y: 100, width: 800, height: 400 }, audioAssetSlot: audioAsset.slot, label: "Listen to paragraph one", highlightColor: "green" }] };
   publicDocument.video = { kind: "managed-mp4", assetSlot: videoAsset.slot, fileName: "companion.mp4", byteSize: 136_517, durationMs: 5_840, cues: [{ id: `cue-${"2".repeat(32)}`, startMs: 0, endMs: 5_000, text: "Public subtitle" }] };
   input.native.activities[openId].public.sha256 = builderDocumentSha256(publicDocument);
   input.native.assetRows.push({ id: readableAsset.assetId, checksum_sha256: readableAsset.checksumSha256, asset_role: readableAsset.role, object_key: "builder-native-assets/readable.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 200, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: readableAsset.slot } });

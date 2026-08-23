@@ -4,8 +4,9 @@ import { Headphones, Trash2, Upload } from "lucide-react";
 import { NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeAudioTextFocusContent, nativeAudioHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
+import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { logicalAreaStyle } from "../../../components/builder-studio/stageGeometry.js";
-import { nativeAudioTextHotspotTargets, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
@@ -63,6 +64,8 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea }) {
   return <div
     className="native-audio-hotspot-focus-editor"
     style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}
+    data-studio-stage
+    data-highlight-color={nativeAudioTextHighlightColor(hotspot?.highlightColor)}
     onPointerDown={(event) => { event.currentTarget.setPointerCapture?.(event.pointerId); setStart(pointInSource(event, bounds)); }}
     onPointerUp={(event) => {
       if (!start) return;
@@ -74,11 +77,22 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea }) {
       setStart(null);
       if (width >= 16 && height >= 16) onFocusArea({ x, y, width, height });
     }}
+    onPointerCancel={() => setStart(null)}
     role="group"
     aria-label="Draw readable text focus region"
   >
     <img src={imageUrl} alt={readableText.altText} draggable="false" />
-    {hotspot ? <span className="native-audio-hotspot-focus-box" style={logicalAreaStyle(hotspot.readableFocusArea, bounds)} /> : null}
+    {hotspot ? <>
+      <span className="native-audio-hotspot-focus-box" style={logicalAreaStyle(hotspot.readableFocusArea, bounds)} />
+      <StageSelectionFrame
+        geometry={hotspot.readableFocusArea}
+        stage={bounds}
+        label="Readable text focus"
+        minWidth={16}
+        minHeight={16}
+        onChange={(area) => onFocusArea(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))}
+      />
+    </> : null}
   </div>;
 }
 
@@ -164,6 +178,20 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
         hotspot.activityArea.y = Math.round(clamp(point.y - hotspot.activityArea.height / 2, 0, selectedTarget.height - hotspot.activityArea.height));
       })} /></div>
       <div><h4>2. Draw readable-text focus</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; })} /></div>
+      <fieldset className="native-audio-hotspot-highlight-colors">
+        <legend>Highlight color</legend>
+        {NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.map((color) => <label key={color} data-highlight-color={color}>
+          <input
+            type="radio"
+            name={`${activityId}-${selected.id}-highlight-color`}
+            value={color}
+            checked={nativeAudioTextHighlightColor(selected.highlightColor) === color}
+            onChange={() => updateSelected((hotspot) => { hotspot.highlightColor = color; })}
+          />
+          <span aria-hidden="true" />
+          {color[0].toUpperCase() + color.slice(1)}{color === NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR && !Object.hasOwn(selected, "highlightColor") ? " (default)" : ""}
+        </label>)}
+      </fieldset>
       <label className="studio-field"><span>Hotspot accessible label</span><input value={selected.label} maxLength={160} onChange={(event) => updateSelected((hotspot) => { hotspot.label = event.target.value; })} /></label>
       <label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading…" : audioReference ? "Replace MP3" : "Upload MP3"}</strong><small>MP3, up to 50 MB</small></span><input type="file" accept="audio/mpeg,.mp3" disabled={uploading} onChange={(event) => { uploadAudio(event.target.files?.[0]); event.target.value = ""; }} /></label>
       {audioReference ? <audio controls preload="metadata" src={previewUrl(audioReference.assetId)} aria-label={`Preview ${selected.label}`} /> : <p role="alert">Upload an MP3 for this hotspot.</p>}

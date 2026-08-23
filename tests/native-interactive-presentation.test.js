@@ -10,7 +10,7 @@ const titleSentinel = "INTERACTIVE_METADATA_TITLE_SENTINEL";
 const instructionSentinel = "INTERACTIVE_METADATA_INSTRUCTION_SENTINEL";
 const asset = { assetId: "10000000-0000-4000-8000-000000000099", slot: "asset-image" };
 
-function imageDocument({ images = [] } = {}) {
+function imageDocument({ images = [], contentText } = {}) {
   return {
     activityId,
     kind: "image",
@@ -21,6 +21,7 @@ function imageDocument({ images = [] } = {}) {
         kind: "image",
         surface: { width: 1024, height: 582 },
         images,
+        ...(contentText === undefined ? {} : { contentText }),
       },
     }],
   };
@@ -76,6 +77,22 @@ test("Native Image uses neutral read-only layers while preserving authored image
     assert.doesNotMatch(markup, /<button|disabled=/);
     assert.match(markup, /<img[^>]+alt="Authored diagram"/);
     assert.match(markup, /pointer-events:none/);
+  });
+});
+
+test("Native Image learner content renders below the surface as semantic selectable text", async () => {
+  await withVite(async (vite) => {
+    const { NativeImagePresentation } = await vite.ssrLoadModule("/src/components/native-image/NativeImageSurface.jsx");
+    const contentText = "The library closes at 4:30 p.m.\nPlease return books first.";
+    const document = imageDocument({ images: [image("image-1")], contentText });
+    const markup = renderToStaticMarkup(React.createElement(NativeImagePresentation, { document, assetUrl: () => "/fixture.png" }));
+    assert.match(markup, /native-image-surface/);
+    assert.match(markup, /native-image-content-text/);
+    assert.match(markup, /aria-label="Activity content"/);
+    assert.match(markup, /The library closes at 4:30 p\.m\.\nPlease return books first\./);
+    assert.doesNotMatch(markup, /dangerouslySetInnerHTML|textarea/);
+    const oldMarkup = renderToStaticMarkup(React.createElement(NativeImagePresentation, { document: imageDocument({ images: [image("image-1")] }), assetUrl: () => "/fixture.png" }));
+    assert.doesNotMatch(oldMarkup, /native-image-presentation|native-image-content-text/);
   });
 });
 

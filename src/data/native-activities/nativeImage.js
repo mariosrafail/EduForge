@@ -1,7 +1,7 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 
-export const NATIVE_IMAGE_LIMITS = Object.freeze({ images: 32, altTextLength: 2_000, surfaceMaximum: 10_000 });
+export const NATIVE_IMAGE_LIMITS = Object.freeze({ images: 32, altTextLength: 2_000, contentTextLength: 10_000, surfaceMaximum: 10_000 });
 export const NATIVE_IMAGE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
 const LEGACY_IMAGE_ID = "img-00000000000040008000000000000000";
 
@@ -29,6 +29,11 @@ function integer(value, label, minimum, maximum) {
 function text(value, label, maximum) {
   if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
   return value.trim();
+}
+
+function multilineText(value, label, maximum) {
+  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
+  return value.replace(/\r\n?/g, "\n").trim();
 }
 
 function surface(input) {
@@ -93,7 +98,8 @@ export function normalizeNativeImageInteraction(input, { assets = [], commonAsse
   const value = structuredClone(object(input, "Native Image interaction"));
   if (value.kind !== "image") throw new Error("Native Image interaction kind is invalid.");
   if (Object.hasOwn(value, "image") || Object.hasOwn(value, "altText")) return normalizeLegacyInteraction(value, assets, commonAssetSlots);
-  exactKeys(value, ["kind", "surface", "images"], "Native Image interaction");
+  const hasContentText = Object.hasOwn(value, "contentText");
+  exactKeys(value, ["kind", "surface", "images", ...(hasContentText ? ["contentText"] : [])], "Native Image interaction");
   const logicalSurface = surface(value.surface);
   if (!Array.isArray(value.images) || value.images.length > NATIVE_IMAGE_LIMITS.images) throw new Error("Native Image image count is invalid.");
   const assetSlots = new Set(assets.map((asset) => asset.slot));
@@ -106,7 +112,9 @@ export function normalizeNativeImageInteraction(input, { assets = [], commonAsse
     return normalized;
   });
   if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Image managed asset must be used by an image instance or common supporting content.");
-  return { kind: "image", surface: logicalSurface, images };
+  const normalized = { kind: "image", surface: logicalSurface, images };
+  if (hasContentText) normalized.contentText = multilineText(value.contentText, "Native Image content text", NATIVE_IMAGE_LIMITS.contentTextLength);
+  return normalized;
 }
 
 export function duplicateNativeImage(interaction, sourceId, duplicateId) {

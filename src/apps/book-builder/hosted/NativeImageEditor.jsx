@@ -3,7 +3,7 @@ import { Accessibility, Copy, Eye, FileText, ImagePlus, Layers3, LayoutPanelTop,
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioStatus, StudioTabs } from "../../../components/builder-studio/StudioControls.jsx";
-import { NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
+import { NativeImagePresentation, NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeImageReadiness, duplicateNativeImage, NATIVE_IMAGE_LIMITS, removeNativeImage } from "../../../data/native-activities/nativeImage.js";
@@ -144,9 +144,14 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
     <StudioTabs value={tab} onChange={setTab} tabs={tabs} label="Image authoring modes" />
 
     {tab === "content" ? <div className="studio-content-panel" role="tabpanel">
-      <header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Set the title and the instruction learners will see.</p></div></div></header>
+      <header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Set the title, instruction, and readable content learners will see.</p></div></div></header>
       <div className="studio-form-grid">
         <StudioField label="Activity title"><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutate((next) => { next.metadata.title = event.target.value; })} /></StudioField>
+        <StudioField className="studio-field--wide" label="Content" hint="The learner-facing words conveyed by the image. This is separate from image accessibility metadata and the activity instruction."><textarea value={interaction.contentText || ""} maxLength={NATIVE_IMAGE_LIMITS.contentTextLength} rows={7} onChange={(event) => mutate((next) => {
+          const value = event.target.value;
+          if (value) next.parts[0].interaction.contentText = value;
+          else delete next.parts[0].interaction.contentText;
+        })} /></StudioField>
         <StudioField className="studio-field--wide" label="Visible instruction" hint="This instruction is included in the student activity."><textarea value={publicDraft.metadata.visibleInstructionText} maxLength={2000} rows={4} onChange={(event) => mutate((next) => { next.metadata.visibleInstructionText = event.target.value; })} /></StudioField>
       </div>
       <div className="studio-content-summary"><Layers3 aria-hidden="true" /><strong>{interaction.images.length} image layer{interaction.images.length === 1 ? "" : "s"}</strong><span>Use Layout to position and resize them.</span></div>
@@ -190,7 +195,7 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
       </aside>
     </div> : null}
 
-    {tab === "preview" ? <div className="studio-preview-panel" role="tabpanel"><header><Eye aria-hidden="true" /><div><h3>Local Preview</h3><p>Preview includes unsaved editor changes. Shared Review shows the last saved Viewer state.</p></div></header><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}<NativeImageSurface document={publicDraft} assetUrl={assetUrl} /></div> : null}
+    {tab === "preview" ? <div className="studio-preview-panel" role="tabpanel"><header><Eye aria-hidden="true" /><div><h3>Local Preview</h3><p>Preview includes unsaved editor changes. Shared Review shows the last saved Viewer state.</p></div></header><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}<NativeImagePresentation document={publicDraft} assetUrl={assetUrl} /></div> : null}
     <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
     <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} onIncompleteChange={setVideoIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
     <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete && !videoIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete && !videoIncomplete ? "Content complete" : "Before publishing"}</strong>{readiness.issues.length || readableTextIncomplete || videoIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}{videoIncomplete ? <li>Upload one MP4 and one valid SRT subtitle file.</li> : null}</ul> : <span>Accessibility and content checks pass.</span>}</aside>
