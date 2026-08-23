@@ -357,7 +357,7 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /<NativeSingleChoiceStudentSurface document=\{publicDraft\} assetUrl=\{assetUrl\}/);
   assert.doesNotMatch(editor, /NativeSingleChoiceStudentSurface[^>]+teacherDocument/);
   assert.match(editor, /addUnansweredNativeSingleChoiceQuestion/);
-  assert.match(editor, /disabled=\{!dirty \|\| state\.saving \|\| !readiness\.ready \|\| readableTextIncomplete\}/);
+  assert.match(editor, /disabled=\{!dirty \|\| state\.saving \|\| !readiness\.ready \|\| readableTextIncomplete \|\| videoIncomplete\}/);
   assert.match(editor, /uploadNativeActivityAsset/);
   assert.match(editor, /NativeSingleChoiceHotspotCanvas/);
   assert.match(editor, /Needs answer/);

@@ -3,10 +3,11 @@ import path from "node:path";
 
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-assets/audio-inspection.js";
+import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../../../lib/book-assets/video-inspection.js";
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
@@ -42,7 +43,7 @@ const safeId = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const uploadTtlSeconds = 15 * 60;
 const previewTtlSeconds = 5 * 60;
 const declaredRasterTypes = new Set(Object.values(MANAGED_RASTER_TYPES));
-const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"]]);
+const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"], [".mp4", "video/mp4"]]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 
@@ -341,6 +342,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
       assets: publicDocument.assets,
       requirements: [
         ...nativeReadableTextAssetRequirements(publicDocument),
+        ...nativeVideoAssetRequirements(publicDocument),
         ...nativeAudioTextAssetRequirements(publicDocument),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
@@ -379,8 +381,8 @@ function normalizeAssetDescriptor(input) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/.test(name) || path.basename(name) !== name || /^(?:[a-z]:|\\\\|\/)|%2f|%5c|[\u0000-\u001f\u007f]/i.test(name)) throw new Error("invalid_filename");
   const extension = path.extname(name).toLowerCase();
   const type = String(input.type || "").toLowerCase();
-  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (!declaredRasterTypes.has(type) && type !== "audio/mpeg")) throw new Error("declared_mime_mismatch");
-  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
+  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (!declaredRasterTypes.has(type) && !["audio/mpeg", "video/mp4"].includes(type))) throw new Error("declared_mime_mismatch");
+  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : type === "video/mp4" ? MANAGED_MP4_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
   if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > maximumBytes) throw new Error("declared_file_too_large");
   if (!safeId.test(String(input.assetSlot || ""))) throw new Error("invalid_asset_slot");
   return { name, size: input.size, type, assetSlot: input.assetSlot };
@@ -445,7 +447,7 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
     if (head.byteSize !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
     const bytes = await storage.download({ profile: "private", objectKey: claimed.stagingObjectKey });
     if (bytes.length !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
-    const inspected = claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : await dependencies.inspectRaster(bytes);
+    const inspected = claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : claimed.fileDescriptor.type === "video/mp4" ? dependencies.inspectVideo(bytes) : await dependencies.inspectRaster(bytes);
     if (inspected.mimeType !== claimed.fileDescriptor.type || extensionTypes.get(path.extname(claimed.fileDescriptor.name).toLowerCase()) !== inspected.mimeType) throw new Error("actual_mime_mismatch");
     const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, assetSlot: claimed.assetSlot, checksum: inspected.checksumSha256, extension: inspected.extension });
     await storage.upload({ profile: "private", objectKey, body: inspected.bytes, contentType: inspected.mimeType, checksumSha256: inspected.checksumSha256, byteSize: inspected.byteSize });
@@ -453,7 +455,7 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
     await storage.delete({ profile: "private", objectKey: claimed.stagingObjectKey }).catch(() => {});
     const result = await assetResponse(dependencies, sql, parsedRoute, assetId);
     if (!result) throw new Error("asset_record_unavailable");
-    return json(200, { reference: result.reference, previewUrl: result.previewUrl, metadata: { mimeType: inspected.mimeType, byteSize: inspected.byteSize, width: inspected.width, height: inspected.height }, idempotent: false });
+    return json(200, { reference: result.reference, previewUrl: result.previewUrl, metadata: { mimeType: inspected.mimeType, byteSize: inspected.byteSize, width: inspected.width, height: inspected.height, ...(inspected.durationMs ? { durationMs: inspected.durationMs } : {}) }, idempotent: false });
   } catch (error) {
     await Promise.allSettled([
       dependencies.failAsset(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id, failureCode: failureCode(error) }),
@@ -490,6 +492,7 @@ async function nativeCatalog(dependencies, sql) {
         {
           const requirements = [
             ...nativeReadableTextAssetRequirements(publicDocument),
+            ...nativeVideoAssetRequirements(publicDocument),
             ...nativeAudioTextAssetRequirements(publicDocument),
             ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
@@ -540,6 +543,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,
+    inspectVideo: overrides.inspectVideo || inspectManagedMp4,
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
     logger: overrides.logger || console,

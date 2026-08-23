@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { NativeAudioTextFocusContent } from "./NativeAudioTextHotspots.jsx";
+import { NativeVideoPlayer } from "../native-video/NativeVideoPlayer.jsx";
 import "./nativeReadableText.css";
 
 export function nextNativeReadableTextView(current, commandType, available) {
-  if (commandType === "toggle-text" && available) return current === "text" ? "questions" : "text";
+  return nextNativeSupplementaryView(current, commandType, { readableText: available, video: false });
+}
+
+export function nextNativeSupplementaryView(current, commandType, available) {
+  if (commandType === "toggle-text" && available.readableText) return current === "text" ? "questions" : "text";
+  if (commandType === "toggle-video" && available.video) return current === "video" ? "questions" : "video";
   if (["reset-activity", "show-all", "show-next"].includes(commandType)) return "questions";
   return current;
 }
@@ -40,10 +46,12 @@ export function normalizeNativeChildPresentationState(value, fallback = {}) {
 
 export function NativeReadableTextPresentation({ document, assetUrl, presentation = null, children }) {
   const available = Boolean(document.readableText);
+  const videoAvailable = Boolean(document.video);
   const [view, setView] = useState("questions");
   const [activityState, setActivityState] = useState(() => defaultActivityState(document));
   const [activeHotspotId, setActiveHotspotId] = useState(null);
   const viewportRef = useRef(null);
+  const activityViewRef = useRef(null);
   const trackRef = useRef(null);
   const dragRef = useRef(null);
   const [scrollState, setScrollState] = useState({ overflowing: false, top: 0, maximum: 0, viewport: 0, content: 0 });
@@ -62,9 +70,14 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     const command = presentation?.command;
     if (!command || command.token === lastCommandToken.current) return;
     lastCommandToken.current = command.token;
-    if (["toggle-text", "reset-activity", "show-all", "show-next", "previous-panel", "next-panel"].includes(command.type)) setActiveHotspotId(null);
-    setView((current) => nextNativeReadableTextView(current, command.type, available));
-  }, [available, presentation?.command]);
+    if (["toggle-text", "toggle-video", "reset-activity", "show-all", "show-next", "previous-panel", "next-panel"].includes(command.type)) setActiveHotspotId(null);
+    setView((current) => nextNativeSupplementaryView(current, command.type, { readableText: available, video: videoAvailable }));
+  }, [available, presentation?.command, videoAvailable]);
+
+  useEffect(() => {
+    if (view !== "video") return;
+    activityViewRef.current?.querySelectorAll("audio, video").forEach((media) => media.pause());
+  }, [view]);
 
   const onChildStateChange = useCallback((value) => {
     setActivityState((current) => {
@@ -91,15 +104,17 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   }, [activeHotspot]);
 
   useEffect(() => {
+    const reportedView = view === "text" && !available || view === "video" && !videoAvailable ? "questions" : view;
     onStateChange?.({
-      view: available ? view : "questions",
+      view: reportedView,
       readableTextAvailable: available,
+      videoAvailable,
       panelIndex: activityState.panelIndex,
       panelCount: activityState.panelCount,
       reveal: activityState.reveal,
       audioFocusActive: Boolean(activeHotspot),
     });
-  }, [activeHotspot, activityState, available, onStateChange, view]);
+  }, [activeHotspot, activityState, available, onStateChange, videoAvailable, view]);
 
   const childPresentation = useMemo(() => presentation ? {
     command: presentation.command,
@@ -158,12 +173,14 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const endThumb = (event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; };
 
   const reference = available ? document.assets.find((asset) => asset.slot === document.readableText.assetSlot) : null;
-  const effectiveView = available ? view : "questions";
+  const effectiveView = view === "text" && !available || view === "video" && !videoAvailable ? "questions" : view;
   const activity = typeof children === "function" ? children(childPresentation, hotspotPresentation) : children;
   const focusOpen = effectiveView === "questions" && Boolean(activeHotspot);
-  return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined}>
+  const videoReference = videoAvailable ? document.assets.find((asset) => asset.slot === document.video.assetSlot) : null;
+  const internalNavigation = !presentation && (available || videoAvailable);
+  return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
     <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
-    <div className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text"}>{activity}</div>
+    <div ref={activityViewRef} className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text" || effectiveView === "video"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
       <div id={`${document.activityId}-readable-scroll`} ref={viewportRef} className="native-readable-text-scroll" tabIndex={0} data-overflowing={scrollState.overflowing || undefined}>
         <img src={assetUrl(reference.assetId)} alt={document.readableText.altText} width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} onLoad={() => {
@@ -173,5 +190,10 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       </div>
       {scrollState.overflowing ? <div ref={trackRef} className="native-readable-text-scroll-control" role="scrollbar" aria-label="Readable text vertical scroll" aria-controls={`${document.activityId}-readable-scroll`} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={Math.round(scrollState.maximum)} aria-valuenow={Math.round(scrollState.top)} tabIndex={0} onKeyDown={scrollControlKeyDown} onPointerDown={(event) => { if (event.target === event.currentTarget) scrollFromTrackPoint(event.clientY); }}><span className="native-readable-text-scroll-thumb" style={{ "--scroll-thumb-size": `${Math.max(0.34, scrollState.viewport / Math.max(1, scrollState.content)) * 100}%`, "--scroll-progress": `${scrollState.maximum ? scrollState.top / scrollState.maximum : 0}` }} onPointerDown={beginThumbDrag} onPointerMove={moveThumb} onPointerUp={endThumb} onPointerCancel={endThumb} /></div> : null}
     </section> : null}
+    {effectiveView === "video" && videoReference ? <div className="native-video-presentation-view"><NativeVideoPlayer video={document.video} src={assetUrl(videoReference.assetId)} /></div> : null}
+    {internalNavigation ? <nav className="native-supplementary-navigation" aria-label="Activity presentation">
+      {available ? <button type="button" aria-pressed={effectiveView === "text"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-text", { readableText: available, video: videoAvailable }))}>{effectiveView === "text" ? "Questions" : "Read Text"}</button> : null}
+      {videoAvailable ? <button type="button" aria-pressed={effectiveView === "video"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-video", { readableText: available, video: videoAvailable }))}>{effectiveView === "video" ? "Questions" : "Video"}</button> : null}
+    </nav> : null}
   </div>;
 }

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { inspectManagedMp3 } from "../lib/book-assets/audio-inspection.js";
 import { inspectManagedRaster } from "../lib/book-assets/raster-inspection.js";
+import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../lib/book-assets/video-inspection.js";
 
 const actor = "10000000-0000-4000-8000-000000000001";
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -13,10 +15,11 @@ const uploadId = "10000000-0000-4000-8000-000000000010";
 const assetId = "10000000-0000-4000-8000-000000000011";
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
+const mp4 = await readFile(new URL("../src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4", import.meta.url));
 const base = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
-function harness({ bytes = png, contentType = "image/png", inspectRaster = inspectManagedRaster, inspectAudio = inspectManagedMp3, resolvedSlot = "asset-one" } = {}) {
+function harness({ bytes = png, contentType = "image/png", inspectRaster = inspectManagedRaster, inspectAudio = inspectManagedMp3, inspectVideo = inspectManagedMp4, resolvedSlot = "asset-one" } = {}) {
   let prepared = null; let completed = null; let failed = null;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/signed-put", headers: { "Content-Type": contentType }, expiresIn: 900 }),
@@ -35,6 +38,7 @@ function harness({ bytes = png, contentType = "image/png", inspectRaster = inspe
     storage: () => storage,
     inspectRaster,
     inspectAudio,
+    inspectVideo,
     prepareAsset: async (_sql, input) => { prepared = input; return { outcome: "prepared", uploadId, state: "prepared", fileDescriptor: input.fileDescriptor, stagingObjectKey: input.stagingObjectKey }; },
     claimAsset: async (_sql, input) => ({ outcome: "claimed", activityId, assetSlot: prepared.assetSlot, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey }),
     completeAsset: async (_sql, input) => { completed = input; return assetId; },
@@ -107,6 +111,37 @@ test("native MP3 finalization rejects malformed audio with a safe failure code",
   assert.equal(response.statusCode, 400);
   assert.equal(JSON.parse(response.body).error, "invalid_audio");
   assert.equal(current.getFailed().failureCode, "invalid_audio");
+});
+
+test("native MP4 prepare/finalize inspects real bytes and returns canonical duration metadata", async () => {
+  const current = harness({ bytes: mp4, contentType: "video/mp4", resolvedSlot: "video-one" });
+  const clientMutationId = randomUUID();
+  const prepared = await current.handler(request(`${base}/prepare`, { name: "companion.mp4", size: mp4.length, type: "video/mp4", assetSlot: "video-one", clientMutationId }));
+  assert.equal(prepared.statusCode, 200);
+  const finalized = await current.handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(finalized.statusCode, 200);
+  const payload = JSON.parse(finalized.body);
+  assert.deepEqual(payload.reference, { assetId, checksumSha256: current.getCompleted().checksumSha256, role: "activity_artwork", slot: "video-one" });
+  assert.deepEqual(payload.metadata, { mimeType: "video/mp4", byteSize: mp4.length, width: null, height: null, durationMs: 5_840 });
+  assert.match(current.getCompleted().objectKey, /\/video-one\/[0-9a-f]{64}\.mp4$/);
+});
+
+test("native MP4 rejects unsafe descriptors, malformed bytes, and MIME spoofing", async () => {
+  const valid = { name: "companion.mp4", size: mp4.length, type: "video/mp4", assetSlot: "video-one", clientMutationId: randomUUID() };
+  for (const descriptor of [
+    { ...valid, name: "companion.webm" },
+    { ...valid, type: "video/webm" },
+    { ...valid, size: MANAGED_MP4_MAXIMUM_BYTES + 1 },
+  ]) assert.equal((await harness({ bytes: mp4, contentType: descriptor.type }).handler(request(`${base}/prepare`, descriptor))).statusCode, 400);
+  for (const scenario of [
+    { bytes: Buffer.from("not an mp4"), inspectVideo: inspectManagedMp4, expected: "invalid_video" },
+    { bytes: mp4, inspectVideo: (value) => ({ bytes: value, checksumSha256: "b".repeat(64), mimeType: "video/webm", extension: ".webm", byteSize: value.length, width: null, height: null, durationMs: 5_840 }), expected: "actual_mime_mismatch" },
+  ]) {
+    const current = harness({ ...scenario, contentType: "video/mp4" }); const clientMutationId = randomUUID();
+    await current.handler(request(`${base}/prepare`, { name: "companion.mp4", size: scenario.bytes.length, type: "video/mp4", assetSlot: "video-one", clientMutationId }));
+    const response = await current.handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+    assert.equal(response.statusCode, 400); assert.equal(JSON.parse(response.body).error, scenario.expected); assert.equal(current.getFailed().failureCode, scenario.expected);
+  }
 });
 
 test("native finalize rejects malformed and MIME-spoofed rasters and records safe failure codes", async () => {

@@ -1,6 +1,6 @@
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
@@ -22,7 +22,7 @@ import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-sec
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 
-const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3" });
+const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS);
 const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
   initialImageOpenResponse: "ab4b8255596ce01a0e7132d37c33b62683e384f2f178eed313bfeef62091027e",
@@ -140,6 +140,7 @@ function validateAssetRows(nativeEntries, assetRows) {
     {
       const requirements = [
         ...nativeReadableTextAssetRequirements(entry.publicDocument),
+        ...nativeVideoAssetRequirements(entry.publicDocument),
         ...nativeAudioTextAssetRequirements(entry.publicDocument),
         ...(entry.publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(entry.publicDocument) : []),
@@ -150,6 +151,9 @@ function validateAssetRows(nativeEntries, assetRows) {
         const row = reference ? byId.get(reference.assetId) : null;
         if (!row || (requirement.mediaType && row.mime_type !== requirement.mediaType)) {
           throw new NativePublicationError("native_activity_asset_invalid", activityId, [`${requirement.label || "Native managed asset"} media type does not match the managed asset.`]);
+        }
+        if (requirement.byteSize !== undefined && Number(row.byte_size) !== requirement.byteSize) {
+          throw new NativePublicationError("native_activity_asset_invalid", activityId, [`${requirement.label || "Native managed asset"} byte size does not match the managed asset.`]);
         }
         if ((requirement.width !== undefined || requirement.height !== undefined)
           && (Number(row.width) !== requirement.width || Number(row.height) !== requirement.height)) {

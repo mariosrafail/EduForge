@@ -21,6 +21,7 @@ import {
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -41,6 +42,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const [drawing, setDrawing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
+  const [videoIncomplete, setVideoIncomplete] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
 
@@ -233,7 +235,8 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     </div> : null}
 
     <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
-    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length || readableTextIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}</ul> : <span>Semantic, answer, visual, and security checks pass.</span>}</aside>
-    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready || readableTextIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : !readiness.ready ? "Resolve all authoring issues before saving" : ""} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
+    <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
+    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete && !videoIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete && !videoIncomplete ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length || readableTextIncomplete || videoIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}{videoIncomplete ? <li>Upload one MP4 and one valid SRT subtitle file.</li> : null}</ul> : <span>Semantic, answer, visual, and security checks pass.</span>}</aside>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready || readableTextIncomplete || videoIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : !readiness.ready ? "Resolve all authoring issues before saving" : ""} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }

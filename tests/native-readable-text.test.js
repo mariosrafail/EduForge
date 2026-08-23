@@ -150,16 +150,16 @@ test("managed reference cleanup retains a slot until every activity use is remov
 
 test("shared Builder and Teacher runtime wire all native kinds without duplicating private data or toolbars", async () => {
   const files = await Promise.all([
-    "NativeOpenResponseEditor.jsx", "NativeImageEditor.jsx", "NativeSingleChoiceEditor.jsx", "NativeListeningEditor.jsx",
+    "NativeOpenResponseEditor.jsx", "NativeImageEditor.jsx", "NativeSingleChoiceEditor.jsx", "NativeCompleteSentencesEditor.jsx", "NativeListeningEditor.jsx",
   ].map((name) => readFile(new URL(`../src/apps/book-builder/hosted/${name}`, import.meta.url), "utf8")));
-  files.forEach((source) => assert.match(source, /<NativeReadableTextEditor/));
+  files.forEach((source) => { assert.match(source, /<NativeReadableTextEditor/); assert.match(source, /<NativeVideoEditor/); });
   const shared = await readFile(new URL("../src/apps/book-builder/hosted/NativeReadableTextEditor.jsx", import.meta.url), "utf8");
   assert.match(shared, /uploadNativeActivityAsset/); assert.match(shared, /Upload a readable-text image/); assert.doesNotMatch(shared, /teacherDocument|correctAnswer|modelAnswer/);
   assert.match(shared, /<NativeAudioTextHotspotEditor/);
   const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
-  assert.match(pages, /videoAvailable \? \[\{/); assert.match(pages, /!listeningAvailable && \(activityPresentationState\.readableTextAvailable \|\| \(!videoAvailable/); assert.match(pages, /activeIconName: "showTextPressed"/);
+  assert.match(pages, /nativeVideoAvailable/); assert.match(pages, /nativeVideoAvailable \? sendActivityCommand\("toggle-video"\)/); assert.match(pages, /activeIconName: "showTextPressed"/);
 });
 
 test("shared hotspot artwork embeds the exact canonical repository cue bytes without importing the Teacher-only asset tree", async () => {
@@ -179,7 +179,7 @@ test("shared hotspot artwork embeds the exact canonical repository cue bytes wit
 test("native Readable Text presentation toggles only when available and uses bounded internal scrolling", async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
   try {
-    const { nextNativeReadableTextView, normalizeNativeChildPresentationState } = await vite.ssrLoadModule("/src/components/native-readable-text/NativeReadableTextPresentation.jsx");
+    const { nextNativeReadableTextView, nextNativeSupplementaryView, normalizeNativeChildPresentationState } = await vite.ssrLoadModule("/src/components/native-readable-text/NativeReadableTextPresentation.jsx");
     assert.equal(nextNativeReadableTextView("questions", "toggle-text", true), "text");
     assert.equal(nextNativeReadableTextView("text", "toggle-text", true), "questions");
     assert.equal(nextNativeReadableTextView("questions", "toggle-text", false), "questions");
@@ -187,6 +187,11 @@ test("native Readable Text presentation toggles only when available and uses bou
     assert.equal(nextNativeReadableTextView("text", "show-next", true), "questions");
     assert.equal(nextNativeReadableTextView("text", "show-all", true), "questions");
     assert.equal(nextNativeReadableTextView("text", "reset-activity", true), "questions");
+    assert.equal(nextNativeSupplementaryView("questions", "toggle-video", { readableText: true, video: true }), "video");
+    assert.equal(nextNativeSupplementaryView("text", "toggle-video", { readableText: true, video: true }), "video");
+    assert.equal(nextNativeSupplementaryView("video", "toggle-text", { readableText: true, video: true }), "text");
+    assert.equal(nextNativeSupplementaryView("video", "toggle-video", { readableText: true, video: true }), "questions");
+    assert.equal(nextNativeSupplementaryView("questions", "toggle-video", { readableText: true, video: false }), "questions");
     assert.deepEqual(normalizeNativeChildPresentationState({
       panelIndex: 7,
       panelCount: 2,
@@ -199,7 +204,7 @@ test("native Readable Text presentation toggles only when available and uses bou
     readFile(new URL("../src/components/native-readable-text/NativeAudioTextHotspots.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-readable-text/nativeReadableText.css", import.meta.url), "utf8"),
   ]);
-  assert.match(component, /hidden=\{effectiveView === "text"\}/); assert.match(css, /\.native-readable-text-activity-view\[hidden\]\s*\{\s*display:\s*none\s*!important/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /role="scrollbar"/);
+  assert.match(component, /hidden=\{effectiveView === "text" \|\| effectiveView === "video"\}/); assert.match(css, /\.native-readable-text-activity-view\[hidden\]\s*\{\s*display:\s*none\s*!important/); assert.match(component, /scrollHeight > viewport\.clientHeight/); assert.match(component, /role="scrollbar"/);
   assert.match(component, /aria-valuenow/); assert.match(component, /ArrowUp/); assert.match(component, /PageDown/); assert.match(component, /setPointerCapture/);
   assert.match(component, /event\.key === "Escape"/);
   assert.match(focus, /<audio ref=\{audioRef\} hidden autoPlay=\{autoPlay\}/);

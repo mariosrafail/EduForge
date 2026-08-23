@@ -11,6 +11,7 @@ import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, re
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 
 const clone = (value) => structuredClone(value);
 const tabs = [{ id: "front", label: "Front", icon: Eye }, { id: "back", label: "Back", icon: Wrench }];
@@ -20,7 +21,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
   const [publicDraft, setPublicDraft] = useState(null); const [teacherDraft, setTeacherDraft] = useState(null);
   const [mode, setMode] = useState("back"); const [preview, setPreview] = useState("student"); const [dirty, setDirty] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null); const [selectedHotspotId, setSelectedHotspotId] = useState(null); const [drawItemId, setDrawItemId] = useState(""); const [drawing, setDrawing] = useState(false); const [uploading, setUploading] = useState(false); const [readableIncomplete, setReadableIncomplete] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null); const [selectedHotspotId, setSelectedHotspotId] = useState(null); const [drawItemId, setDrawItemId] = useState(""); const [drawing, setDrawing] = useState(false); const [uploading, setUploading] = useState(false); const [readableIncomplete, setReadableIncomplete] = useState(false); const [videoIncomplete, setVideoIncomplete] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -65,7 +66,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const updateHotspot = (mutator) => mutatePublic((next) => { const hotspot = next.parts[0].interaction.presentation.hotspots.find((entry) => entry.id === selectedHotspotId); if (hotspot) mutator(hotspot); });
   const deleteHotspot = () => { mutatePublic((next) => { next.parts[0].interaction.presentation.hotspots = next.parts[0].interaction.presentation.hotspots.filter((entry) => entry.id !== selectedHotspotId); }); setSelectedHotspotId(null); };
   const save = async () => {
-    if (!readiness.ready || readableIncomplete) return setState((current) => ({ ...current, message: "Resolve all authoring issues before saving." }));
+    if (!readiness.ready || readableIncomplete || videoIncomplete) return setState((current) => ({ ...current, message: "Resolve all authoring issues before saving." }));
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try { const value = await saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision: state.publicRevision, expectedTeacherRevision: state.teacherRevision, publicDocument: publicDraft, teacherDocument: teacherDraft }); setPublicDraft(value.publicDocument); setTeacherDraft(value.teacherDocument); setDirty(false); onDirtyChange(false); onSaved(value.publicRevision); setState({ kind: "ready", publicRevision: value.publicRevision, teacherRevision: value.teacherRevision, saving: false, message: "Draft saved." }); }
     catch (error) { setState((current) => ({ ...current, saving: false, message: error.status === 409 ? "This draft changed elsewhere. Reload before saving." : error.message })); }
@@ -84,7 +85,8 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       <section className="native-or-preview"><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div>{preview === "student" ? <NativeCompleteSentencesStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeCompleteSentencesTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}</section>
     </div> : null}
     <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
-    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableIncomplete || undefined}><strong>{readiness.ready && !readableIncomplete ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length || readableIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableIncomplete ? <li>Complete the Readable Text setup.</li> : null}</ul> : null}</aside>
-    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready || readableIncomplete} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
+    <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
+    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableIncomplete && !videoIncomplete || undefined}><strong>{readiness.ready && !readableIncomplete && !videoIncomplete ? "Ready to save" : "Before saving"}</strong>{readiness.issues.length || readableIncomplete || videoIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableIncomplete ? <li>Complete the Readable Text setup.</li> : null}{videoIncomplete ? <li>Complete the Video setup.</li> : null}</ul> : null}</aside>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !readiness.ready || readableIncomplete || videoIncomplete} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }

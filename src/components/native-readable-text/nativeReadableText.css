@@ -1,4 +1,4 @@
-.native-readable-text-presentation { width: 100%; height: 100%; min-height: 0; }
+.native-readable-text-presentation { position: relative; width: 100%; height: 100%; min-height: 0; }
 .native-readable-text-presentation[data-audio-focus] { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(6px, .8vw, 12px); overflow: hidden; }
 .native-readable-text-activity-view { width: 100%; height: 100%; }
 .native-readable-text-activity-view[hidden] { display: none !important; }
@@ -29,3 +29,8 @@
 .native-readable-text-scroll-control:focus-visible { outline: 3px solid #ffdc42; outline-offset: 3px; }
 .native-readable-text-scroll-thumb { position: absolute; top: calc((100% - var(--scroll-thumb-size)) * var(--scroll-progress)); left: 2px; display: block; width: 12px; height: var(--scroll-thumb-size); min-height: 24px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgb(15 23 42 / 40%); cursor: grab; }
 .native-readable-text-scroll-thumb:active { cursor: grabbing; }
+.native-video-presentation-view { box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: clamp(6px, 1vw, 14px); background: #111827; }
+.native-supplementary-navigation { position: absolute; right: 14px; bottom: 14px; z-index: 12; display: flex; gap: 8px; }
+.native-supplementary-navigation button { min-height: 42px; padding: 8px 15px; color: #fff; background: #183b63; border: 2px solid rgb(255 255 255 / 76%); border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 28%); font-weight: 800; cursor: pointer; }
+.native-supplementary-navigation button[aria-pressed="true"] { color: #13233a; background: #ffdc42; }
+.native-supplementary-navigation button:focus-visible { outline: 3px solid #ffdc42; outline-offset: 3px; }

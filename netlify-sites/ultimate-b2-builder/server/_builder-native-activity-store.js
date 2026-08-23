@@ -163,7 +163,7 @@ export async function validateBuilderNativeAssetReferences(sql, { bookSlug, comp
   if (!assets.length) return true;
   const ids = assets.map((asset) => asset.assetId);
   const rows = await sql`
-    select asset.id,asset.checksum_sha256,asset.asset_role,asset.publication_status,asset.access_level,asset.storage_profile,asset.source_metadata,asset.mime_type,asset.width,asset.height
+    select asset.id,asset.checksum_sha256,asset.asset_role,asset.publication_status,asset.access_level,asset.storage_profile,asset.source_metadata,asset.mime_type,asset.byte_size,asset.width,asset.height
     from book_assets asset
     join book_packages package on package.id=asset.book_package_id
     join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
@@ -182,6 +182,7 @@ export async function validateBuilderNativeAssetReferences(sql, { bookSlug, comp
     const reference = assets.find((asset) => asset.slot === requirement.slot);
     const asset = reference ? byId.get(reference.assetId) : null;
     if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) throw new Error(`${requirement.label || "Native managed asset"} media type does not match its managed asset.`);
+    if (requirement.byteSize !== undefined && Number(asset.byte_size) !== requirement.byteSize) throw new Error(`${requirement.label || "Native managed asset"} byte size does not match its managed asset.`);
     if ((requirement.width !== undefined || requirement.height !== undefined)
       && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) throw new Error(`${requirement.label || "Native managed image"} dimensions do not match its managed asset.`);
   }

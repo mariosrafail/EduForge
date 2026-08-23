@@ -10,6 +10,7 @@ import { assessNativeImageReadiness, duplicateNativeImage, NATIVE_IMAGE_LIMITS, 
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -31,6 +32,7 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
   const [zoom, setZoom] = useState(1);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
+  const [videoIncomplete, setVideoIncomplete] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -190,7 +192,8 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
 
     {tab === "preview" ? <div className="studio-preview-panel" role="tabpanel"><header><Eye aria-hidden="true" /><div><h3>Local Preview</h3><p>Preview includes unsaved editor changes. Shared Review shows the last saved Viewer state.</p></div></header><h3>{publicDraft.metadata.title}</h3>{publicDraft.metadata.visibleInstructionText ? <p>{publicDraft.metadata.visibleInstructionText}</p> : null}<NativeImageSurface document={publicDraft} assetUrl={assetUrl} /></div> : null}
     <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
-    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete ? "Content complete" : "Before publishing"}</strong>{readiness.issues.length || readableTextIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}</ul> : <span>Accessibility and content checks pass.</span>}</aside>
-    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : "Add an activity title before saving"} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
+    <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} onIncompleteChange={setVideoIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} />
+    <aside className="studio-readiness" role="status" data-ready={readiness.ready && !readableTextIncomplete && !videoIncomplete || undefined}><strong>{readiness.ready && !readableTextIncomplete && !videoIncomplete ? "Content complete" : "Before publishing"}</strong>{readiness.issues.length || readableTextIncomplete || videoIncomplete ? <ul>{readiness.issues.map((issue) => <li key={issue}>{issue}</li>)}{readableTextIncomplete ? <li>Upload a readable-text image.</li> : null}{videoIncomplete ? <li>Upload one MP4 and one valid SRT subtitle file.</li> : null}</ul> : <span>Accessibility and content checks pass.</span>}</aside>
+    <footer className="studio-save-bar"><StudioStatus dirty={dirty} saving={state.saving} message={state.message} /><StudioButton variant="primary" disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : "Add an activity title before saving"} onClick={save}>{state.saving ? "Saving…" : "Save Draft"}</StudioButton></footer>
   </section>;
 }

@@ -76,7 +76,7 @@ export default function TeacherOfflinePages({
   const pageContext = page?.title || "";
   const embeddedActivityId = activeActivity?.stableActivityId || activeActivityId || "";
   const activityActive = Boolean(embeddedActivityId);
-  const videoAvailable = activityActive && Boolean(activeActivity?.mediaDependencies?.some(
+  const legacyVideoAvailable = activityActive && Boolean(activeActivity?.mediaDependencies?.some(
     (dependency) => dependency.type === "video" && dependency.logicalKey,
   ));
   const listeningAvailable = embeddedActivityId === "ultimate-b2-sb-u1-p2-o2";
@@ -102,7 +102,7 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
-  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false, audioFocusActive: false });
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false, videoAvailable: false, audioFocusActive: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
   const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
   const onActivityPresentationStateChange = useCallback((state) => {
@@ -112,6 +112,7 @@ export default function TeacherOfflinePages({
       && current.panelIndex === next.panelIndex
       && current.panelCount === next.panelCount
       && current.readableTextAvailable === next.readableTextAvailable
+      && current.videoAvailable === next.videoAvailable
       && current.audioFocusActive === next.audioFocusActive
       && current.reveal?.supported === next.reveal?.supported
       && current.reveal?.total === next.reveal?.total
@@ -135,6 +136,7 @@ export default function TeacherOfflinePages({
       panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
       reveal: null,
       readableTextAvailable: false,
+      videoAvailable: false,
       audioFocusActive: false,
     });
     setActivityPresentationCommand(null);
@@ -320,6 +322,7 @@ export default function TeacherOfflinePages({
       panelCount: current.panelCount,
       reveal: current.reveal ? { ...current.reveal, revealed: 0, pristine: true } : null,
       readableTextAvailable: current.readableTextAvailable,
+      videoAvailable: current.videoAvailable,
       audioFocusActive: false,
     }));
     setActivitySessionEpoch((current) => current + 1);
@@ -330,14 +333,16 @@ export default function TeacherOfflinePages({
     { id: "show-all", controlId: "reveal:show-all", label: "Show All", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-all"], onClick: () => sendActivityCommand("show-all") },
     { id: "show-next", controlId: "reveal:show-next", label: "Show Next", disabled: !revealSupported || revealState.total === 0 || revealState.revealed >= revealState.total, artwork: legacyClassroomAssets.revealControls["show-next"], onClick: () => sendActivityCommand("show-next") },
   ] : [];
+  const nativeVideoAvailable = activityPresentationState.videoAvailable;
+  const videoAvailable = legacyVideoAvailable || nativeVideoAvailable;
   const standardContextActions = [...(videoAvailable ? [{
     id: "video",
     label: "Video",
     title: "Video",
-    ariaLabel: activityVideoOpen ? "Close activity video" : "Open activity video",
-    active: activityVideoOpen,
+    ariaLabel: nativeVideoAvailable ? (activityPresentationState.view === "video" ? "Return to questions" : "Open activity video") : activityVideoOpen ? "Close activity video" : "Open activity video",
+    active: nativeVideoAvailable ? activityPresentationState.view === "video" : activityVideoOpen,
     iconName: "video",
-    onClick: () => setActivityVideoOpen((open) => !open),
+    onClick: () => nativeVideoAvailable ? sendActivityCommand("toggle-video") : setActivityVideoOpen((open) => !open),
   }] : []), ...(!videoAvailable && listeningAvailable ? [{
     id: "show-text",
     label: "Show Text",
@@ -347,12 +352,12 @@ export default function TeacherOfflinePages({
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => setListeningShowTextCommand((command) => command + 1),
-  }] : []), ...(!listeningAvailable && (activityPresentationState.readableTextAvailable || (!videoAvailable && (multipleChoiceAvailable || showTextAvailable))) ? [{
+  }] : []), ...(!listeningAvailable && (activityPresentationState.readableTextAvailable || (!legacyVideoAvailable && (multipleChoiceAvailable || showTextAvailable))) ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
-    ariaLabel: activityPresentationState.view === "questions" ? "Show Text" : "Return to questions",
-    active: activityPresentationState.view !== "questions",
+    ariaLabel: activityPresentationState.view === "text" ? "Return to questions" : "Show Text",
+    active: activityPresentationState.view === "text",
     iconName: "showText",
     activeIconName: "showTextPressed",
     onClick: () => sendActivityCommand("toggle-text"),

@@ -11,5 +11,6 @@ export function normalizeTeacherActivityPresentationState(value, fallback = {}) 
     revealed: Math.min(nonNegativeInteger(revealSource.revealed), nonNegativeInteger(revealSource.total)),
     pristine: revealSource.pristine === true,
   } : null;
-  return { view: source.view === "text" ? "text" : "questions", panelIndex, panelCount, reveal, readableTextAvailable: source.readableTextAvailable === true, audioFocusActive: source.audioFocusActive === true };
+  const view = ["text", "video"].includes(source.view) ? source.view : "questions";
+  return { view, panelIndex, panelCount, reveal, readableTextAvailable: source.readableTextAvailable === true, videoAvailable: source.videoAvailable === true, audioFocusActive: source.audioFocusActive === true };
 }

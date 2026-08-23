@@ -1,10 +1,13 @@
 import { candidateNativeAudioTextAssetSlots, normalizeNativeAudioTextHotspots } from "./nativeAudioTextHotspots.js";
+import { normalizeTimedTextCues, TIMED_TEXT_LIMITS } from "../timed-media/timedText.js";
 
 export const NATIVE_ACTIVITY_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_PART_ID = "part-1";
 export const NATIVE_READABLE_TEXT_MAXIMUM_DIMENSION = 8_192;
 export const NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM = 300;
+export const NATIVE_VIDEO_FILE_NAME_MAXIMUM = 180;
+export const NATIVE_VIDEO_MAXIMUM_BYTES = 100 * 1024 * 1024;
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const SAFE_ASSET_ROLE = /^[a-z][a-z0-9_]{1,63}$/;
@@ -101,9 +104,30 @@ export function nativeReadableTextAssetRequirements(publicDocument) {
   return readableText ? [{ slot: readableText.assetSlot, width: readableText.sourceWidth, height: readableText.sourceHeight, label: "Readable Text" }] : [];
 }
 
+export function normalizeNativeVideo(input, assets) {
+  const value = structuredClone(object(input, "Native video companion"));
+  exactKeys(value, ["kind", "assetSlot", "fileName", "byteSize", "durationMs", "cues"], "Native video companion");
+  if (value.kind !== "managed-mp4") throw new Error("Native video companion kind is invalid.");
+  const reference = assets.find((asset) => asset.slot === value.assetSlot);
+  if (!reference || reference.role !== "activity_artwork") throw new Error("Native video companion must reference a managed native asset.");
+  const fileName = text(value.fileName, "Native video file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true });
+  if (!/^[A-Za-z0-9][A-Za-z0-9._() -]*\.mp4$/i.test(fileName)) throw new Error("Native video file name is invalid.");
+  if (!Number.isSafeInteger(value.byteSize) || value.byteSize < 1 || value.byteSize > NATIVE_VIDEO_MAXIMUM_BYTES) throw new Error("Native video byte size is invalid.");
+  if (!Number.isSafeInteger(value.durationMs) || value.durationMs < 1 || value.durationMs > TIMED_TEXT_LIMITS.durationMs) throw new Error("Native video duration is invalid.");
+  const cues = normalizeTimedTextCues(value.cues, { label: "Native video subtitles" });
+  if (cues.some((cue) => cue.endMs > value.durationMs)) throw new Error("Native video subtitle cue exceeds the video duration.");
+  return { kind: "managed-mp4", assetSlot: reference.slot, fileName, byteSize: value.byteSize, durationMs: value.durationMs, cues };
+}
+
+export function nativeVideoAssetRequirements(publicDocument) {
+  const video = publicDocument?.video;
+  return video ? [{ slot: video.assetSlot, mediaType: "video/mp4", byteSize: video.byteSize, label: "Video MP4" }] : [];
+}
+
 export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
   return publicDocument?.readableText?.assetSlot === slot
+    || publicDocument?.video?.assetSlot === slot
     || Boolean(publicDocument?.audioTextHotspots?.hotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
@@ -121,8 +145,9 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   if (typeof normalizeInteraction !== "function") throw new Error("Native public interaction normalizer is required.");
   const value = structuredClone(object(input, "Native public activity"));
   const hasReadableText = Object.hasOwn(value, "readableText");
+  const hasVideo = Object.hasOwn(value, "video");
   const hasAudioTextHotspots = Object.hasOwn(value, "audioTextHotspots");
-  const optionalKeys = [...(hasReadableText ? ["readableText"] : []), ...(hasAudioTextHotspots ? ["audioTextHotspots"] : [])];
+  const optionalKeys = [...(hasReadableText ? ["readableText"] : []), ...(hasVideo ? ["video"] : []), ...(hasAudioTextHotspots ? ["audioTextHotspots"] : [])];
   exactKeys(value, ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts", ...optionalKeys], "Native public activity");
   if (value.schemaVersion !== NATIVE_ACTIVITY_SCHEMA_VERSION) throw new Error("Unsupported native public activity schema version.");
   const activityId = safeId(value.activityId, "Native activity ID");
@@ -143,8 +168,10 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   exactKeys(part, ["id", "interaction"], "Native activity Part");
   if (part.id !== NATIVE_ACTIVITY_PART_ID) throw new Error("Native activity schema v1 requires stable Part ID part-1.");
   const readableText = hasReadableText ? normalizeNativeReadableText(value.readableText, assets) : null;
+  const video = hasVideo ? normalizeNativeVideo(value.video, assets) : null;
   const commonAssetSlots = new Set([
     ...(readableText ? [readableText.assetSlot] : []),
+    ...(video ? [video.assetSlot] : []),
     ...(hasAudioTextHotspots ? candidateNativeAudioTextAssetSlots(value.audioTextHotspots) : []),
   ]);
   const interaction = normalizeInteraction(part.interaction, { assets, commonAssetSlots });
@@ -161,6 +188,7 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
     parts: [{ id: NATIVE_ACTIVITY_PART_ID, interaction }],
   };
   if (readableText) normalized.readableText = readableText;
+  if (video) normalized.video = video;
   if (hasAudioTextHotspots) normalized.audioTextHotspots = normalizeNativeAudioTextHotspots(value.audioTextHotspots, normalized);
   return normalized;
 }
