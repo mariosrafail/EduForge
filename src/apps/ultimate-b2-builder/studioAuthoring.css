@@ -104,7 +104,7 @@
 .studio-canvas-selection-status { flex: 1 0 auto; padding-left: 10px; color: var(--studio-muted); border-left: 1px solid var(--studio-border); font-size: .68rem; }
 .studio-artboard-wrap { width: 100%; min-width: 360px; transition: width .16s ease; }
 .studio-artboard { border: 1px solid #9eabc0; box-shadow: 0 20px 55px rgb(22 34 56 / 24%); }
-.studio-open-response .studio-artboard-wrap { min-width: 0; }
+.studio-open-response .studio-artboard-wrap { min-width: 0; transition: none; }
 .studio-open-response .studio-artboard { box-sizing: border-box; }
 .studio-canvas-hint { padding: 9px 14px; color: var(--studio-muted); text-align: center; background: #f7f9fb; border-top: 1px solid var(--studio-border); font-size: .68rem; }
 .studio-inspector { align-content: start; display: grid; gap: 0; border-left: 1px solid var(--studio-border); }

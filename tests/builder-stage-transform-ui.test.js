@@ -46,6 +46,8 @@ test("Open Response keeps every layout control above a fitted, scrollbar-free pa
   assert.match(studioCss, /\.studio-open-response \.studio-canvas-viewport::-webkit-scrollbar/);
   assert.match(studioCss, /scrollbar-width: none/);
   assert.match(studioCss, /\.studio-open-response \.studio-or-layout \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(studioCss, /\.studio-artboard-wrap \{[^}]*transition: width \.16s ease/);
+  assert.match(studioCss, /\.studio-open-response \.studio-artboard-wrap \{[^}]*transition: none/);
 });
 
 test("hotspots share geometry utilities and expose selected-only four-corner handles", async () => {
