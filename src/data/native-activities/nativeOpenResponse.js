@@ -88,6 +88,35 @@ export function nativeOpenResponseLinePositions({ paddingY, lineSpacing, lineCou
   return Array.from({ length: lineCount }, (_, index) => Math.round((paddingY + lineSpacing * (index + 1)) * 1_000) / 1_000);
 }
 
+const roundGeometry = (value) => Math.round(Number(value) * 1_000) / 1_000;
+
+function availableResponseLineWidth(area, presentation) {
+  return roundGeometry(Math.max(1, area.width - (2 * presentation.paddingX)));
+}
+
+function responseLineWidthFollowsArea(area, presentation) {
+  const available = availableResponseLineWidth(area, presentation);
+  const lineWidth = roundGeometry(presentation.lineWidth);
+  // Existing blank questions use a four-pixel visual inset inside the padded
+  // response width. Treat that canonical legacy default as linked too.
+  const canonicalLegacyDefault = roundGeometry(area.width) === 704
+    && roundGeometry(presentation.paddingX) === 12
+    && lineWidth === 676;
+  return lineWidth === available || canonicalLegacyDefault;
+}
+
+export function resizeNativeOpenResponseRegion(responseRegion, nextArea) {
+  const previousArea = responseRegion.area;
+  const presentation = responseRegion.presentation;
+  const linkedLineWidth = responseLineWidthFollowsArea(previousArea, presentation);
+  responseRegion.area = { ...nextArea };
+  const available = availableResponseLineWidth(responseRegion.area, presentation);
+  presentation.lineWidth = linkedLineWidth ? available : Math.min(presentation.lineWidth, available);
+  while (presentation.lineCount > 1 && presentation.paddingY + presentation.lineSpacing * presentation.lineCount > responseRegion.area.height - presentation.paddingY) presentation.lineCount -= 1;
+  presentation.linePositions = nativeOpenResponseLinePositions(presentation);
+  return responseRegion;
+}
+
 function responsePresentation(input, label, regionArea) {
   exactKeys(input, ["paddingX", "paddingY", "lineCount", "lineSpacing", "linePositions", "lineWidth", "answerFontFamily", "answerFontSizeMin", "answerFontSizeMax", "color", "align"], label);
   const paddingX = number(input.paddingX, `${label}.paddingX`, 0, Math.min(100, regionArea.width / 2));

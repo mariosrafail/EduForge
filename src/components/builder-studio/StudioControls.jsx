@@ -20,13 +20,16 @@ export function StudioTabs({ value, onChange, tabs, label }) {
   </div>;
 }
 
-export function StudioCanvasToolbar({ zoom, onZoomChange, snap = true, onSnapChange }) {
-  return <div className="studio-canvas-toolbar" role="toolbar" aria-label="Canvas controls">
-    <StudioButton variant="ghost" aria-label="Zoom out" onClick={() => onZoomChange(Math.max(.5, zoom - .1))}><ZoomOut aria-hidden="true" /></StudioButton>
-    <output aria-label="Canvas zoom">{Math.round(zoom * 100)}%</output>
-    <StudioButton variant="ghost" aria-label="Zoom in" onClick={() => onZoomChange(Math.min(2, zoom + .1))}><ZoomIn aria-hidden="true" /></StudioButton>
-    <StudioButton variant="ghost" onClick={() => onZoomChange(1)}><Scan aria-hidden="true" /> Fit</StudioButton>
-    {onSnapChange ? <StudioButton variant="ghost" selected={snap} onClick={() => onSnapChange(!snap)}>{snap ? <Check aria-hidden="true" /> : <Minus aria-hidden="true" />} Snap</StudioButton> : null}
+export function StudioCanvasToolbar({ zoom, onZoomChange, snap = true, onSnapChange, children = null }) {
+  return <div className={`studio-canvas-toolbar ${children ? "has-contextual-controls" : ""}`.trim()} role="toolbar" aria-label="Canvas controls">
+    <div className="studio-canvas-zoom-controls">
+      <StudioButton variant="ghost" aria-label="Zoom out" onClick={() => onZoomChange(Math.max(.5, zoom - .1))}><ZoomOut aria-hidden="true" /></StudioButton>
+      <output aria-label="Canvas zoom">{Math.round(zoom * 100)}%</output>
+      <StudioButton variant="ghost" aria-label="Zoom in" onClick={() => onZoomChange(Math.min(2, zoom + .1))}><ZoomIn aria-hidden="true" /></StudioButton>
+      <StudioButton variant="ghost" onClick={() => onZoomChange(1)}><Scan aria-hidden="true" /> Fit</StudioButton>
+      {onSnapChange ? <StudioButton variant="ghost" selected={snap} onClick={() => onSnapChange(!snap)}>{snap ? <Check aria-hidden="true" /> : <Minus aria-hidden="true" />} Snap</StudioButton> : null}
+    </div>
+    {children}
   </div>;
 }
 

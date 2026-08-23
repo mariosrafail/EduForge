@@ -96,6 +96,11 @@ test("Shared video runtime owns captions, custom controls, and the fullscreen sh
   assert.doesNotMatch(player, /dangerouslySetInnerHTML|<track/);
   assert.match(css, /native-video-exit-fullscreen[^}]*opacity:\s*\.34/s);
   assert.match(css, /native-video-exit-fullscreen:hover/);
+  assert.match(css, /native-video-exit-fullscreen:focus/);
+  assert.match(css, /native-video-player-shell\[data-fullscreen\]/);
+  assert.match(css, /--native-video-controls-min-height:\s*54px/);
+  assert.match(css, /--native-video-fullscreen-control-gap:\s*12px/);
+  assert.match(css, /native-video-exit-fullscreen[^}]*bottom:\s*calc\(max\(16px, env\(safe-area-inset-bottom\)\) \+ var\(--native-video-controls-min-height\) \+ var\(--native-video-fullscreen-control-gap\)\)/s);
   assert.match(presentation, /effectiveView === "video"/);
   assert.match(presentation, /<NativeVideoPlayer/);
 });

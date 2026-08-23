@@ -1,11 +1,11 @@
-.native-video-player-shell { position: relative; box-sizing: border-box; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; height: 100%; min-height: 0; overflow: hidden; color: #fff; background: #05070b; border-radius: 12px; }
+.native-video-player-shell { --native-video-controls-min-height: 54px; --native-video-fullscreen-control-gap: 12px; position: relative; box-sizing: border-box; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; height: 100%; min-height: 0; overflow: hidden; color: #fff; background: #05070b; border-radius: 12px; }
 .native-video-stage { position: relative; display: grid; min-height: 0; overflow: hidden; place-items: center; background: #000; cursor: pointer; }
 .native-video-stage video { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #000; }
 .native-video-caption { position: absolute; right: clamp(20px, 5vw, 80px); bottom: clamp(18px, 10vh, 112px); left: clamp(20px, 5vw, 80px); z-index: 4; display: grid; justify-items: center; gap: 3px; color: #fff; font-size: clamp(18px, 2.4vw, 36px); font-weight: 750; line-height: 1.3; text-align: center; text-shadow: 0 2px 5px #000, 0 0 12px #000; pointer-events: none; }
 .native-video-caption span { max-width: 100%; padding: .12em .38em; white-space: pre-wrap; overflow-wrap: anywhere; background: rgb(0 0 0 / 68%); border-radius: 4px; }
 .native-video-center-play { position: absolute; z-index: 5; display: grid; width: 68px; height: 68px; padding: 0; color: #fff; background: rgb(9 18 31 / 78%); border: 2px solid rgb(255 255 255 / 82%); border-radius: 50%; place-items: center; cursor: pointer; }
 .native-video-center-play svg { width: 32px; height: 32px; }
-.native-video-controls { z-index: 6; display: flex; min-height: 54px; gap: 9px; align-items: center; padding: 7px 10px; background: #101722; }
+.native-video-controls { z-index: 6; display: flex; min-height: var(--native-video-controls-min-height); gap: 9px; align-items: center; padding: 7px 10px; background: #101722; }
 .native-video-controls button { display: inline-flex; min-width: 42px; min-height: 42px; align-items: center; justify-content: center; gap: 7px; padding: 7px 9px; color: #fff; background: #243246; border: 1px solid #50627a; border-radius: 7px; cursor: pointer; }
 .native-video-controls button:hover, .native-video-controls button:active { background: #334a68; }
 .native-video-controls button:focus-visible { outline: 3px solid #ffdc42; outline-offset: 2px; }
@@ -15,12 +15,12 @@
 .native-video-volume { width: clamp(70px, 10vw, 120px); }
 .native-video-fullscreen { margin-left: auto; }
 .native-video-message { position: absolute; top: 10px; left: 50%; z-index: 8; max-width: calc(100% - 28px); margin: 0; padding: 8px 12px; color: #fff; background: rgb(127 29 29 / 94%); border-radius: 7px; transform: translateX(-50%); }
-.native-video-player-shell:fullscreen { width: 100%; height: 100%; max-width: none; max-height: none; border-radius: 0; background: #000; }
-.native-video-player-shell:fullscreen .native-video-stage { width: 100%; height: 100%; }
-.native-video-player-shell:fullscreen .native-video-exit-fullscreen { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 20; min-width: 132px; min-height: 48px; opacity: .34; transition: opacity 150ms ease, background-color 150ms ease; touch-action: manipulation; }
-.native-video-player-shell:fullscreen .native-video-exit-fullscreen:hover,
-.native-video-player-shell:fullscreen .native-video-exit-fullscreen:focus-visible,
-.native-video-player-shell:fullscreen .native-video-exit-fullscreen:active { opacity: 1; background: #243b5a; }
+.native-video-player-shell:fullscreen, .native-video-player-shell[data-fullscreen] { width: 100%; height: 100%; max-width: none; max-height: none; border-radius: 0; background: #000; }
+.native-video-player-shell:fullscreen .native-video-stage, .native-video-player-shell[data-fullscreen] .native-video-stage { width: 100%; height: 100%; }
+.native-video-player-shell:fullscreen .native-video-exit-fullscreen, .native-video-player-shell[data-fullscreen] .native-video-exit-fullscreen { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--native-video-controls-min-height) + var(--native-video-fullscreen-control-gap)); z-index: 20; min-width: 132px; min-height: 48px; opacity: .34; transition: opacity 150ms ease, background-color 150ms ease; touch-action: manipulation; }
+.native-video-player-shell:fullscreen .native-video-exit-fullscreen:hover, .native-video-player-shell[data-fullscreen] .native-video-exit-fullscreen:hover,
+.native-video-player-shell:fullscreen .native-video-exit-fullscreen:focus, .native-video-player-shell[data-fullscreen] .native-video-exit-fullscreen:focus,
+.native-video-player-shell:fullscreen .native-video-exit-fullscreen:active, .native-video-player-shell[data-fullscreen] .native-video-exit-fullscreen:active { opacity: 1; background: #243b5a; }
 
 @media (max-width: 700px) {
   .native-video-controls { gap: 5px; padding: 5px; }

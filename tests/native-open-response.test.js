@@ -7,7 +7,7 @@ import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builde
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork } from "../src/data/native-activities/nativeOpenResponse.js";
+import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -77,6 +77,36 @@ test("geometry, response line topology, and unknown fields fail closed", () => {
   const positions = structuredClone(publicDocument); positions.parts[0].interaction.questions[0].responseRegion.presentation.linePositions = [40, 80]; invalids.push(positions);
   invalids.forEach((value) => assert.throws(() => kind.normalizePublic(value)));
   assert.deepEqual(nativeOpenResponseLinePositions({ paddingY: 8, lineSpacing: 32, lineCount: 3 }), [40, 72, 104]);
+});
+
+test("response line width follows linked region resizing and preserves an explicit override", () => {
+  const responseRegion = createNativeOpenResponseQuestion(q1).responseRegion;
+  responseRegion.area.width = 400;
+  responseRegion.presentation.paddingX = 0;
+  responseRegion.presentation.lineWidth = 400;
+  resizeNativeOpenResponseRegion(responseRegion, { ...responseRegion.area, width: 500 });
+  assert.equal(responseRegion.presentation.lineWidth, 500);
+
+  responseRegion.presentation.lineWidth = 320;
+  resizeNativeOpenResponseRegion(responseRegion, { ...responseRegion.area, width: 600 });
+  assert.equal(responseRegion.presentation.lineWidth, 320);
+  assert.equal(responseRegion.area.width, 600);
+
+  responseRegion.presentation.lineWidth = 280;
+  assert.equal(responseRegion.area.width, 600, "editing line width must not resize the response region");
+
+  const legacyDefault = createNativeOpenResponseQuestion(q2).responseRegion;
+  assert.equal(legacyDefault.area.width, 704);
+  assert.equal(legacyDefault.presentation.lineWidth, 676);
+  resizeNativeOpenResponseRegion(legacyDefault, { ...legacyDefault.area, width: 800 });
+  assert.equal(legacyDefault.presentation.lineWidth, 776, "the canonical four-pixel legacy inset remains linked on first resize");
+
+  const deliberateFourPixelOverride = createNativeOpenResponseQuestion(`q-${"3".repeat(32)}`).responseRegion;
+  deliberateFourPixelOverride.area.width = 500;
+  deliberateFourPixelOverride.presentation.paddingX = 0;
+  deliberateFourPixelOverride.presentation.lineWidth = 496;
+  resizeNativeOpenResponseRegion(deliberateFourPixelOverride, { ...deliberateFourPixelOverride.area, width: 600 });
+  assert.equal(deliberateFourPixelOverride.presentation.lineWidth, 496, "a deliberate four-pixel override remains independent");
 });
 
 test("Open Response permits many artwork instances for one canonical managed asset", () => {

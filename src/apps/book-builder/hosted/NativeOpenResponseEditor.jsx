@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, FileText, LayoutPanelTop, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
@@ -8,7 +8,7 @@ import { NativeOpenResponseTeacherSurface } from "../../../components/native-ope
 import { NativeOpenResponseStudentSurface } from "../../../components/native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork } from "../../../data/native-activities/nativeOpenResponse.js";
+import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer } from "../../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
@@ -23,6 +23,7 @@ function assetPreviewRoot(bookSlug, componentSlug, activityId, assetId) {
 }
 
 function geometryLabel(type) { return type === "prompt" ? "Prompt" : type === "response" ? "Response region" : "Artwork"; }
+function blocksMiddlePan(target) { return target instanceof Element && Boolean(target.closest("button,input,textarea,select,a,summary,[contenteditable='true']")); }
 const tabs = [
   { id: "content", label: "Content", icon: FileText },
   { id: "layout", label: "Layout", icon: LayoutPanelTop },
@@ -42,6 +43,9 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const [zoom, setZoom] = useState(1);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [panning, setPanning] = useState(false);
+  const canvasViewportRef = useRef(null);
+  const panRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -57,6 +61,11 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     }).catch((error) => { if (!controller.signal.aborted) setState({ kind: "error", message: error.message }); });
     return () => controller.abort();
   }, [activityId, bookSlug, componentSlug]);
+  useEffect(() => {
+    if (zoom !== 1 || !canvasViewportRef.current) return;
+    canvasViewportRef.current.scrollLeft = 0;
+    canvasViewportRef.current.scrollTop = 0;
+  }, [zoom]);
 
   const markDirty = () => { setDirty(true); onDirtyChange(true); };
   const interaction = publicDraft?.parts[0].interaction;
@@ -68,6 +77,30 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
 
   const mutatePublic = (mutator) => { setPublicDraft((current) => { const next = clone(current); mutator(next); return next; }); markDirty(); };
   const mutateTeacher = (mutator) => { setTeacherDraft((current) => { const next = clone(current); mutator(next); return next; }); markDirty(); };
+
+  const beginCanvasPan = (event) => {
+    if (event.button !== 1 || blocksMiddlePan(event.target)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    panRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, scrollLeft: event.currentTarget.scrollLeft, scrollTop: event.currentTarget.scrollTop };
+    setPanning(true);
+  };
+  const moveCanvasPan = (event) => {
+    const pan = panRef.current;
+    if (!pan || pan.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.currentTarget.scrollLeft = pan.scrollLeft - (event.clientX - pan.clientX);
+    event.currentTarget.scrollTop = pan.scrollTop - (event.clientY - pan.clientY);
+  };
+  const endCanvasPan = (event) => {
+    if (!panRef.current || panRef.current.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    panRef.current = null;
+    setPanning(false);
+  };
+  const changeCanvasZoom = (nextZoom) => {
+    setZoom(nextZoom);
+  };
 
   const addQuestion = () => {
     const id = createNativeChildId("q");
@@ -104,16 +137,16 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       const target = selection.type === "artwork" ? next.parts[0].interaction.artwork.find((item) => item.id === selection.id)
         : next.parts[0].interaction.questions.find((item) => item.id === selection.id);
       const area = selection.type === "artwork" ? target.area : selection.type === "prompt" ? target.promptArea : target.responseRegion.area;
-      area.x = clamp(nextArea.x, 0, surface.width - nextArea.width);
-      area.y = clamp(nextArea.y, 0, surface.height - nextArea.height);
-      area.width = clamp(nextArea.width, 1, surface.width - area.x);
-      area.height = clamp(nextArea.height, 1, surface.height - area.y);
-      if (selection.type === "response") {
-        const p = target.responseRegion.presentation;
-        p.lineWidth = Math.min(p.lineWidth, Math.max(1, area.width - 2 * p.paddingX));
-        while (p.lineCount > 1 && p.paddingY + p.lineSpacing * p.lineCount > area.height - p.paddingY) p.lineCount -= 1;
-        p.linePositions = nativeOpenResponseLinePositions(p);
-      }
+      const normalized = {
+        x: clamp(nextArea.x, 0, surface.width - nextArea.width),
+        y: clamp(nextArea.y, 0, surface.height - nextArea.height),
+        width: 0,
+        height: 0,
+      };
+      normalized.width = clamp(nextArea.width, 1, surface.width - normalized.x);
+      normalized.height = clamp(nextArea.height, 1, surface.height - normalized.y);
+      if (selection.type === "response") resizeNativeOpenResponseRegion(target.responseRegion, normalized);
+      else Object.assign(area, normalized);
     });
   };
   const updateSelectedArea = (key, raw) => {
@@ -125,6 +158,12 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       : key === "width" ? clamp(value, 1, surface.width - next.x) : clamp(value, 1, surface.height - next.y);
     commitSelectedArea(next);
   };
+  const changeResponsePresentation = (questionId, key, value) => updateQuestion(questionId, (target) => {
+    const presentation = target.responseRegion.presentation;
+    presentation[key] = value;
+    if (key === "paddingX") presentation.lineWidth = Math.min(presentation.lineWidth, Math.max(1, target.responseRegion.area.width - 2 * value));
+    if (["paddingY", "lineSpacing", "lineCount"].includes(key)) presentation.linePositions = nativeOpenResponseLinePositions(presentation);
+  });
 
   const uploadArtwork = async (file) => {
     if (!file) return; setUploading(true); setState((current) => ({ ...current, message: "Uploading artwork…" }));
@@ -176,11 +215,11 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><code>{question.id}</code></button>)}</aside>
       {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
     </div> : null}
-    {tab === "layout" ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={setZoom} /><div className="studio-canvas-viewport"><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}><NativeOpenResponseSurface className="studio-artboard" document={publicDraft} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value.type !== "artwork") setSelectedQuestionId(value.id); }}>
+    {tab === "layout" ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={changeCanvasZoom}><OpenResponseQuickControls selection={selection} area={selectedArea} question={selectedQuestion} artwork={selectedArtwork} surface={interaction.surface} updateArea={updateSelectedArea} changeResponse={changeResponsePresentation} updateQuestion={updateQuestion} updateArtwork={(mutator) => mutatePublic((next) => mutator(next.parts[0].interaction.artwork.find((item) => item.id === selection?.id)))} /></StudioCanvasToolbar><div ref={canvasViewportRef} className={`studio-canvas-viewport ${panning ? "is-middle-panning" : ""}`} data-middle-pan="true" onPointerDown={beginCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan} onAuxClick={(event) => { if (event.button === 1) event.preventDefault(); }}><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}><NativeOpenResponseSurface className="studio-artboard" document={publicDraft} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value && value.type !== "artwork") setSelectedQuestionId(value.id); }}>
       {selectedArea ? <StageSelectionFrame geometry={selectedArea} stage={interaction.surface} label={geometryLabel(selection.type)} locked={Boolean(selectedArtwork?.locked)} minWidth={selection.type === "response" ? Math.max(80, 2 * selectedQuestion.responseRegion.presentation.paddingX + 1) : 24} minHeight={selection.type === "response" ? Math.max(44, 2 * selectedQuestion.responseRegion.presentation.paddingY + selectedQuestion.responseRegion.presentation.lineSpacing) : 24} preserveAspectRatio={selection.type === "artwork"} moveFromGrip={selection.type !== "artwork"} onChange={commitSelectedArea} onClear={() => setSelection(null)} onDelete={selection.type === "artwork" ? () => removeArtwork(selection.id) : undefined} zIndex={selection.type === "artwork" ? 39 : 90} /> : null}
     </NativeOpenResponseSurface></div></div><p className="studio-canvas-hint">Move using the selection grip · Resize from any corner · Arrow keys nudge</p></div><aside className="native-or-properties studio-inspector"><label className="native-or-upload studio-upload-action"><Upload aria-hidden="true" /><span>{uploading ? "Uploading…" : "Upload graphic"}</span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0]); event.target.value = ""; }} /></label>{selection && selectedArea ? <><h3>{geometryLabel(selection.type)}</h3>{["x","y","width","height"].map((key) => <label className="studio-field" key={key}><span>{key[0].toUpperCase() + key.slice(1)}</span><input type="number" min={key === "width" || key === "height" ? 1 : 0} step="1" value={selectedArea[key]} disabled={Boolean(selectedArtwork?.locked)} onChange={(event) => updateSelectedArea(key, event.target.value)} /></label>)}</> : <p>Select artwork, a prompt, or a response region.</p>}
       {selection?.type === "prompt" && selectedQuestion ? <><label><span>Prompt font size</span><input type="number" min="8" max="96" value={selectedQuestion.promptStyle.fontSize} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.promptStyle.fontSize = Number(event.target.value); })} /></label><label><span>Prompt alignment</span><select value={selectedQuestion.promptStyle.align} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></label></> : null}
-      {selection?.type === "response" && selectedQuestion ? <ResponseProperties question={selectedQuestion} update={(mutator) => updateQuestion(selectedQuestion.id, mutator)} fit={fit} /> : null}
+      {selection?.type === "response" && selectedQuestion ? <ResponseProperties question={selectedQuestion} update={(mutator) => updateQuestion(selectedQuestion.id, mutator)} change={(key, value) => changeResponsePresentation(selectedQuestion.id, key, value)} fit={fit} /> : null}
       {selection?.type === "artwork" ? <ArtworkProperties item={interaction.artwork.find((item) => item.id === selection.id)} update={(mutator) => mutatePublic((next) => mutator(next.parts[0].interaction.artwork.find((item) => item.id === selection.id), next.parts[0].interaction.artwork))} duplicate={() => duplicateArtwork(selection.id)} remove={() => removeArtwork(selection.id)} /> : null}
       <section className="native-or-layers"><h3>Artwork Layers</h3>{[...interaction.artwork].sort((left, right) => right.order - left.order).map((item) => <button type="button" key={item.id} aria-current={selection?.type === "artwork" && selection.id === item.id ? "true" : undefined} onClick={() => setSelection({ type: "artwork", id: item.id })}><span>{item.altText || (item.decorative ? "Decorative graphic" : item.id)}</span>{item.locked ? <small>Locked</small> : null}</button>)}</section>
     </aside></div> : null}
@@ -192,14 +231,33 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   </section>;
 }
 
-function ResponseProperties({ question, update, fit }) {
+function QuickNumber({ label, value, minimum = 0, maximum, disabled = false, onChange }) {
+  return <StudioField label={label} className="studio-quick-field"><input aria-label={`Quick ${label}`} type="number" min={minimum} max={maximum} step="1" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></StudioField>;
+}
+
+function OpenResponseQuickControls({ selection, area, question, artwork, surface, updateArea, changeResponse, updateQuestion, updateArtwork }) {
+  if (!selection || !area) return <p className="studio-canvas-selection-status">Select an object for quick controls</p>;
+  const locked = Boolean(artwork?.locked);
+  return <div className="studio-canvas-context-controls" role="group" aria-label={`${geometryLabel(selection.type)} quick controls`}>
+    <strong>{geometryLabel(selection.type)}</strong>
+    <QuickNumber label="X" value={area.x} maximum={surface.width - area.width} disabled={locked} onChange={(value) => updateArea("x", value)} />
+    <QuickNumber label="Y" value={area.y} maximum={surface.height - area.height} disabled={locked} onChange={(value) => updateArea("y", value)} />
+    <QuickNumber label="Width" value={area.width} minimum={1} maximum={surface.width - area.x} disabled={locked} onChange={(value) => updateArea("width", value)} />
+    <QuickNumber label="Height" value={area.height} minimum={1} maximum={surface.height - area.y} disabled={locked} onChange={(value) => updateArea("height", value)} />
+    {selection.type === "response" && question ? <>
+      <QuickNumber label="Padding X" value={question.responseRegion.presentation.paddingX} maximum={100} onChange={(value) => changeResponse(question.id, "paddingX", Number(value))} />
+      <QuickNumber label="Padding Y" value={question.responseRegion.presentation.paddingY} maximum={100} onChange={(value) => changeResponse(question.id, "paddingY", Number(value))} />
+      <QuickNumber label="Line width" value={question.responseRegion.presentation.lineWidth} minimum={1} maximum={question.responseRegion.area.width - 2 * question.responseRegion.presentation.paddingX} onChange={(value) => changeResponse(question.id, "lineWidth", Number(value))} />
+      <QuickNumber label="Line spacing" value={question.responseRegion.presentation.lineSpacing} minimum={8} maximum={120} onChange={(value) => changeResponse(question.id, "lineSpacing", Number(value))} />
+    </> : null}
+    {selection.type === "prompt" && question ? <><QuickNumber label="Font size" value={question.promptStyle.fontSize} minimum={8} maximum={96} onChange={(value) => updateQuestion(question.id, (target) => { target.promptStyle.fontSize = Number(value); })} /><StudioField label="Align" className="studio-quick-field"><select aria-label="Quick Align" value={question.promptStyle.align} onChange={(event) => updateQuestion(question.id, (target) => { target.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></StudioField></> : null}
+    {selection.type === "artwork" && artwork ? <><StudioField label="Fit" className="studio-quick-field"><select aria-label="Quick Fit" value={artwork.fit} onChange={(event) => updateArtwork((target) => { target.fit = event.target.value; })}><option value="contain">Contain</option><option value="cover">Cover</option></select></StudioField><label className="studio-quick-check"><input type="checkbox" checked={artwork.locked} onChange={(event) => updateArtwork((target) => { target.locked = event.target.checked; })} /> Locked</label></> : null}
+  </div>;
+}
+
+function ResponseProperties({ question, update, change, fit }) {
   const p = question.responseRegion.presentation;
-  const change = (key, value) => update((target) => {
-    const presentation = target.responseRegion.presentation;
-    presentation[key] = value;
-    if (["paddingY", "lineSpacing", "lineCount"].includes(key)) presentation.linePositions = nativeOpenResponseLinePositions(presentation);
-  });
-  return <><label><span>Accessibility label</span><input value={question.responseRegion.ariaLabel} maxLength={300} onChange={(event) => update((target) => { target.responseRegion.ariaLabel = event.target.value; })} /></label>{[["paddingX",0,100],["paddingY",0,100],["lineCount",1,20],["lineSpacing",8,120],["lineWidth",1,question.responseRegion.area.width],["answerFontSizeMin",8,48],["answerFontSizeMax",8,72]].map(([key,min,max]) => <label key={key}><span>{key}</span><input type="number" min={min} max={max} value={p[key]} onChange={(event) => change(key, Number(event.target.value))} /></label>)}<label><span>Answer alignment</span><select value={p.align} onChange={(event) => change("align", event.target.value)}><option>left</option><option>center</option><option>right</option></select></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? "Auto Fit passes." : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></>;
+  return <><label><span>Accessibility label</span><input value={question.responseRegion.ariaLabel} maxLength={300} onChange={(event) => update((target) => { target.responseRegion.ariaLabel = event.target.value; })} /></label>{[["paddingX",0,100],["paddingY",0,100],["lineCount",1,20],["lineSpacing",8,120],["lineWidth",1,question.responseRegion.area.width - 2 * p.paddingX],["answerFontSizeMin",8,48],["answerFontSizeMax",8,72]].map(([key,min,max]) => <label key={key}><span>{key}</span><input type="number" min={min} max={max} value={p[key]} onChange={(event) => change(key, Number(event.target.value))} /></label>)}<label><span>Answer alignment</span><select value={p.align} onChange={(event) => change("align", event.target.value)}><option>left</option><option>center</option><option>right</option></select></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? "Auto Fit passes." : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></>;
 }
 
 function ArtworkProperties({ item, update, duplicate, remove }) {

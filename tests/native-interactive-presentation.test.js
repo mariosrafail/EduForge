@@ -101,6 +101,43 @@ test("Native Image keeps selectable button behavior and locked state in authorin
   });
 });
 
+test("Native Open Response uses static preview layers and selectable authoring controls", async () => {
+  await withVite(async (vite) => {
+    const [{ NativeOpenResponseSurface }, { createNativeOpenResponseQuestion }] = await Promise.all([
+      vite.ssrLoadModule("/src/components/native-open-response/NativeOpenResponseSurface.jsx"),
+      vite.ssrLoadModule("/src/data/native-activities/nativeOpenResponse.js"),
+    ]);
+    const question = createNativeOpenResponseQuestion(`q-${"1".repeat(32)}`);
+    question.prompt = "Static authored prompt";
+    const document = {
+      activityId,
+      kind: "open-response",
+      metadata: { title: titleSentinel, visibleInstructionText: instructionSentinel },
+      assets: [asset],
+      parts: [{ interaction: { kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [{ id: `art-${"2".repeat(32)}`, assetSlot: asset.slot, area: { x: 20, y: 20, width: 300, height: 180 }, order: 0, altText: "Static diagram", decorative: false, fit: "contain", locked: false }], questions: [question] } }],
+    };
+
+    const preview = NativeOpenResponseSurface({ document, assetUrl: () => "/fixture.png" });
+    assert.equal(preview.props.children[0][0].type, "div");
+    assert.equal(preview.props.children[0][0].props.disabled, undefined);
+    assert.equal(preview.props.children[0][0].props.onClick, undefined);
+    assert.equal(preview.props.children[1][0].props.children[0].type, "div");
+    const previewMarkup = renderToStaticMarkup(preview);
+    assert.doesNotMatch(previewMarkup, /<button[^>]+native-or-(?:artwork|prompt)/);
+    assert.doesNotMatch(previewMarkup, /disabled=/);
+    assert.match(previewMarkup, /<img[^>]+alt="Static diagram"/);
+
+    const selections = [];
+    const authoring = NativeOpenResponseSurface({ document, assetUrl: () => "/fixture.png", onSelect: (value) => selections.push(value) });
+    assert.equal(authoring.props.children[0][0].type, "button");
+    assert.equal(authoring.props.children[1][0].props.children[0].type, "button");
+    authoring.props.children[0][0].props.onClick();
+    const emptyTarget = {};
+    authoring.props.onClick({ button: 0, target: emptyTarget, currentTarget: emptyTarget });
+    assert.deepEqual(selections, [{ type: "artwork", id: `art-${"2".repeat(32)}` }, null]);
+  });
+});
+
 test("generic public audio-focus cues render on Image and Open Response visual stages", async () => {
   await withVite(async (vite) => {
     const [{ NativeImageSurface }, { NativeOpenResponseStudentSurface }] = await Promise.all([

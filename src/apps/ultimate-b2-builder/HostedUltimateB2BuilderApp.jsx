@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Boxes, ChevronDown, ChevronRight, FileImage, ListChecks, MessageSquareText, MoveRight, Plus, Search, Trash2 } from "lucide-react";
+import { Boxes, ChevronDown, ChevronLeft, ChevronRight, FileImage, ListChecks, MessageSquareText, MoveRight, Plus, Search, Trash2 } from "lucide-react";
 
 import catalog from "../../../android-content-packs/ultimate-b2-students-book/catalog.json";
 import { nativeActivityKindLabels } from "../../data/native-activities/nativeActivityKinds.js";
@@ -53,9 +53,15 @@ function ActivityReview({ nativeActivities }) {
   const [type, setType] = useState("all");
   const [expandedUnits, setExpandedUnits] = useState(() => new Set([catalog.units?.[0]?.id]));
   const [expandedPages, setExpandedPages] = useState(() => new Set([nativePlacements[0]?.pageId || catalog.units?.[0]?.lessons?.[0]?.id]));
+  const [navigationExpanded, setNavigationExpanded] = useState(true);
+  const [autoHideNavigation, setAutoHideNavigation] = useState(false);
   const [createState, setCreateState] = useState({ kind: nativeKinds[0] || "", pageId: nativePlacements[0]?.pageId || "", title: "", saving: false, error: "" });
   const addTriggerRef = useRef(null);
   const deleteTriggerRef = useRef(null);
+  const navigationShellRef = useRef(null);
+  const activityWorkspaceRef = useRef(null);
+  const navigationCloseTimerRef = useRef(null);
+  const manualNavigationCollapseRef = useRef(false);
   const model = useMemo(() => buildActivityBuilderNavigation({ units: catalog.units || [], nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, isEditable: isUltimateB2ConfigurableOpenResponse }), [lifecycle, nativeCatalog, nativePlacements]);
   const filtered = useMemo(() => filterActivityBuilderNavigation(model, { query, access, type }), [access, model, query, type]);
   const selection = findActivityBuilderItem(model, selectedId);
@@ -77,6 +83,14 @@ function ActivityReview({ nativeActivities }) {
     setNativeCatalog(native); setLifecycle(currentLifecycle.document); return { native, lifecycle: currentLifecycle.document };
   };
   useEffect(() => { const controller = new AbortController(); loadCatalogs(controller.signal).catch(() => {}); return () => controller.abort(); }, []);
+  useEffect(() => {
+    const query = globalThis.matchMedia?.("(hover: hover) and (pointer: fine)");
+    if (!query) return undefined;
+    const update = () => { setAutoHideNavigation(query.matches); if (!query.matches) setNavigationExpanded(true); };
+    update(); query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+  useEffect(() => () => globalThis.clearTimeout(navigationCloseTimerRef.current), []);
   useEffect(() => {
     if (!findActivityBuilderItem(model, selectedId)) setSelectedId(firstAvailableActivityId(lifecycle, nativeCatalog));
   }, [lifecycle, model, nativeCatalog, selectedId]);
@@ -146,6 +160,26 @@ function ActivityReview({ nativeActivities }) {
   };
   const toggleSet = (setter, id) => setter((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const typeOptions = activityBuilderTypeOptions(model);
+  const revealNavigation = () => { manualNavigationCollapseRef.current = false; globalThis.clearTimeout(navigationCloseTimerRef.current); setNavigationExpanded(true); };
+  const revealNavigationFromPointer = () => {
+    if (manualNavigationCollapseRef.current) return;
+    revealNavigation();
+  };
+  const scheduleNavigationCollapse = () => {
+    globalThis.clearTimeout(navigationCloseTimerRef.current);
+    if (!autoHideNavigation) return;
+    navigationCloseTimerRef.current = globalThis.setTimeout(() => {
+      if (!navigationShellRef.current?.contains(globalThis.document?.activeElement)) setNavigationExpanded(false);
+    }, 250);
+  };
+  const toggleNavigation = () => {
+    globalThis.clearTimeout(navigationCloseTimerRef.current);
+    if (navigationExpanded) {
+      manualNavigationCollapseRef.current = true;
+      setNavigationExpanded(false);
+      activityWorkspaceRef.current?.focus({ preventScroll: true });
+    } else setNavigationExpanded(true);
+  };
 
   return <main className="activity-builder-shell b2-hosted-activity-review">
     <header className="activity-builder-header"><div><span>Ultimate B2 · Activity Builder</span><h1>Activity authoring</h1><p>Find, edit, and preview activities in their book placement.</p></div><div><button ref={addTriggerRef} className="hosted-builder-action" type="button" onClick={openCreate}><Plus aria-hidden="true" /> Add Activity</button><div className="b2-hosted-review-banner" role="status"><strong>{nativeSelected ? `${nativeActivityKindLabels[nativeSelected.kind]} · Native draft` : supported ? "Open Response · Editable" : "Canonical activity · Read-only"}</strong><span>{nativeSelected ? nativeSelected.ready ? "Content complete" : "Content incomplete" : "Teacher answer content remains separately protected."}</span></div></div></header>
@@ -160,13 +194,16 @@ function ActivityReview({ nativeActivities }) {
     <BuilderModal open={deleteState.open} title="Delete activity?" description="This logically retires the activity and removes every Students Book page hotspot that opens it." busy={deleteState.saving} onClose={() => setDeleteState({ open: false, saving: false, error: "" })} returnFocusRef={deleteTriggerRef}><div className="native-activity-delete-confirm"><p><strong>{selection?.item?.title}</strong></p><code>{selection?.item?.id}</code><p>Canonical source, revision history, managed assets, and immutable historical releases will not be changed.</p>{dirty ? <p><strong>Unsaved changes in this editor will be discarded.</strong></p> : null}{deleteState.error ? <p className="builder-inline-error" role="alert">{deleteState.error}</p> : null}<div className="builder-confirm-actions"><button type="button" autoFocus disabled={deleteState.saving} onClick={() => setDeleteState({ open: false, saving: false, error: "" })}>Cancel</button><button className="builder-danger-action" type="button" disabled={deleteState.saving} onClick={confirmDeleteActivity}>{deleteState.saving ? "Deleting…" : "Delete Activity"}</button></div></div></BuilderModal>
     <BuilderModal open={moveState.open} title="Move activity" description="Choose a destination. Existing launch hotspots will be removed; place one deliberately on the destination page." busy={moveState.saving} onClose={() => setMoveState((current) => ({ ...current, open: false, error: "" }))}><form className="native-activity-create" onSubmit={confirmMoveActivity}><label><span>Destination</span><select autoFocus value={moveState.pageId} onChange={(event) => setMoveState((current) => ({ ...current, pageId: event.target.value }))}>{[...new Set(nativePlacements.map((page) => page.unitNumber))].map((unitNumber) => <optgroup key={unitNumber} label={`Unit ${unitNumber}`}>{nativePlacements.filter((page) => page.unitNumber === unitNumber && page.pageId !== selection?.page?.id).map((page) => <option key={page.pageId} value={page.pageId}>{`${page.pageLabel} · ${page.sectionTitle}`}</option>)}</optgroup>)}</select></label>{moveState.error ? <p className="builder-inline-error" role="alert">{moveState.error}</p> : null}<footer><button type="button" disabled={moveState.saving} onClick={() => setMoveState((current) => ({ ...current, open: false, error: "" }))}>Cancel</button><button className="hosted-builder-action" type="submit" disabled={moveState.saving || !moveState.pageId || moveState.pageId === selection?.page?.id}>{moveState.saving ? "Moving…" : "Move Activity"}</button></footer></form></BuilderModal>
 
-    <div className="b2-hosted-activity-layout">
-      <aside className="activity-builder-sidebar" aria-label="Activity Builder book navigation">
+    <div className={`b2-hosted-activity-layout ${navigationExpanded ? "is-navigation-expanded" : "is-navigation-collapsed"}`} data-navigation-expanded={navigationExpanded}>
+      <div ref={navigationShellRef} className="activity-builder-navigation-shell" onPointerEnter={revealNavigationFromPointer} onPointerLeave={() => { manualNavigationCollapseRef.current = false; scheduleNavigationCollapse(); }} onFocusCapture={revealNavigation} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) scheduleNavigationCollapse(); }}>
+      <aside id="activity-builder-book-navigation" className="activity-builder-sidebar" aria-label="Activity Builder book navigation">
         <div className="activity-builder-search"><label><span className="sr-only">Search activities</span><Search aria-hidden="true" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, type, or ID" /></label><div><label><span>Access</span><select value={access} onChange={(event) => setAccess(event.target.value)}><option value="all">All</option><option value="editable">Editable</option><option value="native">Native</option><option value="read-only">Read-only</option></select></label><label><span>Type</span><select value={type} onChange={(event) => setType(event.target.value)}><option value="all">All types</option>{typeOptions.map((value) => <option key={value} value={value}>{nativeActivityKindLabels[value] || value.replaceAll("-", " ")}</option>)}</select></label></div></div>
         {!filteredSelection && selection ? <p className="activity-filter-notice" role="status">The selected activity is hidden by the current filters. It remains open for editing.</p> : null}
         <ActivityTree {...{ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages }} />
       </aside>
-      <div className="b2-hosted-activity-preview">
+      <button className="activity-builder-navigation-toggle" type="button" aria-controls="activity-builder-book-navigation" aria-expanded={navigationExpanded} aria-label={navigationExpanded ? "Collapse activity navigation" : "Show activity navigation"} title={navigationExpanded ? "Collapse navigation" : "Show navigation"} onFocus={revealNavigation} onClick={toggleNavigation}>{navigationExpanded ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}</button>
+      </div>
+      <div ref={activityWorkspaceRef} className="b2-hosted-activity-preview" tabIndex={-1}>
         {moveState.placementRequired ? <p className="activity-filter-notice" role="status">Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.</p> : null}
         <div className="b2-hosted-preview-identity"><div><strong>{nativeSelected?.title || selected?.title}</strong><span>{nativeSelected ? "Native draft" : supported ? "Editable canonical activity" : "Read-only canonical activity"}</span></div><div className="native-activity-identity-actions"><details><summary>Technical details</summary><code>{selectedId}</code></details>{selection?.item?.movable ? <button type="button" disabled={dirty} title={dirty ? "Save or discard changes before moving this activity." : undefined} onClick={() => { const destination = nativePlacements.find((page) => page.pageId !== selection.page?.id)?.pageId || ""; setMoveState({ open: true, pageId: destination, saving: false, error: "", placementRequired: false }); }}><MoveRight aria-hidden="true" /> Move Activity</button> : null}{selection?.item?.retirable ? <button ref={deleteTriggerRef} className="builder-danger-action" type="button" onClick={() => setDeleteState({ open: true, saving: false, error: "" })}><Trash2 aria-hidden="true" /> Delete Activity</button> : null}</div></div>
         {nativeSelected ? <NativeActivityFoundationEditor key={`${selectedId}:${nativeSelected.placement?.pageId}`} bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={selectedId} kind={nativeSelected.kind} placementLabel={placementFor(nativeSelected.placement?.pageId)?.pageLabel || nativeSelected.placement?.pageId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : supported ? <HostedOpenResponseEditor key={selectedId} activityId={selectedId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : <section className="b2-hosted-unsupported-activity" role="status"><strong>Read-only canonical activity</strong><p>This activity family has no hosted mutation capability. Use Review for the deployed Viewer runtime.</p></section>}

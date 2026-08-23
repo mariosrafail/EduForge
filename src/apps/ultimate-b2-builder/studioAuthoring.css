@@ -85,10 +85,21 @@
 .studio-upload-action small { margin-top: 2px; color: var(--studio-muted); font-size: .65rem; font-weight: 500; }
 .studio-upload-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .studio-canvas-column { display: flex; min-width: 0; flex-direction: column; }
-.studio-canvas-toolbar { position: sticky; z-index: 4; top: 0; display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 50px; padding: 5px 10px; background: rgb(255 255 255 / 96%); border-bottom: 1px solid var(--studio-border); box-shadow: 0 4px 14px rgb(22 34 56 / 6%); }
+.studio-canvas-toolbar { position: sticky; z-index: 4; top: 0; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 5px 10px; background: rgb(255 255 255 / 96%); border-bottom: 1px solid var(--studio-border); box-shadow: 0 4px 14px rgb(22 34 56 / 6%); }
+.studio-canvas-toolbar.has-contextual-controls { justify-content: flex-start; overflow-x: auto; }
+.studio-canvas-zoom-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
 .studio-canvas-toolbar .studio-button { min-width: 38px; min-height: 36px; padding: 6px 9px; }
 .studio-canvas-toolbar output { min-width: 48px; color: var(--studio-muted); font-size: .72rem; font-weight: 800; text-align: center; }
 .studio-canvas-viewport { display: grid; flex: 1; place-items: start center; min-height: 460px; overflow: auto; padding: 28px; background-color: #dfe5ed; background-image: radial-gradient(#c5cfdb 1px, transparent 1px); background-size: 16px 16px; }
+.studio-open-response .studio-canvas-viewport { flex: 0 0 clamp(400px, 50vh, 560px); place-items: start; height: auto; min-height: 0; }
+.studio-canvas-viewport.is-middle-panning { cursor: grabbing; user-select: none; }
+.studio-canvas-context-controls { display: flex; flex: 0 0 auto; align-items: end; gap: 6px; padding-left: 10px; border-left: 1px solid var(--studio-border); }
+.studio-canvas-context-controls > strong { align-self: center; max-width: 92px; color: var(--studio-text); font-size: .7rem; line-height: 1.2; }
+.studio-quick-field { width: 72px; gap: 2px; font-size: .62rem; }
+.studio-quick-field:has(select) { width: 82px; }
+.studio-editor .studio-quick-field :is(input, select) { min-height: 34px; padding: 5px 7px; font-size: .72rem; font-variant-numeric: tabular-nums; }
+.studio-quick-check { align-self: center; display: flex; align-items: center; gap: 5px; color: var(--studio-text); font-size: .68rem; font-weight: 750; white-space: nowrap; }
+.studio-canvas-selection-status { flex: 1 0 auto; padding-left: 10px; color: var(--studio-muted); border-left: 1px solid var(--studio-border); font-size: .68rem; }
 .studio-artboard-wrap { width: 100%; min-width: 360px; transition: width .16s ease; }
 .studio-artboard { border: 1px solid #9eabc0; box-shadow: 0 20px 55px rgb(22 34 56 / 24%); }
 .studio-canvas-hint { padding: 9px 14px; color: var(--studio-muted); text-align: center; background: #f7f9fb; border-top: 1px solid var(--studio-border); font-size: .68rem; }
@@ -225,6 +236,9 @@
   .studio-inspector { grid-column: auto; grid-template-columns: 1fr; }
   .studio-inspector > header, .studio-object-actions { grid-column: auto; }
   .studio-canvas-viewport { min-height: 380px; padding: 20px; }
+  .studio-open-response .studio-canvas-viewport { flex-basis: clamp(360px, 50vh, 480px); height: auto; min-height: 0; }
+  .studio-canvas-toolbar.has-contextual-controls { align-items: stretch; flex-direction: column; }
+  .studio-canvas-context-controls { overflow-x: auto; padding: 6px 0 2px; border-top: 1px solid var(--studio-border); border-left: 0; }
   .studio-open-response .native-or-question-workspace, .studio-open-response .studio-or-layout, .native-single-choice-editor .native-or-question-workspace { grid-template-columns: 1fr; }
   .studio-open-response .native-or-question-workspace > aside { border-right: 0; border-bottom: 1px solid var(--studio-border); }
   .native-single-choice-editor .native-or-question-workspace > aside { border-right: 0; border-bottom: 1px solid var(--studio-border); }
