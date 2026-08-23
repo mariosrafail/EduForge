@@ -28,9 +28,24 @@ test("Image and Open Response use the same scaled transform frame", async () => 
   assert.match(imageEditor, /preserveAspectRatio/);
   assert.match(imageEditor, /locked=\{selectedImage\.locked\}/);
   assert.match(openResponseEditor, /<StageSelectionFrame/);
-  assert.match(openResponseEditor, /selection\.type === "artwork"/);
+  assert.doesNotMatch(openResponseEditor, /preserveAspectRatio=\{selection\.type === "artwork"\}/);
   assert.match(openResponseEditor, /moveFromGrip=\{selection\.type !== "artwork"\}/);
   assert.doesNotMatch(`${imageEditor}\n${openResponseEditor}`, /native-or-resize/);
+});
+
+test("Open Response keeps every layout control above a fitted, scrollbar-free panning canvas", async () => {
+  const [editor, studioCss] = await Promise.all([
+    read("src/apps/book-builder/hosted/NativeOpenResponseEditor.jsx"),
+    read("src/apps/ultimate-b2-builder/studioAuthoring.css"),
+  ]);
+  assert.doesNotMatch(editor, /native-or-properties studio-inspector/);
+  assert.match(editor, /native-or-toolbar-actions/);
+  assert.match(editor, /Artwork Layers/);
+  assert.match(editor, /ResizeObserver/);
+  assert.match(editor, /uploaded\.metadata/);
+  assert.match(studioCss, /\.studio-open-response \.studio-canvas-viewport::-webkit-scrollbar/);
+  assert.match(studioCss, /scrollbar-width: none/);
+  assert.match(studioCss, /\.studio-open-response \.studio-or-layout \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 });
 
 test("hotspots share geometry utilities and expose selected-only four-corner handles", async () => {

@@ -7,7 +7,7 @@ import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builde
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -133,6 +133,19 @@ test("Open Response permits many artwork instances for one canonical managed ass
   removeNativeOpenResponseArtwork(publicDocument, art2);
   assert.deepEqual(publicDocument.assets, []);
   assert.deepEqual(publicDocument.parts[0].interaction.artwork, []);
+});
+
+test("new artwork starts centered with trustworthy intrinsic proportions", () => {
+  const surface = { width: 1024, height: 582 };
+  const banner = initialNativeOpenResponseArtworkArea(surface, { width: 1600, height: 400 });
+  const portrait = initialNativeOpenResponseArtworkArea(surface, { width: 400, height: 1600 });
+  assert.ok(Math.abs(banner.width / banner.height - 4) < .02);
+  assert.ok(Math.abs(portrait.height / portrait.width - 4) < .02);
+  assert.ok(banner.width > banner.height);
+  assert.ok(portrait.height > portrait.width);
+  assert.equal(banner.x, Math.round((surface.width - banner.width) / 2));
+  assert.equal(portrait.y, Math.round((surface.height - portrait.height) / 2));
+  assert.deepEqual(initialNativeOpenResponseArtworkArea(surface), { x: 160, y: 120, width: 320, height: 220 });
 });
 
 test("Open Response managed asset roots deduplicate identical finalize references and reject conflicts", () => {

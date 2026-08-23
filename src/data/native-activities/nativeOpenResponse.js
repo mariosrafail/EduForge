@@ -15,6 +15,29 @@ export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
 export const NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
 export const NATIVE_OPEN_RESPONSE_FONT_FAMILY = "Arial";
 
+export function initialNativeOpenResponseArtworkArea(logicalSurface, metadata = {}) {
+  const surfaceWidth = Math.max(1, Number(logicalSurface?.width) || NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE.width);
+  const surfaceHeight = Math.max(1, Number(logicalSurface?.height) || NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE.height);
+  const intrinsicWidth = Number(metadata?.width);
+  const intrinsicHeight = Number(metadata?.height);
+  if (!Number.isFinite(intrinsicWidth) || !Number.isFinite(intrinsicHeight) || !(intrinsicWidth > 0) || !(intrinsicHeight > 0)) {
+    const width = Math.min(320, surfaceWidth);
+    const height = Math.min(220, surfaceHeight);
+    return { x: Math.min(160, surfaceWidth - width), y: Math.min(120, surfaceHeight - height), width, height };
+  }
+  const maximumWidth = Math.max(24, surfaceWidth * .6);
+  const maximumHeight = Math.max(24, surfaceHeight * .6);
+  const scale = Math.min(maximumWidth / intrinsicWidth, maximumHeight / intrinsicHeight);
+  const width = Math.min(surfaceWidth, Math.max(24, Math.round(intrinsicWidth * scale)));
+  const height = Math.min(surfaceHeight, Math.max(24, Math.round(intrinsicHeight * scale)));
+  return {
+    x: Math.round((surfaceWidth - width) / 2),
+    y: Math.round((surfaceHeight - height) / 2),
+    width,
+    height,
+  };
+}
+
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
   return value;
