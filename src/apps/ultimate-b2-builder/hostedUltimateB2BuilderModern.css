@@ -13,16 +13,13 @@
 .ultimate-b2-builder-app button, .ultimate-b2-builder-app input, .ultimate-b2-builder-app textarea, .ultimate-b2-builder-app select { font: inherit; }
 .ultimate-b2-builder-app button:focus-visible, .ultimate-b2-builder-app input:focus-visible, .ultimate-b2-builder-app textarea:focus-visible, .ultimate-b2-builder-app select:focus-visible, .ultimate-b2-builder-app summary:focus-visible { outline: 3px solid rgba(23,92,211,.27); outline-offset: 2px; }
 .activity-builder-shell { padding: clamp(16px, 2.4vw, 30px); background: var(--b-bg); }
-.activity-builder-header { align-items: flex-start; max-width: 1680px; margin: 0 auto 18px; padding: 22px 24px; border: 1px solid var(--b-border); border-radius: 14px; background: var(--b-surface); box-shadow: 0 8px 24px rgba(16,24,40,.06); }
+.activity-builder-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; max-width: 1680px; margin: 0 auto 18px; padding: 22px 24px; border: 1px solid var(--b-border); border-radius: 14px; background: var(--b-surface); box-shadow: 0 8px 24px rgba(16,24,40,.06); }
 .activity-builder-header > div:first-child > span { color: var(--b-primary); }
 .activity-builder-header h1 { margin: 5px 0 6px; color: var(--b-text); font-size: clamp(1.55rem, 2.4vw, 2.25rem); letter-spacing: -.025em; }
 .activity-builder-header p { margin: 0; color: var(--b-muted); }
-.activity-builder-header > div:last-child { align-items: flex-end; }
+.activity-builder-header-actions { display: flex; align-items: flex-start; justify-content: flex-end; }
 .activity-builder-header .hosted-builder-action { display: inline-flex; gap: 8px; margin: 0; }
 .activity-builder-header .hosted-builder-action svg { width: 18px; }
-.b2-hosted-review-banner { min-width: 270px; border: 1px solid var(--b-border); border-left: 4px solid var(--b-accent); border-radius: 10px; background: #fffcf5; }
-.b2-hosted-review-banner strong { color: var(--b-text-soft); }
-.b2-hosted-review-banner span { color: var(--b-muted); }
 .b2-hosted-activity-layout { --activity-builder-sidebar-width: clamp(292px, 24vw, 360px); grid-template-columns: var(--activity-builder-sidebar-width) minmax(0, 1fr); gap: 18px; max-width: 1680px; margin: 0 auto; transition: grid-template-columns 220ms ease, gap 220ms ease; }
 .b2-hosted-activity-layout.is-navigation-collapsed { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; }
 .activity-builder-navigation-shell { position: relative; display: grid; min-width: 0; align-items: start; }
@@ -128,7 +125,7 @@
 .b2-hosted-review-dialog, .b2-hosted-review-shell, .b2-hosted-ui-controller, .b2-hosted-publication { border-color: var(--b-border); border-radius: 14px; box-shadow: 0 10px 28px rgba(16,24,40,.08); }
 .b2-hosted-ui-controller, .b2-hosted-publication { max-width: 1680px; margin-inline: auto; }
 .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
-@media (max-width: 1024px) { .b2-hosted-activity-layout { --activity-builder-sidebar-width: 300px; } .activity-builder-header { flex-direction: column; } .activity-builder-header > div:last-child { width: 100%; align-items: stretch; } }
+@media (max-width: 1024px) { .b2-hosted-activity-layout { --activity-builder-sidebar-width: 300px; } .activity-builder-header { flex-direction: column; } .activity-builder-header-actions { width: 100%; justify-content: flex-start; } }
 @media (max-width: 768px) {
   .activity-builder-shell { padding: 10px; }
   .b2-hosted-activity-layout, .b2-hosted-activity-layout.is-navigation-collapsed { grid-template-columns: minmax(0,1fr); gap: 18px; }

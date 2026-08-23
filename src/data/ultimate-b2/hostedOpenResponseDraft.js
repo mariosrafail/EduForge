@@ -48,6 +48,10 @@ export function normalizeUltimateB2HostedOpenResponseDraft(input, canonicalSeed)
   };
 }
 
+export function projectUltimateB2HostedOpenResponseDraftForAuthoring(document) {
+  return { ...document, visibleInstructionText: "" };
+}
+
 export function applyUltimateB2HostedOpenResponseDraft(activity, input) {
   if (!activity || !input) return activity;
   const draft = normalizeUltimateB2HostedOpenResponseDraft(input, createUltimateB2HostedOpenResponseSeed(activity));

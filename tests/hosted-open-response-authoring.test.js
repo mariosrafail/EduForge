@@ -9,6 +9,7 @@ import {
   applyUltimateB2HostedOpenResponseDraft,
   createUltimateB2HostedOpenResponseSeed,
   normalizeUltimateB2HostedOpenResponseDraft,
+  projectUltimateB2HostedOpenResponseDraftForAuthoring,
 } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 import { validateHostedOpenResponsePreviewEnvelope } from "../src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js";
@@ -41,6 +42,9 @@ test("hosted Open Response schema permits only stable public text fields", () =>
   edited.questions[0].prompt = "A newly edited public prompt";
   assert.equal(normalizeUltimateB2HostedOpenResponseDraft(edited, seed).questions[0].prompt, edited.questions[0].prompt);
   assert.equal(applyUltimateB2HostedOpenResponseDraft(activity, edited).runtime.questions[0].prompt, edited.questions[0].prompt);
+  const legacy = { ...seed, visibleInstructionText: "Historical student instruction" };
+  assert.equal(normalizeUltimateB2HostedOpenResponseDraft(legacy, seed).visibleInstructionText, legacy.visibleInstructionText);
+  assert.equal(projectUltimateB2HostedOpenResponseDraftForAuthoring(legacy).visibleInstructionText, "");
 
   for (const mutate of [
     (value) => { value.teacherSolutions = []; },
@@ -108,7 +112,8 @@ test("hosted editor stays slim and Viewer integration is no-store, fail-safe, an
   assert.match(editor, /Conflict — unsaved changes retained/);
   assert.match(editor, /onSaved\?\.\(payload\.revision\)/);
   assert.match(workspace, /setViewerRefresh/);
-  assert.match(workspace, /Canonical activity · Read-only/);
+  assert.doesNotMatch(workspace, /b2-hosted-review-banner/);
+  assert.match(workspace, /Read-only canonical activity/);
   assert.match(provider, /credentials: "omit"/);
   assert.match(provider, /cache: "no-store"/);
   assert.match(provider, /response\.status === 404/);

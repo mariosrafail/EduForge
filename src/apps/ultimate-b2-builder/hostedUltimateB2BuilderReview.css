@@ -1,6 +1,3 @@
-.b2-hosted-review-banner { align-items: flex-end; display: flex; flex-direction: column; gap: .2rem; text-align: right; }
-.b2-hosted-review-banner strong { background: #e8f4ff; border: 1px solid #8bbce0; border-radius: 999px; color: #14547b; padding: .35rem .7rem; }
-.b2-hosted-review-banner span { color: #526475; font-size: .78rem; }
 .b2-hosted-hotspot-editor .builder-header > div:first-child small { color: #a9b8d2; display: block; margin-top: .35rem; }
 .b2-hosted-hotspot-editor .builder-save-state[data-conflict] strong { color: #fca5a5; }
 .b2-hosted-hotspot-editor .builder-controls { grid-template-columns: 180px 180px 140px minmax(300px, 1fr) auto; }

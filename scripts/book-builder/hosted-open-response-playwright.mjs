@@ -103,37 +103,52 @@ try {
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   const editor = page.locator('.b2-hosted-open-response-editor');
   await editor.getByText("Canonical baseline", { exact: true }).waitFor();
-  const frame = () => page.frameLocator('iframe[title^="Canonical Viewer activity preview"]');
+  assert.equal(await editor.getByLabel("Student instruction").count(), 0);
+  const frame = () => page.frameLocator(".unified-builder-review-dialog iframe");
+  const openReview = async () => { await page.getByRole("button", { name: "Review", exact: true }).click(); await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor(); await page.locator(".unified-builder-review-dialog iframe").waitFor(); };
+  const closeReview = async () => { await page.getByRole("button", { name: "Close Review" }).click(); await page.locator(".unified-builder-review-dialog iframe").waitFor({ state: "detached" }); };
+  await openReview();
   await frame().locator('[data-legacy-unit-opener-activity] h3').filter({ hasText: canonical.questions[0].prompt }).waitFor();
+  await closeReview();
 
   await editor.getByRole("button", { name: "Edit public authoring" }).click();
-  const firstPrompt = editor.locator("textarea").nth(1);
+  assert.equal(await editor.getByRole("button", { name: "Save draft" }).isDisabled(), true);
+  const firstPrompt = editor.locator("textarea").first();
   await firstPrompt.fill("Unsaved prompt must stay in Builder");
   await editor.getByText("Unsaved changes", { exact: true }).waitFor();
+  await openReview();
   assert.equal(await frame().locator('[data-legacy-unit-opener-activity] h3').filter({ hasText: "Unsaved prompt must stay in Builder" }).count(), 0);
+  await closeReview();
   await editor.getByRole("button", { name: "Save draft" }).click();
   await editor.getByText("Saved", { exact: true }).waitFor();
+  assert.equal(saved.visibleInstructionText, "");
+  await openReview();
   await frame().locator('[data-legacy-unit-opener-activity] h3').filter({ hasText: "Unsaved prompt must stay in Builder" }).waitFor();
+  assert.equal(await frame().getByText(canonical.visibleInstructionText, { exact: true }).count(), 0);
+  await closeReview();
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('.b2-hosted-open-response-editor').getByText("Saved draft", { exact: true }).waitFor();
-  assert.equal(await page.locator('.b2-hosted-open-response-editor textarea').nth(1).inputValue(), "Unsaved prompt must stay in Builder");
+  assert.equal(await page.locator('.b2-hosted-open-response-editor textarea').first().inputValue(), "Unsaved prompt must stay in Builder");
+  assert.equal(await page.locator('.b2-hosted-open-response-editor').getByLabel("Student instruction").count(), 0);
 
   const reloadedEditor = page.locator('.b2-hosted-open-response-editor');
   await reloadedEditor.getByRole("button", { name: "Edit public authoring" }).click();
-  await reloadedEditor.locator("textarea").nth(1).fill("Conflicting local prompt");
+  await reloadedEditor.locator("textarea").first().fill("Conflicting local prompt");
   revision += 1;
   saved = { ...saved, questions: saved.questions.map((question, index) => index === 0 ? { ...question, prompt: "Externally saved prompt" } : question) };
   await reloadedEditor.getByRole("button", { name: "Save draft" }).click();
   await reloadedEditor.getByText("Conflict — unsaved changes retained", { exact: true }).waitFor();
-  assert.equal(await reloadedEditor.locator("textarea").nth(1).inputValue(), "Conflicting local prompt");
+  assert.equal(await reloadedEditor.locator("textarea").first().inputValue(), "Conflicting local prompt");
+  await openReview();
   assert.equal(await frame().locator('[data-legacy-unit-opener-activity] h3').filter({ hasText: "Conflicting local prompt" }).count(), 0);
+  await closeReview();
   await reloadedEditor.getByRole("button", { name: "Reload latest saved" }).click();
   await reloadedEditor.getByText("Saved draft", { exact: true }).waitFor();
-  assert.equal(await reloadedEditor.locator("textarea").nth(1).inputValue(), "Externally saved prompt");
+  assert.equal(await reloadedEditor.locator("textarea").first().inputValue(), "Externally saved prompt");
 
   await page.locator('.activity-builder-sidebar button').filter({ hasText: "Read-only" }).first().click();
-  await page.getByText("Read-only canonical activity", { exact: true }).waitFor();
+  await page.locator('.b2-hosted-unsupported-activity').getByText("Read-only canonical activity", { exact: true }).waitFor();
   assert.equal(await page.locator('.b2-hosted-open-response-editor').count(), 0);
   process.stdout.write(`Hosted Open Response Playwright acceptance passed at revision ${revision}.\n`);
 } finally {

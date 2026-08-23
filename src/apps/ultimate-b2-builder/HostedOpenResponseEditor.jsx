@@ -11,6 +11,7 @@ import {
   prepareOpenResponseImport,
   uploadOpenResponseImportFile,
 } from "../book-builder/hosted/builderOpenResponseImportApi.js";
+import { projectUltimateB2HostedOpenResponseDraftForAuthoring } from "../../data/ultimate-b2/hostedOpenResponseDraft.js";
 
 const identity = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -45,8 +46,9 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
       getBuilderContent({ ...identity, documentKey: activityId }, { signal }),
       getOpenResponseImportStatus(activityId, { signal }),
     ]);
-    setDocument(payload.document);
-    setSavedDocument(payload.document);
+    const authoringDocument = projectUltimateB2HostedOpenResponseDraftForAuthoring(payload.document);
+    setDocument(authoringDocument);
+    setSavedDocument(authoringDocument);
     setRevision(payload.revision);
     setSource(payload.source);
     setMode("view");
@@ -182,7 +184,6 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
     </header>
     <p className="b2-hosted-open-response-boundary">Public text edits stay separate from publisher source. A successful deterministic import updates artwork, layout and the hosted Teacher Review answer; raw XML and Teacher data are never public.</p>
     {error ? <p className="b2-hosted-open-response-error" role="alert">{error}</p> : null}
-    <label>Student instruction<textarea rows={2} readOnly={mode !== "edit"} value={document.visibleInstructionText} onChange={(event) => update((current) => ({ ...current, visibleInstructionText: event.target.value }))} /></label>
     <div className="b2-hosted-open-response-questions">{document.questions.map((question, index) => <label key={question.id}><span>Question {index + 1}</span><textarea rows={3} readOnly={mode !== "edit"} value={question.prompt} onChange={(event) => update((current) => ({ ...current, questions: current.questions.map((item) => item.id === question.id ? { ...item, prompt: event.target.value } : item) }))} /></label>)}</div>
     <section className="b2-hosted-source-import" aria-label="Publisher Source Import" data-import-state={importState}>
       <header><div><span>Publisher Source Import</span><h3>Deterministic XML + raster package</h3></div><strong>Import revision {importStatus.revision}</strong></header>

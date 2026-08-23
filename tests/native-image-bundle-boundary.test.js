@@ -9,7 +9,7 @@ test("public Native Image surface depends only on the public document and manage
   assert.doesNotMatch(source, /Teacher|teacherDocument|solution|modelAnswer|fetch\(/);
 });
 
-test("Image Builder keeps learner content separate from instruction and per-image Alt text", async () => {
+test("Image Builder keeps learner content and per-image Alt text without generic instruction authoring", async () => {
   const [editor, surface, styles] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeImageEditor.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-image/NativeImageSurface.jsx", import.meta.url), "utf8"),
@@ -18,7 +18,7 @@ test("Image Builder keeps learner content separate from instruction and per-imag
   assert.match(editor, /label="Activity title"/);
   assert.match(editor, /label="Content"/);
   assert.match(editor, /interaction\.contentText/);
-  assert.match(editor, /label="Visible instruction"/);
+  assert.doesNotMatch(editor, /label="Visible instruction"/);
   assert.match(editor, /label="Alt text"/);
   assert.match(editor, /delete next\.parts\[0\]\.interaction\.contentText/);
   assert.match(surface, /native-image-content-text/);

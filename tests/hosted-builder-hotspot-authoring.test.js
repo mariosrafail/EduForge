@@ -62,12 +62,13 @@ test("adapter capabilities expose only hotspots and supported activities as writ
   assert.match(shell, /tools\.filter\(\(\{ capability \}\) => adapter\.capabilities\[capability\]\?\.readable\)/);
   assert.match(shell, /adapter\.capabilities\[capability\]\.writable \? "Editable" : "Read-only"/);
   assert.match(workspace, /HostedTeacherUiController/);
-  assert.match(workspace, /Open Response · Editable/);
-  assert.match(workspace, /Canonical activity · Read-only/);
+  assert.match(workspace, /Editable canonical activity/);
+  assert.match(workspace, /Read-only canonical activity/);
+  assert.doesNotMatch(workspace, /b2-hosted-review-banner/);
   assert.doesNotMatch(workspace, /ReadOnlyBanner|persistence pending/);
   assert.match(workspace, /Add Activity/);
   assert.match(workspace, /NativeActivityFoundationEditor/);
-  assert.match(workspace, /Content complete/);
+  assert.doesNotMatch(workspace, /Content complete|Content incomplete/);
   assert.doesNotMatch(workspace, /upload|FormData/i);
 });
 
