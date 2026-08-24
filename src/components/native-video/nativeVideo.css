@@ -5,8 +5,12 @@
 .native-video-caption span { max-width: 100%; padding: .12em .38em; white-space: pre-wrap; overflow-wrap: anywhere; background: rgb(0 0 0 / 68%); border-radius: 4px; }
 .native-video-center-play { position: absolute; z-index: 5; display: grid; width: 68px; height: 68px; padding: 0; color: #fff; background: rgb(9 18 31 / 78%); border: 2px solid rgb(255 255 255 / 82%); border-radius: 50%; place-items: center; cursor: pointer; }
 .native-video-center-play svg { width: 32px; height: 32px; }
-.native-video-controls { z-index: 6; display: flex; min-height: var(--native-video-controls-min-height); gap: 9px; align-items: center; padding: 7px 10px; background: #101722; }
+.native-video-controls { z-index: 13; display: flex; min-height: var(--native-video-controls-min-height); gap: 9px; align-items: center; padding: 7px 10px; background: #101722; }
 .native-video-controls button { display: inline-flex; min-width: 42px; min-height: 42px; align-items: center; justify-content: center; gap: 7px; padding: 7px 9px; color: #fff; background: #243246; border: 1px solid #50627a; border-radius: 7px; cursor: pointer; }
+.native-video-controls a { display: inline-flex; min-height: 42px; box-sizing: border-box; align-items: center; justify-content: center; gap: 7px; padding: 7px 10px; color: #fff; background: #244b75; border: 1px solid #6e96bd; border-radius: 7px; font-weight: 700; text-decoration: none; }
+.native-video-worksheet { position: absolute; top: 12px; left: 12px; z-index: 14; box-shadow: 0 3px 12px rgb(0 0 0 / 38%); }
+.native-video-controls a:hover, .native-video-controls a:active { background: #32628f; }
+.native-video-controls a:focus-visible { outline: 3px solid #ffdc42; outline-offset: 2px; }
 .native-video-controls button:hover, .native-video-controls button:active { background: #334a68; }
 .native-video-controls button:focus-visible { outline: 3px solid #ffdc42; outline-offset: 2px; }
 .native-video-controls svg { width: 20px; height: 20px; }
@@ -24,6 +28,6 @@
 
 @media (max-width: 700px) {
   .native-video-controls { gap: 5px; padding: 5px; }
-  .native-video-controls output, .native-video-volume, .native-video-captions span, .native-video-fullscreen span { display: none; }
+  .native-video-controls output, .native-video-volume, .native-video-captions span, .native-video-worksheet span, .native-video-fullscreen span { display: none; }
   .native-video-caption { bottom: 76px; font-size: clamp(16px, 5vw, 24px); }
 }

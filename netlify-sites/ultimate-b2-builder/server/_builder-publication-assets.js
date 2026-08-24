@@ -1,6 +1,7 @@
 import { buildComponentReleaseAssetObjectKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedMp3 } from "../../../lib/book-assets/audio-inspection.js";
 import { inspectManagedRaster } from "../../../lib/book-assets/raster-inspection.js";
+import { inspectManagedPdf } from "../../../lib/book-assets/pdf-inspection.js";
 
 export async function materializeNativeReleaseAssets(storage, { bookSlug, componentSlug, nativeAssetSources = [] }) {
   for (const source of nativeAssetSources) {
@@ -9,7 +10,7 @@ export async function materializeNativeReleaseAssets(storage, { bookSlug, compon
       const head = await storage.head({ profile: "private", objectKey: row.object_key });
       if (head.checksumSha256 !== descriptor.sha256 || head.byteSize !== Number(row.byte_size) || head.contentType !== descriptor.mediaType) throw new Error("source_head_mismatch");
       const bytes = await storage.download({ profile: "private", objectKey: row.object_key });
-      const inspected = descriptor.mediaType === "audio/mpeg" ? inspectManagedMp3(bytes) : await inspectManagedRaster(bytes);
+      const inspected = descriptor.mediaType === "application/pdf" ? inspectManagedPdf(bytes) : descriptor.mediaType === "audio/mpeg" ? inspectManagedMp3(bytes) : await inspectManagedRaster(bytes);
       if (inspected.checksumSha256 !== descriptor.sha256 || inspected.mimeType !== descriptor.mediaType
         || inspected.byteSize !== Number(row.byte_size)
         || (descriptor.mediaType.startsWith("image/") && (inspected.width !== Number(row.width) || inspected.height !== Number(row.height)))

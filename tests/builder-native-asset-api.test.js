@@ -8,6 +8,7 @@ import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-
 import { inspectManagedMp3 } from "../lib/book-assets/audio-inspection.js";
 import { inspectManagedRaster } from "../lib/book-assets/raster-inspection.js";
 import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../lib/book-assets/video-inspection.js";
+import { inspectManagedPdf } from "../lib/book-assets/pdf-inspection.js";
 
 const actor = "10000000-0000-4000-8000-000000000001";
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -16,6 +17,7 @@ const assetId = "10000000-0000-4000-8000-000000000011";
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
 const mp4 = await readFile(new URL("../src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4", import.meta.url));
+const pdf = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n");
 const base = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
@@ -142,6 +144,27 @@ test("native MP4 rejects unsafe descriptors, malformed bytes, and MIME spoofing"
     const response = await current.handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
     assert.equal(response.statusCode, 400); assert.equal(JSON.parse(response.body).error, scenario.expected); assert.equal(current.getFailed().failureCode, scenario.expected);
   }
+});
+
+test("Video Worksheet PDF prepare is purpose-scoped and finalize validates real PDF bytes", async () => {
+  const current = harness({ bytes: pdf, contentType: "application/pdf", resolvedSlot: "worksheet-one" });
+  const clientMutationId = randomUUID();
+  const descriptor = { name: "Unit 1 Worksheet.pdf", size: pdf.length, type: "application/pdf", assetSlot: "worksheet-one", purpose: "video-worksheet", clientMutationId };
+  assert.equal((await current.handler(request(`${base}/prepare`, descriptor))).statusCode, 200);
+  const finalized = await current.handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(finalized.statusCode, 200);
+  assert.equal(JSON.parse(finalized.body).metadata.mimeType, "application/pdf");
+  assert.match(current.getCompleted().objectKey, /[0-9a-f]{64}\.pdf$/);
+  assert.equal((await harness({ bytes: pdf, contentType: "application/pdf" }).handler(request(`${base}/prepare`, { ...descriptor, purpose: "native-asset" }))).statusCode, 400);
+  assert.equal((await harness({ bytes: pdf, contentType: "application/pdf" }).handler(request(`${base}/prepare`, { ...descriptor, name: "worksheet.html", type: "text/html" }))).statusCode, 400);
+
+  const malformed = Buffer.from("%PDF-1.4\nmissing eof");
+  const rejected = harness({ bytes: malformed, contentType: "application/pdf" });
+  const rejectedMutation = randomUUID();
+  await rejected.handler(request(`${base}/prepare`, { name: "worksheet.pdf", size: malformed.length, type: "application/pdf", assetSlot: "worksheet-one", purpose: "video-worksheet", clientMutationId: rejectedMutation }));
+  const response = await rejected.handler(request(`${base}/finalize`, { uploadId, clientMutationId: rejectedMutation }));
+  assert.equal(response.statusCode, 400); assert.equal(JSON.parse(response.body).error, "invalid_pdf");
+  assert.throws(() => inspectManagedPdf(Buffer.from("<html>not pdf</html>")), /invalid_pdf/);
 });
 
 test("native finalize rejects malformed and MIME-spoofed rasters and records safe failure codes", async () => {

@@ -26,7 +26,7 @@ export const ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS = Object.fr
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
-const mediaTypeByExtension = Object.freeze({ png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4" });
+const mediaTypeByExtension = Object.freeze({ png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", pdf: "application/pdf" });
 
 function exactObject(value, keys, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);

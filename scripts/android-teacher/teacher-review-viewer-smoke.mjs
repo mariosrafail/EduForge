@@ -13,7 +13,7 @@ const hotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/stude
 const token = `v1.${Buffer.from("viewer-boundary-smoke").toString("base64url")}.${"a".repeat(43)}`;
 const uiPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 const hotspotsPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
-const mime = { ".css": "text/css", ".gaf": "application/octet-stream", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml" };
+const mime = { ".css": "text/css", ".gaf": "application/octet-stream", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".pdf": "application/pdf", ".png": "image/png", ".svg": "image/svg+xml" };
 const observedPreviewRequests = [];
 
 function sendJson(response, status, value) {

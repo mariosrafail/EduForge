@@ -7,6 +7,7 @@ import { materializeNativeReleaseAssets } from "../netlify-sites/ultimate-b2-bui
 
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
+const pdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
 const checksum = createHash("sha256").update(png).digest("hex");
 const descriptor = { sha256: checksum, extension: "png", mediaType: "image/png", role: "activity_artwork" };
 const row = { object_key: "builder-native-assets/source.png", byte_size: png.length, width: 1, height: 1 };
@@ -53,4 +54,20 @@ test("managed MP3 bytes materialize to the immutable private release content add
   assert.equal(uploads.length, 1);
   assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${audioChecksum}.mp3`);
   assert.equal(uploads[0].contentType, "audio/mpeg");
+});
+
+test("validated worksheet PDF bytes materialize to the immutable private release content address", async () => {
+  const pdfChecksum = createHash("sha256").update(pdf).digest("hex");
+  const pdfDescriptor = { sha256: pdfChecksum, extension: "pdf", mediaType: "application/pdf", role: "activity_artwork" };
+  const pdfRow = { object_key: "builder-native-assets/video-worksheet.pdf", byte_size: pdf.length, width: null, height: null };
+  const uploads = [];
+  const storage = {
+    async head() { return { checksumSha256: pdfChecksum, byteSize: pdf.length, contentType: "application/pdf" }; },
+    async download() { return pdf; },
+    async upload(input) { uploads.push(input); return { reused: false }; },
+  };
+  await materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor: pdfDescriptor, row: pdfRow }] });
+  assert.equal(uploads.length, 1);
+  assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${pdfChecksum}.pdf`);
+  assert.equal(uploads[0].contentType, "application/pdf");
 });

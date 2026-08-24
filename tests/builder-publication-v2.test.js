@@ -90,14 +90,16 @@ test("v2 validates and materializes a public Readable Text image without Builder
   const readableAsset = { assetId: "10000000-0000-4000-8000-000000000044", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "readable-text" };
   const audioAsset = { assetId: "10000000-0000-4000-8000-000000000045", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "audio-one" };
   const videoAsset = { assetId: "10000000-0000-4000-8000-000000000046", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "video-one" };
-  publicDocument.assets = [readableAsset, audioAsset, videoAsset];
+  const worksheetAsset = { assetId: "10000000-0000-4000-8000-000000000047", checksumSha256: "f".repeat(64), role: "activity_artwork", slot: "worksheet-one" };
+  publicDocument.assets = [readableAsset, audioAsset, videoAsset, worksheetAsset];
   publicDocument.readableText = { kind: "image", assetSlot: readableAsset.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Public reading passage" };
   publicDocument.audioTextHotspots = { hotspots: [{ id: `aud-${"1".repeat(32)}`, panelId: null, activityArea: { x: 20, y: 20, width: 48, height: 48 }, readableFocusArea: { x: 50, y: 100, width: 800, height: 400 }, audioAssetSlot: audioAsset.slot, label: "Listen to paragraph one", highlightColor: "green" }] };
-  publicDocument.video = { kind: "managed-mp4", assetSlot: videoAsset.slot, fileName: "companion.mp4", byteSize: 136_517, durationMs: 5_840, cues: [{ id: `cue-${"2".repeat(32)}`, startMs: 0, endMs: 5_000, text: "Public subtitle" }] };
+  publicDocument.video = { kind: "managed-mp4", assetSlot: videoAsset.slot, fileName: "companion.mp4", byteSize: 136_517, durationMs: 5_840, cues: [{ id: `cue-${"2".repeat(32)}`, startMs: 0, endMs: 5_000, text: "Public subtitle" }], worksheet: { assetSlot: worksheetAsset.slot, fileName: "video-worksheet.pdf", byteSize: 412 } };
   input.native.activities[openId].public.sha256 = builderDocumentSha256(publicDocument);
   input.native.assetRows.push({ id: readableAsset.assetId, checksum_sha256: readableAsset.checksumSha256, asset_role: readableAsset.role, object_key: "builder-native-assets/readable.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 200, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: readableAsset.slot } });
   input.native.assetRows.push({ id: audioAsset.assetId, checksum_sha256: audioAsset.checksumSha256, asset_role: audioAsset.role, object_key: "builder-native-assets/audio.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 300, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: audioAsset.slot } });
   input.native.assetRows.push({ id: videoAsset.assetId, checksum_sha256: videoAsset.checksumSha256, asset_role: videoAsset.role, object_key: "builder-native-assets/video.mp4", storage_profile: "private", storage_bucket: "private", mime_type: "video/mp4", byte_size: 136_517, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: videoAsset.slot } });
+  input.native.assetRows.push({ id: worksheetAsset.assetId, checksum_sha256: worksheetAsset.checksumSha256, asset_role: worksheetAsset.role, object_key: "builder-native-assets/video-worksheet.pdf", storage_profile: "private", storage_bucket: "private", mime_type: "application/pdf", byte_size: 412, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: openId, asset_slot: worksheetAsset.slot } });
 
   const compiled = compileUltimateB2ComponentReleaseV2(input);
   assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.readableText, publicDocument.readableText);
@@ -106,6 +108,8 @@ test("v2 validates and materializes a public Readable Text image without Builder
   assert.equal(compiled.nativeAssetSources.some((asset) => asset.row.object_key.endsWith("readable.png")), true);
   assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "mp3" && asset.descriptor.mediaType === "audio/mpeg"), true);
   assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "mp4" && asset.descriptor.mediaType === "video/mp4"), true);
+  assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "pdf" && asset.descriptor.mediaType === "application/pdf"), true);
+  assert.equal(compiled.assetManifest.filter((asset) => asset.sha256 === worksheetAsset.checksumSha256).length, 1);
   assert.equal(compiled.assetManifest.some((asset) => asset.sha256 === readableAsset.checksumSha256 && asset.role === "activity_artwork"), true);
   assert.doesNotMatch(JSON.stringify(compiled.publicProjection), /builder\/api|TEACHER_SENTINEL_5_PRIVATE/);
 
@@ -120,6 +124,10 @@ test("v2 validates and materializes a public Readable Text image without Builder
   const videoMismatch = structuredClone(input);
   videoMismatch.native.assetRows.find((row) => row.id === videoAsset.assetId).byte_size += 1;
   assert.throws(() => compileUltimateB2ComponentReleaseV2(videoMismatch), (error) => error.code === "native_activity_asset_invalid" && error.issues.some((issue) => issue.includes("byte size")));
+
+  const worksheetMismatch = structuredClone(input);
+  worksheetMismatch.native.assetRows.find((row) => row.id === worksheetAsset.assetId).mime_type = "text/html";
+  assert.throws(() => compileUltimateB2ComponentReleaseV2(worksheetMismatch), (error) => error.code === "native_activity_asset_invalid" && !JSON.stringify(error).includes("TEACHER_SENTINEL"));
 });
 
 test("unreferenced incomplete native drafts do not block v2 publication", () => {

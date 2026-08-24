@@ -5,6 +5,7 @@ import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/da
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
 import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
+import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import {
@@ -24,7 +25,7 @@ import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-sec
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 
-const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4" });
+const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS);
 
 function publicationV2CompatibilityDescriptor(nativeKinds) {
@@ -159,6 +160,7 @@ function validateAssetRows(nativeEntries, assetRows) {
         ...(entry.publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "listening" ? nativeListeningAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(entry.publicDocument) : []),
+        ...(entry.publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(entry.publicDocument) : []),
       ];
       for (const requirement of requirements) {
         const reference = entry.publicDocument.assets.find((asset) => asset.slot === requirement.slot);

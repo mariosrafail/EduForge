@@ -87,12 +87,12 @@ export function retireCanonicalActivity(input) { return mutateActivity({ ...inpu
 
 export function moveActivity(input) { return mutateActivity({ ...input, action: "move" }); }
 
-export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file }) {
+export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file, purpose = "native-asset" }) {
   const base = activityRoot(bookSlug, componentSlug, activityId);
   const clientMutationId = newBuilderClientMutationId();
   const preparedResponse = await fetch(`${base}/assets/prepare`, {
     method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: file.name, size: file.size, type: file.type, assetSlot, clientMutationId }),
+    body: JSON.stringify({ name: file.name, size: file.size, type: file.type, assetSlot, purpose, clientMutationId }),
   });
   const prepared = await payload(preparedResponse);
   if (!preparedResponse.ok) throw new Error(prepared.error || "Artwork upload could not be prepared.");

@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Captions, CaptionsOff, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Captions, CaptionsOff, Download, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 import { findTimedTextCue } from "../../data/timed-media/timedText.js";
 import "./nativeVideo.css";
+
+const PdfSaver = registerPlugin("PdfSaver");
 
 function formatTime(milliseconds) {
   const seconds = Math.max(0, Math.floor(Number(milliseconds || 0) / 1_000));
@@ -12,7 +15,7 @@ function formatTime(milliseconds) {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${remainder}` : `${minutes}:${remainder}`;
 }
 
-export function NativeVideoPlayer({ video, src }) {
+export function NativeVideoPlayer({ video, src, worksheetSrc = "" }) {
   const shellRef = useRef(null);
   const videoRef = useRef(null);
   const recoveryRef = useRef(0);
@@ -89,6 +92,13 @@ export function NativeVideoPlayer({ video, src }) {
     }
     try { await shellRef.current.requestFullscreen(); } catch { setMessage("Fullscreen could not be opened."); }
   };
+  const downloadWorksheet = async (event) => {
+    if (!video.worksheet || !Capacitor.isNativePlatform()) return;
+    event.preventDefault();
+    try {
+      await PdfSaver.savePdf({ assetPath: new URL(worksheetSrc, globalThis.location.href).pathname, filename: video.worksheet.fileName });
+    } catch { setMessage("Video Worksheet could not be saved."); }
+  };
 
   return <section ref={shellRef} className="native-video-player-shell" data-native-video-player-shell="" data-fullscreen={fullscreen || undefined} aria-label="Activity video player">
     <div className="native-video-stage" onClick={togglePlayback} role="presentation">
@@ -126,7 +136,8 @@ export function NativeVideoPlayer({ video, src }) {
       <input type="range" className="native-video-progress" min="0" max={Math.max(durationMs, 1)} step="100" value={Math.min(currentMs, Math.max(durationMs, 1))} onChange={seek} aria-label="Video position" />
       <button type="button" onClick={toggleMute} aria-label={muted || volume === 0 ? "Unmute video" : "Mute video"} title={muted || volume === 0 ? "Unmute" : "Mute"}>{muted || volume === 0 ? <VolumeX /> : <Volume2 />}</button>
       <input type="range" className="native-video-volume" min="0" max="1" step="0.05" value={muted ? 0 : volume} onChange={changeVolume} aria-label="Video volume" />
-      <button type="button" className="native-video-captions" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((current) => !current)} aria-label={captionsEnabled ? "Turn subtitles off" : "Turn subtitles on"} title={captionsEnabled ? "Subtitles on" : "Subtitles off"}>{captionsEnabled ? <Captions /> : <CaptionsOff />}</button>
+      {video.worksheet && worksheetSrc ? <a className="native-video-worksheet" href={worksheetSrc} download={video.worksheet.fileName} type="application/pdf" onClick={downloadWorksheet}><Download aria-hidden="true" /><span>Video Worksheet</span></a> : null}
+      <button type="button" className="native-video-captions" aria-pressed={captionsEnabled} onClick={() => setCaptionsEnabled((current) => !current)} aria-label={captionsEnabled ? "Turn subtitles off" : "Turn subtitles on"} title={captionsEnabled ? "Subtitles on" : "Subtitles off"}>{captionsEnabled ? <Captions aria-hidden="true" /> : <CaptionsOff aria-hidden="true" />}<span>Subtitles</span></button>
       <button type="button" className={`native-video-fullscreen${fullscreen ? " native-video-exit-fullscreen" : ""}`} onClick={toggleFullscreen} aria-label={fullscreen ? "Exit fullscreen" : "Open fullscreen"} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>{fullscreen ? <Minimize2 /> : <Maximize2 />}<span>{fullscreen ? "Exit Fullscreen" : "Fullscreen"}</span></button>
     </div>
     {message ? <p className="native-video-message" role="status">{message}</p> : null}

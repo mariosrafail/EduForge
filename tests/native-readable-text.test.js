@@ -6,10 +6,10 @@ import { createServer } from "vite";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements } from "../src/data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements, nativeAudioTextHotspotTargets } from "../src/data/native-activities/nativeAudioTextHotspots.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
-import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { createNativeOpenResponseQuestion, promoteNativeOpenResponsePanels } from "../src/data/native-activities/nativeOpenResponse.js";
 
 const reference = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "readable-text" };
 const readableText = { kind: "image", assetSlot: reference.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Readable passage" };
@@ -86,6 +86,23 @@ test("Audio / Readable-Text hotspots are strict, public, visual-surface-bound ma
     assert.doesNotThrow(() => assertPublicBuilderDocument(normalized));
     assert.doesNotMatch(JSON.stringify(normalized), /modelAnswer|correctOption|teacher|https?:\/\//i);
   }
+});
+
+test("panelized Open Response audio hotspots bind to the selected panel surface", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const document = kind.createBlankPublic({ activityId: "open-panel-audio", title: "Panel audio", placement: { pageId } });
+  document.parts[0].interaction = promoteNativeOpenResponsePanels(document.parts[0].interaction);
+  const secondPanel = { id: `panel-${"2".repeat(32)}`, surface: { width: 800, height: 500 }, images: [], questionIds: [] };
+  document.parts[0].interaction.presentation.panels.push(secondPanel);
+  document.assets = [reference, audioReference];
+  document.readableText = readableText;
+  document.audioTextHotspots = { hotspots: [{ ...audioHotspot, panelId: secondPanel.id }] };
+  const normalized = kind.normalizePublic(document);
+  assert.deepEqual(nativeAudioTextHotspotTargets(normalized), [
+    { panelId: document.parts[0].interaction.presentation.panels[0].id, width: 1024, height: 582 },
+    { panelId: secondPanel.id, width: 800, height: 500 },
+  ]);
+  assert.equal(normalized.audioTextHotspots.hotspots[0].panelId, secondPanel.id);
 });
 
 test("optional readable-focus highlight tokens preserve old shapes and validate new colors", () => {

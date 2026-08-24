@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { NATIVE_IMAGE_LIMITS, normalizeNativeImageInteraction } from "./nativeImage.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
 
@@ -10,10 +11,13 @@ export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
   altTextLength: 2_000,
   labelLength: 300,
   surfaceMaximum: 10_000,
+  panels: 12,
+  imagesPerPanel: NATIVE_IMAGE_LIMITS.images,
 });
 
 export const NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
 export const NATIVE_OPEN_RESPONSE_FONT_FAMILY = "Arial";
+export const NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID = "panel-00000000000040008000000000000000";
 
 export function initialNativeOpenResponseArtworkArea(logicalSurface, metadata = {}) {
   const surfaceWidth = Math.max(1, Number(logicalSurface?.width) || NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE.width);
@@ -218,30 +222,159 @@ function artwork(input, index, logicalSurface, assetSlots) {
 
 export function normalizeNativeOpenResponseInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Open Response interaction"));
-  exactKeys(value, ["kind", "surface", "artwork", "questions"], "Native Open Response interaction");
   if (value.kind !== "open-response") throw new Error("Native Open Response interaction kind is invalid.");
-  const logicalSurface = surface(value.surface);
+  const legacy = Object.hasOwn(value, "surface") || Object.hasOwn(value, "artwork");
+  exactKeys(value, legacy ? ["kind", "surface", "artwork", "questions"] : ["kind", "questions", "presentation"], "Native Open Response interaction");
   if (!Array.isArray(value.questions) || value.questions.length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error("Native Open Response question count is invalid.");
-  if (!Array.isArray(value.artwork) || value.artwork.length > NATIVE_OPEN_RESPONSE_LIMITS.artwork) throw new Error("Native Open Response artwork count is invalid.");
+  if (legacy) return normalizeLegacyOpenResponse(value, { assets, commonAssetSlots });
+
+  exactKeys(value.presentation, ["kind", "panels"], "Native Open Response presentation");
+  if (value.presentation.kind !== "panels" || !Array.isArray(value.presentation.panels) || value.presentation.panels.length > NATIVE_OPEN_RESPONSE_LIMITS.panels) throw new Error("Native Open Response panel presentation is invalid.");
+  const rawQuestionIds = new Set();
+  value.questions.forEach((entry, index) => {
+    if (!isNativeChildId(entry?.id, "q") || rawQuestionIds.has(entry.id)) throw new Error(`Native Open Response questions[${index}].id is invalid or duplicate.`);
+    rawQuestionIds.add(entry.id);
+  });
+  const panelIds = new Set();
+  const imageIds = new Set();
+  const assignedQuestionIds = new Set();
+  const questionSurfaces = new Map();
+  const usedSlots = new Set();
+  const panels = value.presentation.panels.map((panelValue, panelIndex) => {
+    const label = `Native Open Response panels[${panelIndex}]`;
+    exactKeys(panelValue, ["id", "surface", "images", "questionIds"], label);
+    if (!isNativeChildId(panelValue.id, "panel") || panelIds.has(panelValue.id)) throw new Error("Native Open Response panel identity is invalid or duplicate.");
+    panelIds.add(panelValue.id);
+    if (!Array.isArray(panelValue.images) || panelValue.images.length > NATIVE_OPEN_RESPONSE_LIMITS.imagesPerPanel) throw new Error(`${label}.images count is invalid.`);
+    if (!Array.isArray(panelValue.questionIds) || panelValue.questionIds.length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error(`${label}.questionIds count is invalid.`);
+    const panelSlots = new Set(panelValue.images.map((image) => image.assetSlot));
+    const otherSlots = new Set([...commonAssetSlots, ...assets.filter((asset) => !panelSlots.has(asset.slot)).map((asset) => asset.slot)]);
+    const composition = normalizeNativeImageInteraction({ kind: "image", surface: panelValue.surface, images: panelValue.images }, { assets, commonAssetSlots: otherSlots });
+    composition.images.forEach((image) => {
+      if (imageIds.has(image.id)) throw new Error("Native Open Response image identities must be unique across panels.");
+      imageIds.add(image.id); usedSlots.add(image.assetSlot);
+    });
+    const questionIds = panelValue.questionIds.map((questionId, questionIndex) => {
+      if (!rawQuestionIds.has(questionId)) throw new Error(`${label}.questionIds[${questionIndex}] does not reference a semantic question.`);
+      if (assignedQuestionIds.has(questionId)) throw new Error("A Native Open Response question cannot belong to more than one panel.");
+      assignedQuestionIds.add(questionId); questionSurfaces.set(questionId, composition.surface);
+      return questionId;
+    });
+    return { id: panelValue.id, surface: composition.surface, images: composition.images, questionIds };
+  });
   const questionIds = new Set();
   const responseIds = new Set();
   const questions = value.questions.map((entry, index) => {
-    const normalized = question(entry, index, logicalSurface);
+    const normalized = question(entry, index, questionSurfaces.get(entry.id) || unassignedQuestionSurface(entry));
     if (questionIds.has(normalized.id) || responseIds.has(normalized.responseRegion.id)) throw new Error("Native Open Response child identities must be unique.");
     questionIds.add(normalized.id); responseIds.add(normalized.responseRegion.id);
     return normalized;
   });
-  const assetSlots = new Set(assets.map((asset) => asset.slot));
-  const artworkIds = new Set();
-  const usedSlots = new Set();
+  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by a panel image or common supporting content.");
+  return { kind: "open-response", questions, presentation: { kind: "panels", panels } };
+}
+
+function normalizeLegacyOpenResponse(value, { assets, commonAssetSlots }) {
+  const logicalSurface = surface(value.surface);
+  if (!Array.isArray(value.artwork) || value.artwork.length > NATIVE_OPEN_RESPONSE_LIMITS.artwork) throw new Error("Native Open Response artwork count is invalid.");
+  const questionIds = new Set(); const responseIds = new Set();
+  const questions = value.questions.map((entry, index) => {
+    const normalized = question(entry, index, logicalSurface);
+    if (questionIds.has(normalized.id) || responseIds.has(normalized.responseRegion.id)) throw new Error("Native Open Response child identities must be unique.");
+    questionIds.add(normalized.id); responseIds.add(normalized.responseRegion.id); return normalized;
+  });
+  const assetSlots = new Set(assets.map((asset) => asset.slot)); const artworkIds = new Set(); const usedSlots = new Set();
   const normalizedArtwork = value.artwork.map((entry, index) => {
     const normalized = artwork(entry, index, logicalSurface, assetSlots);
     if (artworkIds.has(normalized.id)) throw new Error("Native Open Response artwork identities must be unique.");
-    artworkIds.add(normalized.id); usedSlots.add(normalized.assetSlot);
-    return normalized;
+    artworkIds.add(normalized.id); usedSlots.add(normalized.assetSlot); return normalized;
   });
   if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by artwork or common supporting content.");
   return { kind: "open-response", surface: logicalSurface, artwork: normalizedArtwork, questions };
+}
+
+function unassignedQuestionSurface(questionValue) {
+  const areas = [questionValue?.promptArea, questionValue?.responseRegion?.area];
+  return {
+    width: Math.min(NATIVE_OPEN_RESPONSE_LIMITS.surfaceMaximum, Math.max(NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE.width, ...areas.map((entry) => Number(entry?.x || 0) + Number(entry?.width || 0)))),
+    height: Math.min(NATIVE_OPEN_RESPONSE_LIMITS.surfaceMaximum, Math.max(NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE.height, ...areas.map((entry) => Number(entry?.y || 0) + Number(entry?.height || 0)))),
+  };
+}
+
+export function nativeOpenResponsePanels(interaction) {
+  if (interaction?.presentation?.kind === "panels") return interaction.presentation.panels;
+  return [{ id: NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID, surface: interaction.surface, images: interaction.artwork || [], questionIds: (interaction.questions || []).map((questionValue) => questionValue.id), legacy: true }];
+}
+
+export function promoteNativeOpenResponsePanels(interaction) {
+  if (interaction?.presentation?.kind === "panels") return interaction;
+  return {
+    kind: "open-response",
+    questions: structuredClone(interaction.questions || []),
+    presentation: { kind: "panels", panels: [{
+      id: NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID,
+      surface: structuredClone(interaction.surface || NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE),
+      images: (interaction.artwork || []).map((item) => ({ ...structuredClone(item), id: item.id.replace(/^art-/, "img-") })),
+      questionIds: (interaction.questions || []).map((questionValue) => questionValue.id),
+    }] },
+  };
+}
+
+function areaFitsSurface(value, logicalSurface) {
+  return value.x >= 0 && value.y >= 0 && value.width >= 1 && value.height >= 1 && value.x + value.width <= logicalSurface.width && value.y + value.height <= logicalSurface.height;
+}
+
+export function assignNativeOpenResponseQuestion(interaction, questionId, panelId) {
+  const panels = interaction?.presentation?.panels;
+  const target = panels?.find((panel) => panel.id === panelId);
+  const questionValue = interaction?.questions?.find((entry) => entry.id === questionId);
+  if (!target || !questionValue) throw new Error("Native Open Response question assignment is invalid.");
+  if (target.surface.height < 9) throw new Error("Native Open Response destination panel is too small for a response region.");
+  panels.forEach((panel) => { panel.questionIds = panel.questionIds.filter((id) => id !== questionId); });
+  target.questionIds.push(questionId);
+  if (areaFitsSurface(questionValue.promptArea, target.surface) && areaFitsSurface(questionValue.responseRegion.area, target.surface)) return { repositioned: false };
+  questionValue.promptArea = clampAreaToSurface(questionValue.promptArea, target.surface, { minimumWidth: 24, minimumHeight: 24 });
+  resizeNativeOpenResponseRegion(questionValue.responseRegion, clampAreaToSurface(questionValue.responseRegion.area, target.surface, {
+    minimumWidth: Math.min(target.surface.width, Math.max(80, 2 * questionValue.responseRegion.presentation.paddingX + 1)),
+    minimumHeight: Math.min(target.surface.height, Math.max(44, 2 * questionValue.responseRegion.presentation.paddingY + questionValue.responseRegion.presentation.lineSpacing)),
+  }));
+  fitResponsePresentationToArea(questionValue.responseRegion);
+  return { repositioned: true };
+}
+
+function clampAreaToSurface(value, logicalSurface, { minimumWidth, minimumHeight }) {
+  const width = Math.min(logicalSurface.width, Math.max(Math.min(minimumWidth, logicalSurface.width), Math.min(value.width, logicalSurface.width)));
+  const height = Math.min(logicalSurface.height, Math.max(Math.min(minimumHeight, logicalSurface.height), Math.min(value.height, logicalSurface.height)));
+  return { x: Math.min(Math.max(0, value.x), logicalSurface.width - width), y: Math.min(Math.max(0, value.y), logicalSurface.height - height), width, height };
+}
+
+function fitResponsePresentationToArea(responseRegion) {
+  const { area, presentation } = responseRegion;
+  presentation.paddingX = roundGeometry(Math.min(presentation.paddingX, Math.max(0, (area.width - 1) / 2)));
+  presentation.lineSpacing = roundGeometry(Math.min(presentation.lineSpacing, area.height));
+  presentation.answerFontSizeMax = roundGeometry(Math.min(presentation.answerFontSizeMax, presentation.lineSpacing * .9));
+  presentation.answerFontSizeMin = roundGeometry(Math.min(presentation.answerFontSizeMin, presentation.answerFontSizeMax));
+  presentation.paddingY = roundGeometry(Math.min(presentation.paddingY, Math.max(0, (area.height - presentation.lineSpacing) / 2)));
+  while (presentation.lineCount > 1 && presentation.paddingY + presentation.lineSpacing * presentation.lineCount > area.height - presentation.paddingY) presentation.lineCount -= 1;
+  presentation.linePositions = nativeOpenResponseLinePositions(presentation);
+  presentation.lineWidth = roundGeometry(Math.min(presentation.lineWidth, Math.max(1, area.width - 2 * presentation.paddingX)));
+}
+
+export function removeNativeOpenResponsePanel(publicDocument, panelId) {
+  const interaction = publicDocument.parts[0].interaction;
+  const panel = interaction.presentation?.panels.find((entry) => entry.id === panelId);
+  if (!panel) throw new Error("Native Open Response panel does not exist.");
+  interaction.presentation.panels = interaction.presentation.panels.filter((entry) => entry.id !== panelId);
+  new Set(panel.images.map((image) => image.assetSlot)).forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
+  return panel;
+}
+
+export function nativeOpenResponseAssetRequirements(publicDocument) {
+  const panels = nativeOpenResponsePanels(publicDocument?.parts?.[0]?.interaction || {}); const seen = new Set();
+  return panels.flatMap((panel, panelIndex) => panel.images.flatMap((image, imageIndex) => {
+    if (seen.has(image.assetSlot)) return [];
+    seen.add(image.assetSlot); return [{ slot: image.assetSlot, label: `Open Response panel ${panelIndex + 1} image ${imageIndex + 1}` }];
+  }));
 }
 
 export function duplicateNativeOpenResponseArtwork(interaction, sourceId, duplicateId) {
@@ -324,14 +457,18 @@ export function assessNativeOpenResponseReadiness(publicDocument, teacherDocumen
   const questions = publicDocument.parts[0].interaction.questions;
   const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
   if (!questions.length) issues.push("Add at least one question.");
+  const panels = nativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  if (!panels.length) issues.push("Add at least one visual panel.");
+  const membership = new Map(panels.flatMap((panel, panelIndex) => panel.questionIds.map((questionId) => [questionId, panelIndex])));
   for (const [index, questionValue] of questions.entries()) {
     if (!questionValue.prompt.trim()) issues.push(`Question ${index + 1} needs a prompt.`);
+    if (!membership.has(questionValue.id)) issues.push(`Question ${index + 1} must be assigned to a panel.`);
     const modelAnswer = answers.get(questionValue.id) || "";
     if (!modelAnswer.trim()) issues.push(`Question ${index + 1} needs a model answer.`);
     else if (!autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} model answer does not fit its authored lines.`);
   }
-  publicDocument.parts[0].interaction.artwork.forEach((item, index) => {
-    if (!item.decorative && !item.altText.trim()) issues.push(`Artwork ${index + 1} needs alt text or must be marked decorative.`);
-  });
+  panels.forEach((panel, panelIndex) => panel.images.forEach((item, imageIndex) => {
+    if (!item.decorative && !item.altText.trim()) issues.push(`Panel ${panelIndex + 1} image ${imageIndex + 1} needs alt text or must be marked decorative.`);
+  }));
   return { ready: issues.length === 0, issues };
 }

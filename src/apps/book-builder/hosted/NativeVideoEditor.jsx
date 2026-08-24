@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileUp, Upload, Video } from "lucide-react";
+import { FileText, FileUp, Trash2, Upload, Video } from "lucide-react";
 
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
@@ -38,8 +38,10 @@ function browserVideoDuration(file) {
 
 function detachVideo(document) {
   const slot = document.video?.assetSlot;
+  const worksheetSlot = document.video?.worksheet?.assetSlot;
   delete document.video;
   if (slot) removeNativeManagedAssetReferenceIfUnused(document, slot);
+  if (worksheetSlot) removeNativeManagedAssetReferenceIfUnused(document, worksheetSlot);
 }
 
 function videoIsComplete(video) {
@@ -52,6 +54,7 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
   const [pendingCues, setPendingCues] = useState(publicDraft.video?.cues || []);
   const video = publicDraft.video || null;
   const reference = video ? publicDraft.assets.find((asset) => asset.slot === video.assetSlot) : null;
+  const worksheetReference = video?.worksheet ? publicDraft.assets.find((asset) => asset.slot === video.worksheet.assetSlot) : null;
   const incomplete = enabled && !videoIsComplete(video);
 
   useEffect(() => {
@@ -89,7 +92,7 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
       mutatePublic((next) => {
         const previousSlot = next.video?.assetSlot;
         next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
-        next.video = { kind: "managed-mp4", assetSlot: uploaded.reference.slot, fileName: file.name, byteSize: uploaded.metadata.byteSize, durationMs, cues };
+        next.video = { kind: "managed-mp4", assetSlot: uploaded.reference.slot, fileName: file.name, byteSize: uploaded.metadata.byteSize, durationMs, cues, ...(next.video?.worksheet ? { worksheet: next.video.worksheet } : {}) };
         if (previousSlot && previousSlot !== uploaded.reference.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
       });
       setEnabled(true);
@@ -101,6 +104,29 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
     } finally {
       setUploading(false);
     }
+  };
+
+  const uploadWorksheet = async (file) => {
+    if (!file || !video) return;
+    setUploading(true); onStatusChange("Uploading Video Worksheet PDF...");
+    try {
+      const uploaded = await uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot: createNativeChildId("asset"), file, purpose: "video-worksheet" });
+      if (uploaded.metadata?.mimeType !== "application/pdf" || !Number.isSafeInteger(uploaded.metadata?.byteSize)) throw new Error("Uploaded worksheet is not a validated PDF.");
+      mutatePublic((next) => {
+        const previousSlot = next.video.worksheet?.assetSlot;
+        next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
+        next.video.worksheet = { assetSlot: uploaded.reference.slot, fileName: file.name, byteSize: uploaded.metadata.byteSize };
+        if (previousSlot && previousSlot !== uploaded.reference.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+      });
+      onStatusChange("Video Worksheet attached; save the draft to keep it.");
+    } catch (error) { onStatusChange(error.message || "Video Worksheet upload failed."); }
+    finally { setUploading(false); }
+  };
+
+  const removeWorksheet = () => {
+    if (!video?.worksheet) return;
+    mutatePublic((next) => { const slot = next.video.worksheet.assetSlot; delete next.video.worksheet; removeNativeManagedAssetReferenceIfUnused(next, slot); });
+    onStatusChange("Video Worksheet removed; save the draft to keep this change.");
   };
 
   const importSrt = async (file) => {
@@ -134,6 +160,7 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
         <label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading..." : video ? "Replace Video" : "Upload Video"}</strong><small>MP4 - maximum 100 MiB</small></span><input type="file" accept="video/mp4,.mp4" disabled={uploading} onChange={(event) => { uploadVideo(event.target.files?.[0]); event.target.value = ""; }} /></label>
         <label className="studio-upload-action"><FileUp aria-hidden="true" /><span><strong>{(video?.cues || pendingCues).length ? "Replace SRT" : "Upload SRT"}</strong><small>Validated timed subtitle text</small></span><input type="file" accept=".srt,application/x-subrip,text/plain" disabled={uploading} onChange={(event) => { importSrt(event.target.files?.[0]); event.target.value = ""; }} /></label>
       </div>
+      <section className="native-video-worksheet-editor" aria-label="Video Worksheet PDF"><div><FileText aria-hidden="true" /><span><strong>Video Worksheet</strong><small>{worksheetReference ? `${video.worksheet.fileName} · ${formatBytes(video.worksheet.byteSize)}` : "No worksheet attached"}</small></span></div><label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{worksheetReference ? "Replace PDF" : "Upload PDF"}</strong><small>PDF · maximum 25 MiB</small></span><input type="file" accept="application/pdf,.pdf" disabled={uploading || !video} onChange={(event) => { uploadWorksheet(event.target.files?.[0]); event.target.value = ""; }} /></label>{worksheetReference ? <button type="button" className="studio-button studio-button--danger-ghost" onClick={removeWorksheet}><Trash2 aria-hidden="true" /> Remove PDF</button> : null}</section>
       <button type="button" className="studio-button studio-button--danger-ghost" onClick={toggle}>Remove / Disable Video</button>
     </div> : null}
   </section>;

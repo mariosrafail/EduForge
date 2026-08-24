@@ -10,6 +10,7 @@ import { nativeActivityUsesManagedAssetSlot, nativeVideoAssetRequirements, remov
 import { findTimedTextCue, parseTimedTextSrt, TIMED_TEXT_LIMITS } from "../src/data/timed-media/timedText.js";
 
 const reference = { assetId: "10000000-0000-4000-8000-000000000070", checksumSha256: "7".repeat(64), role: "activity_artwork", slot: "video-companion" };
+const worksheetReference = { assetId: "10000000-0000-4000-8000-000000000071", checksumSha256: "8".repeat(64), role: "activity_artwork", slot: "video-worksheet" };
 const cues = [
   { id: "cue-00000000000040008000000000000001", startMs: 0, endMs: 1_900, text: "Opening subtitle" },
   { id: "cue-00000000000040008000000000000002", startMs: 2_000, endMs: 5_000, text: "Closing subtitle" },
@@ -52,6 +53,26 @@ test("Video model rejects incomplete, forged, oversized, malformed, and out-of-d
   for (const mutate of mutations) { const invalid = structuredClone(valid); mutate(invalid); assert.throws(() => kind.normalizePublic(invalid)); }
 });
 
+test("Video Worksheet is an optional managed PDF descriptor with no URL or private storage fields", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const document = kind.createBlankPublic({ activityId: "open-video", title: "Video", placement: { pageId: "page-1" } });
+  document.assets = [reference, worksheetReference];
+  document.video = { ...video, worksheet: { assetSlot: worksheetReference.slot, fileName: "Unit 1 Video Worksheet.pdf", byteSize: 4_096 } };
+  const normalized = kind.normalizePublic(document);
+  assert.deepEqual(normalized.video.worksheet, document.video.worksheet);
+  assert.deepEqual(nativeVideoAssetRequirements(normalized), [
+    { slot: reference.slot, mediaType: "video/mp4", byteSize: video.byteSize, label: "Video MP4" },
+    { slot: worksheetReference.slot, mediaType: "application/pdf", byteSize: 4_096, label: "Video Worksheet PDF" },
+  ]);
+  assert.doesNotMatch(JSON.stringify(normalized.video.worksheet), /https?:|object.key|signed|teacher/i);
+  for (const mutate of [
+    (value) => { value.video.worksheet.assetSlot = "missing"; },
+    (value) => { value.video.worksheet.fileName = "worksheet.html"; },
+    (value) => { value.video.worksheet.byteSize = 0; },
+    (value) => { value.video.worksheet.url = "https://private.example/worksheet.pdf"; },
+  ]) { const invalid = structuredClone(document); mutate(invalid); assert.throws(() => kind.normalizePublic(invalid)); }
+});
+
 test("Video managed asset ownership, media type, and byte size fail closed", async () => {
   const row = { id: reference.assetId, checksum_sha256: reference.checksumSha256, asset_role: reference.role, publication_status: "draft", access_level: "internal", storage_profile: "private", source_metadata: { native_activity_id: "open-video", asset_slot: reference.slot }, mime_type: "video/mp4", byte_size: video.byteSize, width: null, height: null };
   const input = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: "open-video", assets: [reference], requirements: nativeVideoAssetRequirements({ video }) };
@@ -59,6 +80,12 @@ test("Video managed asset ownership, media type, and byte size fail closed", asy
   await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, mime_type: "video/webm" }], input), /media type/);
   await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, byte_size: video.byteSize + 1 }], input), /byte size/);
   await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [{ ...row, source_metadata: { ...row.source_metadata, native_activity_id: "other" } }], input), /not owned/);
+
+  const worksheet = { assetSlot: worksheetReference.slot, fileName: "worksheet.pdf", byteSize: 4_096 };
+  const worksheetRow = { ...row, id: worksheetReference.assetId, checksum_sha256: worksheetReference.checksumSha256, source_metadata: { native_activity_id: "open-video", asset_slot: worksheetReference.slot }, mime_type: "application/pdf", byte_size: worksheet.byteSize };
+  const worksheetInput = { ...input, assets: [reference, worksheetReference], requirements: nativeVideoAssetRequirements({ video: { ...video, worksheet } }) };
+  await assert.doesNotReject(() => validateBuilderNativeAssetReferences(async () => [row, worksheetRow], worksheetInput));
+  await assert.rejects(() => validateBuilderNativeAssetReferences(async () => [row, { ...worksheetRow, mime_type: "text/html" }], worksheetInput), /media type/);
 });
 
 test("Video asset references remain live until the common video capability is removed", () => {
@@ -92,6 +119,11 @@ test("Shared video runtime owns captions, custom controls, and the fullscreen sh
   assert.doesNotMatch(player, /videoRef\.current\.requestFullscreen/);
   assert.match(player, /document\.fullscreenElement === shellRef\.current/);
   assert.match(player, /findTimedTextCue/);
+  assert.match(player, /<Captions/);
+  assert.match(player, />Subtitles</);
+  assert.match(player, /aria-pressed=\{captionsEnabled\}/);
+  assert.match(player, /Video Worksheet/);
+  assert.match(player, /PdfSaver\.savePdf/);
   assert.match(player, /querySelectorAll\("audio, video"\)/);
   assert.doesNotMatch(player, /dangerouslySetInnerHTML|<track/);
   assert.match(css, /native-video-exit-fullscreen[^}]*opacity:\s*\.34/s);

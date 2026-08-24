@@ -186,6 +186,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const activity = typeof children === "function" ? children(childPresentation, hotspotPresentation) : children;
   const focusOpen = effectiveView === "questions" && Boolean(activeHotspot);
   const videoReference = videoAvailable ? document.assets.find((asset) => asset.slot === document.video.assetSlot) : null;
+  const worksheetReference = document.video?.worksheet ? document.assets.find((asset) => asset.slot === document.video.worksheet.assetSlot) : null;
   const internalNavigation = !presentation && (available || videoAvailable);
   return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
     <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
@@ -199,7 +200,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       </div>
       {scrollState.overflowing ? <div ref={trackRef} className="native-readable-text-scroll-control" role="scrollbar" aria-label="Readable text vertical scroll" aria-controls={`${document.activityId}-readable-scroll`} aria-orientation="vertical" aria-valuemin={0} aria-valuemax={Math.round(scrollState.maximum)} aria-valuenow={Math.round(scrollState.top)} tabIndex={0} onKeyDown={scrollControlKeyDown} onPointerDown={(event) => { if (event.target === event.currentTarget) scrollFromTrackPoint(event.clientY); }}><span className="native-readable-text-scroll-thumb" style={{ "--scroll-thumb-size": `${Math.max(0.34, scrollState.viewport / Math.max(1, scrollState.content)) * 100}%`, "--scroll-progress": `${scrollState.maximum ? scrollState.top / scrollState.maximum : 0}` }} onPointerDown={beginThumbDrag} onPointerMove={moveThumb} onPointerUp={endThumb} onPointerCancel={endThumb} /></div> : null}
     </section> : null}
-    {effectiveView === "video" && videoReference ? <div className="native-video-presentation-view"><NativeVideoPlayer video={document.video} src={assetUrl(videoReference.assetId)} /></div> : null}
+    {effectiveView === "video" && videoReference ? <div className="native-video-presentation-view"><NativeVideoPlayer video={document.video} src={assetUrl(videoReference.assetId)} worksheetSrc={worksheetReference ? assetUrl(worksheetReference.assetId) : ""} /></div> : null}
     {internalNavigation ? <nav className="native-supplementary-navigation" aria-label="Activity presentation">
       {available ? <button type="button" aria-pressed={effectiveView === "text"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-text", { readableText: available, video: videoAvailable }))}>{effectiveView === "text" ? "Questions" : "Read Text"}</button> : null}
       {videoAvailable ? <button type="button" aria-pressed={effectiveView === "video"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-video", { readableText: available, video: videoAvailable }))}>{effectiveView === "video" ? "Questions" : "Video"}</button> : null}

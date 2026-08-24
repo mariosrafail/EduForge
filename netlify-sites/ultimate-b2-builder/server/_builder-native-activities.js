@@ -4,6 +4,7 @@ import path from "node:path";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-assets/audio-inspection.js";
 import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../../../lib/book-assets/video-inspection.js";
+import { inspectManagedPdf, MANAGED_PDF_MAXIMUM_BYTES } from "../../../lib/book-assets/pdf-inspection.js";
 import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
@@ -12,6 +13,7 @@ import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/da
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
 import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
+import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
@@ -44,7 +46,7 @@ const safeId = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const uploadTtlSeconds = 15 * 60;
 const previewTtlSeconds = 5 * 60;
 const declaredRasterTypes = new Set(Object.values(MANAGED_RASTER_TYPES));
-const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"], [".mp4", "video/mp4"]]);
+const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"], [".mp4", "video/mp4"], [".pdf", "application/pdf"]]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 
@@ -71,13 +73,15 @@ function route(event) {
   return null;
 }
 
-function parseJson(event, keys, maximumBytes = 1024 * 1024) {
+function parseJson(event, keys, maximumBytes = 1024 * 1024, optionalKeys = []) {
   if (!String(Object.entries(event.headers || {}).find(([key]) => key.toLowerCase() === "content-type")?.[1] || "").toLowerCase().startsWith("application/json")) return { error: json(415, { error: "expected_application_json" }) };
   const encoded = String(event.body || "");
   const bytes = event.isBase64Encoded ? Buffer.from(encoded, "base64") : Buffer.from(encoded, "utf8");
   if (bytes.length > maximumBytes) return { error: json(413, { error: "request_too_large" }) };
   let value; try { value = JSON.parse(bytes.toString("utf8") || "{}"); } catch { return { error: json(400, { error: "invalid_json" }) }; }
-  if (!exact(value, keys)) return { error: json(400, { error: "invalid_request" }) };
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { error: json(400, { error: "invalid_request" }) };
+  const actualKeys = Object.keys(value);
+  if (keys.some((key) => !Object.hasOwn(value, key)) || actualKeys.some((key) => !keys.includes(key) && !optionalKeys.includes(key))) return { error: json(400, { error: "invalid_request" }) };
   return { value };
 }
 
@@ -349,6 +353,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
+        ...(publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(publicDocument) : []),
       ],
     });
   } catch (error) {
@@ -378,24 +383,26 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
 }
 
 function normalizeAssetDescriptor(input) {
-  if (!exact(input, ["name", "size", "type", "assetSlot"])) throw new Error("invalid_file_descriptor");
+  if (!exact(input, ["name", "size", "type", "assetSlot", "purpose"])) throw new Error("invalid_file_descriptor");
   const name = String(input.name || "");
   if (!/^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/.test(name) || path.basename(name) !== name || /^(?:[a-z]:|\\\\|\/)|%2f|%5c|[\u0000-\u001f\u007f]/i.test(name)) throw new Error("invalid_filename");
   const extension = path.extname(name).toLowerCase();
   const type = String(input.type || "").toLowerCase();
-  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (!declaredRasterTypes.has(type) && !["audio/mpeg", "video/mp4"].includes(type))) throw new Error("declared_mime_mismatch");
-  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : type === "video/mp4" ? MANAGED_MP4_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
+  const purpose = String(input.purpose || "native-asset");
+  const worksheet = purpose === "video-worksheet";
+  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (worksheet ? type !== "application/pdf" : purpose !== "native-asset" || (!declaredRasterTypes.has(type) && !["audio/mpeg", "video/mp4"].includes(type)))) throw new Error("declared_mime_mismatch");
+  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : type === "video/mp4" ? MANAGED_MP4_MAXIMUM_BYTES : type === "application/pdf" ? MANAGED_PDF_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
   if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > maximumBytes) throw new Error("declared_file_too_large");
   if (!safeId.test(String(input.assetSlot || ""))) throw new Error("invalid_asset_slot");
-  return { name, size: input.size, type, assetSlot: input.assetSlot };
+  return { name, size: input.size, type, assetSlot: input.assetSlot, purpose };
 }
 
 async function prepareAsset(dependencies, sql, auth, parsedRoute, event) {
-  const parsed = parseJson(event, ["name", "size", "type", "assetSlot", "clientMutationId"]);
+  const parsed = parseJson(event, ["name", "size", "type", "assetSlot", "clientMutationId"], 1024 * 1024, ["purpose"]);
   if (parsed.error) return parsed.error;
   if (!builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_client_mutation_id" });
   if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
-  let descriptor; try { descriptor = normalizeAssetDescriptor({ name: parsed.value.name, size: parsed.value.size, type: parsed.value.type, assetSlot: parsed.value.assetSlot }); } catch (error) { return json(400, { error: failureCode(error) }); }
+  let descriptor; try { descriptor = normalizeAssetDescriptor({ name: parsed.value.name, size: parsed.value.size, type: parsed.value.type, assetSlot: parsed.value.assetSlot, purpose: parsed.value.purpose }); } catch (error) { return json(400, { error: failureCode(error) }); }
   const uploadId = dependencies.randomUuid();
   const stagingObjectKey = buildNativeActivityAssetStagingKey({ ...parsedRoute, uploadId });
   const requestSha256 = sha256(stableBuilderJson(descriptor));
@@ -449,7 +456,7 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
     if (head.byteSize !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
     const bytes = await storage.download({ profile: "private", objectKey: claimed.stagingObjectKey });
     if (bytes.length !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
-    const inspected = claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : claimed.fileDescriptor.type === "video/mp4" ? dependencies.inspectVideo(bytes) : await dependencies.inspectRaster(bytes);
+    const inspected = claimed.fileDescriptor.purpose === "video-worksheet" ? dependencies.inspectPdf(bytes) : claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : claimed.fileDescriptor.type === "video/mp4" ? dependencies.inspectVideo(bytes) : await dependencies.inspectRaster(bytes);
     if (inspected.mimeType !== claimed.fileDescriptor.type || extensionTypes.get(path.extname(claimed.fileDescriptor.name).toLowerCase()) !== inspected.mimeType) throw new Error("actual_mime_mismatch");
     const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, assetSlot: claimed.assetSlot, checksum: inspected.checksumSha256, extension: inspected.extension });
     await storage.upload({ profile: "private", objectKey, body: inspected.bytes, contentType: inspected.mimeType, checksumSha256: inspected.checksumSha256, byteSize: inspected.byteSize });
@@ -500,6 +507,7 @@ async function nativeCatalog(dependencies, sql) {
             ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
+            ...(publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(publicDocument) : []),
           ];
           for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
@@ -547,6 +555,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,
     inspectVideo: overrides.inspectVideo || inspectManagedMp4,
+    inspectPdf: overrides.inspectPdf || inspectManagedPdf,
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
     logger: overrides.logger || console,

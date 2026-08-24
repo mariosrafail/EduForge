@@ -8,6 +8,7 @@ export const NATIVE_READABLE_TEXT_MAXIMUM_DIMENSION = 8_192;
 export const NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM = 300;
 export const NATIVE_VIDEO_FILE_NAME_MAXIMUM = 180;
 export const NATIVE_VIDEO_MAXIMUM_BYTES = 100 * 1024 * 1024;
+export const NATIVE_VIDEO_WORKSHEET_MAXIMUM_BYTES = 25 * 1024 * 1024;
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const SAFE_ASSET_ROLE = /^[a-z][a-z0-9_]{1,63}$/;
@@ -106,7 +107,8 @@ export function nativeReadableTextAssetRequirements(publicDocument) {
 
 export function normalizeNativeVideo(input, assets) {
   const value = structuredClone(object(input, "Native video companion"));
-  exactKeys(value, ["kind", "assetSlot", "fileName", "byteSize", "durationMs", "cues"], "Native video companion");
+  const hasWorksheet = Object.hasOwn(value, "worksheet");
+  exactKeys(value, ["kind", "assetSlot", "fileName", "byteSize", "durationMs", "cues", ...(hasWorksheet ? ["worksheet"] : [])], "Native video companion");
   if (value.kind !== "managed-mp4") throw new Error("Native video companion kind is invalid.");
   const reference = assets.find((asset) => asset.slot === value.assetSlot);
   if (!reference || reference.role !== "activity_artwork") throw new Error("Native video companion must reference a managed native asset.");
@@ -116,23 +118,35 @@ export function normalizeNativeVideo(input, assets) {
   if (!Number.isSafeInteger(value.durationMs) || value.durationMs < 1 || value.durationMs > TIMED_TEXT_LIMITS.durationMs) throw new Error("Native video duration is invalid.");
   const cues = normalizeTimedTextCues(value.cues, { label: "Native video subtitles" });
   if (cues.some((cue) => cue.endMs > value.durationMs)) throw new Error("Native video subtitle cue exceeds the video duration.");
-  return { kind: "managed-mp4", assetSlot: reference.slot, fileName, byteSize: value.byteSize, durationMs: value.durationMs, cues };
+  const normalized = { kind: "managed-mp4", assetSlot: reference.slot, fileName, byteSize: value.byteSize, durationMs: value.durationMs, cues };
+  if (hasWorksheet) {
+    exactKeys(value.worksheet, ["assetSlot", "fileName", "byteSize"], "Native video worksheet");
+    const worksheetReference = assets.find((asset) => asset.slot === value.worksheet.assetSlot);
+    if (!worksheetReference || worksheetReference.role !== "activity_artwork" || worksheetReference.slot === reference.slot) throw new Error("Native video worksheet must reference a distinct managed native asset.");
+    const worksheetFileName = text(value.worksheet.fileName, "Native video worksheet file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true });
+    if (!/^[A-Za-z0-9][A-Za-z0-9._() -]*\.pdf$/i.test(worksheetFileName)) throw new Error("Native video worksheet file name is invalid.");
+    if (!Number.isSafeInteger(value.worksheet.byteSize) || value.worksheet.byteSize < 1 || value.worksheet.byteSize > NATIVE_VIDEO_WORKSHEET_MAXIMUM_BYTES) throw new Error("Native video worksheet byte size is invalid.");
+    normalized.worksheet = { assetSlot: worksheetReference.slot, fileName: worksheetFileName, byteSize: value.worksheet.byteSize };
+  }
+  return normalized;
 }
 
 export function nativeVideoAssetRequirements(publicDocument) {
   const video = publicDocument?.video;
-  return video ? [{ slot: video.assetSlot, mediaType: "video/mp4", byteSize: video.byteSize, label: "Video MP4" }] : [];
+  return video ? [{ slot: video.assetSlot, mediaType: "video/mp4", byteSize: video.byteSize, label: "Video MP4" }, ...(video.worksheet ? [{ slot: video.worksheet.assetSlot, mediaType: "application/pdf", byteSize: video.worksheet.byteSize, label: "Video Worksheet PDF" }] : [])] : [];
 }
 
 export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
   return publicDocument?.readableText?.assetSlot === slot
     || publicDocument?.video?.assetSlot === slot
+    || publicDocument?.video?.worksheet?.assetSlot === slot
     || Boolean(publicDocument?.audioTextHotspots?.hotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.panels?.some((panel) => panel.images?.some((item) => item.assetSlot === slot)))
     || interaction?.presentation?.backgroundAssetSlot === slot
+    || Boolean(interaction?.presentation?.panels?.some((panel) => panel.images?.some((item) => item.assetSlot === slot)))
     || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot))
     || interaction?.audioAssetSlot === slot
     || Boolean(interaction?.snippetHotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
@@ -174,6 +188,7 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   const commonAssetSlots = new Set([
     ...(readableText ? [readableText.assetSlot] : []),
     ...(video ? [video.assetSlot] : []),
+    ...(video?.worksheet ? [video.worksheet.assetSlot] : []),
     ...(hasAudioTextHotspots ? candidateNativeAudioTextAssetSlots(value.audioTextHotspots) : []),
   ]);
   const interaction = normalizeInteraction(part.interaction, { assets, commonAssetSlots });

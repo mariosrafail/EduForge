@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { nativeOpenResponsePanels } from "./nativeOpenResponse.js";
 
 export const NATIVE_AUDIO_TEXT_HOTSPOT_LIMITS = Object.freeze({
   hotspots: 16,
@@ -49,6 +50,9 @@ function area(input, label, bounds, { circular = false } = {}) {
 
 export function nativeAudioTextHotspotTargets(publicDocument) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
+  if (publicDocument?.kind === "open-response" && interaction?.presentation?.kind === "panels") {
+    return nativeOpenResponsePanels(interaction).map((panel) => ({ panelId: panel.id, width: panel.surface.width, height: panel.surface.height }));
+  }
   if (["image", "open-response"].includes(publicDocument?.kind) && interaction?.surface) {
     return [{ panelId: null, width: interaction.surface.width, height: interaction.surface.height }];
   }

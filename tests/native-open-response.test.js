@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { updateNativeOpenResponseReveals } from "../src/components/native-open-response/nativeOpenResponseTeacherRuntime.js";
+import { nextNativeOpenResponseReveal, updateNativeOpenResponseReveals } from "../src/components/native-open-response/nativeOpenResponseTeacherRuntime.js";
 
 import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, promoteNativeOpenResponsePanels, removeNativeOpenResponseArtwork, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -174,6 +174,106 @@ test("draft readiness distinguishes safe incomplete drafts from future readiness
   const complete = pair([q1]); assert.equal(assessNativeOpenResponseReadiness(complete.publicDocument, complete.teacherDocument).ready, true);
   complete.teacherDocument.parts[0].solution.modelAnswers[0].text = "";
   assert.match(assessNativeOpenResponseReadiness(complete.publicDocument, complete.teacherDocument).issues[0], /model answer/);
+});
+
+test("Teacher Show Next resolves the next unrevealed question's panel across a panel boundary", () => {
+  const panels = [
+    { questionIds: [q1] },
+    { questionIds: [q2] },
+  ];
+  assert.deepEqual(nextNativeOpenResponseReveal(new Set(), [q1, q2], panels), { questionId: q1, panelIndex: 0 });
+  assert.deepEqual(nextNativeOpenResponseReveal(new Set([q1]), [q1, q2], panels), { questionId: q2, panelIndex: 1 });
+  assert.deepEqual(nextNativeOpenResponseReveal(new Set([q1, q2]), [q1, q2], panels), { questionId: null, panelIndex: -1 });
+});
+
+test("panelized Open Response keeps semantic questions canonical and rejects ambiguous membership", () => {
+  const { publicDocument, teacherDocument } = pair([q1, q2]);
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const secondPanelId = `panel-${"4".repeat(32)}`;
+  interaction.presentation.panels.push({ id: secondPanelId, surface: { width: 800, height: 500 }, images: [], questionIds: [] });
+  assignNativeOpenResponseQuestion(interaction, q2, secondPanelId);
+  const normalized = kind.normalizePublic(publicDocument);
+  assert.deepEqual(normalized.parts[0].interaction.presentation.panels.map((panel) => panel.questionIds), [[q1], [q2]]);
+  assert.deepEqual(teacherDocument.parts[0].solution.modelAnswers.map((answer) => answer.questionId), [q1, q2]);
+  assert.equal(validateNativeActivityPair(normalized, teacherDocument), true);
+
+  const duplicate = structuredClone(publicDocument);
+  duplicate.parts[0].interaction.presentation.panels[0].questionIds.push(q2);
+  assert.throws(() => kind.normalizePublic(duplicate), /more than one panel/);
+  const dangling = structuredClone(publicDocument);
+  dangling.parts[0].interaction.presentation.panels[1].questionIds = [`q-${"9".repeat(32)}`];
+  assert.throws(() => kind.normalizePublic(dangling), /does not reference/);
+  const duplicatePanel = structuredClone(publicDocument);
+  duplicatePanel.parts[0].interaction.presentation.panels[1].id = duplicatePanel.parts[0].interaction.presentation.panels[0].id;
+  assert.throws(() => kind.normalizePublic(duplicatePanel), /panel identity/);
+});
+
+test("panel image geometry and globally duplicate image identities fail closed", () => {
+  const { publicDocument } = pair([q1]);
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const imageId = nativeChildIdFromUuid("img", "10000000-0000-4000-8000-000000000043");
+  publicDocument.assets = [asset];
+  const image = { id: imageId, assetSlot: asset.slot, area: { x: 0, y: 0, width: 100, height: 100 }, order: 0, altText: "Panel diagram", decorative: false, fit: "contain", locked: false };
+  interaction.presentation.panels[0].images = [image];
+  interaction.presentation.panels.push({ id: nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000044"), surface: { width: 1024, height: 582 }, images: [], questionIds: [] });
+  assert.doesNotThrow(() => kind.normalizePublic(publicDocument));
+
+  const outside = structuredClone(publicDocument);
+  outside.parts[0].interaction.presentation.panels[0].images[0].area.x = 1000;
+  assert.throws(() => kind.normalizePublic(outside), /inside the logical surface/);
+
+  const duplicateImage = structuredClone(publicDocument);
+  duplicateImage.parts[0].interaction.presentation.panels[1].images = [structuredClone(image)];
+  assert.throws(() => kind.normalizePublic(duplicateImage), /image identities/);
+});
+
+test("panel reassignment clamps geometry and panel deletion preserves questions and private answers", () => {
+  const { publicDocument, teacherDocument } = pair([q1]);
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const secondPanelId = `panel-${"5".repeat(32)}`;
+  interaction.presentation.panels.push({ id: secondPanelId, surface: { width: 400, height: 200 }, images: [], questionIds: [] });
+  assert.equal(assignNativeOpenResponseQuestion(interaction, q1, secondPanelId).repositioned, true);
+  const question = interaction.questions[0];
+  assert.ok(question.promptArea.x + question.promptArea.width <= 400);
+  assert.ok(question.responseRegion.area.y + question.responseRegion.area.height <= 200);
+  removeNativeOpenResponsePanel(publicDocument, secondPanelId);
+  assert.deepEqual(interaction.questions.map((entry) => entry.id), [q1]);
+  assert.deepEqual(teacherDocument.parts[0].solution.modelAnswers.map((entry) => entry.questionId), [q1]);
+  assert.match(assessNativeOpenResponseReadiness(publicDocument, teacherDocument).issues.join("\n"), /assigned to a panel/);
+  assert.doesNotThrow(() => kind.normalizePublic(publicDocument));
+});
+
+test("panel reassignment safely resets response presentation for a much smaller destination surface", () => {
+  const { publicDocument } = pair([q1]);
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const smallPanelId = nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000045");
+  interaction.presentation.panels.push({ id: smallPanelId, surface: { width: 10, height: 10 }, images: [], questionIds: [] });
+  assert.equal(assignNativeOpenResponseQuestion(interaction, q1, smallPanelId).repositioned, true);
+  assert.doesNotThrow(() => kind.normalizePublic(publicDocument));
+
+  const tooSmallPanelId = nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000046");
+  interaction.presentation.panels.push({ id: tooSmallPanelId, surface: { width: 10, height: 8 }, images: [], questionIds: [] });
+  assert.throws(() => assignNativeOpenResponseQuestion(interaction, q1, tooSmallPanelId), /too small/);
+  assert.deepEqual(interaction.presentation.panels.find((panel) => panel.id === smallPanelId).questionIds, [q1]);
+});
+
+test("panel image cleanup retains a shared managed asset until its final panel use", () => {
+  const { publicDocument } = pair();
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const shared = { assetId: "10000000-0000-4000-8000-000000000041", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "asset-shared-panels" };
+  publicDocument.assets = [shared];
+  const image = (idValue) => ({ id: idValue, assetSlot: shared.slot, area: { x: 0, y: 0, width: 100, height: 100 }, order: 0, altText: "Shared diagram", decorative: false, fit: "contain", locked: false });
+  interaction.presentation.panels[0].images = [image(nativeChildIdFromUuid("img", "10000000-0000-4000-8000-000000000041"))];
+  interaction.presentation.panels.push({ id: nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000042"), surface: { width: 1024, height: 582 }, images: [image(nativeChildIdFromUuid("img", "10000000-0000-4000-8000-000000000042"))], questionIds: [] });
+  removeNativeOpenResponsePanel(publicDocument, interaction.presentation.panels[0].id);
+  assert.deepEqual(publicDocument.assets, [shared]);
+  removeNativeOpenResponsePanel(publicDocument, interaction.presentation.panels[0].id);
+  assert.deepEqual(publicDocument.assets, []);
 });
 
 function region(overrides = {}) {

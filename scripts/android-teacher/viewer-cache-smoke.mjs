@@ -12,7 +12,7 @@ const candidateRoot = path.resolve(process.env.HHPLMS_VIEWER_CACHE_CANDIDATE_DIR
 const baselineRoot = process.env.HHPLMS_VIEWER_CACHE_BASELINE_DIR
   ? path.resolve(process.env.HHPLMS_VIEWER_CACHE_BASELINE_DIR)
   : null;
-const binaryPattern = /\.(?:avif|bin|gaf|gif|jpe?g|m4a|m4v|mp3|mp4|ogg|png|wav|webm|webp)$/i;
+const binaryPattern = /\.(?:avif|bin|gaf|gif|jpe?g|m4a|m4v|mp3|mp4|ogg|pdf|png|wav|webm|webp)$/i;
 const mimeTypes = Object.freeze({
   ".css": "text/css; charset=utf-8",
   ".gaf": "application/octet-stream",
@@ -24,6 +24,7 @@ const mimeTypes = Object.freeze({
   ".m4a": "audio/mp4",
   ".mp3": "audio/mpeg",
   ".mp4": "video/mp4",
+  ".pdf": "application/pdf",
   ".ogg": "audio/ogg",
   ".png": "image/png",
   ".svg": "image/svg+xml",

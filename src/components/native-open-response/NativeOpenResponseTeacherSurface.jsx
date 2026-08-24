@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { autoFitNativeOpenResponseAnswer } from "../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { logicalAreaStyle, NativeOpenResponseSurface } from "./NativeOpenResponseSurface.jsx";
-import { updateNativeOpenResponseReveals } from "./nativeOpenResponseTeacherRuntime.js";
+import { nextNativeOpenResponseReveal, updateNativeOpenResponseReveals } from "./nativeOpenResponseTeacherRuntime.js";
+import { nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
 
 function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, assetUrl, onOverflow, presentation, audioHotspotPresentation }) {
   const [revealed, setRevealed] = useState(() => new Set());
+  const [panelIndex, setPanelIndex] = useState(0);
   const interaction = publicDocument.parts[0].interaction;
+  const panels = nativeOpenResponsePanels(interaction);
+  const panel = panels[panelIndex] || panels[0];
   const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
   const questionIds = interaction.questions.map((question) => question.id);
   const lastCommandToken = useRef(presentation?.command?.token);
@@ -16,28 +20,41 @@ function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, ass
     const command = presentation?.command;
     if (!command || command.token === lastCommandToken.current) return;
     lastCommandToken.current = command.token;
-    setRevealed((current) => updateNativeOpenResponseReveals(current, questionIds, command.type));
-  }, [presentation?.command, questionIds.join("\u0000")]);
+    if (command.type === "previous-panel") setPanelIndex((current) => Math.max(0, current - 1));
+    else if (command.type === "next-panel") setPanelIndex((current) => Math.min(panels.length - 1, current + 1));
+    else {
+      if (command.type === "reset-activity") setPanelIndex(0);
+      if (command.type === "show-next") {
+        const next = nextNativeOpenResponseReveal(revealed, questionIds, panels);
+        if (next.panelIndex >= 0) setPanelIndex(next.panelIndex);
+      }
+      setRevealed((current) => updateNativeOpenResponseReveals(current, questionIds, command.type));
+    }
+  }, [panels, presentation?.command, questionIds.join("\u0000"), revealed]);
 
   useEffect(() => {
     onStateChange?.({
-      panelIndex: 0,
-      panelCount: 0,
+      panelIndex,
+      panelCount: panels.length,
       reveal: { supported: true, total: questionIds.length, revealed: revealed.size, pristine: revealed.size === 0 },
     });
-  }, [onStateChange, questionIds.length, revealed]);
+  }, [onStateChange, panelIndex, panels.length, questionIds.length, revealed]);
+
+  useEffect(() => { if (panel) audioHotspotPresentation?.onPanelChange?.(panel.legacy ? null : panel.id); }, [audioHotspotPresentation, panel]);
 
   const toggle = (questionId) => setRevealed((current) => { const next = new Set(current); if (next.has(questionId)) next.delete(questionId); else next.add(questionId); return next; });
-  return <NativeOpenResponseSurface document={publicDocument} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
-    {interaction.questions.map((question) => {
+  if (!panel) return <p role="status">This Open Response activity has no panels yet.</p>;
+  const visibleQuestions = interaction.questions.filter((question) => panel.questionIds.includes(question.id));
+  return <section className="native-or-panel-session"><NativeOpenResponseSurface document={publicDocument} panel={panel} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
+    {visibleQuestions.map((question) => {
       const visible = revealed.has(question.id);
       const fit = autoFitNativeOpenResponseAnswer({ text: answers.get(question.id) || "", responseRegion: question.responseRegion });
       if (!fit.fits) onOverflow(question.id, fit.overflowReason);
-      return <button key={question.id} type="button" className="native-or-answer-layer" style={logicalAreaStyle(question.responseRegion.area, interaction.surface)} aria-label={`${visible ? "Hide" : "Reveal"} model answer for ${question.responseRegion.ariaLabel}`} aria-pressed={visible} onClick={() => toggle(question.id)} data-fit={fit.fits ? "true" : "false"}>
-        {visible ? fit.lines.slice(0, fit.baselines.length).map((line, index) => <span key={index} className="native-or-answer-line" style={{ left: `${(question.responseRegion.presentation.paddingX / question.responseRegion.area.width) * 100}%`, top: `${(question.responseRegion.presentation.linePositions[index] / question.responseRegion.area.height) * 100}%`, width: `${(question.responseRegion.presentation.lineWidth / question.responseRegion.area.width) * 100}%`, fontFamily: question.responseRegion.presentation.answerFontFamily, fontSize: `${(fit.fontSize / interaction.surface.width) * 100}cqw`, color: question.responseRegion.presentation.color, textAlign: question.responseRegion.presentation.align }}>{line}</span>) : null}
+      return <button key={question.id} type="button" className="native-or-answer-layer" style={logicalAreaStyle(question.responseRegion.area, panel.surface)} aria-label={`${visible ? "Hide" : "Reveal"} model answer for ${question.responseRegion.ariaLabel}`} aria-pressed={visible} onClick={() => toggle(question.id)} data-fit={fit.fits ? "true" : "false"}>
+        {visible ? fit.lines.slice(0, fit.baselines.length).map((line, index) => <span key={index} className="native-or-answer-line" style={{ left: `${(question.responseRegion.presentation.paddingX / question.responseRegion.area.width) * 100}%`, top: `${(question.responseRegion.presentation.linePositions[index] / question.responseRegion.area.height) * 100}%`, width: `${(question.responseRegion.presentation.lineWidth / question.responseRegion.area.width) * 100}%`, fontFamily: question.responseRegion.presentation.answerFontFamily, fontSize: `${(fit.fontSize / panel.surface.width) * 100}cqw`, color: question.responseRegion.presentation.color, textAlign: question.responseRegion.presentation.align }}>{line}</span>) : null}
       </button>;
     })}
-  </NativeOpenResponseSurface>;
+  </NativeOpenResponseSurface>{!presentation && panels.length > 1 ? <nav className="native-or-panel-navigation" aria-label="Open Response panels"><button type="button" disabled={panelIndex === 0} onClick={() => setPanelIndex((current) => Math.max(0, current - 1))}>Previous</button><span>Panel {panelIndex + 1} of {panels.length}</span><button type="button" disabled={panelIndex === panels.length - 1} onClick={() => setPanelIndex((current) => Math.min(panels.length - 1, current + 1))}>Next</button></nav> : null}</section>;
 }
 
 export function NativeOpenResponseTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", onOverflow = () => {}, presentation = null, audioHotspotPresentation = null }) {

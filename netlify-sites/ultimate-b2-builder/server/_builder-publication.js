@@ -81,7 +81,7 @@ export function createBuilderPublicationHandler(overrides = {}) {
         if (!release) return json(404, { error: "release_not_found" });
         let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
         if (parsedRoute.action === "assets") {
-          const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)$/);
+          const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|wav|gaf)$/);
           const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && ["open_response_artwork", "teacher_ui", "activity_artwork"].includes(candidate.role));
           if (!asset) return json(404, { error: "release_asset_not_found" });
           if (asset.role === "activity_artwork") {

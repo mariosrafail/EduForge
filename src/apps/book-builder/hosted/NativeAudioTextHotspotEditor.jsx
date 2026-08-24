@@ -38,7 +38,10 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
   const marker = hotspot ? <span className="native-audio-hotspot-authoring-marker" style={logicalAreaStyle(hotspot.activityArea, target)}><img src={nativeAudioHotspotArtwork.active} alt="" /></span> : null;
   let content = null;
   if (document.kind === "image") content = <NativeImageSurface document={document} assetUrl={assetUrl} />;
-  else if (document.kind === "open-response") content = <NativeOpenResponseSurface document={document} assetUrl={assetUrl} />;
+  else if (document.kind === "open-response") {
+    const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId) || null;
+    content = <NativeOpenResponseSurface document={document} panel={panel} assetUrl={assetUrl} />;
+  }
   else if (document.kind === "complete-sentences") {
     const reference = document.assets.find((asset) => asset.slot === interaction.presentation?.backgroundAssetSlot);
     content = reference ? <img className="native-audio-hotspot-panel-image" src={assetUrl(reference.assetId)} alt="Complete the Sentences background" /> : null;

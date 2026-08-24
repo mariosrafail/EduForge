@@ -156,6 +156,13 @@
 .native-video-editor-status { padding: 12px; color: #7c2d12; background: #fff7ed; border: 1px solid #fdba74; border-radius: 9px; }
 .native-video-editor-status[data-complete] { color: #14532d; background: #f0fdf4; border-color: #86efac; }
 .native-video-editor-status span { font-size: .76rem; }
+.native-video-worksheet-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 9px; }
+.native-video-worksheet-editor > div { display: flex; min-width: 220px; flex: 1; align-items: center; gap: 9px; }
+.native-video-worksheet-editor span { display: grid; }
+.native-or-panel-authoring { display: grid; gap: 10px; width: min(1180px, calc(100% - 44px)); margin: 14px auto 0; padding: 12px; background: #f8fafc; border: 1px solid var(--studio-border); border-radius: 11px; }
+.native-or-panel-authoring > header, .native-or-panel-authoring > div, .native-or-panel-authoring > div > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.native-or-panel-authoring > header { justify-content: space-between; }
+.native-or-panel-authoring button[aria-current="true"] { color: #fff; background: #244d8f; }
 .studio-readiness { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 11px 18px; color: #8a4b08; background: #fff8e8; border: 0; border-top: 1px solid #f0d49c; }
 .studio-readiness[data-ready] { color: var(--studio-success); background: #edf9f2; border-color: #b7e2ca; }
 .studio-readiness ul { display: flex; flex-wrap: wrap; gap: 5px 18px; margin: 0; font-size: .72rem; }
