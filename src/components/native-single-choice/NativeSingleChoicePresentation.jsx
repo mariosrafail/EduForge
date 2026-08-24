@@ -41,18 +41,20 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
         const selected = responses[hotspot.questionId] === hotspot.optionId;
         const answerState = optionStates[hotspot.optionId];
         const feedback = feedbackText(answerState);
-        return <button
-          key={hotspot.id}
+        const stateProps = { "data-selected": selected || undefined, "data-answer-state": answerState || undefined };
+        return <div key={hotspot.id}>
+          <span className="native-single-choice-highlight" style={logicalAreaStyle(hotspot.highlightArea || hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight })} {...stateProps} aria-hidden="true" />
+          <button
           type="button"
           className="native-single-choice-hotspot"
           style={logicalAreaStyle(hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight })}
           aria-label={`${question?.prompt || "Question"}: ${option?.text || "Option"}`}
           aria-pressed={selected}
-          data-selected={selected || undefined}
-          data-answer-state={answerState || undefined}
+          {...stateProps}
           disabled={readOnly || disabledQuestionIds.has(hotspot.questionId)}
           onClick={() => update(hotspot.questionId, hotspot.optionId)}
-        ><span className="native-single-choice-sr-only">{selected ? "Selected: " : "Select "}{option?.text || "option"}{feedback ? ` ${feedback}` : ""}</span></button>;
+        ><span className="native-single-choice-sr-only">{selected ? "Selected: " : "Select "}{option?.text || "option"}{feedback ? ` ${feedback}` : ""}</span></button>
+        </div>;
       })}
       <NativeAudioTextHotspotButtons panelId={panel.id} surface={{ width: panel.sourceWidth, height: panel.sourceHeight }} presentation={audioHotspotPresentation} />
     </div>

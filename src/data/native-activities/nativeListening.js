@@ -69,16 +69,20 @@ function normalizeCue(input, index) {
   return { id: input.id, startMs, endMs, text: text(input.text, `${label}.text`, NATIVE_LISTENING_LIMITS.cueTextLength, { required: true }) };
 }
 
-function normalizeSnippet(input, index, cueIds, surface) {
+function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
   const label = `Native Listening snippetHotspots[${index}]`;
-  exactKeys(input, ["id", "area", "cueIds", "label"], label);
+  const hasAudioAssetSlot = Object.hasOwn(input, "audioAssetSlot");
+  exactKeys(input, ["id", "area", "cueIds", "label", ...(hasAudioAssetSlot ? ["audioAssetSlot"] : [])], label);
   if (!isNativeChildId(input.id, "aud")) throw new Error(`${label}.id is invalid.`);
   if (!Array.isArray(input.cueIds) || !input.cueIds.length || input.cueIds.some((id) => !cueIds.has(id)) || new Set(input.cueIds).size !== input.cueIds.length) throw new Error(`${label}.cueIds are invalid.`);
+  const audioAssetSlot = hasAudioAssetSlot ? text(input.audioAssetSlot, `${label}.audioAssetSlot`, 128) : "";
+  if (audioAssetSlot && !assetSlots.has(audioAssetSlot)) throw new Error(`${label}.audioAssetSlot must reference managed native audio.`);
   return {
     id: input.id,
     area: area(input.area, `${label}.area`, surface),
     cueIds: [...input.cueIds],
     label: text(input.label, `${label}.label`, NATIVE_LISTENING_LIMITS.snippetLabelLength, { required: true }),
+    audioAssetSlot,
   };
 }
 
@@ -115,7 +119,7 @@ export function normalizeNativeListeningInteraction(input, { assets = [], common
     questions: legacy ? value.questions.map(normalizeLegacyQuestion) : value.questions,
   }, {
     assets,
-    commonAssetSlots: new Set([...commonAssetSlots, value.audioAssetSlot, panelTwo.backgroundAssetSlot].filter(Boolean)),
+    commonAssetSlots: new Set([...commonAssetSlots, value.audioAssetSlot, panelTwo.backgroundAssetSlot, ...value.snippetHotspots.map((hotspot) => hotspot?.audioAssetSlot)].filter(Boolean)),
   });
   const questions = questionSurface.questions;
   const questionIds = questions.map((entry) => entry.id);
@@ -127,7 +131,7 @@ export function normalizeNativeListeningInteraction(input, { assets = [], common
     if (index && cue.startMs < cues[index - 1].endMs) throw new Error("Native Listening cues must be ordered and non-overlapping.");
   });
   const cueIdSet = new Set(cueIds);
-  const snippets = value.snippetHotspots.map((entry, index) => normalizeSnippet(entry, index, cueIdSet, surfaceOne));
+  const snippets = value.snippetHotspots.map((entry, index) => normalizeSnippet(entry, index, cueIdSet, surfaceOne, assetSlots));
   if (new Set(snippets.map((entry) => entry.id)).size !== snippets.length) throw new Error("Native Listening snippet identities must be unique.");
   return {
     kind: "listening",
@@ -172,6 +176,7 @@ export function nativeListeningAssetRequirements(publicDocument) {
   return [
     ...(interaction.audioAssetSlot ? [{ slot: interaction.audioAssetSlot, mediaType: "audio/mpeg", label: "Listening MP3" }] : []),
     ...(panelTwo?.backgroundAssetSlot ? [{ slot: panelTwo.backgroundAssetSlot, width: panelTwo.sourceWidth, height: panelTwo.sourceHeight, label: "Listening background" }] : []),
+    ...interaction.snippetHotspots.filter((hotspot) => hotspot.audioAssetSlot).map((hotspot, index) => ({ slot: hotspot.audioAssetSlot, mediaType: "audio/mpeg", label: `Listening hotspot MP3 ${index + 1}` })),
   ];
 }
 

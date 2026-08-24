@@ -49,6 +49,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const videoAvailable = Boolean(document.video);
   const [view, setView] = useState("questions");
   const [activityState, setActivityState] = useState(() => defaultActivityState(document));
+  const [childSupplementaryState, setChildSupplementaryState] = useState({ view: "questions", readableTextAvailable: false });
   const [activeHotspotId, setActiveHotspotId] = useState(null);
   const viewportRef = useRef(null);
   const activityViewRef = useRef(null);
@@ -61,6 +62,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   useEffect(() => {
     setView("questions");
     setActivityState(defaultActivityState(document));
+    setChildSupplementaryState({ view: "questions", readableTextAvailable: false });
     setScrollState({ overflowing: false, top: 0, maximum: 0, viewport: 0, content: 0 });
     setActiveHotspotId(null);
     lastCommandToken.current = presentation?.command?.token;
@@ -80,6 +82,10 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   }, [view]);
 
   const onChildStateChange = useCallback((value) => {
+    setChildSupplementaryState((current) => {
+      const next = { view: value?.view === "text" ? "text" : "questions", readableTextAvailable: value?.readableTextAvailable === true };
+      return current.view === next.view && current.readableTextAvailable === next.readableTextAvailable ? current : next;
+    });
     setActivityState((current) => {
       const next = normalizeNativeChildPresentationState(value, current);
       return current.panelIndex === next.panelIndex
@@ -104,17 +110,20 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   }, [activeHotspot]);
 
   useEffect(() => {
-    const reportedView = view === "text" && !available || view === "video" && !videoAvailable ? "questions" : view;
+    const childTextAvailable = childSupplementaryState.readableTextAvailable;
+    const reportedView = view === "questions"
+      ? childSupplementaryState.view
+      : view === "text" && !available || view === "video" && !videoAvailable ? "questions" : view;
     onStateChange?.({
       view: reportedView,
-      readableTextAvailable: available,
+      readableTextAvailable: available || childTextAvailable,
       videoAvailable,
       panelIndex: activityState.panelIndex,
       panelCount: activityState.panelCount,
       reveal: activityState.reveal,
       audioFocusActive: Boolean(activeHotspot),
     });
-  }, [activeHotspot, activityState, available, onStateChange, videoAvailable, view]);
+  }, [activeHotspot, activityState, available, childSupplementaryState, onStateChange, videoAvailable, view]);
 
   const childPresentation = useMemo(() => presentation ? {
     command: presentation.command,

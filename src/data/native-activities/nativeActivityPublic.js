@@ -134,6 +134,7 @@ export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
     || interaction?.presentation?.backgroundAssetSlot === slot
     || Boolean(interaction?.presentation?.panels?.some((panel) => panel.backgroundAssetSlot === slot))
     || interaction?.audioAssetSlot === slot
+    || Boolean(interaction?.snippetHotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.panels?.some((panel) => panel.backgroundAssetSlot === slot));
 }
 

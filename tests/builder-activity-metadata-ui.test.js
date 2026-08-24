@@ -62,7 +62,8 @@ test("all Activity Builder editors omit generic instruction controls and preserv
   assert.match(editors[0], /Prompt|Private model answer/);
   assert.match(editors[1], /Content|Alt text/);
   assert.match(editors[2], /Prompt|Options and private correct answer/);
-  assert.match(editors[3], /Sentence \/ prompt|Private correct word or phrase/);
+  assert.match(editors[3], /Full sentence with one marked answer|parseNativeCompleteSentencesMarkedSentence/);
+  assert.doesNotMatch(editors[3], /Private correct word or phrase/);
   assert.match(editors[4], /Public prompt|Transcript text|Teacher-only model answer/);
 
   const legacyEditor = await readFile("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx", "utf8");

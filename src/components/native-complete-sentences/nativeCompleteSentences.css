@@ -6,3 +6,4 @@
 .native-complete-sentences-blank input:focus-visible { outline: 4px solid #ffdc42; outline-offset: 2px; }
 .native-complete-sentences-prompts { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .native-complete-sentences-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.native-complete-sentences-inline-blank{display:inline-block;min-width:5em;margin:0 .15em;border-bottom:2px solid currentColor;text-align:center;letter-spacing:.08em}

@@ -10,7 +10,7 @@ import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
-import { assessNativeSingleChoiceReadiness } from "../src/data/native-activities/nativeSingleChoice.js";
+import { assessNativeSingleChoiceReadiness, defaultNativeSingleChoiceHighlightArea } from "../src/data/native-activities/nativeSingleChoice.js";
 import { logicalAreaStyle } from "../src/components/builder-studio/stageGeometry.js";
 import {
   addUnansweredNativeSingleChoiceQuestion,
@@ -107,6 +107,19 @@ test("visual Single Choice normalizes strict student-safe panels and source-pixe
   assert.doesNotThrow(() => assertPublicBuilderDocument(normalized));
   assert.doesNotMatch(JSON.stringify(normalized), /correctAnswers|correctOptionId|isCorrect|answerKey/);
   assert.match(JSON.stringify(pair.teacherDocument), /correctAnswers|correctOptionId/);
+  assert.equal(Object.hasOwn(normalized.parts[0].interaction.presentation.panels[0].hotspots[0], "highlightArea"), false, "old records stay byte-stable and the runtime deterministically falls back to area");
+});
+
+test("new visual hotspots keep a smaller source-pixel highlight inside the click target", () => {
+  const pair = visualPair();
+  const hotspot = pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0];
+  hotspot.highlightArea = defaultNativeSingleChoiceHighlightArea(hotspot.area);
+  const normalized = kind.normalizePublic(pair.publicDocument, activityId);
+  const current = normalized.parts[0].interaction.presentation.panels[0].hotspots[0];
+  assert.ok(current.highlightArea.width < current.area.width && current.highlightArea.height < current.area.height);
+  const invalid = structuredClone(pair.publicDocument);
+  invalid.parts[0].interaction.presentation.panels[0].hotspots[0].highlightArea = { x: 0, y: 0, width: 50, height: 50 };
+  assert.throws(() => kind.normalizePublic(invalid, activityId), /inside its click area/);
 });
 
 test("visual contract rejects unknown fields, invalid identities, dimensions, geometry, and semantic bindings", () => {
@@ -184,6 +197,7 @@ test("student surface keeps text radios unchanged and renders accessible managed
     const visual = renderToStaticMarkup(React.createElement(NativeSingleChoiceStudentSurface, { document: pair.publicDocument, assetUrl: () => "/published/background.png", responses: { [ids.questions[0]]: ids.options[0][1] } }));
     assert.match(visual, /published\/background\.png/);
     assert.match(visual, /native-single-choice-hotspot/);
+    assert.match(visual, /native-single-choice-highlight/);
     assert.match(visual, /aria-pressed="true"/);
     assert.match(visual, /Question 1\?: Option 1\.1/);
     assert.match(visual, /Show All/);

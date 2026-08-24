@@ -1,6 +1,18 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({ items: 30, promptLength: 2_000, answerLength: 500, sourceDimension: 16_384 });
+export const NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN = "[[blank]]";
+
+export function nativeCompleteSentencesPromptParts(prompt) {
+  const source = String(prompt || "");
+  const first = source.indexOf(NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN);
+  if (first < 0) return { before: source, after: "", structured: false };
+  return {
+    before: source.slice(0, first),
+    after: source.slice(first + NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN.length),
+    structured: source.indexOf(NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, first + NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN.length) < 0,
+  };
+}
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -34,7 +46,9 @@ export function normalizeNativeCompleteSentencesInteraction(input, { assets = []
   const items = value.items.map((item, index) => {
     exact(item, ["id", "prompt"], `Complete the Sentences items[${index}]`);
     if (!isNativeChildId(item.id, "item") || ids.has(item.id)) throw new Error("Complete the Sentences item identity is invalid or duplicate.");
-    ids.add(item.id); return { id: item.id, prompt: text(item.prompt, "Complete the Sentences prompt", NATIVE_COMPLETE_SENTENCES_LIMITS.promptLength) };
+    const prompt = text(item.prompt, "Complete the Sentences prompt", NATIVE_COMPLETE_SENTENCES_LIMITS.promptLength);
+    if (prompt.split(NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN).length > 2) throw new Error("Complete the Sentences prompt can contain only one blank token.");
+    ids.add(item.id); return { id: item.id, prompt };
   });
   const presentation = structuredClone(object(value.presentation, "Complete the Sentences presentation"));
   exact(presentation, ["kind", "backgroundAssetSlot", "sourceWidth", "sourceHeight", "hotspots"], "Complete the Sentences presentation");

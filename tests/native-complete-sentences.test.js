@@ -5,7 +5,8 @@ import test from "node:test";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, removeNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, nativeCompleteSentencesPromptParts } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o96";
@@ -50,6 +51,18 @@ test("Complete the Sentences keeps stable items and phrase answers exclusively T
   assert.equal(pair.publicDocument.parts[0].interaction.presentation.hotspots.some((hotspot) => hotspot.itemId === pair.first), false);
 });
 
+test("one-field sentence syntax extracts one private answer and an answer-neutral blank", () => {
+  assert.deepEqual(parseNativeCompleteSentencesMarkedSentence("I live in *New York City*."), { valid: true, prompt: `I live in ${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN}.`, answer: "New York City" });
+  assert.deepEqual(parseNativeCompleteSentencesMarkedSentence("*  more than one word  * after"), { valid: true, prompt: `${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN} after`, answer: "more than one word" });
+  for (const invalid of ["No answer", "Unmatched *answer", "Empty ** answer", "*one* and *two*", `Reserved ${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN} *answer*`]) assert.equal(parseNativeCompleteSentencesMarkedSentence(invalid).valid, false);
+  const roundTrip = nativeCompleteSentencesMarkedSentence(`Before ${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN} after.`, "same answer");
+  assert.equal(roundTrip, "Before *same answer* after.");
+  assert.deepEqual(nativeCompleteSentencesPromptParts(`Before ${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN} after.`), { before: "Before ", after: " after.", structured: true });
+  const multipleTokens = completePair();
+  multipleTokens.publicDocument.parts[0].interaction.items[0].prompt = `${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN} then ${NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN}`;
+  assert.throws(() => multipleTokens.kind.validatePair(multipleTokens.publicDocument, multipleTokens.teacherDocument), /only one blank token/);
+});
+
 test("Complete the Sentences readiness requires explicit answer, background, and exactly one blank hotspot", () => {
   const { kind, publicDocument, teacherDocument } = completePair();
   teacherDocument.parts[0].solution.answers[0].text = "";
@@ -83,5 +96,5 @@ test("shared runtime/editor render typed public responses and Teacher reveal wit
   ]);
   assert.match(surface, /onResponsesChange/); assert.match(surface, /show-next/); assert.match(surface, /show-all/); assert.match(surface, /reset-activity/);
   assert.doesNotMatch(surface, /data-(?:answer|correct)/i);
-  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Private correct word or phrase/); assert.match(editor, /NativeCompleteSentencesHotspotCanvas/);
+  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /NativeCompleteSentencesHotspotCanvas/);
 });

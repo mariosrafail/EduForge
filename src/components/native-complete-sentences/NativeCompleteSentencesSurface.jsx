@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
+import { nativeCompleteSentencesPromptParts } from "../../data/native-activities/nativeCompleteSentences.js";
 import "./nativeCompleteSentences.css";
+
+function SentencePrompt({ prompt }) {
+  const parts = nativeCompleteSentencesPromptParts(prompt);
+  return parts.structured ? <>{parts.before}<span className="native-complete-sentences-inline-blank" aria-label="blank">______</span>{parts.after}</> : prompt;
+}
 
 function Presentation({ document, assetUrl, responses, onChange, readOnly, revealed = new Set(), answers = new Map(), audioHotspotPresentation = null }) {
   const interaction = document.parts[0].interaction;
@@ -21,7 +27,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, revea
       })}
       <NativeAudioTextHotspotButtons panelId={null} surface={{ width: presentation.sourceWidth, height: presentation.sourceHeight }} presentation={audioHotspotPresentation} />
     </div>
-    <ol className="native-complete-sentences-prompts">{interaction.items.map((item) => <li key={item.id}>{item.prompt}</li>)}</ol>
+    <ol className="native-complete-sentences-prompts">{interaction.items.map((item) => <li key={item.id}><SentencePrompt prompt={item.prompt} /></li>)}</ol>
   </article>;
 }
 

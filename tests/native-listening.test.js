@@ -14,6 +14,7 @@ import { createPublicationV2FixtureSources } from "./fixtures/publication-v2.js"
 const child = (prefix, digit) => `${prefix}-${digit.repeat(32)}`;
 const audio = { assetId: "11111111-1111-4111-8111-111111111111", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "asset-audio" };
 const background = { assetId: "22222222-2222-4222-8222-222222222222", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "asset-background" };
+const hotspotAudio = { assetId: "33333333-3333-4333-8333-333333333333", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "asset-hotspot-audio" };
 
 function pair() {
   const questionId = child("q", "1");
@@ -80,6 +81,20 @@ test("legacy Listening questions upgrade to canonical Open Response geometry and
   assert.equal(roundTrip.parts[0].interaction.cues[0].startMs, 0);
   const malformed = structuredClone(roundTrip); malformed.parts[0].interaction.questions[0].promptArea.x = 1_000;
   assert.throws(() => normalizeNativeActivityPublic(malformed, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" }), /logical surface/);
+});
+
+test("Listening hotspot MP3 is a strict managed optional reference and old hotspots remain compatible", () => {
+  const legacy = pair().publicDocument;
+  const normalizedLegacy = normalizeNativeActivityPublic(legacy, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" });
+  assert.equal(normalizedLegacy.parts[0].interaction.snippetHotspots[0].audioAssetSlot, "");
+  const current = pair().publicDocument;
+  current.assets.push(hotspotAudio);
+  current.parts[0].interaction.snippetHotspots[0].audioAssetSlot = hotspotAudio.slot;
+  const normalized = normalizeNativeActivityPublic(current, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" });
+  assert.equal(normalized.parts[0].interaction.snippetHotspots[0].audioAssetSlot, hotspotAudio.slot);
+  assert.equal(nativeListeningAssetRequirements(normalized).at(-1).slot, hotspotAudio.slot);
+  const dangling = structuredClone(current); dangling.parts[0].interaction.snippetHotspots[0].audioAssetSlot = "missing-audio";
+  assert.throws(() => normalizeNativeActivityPublic(dangling, { normalizeInteraction: normalizeNativeListeningInteraction, expectedKind: "listening" }), /managed asset|managed native audio/);
 });
 
 test("Listening rejects overlapping, reversed, duplicate, and unknown cue mappings", () => {
@@ -153,10 +168,14 @@ test("Listening renders imported markup through React text nodes without an HTML
   assert.match(source, /setView\("transcript"\)/);
   assert.match(source, /node\.focus\?\.\(\{ preventScroll: true \}\)/);
   assert.match(source, /focusMode === "playback"/);
-  assert.match(source, /disabled=\{playing\}/);
+  assert.doesNotMatch(source, /native-listening-panel-tabs|role="tablist"/);
+  assert.match(source, /panelCount: 1/);
+  assert.match(source, /command\.type === "toggle-text"/);
+  assert.match(source, /pendingAutoplay/);
   assert.match(player, /Stop Listening audio/);
   assert.match(player, /Mute Listening audio/);
-  assert.match(css, /native-listening-player-anchor\{position:absolute;z-index:120;right:24px;bottom:18px/);
+  assert.match(css, /native-listening-player-anchor \{ position: absolute; z-index: 120; right: 24px; bottom: 18px/);
+  assert.doesNotMatch(css, /720px/);
   assert.doesNotMatch(css, /position:fixed/);
 });
 
@@ -187,6 +206,8 @@ test("Listening readiness diagnoses invalid authored cue and hotspot state befor
 test("Listening compiles through publication v2 with managed MP3/background and private Teacher projection", () => {
   const sources = createPublicationV2FixtureSources();
   const { publicDocument, teacherDocument } = pair();
+  publicDocument.assets.push(hotspotAudio);
+  publicDocument.parts[0].interaction.snippetHotspots[0].audioAssetSlot = hotspotAudio.slot;
   const entry = { activityId: publicDocument.activityId, kind: "listening", placement: { pageId: "ub2-sb-unit-1-part-1" }, sortOrder: 4 };
   publicDocument.placement = { pageId: entry.placement.pageId };
   const source = (payload) => ({ payload, revision: 1, sha256: builderDocumentSha256(payload) });
@@ -197,10 +218,12 @@ test("Listening compiles through publication v2 with managed MP3/background and 
   sources.native.assetRows.push(
     { id: audio.assetId, checksum_sha256: audio.checksumSha256, asset_role: audio.role, object_key: "builder-native-assets/listening.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 1_000, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: entry.activityId, asset_slot: audio.slot } },
     { id: background.assetId, checksum_sha256: background.checksumSha256, asset_role: background.role, object_key: "builder-native-assets/listening.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 2_000, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: entry.activityId, asset_slot: background.slot } },
+    { id: hotspotAudio.assetId, checksum_sha256: hotspotAudio.checksumSha256, asset_role: hotspotAudio.role, object_key: "builder-native-assets/listening-hotspot.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 800, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: entry.activityId, asset_slot: hotspotAudio.slot } },
   );
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
   assert.equal(compiled.publicProjection.nativeActivities[entry.activityId].kind, "listening");
   assert.equal(compiled.assetManifest.some((asset) => asset.mediaType === "audio/mpeg"), true);
+  assert.equal(compiled.assetManifest.filter((asset) => asset.mediaType === "audio/mpeg").length >= 2, true);
   assert.doesNotMatch(JSON.stringify(compiled.publicProjection), /Teacher secret answer|modelAnswers/);
   assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[entry.activityId]), /Teacher secret answer/);
 });

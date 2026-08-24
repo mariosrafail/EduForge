@@ -48,6 +48,28 @@ function normalizeHotspotArea(value, panel, label) {
   return area;
 }
 
+export function constrainNativeSingleChoiceHighlightArea(value, parentArea) {
+  const width = Math.max(1, Math.min(Math.round(Number(value?.width) || 1), parentArea.width));
+  const height = Math.max(1, Math.min(Math.round(Number(value?.height) || 1), parentArea.height));
+  return {
+    x: Math.max(parentArea.x, Math.min(Math.round(Number(value?.x) || 0), parentArea.x + parentArea.width - width)),
+    y: Math.max(parentArea.y, Math.min(Math.round(Number(value?.y) || 0), parentArea.y + parentArea.height - height)),
+    width,
+    height,
+  };
+}
+
+export function defaultNativeSingleChoiceHighlightArea(area) {
+  const horizontalInset = Math.min(Math.floor(area.width / 4), Math.max(0, Math.round(area.width * .12)));
+  const verticalInset = Math.min(Math.floor(area.height / 4), Math.max(0, Math.round(area.height * .2)));
+  return {
+    x: area.x + horizontalInset,
+    y: area.y + verticalInset,
+    width: Math.max(1, area.width - horizontalInset * 2),
+    height: Math.max(1, area.height - verticalInset * 2),
+  };
+}
+
 function normalizeNativeSingleChoicePresentation(input, { questions, assets }) {
   const value = structuredClone(object(input, "Native Single Choice presentation"));
   exactKeys(value, ["kind", "panels"], "Native Single Choice presentation");
@@ -77,17 +99,28 @@ function normalizeNativeSingleChoicePresentation(input, { questions, assets }) {
         ...panel,
         hotspots: entry.hotspots.map((hotspot, hotspotIndex) => {
           const hotspotLabel = `${label}.hotspots[${hotspotIndex}]`;
-          exactKeys(hotspot, ["id", "questionId", "optionId", "area"], hotspotLabel);
+          const hasHighlightArea = Object.hasOwn(hotspot, "highlightArea");
+          exactKeys(hotspot, ["id", "questionId", "optionId", "area", ...(hasHighlightArea ? ["highlightArea"] : [])], hotspotLabel);
           const question = questionById.get(hotspot.questionId);
           if (!isNativeChildId(hotspot.id, "hot") || hotspotIds.has(hotspot.id) || !question || !question.options.some((option) => option.id === hotspot.optionId)) {
             throw new Error(`${hotspotLabel} has an invalid identity or semantic binding.`);
           }
           hotspotIds.add(hotspot.id);
+          const normalizedArea = normalizeHotspotArea(hotspot.area, panel, `${hotspotLabel}.area`);
+          const highlightArea = hasHighlightArea
+            ? normalizeHotspotArea(hotspot.highlightArea, panel, `${hotspotLabel}.highlightArea`)
+            : { ...normalizedArea };
+          if (highlightArea.x < normalizedArea.x || highlightArea.y < normalizedArea.y
+            || highlightArea.x + highlightArea.width > normalizedArea.x + normalizedArea.width
+            || highlightArea.y + highlightArea.height > normalizedArea.y + normalizedArea.height) {
+            throw new Error(`${hotspotLabel}.highlightArea must stay inside its click area.`);
+          }
           return {
             id: hotspot.id,
             questionId: hotspot.questionId,
             optionId: hotspot.optionId,
-            area: normalizeHotspotArea(hotspot.area, panel, `${hotspotLabel}.area`),
+            area: normalizedArea,
+            ...(hasHighlightArea ? { highlightArea } : {}),
           };
         }),
       };
@@ -209,6 +242,11 @@ export function assessNativeSingleChoiceReadiness(publicDocument, teacherDocumen
         if (![area?.x, area?.y, area?.width, area?.height].every(Number.isSafeInteger)
           || area.x < 0 || area.y < 0 || area.width < 1 || area.height < 1
           || area.x + area.width > panel.sourceWidth || area.y + area.height > panel.sourceHeight) issues.push(`${hotspotLabel} must stay inside its source image.`);
+        const highlightArea = hotspot?.highlightArea || area;
+        if (![highlightArea?.x, highlightArea?.y, highlightArea?.width, highlightArea?.height].every(Number.isSafeInteger)
+          || highlightArea.x < area?.x || highlightArea.y < area?.y || highlightArea.width < 1 || highlightArea.height < 1
+          || highlightArea.x + highlightArea.width > area?.x + area?.width
+          || highlightArea.y + highlightArea.height > area?.y + area?.height) issues.push(`${hotspotLabel} highlight must stay inside its click area.`);
         if (question) {
           const binding = `${hotspot.questionId}\0${hotspot.optionId}`;
           bindings.set(binding, (bindings.get(binding) || 0) + 1);

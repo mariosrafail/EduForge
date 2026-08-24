@@ -16,7 +16,7 @@ function integerArea(start, current, stage) {
   };
 }
 
-export function NativeSingleChoiceHotspotCanvas({ panel, assetUrl = "", questions, selectedHotspotId, onSelect, onCreate, onChange, onDelete, drawingEnabled = false }) {
+export function NativeSingleChoiceHotspotCanvas({ panel, assetUrl = "", questions, selectedHotspotId, selectedGeometry = "area", onSelectedGeometryChange, onSelect, onCreate, onChangeArea, onChangeHighlightArea, onDelete, drawingEnabled = false }) {
   const [draftArea, setDraftArea] = useState(null);
   const draw = useRef(null);
   const draftAreaRef = useRef(null);
@@ -63,12 +63,16 @@ export function NativeSingleChoiceHotspotCanvas({ panel, assetUrl = "", question
     onPointerCancel={(event) => finishDraw(event, true)}
   >
     {assetUrl ? <img src={assetUrl} alt="" draggable="false" /> : <p>Upload a background image for this panel.</p>}
+    {selected ? <div className="native-single-choice-geometry-toggle" role="group" aria-label="Rectangle to edit"><button type="button" aria-pressed={selectedGeometry === "area"} onClick={() => onSelectedGeometryChange?.("area")}>Click target</button><button type="button" aria-pressed={selectedGeometry === "highlight"} onClick={() => onSelectedGeometryChange?.("highlight")}>Visual highlight</button></div> : null}
     {panel.hotspots.map((hotspot, index) => {
       const question = questionById.get(hotspot.questionId);
       const option = question?.options.find((entry) => entry.id === hotspot.optionId);
-      return <button key={hotspot.id} type="button" className={`native-single-choice-authoring-hotspot${selectedHotspotId === hotspot.id ? " is-selected" : ""}`} style={logicalAreaStyle(hotspot.area, stage)} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect?.(hotspot.id)} aria-label={`Hotspot ${index + 1}: ${question?.prompt || "Unknown question"}, ${option?.text || "Unknown option"}`}><span>{index + 1}</span></button>;
+      return <div key={hotspot.id}>
+        <button type="button" className={`native-single-choice-authoring-hotspot${selectedHotspotId === hotspot.id ? " is-selected" : ""}`} style={logicalAreaStyle(hotspot.area, stage)} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect?.(hotspot.id)} aria-label={`Click target ${index + 1}: ${question?.prompt || "Unknown question"}, ${option?.text || "Unknown option"}`}><span>{index + 1}</span></button>
+        <div className={`native-single-choice-authoring-highlight${selectedHotspotId === hotspot.id ? " is-selected" : ""}`} style={logicalAreaStyle(hotspot.highlightArea || hotspot.area, stage)} aria-hidden="true" />
+      </div>;
     })}
     {draftArea ? <div className="native-single-choice-authoring-hotspot is-draft" style={logicalAreaStyle(draftArea, stage)} /> : null}
-    {selected ? <StageSelectionFrame geometry={selected.area} stage={stage} label="Hotspot" minWidth={4} minHeight={4} onChange={(area) => onChange?.(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))} onClear={() => onSelect?.(null)} onDelete={onDelete} /> : null}
+    {selected ? <StageSelectionFrame geometry={selectedGeometry === "highlight" ? selected.highlightArea || selected.area : selected.area} stage={stage} label={selectedGeometry === "highlight" ? "Visual highlight" : "Click target"} minWidth={4} minHeight={4} onChange={(area) => (selectedGeometry === "highlight" ? onChangeHighlightArea : onChangeArea)?.(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))} onClear={() => onSelect?.(null)} onDelete={onDelete} /> : null}
   </div>;
 }
