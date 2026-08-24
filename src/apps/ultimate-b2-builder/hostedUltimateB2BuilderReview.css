@@ -93,6 +93,7 @@
 @media (max-width: 760px) { .b2-hosted-ui-workspace { grid-template-columns: 1fr; } .b2-hosted-ui-workspace > nav { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 240px; } .b2-hosted-ui-overview dl { grid-template-columns: 1fr; } }
 .unified-builder-review-launcher { position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); left: max(18px, env(safe-area-inset-left)); z-index: 800; min-width: 132px; min-height: 48px; padding: 0 1.2rem; border: 0; border-radius: 999px; color: #fff; background: #075985; box-shadow: 0 8px 24px rgba(7, 89, 133, .32); font: inherit; font-weight: 850; }
 .unified-builder-review-launcher:focus-visible { outline: 3px solid #fdba74; outline-offset: 3px; }
+@media (max-width: 680px) { .unified-builder-review-launcher { bottom: calc(84px + env(safe-area-inset-bottom)); left: 10px; min-width: 112px; } }
 .unified-builder-review-dialog { width: min(96vw, 1500px); max-width: none; height: min(92vh, 960px); max-height: none; padding: 0; border: 1px solid #8aa1b5; border-radius: .8rem; overflow: hidden; color: #172033; background: #eef1f4; box-shadow: 0 24px 80px rgba(15, 23, 42, .42); }
 .unified-builder-review-dialog::backdrop { background: rgba(15, 23, 42, .72); }
 .unified-builder-review-panel { display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); height: 100%; }

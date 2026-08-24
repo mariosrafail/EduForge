@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { FileText, Files } from "lucide-react";
+
+import { StudioSaveBar, StudioTabWorkspace } from "../../components/builder-studio/StudioControls.jsx";
 
 import {
   getBuilderContent,
@@ -18,6 +21,10 @@ const identity = Object.freeze({
   componentSlug: "ultimate-b2-students-book",
   resource: "open-response",
 });
+const tabs = [
+  { id: "content", label: "Content", icon: FileText },
+  { id: "publisher-source", label: "Publisher Source", icon: Files },
+];
 
 function sameDocument(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -29,6 +36,7 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
   const [revision, setRevision] = useState(0);
   const [source, setSource] = useState("repository");
   const [mode, setMode] = useState("view");
+  const [tab, setTab] = useState("content");
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
   const [importStatus, setImportStatus] = useState({ revision: 0, fingerprint: null, updatedAt: null });
@@ -52,6 +60,7 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
     setRevision(payload.revision);
     setSource(payload.source);
     setMode("view");
+    setTab("content");
     setImportStatus(currentImport);
     mutationId.current = null;
     setState("ready");
@@ -172,20 +181,21 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
         : state === "saved" ? "Saved"
           : source === "repository" ? "Canonical baseline" : "Saved draft";
 
-  return <section className="b2-hosted-open-response-editor" aria-label="Open Response editor" data-editor-state={state}>
+  return <section className="b2-hosted-open-response-editor studio-editor" aria-label="Open Response editor" data-editor-state={state}>
     <header>
       <div><span>Editable Open Response</span><h2>Public student-facing authoring</h2><small>Revision {revision} · {source === "repository" ? "canonical tracked seed" : "hosted saved draft"}</small></div>
-      <div className="b2-hosted-open-response-actions">
-        <strong role="status">{status}</strong>
-        {mode === "view" ? <button type="button" onClick={() => setMode("edit")}>Edit public authoring</button> : null}
-        {mode === "edit" ? <button type="button" disabled={!dirty || state === "saving"} onClick={save}>{state === "saving" ? "Saving…" : "Save draft"}</button> : null}
-        {state === "conflict" ? <button type="button" onClick={reloadLatest}>Reload latest saved</button> : null}
-      </div>
     </header>
     <p className="b2-hosted-open-response-boundary">Public text edits stay separate from publisher source. A successful deterministic import updates artwork, layout and the hosted Teacher Review answer; raw XML and Teacher data are never public.</p>
     {error ? <p className="b2-hosted-open-response-error" role="alert">{error}</p> : null}
-    <div className="b2-hosted-open-response-questions">{document.questions.map((question, index) => <label key={question.id}><span>Question {index + 1}</span><textarea rows={3} readOnly={mode !== "edit"} value={question.prompt} onChange={(event) => update((current) => ({ ...current, questions: current.questions.map((item) => item.id === question.id ? { ...item, prompt: event.target.value } : item) }))} /></label>)}</div>
-    <section className="b2-hosted-source-import" aria-label="Publisher Source Import" data-import-state={importState}>
+    <StudioTabWorkspace id="hosted-open-response-tabs" value={tab} onChange={setTab} tabs={tabs} label="Open Response authoring modes">
+    {tab === "content" ? <section className="b2-hosted-open-response-content">
+      <div className="b2-hosted-open-response-actions">
+        {mode === "view" ? <button type="button" onClick={() => setMode("edit")}>Edit public authoring</button> : null}
+        {state === "conflict" ? <button type="button" onClick={reloadLatest}>Reload latest saved</button> : null}
+      </div>
+      <div className="b2-hosted-open-response-questions">{document.questions.map((question, index) => <label key={question.id}><span>Question {index + 1}</span><textarea rows={3} readOnly={mode !== "edit"} value={question.prompt} onChange={(event) => update((current) => ({ ...current, questions: current.questions.map((item) => item.id === question.id ? { ...item, prompt: event.target.value } : item) }))} /></label>)}</div>
+    </section> : null}
+    {tab === "publisher-source" ? <section className="b2-hosted-source-import" aria-label="Publisher Source Import" data-import-state={importState}>
       <header><div><span>Publisher Source Import</span><h3>Deterministic XML + raster package</h3></div><strong>Import revision {importStatus.revision}</strong></header>
       <p>Select exactly two decoded XML parameter files and their referenced PNG, JPEG, or WebP raster files. No AI, OCR, ZIP, PDF, audio, or video is used.</p>
       {importStatus.fingerprint ? <p className="b2-hosted-import-fingerprint">Current fingerprint <code>{importStatus.fingerprint}</code></p> : <p>No hosted publisher-source import has been committed.</p>}
@@ -198,7 +208,9 @@ export function HostedOpenResponseEditor({ activityId, onDirtyChange, onSaved })
         {importState === "preparing" ? "Preparing secure upload…" : importState === "uploading" ? "Uploading source files…" : importState === "finalizing" ? "Validating and finalizing…" : "Upload and import publisher source"}
       </button>
       {importState === "succeeded" ? <p className="b2-hosted-import-success" role="status">Import committed. The saved draft is ready in Review.</p> : null}
-    </section>
+    </section> : null}
+    </StudioTabWorkspace>
+    <StudioSaveBar dirty={dirty} saving={state === "saving"} message={status} ready disabled={!dirty || state === "saving"} reason={!dirty ? "No unsaved changes" : ""} onSave={save} />
   </section>;
 }
 
