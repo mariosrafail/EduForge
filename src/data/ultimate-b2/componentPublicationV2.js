@@ -6,6 +6,7 @@ import { normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolu
 import { normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "../native-activities/nativeSingleChoice.js";
 import { normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, validateNativeCompleteSentencesTopology } from "../native-activities/nativeCompleteSentences.js";
 import { normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "../native-activities/nativeListening.js";
+import { normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution, validateNativeDragDropTopology } from "../native-activities/nativeDragDrop.js";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "./studentsBookAuthoringCatalog.js";
 import {
@@ -21,6 +22,7 @@ export const ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS = Object.free
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS = Object.freeze(["image", "open-response", "single-choice"]);
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS = Object.freeze(["complete-sentences", "image", "open-response", "single-choice"]);
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS = Object.freeze(["complete-sentences", "image", "listening", "open-response", "single-choice"]);
+export const ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS = Object.freeze(["complete-sentences", "drag-drop", "image", "listening", "open-response", "single-choice"]);
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -40,7 +42,7 @@ function sourceIdentity(value, label, { nullableZeroSha = false } = {}) {
   return { revision: value.revision, sha256: value.sha256 };
 }
 
-function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS) {
+function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS) {
   if (!allowedNativeKinds.includes(kind)) throw new Error("Published native activity kind is unsupported by this release compatibility variant.");
   if (kind === "open-response") return {
     normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeOpenResponseInteraction }); },
@@ -67,6 +69,11 @@ function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEA
     normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeListeningSolution }); },
     validate(publicDocument, teacherDocument) { validateNativeActivityDocumentPair(publicDocument, teacherDocument); validateNativeListeningTopology(publicDocument, teacherDocument); },
   };
+  if (kind === "drag-drop") return {
+    normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeDragDropInteraction }); },
+    normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeDragDropSolution }); },
+    validate(publicDocument, teacherDocument) { validateNativeActivityDocumentPair(publicDocument, teacherDocument); validateNativeDragDropTopology(publicDocument, teacherDocument); },
+  };
   throw new Error("Published native activity kind is unsupported.");
 }
 
@@ -80,7 +87,7 @@ function normalizeAsset(value, label) {
 
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS } = {}) {
+export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS } = {}) {
   exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities"], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
@@ -139,7 +146,7 @@ function hotspotCatalog(nativeActivities) {
 }
 
 export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSeedsById, {
-  allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS,
+  allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
   expectedCompatibility = null,
 } = {}) {
   exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets"], "Public release v2");
@@ -177,7 +184,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   return normalized;
 }
 
-export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS } = {}) {
+export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS } = {}) {
   exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "solutions", "ui", "nativeActivities"], "Teacher release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book") throw new Error("Teacher release v2 identity is invalid.");
   const legacy = normalizeUltimateB2TeacherReleaseProjection({ schemaVersion: "1.0", bookSlug: value.bookSlug, componentSlug: value.componentSlug, solutions: value.solutions, ui: value.ui }, canonicalSeedsById);

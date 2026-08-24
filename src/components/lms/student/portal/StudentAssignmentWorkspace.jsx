@@ -118,7 +118,9 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
     setSubmitMessage("");
     try {
       const interaction = assignment.target?.entry?.document?.parts?.[0]?.interaction || {};
-      const questions = interaction.questions || interaction.items || [];
+      const questions = assignment.target.nativeKind === "drag-drop"
+        ? (interaction.panels || []).flatMap((panel) => panel.dropTargets || [])
+        : interaction.questions || interaction.items || [];
       await submitStudentAssignment({
         assignmentId: assignment.assignmentId,
         target: {
@@ -129,7 +131,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
         response: {
           schemaVersion: assignment.target.capability.responseSchemaVersion,
           items: questions
-            .filter((question) => assignment.target.nativeKind !== "single-choice" || nativeResponses[question.id])
+            .filter((question) => !["single-choice", "drag-drop"].includes(assignment.target.nativeKind) || nativeResponses[question.id])
             .map((question) => ({ id: question.id, value: nativeResponses[question.id] || "" })),
         },
       });

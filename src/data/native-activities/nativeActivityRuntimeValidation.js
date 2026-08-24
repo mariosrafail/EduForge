@@ -5,6 +5,7 @@ import { normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolu
 import { normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "./nativeSingleChoice.js";
 import { normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, validateNativeCompleteSentencesTopology } from "./nativeCompleteSentences.js";
 import { normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "./nativeListening.js";
+import { normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution, validateNativeDragDropTopology } from "./nativeDragDrop.js";
 
 export function normalizeNativeRuntimePublicDocument(document, { activityId, kind }) {
   const normalizeInteraction = kind === "open-response"
@@ -17,22 +18,25 @@ export function normalizeNativeRuntimePublicDocument(document, { activityId, kin
           ? normalizeNativeCompleteSentencesInteraction
         : kind === "listening"
           ? normalizeNativeListeningInteraction
+        : kind === "drag-drop"
+          ? normalizeNativeDragDropInteraction
       : null;
   if (!normalizeInteraction) throw new Error("Native runtime kind is unsupported.");
   return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction });
 }
 
 export function normalizeNativeRuntimeTeacherDocument(document, { activityId, kind, publicDocument }) {
-  if (!["open-response", "single-choice", "complete-sentences", "listening"].includes(kind)) throw new Error("Native runtime Teacher document is unsupported.");
+  if (!["open-response", "single-choice", "complete-sentences", "listening", "drag-drop"].includes(kind)) throw new Error("Native runtime Teacher document is unsupported.");
   const normalized = normalizeNativeActivityTeacher(document, {
     expectedActivityId: activityId,
     expectedKind: kind,
-    normalizeSolution: kind === "open-response" ? normalizeNativeOpenResponseSolution : kind === "single-choice" ? normalizeNativeSingleChoiceSolution : kind === "complete-sentences" ? normalizeNativeCompleteSentencesSolution : normalizeNativeListeningSolution,
+    normalizeSolution: kind === "open-response" ? normalizeNativeOpenResponseSolution : kind === "single-choice" ? normalizeNativeSingleChoiceSolution : kind === "complete-sentences" ? normalizeNativeCompleteSentencesSolution : kind === "listening" ? normalizeNativeListeningSolution : normalizeNativeDragDropSolution,
   });
   validateNativeActivityDocumentPair(publicDocument, normalized);
   if (kind === "open-response") validateNativeOpenResponseTopology(publicDocument, normalized);
   else if (kind === "single-choice") validateNativeSingleChoiceTopology(publicDocument, normalized);
   else if (kind === "complete-sentences") validateNativeCompleteSentencesTopology(publicDocument, normalized);
-  else validateNativeListeningTopology(publicDocument, normalized);
+  else if (kind === "listening") validateNativeListeningTopology(publicDocument, normalized);
+  else validateNativeDragDropTopology(publicDocument, normalized);
   return normalized;
 }

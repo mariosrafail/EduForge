@@ -6,6 +6,7 @@ import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
+import { NativeDragDropStudentSurface, NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";
 
 export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false, showMetadataHeader = true, presentation = null }) {
@@ -34,5 +35,9 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
     {kind === "listening" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {kind === "listening" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {kind === "listening" && teacherMode && state.teacher.entry ? <NativeListeningTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
+    {kind === "drag-drop" && !teacherMode ? <NativeDragDropStudentSurface document={document} assetUrl={assetUrl} /> : null}
+    {kind === "drag-drop" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
+    {kind === "drag-drop" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
+    {kind === "drag-drop" && teacherMode && state.teacher.entry ? <NativeDragDropTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
   </article>}</NativeReadableTextPresentation>;
 }

@@ -11,6 +11,7 @@ import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeR
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
+import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
 import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
@@ -347,6 +348,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
+        ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
       ],
     });
   } catch (error) {
@@ -497,6 +499,7 @@ async function nativeCatalog(dependencies, sql) {
             ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
             ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
+            ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
           ];
           for (const requirement of requirements) {
             const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);

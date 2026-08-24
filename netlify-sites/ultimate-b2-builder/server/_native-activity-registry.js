@@ -16,6 +16,7 @@ import {
 import { assessNativeSingleChoiceReadiness, normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, validateNativeSingleChoiceTopology } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { assessNativeCompleteSentencesReadiness, normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, validateNativeCompleteSentencesTopology } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { assessNativeListeningReadiness, createEmptyNativeListeningInteraction, normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "../../../src/data/native-activities/nativeListening.js";
+import { assessNativeDragDropReadiness, createEmptyNativeDragDropInteraction, normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution, validateNativeDragDropTopology } from "../../../src/data/native-activities/nativeDragDrop.js";
 
 function definition(kind, normalizeInteraction, normalizeSolution, blankInteraction, blankSolution, validateTopology = null, assessReadiness = null, readinessAllowsIncompleteTopology = false) {
   return Object.freeze({
@@ -55,6 +56,7 @@ const registry = Object.freeze({
   "single-choice": definition("single-choice", normalizeNativeSingleChoiceInteraction, normalizeNativeSingleChoiceSolution, () => ({ kind: "single-choice", questions: [] }), () => ({ kind: "single-choice", correctAnswers: [] }), validateNativeSingleChoiceTopology, assessNativeSingleChoiceReadiness),
   "complete-sentences": definition("complete-sentences", normalizeNativeCompleteSentencesInteraction, normalizeNativeCompleteSentencesSolution, () => ({ kind: "complete-sentences", items: [], presentation: { kind: "image-hotspot", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, hotspots: [] } }), () => ({ kind: "complete-sentences", answers: [] }), validateNativeCompleteSentencesTopology, assessNativeCompleteSentencesReadiness, true),
   listening: definition("listening", normalizeNativeListeningInteraction, normalizeNativeListeningSolution, createEmptyNativeListeningInteraction, () => ({ kind: "listening", modelAnswers: [] }), validateNativeListeningTopology, assessNativeListeningReadiness, true),
+  "drag-drop": definition("drag-drop", normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution, createEmptyNativeDragDropInteraction, () => ({ kind: "drag-drop", mappings: [] }), validateNativeDragDropTopology, assessNativeDragDropReadiness, true),
 });
 
 export function resolveNativeActivityKind(kind) { return registry[kind] || null; }

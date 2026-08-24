@@ -151,6 +151,50 @@ function completeSentencesReview(publicDocument, teacherDocument, payload = {}) 
   return completeSentenceItems(publicDocument).map((item) => ({ questionId: String(item.id), prompt: item.prompt || "", answer: responses.get(String(item.id)) || "", modelAnswer: answers.get(String(item.id)) || "", isCorrect: null, feedback: "" }));
 }
 
+function dragDropTargets(document = {}) {
+  return (document.parts?.[0]?.interaction?.panels || []).flatMap((panel) => panel.dropTargets || []);
+}
+
+function normalizeDragDrop(publicDocument, rawEnvelope) {
+  if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)
+    || rawEnvelope.schemaVersion !== NATIVE_RESPONSE_SCHEMA_VERSION
+    || Object.keys(rawEnvelope).some((key) => !["schemaVersion", "items"].includes(key))
+    || !Array.isArray(rawEnvelope.items) || rawEnvelope.items.length > 120
+    || JSON.stringify(rawEnvelope).length > MAX_RESPONSE_PAYLOAD) return { error: "response is invalid" };
+  const interaction = publicDocument.parts?.[0]?.interaction || {};
+  const targets = dragDropTargets(publicDocument);
+  const allowedTargets = new Set(targets.map((target) => String(target.id)));
+  const allowedWords = new Set((interaction.words || []).map((word) => String(word.id)));
+  const values = new Map(); const usedWords = new Set();
+  for (const item of rawEnvelope.items) {
+    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "id,value") return { error: "Each response item must contain exactly id and value" };
+    const targetId = String(item.id || ""); const wordId = String(item.value || "");
+    if (!allowedTargets.has(targetId) || !allowedWords.has(wordId) || values.has(targetId) || usedWords.has(wordId)) return { error: `Drag & Drop response ${targetId} is invalid` };
+    values.set(targetId, wordId); usedWords.add(wordId);
+  }
+  return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "drag-drop", items: targets.filter((target) => values.has(String(target.id))).map((target) => ({ id: String(target.id), value: values.get(String(target.id)) })) } };
+}
+
+function scoreDragDrop(publicDocument, teacherDocument, payload = {}) {
+  const targets = dragDropTargets(publicDocument);
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), String(mapping.wordId)]));
+  const correctCount = targets.filter((target) => responses.get(String(target.id)) === correct.get(String(target.id))).length;
+  const totalCount = targets.length;
+  return { status: "submitted", correctCount, totalCount, scorePercent: totalCount ? Math.round(correctCount / totalCount * 100) : 0 };
+}
+
+function dragDropReview(publicDocument, teacherDocument, payload = {}) {
+  const words = new Map((publicDocument.parts?.[0]?.interaction?.words || []).map((word) => [String(word.id), word.text]));
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), String(mapping.wordId)]));
+  return dragDropTargets(publicDocument).map((target) => {
+    const selectedWordId = responses.get(String(target.id)) || null;
+    const correctWordId = correct.get(String(target.id)) || null;
+    return { questionId: String(target.id), prompt: target.accessibleLabel || "", answer: words.get(selectedWordId) || "", modelAnswer: words.get(correctWordId) || "", isCorrect: selectedWordId !== null && selectedWordId === correctWordId, feedback: "" };
+  });
+}
+
 const capabilities = Object.freeze({
   "open-response": Object.freeze({
     kind: "open-response",
@@ -189,6 +233,16 @@ const capabilities = Object.freeze({
     normalizeResponse: normalizeListening,
     teacherReviewProjection: openResponseReview,
   }),
+  "drag-drop": Object.freeze({
+    kind: "drag-drop",
+    assignable: true,
+    submittable: true,
+    reviewMode: "auto-scored",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeDragDrop,
+    evaluateResponse: scoreDragDrop,
+    teacherReviewProjection: dragDropReview,
+  }),
   image: Object.freeze({
     kind: "image",
     assignable: false,
@@ -205,7 +259,7 @@ export function nativeAssignmentCapability(kind) {
 export function containsClientTeacherMaterial(value) {
   if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
   if (!value || typeof value !== "object") return false;
-  const forbidden = new Set(["modelAnswer", "modelAnswers", "correctOptionId", "correctAnswers", "solution", "teacherDocument", "teacherProjection"]);
+  const forbidden = new Set(["modelAnswer", "modelAnswers", "correctOptionId", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection"]);
   return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsClientTeacherMaterial(child));
 }
 

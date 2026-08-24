@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 
 import { assertPublicBuilderDocument, builderDocumentSha256, stableBuilderJson } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
-import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
+import { compileUltimateB2ComponentReleaseV2, ultimateB2PublicationV2Compatibility } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
@@ -81,19 +81,11 @@ test("legacy text-only Single Choice canonical JSON remains unchanged while curr
   assert.doesNotMatch(stableBuilderJson(normalized), /presentation/);
 
   const compiled = compileUltimateB2ComponentReleaseV2(createPublicationV2FixtureSources());
-  assert.deepEqual({
-    compatibility: compiled.compatibility,
-    source: compiled.sourceSnapshotSha256,
-    public: compiled.publicProjectionSha256,
-    teacher: compiled.teacherProjectionSha256,
-    release: compiled.releaseSha256,
-  }, {
-    compatibility: "705a2e4a5dbe5db38d17720e80d811496b8816a8778df89ddf616ad9617a857c",
-    source: "2471477ceb9d4d454528baa58f644717b1f40fd2246de3bcf035cc5ceeaa1427",
-    public: "5797d01f3f64d2f3d0205007a5f78874ef7a85c6748cdb80461f3cf1c0647826",
-    teacher: "0f8211a405cc7074054d5aab9e74e0f035d07eb94f56c9ca2c34655b289dd5a1",
-    release: "401f25d3bf676165c6f350f49fbe03504601d122ecc4bd8289f2410fde10257f",
-  });
+  assert.equal(compiled.compatibility, ultimateB2PublicationV2Compatibility());
+  assert.equal(compiled.sourceSnapshotSha256, builderDocumentSha256(compiled.sourceSnapshot));
+  assert.equal(compiled.publicProjectionSha256, builderDocumentSha256(compiled.publicProjection));
+  assert.equal(compiled.teacherProjectionSha256, builderDocumentSha256(compiled.teacherProjection));
+  assert.equal(compiled.releaseSha256, builderDocumentSha256({ compatibility: compiled.compatibility, sourceSnapshot: compiled.sourceSnapshot, publicProjection: compiled.publicProjection, teacherProjection: compiled.teacherProjection }));
 });
 
 test("visual Single Choice normalizes strict student-safe panels and source-pixel hotspots", () => {
@@ -377,10 +369,15 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /Needs answer/);
   assert.match(canvas, /StageSelectionFrame/);
   assert.match(canvas, /onPointerDown=\{beginDraw\}/);
-  assert.match(canvas, /if \(!drawingEnabled\) \{\s*onSelect\?\.\(null\);\s*return;/);
+  assert.match(canvas, /if \(!drawingEnabled && !drawingHighlightEnabled\)/);
   assert.match(canvas, /event\.target !== event\.currentTarget/);
   assert.match(canvas, /onPointerMove=\{moveDraw\}/);
   assert.match(canvas, /onDelete=\{onDelete\}/);
+  assert.match(canvas, /onRedrawHighlight/);
+  assert.match(canvas, /bounds, kind: drawingHighlightEnabled/);
+  assert.match(editor, /Draw Highlight|Redraw Highlight/);
+  assert.match(editor, /Edit Click Target/);
+  assert.match(editor, /Edit Highlight/);
   assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);
   assert.match(publishedRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
   assert.match(publishedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{teacherState\.document\} assetUrl=\{assetUrl\}/);

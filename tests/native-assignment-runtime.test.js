@@ -28,7 +28,7 @@ const publicDocument = {
   ] } }],
 };
 
-test("native capabilities derive Open Response, Listening, and Complete the Sentences review, Single Choice scoring, and Image display-only policy", () => {
+test("native capabilities derive reviewed, scored, and display-only policy for every registered kind", () => {
   const openResponse = nativeAssignmentCapability("open-response");
   assert.equal(openResponse.assignable, true);
   assert.equal(openResponse.submittable, true);
@@ -46,12 +46,31 @@ test("native capabilities derive Open Response, Listening, and Complete the Sent
   assert.equal(listening.assignable, true);
   assert.equal(listening.submittable, true);
   assert.equal(listening.reviewMode, "teacher-reviewed");
+  const dragDrop = nativeAssignmentCapability("drag-drop");
+  assert.equal(dragDrop.assignable, true);
+  assert.equal(dragDrop.submittable, true);
+  assert.equal(dragDrop.reviewMode, "auto-scored");
 
   const image = nativeAssignmentCapability("image");
   assert.equal(image.assignable, false);
   assert.equal(image.submittable, false);
   assert.equal(image.reviewMode, "display-only");
   assert.equal(nativeAssignmentCapability("future-kind"), null);
+});
+
+test("Drag & Drop assignment responses validate stable target and word ownership and score privately", () => {
+  const targetIds = ["target-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "target-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"];
+  const wordIds = ["word-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "word-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"];
+  const publicDragDrop = { parts: [{ interaction: { kind: "drag-drop", words: [{ id: wordIds[0], text: "First" }, { id: wordIds[1], text: "Second" }], panels: [{ dropTargets: [{ id: targetIds[0], accessibleLabel: "Blank one" }, { id: targetIds[1], accessibleLabel: "Blank two" }] }] } }] };
+  const teacherDragDrop = { parts: [{ solution: { kind: "drag-drop", mappings: [{ targetId: targetIds[0], wordId: wordIds[1] }, { targetId: targetIds[1], wordId: wordIds[0] }] } }] };
+  const capability = nativeAssignmentCapability("drag-drop");
+  const normalized = capability.normalizeResponse(publicDragDrop, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: targetIds[1], value: wordIds[0] }, { id: targetIds[0], value: wordIds[1] }] });
+  assert.deepEqual(normalized.payload.items.map((item) => item.id), targetIds);
+  assert.doesNotMatch(JSON.stringify(normalized.payload), /mappings|Second.*First/);
+  assert.deepEqual(capability.evaluateResponse(publicDragDrop, teacherDragDrop, normalized.payload), { status: "submitted", correctCount: 2, totalCount: 2, scorePercent: 100 });
+  assert.equal(capability.teacherReviewProjection(publicDragDrop, teacherDragDrop, normalized.payload)[0].modelAnswer, "Second");
+  assert.match(capability.normalizeResponse(publicDragDrop, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: targetIds[0], value: wordIds[0] }, { id: targetIds[1], value: wordIds[0] }] }).error, /invalid/);
+  assert.match(capability.normalizeResponse(publicDragDrop, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "forged", value: wordIds[0] }] }).error, /invalid/);
 });
 
 test("Listening responses reuse ordered text semantics while keeping model answers Teacher-only", () => {
@@ -187,6 +206,15 @@ test("generic endpoint layers delegate per-kind response behavior to the capabil
     "assignment-actions.js", "submission-actions.js", "class-actions.js",
   ].map((name) => readFile(new URL(`../netlify/functions/_book-content/${name}`, import.meta.url), "utf8")));
   for (const source of files) assert.doesNotMatch(source, /kind\s*===?\s*["']open-response["']/);
+});
+
+test("Student assignment workspace adapts Drag & Drop targets to the existing controlled response envelope", async () => {
+  const source = await readFile(new URL("../src/components/lms/student/portal/StudentAssignmentWorkspace.jsx", import.meta.url), "utf8");
+  assert.match(source, /nativeKind === "drag-drop"/);
+  assert.match(source, /flatMap\(\(panel\) => panel\.dropTargets/);
+  assert.match(source, /\["single-choice", "drag-drop"\]\.includes/);
+  assert.match(source, /responses=\{nativeResponses\}/);
+  assert.match(source, /onResponsesChange=\{setNativeResponses\}/);
 });
 
 function immutableReleaseRow({ id = "10000000-0000-4000-8000-000000000090", releaseNumber = 3, fixture = {} } = {}) {

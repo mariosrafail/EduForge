@@ -11,7 +11,7 @@ import {
 } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 
-const nativeKinds = ["open-response", "image", "single-choice", "complete-sentences", "listening"];
+const nativeKinds = ["open-response", "image", "single-choice", "complete-sentences", "listening", "drag-drop"];
 
 test("native schema v1 retains the deprecated instruction while Builder authoring projects it empty", () => {
   for (const [index, kindName] of nativeKinds.entries()) {
@@ -51,6 +51,7 @@ test("all Activity Builder editors omit generic instruction controls and preserv
     "src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx",
     "src/apps/book-builder/hosted/NativeCompleteSentencesEditor.jsx",
     "src/apps/book-builder/hosted/NativeListeningEditor.jsx",
+    "src/apps/book-builder/hosted/NativeDragDropEditor.jsx",
   ];
   const editors = await Promise.all(editorPaths.map((path) => readFile(path, "utf8")));
   for (const editor of editors) {
@@ -65,6 +66,7 @@ test("all Activity Builder editors omit generic instruction controls and preserv
   assert.match(editors[3], /Full sentence with one marked answer|parseNativeCompleteSentencesMarkedSentence/);
   assert.doesNotMatch(editors[3], /Private correct word or phrase/);
   assert.match(editors[4], /Public prompt|Transcript text|Teacher-only model answer/);
+  assert.match(editors[5], /Shared word bank|Teacher-only correct mappings/);
 
   const legacyEditor = await readFile("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx", "utf8");
   assert.match(legacyEditor, /Question \{index \+ 1\}/);
