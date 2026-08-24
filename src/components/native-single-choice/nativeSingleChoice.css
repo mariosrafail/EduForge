@@ -258,6 +258,13 @@
   border-style: solid;
 }
 
+.native-single-choice-hotspot-canvas.is-drawing-highlight { cursor: crosshair; }
+.native-single-choice-hotspot-canvas.is-drawing-highlight .native-single-choice-authoring-hotspot,
+.native-single-choice-hotspot-canvas.is-drawing-highlight .native-single-choice-authoring-highlight { pointer-events: none; }
+.native-single-choice-authoring-highlight.is-draft { border-style: solid; box-shadow: 0 0 0 2px rgb(255 255 255 / 82%); }
+.native-single-choice-highlight-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 16px; background: #f0fdf4; border-bottom: 1px solid #86efac; }
+.native-single-choice-highlight-actions strong { margin-right: auto; color: #166534; }
+
 .native-single-choice-geometry-toggle {
   display: flex;
   gap: 4px;

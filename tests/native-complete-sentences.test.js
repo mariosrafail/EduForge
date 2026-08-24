@@ -6,7 +6,7 @@ import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-s
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
-import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, nativeCompleteSentencesPromptParts } from "../src/data/native-activities/nativeCompleteSentences.js";
+import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, nativeCompleteSentencesPromptParts, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o96";
@@ -75,6 +75,21 @@ test("Complete the Sentences readiness requires explicit answer, background, and
   assert.match(kind.assessReadiness(publicDocument, teacherDocument).issues.join(" "), /blank hotspot/);
 });
 
+test("individual Teacher reveal is stable by itemId and lower commands skip revealed items", () => {
+  const { first, second } = completePair();
+  const itemIds = [first, second];
+  let revealed = new Set();
+  revealed = updateNativeCompleteSentencesRevealState(revealed, itemIds, { itemId: second });
+  assert.deepEqual([...revealed], [second]);
+  const same = updateNativeCompleteSentencesRevealState(revealed, itemIds, { itemId: second });
+  assert.equal(same, revealed, "a second activation does not corrupt the reveal count");
+  revealed = updateNativeCompleteSentencesRevealState(revealed, itemIds, "show-next");
+  assert.deepEqual([...revealed], [second, first], "Show Next skips the individually revealed item");
+  assert.equal(updateNativeCompleteSentencesRevealState(revealed, itemIds, "show-all"), revealed);
+  revealed = updateNativeCompleteSentencesRevealState(revealed, itemIds, "reset-activity");
+  assert.equal(revealed.size, 0);
+});
+
 test("Complete the Sentences compiles through v2 with public/Teacher separation and managed background", () => {
   const pair = completePair(); const sources = createPublicationV2FixtureSources();
   const entry = { activityId, kind: "complete-sentences", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 4 };
@@ -94,7 +109,8 @@ test("shared runtime/editor render typed public responses and Teacher reveal wit
     readFile(new URL("../src/components/native-complete-sentences/NativeCompleteSentencesSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeCompleteSentencesEditor.jsx", import.meta.url), "utf8"),
   ]);
-  assert.match(surface, /onResponsesChange/); assert.match(surface, /show-next/); assert.match(surface, /show-all/); assert.match(surface, /reset-activity/);
+  assert.match(surface, /onResponsesChange/); assert.match(surface, /updateNativeCompleteSentencesRevealState/);
+  assert.match(surface, /native-complete-sentences-teacher-target/); assert.match(surface, /onTeacherReveal\(hotspot\.itemId\)/);
   assert.doesNotMatch(surface, /data-(?:answer|correct)/i);
   assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /NativeCompleteSentencesHotspotCanvas/);
 });

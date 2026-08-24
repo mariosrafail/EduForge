@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
-import { nativeCompleteSentencesPromptParts } from "../../data/native-activities/nativeCompleteSentences.js";
+import { nativeCompleteSentencesPromptParts, updateNativeCompleteSentencesRevealState } from "../../data/native-activities/nativeCompleteSentences.js";
 import "./nativeCompleteSentences.css";
 
 function SentencePrompt({ prompt }) {
@@ -10,7 +10,7 @@ function SentencePrompt({ prompt }) {
   return parts.structured ? <>{parts.before}<span className="native-complete-sentences-inline-blank" aria-label="blank">______</span>{parts.after}</> : prompt;
 }
 
-function Presentation({ document, assetUrl, responses, onChange, readOnly, revealed = new Set(), answers = new Map(), audioHotspotPresentation = null }) {
+function Presentation({ document, assetUrl, responses, onChange, readOnly, revealed = new Set(), answers = new Map(), onTeacherReveal = null, audioHotspotPresentation = null }) {
   const interaction = document.parts[0].interaction;
   const presentation = interaction.presentation;
   const reference = document.assets.find((asset) => asset.slot === presentation.backgroundAssetSlot);
@@ -20,6 +20,18 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, revea
       {presentation.hotspots.map((hotspot, index) => {
         const item = interaction.items.find((candidate) => candidate.id === hotspot.itemId);
         const teacherAnswer = revealed.has(hotspot.itemId) ? answers.get(hotspot.itemId) || "" : null;
+        if (onTeacherReveal) return <button
+          key={hotspot.id}
+          type="button"
+          className="native-complete-sentences-blank native-complete-sentences-teacher-target"
+          style={logicalAreaStyle(hotspot.area, { width: presentation.sourceWidth, height: presentation.sourceHeight })}
+          data-revealed={teacherAnswer !== null || undefined}
+          aria-label={`${teacherAnswer === null ? "Reveal" : "Revealed"} answer for sentence ${index + 1}`}
+          onClick={() => onTeacherReveal(hotspot.itemId)}
+        >
+          <span className="native-complete-sentences-sr-only">{item?.prompt || `Sentence ${index + 1}`}</span>
+          <span className="native-complete-sentences-teacher-answer" aria-live="polite">{teacherAnswer ?? ""}</span>
+        </button>;
         return <label key={hotspot.id} className="native-complete-sentences-blank" style={logicalAreaStyle(hotspot.area, { width: presentation.sourceWidth, height: presentation.sourceHeight })}>
           <span className="native-complete-sentences-sr-only">{item?.prompt || `Sentence ${index + 1}`}</span>
           <input type="text" value={teacherAnswer ?? responses[hotspot.itemId] ?? ""} readOnly={readOnly || teacherAnswer !== null} aria-label={`Answer for sentence ${index + 1}`} onChange={(event) => onChange?.(hotspot.itemId, event.target.value)} />
@@ -53,15 +65,9 @@ export function NativeCompleteSentencesTeacherSurface({ publicDocument, teacherD
     if (!command || command.token === lastToken.current) return;
     lastToken.current = command.token;
     setRevealed((current) => {
-      if (command.type === "reset-activity") return new Set();
-      if (command.type === "show-all") return new Set(itemIds);
-      if (command.type === "show-next") {
-        const next = itemIds.find((itemId) => !current.has(itemId));
-        return next ? new Set(current).add(next) : current;
-      }
-      return current;
+      return updateNativeCompleteSentencesRevealState(current, itemIds, command.type);
     });
   }, [itemIds.join("\0"), presentation?.command]);
   useEffect(() => presentation?.onStateChange?.({ panelIndex: 0, panelCount: 1, reveal: { supported: true, total: itemIds.length, revealed: revealed.size, pristine: revealed.size === 0 } }), [itemIds.length, presentation?.onStateChange, revealed]);
-  return <Presentation document={publicDocument} assetUrl={assetUrl} responses={{}} readOnly revealed={revealed} answers={answers} audioHotspotPresentation={audioHotspotPresentation} />;
+  return <Presentation document={publicDocument} assetUrl={assetUrl} responses={{}} readOnly revealed={revealed} answers={answers} onTeacherReveal={(itemId) => setRevealed((current) => updateNativeCompleteSentencesRevealState(current, itemIds, { itemId }))} audioHotspotPresentation={audioHotspotPresentation} />;
 }

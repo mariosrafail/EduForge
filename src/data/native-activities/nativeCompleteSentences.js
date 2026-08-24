@@ -14,6 +14,15 @@ export function nativeCompleteSentencesPromptParts(prompt) {
   };
 }
 
+export function updateNativeCompleteSentencesRevealState(current, itemIds, action) {
+  const revealed = current instanceof Set ? current : new Set();
+  if (action === "reset-activity") return revealed.size ? new Set() : revealed;
+  if (action === "show-all") return revealed.size === itemIds.length && itemIds.every((itemId) => revealed.has(itemId)) ? revealed : new Set(itemIds);
+  const itemId = action === "show-next" ? itemIds.find((candidate) => !revealed.has(candidate)) : action?.itemId;
+  if (!itemId || !itemIds.includes(itemId) || revealed.has(itemId)) return revealed;
+  return new Set(revealed).add(itemId);
+}
+
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
   return value;
