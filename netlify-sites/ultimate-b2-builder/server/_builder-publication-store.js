@@ -23,7 +23,7 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
     from book_packages package
     join book_components component on component.book_package_id=package.id
     left join builder_component_documents document on document.book_component_id=component.id
-      and document.document_type in ('native_activity_index','native_activity_public','native_activity_teacher')
+      and document.document_type in ('native_activity_index','native_activity_public','native_activity_teacher','unit_extras')
     where package.slug='ultimate-b2' and component.slug='ultimate-b2-students-book'
     group by component.id
     limit 1
@@ -31,7 +31,9 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
   if (!rows[0]) throw new Error("Publication component is unavailable");
   const documentRows = new Map((rows[0].documents || []).filter((row) => row.document_type).map((row) => [`${row.document_type}/${row.document_key}`, row]));
   const indexResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "native-activity-index");
+  const unitExtrasResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "unit-extras");
   const index = document(documentRows.get("native_activity_index/default"), indexResource);
+  const unitExtras = document(documentRows.get("unit_extras/default"), unitExtrasResource);
   const activities = {};
   for (const entry of index?.payload?.activities || []) {
     const [publicResource, teacherResource] = await Promise.all([
@@ -46,7 +48,9 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
   }
   const references = Object.values(activities).flatMap((entry) => entry.public?.payload?.assets || []);
   const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references });
-  return { ...legacy, native: { index, activities, assetRows } };
+  const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => unit.categories.videos.flatMap((video) => video.asset ? [video.asset] : []));
+  const unitExtraAssetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references: unitExtraReferences });
+  return { ...legacy, native: { index, activities, assetRows }, unitExtras: { document: unitExtras, assetRows: unitExtraAssetRows } };
 }
 
 export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug, references }) {
@@ -54,7 +58,8 @@ export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug
   const ids = [...new Set(references.map((reference) => reference.assetId))];
   return sql`
     select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
-      asset.storage_bucket,asset.mime_type,asset.byte_size,asset.width,asset.height,
+      asset.storage_bucket,asset.mime_type,asset.byte_size,asset.width,asset.height,asset.duration_seconds,
+      asset.unit_id,asset.page_id,asset.activity_id,
       asset.publication_status,asset.access_level,asset.source_metadata
     from book_assets asset
     join book_packages package on package.id=asset.book_package_id

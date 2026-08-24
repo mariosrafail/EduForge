@@ -14,7 +14,7 @@ import { createPublicationV2FixtureSources } from "./fixtures/publication-v2.js"
 const child = (prefix, digit) => `${prefix}-${digit.repeat(32)}`;
 const audio = { assetId: "11111111-1111-4111-8111-111111111111", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "asset-audio" };
 const background = { assetId: "22222222-2222-4222-8222-222222222222", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "asset-background" };
-const hotspotAudio = { assetId: "33333333-3333-4333-8333-333333333333", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "asset-hotspot-audio" };
+const hotspotAudio = { assetId: "33333333-3333-4333-8333-333333333333", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "asset-hotspot-audio" };
 
 function pair() {
   const questionId = child("q", "1");

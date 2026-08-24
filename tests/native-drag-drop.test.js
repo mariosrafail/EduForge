@@ -20,7 +20,7 @@ import {
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const id = (prefix, suffix) => nativeChildIdFromUuid(prefix, `20000000-0000-4000-8000-${String(suffix).padStart(12, "0")}`);
-const activityId = "ultimate-b2-sb-u1-p1-o96";
+const activityId = "ultimate-b2-sb-u1-p1-o95";
 const wordIds = [id("word", 1), id("word", 2), id("word", 3)];
 const panelIds = [id("panel", 11), id("panel", 12)];
 const imageIds = [id("img", 21), id("img", 22), id("img", 23)];
@@ -143,14 +143,14 @@ test("publication v2 separates mappings and closes every Drag & Drop image asset
   sources.native.index.payload.activities.push(entry); sources.native.index = source(sources.native.index.payload, sources.native.index.revision);
   sources.native.activities[activityId] = { index: entry, public: source(current.publicDocument), teacher: source(current.teacherDocument) };
   sources.native.assetRows.push(...assets.map((asset, index) => ({ id: asset.assetId, checksum_sha256: asset.checksumSha256, asset_role: asset.role, object_key: `builder-native-assets/drag-${index}.png`, storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 100, width: 1000, height: 600, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: asset.slot } })));
-  sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId].push({ id: "hotspot-native-drag-drop", unitNumber: 1, pageId: publicationV2Fixture.pageId, pageNumber: 5, left: 68, top: 4, width: 12, height: 12, label: "Drag and Drop", actionType: "normalized_activity", activityKey: activityId });
+  sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId].push({ id: "hotspot-native-drag-drop-test", unitNumber: 1, pageId: publicationV2Fixture.pageId, pageNumber: 5, left: 68, top: 4, width: 12, height: 12, label: "Drag and Drop", actionType: "normalized_activity", activityKey: activityId });
   sources.documents.hotspots = source(sources.documents.hotspots.payload, sources.documents.hotspots.revision);
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
   const published = compiled.publicProjection.nativeActivities[activityId].document;
   assert.deepEqual(published.parts[0].interaction.panels.map((panel) => panel.images.length), [2, 1]);
   assert.doesNotMatch(JSON.stringify(published), /mappings|solution/);
   assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[activityId]), /mappings/);
-  assert.deepEqual(compiled.assetManifest.filter((asset) => ["b", "c"].includes(asset.sha256[0])).map((asset) => asset.sha256).sort(), ["b".repeat(64), "c".repeat(64)]);
+  assert.deepEqual(compiled.assetManifest.filter((asset) => asset.role === "activity_artwork" && ["b", "c"].includes(asset.sha256[0])).map((asset) => asset.sha256).sort(), ["b".repeat(64), "c".repeat(64)]);
 });
 
 test("Builder and web/Android runtimes expose managed panels, controlled responses, pointer and keyboard paths", async () => {

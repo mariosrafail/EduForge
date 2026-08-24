@@ -12,6 +12,8 @@ const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const activityId = publicationV2Fixture.openResponseId;
 const imageActivityId = publicationV2Fixture.imageId;
+const dragDropActivityId = publicationV2Fixture.dragDropId;
+const unitExtraMp4 = await readFile(path.resolve("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"));
 const releaseIds = ["10000000-0000-4000-8000-000000000091", "10000000-0000-4000-8000-000000000092"];
 const publication = "/builder/api/publication/books/ultimate-b2/components/ultimate-b2-students-book";
 const mime = { ".css": "text/css", ".gaf": "application/octet-stream", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".pdf": "application/pdf", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
@@ -89,6 +91,38 @@ function metadata(release) { return { id: release.id, number: release.number, co
 function sendJson(response, statusCode, value) { const body = Buffer.from(JSON.stringify(value)); response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": body.length, "Content-Type": "application/json" }); response.end(body); }
 async function staticResponse(root, pathname, response, fallback) { const relative = pathname === "/" ? fallback : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(root, relative); let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) { file = path.join(root, fallback); details = await stat(file); } response.writeHead(200, { "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": details.size }); createReadStream(file).pipe(response); }
 
+async function measureDragDrop(locator, { context: measuredContext, viewport }) {
+  await locator.evaluate(async (surface) => {
+    let previousSignature = "";
+    let stableFrames = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const visualRect = surface.querySelector(".native-drag-drop-visual-region")?.getBoundingClientRect();
+      const stageRect = surface.querySelector(".native-drag-drop-stage")?.getBoundingClientRect();
+      if (!visualRect || !stageRect) continue;
+      const signature = [visualRect.width, visualRect.height, stageRect.width, stageRect.height].map((value) => value.toFixed(2)).join(":");
+      const stageInsideVisual = stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1;
+      stableFrames = stageInsideVisual && signature === previousSignature ? stableFrames + 1 : 0;
+      previousSignature = signature;
+      if (stableFrames >= 2) return;
+    }
+  });
+  const measurement = await locator.evaluate((surface, context) => {
+    const snapshot = (element) => {
+      if (!element) return null;
+      const rect = element.getBoundingClientRect(); const style = getComputedStyle(element);
+      return { element: element.tagName.toLowerCase(), className: typeof element.className === "string" ? element.className : "", width: Math.round(rect.width * 100) / 100, height: Math.round(rect.height * 100) / 100, minWidth: style.minWidth, minHeight: style.minHeight, maxWidth: style.maxWidth, maxHeight: style.maxHeight, display: style.display, gridTemplateRows: style.gridTemplateRows, alignSelf: style.alignSelf, overflow: style.overflow, overflowX: style.overflowX, overflowY: style.overflowY };
+    };
+    const visualElement = surface.querySelector(".native-drag-drop-visual-region"); const stageElement = surface.querySelector(".native-drag-drop-stage"); const bankElement = surface.querySelector(".native-drag-drop-bank");
+    const root = snapshot(surface); const visual = snapshot(visualElement); const stage = snapshot(stageElement); const bank = snapshot(bankElement);
+    const ancestors = []; for (let current = surface.parentElement, depth = 0; current && depth < 9; current = current.parentElement, depth += 1) ancestors.push(snapshot(current));
+    const stageRect = stageElement.getBoundingClientRect(); const visualRect = visualElement.getBoundingClientRect(); const activityHost = snapshot(surface.closest(".native-readable-text-activity-view"));
+    return { context, viewport: { width: innerWidth, height: innerHeight }, root, visual, stage, bank, activityHost, ancestors, activityHostFillRatio: root.height / activityHost.height, visualRootRatio: visual.height / root.height, bankRootRatio: bank.height / root.height, usableVisualRatio: visual.height / (visual.height + bank.height), usableBankRatio: bank.height / (visual.height + bank.height), stageAspectRatio: stage.width / stage.height, sourceAspectRatio: Number(stageElement.dataset.surfaceWidth) / Number(stageElement.dataset.surfaceHeight), stageInsideVisual: stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1, horizontalOverflow: document.documentElement.scrollWidth - innerWidth };
+  }, measuredContext);
+  process.stdout.write(`[drag-drop-geometry] ${JSON.stringify({ requestedViewport: viewport, ...measurement })}\n`);
+  return measurement;
+}
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return sendJson(response, 200, { authenticated: true, builderUser: { id: "task-9", full_name: "Task 9 Browser", role: "developer", status: "active" } });
@@ -151,7 +185,9 @@ try {
           ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ releaseId: release.id, releaseNumber: release.number, activityId: decodeURIComponent(match[3]), kind: entry.kind, document: entry.document }) })
           : route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       }
-      if (match[2] === "assets") return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64") });
+      if (match[2] === "assets") return (match[3] || "").endsWith(".mp4")
+        ? route.fulfill({ status: 200, contentType: "video/mp4", body: unitExtraMp4 })
+        : route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64") });
       return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
     }
     const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname).replace(/^\/+/, ""); let file = path.resolve(viewerRoot, relative); let details = file.startsWith(`${viewerRoot}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) file = path.join(viewerRoot, "index.html");
@@ -234,6 +270,34 @@ try {
   lifecycle("published-viewer-navigation-start");
   await publishedViewer.goto(pagePreviewUrl(releaseIds[1]), { waitUntil: "domcontentloaded" });
   lifecycle("published-viewer-navigation-complete");
+  const extraVideoLauncher = publishedViewer.getByRole("button", { name: "Extra Videos", exact: true });
+  await extraVideoLauncher.waitFor(); await extraVideoLauncher.click();
+  await publishedViewer.getByRole("menuitem", { name: "Captioned extra", exact: true }).click();
+  const captionedExtraDialog = publishedViewer.getByRole("dialog", { name: "Captioned extra" }); await captionedExtraDialog.waitFor();
+  await captionedExtraDialog.locator("video").waitFor(); await captionedExtraDialog.getByRole("button", { name: "Turn subtitles off" }).waitFor();
+  assert.match(await captionedExtraDialog.locator("video").getAttribute("src"), new RegExp(`${publicationV2Fixture.unitExtraAssetChecksum}\\.mp4`));
+  await captionedExtraDialog.getByRole("button", { name: "Close Extra Video" }).click(); await captionedExtraDialog.waitFor({ state: "detached" });
+  await extraVideoLauncher.click(); await publishedViewer.getByRole("menuitem", { name: "No captions extra", exact: true }).click();
+  const noCaptionsExtraDialog = publishedViewer.getByRole("dialog", { name: "No captions extra" }); await noCaptionsExtraDialog.waitFor();
+  assert.equal(await noCaptionsExtraDialog.getByRole("button", { name: /subtitles/i }).count(), 0); await noCaptionsExtraDialog.getByRole("button", { name: "Close Extra Video" }).click();
+  await publishedViewer.getByRole("button", { name: "Native Drag and Drop" }).click();
+  const immutableDragDrop = publishedViewer.locator(".published-native-activity .native-drag-drop-teacher"); await immutableDragDrop.waitFor();
+  assert.equal(await extraVideoLauncher.count(), 0, "Unit Extra launcher is suppressed while an activity is open");
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 768, height: 900 }]) {
+    await publishedViewer.setViewportSize(viewport); await immutableDragDrop.waitFor();
+    const geometry = await measureDragDrop(immutableDragDrop, { context: "immutable-published-viewer-teacher", viewport });
+    assert.ok(geometry.activityHostFillRatio > .95 && geometry.activityHostFillRatio < 1.05, JSON.stringify(geometry));
+    assert.ok(geometry.usableVisualRatio > .72 && geometry.usableVisualRatio < .78, JSON.stringify(geometry));
+    assert.ok(geometry.usableBankRatio > .22 && geometry.usableBankRatio < .28, JSON.stringify(geometry));
+    assert.ok(Math.abs(geometry.stageAspectRatio - geometry.sourceAspectRatio) < .02 && geometry.stageInsideVisual, JSON.stringify(geometry));
+    assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
+  }
+  await publishedViewer.setViewportSize({ width: 1440, height: 900 });
+  assert.equal(await immutableDragDrop.locator(".native-drag-drop-artwork img").evaluate((image) => getComputedStyle(image).objectFit), "contain");
+  const immutableTarget = immutableDragDrop.locator(".native-drag-drop-teacher-target").first(); await immutableTarget.click(); assert.equal(await immutableTarget.getAttribute("data-revealed"), "true");
+  await publishedViewer.getByRole("button", { name: "Back", exact: true }).click(); await extraVideoLauncher.waitFor();
+  await extraVideoLauncher.click(); await publishedViewer.getByRole("menuitem", { name: "Captioned extra", exact: true }).click(); await captionedExtraDialog.waitFor(); await publishedViewer.keyboard.press("Escape"); await captionedExtraDialog.waitFor({ state: "detached" });
+  await publishedViewer.getByRole("button", { name: "Next page", exact: true }).click(); assert.equal(await extraVideoLauncher.count(), 0); await publishedViewer.getByRole("button", { name: "Previous page", exact: true }).click(); await extraVideoLauncher.waitFor();
   lifecycle("image-composition-click-start");
   await publishedViewer.getByRole("button", { name: "Native Image Composition" }).click();
   lifecycle("image-composition-click-complete");
@@ -248,7 +312,7 @@ try {
   assert.doesNotMatch(JSON.stringify(releases[1].publicProjection), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.equal(releases[1].publicProjection.nativeActivities[imageActivityId].document.parts[0].interaction.images.length, 2);
   lifecycle("acceptance-complete");
-  process.stdout.write("Phase 5 native Open Response/Image publication, immutable preview, stale block, exact publish, and private Teacher reveal browser acceptance passed.\n");
+  process.stdout.write("Immutable publication acceptance passed for Unit Extras, Drag & Drop geometry, Open Response/Image, stale blocking, exact publish, and private Teacher reveal.\n");
 } catch (error) {
   lifecycle("test-error", {
     name: error?.name || "Error",

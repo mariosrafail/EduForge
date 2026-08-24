@@ -50,6 +50,10 @@ export function publishedNativeAssetUrl(publication, reference) {
   return asset ? hostedReleasePath(publication.releaseId, `assets/${asset.sha256}.${asset.extension}`) : "";
 }
 
+export function publishedUnitExtraVideoUrl(publication, reference) {
+  return publishedNativeAssetUrl(publication, reference);
+}
+
 export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
   const response = await fetch(hostedReleasePath(publication.releaseId, `native-teacher/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal });
   if (!response.ok) throw new Error("Prepared Teacher activity is unavailable.");

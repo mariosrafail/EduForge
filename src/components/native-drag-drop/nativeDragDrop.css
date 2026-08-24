@@ -1,3 +1,9 @@
+.hosted-native-draft-activity[data-native-kind="drag-drop"],
+.published-native-activity[data-native-kind="drag-drop"] {
+  height: 100%;
+  min-height: 0;
+}
+
 .native-drag-drop {
   box-sizing: border-box;
   display: grid;

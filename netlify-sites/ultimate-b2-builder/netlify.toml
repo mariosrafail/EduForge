@@ -46,6 +46,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/unit-extras/*"
+  to = "/.netlify/functions/builder-unit-extra-assets/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/api/publication/*"
   to = "/.netlify/functions/builder-publication/:splat"
   status = 200

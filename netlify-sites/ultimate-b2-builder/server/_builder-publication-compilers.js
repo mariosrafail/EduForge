@@ -105,7 +105,7 @@ const v2 = Object.freeze({
     if (!variant) throw new ReleaseCompatibilityVariantError();
     const seeds = ultimateB2PublicationCanonicalSeeds();
     const compatibility = variant.compatibility;
-    const normalizationOptions = { allowedNativeKinds: variant.nativeKinds };
+    const normalizationOptions = { allowedNativeKinds: variant.nativeKinds, includeUnitExtras: variant.unitExtras === true };
     const sourceSnapshot = normalizeUltimateB2ReleaseV2SourceSnapshot(release.source_snapshot, seeds, normalizationOptions);
     const publicProjection = normalizeUltimateB2PublicReleaseV2Projection(release.public_projection, seeds, {
       ...normalizationOptions,

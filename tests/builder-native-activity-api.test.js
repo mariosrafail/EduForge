@@ -283,7 +283,7 @@ test("authenticated native catalog exposes page-aware readiness without Teacher 
   const response = await handler(request({ method: "GET", path }));
   assert.equal(response.statusCode, 200);
   const payload = JSON.parse(response.body);
-  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [publicationV2Fixture.openResponseId, publicationV2Fixture.imageId, publicationV2Fixture.singleChoiceId]);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [publicationV2Fixture.openResponseId, publicationV2Fixture.imageId, publicationV2Fixture.singleChoiceId, publicationV2Fixture.dragDropId]);
   assert.equal(payload.activities.every((activity) => activity.placement.pageId === publicationV2Fixture.pageId && activity.ready), true);
   assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.teacherSentinel));
 

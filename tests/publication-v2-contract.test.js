@@ -52,12 +52,17 @@ function refreshSource(source) {
 
 function historicalV2Release() {
   const sources = createPublicationV2FixtureSources();
+  const laterNativeActivityIds = new Set([publicationV2Fixture.singleChoiceId, publicationV2Fixture.dragDropId]);
   sources.native.index.payload.activities = sources.native.index.payload.activities
-    .filter((entry) => entry.activityId !== publicationV2Fixture.singleChoiceId);
-  delete sources.native.activities[publicationV2Fixture.singleChoiceId];
+    .filter((entry) => !laterNativeActivityIds.has(entry.activityId));
+  for (const activityId of laterNativeActivityIds) delete sources.native.activities[activityId];
+  sources.native.assetRows = sources.native.assetRows
+    .filter((asset) => asset.id !== publicationV2Fixture.dragDropAssetId);
+  delete sources.unitExtras;
   for (const hotspots of Object.values(sources.documents.hotspots.payload.pages)) {
-    const index = hotspots.findIndex((hotspot) => hotspot.activityKey === publicationV2Fixture.singleChoiceId);
-    if (index >= 0) hotspots.splice(index, 1);
+    for (let index = hotspots.length - 1; index >= 0; index -= 1) {
+      if (laterNativeActivityIds.has(hotspots[index].activityKey)) hotspots.splice(index, 1);
+    }
   }
   refreshSource(sources.native.index);
   refreshSource(sources.documents.hotspots);
@@ -65,15 +70,19 @@ function historicalV2Release() {
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
   const historicalVariant = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS
     .find((variant) => variant.name === "initial-image-open-response");
-  const publicProjection = { ...compiled.publicProjection, compatibility: historicalVariant.compatibility };
+  const { unitExtras: _sourceUnitExtras, ...sourceSnapshot } = compiled.sourceSnapshot;
+  const { unitExtras: _publicUnitExtras, ...currentPublicProjection } = compiled.publicProjection;
+  const publicProjection = { ...currentPublicProjection, compatibility: historicalVariant.compatibility };
   return {
     ...compiled,
     compatibility: historicalVariant.compatibility,
+    sourceSnapshot,
+    sourceSnapshotSha256: builderDocumentSha256(sourceSnapshot),
     publicProjection,
     publicProjectionSha256: builderDocumentSha256(publicProjection),
     releaseSha256: builderDocumentSha256({
       compatibility: historicalVariant.compatibility,
-      sourceSnapshot: compiled.sourceSnapshot,
+      sourceSnapshot,
       publicProjection,
       teacherProjection: compiled.teacherProjection,
     }),
@@ -101,16 +110,18 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
       { name: "complete-sentences-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS },
       { name: "listening-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS },
       { name: "drag-drop-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
+      { name: "unit-extras-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
     ],
   );
   for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {
-    const descriptor = ultimateB2PublicationV2CompatibilityDescriptor(variant.nativeKinds);
+    const options = { unitExtras: variant.unitExtras === true };
+    const descriptor = ultimateB2PublicationV2CompatibilityDescriptor(variant.nativeKinds, options);
     assert.deepEqual(descriptor.nativeKinds, variant.nativeKinds);
     assert.ok(builderDocumentSha256(descriptor) === variant.compatibility, `${variant.name} compatibility descriptor drifted`);
-    assert.ok(reconstructUltimateB2PublicationV2Compatibility(variant.nativeKinds) === variant.compatibility, `${variant.name} compatibility reconstruction drifted`);
+    assert.ok(reconstructUltimateB2PublicationV2Compatibility(variant.nativeKinds, options) === variant.compatibility, `${variant.name} compatibility reconstruction drifted`);
     assert.equal(resolveUltimateB2PublicationV2CompatibilityVariant(variant.compatibility), variant);
   }
-  const expanded = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS[4];
+  const expanded = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS[5];
   assert.ok(ultimateB2PublicationV2Compatibility() === expanded.compatibility);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS, ["image", "open-response", "single-choice"]);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS, ["complete-sentences", "image", "open-response", "single-choice"]);
@@ -243,7 +254,7 @@ test("v2 output ordering and content-addressed image reuse are deterministic and
   const second = compileUltimateB2ComponentReleaseV2(secondSources);
   assert.equal(first.releaseSha256, second.releaseSha256);
   assert.equal(first.publicProjection.nativeActivities[publicationV2Fixture.imageId].document.parts[0].interaction.images.length, 2);
-  assert.equal(first.assetManifest.filter((asset) => asset.role === "activity_artwork").length, 1);
+  assert.equal(first.assetManifest.filter((asset) => asset.role === "activity_artwork" && asset.sha256 === publicationV2Fixture.assetChecksum).length, 1);
 
   const extraAsset = structuredClone(first.publicProjection);
   extraAsset.assets.push({ sha256: "b".repeat(64), extension: "png", mediaType: "image/png", role: "activity_artwork" });

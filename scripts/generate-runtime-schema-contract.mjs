@@ -59,6 +59,13 @@ export const requiredRuntimeSchema = Object.freeze({
     "id", "document_id", "revision", "payload", "payload_sha256",
     "changed_by_builder_user_id", "client_mutation_id", "created_at",
   ],
+  builder_unit_extra_asset_upload_sessions: [
+    "id", "book_package_id", "book_component_id", "unit_id", "unit_extra_item_id",
+    "asset_slot", "expected_document_revision", "client_mutation_id", "request_sha256",
+    "file_descriptor", "staging_object_key", "state", "resulting_asset_id",
+    "created_by_builder_user_id", "expires_at", "failure_code", "created_at",
+    "finalized_at", "updated_at",
+  ],
   classes: [
     "id", "teacher_id", "school_id", "book_package_id", "name", "slug", "level",
     "assigned_book", "invite_code", "status", "created_at", "updated_at",

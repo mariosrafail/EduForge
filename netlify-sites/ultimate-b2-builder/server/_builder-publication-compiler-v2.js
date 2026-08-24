@@ -8,6 +8,7 @@ import { nativeDragDropAssetRequirements } from "../../../src/data/native-activi
 import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
+import { createEmptyUltimateB2UnitExtras, projectUltimateB2UnitExtrasForPublication, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
 import {
   normalizeUltimateB2PublicReleaseV2Projection,
   normalizeUltimateB2ReleaseV2SourceSnapshot,
@@ -28,7 +29,7 @@ import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds,
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS);
 
-function publicationV2CompatibilityDescriptor(nativeKinds) {
+function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false } = {}) {
   return Object.freeze({
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
@@ -38,6 +39,7 @@ function publicationV2CompatibilityDescriptor(nativeKinds) {
     nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION,
     nativeKinds: Object.freeze([...nativeKinds].sort()),
     releaseAssetDescriptorSchemaVersion: "1.0",
+    ...(unitExtras ? { unitExtrasSchemaVersion: ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } : {}),
   });
 }
 
@@ -47,6 +49,7 @@ const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
   completeSentencesExpanded: "bc5b6c72383a155d51b4dabadbc717a442df2878d57245882cba91f27bf74985",
   listeningExpanded: "705a2e4a5dbe5db38d17720e80d811496b8816a8778df89ddf616ad9617a857c",
   dragDropExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS)),
+  unitExtrasExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true })),
 });
 
 export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
@@ -74,6 +77,13 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     name: "drag-drop-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.dragDropExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+    unitExtras: false,
+  }),
+  Object.freeze({
+    name: "unit-extras-expanded",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.unitExtrasExpanded,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+    unitExtras: true,
   }),
 ]);
 
@@ -91,12 +101,12 @@ export class NativePublicationError extends Error {
   }
 }
 
-export function ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds) {
-  return publicationV2CompatibilityDescriptor(nativeKinds);
+export function ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds, options) {
+  return publicationV2CompatibilityDescriptor(nativeKinds, options);
 }
 
-export function reconstructUltimateB2PublicationV2Compatibility(nativeKinds) {
-  return builderDocumentSha256(ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds));
+export function reconstructUltimateB2PublicationV2Compatibility(nativeKinds, options) {
+  return builderDocumentSha256(ultimateB2PublicationV2CompatibilityDescriptor(nativeKinds, options));
 }
 
 export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility) {
@@ -104,7 +114,7 @@ export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility
 }
 
 export function ultimateB2PublicationV2Compatibility() {
-  return V2_COMPATIBILITY_IDENTITIES.dragDropExpanded;
+  return V2_COMPATIBILITY_IDENTITIES.unitExtrasExpanded;
 }
 
 export function isUltimateB2PublicationV2NativeKind(kind) {
@@ -181,6 +191,25 @@ function validateAssetRows(nativeEntries, assetRows) {
   return [...sources.values()].sort((left, right) => `${left.descriptor.sha256}.${left.descriptor.extension}`.localeCompare(`${right.descriptor.sha256}.${right.descriptor.extension}`));
 }
 
+function validateUnitExtraAssetRows(document, assetRows) {
+  const byId = new Map(assetRows.map((row) => [String(row.id), row]));
+  const sources = new Map();
+  for (const unit of document.units) for (const video of unit.categories.videos) {
+    if (!video.asset) throw new NativePublicationError("unit_extra_video_not_ready", video.id, ["A managed MP4 is required."]);
+    const row = byId.get(video.asset.assetId);
+    if (!row || row.checksum_sha256 !== video.asset.checksumSha256 || row.asset_role !== "unit_extra_video"
+      || row.mime_type !== "video/mp4" || row.publication_status !== "draft" || row.access_level !== "internal" || row.storage_profile !== "private"
+      || row.activity_id !== null || row.page_id !== null || row.source_metadata?.unit_slug !== unit.unitId
+      || row.source_metadata?.unit_extra_item_id !== video.id || row.source_metadata?.asset_slot !== video.assetSlot
+      || Number(row.byte_size) !== video.byteSize || Math.round(Number(row.duration_seconds) * 1_000) !== video.durationMs || !row.object_key) {
+      throw new NativePublicationError("unit_extra_asset_invalid", video.id, ["Managed MP4 is missing, invalid, or owned by another Unit."]);
+    }
+    const identity = `${row.checksum_sha256}.mp4`;
+    if (!sources.has(identity)) sources.set(identity, { descriptor: { sha256: row.checksum_sha256, extension: "mp4", mediaType: "video/mp4", role: "unit_extra_video" }, row });
+  }
+  return [...sources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256));
+}
+
 function collectNativeEntries(sources, hotspots) {
   const selected = [];
   for (const activityId of referencedNativeIds(hotspots, sources.native.activities)) {
@@ -220,6 +249,10 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
   }
   const selectedNative = collectNativeEntries(sources, hotspots);
   const nativeAssetSources = validateAssetRows(selectedNative, sources.native?.assetRows || []);
+  const unitExtrasSource = sources.unitExtras?.document || null;
+  const unitExtrasDocument = unitExtrasSource?.payload || createEmptyUltimateB2UnitExtras();
+  const unitExtraAssetSources = validateUnitExtraAssetRows(unitExtrasDocument, sources.unitExtras?.assetRows || []);
+  const unitExtras = projectUltimateB2UnitExtrasForPublication(unitExtrasDocument);
 
   const legacy = compileUltimateB2ComponentRelease({
     documents: { ...sources.documents, hotspots: null },
@@ -238,7 +271,8 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
       public: { revision: entry.source.public.revision, sha256: entry.source.public.sha256 },
       teacher: { revision: entry.source.teacher.revision, sha256: entry.source.teacher.sha256 },
     }])),
-  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS });
+    unitExtras: unitExtrasSource ? { revision: unitExtrasSource.revision, sha256: unitExtrasSource.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyUltimateB2UnitExtras()) },
+  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras: true });
   const publicProjection = normalizeUltimateB2PublicReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -247,10 +281,12 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     hotspots,
     activities: legacy.publicProjection.activities,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }])),
-    assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor)],
+    unitExtras,
+    assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)],
   }, seeds, {
     allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     expectedCompatibility: compatibility,
+    includeUnitExtras: true,
   });
   const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
@@ -260,7 +296,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     ui: legacy.teacherProjection.ui,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.teacherDocument.kind, document: entry.teacherDocument }])),
   }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS });
-  const assetManifest = [...legacy.assetManifest, ...nativeAssetSources.map((asset) => asset.descriptor)]
+  const assetManifest = [...legacy.assetManifest, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)]
     .sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
   const hashes = {
     sourceSnapshotSha256: builderDocumentSha256(sourceSnapshot),
@@ -275,7 +311,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     publicProjection,
     teacherProjection,
     assetManifest,
-    nativeAssetSources,
+    nativeAssetSources: [...nativeAssetSources, ...unitExtraAssetSources],
     ...hashes,
     releaseSha256: builderDocumentSha256({ compatibility, sourceSnapshot, publicProjection, teacherProjection }),
     stableJson: stableBuilderJson({ compatibility, sourceSnapshot, publicProjection, teacherProjection }),

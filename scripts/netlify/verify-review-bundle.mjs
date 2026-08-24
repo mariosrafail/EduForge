@@ -58,8 +58,9 @@ async function verifyBuilderMutationSources() {
   const importClientPath = path.resolve("src/apps/book-builder/hosted/builderOpenResponseImportApi.js");
   const uiAssetClientPath = path.resolve("src/apps/book-builder/hosted/builderTeacherUiAssetApi.js");
   const nativeClientPath = path.resolve("src/apps/book-builder/hosted/builderNativeActivityApi.js");
+  const unitExtrasClientPath = path.resolve("src/apps/book-builder/hosted/builderUnitExtrasApi.js");
   const previewAuthorizationClientPath = path.resolve("src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js");
-  const [contentClient, importClient, uiAssetClient, nativeClient, previewAuthorizationClient] = await Promise.all([readFile(contentClientPath, "utf8"), readFile(importClientPath, "utf8"), readFile(uiAssetClientPath, "utf8"), readFile(nativeClientPath, "utf8"), readFile(previewAuthorizationClientPath, "utf8")]);
+  const [contentClient, importClient, uiAssetClient, nativeClient, unitExtrasClient, previewAuthorizationClient] = await Promise.all([readFile(contentClientPath, "utf8"), readFile(importClientPath, "utf8"), readFile(uiAssetClientPath, "utf8"), readFile(nativeClientPath, "utf8"), readFile(unitExtrasClientPath, "utf8"), readFile(previewAuthorizationClientPath, "utf8")]);
   assert.match(contentClient, /const builderContentApiRoot = ["']\/builder\/api\/content["']/);
   assert.match(contentClient, /method: ["']PUT["']/);
   assert.match(contentClient, /credentials: ["']same-origin["']/);
@@ -78,6 +79,10 @@ async function verifyBuilderMutationSources() {
   assert.match(nativeClient, /method: ["']POST["']/);
   assert.match(nativeClient, /credentials: ["']same-origin["']/);
   assert.doesNotMatch(nativeClient, /@aws-sdk|accessKey|secretAccessKey|\.netlify\/functions|FormData|localStorage|sessionStorage/i);
+  assert.match(unitExtrasClient, /const root = ["']\/builder\/api\/unit-extras["']/);
+  assert.match(unitExtrasClient, /XMLHttpRequest/);
+  assert.match(unitExtrasClient, /credentials: ["']same-origin["']/);
+  assert.doesNotMatch(unitExtrasClient, /@aws-sdk|accessKey|secretAccessKey|\.netlify\/functions|FormData|base64|localStorage|sessionStorage/i);
   assert.match(previewAuthorizationClient, /const endpoint = ["']\/builder\/api\/preview-authorization["']/);
   assert.match(previewAuthorizationClient, /method: ["']POST["']/);
   assert.match(previewAuthorizationClient, /credentials: ["']same-origin["']/);
@@ -92,6 +97,7 @@ async function verifyBuilderMutationSources() {
     "src/apps/book-builder/hosted/HostedViewerPreview.jsx",
     "src/apps/book-builder/hosted/hostedViewerPreviewUrl.js",
     "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
+    "src/apps/ultimate-b2-builder/UnitExtrasEditor.jsx",
     "src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx",
     "src/apps/ultimate-b2-builder/builderReviewModel.js",
     "src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx",
@@ -219,17 +225,17 @@ async function sourceFilesUnder(root, relative = "") {
 async function verifyBuilderFunctionLayout() {
   const functionsRoot = path.resolve("netlify-sites/ultimate-b2-builder/functions");
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
-  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]);
+  assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
     "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
-    "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_native-activity-adapters.js", "_native-activity-registry.js",
+    "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
-  for (const entry of ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js"]) {
+  for (const entry of ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|NativePreview|OpenResponseImport|PreviewAuthorization|Preview|Publication|TeacherUiAssets)Handler\(\)/);
+    assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|NativePreview|OpenResponseImport|PreviewAuthorization|Preview|Publication|TeacherUiAssets|UnitExtraAssets)Handler\(\)/);
   }
 }
 
@@ -274,7 +280,7 @@ export async function verifyReviewBundle(targetName) {
   }
   if (targetName === "ultimate-b2-builder") {
     for (const route of builderApiRoutes) {
-      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content") && !route.startsWith("/builder/api/native-activities") && !route.startsWith("/builder/api/open-response-import") && !route.startsWith("/builder/api/preview-authorization") && !route.startsWith("/builder/api/ui-assets") && !route.startsWith("/builder/api/publication")) {
+      if (!route.startsWith("/builder/api/auth") && !route.startsWith("/builder/api/content") && !route.startsWith("/builder/api/native-activities") && !route.startsWith("/builder/api/open-response-import") && !route.startsWith("/builder/api/preview-authorization") && !route.startsWith("/builder/api/ui-assets") && !route.startsWith("/builder/api/unit-extras") && !route.startsWith("/builder/api/publication")) {
         findings.push({ file: "<bundle>", label: "unapproved Builder API route", count: 1 });
       }
     }
@@ -284,6 +290,7 @@ export async function verifyReviewBundle(targetName) {
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/preview-authorization")), "Builder preview authorization route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/open-response-import")), "Builder source-import route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/ui-assets")), "Builder Teacher UI asset route is missing from bundle.");
+    assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/unit-extras")), "Builder Unit Extras route is missing from bundle.");
     assert.ok([...builderApiRoutes].some((route) => route.startsWith("/builder/api/publication")), "Builder publication route is missing from bundle.");
   }
   assert.deepEqual(findings, [], `${targetName} contains forbidden hosted-review content:\n${JSON.stringify(findings, null, 2)}`);

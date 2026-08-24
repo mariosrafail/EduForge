@@ -15,6 +15,7 @@ import {
   normalizeUltimateB2ReleaseSourceSnapshot,
   normalizeUltimateB2TeacherReleaseProjection,
 } from "./componentPublication.js";
+import { normalizePublishedUltimateB2UnitExtras } from "./unitExtras.js";
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION = "2.0";
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID = "ultimate-b2-students-book-v2";
@@ -81,14 +82,14 @@ function normalizeAsset(value, label) {
   exactObject(value, ["sha256", "extension", "mediaType", "role"], label);
   const extension = String(value.extension || "").toLowerCase();
   if (!SHA256.test(String(value.sha256 || "")) || !mediaTypeByExtension[extension] || value.mediaType !== mediaTypeByExtension[extension]) throw new Error(`${label} identity is invalid.`);
-  if (!["open_response_artwork", "activity_artwork"].includes(value.role)) throw new Error(`${label} role is invalid.`);
+  if (!["open_response_artwork", "activity_artwork", "unit_extra_video"].includes(value.role)) throw new Error(`${label} role is invalid.`);
   return { sha256: value.sha256, extension, mediaType: value.mediaType, role: value.role };
 }
 
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS } = {}) {
-  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities"], "Release v2 source snapshot");
+export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras") } = {}) {
+  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : [])], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
     schemaVersion: "1.0",
@@ -116,6 +117,7 @@ export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeeds
     teacherUi: legacy.teacherUi,
     nativeIndex: sourceIdentity(value.nativeIndex, "Release v2 native index"),
     nativeActivities,
+    ...(includeUnitExtras ? { unitExtras: sourceIdentity(value.unitExtras, "Release v2 Unit Extras") } : {}),
   };
 }
 
@@ -148,8 +150,9 @@ function hotspotCatalog(nativeActivities) {
 export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSeedsById, {
   allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
   expectedCompatibility = null,
+  includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"),
 } = {}) {
-  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets"], "Public release v2");
+  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets", ...(includeUnitExtras ? ["unitExtras"] : [])], "Public release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book" || !SHA256.test(String(value.compatibility || "")) || (expectedCompatibility !== null && value.compatibility !== expectedCompatibility)) throw new Error("Public release v2 identity is invalid.");
   const nativeActivities = normalizeNativePublicMap(value.nativeActivities, allowedNativeKinds);
   const hotspots = validateAndNormalizeUltimateB2HotspotManifest(value.hotspots, hotspotCatalog(nativeActivities));
@@ -167,9 +170,14 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   }, canonicalSeedsById);
   const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.activity_artwork`));
   const actualNative = rawAssets.filter((asset) => asset.role === "activity_artwork").map((asset) => `${asset.sha256}.${asset.role}`);
+  const unitExtras = includeUnitExtras ? normalizePublishedUltimateB2UnitExtras(value.unitExtras) : null;
+  const expectedUnitExtras = unitExtras ? unitExtras.units.flatMap((unit) => unit.categories.videos.map((entry) => `${entry.video.asset.checksumSha256}.unit_extra_video`)) : [];
+  const actualUnitExtras = rawAssets.filter((asset) => asset.role === "unit_extra_video").map((asset) => `${asset.sha256}.${asset.role}`);
   if (new Set(rawAssets.map(assetIdentity)).size !== rawAssets.length
     || new Set(actualNative).size !== actualNative.length
-    || [...new Set(expectedNative)].sort().join("\0") !== [...actualNative].sort().join("\0")) throw new Error("Public release v2 native asset manifest is inconsistent.");
+    || [...new Set(expectedNative)].sort().join("\0") !== [...actualNative].sort().join("\0")
+    || new Set(actualUnitExtras).size !== actualUnitExtras.length
+    || [...new Set(expectedUnitExtras)].sort().join("\0") !== [...actualUnitExtras].sort().join("\0")) throw new Error("Public release v2 managed asset manifest is inconsistent.");
   const normalized = {
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: value.bookSlug,
@@ -178,6 +186,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
     hotspots,
     activities: legacy.activities,
     nativeActivities,
+    ...(unitExtras ? { unitExtras } : {}),
     assets: rawAssets,
   };
   assertStudentSafeReleaseProjection(normalized);

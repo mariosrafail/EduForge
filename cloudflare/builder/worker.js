@@ -7,6 +7,7 @@ import { handler as builderPreview } from "../../netlify-sites/ultimate-b2-build
 import { handler as builderPreviewAuthorization } from "../../netlify-sites/ultimate-b2-builder/functions/builder-preview-authorization.js";
 import { handler as builderPublication } from "../../netlify-sites/ultimate-b2-builder/functions/builder-publication.js";
 import { handler as builderTeacherUiAssets } from "../../netlify-sites/ultimate-b2-builder/functions/builder-teacher-ui-assets.js";
+import { handler as builderUnitExtraAssets } from "../../netlify-sites/ultimate-b2-builder/functions/builder-unit-extra-assets.js";
 import { invokeNetlifyHandler } from "../shared/netlify-handler-adapter.js";
 import { servePlayerMedia } from "./player-media.js";
 
@@ -20,6 +21,7 @@ const productionHandlers = Object.freeze({
   previewAuthorization: builderPreviewAuthorization,
   publication: builderPublication,
   teacherUiAssets: builderTeacherUiAssets,
+  unitExtraAssets: builderUnitExtraAssets,
 });
 
 const routeDefinitions = Object.freeze([
@@ -30,6 +32,7 @@ const routeDefinitions = Object.freeze([
   { prefix: "/builder/api/preview-authorization", exact: true, handler: "previewAuthorization" },
   { prefix: "/builder/api/publication", handler: "publication" },
   { prefix: "/builder/api/ui-assets", handler: "teacherUiAssets" },
+  { prefix: "/builder/api/unit-extras", handler: "unitExtraAssets" },
   { prefix: "/builder/preview/native-activities", handler: "nativePreview" },
   { prefix: "/builder/preview/releases", handler: "publication" },
   { prefix: "/builder/preview/content", handler: "preview" },

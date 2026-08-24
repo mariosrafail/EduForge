@@ -40,6 +40,10 @@ export function publishedNativeAssetUrl(publication, reference) {
   return asset ? publishedReleaseAssetPath(asset, publication.releaseId) : "";
 }
 
+export function publishedUnitExtraVideoUrl(publication, reference) {
+  return publishedNativeAssetUrl(publication, reference);
+}
+
 export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
   if (publication.kind !== "published") throw new Error("Published release is unavailable.");
   const payload = await getPublishedNativeTeacherDocument({ releaseId: publication.releaseId, activityId, signal });

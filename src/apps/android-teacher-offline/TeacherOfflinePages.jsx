@@ -2,6 +2,8 @@ import {
   MonitorPlay,
   Move,
   PlayCircle,
+  Video,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -17,6 +19,9 @@ import { renderedDeltaToTeacherStage } from "./teacherStageGeometry.js";
 import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { normalizeTeacherActivityPresentationState } from "./teacherActivityPresentation.js";
 import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseRuntimeData.js";
+import { unitExtrasForPage } from "../../data/ultimate-b2/unitExtras.js";
+import { NativeVideoPlayer } from "../../components/native-video/NativeVideoPlayer.jsx";
+import { publishedUnitExtraVideoUrl, usePublishedComponentRelease } from "virtual:component-publication";
 
 const minimumZoom = 1;
 const maximumZoom = 4;
@@ -64,6 +69,7 @@ export default function TeacherOfflinePages({
   onBookSwitch,
   hotspotProvider,
 }) {
+  const publication = usePublishedComponentRelease();
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const legacyClassroomAssets = runtimeUiAssets.classroom;
   const pages = unit?.pages || [];
@@ -99,12 +105,18 @@ export default function TeacherOfflinePages({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [extraMenuOpen, setExtraMenuOpen] = useState(false);
+  const [activeExtraVideo, setActiveExtraVideo] = useState(null);
+  const extraMenuRef = useRef(null);
+  const extraLauncherRef = useRef(null);
+  const extraCloseRef = useRef(null);
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
   const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false, videoAvailable: false, audioFocusActive: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
   const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
+  const pageExtraVideos = useMemo(() => unitExtrasForPage(publication, { unitNumber: unit?.number, pageId: page?.id }), [page?.id, publication, unit?.number]);
   const onActivityPresentationStateChange = useCallback((state) => {
     const next = normalizeTeacherActivityPresentationState(state);
     setActivityPresentationState((current) => (
@@ -127,6 +139,8 @@ export default function TeacherOfflinePages({
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setActionsOpen(false);
+    setExtraMenuOpen(false);
+    setActiveExtraVideo(null);
     setActivityVideoOpen(false);
     setListeningView("questions");
     setListeningShowTextCommand(0);
@@ -142,6 +156,19 @@ export default function TeacherOfflinePages({
     setActivityPresentationCommand(null);
     setActivitySessionEpoch(0);
   }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
+
+  useEffect(() => {
+    if (!extraMenuOpen && !activeExtraVideo) return undefined;
+    const closeMenu = (event) => { if (extraMenuOpen && !extraMenuRef.current?.contains(event.target) && event.target !== extraLauncherRef.current) setExtraMenuOpen(false); };
+    const escape = (event) => {
+      if (event.key !== "Escape") return;
+      setExtraMenuOpen(false); setActiveExtraVideo(null); extraLauncherRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeMenu); document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", closeMenu); document.removeEventListener("keydown", escape); };
+  }, [activeExtraVideo, extraMenuOpen]);
+
+  useEffect(() => { if (activeExtraVideo) extraCloseRef.current?.focus(); }, [activeExtraVideo]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -485,6 +512,11 @@ export default function TeacherOfflinePages({
             aria-label="Page activities"
           ><MonitorPlay size={26} /></button>
         )}
+        {!activityActive && pageExtraVideos.length ? <div className="teacher-unit-extra-videos">
+          {extraMenuOpen ? <div ref={extraMenuRef} className="teacher-unit-extra-menu" role="menu" aria-label="Extra Videos"><strong>Extra Videos</strong>{pageExtraVideos.map((entry) => <button key={entry.id} type="button" role="menuitem" onClick={() => { document.querySelectorAll("audio,video").forEach((media) => media.pause()); setExtraMenuOpen(false); setActiveExtraVideo(entry); }}>{entry.title}</button>)}</div> : null}
+          <button ref={extraLauncherRef} type="button" className="teacher-unit-extra-launcher" aria-haspopup="menu" aria-expanded={extraMenuOpen} onClick={() => { setActionsOpen(false); setExtraMenuOpen((current) => !current); }}><Video aria-hidden="true" /> Extra Videos</button>
+        </div> : null}
+        {activeExtraVideo ? <div className="teacher-unit-extra-overlay" role="dialog" aria-modal="true" aria-labelledby="teacher-unit-extra-title" onPointerDown={(event) => { if (event.target === event.currentTarget) { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); } }}><section><header><div><span>Extra Videos</span><h2 id="teacher-unit-extra-title">{activeExtraVideo.title}</h2></div><button ref={extraCloseRef} type="button" aria-label="Close Extra Video" onClick={() => { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); }}><X /></button></header><div><NativeVideoPlayer video={activeExtraVideo.video} src={publishedUnitExtraVideoUrl(publication, activeExtraVideo.video.asset)} autoPlayAttemptKey={activeExtraVideo.id} ariaLabel={`${activeExtraVideo.title} Extra Video player`} /></div></section></div> : null}
       </div>
 
       <TeacherBookNavigation

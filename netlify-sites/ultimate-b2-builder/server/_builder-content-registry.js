@@ -21,6 +21,7 @@ import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle, normalizeUltimateB2ActivityLifecycle, ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/activityLifecycle.js";
+import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
 
 async function loadUltimateB2HotspotActivityUniverse(loadRelated) {
   const storedLifecycle = await loadRelated("activity-lifecycle", "");
@@ -92,6 +93,20 @@ const registry = Object.freeze({
     baseline: createEmptyHostedTeacherUiDocument,
     validate: normalizeHostedTeacherUiDocument,
     projectPreview: projectHostedTeacherUiPreview,
+  }),
+  "ultimate-b2/ultimate-b2-students-book/unit-extras": Object.freeze({
+    bookSlug: "ultimate-b2",
+    componentSlug: "ultimate-b2-students-book",
+    resource: "unit-extras",
+    documentType: "unit_extras",
+    documentKey: "default",
+    schemaVersion: ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION,
+    audience: "public",
+    readable: true,
+    writeAllowed: true,
+    previewReadable: false,
+    baseline: createEmptyUltimateB2UnitExtras,
+    validate: normalizeUltimateB2UnitExtrasDocument,
   }),
 });
 

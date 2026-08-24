@@ -91,7 +91,7 @@ test("v2 LMS delivery is Student-safe, release-bound, private, and Teacher role 
   const choiceTeacher = await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: publicationV2Fixture.singleChoiceId });
   assert.equal(choiceTeacher.statusCode, 200);
   assert.equal(body(choiceTeacher).document.parts[0].solution.correctAnswers.length, 2);
-  assert.equal((await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: "ultimate-b2-sb-u1-p1-o96" })).statusCode, 404);
+  assert.equal((await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: "ultimate-b2-sb-u1-p1-o95" })).statusCode, 404);
 });
 
 test("published v2 R1 assets and Teacher documents remain pinned after R2 exists", async () => {

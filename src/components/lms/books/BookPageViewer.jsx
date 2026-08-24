@@ -11,6 +11,7 @@ import { listBookPageHotspots, saveBookPageHotspots } from "../../../services/bo
 import { FEATURE_FLAGS } from "../../../config/featureFlags.js";
 import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
 import { requestBookAssetAccess } from "virtual:book-assets-service";
+import { BookUnitExtraVideos } from "./BookUnitExtraVideos.jsx";
 
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
@@ -804,6 +805,7 @@ export function BookPagesView({
             />
           )}
           {enableBookActivityBuilder && activeBookActivityId && <BookActivityRunner activityId={activeBookActivityId} onClose={() => setActiveBookActivityId(null)} />}
+          <BookUnitExtraVideos unitNumber={selectedSection.unitNumber} pageId={selectedSection.pageId} hidden={Boolean(activeBookActivityId)} />
         </motion.div>
       </AnimatePresence>
     );
