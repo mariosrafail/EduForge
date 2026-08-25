@@ -3,7 +3,8 @@ import { Eye, ImagePlus, Layers3, Plus, Trash2 } from "lucide-react";
 
 import { StudioButton, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeDragDropAuthoringCanvas } from "../../../components/native-drag-drop/NativeDragDropAuthoringCanvas.jsx";
-import { NativeDragDropStudentSurface, NativeDragDropTeacherSurface } from "../../../components/native-drag-drop/NativeDragDropSurface.jsx";
+import { NativeDragDropStudentSurface } from "../../../components/native-drag-drop/NativeDragDropSurface.jsx";
+import { NativeDragDropTeacherSurface } from "../../../components/native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import {

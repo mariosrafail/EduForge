@@ -2,7 +2,7 @@ import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBoo
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { createNativeOpenResponseQuestion } from "../../src/data/native-activities/nativeOpenResponse.js";
+import { createNativeOpenResponseQuestion, promoteNativeOpenResponsePanels } from "../../src/data/native-activities/nativeOpenResponse.js";
 import { nativeChildIdFromUuid } from "../../src/data/native-activities/nativeChildIdentity.js";
 
 export const publicationV2Fixture = Object.freeze({
@@ -23,6 +23,7 @@ export const publicationV2Fixture = Object.freeze({
 });
 
 const questionId = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000001");
+const secondOpenPanelId = nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000049");
 const firstImageId = nativeChildIdFromUuid("img", "10000000-0000-4000-8000-000000000002");
 const secondImageId = nativeChildIdFromUuid("img", "10000000-0000-4000-8000-000000000003");
 const singleQuestionIds = [nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000011"), nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000012")];
@@ -57,6 +58,10 @@ export function createPublicationV2FixtureSources({ prompt = "Why is an immutabl
   const openPublic = openKind.createBlankPublic({ activityId: publicationV2Fixture.openResponseId, title: "Native Open Response", placement: { pageId: publicationV2Fixture.pageId } });
   openPublic.metadata.visibleInstructionText = "Write a complete multiline answer.";
   openPublic.parts[0].interaction.questions = [{ ...createNativeOpenResponseQuestion(questionId), prompt }];
+  openPublic.parts[0].interaction = promoteNativeOpenResponsePanels(openPublic.parts[0].interaction);
+  const firstOpenPanel = openPublic.parts[0].interaction.presentation.panels[0];
+  delete firstOpenPanel.questionIds; firstOpenPanel.promptQuestionIds = [questionId]; firstOpenPanel.responseQuestionIds = [questionId];
+  openPublic.parts[0].interaction.presentation.panels.push({ id: secondOpenPanelId, surface: { width: 1024, height: 582 }, images: [], promptQuestionIds: [], responseQuestionIds: [questionId] });
   const openTeacher = openKind.createBlankTeacher({ activityId: publicationV2Fixture.openResponseId });
   openTeacher.parts[0].solution.modelAnswers = [{ questionId, text: teacherAnswer }];
 

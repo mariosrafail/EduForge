@@ -6,7 +6,8 @@ import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
-import { NativeDragDropStudentSurface, NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
+import { NativeDragDropStudentSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
+import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";
 
 export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false, showMetadataHeader = true, presentation = null }) {

@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { ACTIVITY_MODES } from "../../components/lms/activities/activityModes.js";
 import { activeBuildProfile } from "../../config/buildProfiles.js";
 import { NormalizedStudentsBookActivity } from "../../components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx";
-import { PublishedNativeActivityRunner } from "../../components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx";
+import { PublishedNativeTeacherActivityRunner as PublishedNativeActivityRunner } from "../../components/lms/activities/ultimate-b2/PublishedNativeTeacherActivityRunner.jsx";
 import { HostedNativeDraftActivityRunner } from "../../components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx";
 import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsBookCatalog.js";
 import { resolveEmbeddedActivityFit } from "./embeddedActivityFit.js";

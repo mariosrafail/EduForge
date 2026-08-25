@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { listStudentAssignments, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
 import { buildStudentSectionHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
-import { PublishedNativeActivityRunner } from "../../activities/ultimate-b2/PublishedNativeActivityRunner.jsx";
+import { PublishedNativeStudentActivityRunner as PublishedNativeActivityRunner } from "../../activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx";
 import { BookPackageBrowser } from "../../books/BookPackageBrowser.jsx";
 import { Card, Tag } from "../../Shared.jsx";
 import { resolveStudentAssignmentBookContext } from "./studentAssignmentBookContext.js";

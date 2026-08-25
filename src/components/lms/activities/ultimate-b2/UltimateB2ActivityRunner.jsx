@@ -9,7 +9,7 @@ import { DatabaseActivity } from "./DatabaseActivity.jsx";
 import { findStudentsBookImplementation, NormalizedStudentsBookActivity } from "./NormalizedStudentsBookActivity.jsx";
 import { getActivityModeCapabilities } from "../activityModes.js";
 import { hydratePublishedActivityImport, usePublishedComponentRelease } from "virtual:component-publication";
-import { PublishedNativeActivityRunner } from "./PublishedNativeActivityRunner.jsx";
+import { PublishedNativeActivityRunner } from "virtual:published-native-activity-runner";
 
 function ImportedActivityPlaceholder({ activity }) {
   return (

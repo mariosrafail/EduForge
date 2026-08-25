@@ -10,7 +10,7 @@ import { NativeReadableTextPresentation } from "../../../components/native-reada
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { duplicateNativeImage } from "../../../data/native-activities/nativeImage.js";
-import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, promoteNativeOpenResponsePanels, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
+import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../../../data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer } from "../../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
@@ -85,7 +85,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const selectedQuestion = questions.find((question) => question.id === selectedQuestionId) || null;
   const answer = teacherDraft?.parts[0].solution.modelAnswers.find((item) => item.questionId === selectedQuestionId) || null;
   const selectedArtwork = selection?.type === "artwork" ? panel?.images.find((item) => item.id === selection.id) || null : null;
-  const questionPanel = (questionId) => panels.find((entry) => entry.questionIds.includes(questionId)) || null;
+  const questionPanelCount = (questionId) => panels.filter((entry) => nativeOpenResponsePanelPromptIds(entry).includes(questionId) || nativeOpenResponsePanelResponseIds(entry).includes(questionId)).length;
   const readiness = useMemo(() => publicDraft && teacherDraft ? assessNativeOpenResponseReadiness(publicDraft, teacherDraft) : null, [publicDraft, teacherDraft]);
 
   useLayoutEffect(() => {
@@ -141,8 +141,11 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     mutatePublic((next) => {
       const current = next.parts[0].interaction;
       current.questions.push(createNativeOpenResponseQuestion(id, current.questions.length));
-      const targetPanel = current.presentation.panels.find((entry) => entry.id === panel?.id);
-      if (targetPanel) assignNativeOpenResponseQuestion(current, id, targetPanel.id);
+      const targetPanel = current.presentation.panels.find((entry) => entry.id === panel?.id) || current.presentation.panels[0];
+      if (targetPanel) {
+        updateNativeOpenResponsePanelMembership(current, targetPanel.id, id, "prompt", true);
+        updateNativeOpenResponsePanelMembership(current, targetPanel.id, id, "response", true);
+      }
     });
     mutateTeacher((next) => next.parts[0].solution.modelAnswers.push({ questionId: id, text: "" }));
     setSelectedQuestionId(id); setSelection({ type: "prompt", id });
@@ -150,14 +153,26 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const deleteQuestion = (id) => {
     if (!globalThis.confirm("Delete this question and its Teacher model answer?")) return;
     const index = questions.findIndex((question) => question.id === id);
-    mutatePublic((next) => { const current = next.parts[0].interaction; current.questions = current.questions.filter((question) => question.id !== id); current.presentation.panels.forEach((entry) => { entry.questionIds = entry.questionIds.filter((questionId) => questionId !== id); }); });
+    mutatePublic((next) => { const current = next.parts[0].interaction; current.questions = current.questions.filter((question) => question.id !== id); current.presentation.panels.forEach((entry) => { if (Object.hasOwn(entry, "questionIds")) entry.questionIds = entry.questionIds.filter((questionId) => questionId !== id); else { entry.promptQuestionIds = entry.promptQuestionIds.filter((questionId) => questionId !== id); entry.responseQuestionIds = entry.responseQuestionIds.filter((questionId) => questionId !== id); } }); });
     mutateTeacher((next) => { next.parts[0].solution.modelAnswers = next.parts[0].solution.modelAnswers.filter((item) => item.questionId !== id); });
     const nextId = questions[index + 1]?.id || questions[index - 1]?.id || null; setSelectedQuestionId(nextId); setSelection(null);
   };
   const moveQuestion = (id, offset) => {
     const index = questions.findIndex((question) => question.id === id); const target = index + offset;
     if (target < 0 || target >= questions.length) return;
-    mutatePublic((next) => { const list = next.parts[0].interaction.questions; [list[index], list[target]] = [list[target], list[index]]; });
+    mutatePublic((next) => {
+      const interactionValue = next.parts[0].interaction;
+      const list = interactionValue.questions;
+      [list[index], list[target]] = [list[target], list[index]];
+      const canonicalIds = list.map((question) => question.id);
+      interactionValue.presentation.panels.forEach((entry) => {
+        if (Object.hasOwn(entry, "questionIds")) return;
+        for (const key of ["promptQuestionIds", "responseQuestionIds"]) {
+          const membership = new Set(entry[key]);
+          entry[key] = canonicalIds.filter((questionId) => membership.has(questionId));
+        }
+      });
+    });
     mutateTeacher((next) => { const byId = new Map(next.parts[0].solution.modelAnswers.map((item) => [item.questionId, item])); next.parts[0].solution.modelAnswers = publicDraft.parts[0].interaction.questions.map((question) => question.id).map((questionId, current) => current === index ? byId.get(questions[target].id) : current === target ? byId.get(questions[index].id) : byId.get(questionId)); });
   };
   const updateQuestion = (id, mutator) => mutatePublic((next) => mutator(next.parts[0].interaction.questions.find((question) => question.id === id)));
@@ -249,10 +264,13 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     const index = panels.indexOf(panel); const nextId = panels[index + 1]?.id || panels[index - 1]?.id || null;
     mutatePublic((next) => removeNativeOpenResponsePanel(next, panel.id)); setPanelId(nextId); setSelection(null);
   };
-  const assignQuestion = (questionId, destinationId) => mutatePublic((next) => {
-    const result = assignNativeOpenResponseQuestion(next.parts[0].interaction, questionId, destinationId);
-    if (result.repositioned) setState((current) => ({ ...current, message: "Question geometry was clamped to fit its destination panel; review its layout." }));
-  });
+  const changePanelMembership = (questionId, membership, included) => {
+    mutatePublic((next) => {
+      const result = updateNativeOpenResponsePanelMembership(next.parts[0].interaction, panel.id, questionId, membership, included);
+      if (result.repositioned) setState((current) => ({ ...current, message: `${membership === "prompt" ? "Prompt" : "Answer box"} geometry was clamped to fit this panel; review its layout.` }));
+    });
+    if (!included && selection?.id === questionId && selection.type === membership) setSelection(null);
+  };
 
   const save = async () => {
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
@@ -276,12 +294,13 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   return <section className="native-activity-foundation native-or-editor studio-editor studio-open-response">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Open Response</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : "Content needs attention"}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
     <StudioTabWorkspace id="native-open-response-tabs" value={tab} onChange={setTab} tabs={tabs} label="Open Response authoring modes">
-    {tab === "layout" ? <section className="native-or-panel-authoring" aria-label="Visual panels"><header><strong>Visual panels</strong><button type="button" onClick={addPanel} disabled={panels.length >= 12}><Plus aria-hidden="true" /> Add Panel</button></header><div>{panels.map((entry, index) => <div key={entry.id}><button type="button" aria-current={panel?.id === entry.id ? "true" : undefined} onClick={() => { setPanelId(entry.id); setSelection(null); }}>Panel {index + 1} · {entry.questionIds.length} question{entry.questionIds.length === 1 ? "" : "s"} · {entry.images.length} image{entry.images.length === 1 ? "" : "s"}</button><button type="button" aria-label={`Move panel ${index + 1} up`} disabled={index === 0} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current - 1], list[current]] = [list[current], list[current - 1]]; }); }}>Move Up</button><button type="button" aria-label={`Move panel ${index + 1} down`} disabled={index === panels.length - 1} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current], list[current + 1]] = [list[current + 1], list[current]]; }); }}>Move Down</button></div>)}</div></section> : null}
+    {tab === "layout" ? <section className="native-or-panel-authoring" aria-label="Visual panels"><header><strong>Visual panels</strong><button type="button" onClick={addPanel} disabled={panels.length >= 12}><Plus aria-hidden="true" /> Add Panel</button></header><div>{panels.map((entry, index) => { const promptCount = nativeOpenResponsePanelPromptIds(entry).length; const responseCount = nativeOpenResponsePanelResponseIds(entry).length; return <div key={entry.id}><button type="button" aria-current={panel?.id === entry.id ? "true" : undefined} onClick={() => { setPanelId(entry.id); setSelection(null); }}>Panel {index + 1} · {promptCount} prompt{promptCount === 1 ? "" : "s"} · {responseCount} box{responseCount === 1 ? "" : "es"} · {entry.images.length} image{entry.images.length === 1 ? "" : "s"}</button><button type="button" aria-label={`Move panel ${index + 1} up`} disabled={index === 0} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current - 1], list[current]] = [list[current], list[current - 1]]; }); }}>Move Up</button><button type="button" aria-label={`Move panel ${index + 1} down`} disabled={index === panels.length - 1} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current], list[current + 1]] = [list[current + 1], list[current]]; }); }}>Move Down</button></div>; })}</div></section> : null}
     {tab === "content" ? <div className="native-or-content">
       <div className="native-activity-foundation-fields"><label><span>Activity title</span><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></label></div>
-      <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><small>{questionPanel(question.id) ? `Panel ${panels.indexOf(questionPanel(question.id)) + 1}` : "Unassigned"}</small><code>{question.id}</code></button>)}</aside>
-      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Visual panel</span><select aria-label="Question visual panel" value={questionPanel(selectedQuestion.id)?.id || ""} onChange={(event) => assignQuestion(selectedQuestion.id, event.target.value)}><option value="" disabled>Unassigned</option>{panels.map((entry, index) => <option key={entry.id} value={entry.id}>Panel {index + 1}</option>)}</select></label><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
+      <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => { const panelCount = questionPanelCount(question.id); return <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><small>{panelCount ? `Shown on ${panelCount} panel${panelCount === 1 ? "" : "s"}` : "Unassigned"}</small><code>{question.id}</code></button>; })}</aside>
+      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
     </div> : null}
+    {tab === "layout" && panel ? <PanelCompositionControls panel={panel} questions={questions} onChange={changePanelMembership} /> : null}
     {tab === "layout" ? panel ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={changeCanvasZoom}>
       <div className="native-or-toolbar-actions"><label className="native-or-upload studio-upload-action"><ImagePlus aria-hidden="true" /><span>{uploading ? "Uploading…" : "Add Background"}</span><input aria-label="Add Background" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0], { background: true }); event.target.value = ""; }} /></label><label className="native-or-upload studio-upload-action"><Layers3 aria-hidden="true" /><span>{uploading ? "Uploading…" : "Add Image"}</span><input aria-label="Add Image" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0]); event.target.value = ""; }} /></label>{selectedArtwork ? <label className="native-or-upload studio-upload-action"><Upload aria-hidden="true" /><span>Replace image</span><input aria-label="Replace image" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0], { replaceId: selectedArtwork.id }); event.target.value = ""; }} /></label> : null}<button className="studio-danger-action" type="button" onClick={deletePanel}><Trash2 aria-hidden="true" /> Delete Panel</button><section className="native-or-layers" aria-label="Artwork Layers"><strong>Artwork Layers</strong><div>{[...panel.images].sort((left, right) => right.order - left.order).map((item) => <button type="button" key={item.id} aria-current={selection?.type === "artwork" && selection.id === item.id ? "true" : undefined} onClick={() => setSelection({ type: "artwork", id: item.id })}><span>{item.altText || (item.decorative ? "Decorative graphic" : item.id)}</span>{item.locked ? <small>Locked</small> : null}</button>)}</div></section></div>
       <OpenResponseQuickControls selection={selection} area={selectedArea} question={selectedQuestion} artwork={selectedArtwork} artworkList={panel.images} surface={panel.surface} updateArea={updateSelectedArea} changeResponse={changeResponsePresentation} updateQuestion={updateQuestion} updateArtwork={(mutator) => mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === panel.id).images; mutator(list.find((item) => item.id === selection?.id), list); })} duplicateArtwork={() => duplicateArtwork(selection.id)} removeArtwork={() => removeArtwork(selection.id)} fit={fit} />
@@ -293,6 +312,26 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
     <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : "Add an activity title before saving"} onSave={save} />
+  </section>;
+}
+
+function PanelCompositionControls({ panel, questions, onChange }) {
+  const groups = [
+    { membership: "prompt", heading: "Questions / prompts on this panel", selectLabel: "Add question prompt", included: nativeOpenResponsePanelPromptIds(panel) },
+    { membership: "response", heading: "Answer boxes on this panel", selectLabel: "Add answer box", included: nativeOpenResponsePanelResponseIds(panel) },
+  ];
+  const questionLabel = (question) => {
+    const index = questions.indexOf(question) + 1;
+    const preview = question.prompt.trim().replace(/\s+/g, " ").slice(0, 72) || "Untitled question";
+    return `Question ${index} — ${preview}`;
+  };
+  const questionNumber = (question) => `Question ${questions.indexOf(question) + 1}`;
+  return <section className="native-or-panel-composition" aria-label="Selected panel composition">
+    {groups.map((group) => {
+      const included = questions.filter((question) => group.included.includes(question.id));
+      const available = questions.filter((question) => !group.included.includes(question.id));
+      return <fieldset key={group.membership}><legend>{group.heading}</legend><label><span>{group.selectLabel}</span><select aria-label={group.selectLabel} value="" disabled={!available.length} onChange={(event) => { if (event.target.value) onChange(event.target.value, group.membership, true); }}><option value="">{available.length ? "Choose an existing question" : "All questions included"}</option>{available.map((question) => <option key={question.id} value={question.id}>{questionLabel(question)}</option>)}</select></label><div className="native-or-panel-memberships">{included.length ? included.map((question) => <span key={question.id}><span>{questionLabel(question)}</span><button type="button" aria-label={`Remove ${questionNumber(question)} from ${group.membership === "prompt" ? "prompts" : "answer boxes"}`} onClick={() => onChange(question.id, group.membership, false)}>Remove</button></span>) : <p>None included.</p>}</div></fieldset>;
+    })}
   </section>;
 }
 

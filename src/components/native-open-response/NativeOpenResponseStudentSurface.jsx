@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
+import { nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
 
-import { logicalAreaStyle, NativeOpenResponseSurface } from "./NativeOpenResponseSurface.jsx";
+import { logicalAreaStyle, NativeOpenResponseSurface, nativeOpenResponseResponseAriaLabel } from "./NativeOpenResponseSurface.jsx";
 
 export function NativeOpenResponseStudentSurface({
   document,
@@ -29,7 +29,8 @@ export function NativeOpenResponseStudentSurface({
   const panel = panels[panelIndex] || panels[0];
   useEffect(() => { if (panel) audioHotspotPresentation?.onPanelChange?.(panel.legacy ? null : panel.id); }, [audioHotspotPresentation, panel]);
   if (!panel) return <p role="status">This Open Response activity has no panels yet.</p>;
-  const visibleQuestions = interaction.questions.filter((question) => panel.questionIds.includes(question.id));
+  const responseIds = nativeOpenResponsePanelResponseIds(panel);
+  const visibleQuestions = interaction.questions.filter((question) => responseIds.includes(question.id));
   return <section className="native-or-panel-session"><NativeOpenResponseSurface document={document} panel={panel} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
     {visibleQuestions.map((question) => {
       const { responseRegion } = question;
@@ -46,7 +47,7 @@ export function NativeOpenResponseStudentSurface({
           color: presentation.color,
           textAlign: presentation.align,
         }}
-        aria-label={responseRegion.ariaLabel}
+        aria-label={nativeOpenResponseResponseAriaLabel(question)}
         value={responses.get(question.id) || ""}
         readOnly={readOnly}
         onChange={(event) => updateResponse(question.id, event.target.value)}

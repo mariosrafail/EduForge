@@ -351,11 +351,12 @@ test("authoring save validates managed background ownership and intrinsic dimens
 });
 
 test("Student and Teacher share a public classroom renderer while only Teacher owns private answer interpretation", async () => {
-  const [editor, canvas, hostedRunner, publishedRunner, studentSurface, presentation, teacherSurface] = await Promise.all([
+  const [editor, canvas, hostedRunner, publishedStudentRunner, publishedTeacherRunner, studentSurface, presentation, teacherSurface] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceHotspotCanvas.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeTeacherActivityRunner.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceStudentSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoicePresentation.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx", import.meta.url), "utf8"),
@@ -380,8 +381,9 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /Edit Click Target/);
   assert.match(editor, /Edit Highlight/);
   assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);
-  assert.match(publishedRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
-  assert.match(publishedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{teacherState\.document\} assetUrl=\{assetUrl\}/);
+  assert.match(publishedStudentRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
+  assert.doesNotMatch(publishedStudentRunner, /NativeSingleChoiceTeacherSurface|teacherState|teacherDocument/);
+  assert.match(publishedTeacherRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{teacherState\.document\} assetUrl=\{assetUrl\}/);
   assert.match(editor, /NativeSingleChoiceTeacherSurface publicDocument=\{publicDraft\} teacherDocument=\{teacherDraft\} assetUrl=\{assetUrl\}/);
   assert.match(studentSurface, /NativeSingleChoicePresentation/);
   assert.match(teacherSurface, /NativeSingleChoicePresentation/);

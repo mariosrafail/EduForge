@@ -5,7 +5,6 @@ import {
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
   removeNativeDragDropResponse,
-  updateNativeDragDropRevealState,
 } from "../../data/native-activities/nativeDragDrop.js";
 import "./nativeDragDrop.css";
 
@@ -50,18 +49,44 @@ function closestDropTarget(clientX, clientY) {
   return globalThis.document?.elementFromPoint?.(clientX, clientY)?.closest?.("[data-drag-drop-target-id]")?.dataset?.dragDropTargetId || null;
 }
 
-export function NativeDragDropStudentSurface({ document, assetUrl = () => "", responses: controlled = null, initialResponses = null, onResponsesChange = null, readOnly = false }) {
+export function NativeDragDropStudentSurface({
+  document,
+  assetUrl = () => "",
+  responses: controlled = null,
+  initialResponses = null,
+  onResponsesChange = null,
+  readOnly = false,
+  evaluatePlacement = null,
+  targetWordOverrides = null,
+  onEmptyTargetActivate = null,
+  panelIndex: controlledPanelIndex = null,
+  onPanelIndexChange = null,
+  presentation = null,
+  resetToken = null,
+  presentationMode = false,
+}) {
   const interaction = document.parts[0].interaction;
   const [local, setLocal] = useState(() => normalizeNativeDragDropResponses(initialResponses, document));
-  const [panelIndex, setPanelIndex] = useState(0);
+  const [localPanelIndex, setLocalPanelIndex] = useState(0);
   const [selectedWordId, setSelectedWordId] = useState(null);
   const [draggingWordId, setDraggingWordId] = useState(null);
+  const [incorrectTargetId, setIncorrectTargetId] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
   const suppressClickWordId = useRef(null);
+  const lastResetToken = useRef(resetToken);
   const responses = useMemo(() => normalizeNativeDragDropResponses(controlled && typeof controlled === "object" ? controlled : local, document), [controlled, document, local]);
+  const panelIndex = controlledPanelIndex ?? localPanelIndex;
   const panel = interaction.panels[panelIndex] || interaction.panels[0];
   const wordById = new Map(interaction.words.map((word) => [word.id, word]));
   const usedWordIds = new Set(Object.values(responses));
+  const clearFeedback = () => { setIncorrectTargetId(null); setStatusMessage(""); };
 
+  const setPanelIndex = (value) => {
+    const next = typeof value === "function" ? value(panelIndex) : value;
+    if (controlledPanelIndex === null) setLocalPanelIndex(next);
+    onPanelIndexChange?.(next);
+    setSelectedWordId(null); setDraggingWordId(null); clearFeedback();
+  };
   const commit = (next) => {
     if (readOnly) return;
     if (controlled === null) setLocal(next);
@@ -69,13 +94,19 @@ export function NativeDragDropStudentSurface({ document, assetUrl = () => "", re
   };
   const place = (targetId, wordId = selectedWordId) => {
     if (!wordId || readOnly) return;
+    if (evaluatePlacement && !evaluatePlacement(targetId, wordId)) {
+      setIncorrectTargetId(targetId);
+      setStatusMessage("Incorrect placement. Try again.");
+      setSelectedWordId(null);
+      return;
+    }
     commit(placeNativeDragDropWord(responses, targetId, wordId));
-    setSelectedWordId(null);
+    setSelectedWordId(null); clearFeedback();
   };
   const beginDrag = (event, wordId) => {
     if (readOnly || event.button !== 0) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setDraggingWordId(wordId);
+    setDraggingWordId(wordId); clearFeedback();
   };
   const finishDrag = (event, wordId) => {
     if (draggingWordId !== wordId) return;
@@ -84,69 +115,35 @@ export function NativeDragDropStudentSurface({ document, assetUrl = () => "", re
     setDraggingWordId(null);
   };
 
+  useEffect(() => {
+    if (lastResetToken.current === resetToken) return;
+    lastResetToken.current = resetToken;
+    if (controlled === null) setLocal({});
+    onResponsesChange?.({});
+    setSelectedWordId(null); setDraggingWordId(null); clearFeedback();
+  }, [controlled, onResponsesChange, resetToken]);
+
   if (!panel) return <p role="status">This Drag &amp; Drop activity has no panels yet.</p>;
-  return <section className="native-drag-drop native-drag-drop-student" aria-label={document.metadata.title} data-read-only={readOnly || undefined}>
+  return <section className={`native-drag-drop ${presentationMode ? "native-drag-drop-teacher" : "native-drag-drop-student"}`} aria-label={document.metadata.title} data-read-only={readOnly || undefined}>
     <div className="native-drag-drop-visual-region">
       <PanelArtwork document={document} panel={panel} assetUrl={assetUrl}>
         {panel.dropTargets.map((target) => {
-          const placed = wordById.get(responses[target.id]);
-          return <button key={target.id} type="button" className="native-drag-drop-target" style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-drag-drop-target-id={target.id} data-occupied={Boolean(placed) || undefined} disabled={readOnly} aria-label={`${target.accessibleLabel}${placed ? `, contains ${placed.text}` : ", empty"}`} onClick={() => selectedWordId ? place(target.id) : placed ? commit(removeNativeDragDropResponse(responses, target.id)) : null} onKeyDown={(event) => {
-            if ((event.key === "Delete" || event.key === "Backspace") && placed && !readOnly) { event.preventDefault(); commit(removeNativeDragDropResponse(responses, target.id)); }
-          }}>{placed?.text || <span aria-hidden="true">Drop here</span>}</button>;
+          const overrideWord = targetWordOverrides?.get(target.id) || null;
+          const placedWord = wordById.get(responses[target.id]) || null;
+          const visibleWord = overrideWord || placedWord;
+          return <button key={target.id} type="button" className={`native-drag-drop-target${presentationMode ? " native-drag-drop-teacher-target" : ""}`} style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-drag-drop-target-id={target.id} data-occupied={Boolean(placedWord) || undefined} data-revealed={Boolean(overrideWord) || undefined} data-incorrect={incorrectTargetId === target.id || undefined} disabled={readOnly} aria-label={`${target.accessibleLabel}${visibleWord ? `, contains ${visibleWord.text}` : ", empty"}${incorrectTargetId === target.id ? ", incorrect placement" : ""}`} onClick={() => { if (selectedWordId) place(target.id); else if (placedWord) { commit(removeNativeDragDropResponse(responses, target.id)); clearFeedback(); } else if (onEmptyTargetActivate) { onEmptyTargetActivate(target.id); clearFeedback(); } }} onKeyDown={(event) => {
+            if ((event.key === "Delete" || event.key === "Backspace") && placedWord && !readOnly) { event.preventDefault(); commit(removeNativeDragDropResponse(responses, target.id)); clearFeedback(); }
+          }}>{visibleWord?.text || <span aria-hidden="true">Drop here</span>}</button>;
         })}
-      </PanelArtwork>
-      <PanelNavigation panels={interaction.panels} panelIndex={panelIndex} setPanelIndex={setPanelIndex} />
-    </div>
-    <div className="native-drag-drop-bank" aria-label="Word bank">
-      <p className="native-drag-drop-bank-instruction">Choose a word, then choose a target—or drag it into place.</p>
-      <div className="native-drag-drop-bank-items">
-        {interaction.words.map((word) => <button key={word.id} type="button" className="native-drag-drop-word" aria-pressed={selectedWordId === word.id} data-used={usedWordIds.has(word.id) || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerUp={(event) => finishDrag(event, word.id)} onPointerCancel={() => setDraggingWordId(null)}>{word.text}</button>)}
-      </div>
-      <span className="native-drag-drop-status" role="status" aria-live="polite">{selectedWordId ? `${wordById.get(selectedWordId)?.text || "Word"} selected. Choose a target.` : ""}</span>
-    </div>
-  </section>;
-}
-
-export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null }) {
-  const interaction = publicDocument.parts[0].interaction;
-  const targetIds = interaction.panels.flatMap((panel) => panel.dropTargets.map((target) => target.id));
-  const wordById = new Map(interaction.words.map((word) => [word.id, word]));
-  const wordIdByTarget = new Map(teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, mapping.wordId]));
-  const [panelIndex, setPanelIndex] = useState(0);
-  const [revealed, setRevealed] = useState(() => new Set());
-  const lastCommand = useRef(presentation?.command?.token);
-  const panel = interaction.panels[panelIndex] || interaction.panels[0];
-
-  useEffect(() => {
-    const command = presentation?.command;
-    if (!command || command.token === lastCommand.current) return;
-    lastCommand.current = command.token;
-    if (command.type === "previous-panel") setPanelIndex((current) => Math.max(0, current - 1));
-    else if (command.type === "next-panel") setPanelIndex((current) => Math.min(interaction.panels.length - 1, current + 1));
-    else {
-      if (command.type === "reset-activity") setPanelIndex(0);
-      if (command.type === "show-next") {
-        const nextTargetId = targetIds.find((targetId) => !revealed.has(targetId));
-        const nextPanelIndex = interaction.panels.findIndex((entry) => entry.dropTargets.some((target) => target.id === nextTargetId));
-        if (nextPanelIndex >= 0) setPanelIndex(nextPanelIndex);
-      }
-      setRevealed((current) => updateNativeDragDropRevealState(current, targetIds, command.type));
-    }
-  }, [interaction.panels, presentation?.command, revealed, targetIds.join("\0")]);
-  useEffect(() => presentation?.onStateChange?.({ panelIndex, panelCount: interaction.panels.length, reveal: { supported: true, total: targetIds.length, revealed: revealed.size, pristine: revealed.size === 0 } }), [interaction.panels.length, panelIndex, presentation?.onStateChange, revealed, targetIds.length]);
-
-  if (!panel) return <p role="status">This Drag &amp; Drop activity has no panels yet.</p>;
-  return <section className="native-drag-drop native-drag-drop-teacher" aria-label={publicDocument.metadata.title}>
-    <div className="native-drag-drop-visual-region">
-      <PanelArtwork document={publicDocument} panel={panel} assetUrl={assetUrl}>
-        {panel.dropTargets.map((target, index) => {
-          const isRevealed = revealed.has(target.id);
-          const correctWord = isRevealed ? wordById.get(wordIdByTarget.get(target.id)) : null;
-          return <button key={target.id} type="button" className="native-drag-drop-target native-drag-drop-teacher-target" style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-revealed={isRevealed || undefined} aria-label={`${isRevealed ? "Revealed" : "Reveal"} answer for target ${index + 1}`} onClick={() => setRevealed((current) => updateNativeDragDropRevealState(current, targetIds, { targetId: target.id }))}>{correctWord?.text || <span aria-hidden="true">Reveal</span>}</button>;
-        })}
+        <div className="native-drag-drop-bank" aria-label="Word bank">
+          <p className="native-drag-drop-bank-instruction">Choose a word, then choose a target—or drag it into place.</p>
+          <div className="native-drag-drop-bank-items">
+            {interaction.words.map((word) => <button key={word.id} type="button" className="native-drag-drop-word" aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-used={usedWordIds.has(word.id) || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerUp={(event) => finishDrag(event, word.id)} onPointerCancel={() => setDraggingWordId(null)}>{word.text}</button>)}
+          </div>
+          <span className="native-drag-drop-status" role="status" aria-live="polite" data-incorrect={Boolean(statusMessage) || undefined}>{statusMessage || (selectedWordId ? `${wordById.get(selectedWordId)?.text || "Word"} selected. Choose a target.` : "")}</span>
+        </div>
       </PanelArtwork>
       {!presentation ? <PanelNavigation panels={interaction.panels} panelIndex={panelIndex} setPanelIndex={setPanelIndex} /> : null}
     </div>
-    <div className="native-drag-drop-bank" aria-label="Word bank"><div className="native-drag-drop-bank-items">{interaction.words.map((word) => <span key={word.id} className="native-drag-drop-word is-reference">{word.text}</span>)}</div></div>
   </section>;
 }

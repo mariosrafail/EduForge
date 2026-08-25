@@ -75,6 +75,12 @@ export default defineConfig(({ mode }) => {
     : isHostedInteractiveReview
       ? "src/apps/android-teacher-offline/hostedComponentReleaseProvider.js"
       : "src/apps/android-offline/noPublishedComponentReleaseProvider.js");
+  const publishedNativeActivityRunner = path.resolve(process.cwd(),
+    appMode === "android-offline"
+      ? "src/components/lms/activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx"
+      : isTeacherRuntime || isHostedInteractiveReview
+        ? "src/components/lms/activities/ultimate-b2/PublishedNativeTeacherActivityRunner.jsx"
+        : "src/components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx");
   const multipleChoiceAuthoringPath = path.resolve(process.cwd(), "src/data/ultimate-b2/authoring/unit-01-reading-exercise-3.multiple-choice.json");
   const multipleChoicePresentationModuleId = "\0ultimate-b2-multiple-choice-presentation";
   const multipleChoicePresentationPlugin = {
@@ -242,6 +248,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:component-publication",
           replacement: publishedComponentReleaseProvider,
+        },
+        {
+          find: "virtual:published-native-activity-runner",
+          replacement: publishedNativeActivityRunner,
         },
         {
           find: "virtual:app-entry",

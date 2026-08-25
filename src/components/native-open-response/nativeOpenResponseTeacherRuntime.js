@@ -12,6 +12,6 @@ export function nextNativeOpenResponseReveal(current, questionIds, panels) {
   const questionId = questionIds.find((candidate) => !current.has(candidate)) || null;
   return {
     questionId,
-    panelIndex: questionId ? panels.findIndex((panel) => panel.questionIds.includes(questionId)) : -1,
+    panelIndex: questionId ? panels.findIndex((panel) => (panel.responseQuestionIds || panel.questionIds || []).includes(questionId)) : -1,
   };
 }

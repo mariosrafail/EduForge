@@ -140,7 +140,7 @@ test("Native Open Response uses static preview layers and selectable authoring c
     assert.equal(preview.props.children[0][0].type, "div");
     assert.equal(preview.props.children[0][0].props.disabled, undefined);
     assert.equal(preview.props.children[0][0].props.onClick, undefined);
-    assert.equal(preview.props.children[1][0].props.children[0].type, "div");
+    assert.equal(preview.props.children[1][0].type, "div");
     const previewMarkup = renderToStaticMarkup(preview);
     assert.doesNotMatch(previewMarkup, /<button[^>]+native-or-(?:artwork|prompt)/);
     assert.doesNotMatch(previewMarkup, /disabled=/);
@@ -149,7 +149,7 @@ test("Native Open Response uses static preview layers and selectable authoring c
     const selections = [];
     const authoring = NativeOpenResponseSurface({ document, assetUrl: () => "/fixture.png", onSelect: (value) => selections.push(value) });
     assert.equal(authoring.props.children[0][0].type, "button");
-    assert.equal(authoring.props.children[1][0].props.children[0].type, "button");
+    assert.equal(authoring.props.children[1][0].type, "button");
     authoring.props.children[0][0].props.onClick();
     const emptyTarget = {};
     authoring.props.onClick({ button: 0, target: emptyTarget, currentTarget: emptyTarget });
@@ -219,5 +219,7 @@ test("canonical Interactive opts out of both metadata headers while LMS assignme
   assert.match(interactive, /<PublishedNativeActivityRunner[^>]+showMetadataHeader=\{false\}/);
   assert.match(interactive, /<HostedNativeDraftActivityRunner[^>]+showMetadataHeader=\{false\}/);
   assert.match(assignment, /<PublishedNativeActivityRunner/);
+  assert.match(assignment, /PublishedNativeStudentActivityRunner as PublishedNativeActivityRunner/);
+  assert.doesNotMatch(assignment, /PublishedNativeTeacherActivityRunner/);
   assert.doesNotMatch(assignment, /showMetadataHeader/);
 });

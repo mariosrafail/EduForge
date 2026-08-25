@@ -154,17 +154,26 @@ test("publication v2 separates mappings and closes every Drag & Drop image asset
 });
 
 test("Builder and web/Android runtimes expose managed panels, controlled responses, pointer and keyboard paths", async () => {
-  const [editor, surface, runner, androidProvider, publicContract] = await Promise.all([
+  const [editor, surface, teacherSurface, studentRunner, teacherRunner, androidProvider, publicContract, viteConfig, buildProfiles] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeDragDropEditor.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-drag-drop/NativeDragDropSurface.jsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-drag-drop/NativeDragDropTeacherSurface.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeTeacherActivityRunner.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/android-teacher-offline/hostedNativeDraftProvider.js", import.meta.url), "utf8"),
     readFile(new URL("../src/data/native-activities/nativeActivityPublic.js", import.meta.url), "utf8"),
+    readFile(new URL("../vite.config.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/config/buildProfiles.js", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /Add Background/); assert.match(editor, /Add Image/); assert.match(editor, /Replace image/); assert.match(editor, /Draw Drop Target/); assert.match(editor, /Teacher-only correct mappings/); assert.match(editor, /Move panel/); assert.match(editor, /Remove this word and its private target mapping/);
   assert.doesNotMatch(await readFile(new URL("../src/components/native-drag-drop/nativeDragDrop.css", import.meta.url), "utf8"), /\d+(?:\.\d+)?vh\b/, "activity sizing must be based on its container rather than the browser viewport");
   assert.match(surface, /onPointerDown/); assert.match(surface, /elementFromPoint/); assert.match(surface, /selectedWordId/); assert.match(surface, /Delete/); assert.match(surface, /initialResponses/); assert.match(surface, /onResponsesChange/); assert.match(surface, /readOnly/);
-  assert.match(runner, /NativeDragDropStudentSurface/); assert.match(runner, /NativeDragDropTeacherSurface/);
+  assert.match(studentRunner, /NativeDragDropStudentSurface/); assert.doesNotMatch(studentRunner, /NativeDragDropTeacherSurface|loadPublishedNativeTeacherDocument|teacherDocument/);
+  assert.match(teacherRunner, /NativeDragDropTeacherSurface/); assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.mappings/); assert.match(teacherSurface, /evaluatePlacement/);
+  assert.doesNotMatch(surface, /teacherDocument|solution\.mappings|wordIdByTarget|revealedWords|NativeDragDropTeacherSurface/);
+  assert.match(viteConfig, /appMode === "android-offline"[\s\S]*PublishedNativeStudentActivityRunner\.jsx[\s\S]*isTeacherRuntime \|\| isHostedInteractiveReview[\s\S]*PublishedNativeTeacherActivityRunner\.jsx/);
+  assert.match(buildProfiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*Student Interactive mode is intentionally hidden[\s\S]*teacherPresentation: true/);
+  assert.match(editor, /Student Preview/); assert.match(editor, /Teacher Preview/);
   assert.match(androidProvider, /"drag-drop"/); assert.match(androidProvider, /normalizeNativeRuntimeTeacherDocument/);
   assert.match(publicContract, /interaction\?\.panels\?\.some\(\(panel\) => panel\.images/);
   assert.doesNotMatch(surface, /data-(?:answer|correct|mapping)/i);

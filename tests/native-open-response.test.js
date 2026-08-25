@@ -7,7 +7,7 @@ import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builde
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, promoteNativeOpenResponsePanels, removeNativeOpenResponseArtwork, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponseArtwork, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
@@ -207,6 +207,52 @@ test("panelized Open Response keeps semantic questions canonical and rejects amb
   const duplicatePanel = structuredClone(publicDocument);
   duplicatePanel.parts[0].interaction.presentation.panels[1].id = duplicatePanel.parts[0].interaction.presentation.panels[0].id;
   assert.throws(() => kind.normalizePublic(duplicatePanel), /panel identity/);
+});
+
+test("independent panel composition is backward compatible, repeatable, and canonically ordered", () => {
+  const { publicDocument, teacherDocument } = pair([q1, q2]);
+  publicDocument.parts[0].interaction = promoteNativeOpenResponsePanels(publicDocument.parts[0].interaction);
+  const interaction = publicDocument.parts[0].interaction;
+  const legacyPanel = interaction.presentation.panels[0];
+  const legacyBefore = structuredClone(legacyPanel);
+  const secondPanelId = nativeChildIdFromUuid("panel", "10000000-0000-4000-8000-000000000047");
+  interaction.presentation.panels.push({ id: secondPanelId, surface: { width: 1024, height: 582 }, images: [], questionIds: [] });
+
+  assert.deepEqual(nativeOpenResponsePanelPromptIds(legacyPanel), [q1, q2]);
+  assert.deepEqual(nativeOpenResponsePanelResponseIds(legacyPanel), [q1, q2]);
+  assert.deepEqual(kind.normalizePublic(publicDocument).parts[0].interaction.presentation.panels[0], legacyBefore, "an untouched legacy panel stays byte-shape compatible");
+  const reorderedLegacy = structuredClone(interaction);
+  reorderedLegacy.questions.reverse();
+  updateNativeOpenResponsePanelMembership(reorderedLegacy, legacyPanel.id, q1, "response", false);
+  assert.deepEqual(reorderedLegacy.presentation.panels[0].promptQuestionIds, [q2, q1], "first customization adopts current canonical question order");
+
+  updateNativeOpenResponsePanelMembership(interaction, secondPanelId, q2, "prompt", true);
+  updateNativeOpenResponsePanelMembership(interaction, secondPanelId, q1, "prompt", true);
+  updateNativeOpenResponsePanelMembership(interaction, secondPanelId, q1, "response", true);
+  const customized = interaction.presentation.panels[1];
+  assert.equal(Object.hasOwn(customized, "questionIds"), false);
+  assert.deepEqual(customized.promptQuestionIds, [q1, q2], "membership follows canonical question order rather than selection order");
+  assert.deepEqual(customized.responseQuestionIds, [q1]);
+
+  updateNativeOpenResponsePanelMembership(interaction, legacyPanel.id, q2, "response", false);
+  assert.deepEqual(nativeOpenResponsePanelPromptIds(legacyPanel), [q1, q2]);
+  assert.deepEqual(nativeOpenResponsePanelResponseIds(legacyPanel), [q1]);
+  assert.equal(validateNativeActivityPair(kind.normalizePublic(publicDocument), teacherDocument), true);
+  assert.deepEqual(teacherDocument.parts[0].solution.modelAnswers.map((answer) => answer.questionId), [q1, q2], "presentation duplication never forks Teacher answers");
+
+  const partial = structuredClone(publicDocument);
+  delete partial.parts[0].interaction.presentation.panels[0].responseQuestionIds;
+  assert.throws(() => kind.normalizePublic(partial), /missing or unknown fields/);
+  const duplicate = structuredClone(publicDocument);
+  duplicate.parts[0].interaction.presentation.panels[1].promptQuestionIds.push(q1);
+  assert.throws(() => kind.normalizePublic(duplicate), /duplicate question/);
+
+  interaction.questions = interaction.questions.filter((question) => question.id !== q1);
+  interaction.presentation.panels.forEach((panel) => {
+    for (const key of ["questionIds", "promptQuestionIds", "responseQuestionIds"]) if (panel[key]) panel[key] = panel[key].filter((questionId) => questionId !== q1);
+  });
+  teacherDocument.parts[0].solution.modelAnswers = teacherDocument.parts[0].solution.modelAnswers.filter((answer) => answer.questionId !== q1);
+  assert.equal(validateNativeActivityPair(kind.normalizePublic(publicDocument), teacherDocument), true, "canonical deletion can clean legacy and customized memberships without dangling IDs");
 });
 
 test("panel image geometry and globally duplicate image identities fail closed", () => {

@@ -21,7 +21,8 @@ export const buildProfiles = Object.freeze({
     builderReadOnly: true, builderMutations: false, publicationAuthoring: true, hostedDocumentWrites: Object.freeze(["hotspots", "open-response", "ui-controller", "unit-extras", "native-activity-public", "native-activity-teacher"]), teacherSolutions: false, teacherPresentation: false, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW]: profile(BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW, {
-    builderReadOnly: true, builderMutations: false, publicationPreview: true, teacherSolutions: false, teacherPresentation: false, authorizedTeacherPreview: true, staticOnly: true,
+    // Student Interactive mode is intentionally hidden; students complete activities through the LMS.
+    builderReadOnly: true, builderMutations: false, publicationPreview: true, teacherSolutions: false, teacherPresentation: true, authorizedTeacherPreview: true, staticOnly: true,
   }),
   [BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE]: profile(BUILD_PROFILE_IDS.ANDROID_STUDENT_OFFLINE, {
     builderReadOnly: true, builderMutations: false, teacherSolutions: false, teacherPresentation: false, staticOnly: true,

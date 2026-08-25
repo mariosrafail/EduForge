@@ -237,16 +237,25 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [], com
   });
   const panelIds = new Set();
   const imageIds = new Set();
-  const assignedQuestionIds = new Set();
-  const questionSurfaces = new Map();
+  const legacyAssignedQuestionIds = new Set();
+  const promptSurfaces = new Map();
+  const responseSurfaces = new Map();
+  const addSurface = (surfaceMap, questionId, panelSurface) => {
+    if (!surfaceMap.has(questionId)) surfaceMap.set(questionId, []);
+    surfaceMap.get(questionId).push(panelSurface);
+  };
   const usedSlots = new Set();
   const panels = value.presentation.panels.map((panelValue, panelIndex) => {
     const label = `Native Open Response panels[${panelIndex}]`;
-    exactKeys(panelValue, ["id", "surface", "images", "questionIds"], label);
+    const composed = Object.hasOwn(panelValue, "promptQuestionIds") || Object.hasOwn(panelValue, "responseQuestionIds");
+    exactKeys(panelValue, composed ? ["id", "surface", "images", "promptQuestionIds", "responseQuestionIds"] : ["id", "surface", "images", "questionIds"], label);
     if (!isNativeChildId(panelValue.id, "panel") || panelIds.has(panelValue.id)) throw new Error("Native Open Response panel identity is invalid or duplicate.");
     panelIds.add(panelValue.id);
     if (!Array.isArray(panelValue.images) || panelValue.images.length > NATIVE_OPEN_RESPONSE_LIMITS.imagesPerPanel) throw new Error(`${label}.images count is invalid.`);
-    if (!Array.isArray(panelValue.questionIds) || panelValue.questionIds.length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error(`${label}.questionIds count is invalid.`);
+    const membershipKeys = composed ? ["promptQuestionIds", "responseQuestionIds"] : ["questionIds"];
+    membershipKeys.forEach((key) => {
+      if (!Array.isArray(panelValue[key]) || panelValue[key].length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error(`${label}.${key} count is invalid.`);
+    });
     const panelSlots = new Set(panelValue.images.map((image) => image.assetSlot));
     const otherSlots = new Set([...commonAssetSlots, ...assets.filter((asset) => !panelSlots.has(asset.slot)).map((asset) => asset.slot)]);
     const composition = normalizeNativeImageInteraction({ kind: "image", surface: panelValue.surface, images: panelValue.images }, { assets, commonAssetSlots: otherSlots });
@@ -254,18 +263,38 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [], com
       if (imageIds.has(image.id)) throw new Error("Native Open Response image identities must be unique across panels.");
       imageIds.add(image.id); usedSlots.add(image.assetSlot);
     });
-    const questionIds = panelValue.questionIds.map((questionId, questionIndex) => {
-      if (!rawQuestionIds.has(questionId)) throw new Error(`${label}.questionIds[${questionIndex}] does not reference a semantic question.`);
-      if (assignedQuestionIds.has(questionId)) throw new Error("A Native Open Response question cannot belong to more than one panel.");
-      assignedQuestionIds.add(questionId); questionSurfaces.set(questionId, composition.surface);
-      return questionId;
-    });
-    return { id: panelValue.id, surface: composition.surface, images: composition.images, questionIds };
+    const normalizeMembership = (key) => {
+      const seen = new Set();
+      const membership = panelValue[key].map((questionId, questionIndex) => {
+        if (!rawQuestionIds.has(questionId)) throw new Error(`${label}.${key}[${questionIndex}] does not reference a semantic question.`);
+        if (seen.has(questionId)) throw new Error(`${label}.${key} contains a duplicate question.`);
+        seen.add(questionId);
+        return questionId;
+      });
+      return composed ? value.questions.map((entry) => entry.id).filter((questionId) => seen.has(questionId)) : membership;
+    };
+    if (!composed) {
+      const questionIds = normalizeMembership("questionIds");
+      questionIds.forEach((questionId) => {
+        if (legacyAssignedQuestionIds.has(questionId)) throw new Error("A legacy Native Open Response question cannot belong to more than one panel.");
+        legacyAssignedQuestionIds.add(questionId);
+        addSurface(promptSurfaces, questionId, composition.surface);
+        addSurface(responseSurfaces, questionId, composition.surface);
+      });
+      return { id: panelValue.id, surface: composition.surface, images: composition.images, questionIds };
+    }
+    const promptQuestionIds = normalizeMembership("promptQuestionIds");
+    const responseQuestionIds = normalizeMembership("responseQuestionIds");
+    promptQuestionIds.forEach((questionId) => addSurface(promptSurfaces, questionId, composition.surface));
+    responseQuestionIds.forEach((questionId) => addSurface(responseSurfaces, questionId, composition.surface));
+    return { id: panelValue.id, surface: composition.surface, images: composition.images, promptQuestionIds, responseQuestionIds };
   });
   const questionIds = new Set();
   const responseIds = new Set();
   const questions = value.questions.map((entry, index) => {
-    const normalized = question(entry, index, questionSurfaces.get(entry.id) || unassignedQuestionSurface(entry));
+    const normalized = question(entry, index, unassignedQuestionSurface(entry));
+    if ((promptSurfaces.get(entry.id) || []).some((panelSurface) => !areaFitsSurface(normalized.promptArea, panelSurface))) throw new Error(`Native Open Response question ${index + 1} prompt geometry does not fit every composed panel.`);
+    if ((responseSurfaces.get(entry.id) || []).some((panelSurface) => !areaFitsSurface(normalized.responseRegion.area, panelSurface))) throw new Error(`Native Open Response question ${index + 1} response geometry does not fit every composed panel.`);
     if (questionIds.has(normalized.id) || responseIds.has(normalized.responseRegion.id)) throw new Error("Native Open Response child identities must be unique.");
     questionIds.add(normalized.id); responseIds.add(normalized.responseRegion.id);
     return normalized;
@@ -306,6 +335,24 @@ export function nativeOpenResponsePanels(interaction) {
   return [{ id: NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID, surface: interaction.surface, images: interaction.artwork || [], questionIds: (interaction.questions || []).map((questionValue) => questionValue.id), legacy: true }];
 }
 
+export function nativeOpenResponsePanelPromptIds(panel) {
+  return panel?.promptQuestionIds || panel?.questionIds || [];
+}
+
+export function nativeOpenResponsePanelResponseIds(panel) {
+  return panel?.responseQuestionIds || panel?.questionIds || [];
+}
+
+function customizeNativeOpenResponsePanel(panel, canonicalQuestionIds) {
+  if (!Object.hasOwn(panel, "questionIds")) return panel;
+  const legacyMembership = new Set(panel.questionIds);
+  const orderedMembership = canonicalQuestionIds.filter((questionId) => legacyMembership.has(questionId));
+  panel.promptQuestionIds = [...orderedMembership];
+  panel.responseQuestionIds = [...orderedMembership];
+  delete panel.questionIds;
+  return panel;
+}
+
 export function promoteNativeOpenResponsePanels(interaction) {
   if (interaction?.presentation?.kind === "panels") return interaction;
   return {
@@ -330,13 +377,46 @@ export function assignNativeOpenResponseQuestion(interaction, questionId, panelI
   const questionValue = interaction?.questions?.find((entry) => entry.id === questionId);
   if (!target || !questionValue) throw new Error("Native Open Response question assignment is invalid.");
   if (target.surface.height < 9) throw new Error("Native Open Response destination panel is too small for a response region.");
-  panels.forEach((panel) => { panel.questionIds = panel.questionIds.filter((id) => id !== questionId); });
-  target.questionIds.push(questionId);
+  panels.forEach((panel) => {
+    if (Object.hasOwn(panel, "questionIds")) panel.questionIds = panel.questionIds.filter((id) => id !== questionId);
+    else {
+      panel.promptQuestionIds = panel.promptQuestionIds.filter((id) => id !== questionId);
+      panel.responseQuestionIds = panel.responseQuestionIds.filter((id) => id !== questionId);
+    }
+  });
+  if (Object.hasOwn(target, "questionIds")) target.questionIds.push(questionId);
+  else { target.promptQuestionIds.push(questionId); target.responseQuestionIds.push(questionId); }
   if (areaFitsSurface(questionValue.promptArea, target.surface) && areaFitsSurface(questionValue.responseRegion.area, target.surface)) return { repositioned: false };
   questionValue.promptArea = clampAreaToSurface(questionValue.promptArea, target.surface, { minimumWidth: 24, minimumHeight: 24 });
   resizeNativeOpenResponseRegion(questionValue.responseRegion, clampAreaToSurface(questionValue.responseRegion.area, target.surface, {
     minimumWidth: Math.min(target.surface.width, Math.max(80, 2 * questionValue.responseRegion.presentation.paddingX + 1)),
     minimumHeight: Math.min(target.surface.height, Math.max(44, 2 * questionValue.responseRegion.presentation.paddingY + questionValue.responseRegion.presentation.lineSpacing)),
+  }));
+  fitResponsePresentationToArea(questionValue.responseRegion);
+  return { repositioned: true };
+}
+
+export function updateNativeOpenResponsePanelMembership(interaction, panelId, questionId, membership, included) {
+  if (!["prompt", "response"].includes(membership)) throw new Error("Native Open Response panel membership kind is invalid.");
+  const panel = interaction?.presentation?.panels?.find((entry) => entry.id === panelId);
+  const questionValue = interaction?.questions?.find((entry) => entry.id === questionId);
+  if (!panel || !questionValue) throw new Error("Native Open Response panel membership is invalid.");
+  customizeNativeOpenResponsePanel(panel, interaction.questions.map((entry) => entry.id));
+  const key = membership === "prompt" ? "promptQuestionIds" : "responseQuestionIds";
+  const current = new Set(panel[key]);
+  if (included) current.add(questionId); else current.delete(questionId);
+  panel[key] = interaction.questions.map((questionEntry) => questionEntry.id).filter((id) => current.has(id));
+  if (!included) return { repositioned: false };
+  if (membership === "prompt") {
+    if (areaFitsSurface(questionValue.promptArea, panel.surface)) return { repositioned: false };
+    questionValue.promptArea = clampAreaToSurface(questionValue.promptArea, panel.surface, { minimumWidth: 24, minimumHeight: 24 });
+    return { repositioned: true };
+  }
+  if (panel.surface.height < 9) throw new Error("Native Open Response destination panel is too small for a response region.");
+  if (areaFitsSurface(questionValue.responseRegion.area, panel.surface)) return { repositioned: false };
+  resizeNativeOpenResponseRegion(questionValue.responseRegion, clampAreaToSurface(questionValue.responseRegion.area, panel.surface, {
+    minimumWidth: Math.min(panel.surface.width, Math.max(80, 2 * questionValue.responseRegion.presentation.paddingX + 1)),
+    minimumHeight: Math.min(panel.surface.height, Math.max(44, 2 * questionValue.responseRegion.presentation.paddingY + questionValue.responseRegion.presentation.lineSpacing)),
   }));
   fitResponsePresentationToArea(questionValue.responseRegion);
   return { repositioned: true };
@@ -459,7 +539,7 @@ export function assessNativeOpenResponseReadiness(publicDocument, teacherDocumen
   if (!questions.length) issues.push("Add at least one question.");
   const panels = nativeOpenResponsePanels(publicDocument.parts[0].interaction);
   if (!panels.length) issues.push("Add at least one visual panel.");
-  const membership = new Map(panels.flatMap((panel, panelIndex) => panel.questionIds.map((questionId) => [questionId, panelIndex])));
+  const membership = new Set(panels.flatMap((panel) => [...nativeOpenResponsePanelPromptIds(panel), ...nativeOpenResponsePanelResponseIds(panel)]));
   for (const [index, questionValue] of questions.entries()) {
     if (!questionValue.prompt.trim()) issues.push(`Question ${index + 1} needs a prompt.`);
     if (!membership.has(questionValue.id)) issues.push(`Question ${index + 1} must be assigned to a panel.`);
