@@ -2,6 +2,7 @@ import { isNativeChildId } from "./nativeChildIdentity.js";
 import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
 import {
   createNativeOpenResponseQuestion,
+  initialNativeOpenResponseArtworkArea,
   normalizeNativeOpenResponseInteraction,
 } from "./nativeOpenResponse.js";
 
@@ -18,6 +19,11 @@ export const NATIVE_LISTENING_LIMITS = Object.freeze({
 });
 
 export const NATIVE_LISTENING_PANEL_IDS = Object.freeze(["panel-1", "panel-2"]);
+
+export function initialNativeListeningArtworkArea(surface, metadata, artworkCount = 0) {
+  if (artworkCount === 0 && metadata?.width === surface.width && metadata?.height === surface.height) return { x: 0, y: 0, width: surface.width, height: surface.height };
+  return initialNativeOpenResponseArtworkArea(surface, metadata);
+}
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -218,7 +224,7 @@ export function createEmptyNativeListeningInteraction() {
     audioDurationMs: 0,
     panels: [
       { id: "panel-1", kind: "questions", sourceWidth: 1024, sourceHeight: 582 },
-      { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 1801, transcriptArea: { x: 72, y: 120, width: 880, height: 1500 } },
+      { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, transcriptArea: { x: 82, y: 47, width: 860, height: 489 } },
     ],
     artwork: [],
     questions: [],

@@ -2,6 +2,7 @@ import { isNativeChildId } from "./nativeChildIdentity.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({ items: 30, promptLength: 2_000, answerLength: 500, sourceDimension: 16_384 });
 export const NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN = "[[blank]]";
+export const NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION = Object.freeze({ fontSize: 21, color: "#12304b" });
 
 export function nativeCompleteSentencesPromptParts(prompt) {
   const source = String(prompt || "");
@@ -47,6 +48,15 @@ function area(value, presentation, label) {
   return normalized;
 }
 
+export function normalizeNativeCompleteSentencesHotspotPresentation(input, label = "Complete the Sentences hotspot presentation") {
+  if (input === undefined) return { ...NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION };
+  exact(input, ["fontSize", "color"], label);
+  const fontSize = Number(input.fontSize);
+  if (!Number.isSafeInteger(fontSize) || fontSize < 8 || fontSize > 96) throw new Error(`${label}.fontSize is invalid.`);
+  if (typeof input.color !== "string" || !/^#[0-9a-f]{6}$/i.test(input.color)) throw new Error(`${label}.color is invalid.`);
+  return { fontSize, color: input.color.toLowerCase() };
+}
+
 export function normalizeNativeCompleteSentencesInteraction(input, { assets = [] } = {}) {
   const value = structuredClone(object(input, "Native Complete the Sentences interaction"));
   exact(value, ["kind", "items", "presentation"], "Native Complete the Sentences interaction");
@@ -66,9 +76,11 @@ export function normalizeNativeCompleteSentencesInteraction(input, { assets = []
     || !Array.isArray(presentation.hotspots) || presentation.hotspots.length > NATIVE_COMPLETE_SENTENCES_LIMITS.items) throw new Error("Complete the Sentences presentation is invalid.");
   const hotspotIds = new Set(); const itemIds = new Set(items.map((item) => item.id));
   const hotspots = presentation.hotspots.map((hotspot, index) => {
-    exact(hotspot, ["id", "itemId", "area"], `Complete the Sentences hotspots[${index}]`);
+    const label = `Complete the Sentences hotspots[${index}]`;
+    const hasPresentation = Object.hasOwn(hotspot, "presentation");
+    exact(hotspot, ["id", "itemId", "area", ...(hasPresentation ? ["presentation"] : [])], label);
     if (!isNativeChildId(hotspot.id, "hot") || hotspotIds.has(hotspot.id) || !itemIds.has(hotspot.itemId)) throw new Error("Complete the Sentences hotspot binding is invalid or duplicate.");
-    hotspotIds.add(hotspot.id); return { id: hotspot.id, itemId: hotspot.itemId, area: area(hotspot.area, presentation, `Complete the Sentences hotspots[${index}].area`) };
+    hotspotIds.add(hotspot.id); return { id: hotspot.id, itemId: hotspot.itemId, area: area(hotspot.area, presentation, `${label}.area`), presentation: normalizeNativeCompleteSentencesHotspotPresentation(hotspot.presentation, `${label}.presentation`) };
   });
   return { kind: "complete-sentences", items, presentation: { kind: "image-hotspot", backgroundAssetSlot: presentation.backgroundAssetSlot, sourceWidth: presentation.sourceWidth, sourceHeight: presentation.sourceHeight, hotspots } };
 }

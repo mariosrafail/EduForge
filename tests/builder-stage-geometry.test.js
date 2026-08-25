@@ -4,10 +4,12 @@ import test from "node:test";
 import {
   clientPointToStage,
   moveStageGeometry,
+  normalizeStageGeometryAspectRatio,
   percentGeometryToStage,
   resizeStageGeometry,
   stageGeometryToPercent,
   transformStageGeometry,
+  updateStageGeometryField,
 } from "../src/components/builder-studio/stageGeometry.js";
 
 const stage = { width: 100, height: 80 };
@@ -68,6 +70,36 @@ test("aspect-ratio resize preserves ratio and the opposite corner", () => {
   const clamped = resizeStageGeometry(area, "se", { x: 1000, y: 1000 }, stage, { preserveAspectRatio: true });
   assert.ok(clamped.x + clamped.width <= stage.width);
   assert.ok(clamped.y + clamped.height <= stage.height);
+});
+
+test("an explicit 512:291 ratio normalizes around center and survives every anchored handle", () => {
+  const ratio = 512 / 291;
+  const source = { x: 780, y: 410, width: 210, height: 145 };
+  const normalized = normalizeStageGeometryAspectRatio(source, { width: 1024, height: 582 }, { aspectRatio: ratio, minWidth: 16, minHeight: 16 });
+  assert.ok(Math.abs(normalized.width / normalized.height - ratio) < 0.00001);
+  assert.ok(normalized.x >= 0 && normalized.y >= 0 && normalized.x + normalized.width <= 1024 && normalized.y + normalized.height <= 582);
+  for (const handle of ["nw", "ne", "sw", "se"]) {
+    const resized = resizeStageGeometry(normalized, handle, { x: handle.includes("w") ? -900 : 900, y: handle.includes("n") ? -900 : 900 }, { width: 1024, height: 582 }, { preserveAspectRatio: true, aspectRatio: ratio, minWidth: 16, minHeight: 16 });
+    assert.ok(Math.abs(resized.width / resized.height - ratio) < 0.00001, `${handle}: ${JSON.stringify(resized)}`);
+    assert.ok(resized.x >= 0 && resized.y >= 0 && resized.x + resized.width <= 1024.001 && resized.y + resized.height <= 582.001, `${handle}: ${JSON.stringify(resized)}`);
+  }
+});
+
+test("fixed-ratio numeric width and height derive their partner while X/Y only reposition", () => {
+  const ratio = 512 / 291;
+  const stageValue = { width: 1024, height: 582 };
+  const normalized = normalizeStageGeometryAspectRatio({ x: 100, y: 80, width: 300, height: 140 }, stageValue, { aspectRatio: ratio });
+  const width = updateStageGeometryField(normalized, "width", 512, stageValue, { aspectRatio: ratio });
+  assert.ok(Math.abs(width.width / width.height - ratio) < 0.00001);
+  assert.equal(width.height, 291);
+  const height = updateStageGeometryField(normalized, "height", 200, stageValue, { aspectRatio: ratio });
+  assert.ok(Math.abs(height.width / height.height - ratio) < 0.00001);
+  const movedX = updateStageGeometryField(normalized, "x", 999, stageValue, { aspectRatio: ratio });
+  const movedY = updateStageGeometryField(normalized, "y", 999, stageValue, { aspectRatio: ratio });
+  assert.deepEqual({ width: movedX.width, height: movedX.height }, { width: normalized.width, height: normalized.height });
+  assert.deepEqual({ width: movedY.width, height: movedY.height }, { width: normalized.width, height: normalized.height });
+  const freeform = updateStageGeometryField(normalized, "width", 250, stageValue);
+  assert.equal(freeform.height, normalized.height);
 });
 
 test("pointer transform uses the original geometry and avoids cumulative drift", () => {

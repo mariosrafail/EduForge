@@ -6,7 +6,7 @@ import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-s
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
-import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, nativeCompleteSentencesPromptParts, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
+import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesInteraction, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o96";
@@ -49,6 +49,21 @@ test("Complete the Sentences keeps stable items and phrase answers exclusively T
   removeNativeCompleteSentencesItem(pair.publicDocument, pair.teacherDocument, pair.first);
   assert.equal(pair.teacherDocument.parts[0].solution.answers.some((answer) => answer.itemId === pair.first), false);
   assert.equal(pair.publicDocument.parts[0].interaction.presentation.hotspots.some((hotspot) => hotspot.itemId === pair.first), false);
+});
+
+test("legacy hotspots receive deterministic safe typography and authored presentation round-trips publicly", () => {
+  const { publicDocument } = completePair();
+  const legacy = publicDocument.parts[0].interaction;
+  const normalizedLegacy = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
+  assert.deepEqual(normalizedLegacy.presentation.hotspots[0].presentation, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION);
+  legacy.presentation.hotspots[0].presentation = { fontSize: 34, color: "#E40083" };
+  const authored = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
+  assert.deepEqual(authored.presentation.hotspots[0].presentation, { fontSize: 34, color: "#e40083" });
+  assert.doesNotMatch(JSON.stringify(authored.presentation.hotspots[0]), /catching up on|correct|answer/i);
+  for (const presentation of [{ fontSize: 7, color: "#12304b" }, { fontSize: 21, color: "red" }, { fontSize: 21, color: "url(javascript:1)" }]) {
+    const invalid = structuredClone(legacy); invalid.presentation.hotspots[0].presentation = presentation;
+    assert.throws(() => normalizeNativeCompleteSentencesInteraction(invalid, { assets: publicDocument.assets }));
+  }
 });
 
 test("one-field sentence syntax extracts one private answer and an answer-neutral blank", () => {
@@ -104,13 +119,19 @@ test("Complete the Sentences compiles through v2 with public/Teacher separation 
   assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[activityId]), /catching up on/);
 });
 
-test("shared runtime/editor render typed public responses and Teacher reveal without public answer attributes", async () => {
-  const [surface, editor] = await Promise.all([
+test("shared runtime/editor render synchronized geometry, safe typography, Student inputs, and boxless Teacher reveal", async () => {
+  const [surface, editor, canvas, css] = await Promise.all([
     readFile(new URL("../src/components/native-complete-sentences/NativeCompleteSentencesSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeCompleteSentencesEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-complete-sentences/nativeCompleteSentences.css", import.meta.url), "utf8"),
   ]);
   assert.match(surface, /onResponsesChange/); assert.match(surface, /updateNativeCompleteSentencesRevealState/);
   assert.match(surface, /native-complete-sentences-teacher-target/); assert.match(surface, /onTeacherReveal\(hotspot\.itemId\)/);
   assert.doesNotMatch(surface, /data-(?:answer|correct)/i);
-  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /NativeCompleteSentencesHotspotCanvas/);
+  assert.match(surface, /--native-complete-answer-font-size/); assert.match(surface, /--native-complete-answer-color/); assert.match(surface, /<input\s+type="text"/);
+  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /Answer font size/); assert.match(editor, /Answer text color/); assert.match(editor, /Lock hotspot position/);
+  assert.match(canvas, /locked=\{locked\}/); assert.match(canvas, /onChange/);
+  assert.match(css, /teacher-target\[data-revealed\][^{]*\{[^}]*background:\s*transparent[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*box-shadow:\s*none/s);
+  assert.match(css, /blank input,[\s\S]*teacher-target[^{]*\{[^}]*border:\s*2px solid/s);
 });

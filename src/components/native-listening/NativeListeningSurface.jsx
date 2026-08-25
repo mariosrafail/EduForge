@@ -32,7 +32,7 @@ function ListeningTranscript({ document, interaction, assetUrl, highlightedCueId
     width: `${panel.transcriptArea.width / panel.sourceWidth * 100}%`, height: `${panel.transcriptArea.height / panel.sourceHeight * 100}%`,
   };
   return <section className="native-listening-panel native-listening-transcript-panel" aria-label="Show Text: synchronized transcript" data-focus-mode={playbackFocus ? "playback" : "reference"}>
-    <div className="native-listening-transcript-stage" style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}`, backgroundImage: background ? `url(${assetUrl(background.assetId)})` : undefined }}>
+    <div className="native-listening-transcript-stage" style={{ backgroundImage: background ? `url(${assetUrl(background.assetId)})` : undefined }}>
       <div ref={transcriptRef} className="native-listening-transcript" style={style} tabIndex="0" aria-label="Listening transcript">
         {interaction.cues.map((cue) => {
           const playbackActive = playbackFocus && focused.has(cue.id);
@@ -151,10 +151,12 @@ export function NativeListeningSurface({ publicDocument, teacherDocument = null,
 
   return <div className="native-listening" data-panel={view === "questions" ? 1 : 2} data-view={view}>
     <div className="native-listening-local-stage">
-      {view === "questions" && !teacherDocument ? <NativeOpenResponseStudentSurface document={openResponsePublic} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={hotspotPresentation} /> : null}
-      {view === "questions" && teacherDocument ? <NativeOpenResponseTeacherSurface publicDocument={openResponsePublic} teacherDocument={openResponseTeacher} assetUrl={assetUrl} presentation={openResponsePresentation} audioHotspotPresentation={hotspotPresentation} /> : null}
-      {view === "transcript" ? <ListeningTranscript document={publicDocument} interaction={interaction} assetUrl={assetUrl} highlightedCueIds={highlightedCueIds} playbackFocus={playbackFocus} cueRefs={cueRefs} transcriptRef={transcriptRef} /> : null}
-      <div className="native-listening-player-anchor"><LegacyListeningPlayer assets={nativeListeningPlayerAssets} currentMs={currentMs} durationMs={playbackDurationMs} playing={playing} muted={muted} disabled={!audioUrl} formatTime={formatNativeListeningTime} onPlay={play} onPause={pause} onStop={stop} onSeek={seek} onToggleMute={toggleMute} /></div>
+      <div className="native-listening-activity-stage" style={{ aspectRatio: `${interaction.panels[0].sourceWidth} / ${interaction.panels[0].sourceHeight}`, "--native-listening-stage-ratio": interaction.panels[0].sourceWidth / interaction.panels[0].sourceHeight }}>
+        {view === "questions" && !teacherDocument ? <NativeOpenResponseStudentSurface document={openResponsePublic} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={hotspotPresentation} /> : null}
+        {view === "questions" && teacherDocument ? <NativeOpenResponseTeacherSurface publicDocument={openResponsePublic} teacherDocument={openResponseTeacher} assetUrl={assetUrl} presentation={openResponsePresentation} audioHotspotPresentation={hotspotPresentation} /> : null}
+        {view === "transcript" ? <ListeningTranscript document={publicDocument} interaction={interaction} assetUrl={assetUrl} highlightedCueIds={highlightedCueIds} playbackFocus={playbackFocus} cueRefs={cueRefs} transcriptRef={transcriptRef} /> : null}
+        <div className="native-listening-player-anchor"><LegacyListeningPlayer assets={nativeListeningPlayerAssets} currentMs={currentMs} durationMs={playbackDurationMs} playing={playing} muted={muted} disabled={!audioUrl} formatTime={formatNativeListeningTime} onPlay={play} onPause={pause} onStop={stop} onSeek={seek} onToggleMute={toggleMute} /></div>
+      </div>
     </div>
     {!audioUrl ? <p className="native-listening-error" role="alert">Listening audio is unavailable.</p> : null}
     {audioError ? <p className="native-listening-error" role="alert">Listening audio could not be played.</p> : null}

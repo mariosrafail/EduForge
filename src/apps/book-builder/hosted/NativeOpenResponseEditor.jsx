@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
+import { QuickNumber } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../components/native-open-response/NativeOpenResponseTeacherSurface.jsx";
@@ -333,10 +334,6 @@ function PanelCompositionControls({ panel, questions, onChange }) {
       return <fieldset key={group.membership}><legend>{group.heading}</legend><label><span>{group.selectLabel}</span><select aria-label={group.selectLabel} value="" disabled={!available.length} onChange={(event) => { if (event.target.value) onChange(event.target.value, group.membership, true); }}><option value="">{available.length ? "Choose an existing question" : "All questions included"}</option>{available.map((question) => <option key={question.id} value={question.id}>{questionLabel(question)}</option>)}</select></label><div className="native-or-panel-memberships">{included.length ? included.map((question) => <span key={question.id}><span>{questionLabel(question)}</span><button type="button" aria-label={`Remove ${questionNumber(question)} from ${group.membership === "prompt" ? "prompts" : "answer boxes"}`} onClick={() => onChange(question.id, group.membership, false)}>Remove</button></span>) : <p>None included.</p>}</div></fieldset>;
     })}
   </section>;
-}
-
-function QuickNumber({ label, value, minimum = 0, maximum, disabled = false, onChange }) {
-  return <StudioField label={label} className="studio-quick-field"><input aria-label={`Quick ${label}`} type="number" min={minimum} max={maximum} step="1" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></StudioField>;
 }
 
 function OpenResponseQuickControls({ selection, area, question, artwork, artworkList, surface, updateArea, changeResponse, updateQuestion, updateArtwork, duplicateArtwork, removeArtwork, fit }) {

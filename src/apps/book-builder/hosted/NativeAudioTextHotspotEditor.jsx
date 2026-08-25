@@ -5,7 +5,8 @@ import { NativeImageSurface } from "../../../components/native-image/NativeImage
 import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeAudioTextFocusContent, nativeAudioHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
-import { logicalAreaStyle } from "../../../components/builder-studio/stageGeometry.js";
+import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
+import { logicalAreaStyle, normalizeStageGeometryAspectRatio } from "../../../components/builder-studio/stageGeometry.js";
 import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
@@ -13,6 +14,7 @@ import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import "./nativeAudioTextHotspotEditor.css";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+const OUTER_FOCUS_ASPECT_RATIO = 512 / 291;
 
 function defaultActivityArea(target) {
   const size = clamp(Math.round(Math.min(target.width, target.height) * 0.08), 24, 96);
@@ -76,6 +78,7 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
   const gesture = useRef(null);
   const [selectedRegion, setSelectedRegion] = useState(nativeAudioTextReadableHighlightArea(hotspot) ? "highlight" : "focus");
   const [drawRegion, setDrawRegion] = useState(null);
+  const [keepAspectRatio, setKeepAspectRatio] = useState(false);
   const bounds = { width: readableText.sourceWidth, height: readableText.sourceHeight };
   const highlight = nativeAudioTextReadableHighlightArea(hotspot);
   const select = (region) => { gesture.current = null; setSelectedRegion(region); setDrawRegion(null); };
@@ -93,7 +96,7 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
     const end = pointInSource(event, bounds);
     const area = { x: Math.round(Math.min(active.start.x, end.x)), y: Math.round(Math.min(active.start.y, end.y)), width: Math.round(Math.abs(active.start.x - end.x)), height: Math.round(Math.abs(active.start.y - end.y)) };
     if (area.width < 16 || area.height < 16) return;
-    if (active.region === "focus") onFocusArea(area);
+    if (active.region === "focus") onFocusArea(keepAspectRatio ? normalizeStageGeometryAspectRatio(area, bounds, { aspectRatio: OUTER_FOCUS_ASPECT_RATIO, minWidth: 16, minHeight: 16 }) : area);
     else onHighlightArea(containedArea(area, active.focusArea));
     setSelectedRegion(active.region);
     setDrawRegion(null);
@@ -102,6 +105,7 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
     <div className="native-audio-hotspot-focus-tools" aria-label="Readable text rectangle tools">
       <button type="button" className="studio-button" aria-pressed={selectedRegion === "focus" && !drawRegion} onClick={() => select("focus")}>Select outer focus</button>
       <button type="button" className="studio-button" aria-pressed={drawRegion === "focus"} onClick={() => armDraw("focus")}>Redraw outer focus</button>
+      <label className="studio-quick-check"><input type="checkbox" checked={keepAspectRatio} onChange={(event) => { const checked = event.target.checked; setKeepAspectRatio(checked); if (checked) onFocusArea(normalizeStageGeometryAspectRatio(hotspot.readableFocusArea, bounds, { aspectRatio: OUTER_FOCUS_ASPECT_RATIO, minWidth: 16, minHeight: 16 })); }} /> Keep aspect ratio</label>
       {highlight ? <><button type="button" className="studio-button" aria-pressed={selectedRegion === "highlight" && !drawRegion} onClick={() => select("highlight")}>Select inner highlight</button><button type="button" className="studio-button" aria-pressed={drawRegion === "highlight"} onClick={() => armDraw("highlight")}>Redraw inner highlight</button><button type="button" className="studio-button studio-button--danger-ghost" onClick={() => { gesture.current = null; onDeleteHighlight(); setSelectedRegion("focus"); setDrawRegion(null); }}>Delete inner highlight</button></> : <button type="button" className="studio-button" onClick={() => { gesture.current = null; onHighlightArea(nativeAudioTextReadableHighlightArea({ readableFocusArea: hotspot.readableFocusArea })); setSelectedRegion("highlight"); }}>Add inner highlight</button>}
     </div>
     <div
@@ -120,10 +124,11 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
       {hotspot ? <>
         <button type="button" className="native-audio-hotspot-focus-box" style={logicalAreaStyle(hotspot.readableFocusArea, bounds)} aria-label="Select outer focus" onPointerDown={(event) => event.stopPropagation()} onClick={() => select("focus")} />
         {highlight ? <button type="button" className="native-audio-hotspot-highlight-box" style={logicalAreaStyle(highlight, bounds)} aria-label="Select inner highlight" onPointerDown={(event) => event.stopPropagation()} onClick={() => select("highlight")} /> : null}
-        {!drawRegion && selectedRegion === "focus" ? <StageSelectionFrame geometry={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} onChange={(area) => onFocusArea(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))} /> : null}
+        {!drawRegion && selectedRegion === "focus" ? <StageSelectionFrame geometry={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} preserveAspectRatio={keepAspectRatio} aspectRatio={keepAspectRatio ? OUTER_FOCUS_ASPECT_RATIO : null} onChange={onFocusArea} /> : null}
         {!drawRegion && selectedRegion === "highlight" && highlight ? <StageSelectionFrame geometry={highlight} stage={bounds} label="Inner colored highlight" minWidth={Math.min(16, hotspot.readableFocusArea.width)} minHeight={Math.min(16, hotspot.readableFocusArea.height)} onChange={(area) => onHighlightArea(containedArea(area, hotspot.readableFocusArea))} onDelete={onDeleteHighlight} zIndex={100} /> : null}
       </> : null}
     </div>
+    {selectedRegion === "focus" && !drawRegion ? <StageGeometryControls area={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} precision={3} aspectRatio={keepAspectRatio ? OUTER_FOCUS_ASPECT_RATIO : null} onChange={onFocusArea} /> : null}
   </div>;
 }
 

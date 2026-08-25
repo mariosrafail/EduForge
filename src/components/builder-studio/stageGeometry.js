@@ -53,7 +53,12 @@ function resizeFreeform(geometry, handle, delta, stage, minimums) {
   return { x: nextLeft, y: nextTop, width: nextRight - nextLeft, height: nextBottom - nextTop };
 }
 
-function resizeWithAspectRatio(geometry, handle, delta, stage, minimums) {
+function validAspectRatio(value) {
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function resizeWithAspectRatio(geometry, handle, delta, stage, minimums, fixedAspectRatio = null) {
+  const ratio = validAspectRatio(fixedAspectRatio) || geometry.width / geometry.height;
   const west = handle.includes("w");
   const north = handle.includes("n");
   const anchorX = west ? geometry.x + geometry.width : geometry.x;
@@ -65,11 +70,13 @@ function resizeWithAspectRatio(geometry, handle, delta, stage, minimums) {
   const candidateScale = Math.abs(widthScale - 1) >= Math.abs(heightScale - 1) ? widthScale : heightScale;
   const maximumWidth = west ? anchorX : stage.width - anchorX;
   const maximumHeight = north ? anchorY : stage.height - anchorY;
-  const minimumScale = Math.max(minimums.width / geometry.width, minimums.height / geometry.height);
-  const maximumScale = Math.max(minimumScale, Math.min(maximumWidth / geometry.width, maximumHeight / geometry.height));
+  const baseWidth = geometry.width;
+  const baseHeight = baseWidth / ratio;
+  const minimumScale = Math.max(minimums.width / baseWidth, minimums.height / baseHeight);
+  const maximumScale = Math.max(minimumScale, Math.min(maximumWidth / baseWidth, maximumHeight / baseHeight));
   const scale = clampStageValue(candidateScale, minimumScale, maximumScale);
-  const width = geometry.width * scale;
-  const height = geometry.height * scale;
+  const width = baseWidth * scale;
+  const height = width / ratio;
   return {
     x: west ? anchorX - width : anchorX,
     y: north ? anchorY - height : anchorY,
@@ -83,6 +90,7 @@ export function resizeStageGeometry(geometry, handle, delta, stage, {
   minWidth = 1,
   minHeight = 1,
   preserveAspectRatio = false,
+  aspectRatio = null,
   precision = DEFAULT_PRECISION,
 } = {}) {
   if (locked || !STAGE_RESIZE_HANDLES.includes(handle)) return { ...geometry };
@@ -91,9 +99,62 @@ export function resizeStageGeometry(geometry, handle, delta, stage, {
     height: clampStageValue(minHeight, 0.001, stage.height),
   };
   const next = preserveAspectRatio
-    ? resizeWithAspectRatio(geometry, handle, delta, stage, minimums)
+    ? resizeWithAspectRatio(geometry, handle, delta, stage, minimums, aspectRatio)
     : resizeFreeform(geometry, handle, delta, stage, minimums);
   return Object.fromEntries(Object.entries(next).map(([key, value]) => [key, roundStageValue(value, precision)]));
+}
+
+export function normalizeStageGeometryAspectRatio(geometry, stage, {
+  aspectRatio,
+  minWidth = 1,
+  minHeight = 1,
+  precision = DEFAULT_PRECISION,
+} = {}) {
+  const ratio = validAspectRatio(aspectRatio);
+  if (!ratio) return { ...geometry };
+  const minimumWidth = Math.max(minWidth, minHeight * ratio);
+  const maximumWidth = Math.min(stage.width, stage.height * ratio);
+  const idealWidth = (geometry.width + geometry.height / ratio) / (1 + 1 / (ratio * ratio));
+  const width = roundStageValue(clampStageValue(idealWidth, Math.min(minimumWidth, maximumWidth), maximumWidth), precision);
+  const height = roundStageValue(width / ratio, precision);
+  const centerX = geometry.x + geometry.width / 2;
+  const centerY = geometry.y + geometry.height / 2;
+  return {
+    x: roundStageValue(clampStageValue(centerX - width / 2, 0, stage.width - width), precision),
+    y: roundStageValue(clampStageValue(centerY - height / 2, 0, stage.height - height), precision),
+    width,
+    height,
+  };
+}
+
+export function updateStageGeometryField(geometry, key, rawValue, stage, {
+  aspectRatio = null,
+  minWidth = 1,
+  minHeight = 1,
+  precision = DEFAULT_PRECISION,
+} = {}) {
+  const value = Number(rawValue);
+  if (!Number.isFinite(value) || !["x", "y", "width", "height"].includes(key)) return { ...geometry };
+  const ratio = validAspectRatio(aspectRatio);
+  if (key === "x" || key === "y") {
+    const maximum = key === "x" ? stage.width - geometry.width : stage.height - geometry.height;
+    return { ...geometry, [key]: roundStageValue(clampStageValue(value, 0, maximum), precision) };
+  }
+  if (!ratio) {
+    const maximum = key === "width" ? stage.width - geometry.x : stage.height - geometry.y;
+    const minimum = key === "width" ? minWidth : minHeight;
+    return { ...geometry, [key]: roundStageValue(clampStageValue(value, minimum, maximum), precision) };
+  }
+  if (key === "width") {
+    const minimum = Math.max(minWidth, minHeight * ratio);
+    const maximum = Math.min(stage.width - geometry.x, (stage.height - geometry.y) * ratio);
+    const width = roundStageValue(clampStageValue(value, Math.min(minimum, maximum), maximum), precision);
+    return { ...geometry, width, height: roundStageValue(width / ratio, precision) };
+  }
+  const minimum = Math.max(minHeight, minWidth / ratio);
+  const maximum = Math.min(stage.height - geometry.y, (stage.width - geometry.x) / ratio);
+  const height = roundStageValue(clampStageValue(value, Math.min(minimum, maximum), maximum), precision);
+  return { ...geometry, width: roundStageValue(height * ratio, precision), height };
 }
 
 export function transformStageGeometry({

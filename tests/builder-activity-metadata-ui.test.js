@@ -65,7 +65,11 @@ test("all Activity Builder editors omit generic instruction controls and preserv
   assert.match(editors[2], /Prompt|Options and private correct answer/);
   assert.match(editors[3], /Full sentence with one marked answer|parseNativeCompleteSentencesMarkedSentence/);
   assert.doesNotMatch(editors[3], /Private correct word or phrase/);
-  assert.match(editors[4], /Public prompt|Transcript text|Teacher-only model answer/);
+  const listeningHelpers = await Promise.all([
+    readFile("src/apps/book-builder/hosted/NativeListeningQuestionAuthoring.jsx", "utf8"),
+    readFile("src/apps/book-builder/hosted/NativeListeningTranscriptAuthoring.jsx", "utf8"),
+  ]);
+  assert.match(`${editors[4]}\n${listeningHelpers.join("\n")}`, /Public prompt|Transcript text|Teacher-only model answer/);
   assert.match(editors[5], /Shared word bank|Teacher-only correct mappings/);
 
   const legacyEditor = await readFile("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx", "utf8");

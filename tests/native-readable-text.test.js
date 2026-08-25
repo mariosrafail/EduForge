@@ -206,6 +206,8 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
   assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Outer readable text focus"/); assert.match(hotspotEditor, /label="Inner colored highlight"/); assert.match(hotspotEditor, /Delete inner highlight/); assert.match(hotspotEditor, /Highlight color/);
+  assert.match(hotspotEditor, /Keep aspect ratio/); assert.match(hotspotEditor, /OUTER_FOCUS_ASPECT_RATIO = 512 \/ 291/); assert.match(hotspotEditor, /aspectRatio=\{keepAspectRatio \? OUTER_FOCUS_ASPECT_RATIO : null\}/); assert.match(hotspotEditor, /<StageGeometryControls/);
+  assert.doesNotMatch(hotspotEditor.match(/label="Inner colored highlight"[^\n]+/)?.[0] || "", /aspectRatio|preserveAspectRatio/);
   assert.match(hotspotEditor, /NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS\.map/); assert.match(hotspotEditor, /data-studio-stage/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
   assert.match(pages, /nativeVideoAvailable/); assert.match(pages, /nativeVideoAvailable \? sendActivityCommand\("toggle-video"\)/); assert.match(pages, /activeIconName: "showTextPressed"/);

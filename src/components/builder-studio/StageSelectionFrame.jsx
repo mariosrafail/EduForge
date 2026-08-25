@@ -17,6 +17,7 @@ export function StageSelectionFrame({
   minWidth = 16,
   minHeight = 16,
   preserveAspectRatio = false,
+  aspectRatio = null,
   moveFromGrip = false,
   onChange,
   onClear,
@@ -64,6 +65,7 @@ export function StageSelectionFrame({
       minWidth,
       minHeight,
       preserveAspectRatio,
+      aspectRatio,
       locked,
     });
     transientRef.current = next;

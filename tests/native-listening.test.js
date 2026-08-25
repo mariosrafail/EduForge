@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { findNativeListeningCue, formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt, resolveNativeListeningHighlightedCueIds, transcriptScrollTarget } from "../src/components/native-listening/nativeListeningRuntime.js";
 import { normalizeNativeActivityPublic } from "../src/data/native-activities/nativeActivityPublic.js";
 import { normalizeNativeActivityTeacher } from "../src/data/native-activities/nativeActivityTeacher.js";
-import { assessNativeListeningReadiness, nativeListeningAssetRequirements, normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "../src/data/native-activities/nativeListening.js";
+import { assessNativeListeningReadiness, createEmptyNativeListeningInteraction, initialNativeListeningArtworkArea, nativeListeningAssetRequirements, normalizeNativeListeningInteraction, normalizeNativeListeningSolution, validateNativeListeningTopology } from "../src/data/native-activities/nativeListening.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
@@ -47,6 +47,14 @@ test("Listening is a canonical registered native kind with strict paired default
   assert.equal(publicDocument.parts[0].interaction.panels.length, 2);
   assert.equal(teacherDocument.parts[0].solution.kind, "listening");
   assert.equal(definition.assessReadiness(publicDocument, teacherDocument).ready, false);
+  assert.deepEqual(createEmptyNativeListeningInteraction().panels[1], { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, transcriptArea: { x: 82, y: 47, width: 860, height: 489 } });
+});
+
+test("only the first exact-size Listening artwork defaults to the full question stage", () => {
+  const surface = { width: 1024, height: 582 };
+  assert.deepEqual(initialNativeListeningArtworkArea(surface, { width: 1024, height: 582 }, 0), { x: 0, y: 0, width: 1024, height: 582 });
+  assert.notDeepEqual(initialNativeListeningArtworkArea(surface, { width: 1024, height: 582 }, 1), { x: 0, y: 0, width: 1024, height: 582 });
+  assert.notDeepEqual(initialNativeListeningArtworkArea(surface, { width: 800, height: 600 }, 0), { x: 0, y: 0, width: 1024, height: 582 });
 });
 
 test("Listening public and Teacher documents normalize, remain separated, and are ready", () => {
@@ -156,11 +164,14 @@ test("Listening transcript scrolling preserves a comfort zone and clamps bounds"
   assert.equal(transcriptScrollTarget({ cueTop: 980, cueBottom: 1_010, scrollTop: 700, viewportHeight: 300, scrollHeight: 1_000 }), 700);
 });
 
-test("Listening renders imported markup through React text nodes without an HTML execution sink", async () => {
-  const [source, css, player] = await Promise.all([
+test("Listening renders imported markup in one stable full stage without an HTML execution sink", async () => {
+  const [source, css, player, editor, questionAuthoring, transcriptAuthoring] = await Promise.all([
     readFile(new URL("../src/components/native-listening/NativeListeningSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-listening/nativeListening.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/listening-player/LegacyListeningPlayer.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeListeningEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeListeningQuestionAuthoring.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeListeningTranscriptAuthoring.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(source, /\{cue\.text\}/);
   assert.doesNotMatch(source, /dangerouslySetInnerHTML|innerHTML|insertAdjacentHTML/);
@@ -177,6 +188,14 @@ test("Listening renders imported markup through React text nodes without an HTML
   assert.match(player, /Stop Listening audio/);
   assert.match(player, /Mute Listening audio/);
   assert.match(css, /native-listening-player-anchor \{ position: absolute; z-index: 120; right: 24px; bottom: 18px/);
+  assert.match(source, /native-listening-activity-stage/);
+  assert.match(css, /native-listening-activity-stage[^}]*100cqw[^}]*100cqh/);
+  assert.match(css, /native-listening-transcript-stage[^}]*width: 100%; height: 100%/);
+  assert.doesNotMatch(css, /padding[^;}]*118px|padding-bottom:\s*96px/);
+  assert.match(editor, /NativeListeningTranscriptAuthoring/);
+  assert.match(transcriptAuthoring, /<StageGeometryControls[\s\S]*Listening transcript region/);
+  assert.match(questionAuthoring, /<StageGeometryControls/);
+  for (const type of ["prompt", "response", "artwork", "snippet"]) assert.match(questionAuthoring, new RegExp(type));
   assert.doesNotMatch(css, /720px/);
   assert.doesNotMatch(css, /position:fixed/);
 });
