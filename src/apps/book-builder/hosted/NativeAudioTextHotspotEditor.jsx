@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Headphones, Trash2, Upload } from "lucide-react";
 
 import { NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
@@ -73,28 +73,36 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
 }
 
 function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlightArea, onDeleteHighlight }) {
-  const [start, setStart] = useState(null);
+  const gesture = useRef(null);
   const [selectedRegion, setSelectedRegion] = useState(nativeAudioTextReadableHighlightArea(hotspot) ? "highlight" : "focus");
   const [drawRegion, setDrawRegion] = useState(null);
   const bounds = { width: readableText.sourceWidth, height: readableText.sourceHeight };
   const highlight = nativeAudioTextReadableHighlightArea(hotspot);
-  const select = (region) => { setSelectedRegion(region); setDrawRegion(null); };
-  const finishDraw = (event) => {
-    if (!start || !drawRegion) return;
+  const select = (region) => { gesture.current = null; setSelectedRegion(region); setDrawRegion(null); };
+  const armDraw = (region) => { gesture.current = null; setSelectedRegion(region); setDrawRegion(region); };
+  const beginDraw = (event) => {
+    if (!drawRegion) return;
+    gesture.current = { pointerId: event.pointerId, region: drawRegion, hotspotId: hotspot.id, start: pointInSource(event, bounds), focusArea: { ...hotspot.readableFocusArea } };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const finishDraw = (event, cancelled = false) => {
+    const active = gesture.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    gesture.current = null;
+    if (cancelled || active.hotspotId !== hotspot.id) return;
     const end = pointInSource(event, bounds);
-    const area = { x: Math.round(Math.min(start.x, end.x)), y: Math.round(Math.min(start.y, end.y)), width: Math.round(Math.abs(start.x - end.x)), height: Math.round(Math.abs(start.y - end.y)) };
-    setStart(null);
+    const area = { x: Math.round(Math.min(active.start.x, end.x)), y: Math.round(Math.min(active.start.y, end.y)), width: Math.round(Math.abs(active.start.x - end.x)), height: Math.round(Math.abs(active.start.y - end.y)) };
     if (area.width < 16 || area.height < 16) return;
-    if (drawRegion === "focus") onFocusArea(area);
-    else onHighlightArea(containedArea(area, hotspot.readableFocusArea));
-    setSelectedRegion(drawRegion);
+    if (active.region === "focus") onFocusArea(area);
+    else onHighlightArea(containedArea(area, active.focusArea));
+    setSelectedRegion(active.region);
     setDrawRegion(null);
   };
   return <div className="native-audio-hotspot-focus-authoring">
     <div className="native-audio-hotspot-focus-tools" aria-label="Readable text rectangle tools">
       <button type="button" className="studio-button" aria-pressed={selectedRegion === "focus" && !drawRegion} onClick={() => select("focus")}>Select outer focus</button>
-      <button type="button" className="studio-button" aria-pressed={drawRegion === "focus"} onClick={() => { setSelectedRegion("focus"); setDrawRegion("focus"); }}>Redraw outer focus</button>
-      {highlight ? <><button type="button" className="studio-button" aria-pressed={selectedRegion === "highlight" && !drawRegion} onClick={() => select("highlight")}>Select inner highlight</button><button type="button" className="studio-button" aria-pressed={drawRegion === "highlight"} onClick={() => { setSelectedRegion("highlight"); setDrawRegion("highlight"); }}>Redraw inner highlight</button><button type="button" className="studio-button studio-button--danger-ghost" onClick={() => { onDeleteHighlight(); setSelectedRegion("focus"); setDrawRegion(null); }}>Delete inner highlight</button></> : <button type="button" className="studio-button" onClick={() => { onHighlightArea(nativeAudioTextReadableHighlightArea({ readableFocusArea: hotspot.readableFocusArea })); setSelectedRegion("highlight"); }}>Add inner highlight</button>}
+      <button type="button" className="studio-button" aria-pressed={drawRegion === "focus"} onClick={() => armDraw("focus")}>Redraw outer focus</button>
+      {highlight ? <><button type="button" className="studio-button" aria-pressed={selectedRegion === "highlight" && !drawRegion} onClick={() => select("highlight")}>Select inner highlight</button><button type="button" className="studio-button" aria-pressed={drawRegion === "highlight"} onClick={() => armDraw("highlight")}>Redraw inner highlight</button><button type="button" className="studio-button studio-button--danger-ghost" onClick={() => { gesture.current = null; onDeleteHighlight(); setSelectedRegion("focus"); setDrawRegion(null); }}>Delete inner highlight</button></> : <button type="button" className="studio-button" onClick={() => { gesture.current = null; onHighlightArea(nativeAudioTextReadableHighlightArea({ readableFocusArea: hotspot.readableFocusArea })); setSelectedRegion("highlight"); }}>Add inner highlight</button>}
     </div>
     <div
       className={`native-audio-hotspot-focus-editor${drawRegion ? " is-drawing" : ""}`}
@@ -102,9 +110,9 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
       data-studio-stage
       data-highlight-color={nativeAudioTextHighlightColor(hotspot?.highlightColor)}
       data-selected-region={selectedRegion}
-      onPointerDown={(event) => { if (!drawRegion) return; event.currentTarget.setPointerCapture?.(event.pointerId); setStart(pointInSource(event, bounds)); }}
-      onPointerUp={finishDraw}
-      onPointerCancel={() => setStart(null)}
+      onPointerDown={beginDraw}
+      onPointerUp={(event) => finishDraw(event)}
+      onPointerCancel={(event) => finishDraw(event, true)}
       role="group"
       aria-label="Readable text focus and highlight regions"
     >
