@@ -593,7 +593,7 @@ try {
   };
   await audioEditor.getByRole("button", { name: "Add audio hotspot" }).click(); await page.waitForFunction(() => [...document.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Save Draft" && button.disabled)); assert.equal(await page.getByRole("button", { name: "Save Draft" }).isDisabled(), true); await audioEditor.getByRole("button", { name: "Remove hotspot" }).click();
   await placeAudioHotspot({ label: "Listen to opening excerpt", marker: 1, activityX: .16, focusStart: [.08, .08], focusEnd: [.88, .27] });
-  assert.equal(await audioEditor.getByRole("button", { name: /Resize Outer readable text focus from/ }).count(), 4);
+  const outerFocusSelection = audioEditor.getByRole("group", { name: "Outer readable text focus selected", exact: true }); await outerFocusSelection.waitFor(); assert.equal(await outerFocusSelection.getByRole("button", { name: /Resize Outer readable text focus from/ }).count(), 4);
   for (const corner of ["top left", "top right", "bottom right", "bottom left"]) {
     const handle = audioEditor.getByRole("button", { name: `Resize Outer readable text focus from ${corner}` }); const box = await handle.boundingBox(); assert.ok(box);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + (corner.includes("left") ? -4 : 4), box.y + box.height / 2 + (corner.includes("top") ? -3 : 3)); await page.mouse.up();
