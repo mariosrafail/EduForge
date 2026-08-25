@@ -5,7 +5,9 @@ import { createServer } from "node:http";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
-import { compilePublicationV2Fixture, publicationV2Fixture } from "../../tests/fixtures/publication-v2.js";
+import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
+import { createPublicationV2FixtureSources, publicationV2Fixture } from "../../tests/fixtures/publication-v2.js";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
@@ -13,6 +15,9 @@ const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const activityId = publicationV2Fixture.openResponseId;
 const imageActivityId = publicationV2Fixture.imageId;
 const dragDropActivityId = publicationV2Fixture.dragDropId;
+const listeningActivityId = "ultimate-b2-sb-u1-p1-o95";
+const listeningAudio = { assetId: "10000000-0000-4000-8000-000000000051", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "publication-listening-audio" };
+const listeningBackground = { assetId: "10000000-0000-4000-8000-000000000052", checksumSha256: "f".repeat(64), role: "activity_artwork", slot: "publication-listening-background" };
 const unitExtraMp4 = await readFile(path.resolve("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"));
 const releaseIds = ["10000000-0000-4000-8000-000000000091", "10000000-0000-4000-8000-000000000092"];
 const publication = "/builder/api/publication/books/ultimate-b2/components/ultimate-b2-students-book";
@@ -83,7 +88,24 @@ process.on("exit", (code) => lifecycle("process-exit", { code, phase: lifecycleP
 lifecycle("process-start", { platform: process.platform, arch: process.arch, node: process.version });
 
 function projection(prompt) {
-  const compiled = compilePublicationV2Fixture({ prompt });
+  const sources = createPublicationV2FixtureSources({ prompt });
+  const questionId = `q-${"5".repeat(32)}`; const cueOne = `cue-${"6".repeat(32)}`; const cueTwo = `cue-${"7".repeat(32)}`;
+  const publicDocument = {
+    schemaVersion: "1.0", activityId: listeningActivityId, kind: "listening", metadata: { title: "Published Listening Panels", visibleInstructionText: "" }, placement: { pageId: publicationV2Fixture.pageId }, assets: [listeningAudio, listeningBackground],
+    parts: [{ id: "part-1", interaction: { kind: "listening", audioAssetSlot: listeningAudio.slot, audioDurationMs: 12_000, panels: [{ id: "panel-1", kind: "questions", sourceWidth: 1024, sourceHeight: 582 }, { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: listeningBackground.slot, sourceWidth: 1000, sourceHeight: 1800, transcriptArea: { x: 100, y: 120, width: 800, height: 1500 } }], questions: [{ id: questionId, prompt: "Published listening question" }], cues: [{ id: cueOne, startMs: 0, endMs: 3_000, text: "Published transcript first line" }, { id: cueTwo, startMs: 4_000, endMs: 8_000, text: "Published transcript second line" }], snippetHotspots: [{ id: `aud-${"8".repeat(32)}`, area: { x: 900, y: 30, width: 48, height: 48 }, cueIds: [cueOne], label: "Open published transcript" }] } }],
+  };
+  const teacherDocument = { schemaVersion: "1.0", activityId: listeningActivityId, kind: "listening", parts: [{ id: "part-1", solution: { kind: "listening", modelAnswers: [{ questionId, text: "Published listening teacher answer" }] } }] };
+  const entry = { activityId: listeningActivityId, kind: "listening", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 5 };
+  const source = (payload, revision = 1) => ({ payload, revision, sha256: builderDocumentSha256(payload) });
+  sources.native.index.payload.activities.push(entry); sources.native.index = source(sources.native.index.payload, sources.native.index.revision);
+  sources.native.activities[listeningActivityId] = { index: entry, public: source(publicDocument), teacher: source(teacherDocument) };
+  sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId].push({ id: "hotspot-native-listening", unitNumber: 1, pageId: publicationV2Fixture.pageId, pageNumber: 5, left: 68, top: 4, width: 12, height: 12, label: "Published Listening Panels", actionType: "normalized_activity", activityKey: listeningActivityId });
+  sources.documents.hotspots = source(sources.documents.hotspots.payload, sources.documents.hotspots.revision);
+  sources.native.assetRows.push(
+    { id: listeningAudio.assetId, checksum_sha256: listeningAudio.checksumSha256, asset_role: listeningAudio.role, object_key: "builder-native-assets/publication-listening.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 32_000, duration_seconds: 12, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: listeningActivityId, asset_slot: listeningAudio.slot } },
+    { id: listeningBackground.assetId, checksum_sha256: listeningBackground.checksumSha256, asset_role: listeningBackground.role, object_key: "builder-native-assets/publication-listening.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 68, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: listeningActivityId, asset_slot: listeningBackground.slot } },
+  );
+  const compiled = compileUltimateB2ComponentReleaseV2(sources);
   return { publicProjection: compiled.publicProjection, teacherProjection: compiled.teacherProjection, sourceSnapshot: compiled.sourceSnapshot, compatibility: compiled.compatibility, releaseSha256: compiled.releaseSha256 };
 }
 function sourceSha() { return `${sourceVersion}`.repeat(64).slice(0, 64); }
@@ -306,13 +328,21 @@ try {
   assert.equal(await publishedViewer.getByText("Inspect both composed image layers.", { exact: true }).count(), 0);
   assert.equal(await publishedViewer.locator(".native-image-surface img").count(), 2);
   assert.deepEqual(await publishedViewer.locator(".native-image-surface img").evaluateAll((images) => images.map((image) => image.style.objectFit)), ["contain", "cover"]);
+  await publishedViewer.getByRole("button", { name: "Back", exact: true }).click();
+  await publishedViewer.getByRole("button", { name: "Published Listening Panels", exact: true }).click();
+  const publishedListening = publishedViewer.locator('.published-native-activity[data-native-kind="listening"] .native-listening'); await publishedListening.waitFor();
+  await publishedListening.getByText("Published listening question", { exact: true }).waitFor();
+  const previousListeningPanel = publishedViewer.getByRole("button", { name: "Previous activity part", exact: true }); const nextListeningPanel = publishedViewer.getByRole("button", { name: "Next activity part", exact: true }); await previousListeningPanel.waitFor(); await nextListeningPanel.waitFor(); assert.equal(await previousListeningPanel.isDisabled(), true); assert.equal(await nextListeningPanel.isDisabled(), false);
+  await nextListeningPanel.click(); await publishedListening.getByText("Published transcript first line", { exact: true }).waitFor(); assert.equal(await publishedListening.getAttribute("data-view"), "transcript"); assert.equal(await previousListeningPanel.isDisabled(), false); assert.equal(await nextListeningPanel.isDisabled(), true);
+  await previousListeningPanel.click(); await publishedListening.getByText("Published listening question", { exact: true }).waitFor(); assert.equal(await publishedListening.getAttribute("data-view"), "questions");
   assert.equal(activeReleaseId, releaseIds[1]);
   assert.equal(releases[0].publicProjection.nativeActivities[activityId].document.parts[0].interaction.questions[0].prompt, "Draft version A");
   assert.equal(releases[1].publicProjection.nativeActivities[activityId].document.parts[0].interaction.questions[0].prompt, "Draft version B");
   assert.doesNotMatch(JSON.stringify(releases[1].publicProjection), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.equal(releases[1].publicProjection.nativeActivities[imageActivityId].document.parts[0].interaction.images.length, 2);
+  assert.equal(releases[1].publicProjection.nativeActivities[listeningActivityId].document.parts[0].interaction.panels.length, 2);
   lifecycle("acceptance-complete");
-  process.stdout.write("Immutable publication acceptance passed for Unit Extras, Drag & Drop geometry, Open Response/Image, stale blocking, exact publish, and private Teacher reveal.\n");
+  process.stdout.write("Immutable publication acceptance passed for Unit Extras, Drag & Drop geometry, Open Response/Image, Listening panels, stale blocking, exact publish, and private Teacher reveal.\n");
 } catch (error) {
   lifecycle("test-error", {
     name: error?.name || "Error",

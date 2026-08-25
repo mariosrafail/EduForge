@@ -6,7 +6,7 @@ import { NativeOpenResponseSurface } from "../../../components/native-open-respo
 import { NativeAudioTextFocusContent, nativeAudioHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { logicalAreaStyle } from "../../../components/builder-studio/stageGeometry.js";
-import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
@@ -23,6 +23,17 @@ function defaultFocusArea(readableText) {
   const width = Math.max(16, Math.round(readableText.sourceWidth * 0.88));
   const height = Math.max(16, Math.round(Math.min(readableText.sourceHeight * 0.24, width * 0.7)));
   return { x: Math.round((readableText.sourceWidth - width) / 2), y: 0, width, height };
+}
+
+function containedArea(area, outer) {
+  const width = Math.min(outer.width, Math.max(1, Math.round(area.width)));
+  const height = Math.min(outer.height, Math.max(1, Math.round(area.height)));
+  return {
+    x: Math.round(clamp(area.x, outer.x, outer.x + outer.width - width)),
+    y: Math.round(clamp(area.y, outer.y, outer.y + outer.height - height)),
+    width,
+    height,
+  };
 }
 
 function pointInSource(event, source) {
@@ -61,41 +72,50 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
   </div>;
 }
 
-function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea }) {
+function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlightArea, onDeleteHighlight }) {
   const [start, setStart] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState(nativeAudioTextReadableHighlightArea(hotspot) ? "highlight" : "focus");
+  const [drawRegion, setDrawRegion] = useState(null);
   const bounds = { width: readableText.sourceWidth, height: readableText.sourceHeight };
-  return <div
-    className="native-audio-hotspot-focus-editor"
-    style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}
-    data-studio-stage
-    data-highlight-color={nativeAudioTextHighlightColor(hotspot?.highlightColor)}
-    onPointerDown={(event) => { event.currentTarget.setPointerCapture?.(event.pointerId); setStart(pointInSource(event, bounds)); }}
-    onPointerUp={(event) => {
-      if (!start) return;
-      const end = pointInSource(event, bounds);
-      const x = Math.round(Math.min(start.x, end.x));
-      const y = Math.round(Math.min(start.y, end.y));
-      const width = Math.round(Math.abs(start.x - end.x));
-      const height = Math.round(Math.abs(start.y - end.y));
-      setStart(null);
-      if (width >= 16 && height >= 16) onFocusArea({ x, y, width, height });
-    }}
-    onPointerCancel={() => setStart(null)}
-    role="group"
-    aria-label="Draw readable text focus region"
-  >
-    <img src={imageUrl} alt={readableText.altText} draggable="false" />
-    {hotspot ? <>
-      <span className="native-audio-hotspot-focus-box" style={logicalAreaStyle(hotspot.readableFocusArea, bounds)} />
-      <StageSelectionFrame
-        geometry={hotspot.readableFocusArea}
-        stage={bounds}
-        label="Readable text focus"
-        minWidth={16}
-        minHeight={16}
-        onChange={(area) => onFocusArea(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))}
-      />
-    </> : null}
+  const highlight = nativeAudioTextReadableHighlightArea(hotspot);
+  const select = (region) => { setSelectedRegion(region); setDrawRegion(null); };
+  const finishDraw = (event) => {
+    if (!start || !drawRegion) return;
+    const end = pointInSource(event, bounds);
+    const area = { x: Math.round(Math.min(start.x, end.x)), y: Math.round(Math.min(start.y, end.y)), width: Math.round(Math.abs(start.x - end.x)), height: Math.round(Math.abs(start.y - end.y)) };
+    setStart(null);
+    if (area.width < 16 || area.height < 16) return;
+    if (drawRegion === "focus") onFocusArea(area);
+    else onHighlightArea(containedArea(area, hotspot.readableFocusArea));
+    setSelectedRegion(drawRegion);
+    setDrawRegion(null);
+  };
+  return <div className="native-audio-hotspot-focus-authoring">
+    <div className="native-audio-hotspot-focus-tools" aria-label="Readable text rectangle tools">
+      <button type="button" className="studio-button" aria-pressed={selectedRegion === "focus" && !drawRegion} onClick={() => select("focus")}>Select outer focus</button>
+      <button type="button" className="studio-button" aria-pressed={drawRegion === "focus"} onClick={() => { setSelectedRegion("focus"); setDrawRegion("focus"); }}>Redraw outer focus</button>
+      {highlight ? <><button type="button" className="studio-button" aria-pressed={selectedRegion === "highlight" && !drawRegion} onClick={() => select("highlight")}>Select inner highlight</button><button type="button" className="studio-button" aria-pressed={drawRegion === "highlight"} onClick={() => { setSelectedRegion("highlight"); setDrawRegion("highlight"); }}>Redraw inner highlight</button><button type="button" className="studio-button studio-button--danger-ghost" onClick={() => { onDeleteHighlight(); setSelectedRegion("focus"); setDrawRegion(null); }}>Delete inner highlight</button></> : <button type="button" className="studio-button" onClick={() => { onHighlightArea(nativeAudioTextReadableHighlightArea({ readableFocusArea: hotspot.readableFocusArea })); setSelectedRegion("highlight"); }}>Add inner highlight</button>}
+    </div>
+    <div
+      className={`native-audio-hotspot-focus-editor${drawRegion ? " is-drawing" : ""}`}
+      style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}
+      data-studio-stage
+      data-highlight-color={nativeAudioTextHighlightColor(hotspot?.highlightColor)}
+      data-selected-region={selectedRegion}
+      onPointerDown={(event) => { if (!drawRegion) return; event.currentTarget.setPointerCapture?.(event.pointerId); setStart(pointInSource(event, bounds)); }}
+      onPointerUp={finishDraw}
+      onPointerCancel={() => setStart(null)}
+      role="group"
+      aria-label="Readable text focus and highlight regions"
+    >
+      <img src={imageUrl} alt={readableText.altText} draggable="false" />
+      {hotspot ? <>
+        <button type="button" className="native-audio-hotspot-focus-box" style={logicalAreaStyle(hotspot.readableFocusArea, bounds)} aria-label="Select outer focus" onPointerDown={(event) => event.stopPropagation()} onClick={() => select("focus")} />
+        {highlight ? <button type="button" className="native-audio-hotspot-highlight-box" style={logicalAreaStyle(highlight, bounds)} aria-label="Select inner highlight" onPointerDown={(event) => event.stopPropagation()} onClick={() => select("highlight")} /> : null}
+        {!drawRegion && selectedRegion === "focus" ? <StageSelectionFrame geometry={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} onChange={(area) => onFocusArea(Object.fromEntries(Object.entries(area).map(([key, value]) => [key, Math.round(value)])))} /> : null}
+        {!drawRegion && selectedRegion === "highlight" && highlight ? <StageSelectionFrame geometry={highlight} stage={bounds} label="Inner colored highlight" minWidth={Math.min(16, hotspot.readableFocusArea.width)} minHeight={Math.min(16, hotspot.readableFocusArea.height)} onChange={(area) => onHighlightArea(containedArea(area, hotspot.readableFocusArea))} onDelete={onDeleteHighlight} zIndex={100} /> : null}
+      </> : null}
+    </div>
   </div>;
 }
 
@@ -127,11 +147,13 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
     const target = targets[0];
     mutatePublic((next) => {
       next.audioTextHotspots ||= { hotspots: [] };
+      const readableFocusArea = defaultFocusArea(next.readableText);
       next.audioTextHotspots.hotspots.push({
         id,
         panelId: target.panelId,
         activityArea: defaultActivityArea(target),
-        readableFocusArea: defaultFocusArea(next.readableText),
+        readableFocusArea,
+        readableHighlightArea: nativeAudioTextReadableHighlightArea({ readableFocusArea }),
         audioAssetSlot: "",
         label: `Listen to excerpt ${next.audioTextHotspots.hotspots.length + 1}`,
       });
@@ -180,7 +202,7 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
         hotspot.activityArea.x = Math.round(clamp(point.x - hotspot.activityArea.width / 2, 0, selectedTarget.width - hotspot.activityArea.width));
         hotspot.activityArea.y = Math.round(clamp(point.y - hotspot.activityArea.height / 2, 0, selectedTarget.height - hotspot.activityArea.height));
       })} /></div>
-      <div><h4>2. Draw readable-text focus</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; })} /></div>
+      <div><h4>2. Set transparent focus and colored highlight</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; if (hotspot.readableHighlightArea) hotspot.readableHighlightArea = containedArea(hotspot.readableHighlightArea, area); })} onHighlightArea={(area) => updateSelected((hotspot) => { hotspot.readableHighlightArea = containedArea(area, hotspot.readableFocusArea); })} onDeleteHighlight={() => updateSelected((hotspot) => { hotspot.readableHighlightArea = null; })} /></div>
       <fieldset className="native-audio-hotspot-highlight-colors">
         <legend>Highlight color</legend>
         {NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.map((color) => <label key={color} data-highlight-color={color}>

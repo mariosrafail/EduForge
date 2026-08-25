@@ -20,7 +20,7 @@
 .native-audio-text-focus-crop[data-highlight-color="green"] { --native-highlight-color: 101 214 146; }
 .native-audio-text-focus-crop[data-highlight-color="cyan"] { --native-highlight-color: 91 205 230; }
 .native-audio-text-focus-crop[data-highlight-color="pink"] { --native-highlight-color: 244 132 182; }
-.native-audio-text-focus-crop::after { content: ""; position: absolute; inset: 0; border: 2px solid rgb(var(--native-highlight-color) / 82%); background: rgb(var(--native-highlight-color) / 22%); pointer-events: none; }
+.native-audio-text-focus-highlight { position: absolute; box-sizing: border-box; border: 2px solid rgb(var(--native-highlight-color) / 82%); background: rgb(var(--native-highlight-color) / 22%); pointer-events: none; }
 .native-audio-text-focus-crop svg { display: block; width: 100%; height: 100%; }
 .native-audio-text-hotspot { position: absolute; z-index: 50; box-sizing: border-box; display: grid; place-items: center; padding: 0; overflow: visible; border: 0; border-radius: 50%; background: transparent; box-shadow: 0 2px 7px rgb(0 0 0 / 30%); cursor: pointer; }
 .native-audio-text-hotspot img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -34,7 +34,7 @@
 .native-readable-text-scroll-control:focus-visible { outline: 3px solid #ffdc42; outline-offset: 3px; }
 .native-readable-text-scroll-thumb { position: absolute; top: calc((100% - var(--scroll-thumb-size)) * var(--scroll-progress)); left: 2px; display: block; width: 12px; height: var(--scroll-thumb-size); min-height: 24px; background: #fff; border-radius: 999px; box-shadow: 0 1px 4px rgb(15 23 42 / 40%); cursor: grab; }
 .native-readable-text-scroll-thumb:active { cursor: grabbing; }
-.native-video-presentation-view { box-sizing: border-box; width: 100%; height: 100%; min-height: 0; padding: clamp(6px, 1vw, 14px); background: #111827; }
+.native-video-presentation-view { box-sizing: border-box; width: 100%; height: 100%; min-height: 0; overflow: hidden; background: #111827; }
 .native-supplementary-navigation { position: absolute; right: 14px; bottom: 14px; z-index: 12; display: flex; gap: 8px; }
 .native-supplementary-navigation button { min-height: 42px; padding: 8px 15px; color: #fff; background: #183b63; border: 2px solid rgb(255 255 255 / 76%); border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 28%); font-weight: 800; cursor: pointer; }
 .native-supplementary-navigation button[aria-pressed="true"] { color: #13233a; background: #ffdc42; }

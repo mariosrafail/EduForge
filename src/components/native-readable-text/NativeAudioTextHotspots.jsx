@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import audioHotspotActive from "../../assets/native-activities/audio-text-hotspot-active.svg";
 import audioHotspotPressed from "../../assets/native-activities/audio-text-hotspot-pressed.svg";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
-import { nativeAudioTextHighlightColor } from "../../data/native-activities/nativeAudioTextHotspots.js";
+import { nativeAudioTextHighlightColor, nativeAudioTextReadableHighlightArea } from "../../data/native-activities/nativeAudioTextHotspots.js";
 
 export const nativeAudioHotspotArtwork = Object.freeze({ active: audioHotspotActive, pressed: audioHotspotPressed });
 
@@ -36,6 +36,13 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
   }, [autoPlay, hotspot?.id]);
   if (!hotspot || !readableReference || !audioReference) return null;
   const focus = hotspot.readableFocusArea;
+  const highlight = nativeAudioTextReadableHighlightArea(hotspot);
+  const highlightStyle = highlight ? {
+    left: `${(highlight.x - focus.x) / focus.width * 100}%`,
+    top: `${(highlight.y - focus.y) / focus.height * 100}%`,
+    width: `${highlight.width / focus.width * 100}%`,
+    height: `${highlight.height / focus.height * 100}%`,
+  } : null;
   return <section className="native-audio-text-focus" aria-label={`Focused readable text: ${hotspot.label}`}>
     <div
       className="native-audio-text-focus-crop"
@@ -45,6 +52,7 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
       <svg viewBox={`${focus.x} ${focus.y} ${focus.width} ${focus.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`${document.readableText.altText}: ${hotspot.label}`}>
         <image href={assetUrl(readableReference.assetId)} x="0" y="0" width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} preserveAspectRatio="xMidYMid meet" />
       </svg>
+      {highlightStyle ? <span className="native-audio-text-focus-highlight" style={highlightStyle} aria-hidden="true" /> : null}
     </div>
     <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} />
   </section>;

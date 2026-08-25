@@ -43,7 +43,7 @@ export function PublishedNativeActivityRunner({ entry, publication, teacherMode 
     {entry.kind === "complete-sentences" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {entry.kind === "complete-sentences" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
     {entry.kind === "complete-sentences" && teacherMode && teacherState.document ? <NativeCompleteSentencesTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
-    {entry.kind === "listening" && !teacherMode ? <NativeListeningStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
+    {entry.kind === "listening" && !teacherMode ? <NativeListeningStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} presentation={activityPresentation} /> : null}
     {entry.kind === "listening" && teacherMode && teacherState.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {entry.kind === "listening" && teacherMode && teacherState.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {entry.kind === "listening" && teacherMode && teacherState.document ? <NativeListeningTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}

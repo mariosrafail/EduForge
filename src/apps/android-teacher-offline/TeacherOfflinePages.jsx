@@ -113,7 +113,7 @@ export default function TeacherOfflinePages({
   const [activityVideoOpen, setActivityVideoOpen] = useState(false);
   const [listeningView, setListeningView] = useState("questions");
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
-  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, reveal: null, readableTextAvailable: false, videoAvailable: false, audioFocusActive: false });
+  const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, panelNavigationActive: false, reveal: null, readableTextAvailable: false, videoAvailable: false, audioFocusActive: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
   const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
   const pageExtraVideos = useMemo(() => unitExtrasForPage(publication, { unitNumber: unit?.number, pageId: page?.id }), [page?.id, publication, unit?.number]);
@@ -123,6 +123,7 @@ export default function TeacherOfflinePages({
       current.view === next.view
       && current.panelIndex === next.panelIndex
       && current.panelCount === next.panelCount
+      && current.panelNavigationActive === next.panelNavigationActive
       && current.readableTextAvailable === next.readableTextAvailable
       && current.videoAvailable === next.videoAvailable
       && current.audioFocusActive === next.audioFocusActive
@@ -148,6 +149,7 @@ export default function TeacherOfflinePages({
       view: "questions",
       panelIndex: 0,
       panelCount: embeddedActivityId === "ultimate-b2-sb-u1-p2-o3" ? 2 : readingPresentationFeatures.internalPartCount,
+      panelNavigationActive: false,
       reveal: null,
       readableTextAvailable: false,
       videoAvailable: false,
@@ -391,8 +393,8 @@ export default function TeacherOfflinePages({
   }] : [])];
   const contextActions = [...revealActions, ...standardContextActions];
   const internalNavigation = activityActive && activityPresentationState.panelCount > 1 ? {
-    previousDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex <= 0,
-    nextDisabled: activityPresentationState.view !== "questions" || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
+    previousDisabled: (!activityPresentationState.panelNavigationActive && activityPresentationState.view !== "questions") || activityPresentationState.panelIndex <= 0,
+    nextDisabled: (!activityPresentationState.panelNavigationActive && activityPresentationState.view !== "questions") || activityPresentationState.panelIndex >= activityPresentationState.panelCount - 1,
     onPrevious: () => sendActivityCommand("previous-panel"),
     onNext: () => sendActivityCommand("next-panel"),
   } : null;

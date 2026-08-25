@@ -92,7 +92,9 @@ test("Native Image learner content renders below the surface as semantic selecta
     assert.match(markup, /The library closes at 4:30 p\.m\.\nPlease return books first\./);
     assert.doesNotMatch(markup, /dangerouslySetInnerHTML|textarea/);
     const oldMarkup = renderToStaticMarkup(React.createElement(NativeImagePresentation, { document: imageDocument({ images: [image("image-1")] }), assetUrl: () => "/fixture.png" }));
-    assert.doesNotMatch(oldMarkup, /native-image-presentation|native-image-content-text/);
+    assert.match(oldMarkup, /native-image-presentation/);
+    assert.match(oldMarkup, /native-image-stage-slot/);
+    assert.doesNotMatch(oldMarkup, /native-image-content-text/);
   });
 });
 

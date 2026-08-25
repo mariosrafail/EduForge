@@ -127,12 +127,14 @@ export function NativeListeningSurface({ publicDocument, teacherDocument = null,
       audioRef.current?.pause(); if (audioRef.current) audioRef.current.currentTime = 0;
       finishedRef.current = false; setCurrentMs(0); setView("questions"); setFocusMode("playback"); setFocusedCueIds([]); setActiveSnippet(null);
     }
+    if (command.type === "previous-panel") { setView("questions"); setFocusMode("playback"); setFocusedCueIds([]); setActiveSnippet(null); }
+    if (command.type === "next-panel") { setView("transcript"); setFocusMode("playback"); setFocusedCueIds([]); setActiveSnippet(null); }
     if (command.type === "toggle-text") { setView((current) => current === "transcript" ? "questions" : "transcript"); setFocusMode("playback"); setFocusedCueIds([]); setActiveSnippet(null); }
   }, [presentation?.command]);
 
   useEffect(() => {
-    presentation?.onStateChange?.({ view: view === "transcript" ? "text" : "questions", readableTextAvailable: true, panelIndex: 0, panelCount: 1, reveal: teacherDocument ? revealState : { supported: false, total: 0, revealed: 0, pristine: true } });
-  }, [presentation?.onStateChange, revealState, teacherDocument, view]);
+    presentation?.onStateChange?.({ view: view === "transcript" ? "text" : "questions", readableTextAvailable: true, panelNavigationActive: true, panelIndex: view === "transcript" ? 1 : 0, panelCount: interaction.panels.length, reveal: teacherDocument ? revealState : { supported: false, total: 0, revealed: 0, pristine: true } });
+  }, [interaction.panels.length, presentation?.onStateChange, revealState, teacherDocument, view]);
 
   const play = () => {
     const audio = audioRef.current; if (!audio || !audioUrl) return;

@@ -6,7 +6,7 @@ import { createServer } from "vite";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements, nativeAudioTextHotspotTargets } from "../src/data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea } from "../src/data/native-activities/nativeAudioTextHotspots.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import { createNativeOpenResponseQuestion, promoteNativeOpenResponsePanels } from "../src/data/native-activities/nativeOpenResponse.js";
@@ -105,7 +105,7 @@ test("panelized Open Response audio hotspots bind to the selected panel surface"
   assert.equal(normalized.audioTextHotspots.hotspots[0].panelId, secondPanel.id);
 });
 
-test("optional readable-focus highlight tokens preserve old shapes and validate new colors", () => {
+test("optional readable-focus inner rectangles preserve old shapes and validate independent highlights", () => {
   const kind = resolveNativeActivityKind("open-response");
   const document = kind.createBlankPublic({ activityId: "open-highlight", title: "Highlight", placement: { pageId } });
   document.assets = [reference, audioReference];
@@ -113,6 +113,15 @@ test("optional readable-focus highlight tokens preserve old shapes and validate 
   document.audioTextHotspots = { hotspots: [audioHotspot] };
   const oldNormalized = kind.normalizePublic(document);
   assert.equal(Object.hasOwn(oldNormalized.audioTextHotspots.hotspots[0], "highlightColor"), false);
+  assert.equal(Object.hasOwn(oldNormalized.audioTextHotspots.hotspots[0], "readableHighlightArea"), false);
+  assert.deepEqual(nativeAudioTextReadableHighlightArea(oldNormalized.audioTextHotspots.hotspots[0]), { x: 128, y: 232, width: 644, height: 336 });
+  const explicit = structuredClone(document);
+  explicit.audioTextHotspots.hotspots[0].readableHighlightArea = { x: 150, y: 240, width: 420, height: 120 };
+  assert.deepEqual(kind.normalizePublic(explicit).audioTextHotspots.hotspots[0].readableHighlightArea, explicit.audioTextHotspots.hotspots[0].readableHighlightArea);
+  const deleted = structuredClone(document);
+  deleted.audioTextHotspots.hotspots[0].readableHighlightArea = null;
+  assert.equal(kind.normalizePublic(deleted).audioTextHotspots.hotspots[0].readableHighlightArea, null);
+  assert.equal(nativeAudioTextReadableHighlightArea(deleted.audioTextHotspots.hotspots[0]), null);
   for (const highlightColor of NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS) {
     const colored = structuredClone(document);
     colored.audioTextHotspots.hotspots[0].highlightColor = highlightColor;
@@ -121,6 +130,9 @@ test("optional readable-focus highlight tokens preserve old shapes and validate 
   const unsafe = structuredClone(document);
   unsafe.audioTextHotspots.hotspots[0].highlightColor = "url(javascript:unsafe)";
   assert.throws(() => kind.normalizePublic(unsafe), /highlightColor/);
+  const outside = structuredClone(explicit);
+  outside.audioTextHotspots.hotspots[0].readableHighlightArea.x = 50;
+  assert.throws(() => kind.normalizePublic(outside), /must stay inside readableFocusArea/);
 });
 
 test("Audio / Readable-Text hotspots reject each incomplete or unsafe relationship", () => {
@@ -193,7 +205,7 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   assert.match(shared, /<NativeAudioTextHotspotEditor/);
   const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
-  assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Readable text focus"/); assert.match(hotspotEditor, /Highlight color/);
+  assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Outer readable text focus"/); assert.match(hotspotEditor, /label="Inner colored highlight"/); assert.match(hotspotEditor, /Delete inner highlight/); assert.match(hotspotEditor, /Highlight color/);
   assert.match(hotspotEditor, /NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS\.map/); assert.match(hotspotEditor, /data-studio-stage/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
   assert.match(pages, /nativeVideoAvailable/); assert.match(pages, /nativeVideoAvailable \? sendActivityCommand\("toggle-video"\)/); assert.match(pages, /activeIconName: "showTextPressed"/);
@@ -234,7 +246,8 @@ test("native Readable Text presentation toggles only when available and uses bou
       panelCount: 2,
       reveal: { supported: true, total: 2, revealed: 9, pristine: false, correctOptionIds: ["private"] },
       modelAnswers: ["private"],
-    }), { panelIndex: 1, panelCount: 2, reveal: { supported: true, total: 2, revealed: 2, pristine: false } });
+      panelNavigationActive: true,
+    }), { panelIndex: 1, panelCount: 2, panelNavigationActive: true, reveal: { supported: true, total: 2, revealed: 2, pristine: false } });
   } finally { await vite.close(); }
   const [component, focus, css] = await Promise.all([
     readFile(new URL("../src/components/native-readable-text/NativeReadableTextPresentation.jsx", import.meta.url), "utf8"),
@@ -257,5 +270,8 @@ test("native Readable Text presentation toggles only when available and uses bou
   assert.doesNotMatch(css, /native-audio-text-focus header|native-audio-text-focus audio/);
   assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);
   assert.doesNotMatch(css, /max-height: min\(76vh, 760px\)/);
-  assert.match(css, /native-audio-text-focus-crop::after[^}]*22%/);
+  assert.match(focus, /nativeAudioTextReadableHighlightArea\(hotspot\)/);
+  assert.match(focus, /native-audio-text-focus-highlight/);
+  assert.match(css, /native-audio-text-focus-highlight[^}]*22%/);
+  assert.doesNotMatch(css, /native-audio-text-focus-crop::after/);
 });

@@ -15,7 +15,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, revea
   const presentation = interaction.presentation;
   const reference = document.assets.find((asset) => asset.slot === presentation.backgroundAssetSlot);
   return <article className="native-complete-sentences" aria-label={document.metadata.title}>
-    <div className="native-complete-sentences-stage" style={{ aspectRatio: `${presentation.sourceWidth} / ${presentation.sourceHeight}` }}>
+    <div className="native-complete-sentences-stage" style={{ aspectRatio: `${presentation.sourceWidth} / ${presentation.sourceHeight}`, "--native-complete-sentences-ratio": presentation.sourceWidth / presentation.sourceHeight }}>
       {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Background image is unavailable.</p>}
       {presentation.hotspots.map((hotspot, index) => {
         const item = interaction.items.find((candidate) => candidate.id === hotspot.itemId);

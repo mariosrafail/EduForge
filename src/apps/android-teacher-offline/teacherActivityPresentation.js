@@ -12,5 +12,5 @@ export function normalizeTeacherActivityPresentationState(value, fallback = {}) 
     pristine: revealSource.pristine === true,
   } : null;
   const view = ["text", "video"].includes(source.view) ? source.view : "questions";
-  return { view, panelIndex, panelCount, reveal, readableTextAvailable: source.readableTextAvailable === true, videoAvailable: source.videoAvailable === true, audioFocusActive: source.audioFocusActive === true };
+  return { view, panelIndex, panelCount, panelNavigationActive: source.panelNavigationActive === true, reveal, readableTextAvailable: source.readableTextAvailable === true, videoAvailable: source.videoAvailable === true, audioFocusActive: source.audioFocusActive === true };
 }

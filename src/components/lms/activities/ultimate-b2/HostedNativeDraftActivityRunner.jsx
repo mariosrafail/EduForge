@@ -31,7 +31,7 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
     {kind === "complete-sentences" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
     {kind === "complete-sentences" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher answers are unavailable.</p> : null}
     {kind === "complete-sentences" && teacherMode && state.teacher.entry ? <NativeCompleteSentencesTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
-    {kind === "listening" && !teacherMode ? <NativeListeningStudentSurface document={document} assetUrl={assetUrl} /> : null}
+    {kind === "listening" && !teacherMode ? <NativeListeningStudentSurface document={document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
     {kind === "listening" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher model answers…</p> : null}
     {kind === "listening" && teacherMode && state.teacher.kind === "error" ? <p role="alert">Teacher model answers are unavailable.</p> : null}
     {kind === "listening" && teacherMode && state.teacher.entry ? <NativeListeningTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}

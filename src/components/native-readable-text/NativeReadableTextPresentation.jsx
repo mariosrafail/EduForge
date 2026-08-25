@@ -35,6 +35,7 @@ export function normalizeNativeChildPresentationState(value, fallback = {}) {
   return {
     panelIndex,
     panelCount,
+    panelNavigationActive: source.panelNavigationActive === true,
     reveal: revealSource?.supported === true ? {
       supported: true,
       total,
@@ -90,6 +91,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       const next = normalizeNativeChildPresentationState(value, current);
       return current.panelIndex === next.panelIndex
         && current.panelCount === next.panelCount
+        && current.panelNavigationActive === next.panelNavigationActive
         && current.reveal?.supported === next.reveal?.supported
         && current.reveal?.total === next.reveal?.total
         && current.reveal?.revealed === next.reveal?.revealed
@@ -120,6 +122,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       videoAvailable,
       panelIndex: activityState.panelIndex,
       panelCount: activityState.panelCount,
+      panelNavigationActive: activityState.panelNavigationActive,
       reveal: activityState.reveal,
       audioFocusActive: Boolean(activeHotspot),
     });

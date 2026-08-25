@@ -15,6 +15,15 @@ export function nativeAudioTextHighlightColor(value) {
   return NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.includes(value) ? value : NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR;
 }
 
+export function nativeAudioTextReadableHighlightArea(hotspot) {
+  if (hotspot && Object.hasOwn(hotspot, "readableHighlightArea")) return hotspot.readableHighlightArea;
+  const focus = hotspot?.readableFocusArea;
+  if (!focus) return null;
+  const insetX = Math.min(Math.max(1, Math.round(focus.width * 0.04)), Math.max(0, Math.floor((focus.width - 1) / 2)));
+  const insetY = Math.min(Math.max(1, Math.round(focus.height * 0.08)), Math.max(0, Math.floor((focus.height - 1) / 2)));
+  return { x: focus.x + insetX, y: focus.y + insetY, width: focus.width - insetX * 2, height: focus.height - insetY * 2 };
+}
+
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
   return value;
@@ -86,7 +95,8 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
     hotspots: value.hotspots.map((entry, index) => {
       const label = `Native audio/text hotspots[${index}]`;
       const hasHighlightColor = Object.hasOwn(entry, "highlightColor");
-      exactKeys(entry, ["id", "panelId", "activityArea", "readableFocusArea", "audioAssetSlot", "label", ...(hasHighlightColor ? ["highlightColor"] : [])], label);
+      const hasReadableHighlightArea = Object.hasOwn(entry, "readableHighlightArea");
+      exactKeys(entry, ["id", "panelId", "activityArea", "readableFocusArea", ...(hasReadableHighlightArea ? ["readableHighlightArea"] : []), "audioAssetSlot", "label", ...(hasHighlightColor ? ["highlightColor"] : [])], label);
       if (!isNativeChildId(entry.id, "aud") || ids.has(entry.id)) throw new Error(`${label}.id is invalid or duplicate.`);
       ids.add(entry.id);
       if (entry.panelId !== null && typeof entry.panelId !== "string") throw new Error(`${label}.panelId is invalid.`);
@@ -99,17 +109,26 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
       if (typeof entry.label !== "string" || !entry.label.trim() || entry.label.length > NATIVE_AUDIO_TEXT_HOTSPOT_LIMITS.labelLength
         || /[<>\u0000-\u001f\u007f]/.test(entry.label)) throw new Error(`${label}.label is invalid.`);
       if (hasHighlightColor && !NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.includes(entry.highlightColor)) throw new Error(`${label}.highlightColor is invalid.`);
+      const readableBounds = { width: publicDocument.readableText.sourceWidth, height: publicDocument.readableText.sourceHeight };
+      const normalizedFocusArea = area(entry.readableFocusArea, `${label}.readableFocusArea`, readableBounds);
+      const normalizedHighlightArea = hasReadableHighlightArea && entry.readableHighlightArea !== null
+        ? area(entry.readableHighlightArea, `${label}.readableHighlightArea`, readableBounds)
+        : null;
+      if (normalizedHighlightArea && (normalizedHighlightArea.x < normalizedFocusArea.x
+        || normalizedHighlightArea.y < normalizedFocusArea.y
+        || normalizedHighlightArea.x + normalizedHighlightArea.width > normalizedFocusArea.x + normalizedFocusArea.width
+        || normalizedHighlightArea.y + normalizedHighlightArea.height > normalizedFocusArea.y + normalizedFocusArea.height)) {
+        throw new Error(`${label}.readableHighlightArea must stay inside readableFocusArea.`);
+      }
       const normalized = {
         id: entry.id,
         panelId: entry.panelId,
         activityArea: area(entry.activityArea, `${label}.activityArea`, target, { circular: true }),
-        readableFocusArea: area(entry.readableFocusArea, `${label}.readableFocusArea`, {
-          width: publicDocument.readableText.sourceWidth,
-          height: publicDocument.readableText.sourceHeight,
-        }),
+        readableFocusArea: normalizedFocusArea,
         audioAssetSlot: audio.slot,
         label: entry.label.trim(),
       };
+      if (hasReadableHighlightArea) normalized.readableHighlightArea = normalizedHighlightArea;
       if (hasHighlightColor) normalized.highlightColor = entry.highlightColor;
       return normalized;
     }),

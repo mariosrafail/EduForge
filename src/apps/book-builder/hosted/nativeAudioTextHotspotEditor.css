@@ -6,7 +6,10 @@
 .native-audio-hotspot-list button[aria-selected="true"] { color: #fff; background: #176c91; border-color: #176c91; }
 .native-audio-hotspot-authoring { display: grid; gap: 14px; }
 .native-audio-hotspot-authoring-stage { position: relative; width: min(100%, 720px); overflow: hidden; border: 2px solid #7d96a7; border-radius: 8px; background: #dfe8ee; cursor: crosshair; touch-action: none; }
+.native-audio-hotspot-focus-authoring { display: grid; gap: 8px; }
+.native-audio-hotspot-focus-tools { display: flex; flex-wrap: wrap; gap: 7px; }
 .native-audio-hotspot-focus-editor { position: relative; width: min(100%, 620px); overflow: hidden; border: 2px solid #7d96a7; border-radius: 8px; background: #dfe8ee; cursor: crosshair; touch-action: none; }
+.native-audio-hotspot-focus-editor:not(.is-drawing) { cursor: default; }
 .native-audio-hotspot-authoring-stage-content { position: absolute; inset: 0; pointer-events: none; }
 .native-audio-hotspot-authoring-stage-content > * { width: 100%; height: 100%; }
 .native-audio-hotspot-panel-image, .native-audio-hotspot-focus-editor > img { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; }
@@ -20,9 +23,13 @@
 .native-audio-hotspot-highlight-colors [data-highlight-color="cyan"] { --native-highlight-color: 91 205 230; }
 .native-audio-hotspot-focus-editor[data-highlight-color="pink"],
 .native-audio-hotspot-highlight-colors [data-highlight-color="pink"] { --native-highlight-color: 244 132 182; }
-.native-audio-hotspot-focus-box { position: absolute; box-sizing: border-box; border: 2px solid rgb(var(--native-highlight-color) / 94%); background: rgb(var(--native-highlight-color) / 22%); box-shadow: 0 0 0 9999px rgb(6 27 39 / 28%); pointer-events: none; }
-.native-audio-hotspot-focus-editor .studio-selection-frame { background: transparent; border-color: rgb(var(--native-highlight-color)); box-shadow: 0 0 0 1px #fff, 0 0 0 4px rgb(var(--native-highlight-color) / 24%); }
-.native-audio-hotspot-focus-editor .studio-resize-handle { border-color: rgb(var(--native-highlight-color)); }
+.native-audio-hotspot-focus-box,
+.native-audio-hotspot-highlight-box { position: absolute; box-sizing: border-box; margin: 0; padding: 0; cursor: pointer; }
+.native-audio-hotspot-focus-box { border: 2px dashed rgb(23 74 105 / 88%); background: transparent; }
+.native-audio-hotspot-highlight-box { border: 2px solid rgb(var(--native-highlight-color) / 94%); background: rgb(var(--native-highlight-color) / 22%); }
+.native-audio-hotspot-focus-editor.is-drawing :is(.native-audio-hotspot-focus-box, .native-audio-hotspot-highlight-box) { pointer-events: none; }
+.native-audio-hotspot-focus-editor[data-selected-region="highlight"] .studio-selection-frame { background: transparent; border-color: rgb(var(--native-highlight-color)); box-shadow: 0 0 0 1px #fff, 0 0 0 4px rgb(var(--native-highlight-color) / 24%); }
+.native-audio-hotspot-focus-editor[data-selected-region="highlight"] .studio-resize-handle { border-color: rgb(var(--native-highlight-color)); }
 .native-audio-hotspot-highlight-colors { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 10px 12px 12px; border: 1px solid #a9bac7; border-radius: 8px; }
 .native-audio-hotspot-highlight-colors legend { padding-inline: 4px; font-weight: 800; }
 .native-audio-hotspot-highlight-colors label { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 9px; border: 1px solid #9aabb7; border-radius: 999px; background: #fff; cursor: pointer; }

@@ -5,17 +5,16 @@ import "./nativeImage.css";
 export function NativeImagePresentation(props) {
   const contentText = props.document.parts[0].interaction.contentText;
   const surface = <NativeImageSurface {...props} />;
-  if (!contentText) return surface;
-  return <div className="native-image-presentation">
-    {surface}
-    <div className="native-image-content-text" aria-label="Activity content">{contentText}</div>
+  return <div className={`native-image-presentation${contentText ? " has-content-text" : ""}`}>
+    <div className="native-image-stage-slot">{surface}</div>
+    {contentText ? <div className="native-image-content-text" aria-label="Activity content">{contentText}</div> : null}
   </div>;
 }
 
 export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "", audioHotspotPresentation = null }) {
   const interaction = document.parts[0].interaction;
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
-  return <div className={`native-or-surface native-image-surface ${className}`.trim()} style={{ aspectRatio: `${interaction.surface.width} / ${interaction.surface.height}` }} data-studio-stage data-empty={!interaction.images.length || undefined} data-surface-width={interaction.surface.width} data-surface-height={interaction.surface.height}>
+  return <div className={`native-or-surface native-image-surface ${className}`.trim()} style={{ aspectRatio: `${interaction.surface.width} / ${interaction.surface.height}`, "--native-image-surface-ratio": interaction.surface.width / interaction.surface.height }} data-studio-stage data-empty={!interaction.images.length || undefined} data-surface-width={interaction.surface.width} data-surface-height={interaction.surface.height}>
     {interaction.images.map((item) => {
       const reference = assets.get(item.assetSlot);
       const authoringLocked = Boolean(onSelect && item.locked);

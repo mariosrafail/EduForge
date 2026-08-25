@@ -5,6 +5,7 @@ import { createNativeChildId } from "../../../data/native-activities/nativeChild
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { parseTimedTextSrt } from "../../../data/timed-media/timedText.js";
 import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { convertWorksheetUploadToPdf } from "./imageWorksheetPdf.js";
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "Size unavailable";
@@ -108,14 +109,17 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
 
   const uploadWorksheet = async (file) => {
     if (!file || !video) return;
-    setUploading(true); onStatusChange("Uploading Video Worksheet PDF...");
+    setUploading(true); onStatusChange(file.type === "application/pdf" ? "Uploading Video Worksheet PDF..." : "Converting worksheet image to a single-page PDF...");
     try {
-      const uploaded = await uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot: createNativeChildId("asset"), file, purpose: "video-worksheet" });
+      const worksheetPdf = await convertWorksheetUploadToPdf(file);
+      if (worksheetPdf.type !== "application/pdf" || !worksheetPdf.name.toLowerCase().endsWith(".pdf")) throw new Error("Worksheet conversion did not produce a canonical PDF upload.");
+      if (worksheetPdf !== file) onStatusChange("Worksheet image converted. Uploading the canonical PDF...");
+      const uploaded = await uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot: createNativeChildId("asset"), file: worksheetPdf, purpose: "video-worksheet" });
       if (uploaded.metadata?.mimeType !== "application/pdf" || !Number.isSafeInteger(uploaded.metadata?.byteSize)) throw new Error("Uploaded worksheet is not a validated PDF.");
       mutatePublic((next) => {
         const previousSlot = next.video.worksheet?.assetSlot;
         next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
-        next.video.worksheet = { assetSlot: uploaded.reference.slot, fileName: file.name, byteSize: uploaded.metadata.byteSize };
+        next.video.worksheet = { assetSlot: uploaded.reference.slot, fileName: worksheetPdf.name, byteSize: uploaded.metadata.byteSize };
         if (previousSlot && previousSlot !== uploaded.reference.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
       });
       onStatusChange("Video Worksheet attached; save the draft to keep it.");
@@ -160,7 +164,7 @@ export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicD
         <label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading..." : video ? "Replace Video" : "Upload Video"}</strong><small>MP4 - maximum 100 MiB</small></span><input type="file" accept="video/mp4,.mp4" disabled={uploading} onChange={(event) => { uploadVideo(event.target.files?.[0]); event.target.value = ""; }} /></label>
         <label className="studio-upload-action"><FileUp aria-hidden="true" /><span><strong>{(video?.cues || pendingCues).length ? "Replace SRT" : "Upload SRT"}</strong><small>Validated timed subtitle text</small></span><input type="file" accept=".srt,application/x-subrip,text/plain" disabled={uploading} onChange={(event) => { importSrt(event.target.files?.[0]); event.target.value = ""; }} /></label>
       </div>
-      <section className="native-video-worksheet-editor" aria-label="Video Worksheet PDF"><div><FileText aria-hidden="true" /><span><strong>Video Worksheet</strong><small>{worksheetReference ? `${video.worksheet.fileName} · ${formatBytes(video.worksheet.byteSize)}` : "No worksheet attached"}</small></span></div><label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{worksheetReference ? "Replace PDF" : "Upload PDF"}</strong><small>PDF · maximum 25 MiB</small></span><input type="file" accept="application/pdf,.pdf" disabled={uploading || !video} onChange={(event) => { uploadWorksheet(event.target.files?.[0]); event.target.value = ""; }} /></label>{worksheetReference ? <button type="button" className="studio-button studio-button--danger-ghost" onClick={removeWorksheet}><Trash2 aria-hidden="true" /> Remove PDF</button> : null}</section>
+      <section className="native-video-worksheet-editor" aria-label="Video Worksheet PDF"><div><FileText aria-hidden="true" /><span><strong>Video Worksheet</strong><small>{worksheetReference ? `${video.worksheet.fileName} · ${formatBytes(video.worksheet.byteSize)}` : "No worksheet attached"}</small></span></div><label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{worksheetReference ? "Replace worksheet" : "Upload worksheet"}</strong><small>PDF (25 MiB) or PNG, JPEG, WebP (10 MiB); images become one-page PDFs</small></span><input type="file" accept="application/pdf,.pdf,image/png,.png,image/jpeg,.jpg,.jpeg,image/webp,.webp" disabled={uploading || !video} onChange={(event) => { uploadWorksheet(event.target.files?.[0]); event.target.value = ""; }} /></label>{worksheetReference ? <button type="button" className="studio-button studio-button--danger-ghost" onClick={removeWorksheet}><Trash2 aria-hidden="true" /> Remove PDF</button> : null}</section>
       <button type="button" className="studio-button studio-button--danger-ghost" onClick={toggle}>Remove / Disable Video</button>
     </div> : null}
   </section>;

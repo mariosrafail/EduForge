@@ -169,7 +169,9 @@ test("Listening renders imported markup through React text nodes without an HTML
   assert.match(source, /node\.focus\?\.\(\{ preventScroll: true \}\)/);
   assert.match(source, /focusMode === "playback"/);
   assert.doesNotMatch(source, /native-listening-panel-tabs|role="tablist"/);
-  assert.match(source, /panelCount: 1/);
+  assert.match(source, /panelCount: interaction\.panels\.length/);
+  assert.match(source, /command\.type === "previous-panel"/);
+  assert.match(source, /command\.type === "next-panel"/);
   assert.match(source, /command\.type === "toggle-text"/);
   assert.match(source, /pendingAutoplay/);
   assert.match(player, /Stop Listening audio/);

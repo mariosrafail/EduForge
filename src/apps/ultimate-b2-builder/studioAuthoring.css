@@ -65,6 +65,7 @@
 .studio-content-summary svg { width: 18px; color: var(--studio-primary); }
 .studio-content-summary strong { color: var(--studio-text); }
 .studio-visual-workspace { display: grid; grid-template-columns: minmax(210px, 245px) minmax(0, 1fr) minmax(250px, 290px); min-height: 620px; background: var(--studio-bg); }
+.studio-visual-workspace:has(> .studio-canvas-column:first-child + .studio-inspector:last-child) { grid-template-columns: minmax(0, 1fr) minmax(250px, 290px); }
 .studio-navigator, .studio-inspector { min-width: 0; background: #fff; }
 .studio-navigator { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-right: 1px solid var(--studio-border); }
 .studio-navigator > header { display: flex; justify-content: space-between; gap: 10px; }
@@ -272,6 +273,7 @@
 
 @media (max-width: 1180px) {
   .studio-visual-workspace { grid-template-columns: 220px minmax(0, 1fr); }
+  .studio-visual-workspace:has(> .studio-canvas-column:first-child + .studio-inspector:last-child) { grid-template-columns: minmax(0, 1fr) minmax(250px, 290px); }
   .studio-inspector { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--studio-border); border-left: 0; }
   .studio-inspector > header, .studio-object-actions, .studio-inspector > .studio-empty-state { grid-column: 1 / -1; }
   .studio-open-response .native-or-toolbar-actions { flex-wrap: wrap; }
@@ -282,6 +284,7 @@
   .native-readable-text-editor, .native-video-editor { width: calc(100% - 24px); margin: 12px auto; }
   .native-readable-text-body { grid-template-columns: 1fr; }
   .native-video-editor-actions { grid-template-columns: 1fr; }
+  .studio-visual-workspace:has(> .studio-canvas-column:first-child + .studio-inspector:last-child) { grid-template-columns: minmax(0, 1fr); }
   .studio-visual-workspace { grid-template-columns: 1fr; }
   .studio-navigator { border-right: 0; border-bottom: 1px solid var(--studio-border); }
   .studio-layer-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 180px; }
