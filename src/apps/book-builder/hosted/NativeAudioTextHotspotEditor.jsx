@@ -6,7 +6,7 @@ import { NativeOpenResponseSurface } from "../../../components/native-open-respo
 import { NativeAudioTextFocusContent, nativeAudioHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
-import { logicalAreaStyle, normalizeStageGeometryAspectRatio } from "../../../components/builder-studio/stageGeometry.js";
+import { logicalAreaStyle, normalizeStageGeometryAspectRatio, roundStageValue } from "../../../components/builder-studio/stageGeometry.js";
 import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
@@ -14,7 +14,7 @@ import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import "./nativeAudioTextHotspotEditor.css";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
-const OUTER_FOCUS_ASPECT_RATIO = 512 / 291;
+const OUTER_FOCUS_ASPECT_RATIO = 1024 / 291;
 
 function defaultActivityArea(target) {
   const size = clamp(Math.round(Math.min(target.width, target.height) * 0.08), 24, 96);
@@ -28,11 +28,11 @@ function defaultFocusArea(readableText) {
 }
 
 function containedArea(area, outer) {
-  const width = Math.min(outer.width, Math.max(1, Math.round(area.width)));
-  const height = Math.min(outer.height, Math.max(1, Math.round(area.height)));
+  const width = Math.min(outer.width, Math.max(1, roundStageValue(area.width)));
+  const height = Math.min(outer.height, Math.max(1, roundStageValue(area.height)));
   return {
-    x: Math.round(clamp(area.x, outer.x, outer.x + outer.width - width)),
-    y: Math.round(clamp(area.y, outer.y, outer.y + outer.height - height)),
+    x: roundStageValue(clamp(area.x, outer.x, outer.x + outer.width - width)),
+    y: roundStageValue(clamp(area.y, outer.y, outer.y + outer.height - height)),
     width,
     height,
   };

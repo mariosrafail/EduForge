@@ -72,28 +72,30 @@ test("aspect-ratio resize preserves ratio and the opposite corner", () => {
   assert.ok(clamped.y + clamped.height <= stage.height);
 });
 
-test("an explicit 512:291 ratio normalizes around center and survives every anchored handle", () => {
-  const ratio = 512 / 291;
+test("an explicit 1024:291 ratio normalizes around center and survives every anchored handle", () => {
+  const ratio = 1024 / 291;
   const source = { x: 780, y: 410, width: 210, height: 145 };
   const normalized = normalizeStageGeometryAspectRatio(source, { width: 1024, height: 582 }, { aspectRatio: ratio, minWidth: 16, minHeight: 16 });
-  assert.ok(Math.abs(normalized.width / normalized.height - ratio) < 0.00001);
+  assert.ok(Math.abs(normalized.width / normalized.height - ratio) < 0.0001);
   assert.ok(normalized.x >= 0 && normalized.y >= 0 && normalized.x + normalized.width <= 1024 && normalized.y + normalized.height <= 582);
   for (const handle of ["nw", "ne", "sw", "se"]) {
     const resized = resizeStageGeometry(normalized, handle, { x: handle.includes("w") ? -900 : 900, y: handle.includes("n") ? -900 : 900 }, { width: 1024, height: 582 }, { preserveAspectRatio: true, aspectRatio: ratio, minWidth: 16, minHeight: 16 });
-    assert.ok(Math.abs(resized.width / resized.height - ratio) < 0.00001, `${handle}: ${JSON.stringify(resized)}`);
+    assert.ok(Math.abs(resized.width / resized.height - ratio) < 0.0001, `${handle}: ${JSON.stringify(resized)}`);
     assert.ok(resized.x >= 0 && resized.y >= 0 && resized.x + resized.width <= 1024.001 && resized.y + resized.height <= 582.001, `${handle}: ${JSON.stringify(resized)}`);
   }
 });
 
 test("fixed-ratio numeric width and height derive their partner while X/Y only reposition", () => {
-  const ratio = 512 / 291;
+  const ratio = 1024 / 291;
   const stageValue = { width: 1024, height: 582 };
   const normalized = normalizeStageGeometryAspectRatio({ x: 100, y: 80, width: 300, height: 140 }, stageValue, { aspectRatio: ratio });
   const width = updateStageGeometryField(normalized, "width", 512, stageValue, { aspectRatio: ratio });
-  assert.ok(Math.abs(width.width / width.height - ratio) < 0.00001);
-  assert.equal(width.height, 291);
+  assert.ok(Math.abs(width.width / width.height - ratio) < 0.0001);
+  assert.equal(width.height, 145.5);
+  const fullWidth = updateStageGeometryField({ x: 0, y: 0, width: 512, height: 145.5 }, "height", 291, stageValue, { aspectRatio: ratio });
+  assert.deepEqual(fullWidth, { x: 0, y: 0, width: 1024, height: 291 });
   const height = updateStageGeometryField(normalized, "height", 200, stageValue, { aspectRatio: ratio });
-  assert.ok(Math.abs(height.width / height.height - ratio) < 0.00001);
+  assert.ok(Math.abs(height.width / height.height - ratio) < 0.0001);
   const movedX = updateStageGeometryField(normalized, "x", 999, stageValue, { aspectRatio: ratio });
   const movedY = updateStageGeometryField(normalized, "y", 999, stageValue, { aspectRatio: ratio });
   assert.deepEqual({ width: movedX.width, height: movedX.height }, { width: normalized.width, height: normalized.height });

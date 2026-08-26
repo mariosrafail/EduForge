@@ -1,5 +1,5 @@
 .native-readable-text-presentation { position: relative; width: 100%; height: 100%; min-height: 0; }
-.native-readable-text-presentation[data-audio-focus] { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(6px, .8vw, 12px); overflow: hidden; }
+.native-readable-text-presentation[data-audio-focus] { display: grid; width: auto; max-width: 100%; margin-inline: auto; aspect-ratio: 1024 / 582; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 0; overflow: hidden; }
 .native-readable-text-activity-view { width: 100%; height: 100%; }
 .native-readable-text-activity-view[hidden] { display: none !important; }
 .native-readable-text-activity-view.is-audio-focus { display: grid; min-height: 0; place-items: center; overflow: hidden; }
@@ -13,10 +13,16 @@
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-student,
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-teacher { width: 100%; min-height: 0; max-width: 1200px; }
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { place-items: center; }
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-student,
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-teacher,
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual,
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-panels,
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { height: 100%; min-height: 0; }
+.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-stage { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
 .native-audio-text-focus-slot { min-height: 0; overflow: hidden; }
 .native-audio-text-focus { box-sizing: border-box; display: grid; width: 100%; height: 100%; min-height: 0; overflow: hidden; place-items: center; }
 .native-audio-text-focus-crop { display: grid; min-height: 0; overflow: hidden; place-items: center; }
-.native-audio-text-focus-crop { --native-highlight-color: 255 220 66; position: relative; width: auto; height: 100%; max-width: 100%; max-height: 100%; }
+.native-audio-text-focus-crop { --native-highlight-color: 255 220 66; position: relative; width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
 .native-audio-text-focus-crop[data-highlight-color="green"] { --native-highlight-color: 101 214 146; }
 .native-audio-text-focus-crop[data-highlight-color="cyan"] { --native-highlight-color: 91 205 230; }
 .native-audio-text-focus-crop[data-highlight-color="pink"] { --native-highlight-color: 244 132 182; }

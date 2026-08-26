@@ -206,7 +206,7 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   const hotspotEditor = await readFile(new URL("../src/apps/book-builder/hosted/NativeAudioTextHotspotEditor.jsx", import.meta.url), "utf8");
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
   assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Outer readable text focus"/); assert.match(hotspotEditor, /label="Inner colored highlight"/); assert.match(hotspotEditor, /Delete inner highlight/); assert.match(hotspotEditor, /Highlight color/);
-  assert.match(hotspotEditor, /Keep aspect ratio/); assert.match(hotspotEditor, /OUTER_FOCUS_ASPECT_RATIO = 512 \/ 291/); assert.match(hotspotEditor, /aspectRatio=\{keepAspectRatio \? OUTER_FOCUS_ASPECT_RATIO : null\}/); assert.match(hotspotEditor, /<StageGeometryControls/);
+  assert.match(hotspotEditor, /Keep aspect ratio/); assert.match(hotspotEditor, /OUTER_FOCUS_ASPECT_RATIO = 1024 \/ 291/); assert.match(hotspotEditor, /aspectRatio=\{keepAspectRatio \? OUTER_FOCUS_ASPECT_RATIO : null\}/); assert.match(hotspotEditor, /<StageGeometryControls/);
   assert.doesNotMatch(hotspotEditor.match(/label="Inner colored highlight"[^\n]+/)?.[0] || "", /aspectRatio|preserveAspectRatio/);
   assert.match(hotspotEditor, /NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS\.map/); assert.match(hotspotEditor, /data-studio-stage/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
@@ -269,6 +269,8 @@ test("native Readable Text presentation toggles only when available and uses bou
   assert.match(css, /overflow: auto/); assert.match(css, /overscroll-behavior: contain/); assert.match(css, /scrollbar-width: none/); assert.match(css, /::-webkit-scrollbar/); assert.match(css, /width: 100%; height: auto/);
   assert.match(css, /native-readable-text-scroll-control/); assert.match(css, /native-readable-text-scroll-thumb/);
   assert.match(css, /\.native-audio-text-focus\s*\{[^}]*display: grid;[^}]*width: 100%;[^}]*height: 100%;[^}]*overflow: hidden/);
+  assert.match(css, /\.native-readable-text-presentation\[data-audio-focus\][^}]*aspect-ratio: 1024 \/ 582;[^}]*grid-template-rows: minmax\(0, 1fr\) minmax\(0, 1fr\);[^}]*gap: 0/);
+  assert.match(css, /\.native-audio-text-focus-crop[^}]*width: 100%;[^}]*height: 100%/);
   assert.doesNotMatch(css, /native-audio-text-focus header|native-audio-text-focus audio/);
   assert.match(css, /\.native-readable-text-view[^}]*min-height: 0;[^}]*max-height: none/);
   assert.doesNotMatch(css, /max-height: min\(76vh, 760px\)/);
