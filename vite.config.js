@@ -65,6 +65,9 @@ export default defineConfig(({ mode }) => {
   const interactivePackProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/reviewPackProvider.js"
     : "src/apps/android-teacher-offline/generatedPackProvider.js");
+  const managedReviewRuntime = path.resolve(process.cwd(), isHostedInteractiveReview
+    ? "src/apps/android-teacher-offline/managedReviewRuntime.js"
+    : "src/apps/android-teacher-offline/noManagedReviewRuntime.js");
   const hostedOpenResponseDraftProvider = path.resolve(process.cwd(), isHostedInteractiveReview
     ? "src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js"
     : "src/apps/android-teacher-offline/noHostedOpenResponseDraftProvider.js");
@@ -234,6 +237,10 @@ export default defineConfig(({ mode }) => {
         {
           find: "virtual:ultimate-b2-interactive-pack-provider",
           replacement: interactivePackProvider,
+        },
+        {
+          find: "virtual:managed-review-runtime",
+          replacement: managedReviewRuntime,
         },
         {
           find: "virtual:ultimate-b2-runtime-hotspots",

@@ -12,7 +12,7 @@ import {
 } from "virtual:ultimate-b2-runtime-hotspots";
 import { getOfflineTeacherSolution } from "virtual:teacher-offline-solutions";
 import { createReviewComponentRegistry } from "./reviewComponentRegistryCore.js";
-import { createManagedReviewDescriptor } from "./managedReviewRuntime.js";
+import { createManagedReviewDescriptor } from "virtual:managed-review-runtime";
 
 const DEFAULT_IDENTITY = Object.freeze({
   bookSlug: "ultimate-b2",
