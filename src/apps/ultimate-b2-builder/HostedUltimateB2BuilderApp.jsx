@@ -5,9 +5,11 @@ import catalog from "../../../android-content-packs/ultimate-b2-students-book/ca
 import { nativeActivityKindLabels } from "../../data/native-activities/nativeActivityKinds.js";
 import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/openResponseActivityRegistry.js";
 import { BuilderModal } from "../book-builder/hosted/BuilderModal.jsx";
+import { ComponentPagesWorkspace } from "../book-builder/hosted/ComponentPagesWorkspace.jsx";
 import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getNativeActivityCatalog, moveActivity, retireCanonicalActivity } from "../book-builder/hosted/builderNativeActivityApi.js";
 import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { NativeActivityFoundationEditor } from "../book-builder/hosted/NativeActivityFoundationEditor.jsx";
+import { pageLibraryReviewNavigation } from "../book-builder/hosted/pageLibraryReviewModel.js";
 import { activityBuilderTypeOptions, buildActivityBuilderNavigation, filterActivityBuilderNavigation, findActivityBuilderItem } from "./activityBuilderNavigation.js";
 import { HostedOpenResponseEditor } from "./HostedOpenResponseEditor.jsx";
 import { HostedPublicationWorkspace } from "./HostedPublicationWorkspace.jsx";
@@ -35,14 +37,6 @@ function firstAvailableActivityId(lifecycle, nativeActivities, excluded = "", ca
   const canonical = canonicalUnits.flatMap((unit) => (unit.lessons || []).flatMap((lesson) => lesson.exercises || []))
     .find((activity) => activity.stableActivityId !== excluded && retired[activity.stableActivityId]?.status !== "retired");
   return nativeActivities.find((activity) => activity.activityId !== excluded)?.activityId || canonical?.stableActivityId || "";
-}
-
-function managedActivityNavigation(pageLibrary) {
-  const pagesByUnit = new Map((pageLibrary.units || []).map((unit) => [unit.id, []]));
-  for (const page of pageLibrary.pages || []) if (page.unitId && pagesByUnit.has(page.unitId)) pagesByUnit.get(page.unitId).push(page);
-  const units = (pageLibrary.units || []).map((unit) => ({ id: unit.slug, title: unit.title, unitNumber: unit.unitNumber, lessons: pagesByUnit.get(unit.id).sort((a, b) => a.sortOrder - b.sortOrder).map((page) => ({ id: page.id, pageId: page.id, title: page.label, sectionTitle: page.label, pageLabel: page.printedLabel ? `Pages ${page.printedLabel}` : page.label, exercises: [] })) }));
-  const placements = units.flatMap((unit) => unit.lessons.map((page, index) => ({ pageId: page.pageId, unitNumber: unit.unitNumber, pageLabel: page.pageLabel, sectionTitle: page.sectionTitle, sortOrder: (unit.unitNumber * 1_000_000) + ((index + 1) * 1_000) })));
-  return { units, placements };
 }
 
 function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
@@ -97,7 +91,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
       getActivityLifecycle({ bookSlug, componentSlug }, { signal }),
       managed ? getBuilderPages({ bookSlug, componentSlug }, { signal }) : Promise.resolve(null),
     ]);
-    if (pageLibrary) setManagedNavigation(managedActivityNavigation(pageLibrary));
+    if (pageLibrary) setManagedNavigation(pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug }));
     setNativeCatalog(native); setLifecycle(currentLifecycle.document); return { native, lifecycle: currentLifecycle.document };
   };
   useEffect(() => { const controller = new AbortController(); loadCatalogs(controller.signal).catch(() => {}); return () => controller.abort(); }, []);
@@ -243,6 +237,40 @@ export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots", nativ
   return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={nativeActivities?.placements || []} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "ui" ? <HostedTeacherUiController /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</UnifiedBuilderReview></div>;
 }
 
-export const UltimateB2ManagedComponentHostedWorkspace = UltimateB2StudentsBookHostedWorkspace;
+export function UltimateB2ManagedComponentHostedWorkspace({ tool = "hotspots", nativeActivities = null, bookSlug = "ultimate-b2", componentSlug }) {
+  const [pageLibrary, setPageLibrary] = useState(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    getBuilderPages({ bookSlug, componentSlug }, { signal: controller.signal }).then(setPageLibrary).catch(() => setPageLibrary(null));
+    return () => controller.abort();
+  }, [bookSlug, componentSlug]);
+  const navigation = useMemo(() => pageLibrary
+    ? pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug })
+    : { units: [], placements: [] }, [bookSlug, componentSlug, pageLibrary]);
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={navigation.placements} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}</UnifiedBuilderReview></div>;
+}
+
+function PagesWorkspaceReviewBridge({ bookSlug, componentSlug, selectedPageId, setPageLibrary, setSelectedPageId }) {
+  const { launcherRef, openReview, registerToolContext } = useBuilderReview();
+  useEffect(() => {
+    registerToolContext("pages", { view: "page", dirty: false, refreshKey: 0, release: null });
+  }, [registerToolContext]);
+  return <ComponentPagesWorkspace
+    bookSlug={bookSlug}
+    componentSlug={componentSlug}
+    onPageLibraryChange={setPageLibrary}
+    onSelectedPageChange={setSelectedPageId}
+    reviewAction={<button ref={launcherRef} className="hosted-builder-action" type="button" onClick={openReview}>Review</button>}
+  />;
+}
+
+export function UltimateB2PagesHostedWorkspace({ bookSlug = "ultimate-b2", componentSlug }) {
+  const [pageLibrary, setPageLibrary] = useState(null);
+  const [selectedPageId, setSelectedPageId] = useState("");
+  const navigation = useMemo(() => pageLibrary?.component
+    ? pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug })
+    : { units: [], placements: [] }, [bookSlug, componentSlug, pageLibrary]);
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool="pages" pages={navigation.placements} selectedPageId={selectedPageId} bookSlug={bookSlug} componentSlug={componentSlug} externalLauncher><PagesWorkspaceReviewBridge bookSlug={bookSlug} componentSlug={componentSlug} selectedPageId={selectedPageId} setPageLibrary={setPageLibrary} setSelectedPageId={setSelectedPageId} /></UnifiedBuilderReview></div>;
+}
 
 export default UltimateB2StudentsBookHostedWorkspace;

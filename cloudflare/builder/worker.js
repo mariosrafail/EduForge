@@ -48,6 +48,8 @@ const routeDefinitions = Object.freeze([
 ]);
 
 const playerRouteDefinitions = Object.freeze([
+  { prefix: "/preview/pages", handler: "pages" },
+  { prefix: "/preview/authorization", handler: "previewAuthorization" },
   { prefix: "/preview/native-activities", handler: "nativePreview" },
   { prefix: "/preview/releases", handler: "publication" },
   { prefix: "/preview/content", handler: "preview" },

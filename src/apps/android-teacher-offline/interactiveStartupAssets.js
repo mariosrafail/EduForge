@@ -177,6 +177,7 @@ export function buildHostedViewerAssetLoadPlan({
   pageAssetUrls = {},
   mediaAssetUrls = {},
   uiAssetUrls = [],
+  runtimeAssets = [],
 } = {}) {
   const manifestPlan = manifestAssets
     .filter((record) => record?.required !== false)
@@ -199,7 +200,20 @@ export function buildHostedViewerAssetLoadPlan({
       source: "viewer-ui",
     };
   }).filter(Boolean);
-  const all = deduplicateAssetUrls([...manifestPlan, ...uiPlan]);
+  const runtimePlan = runtimeAssets.map((record, index) => {
+    const url = assetUrl(record);
+    const kind = record?.kind || inferredKind(url);
+    if (!url || !kind) return null;
+    return {
+      key: record?.key || `viewer-runtime-${index + 1}`,
+      url,
+      kind,
+      sizeBytes: record?.sizeBytes || null,
+      sha256: record?.sha256 || "",
+      source: record?.source || "viewer-runtime",
+    };
+  }).filter(Boolean);
+  const all = deduplicateAssetUrls([...manifestPlan, ...uiPlan, ...runtimePlan]);
   const blocking = all.filter((asset) => asset.kind !== "video");
   const blockingUrls = new Set(blocking.map((asset) => asset.url));
   const background = all.filter((asset) => asset.kind === "video" && !blockingUrls.has(asset.url));
@@ -471,8 +485,11 @@ export function createHostedStartupAssets(inventory, {
     hosted: true,
     createLoadPlan(pack, uiManifest = null) {
       const uiAssetUrls = typeof inventory.uiAssetUrls === "function"
-        ? inventory.uiAssetUrls(uiManifest)
+        ? inventory.uiAssetUrls(uiManifest, pack)
         : inventory.uiAssetUrls || [];
+      const runtimeAssets = typeof inventory.runtimeAssets === "function"
+        ? inventory.runtimeAssets(pack, uiManifest)
+        : inventory.runtimeAssets || [];
       return buildHostedViewerAssetLoadPlan({
         manifestAssets: pack?.assetsManifest?.assets,
         pageAssetUrls: inventory.pageAssetUrls,
@@ -481,6 +498,7 @@ export function createHostedStartupAssets(inventory, {
           ...uiAssetUrls,
           ...(inventory.activityAssetUrls?.(pack) || []),
         ],
+        runtimeAssets,
       });
     },
     preloadBlocking(plan, options = {}) {

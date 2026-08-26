@@ -10,6 +10,7 @@ import { createNoopStartupAssets, runInteractiveViewerStartup } from "../src/app
 import {
   createManagedReviewContentPackProvider,
   createManagedReviewHotspotProvider,
+  managedHostedStartupAssets,
   managedPageUnitsFromCatalog,
 } from "../src/apps/android-teacher-offline/managedReviewRuntime.js";
 
@@ -92,5 +93,22 @@ test("managed hosted runtime starts and browses a ten-Unit two-page pack with ze
   } finally {
     if (previousLocation) Object.defineProperty(globalThis, "location", previousLocation);
     else delete globalThis.location;
+  }
+});
+
+test("managed page-only startup blocks only its authorized page images and never Students assets", () => {
+  for (const componentSlug of [workbook, grammar]) {
+    const pageUnits = managedPageUnitsFromCatalog(managedCatalog(componentSlug), componentSlug);
+    const plan = managedHostedStartupAssets.createLoadPlan({
+      pageUnits,
+      activities: { activities: [] },
+      assetsManifest: { assets: [] },
+    }, null);
+    assert.deepEqual(plan.blocking.map((asset) => asset.url), [
+      `/preview/pages/${componentSlug}/1`,
+      `/preview/pages/${componentSlug}/2`,
+    ]);
+    assert.deepEqual(plan.background, []);
+    assert.equal(plan.blocking.some((asset) => /publishers\/|students-book|legacy|\.mp3(?:$|\?)/i.test(asset.url)), false);
   }
 });

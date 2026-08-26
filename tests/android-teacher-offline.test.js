@@ -335,13 +335,15 @@ test("contextual activity video overlay keeps captions reliable in Android WebVi
   assert.match(css, /\.teacher-activity-video-caption/);
 });
 
-test("Android Teacher saves the video worksheet through the native document picker", async () => {
-  const [activity, mainActivity, pdfSaver] = await Promise.all([
+test("Android Teacher saves the video worksheet through one shared native document-picker registration", async () => {
+  const [activity, registration, mainActivity, pdfSaver] = await Promise.all([
     readFile("src/components/lms/activities/ultimate-b2/UltimateB2LegacyPilotActivity.jsx", "utf8"),
+    readFile("src/components/native-video/pdfSaverPlugin.js", "utf8"),
     readFile("android/app/src/main/java/com/eduforge/offlinebooks/MainActivity.java", "utf8"),
     readFile("android/app/src/main/java/com/eduforge/offlinebooks/PdfSaverPlugin.java", "utf8"),
   ]);
-  assert.match(activity, /registerPlugin\("PdfSaver"\)/);
+  assert.match(registration, /registerPlugin\("PdfSaver"\)/);
+  assert.doesNotMatch(activity, /registerPlugin\("PdfSaver"\)/);
   assert.match(activity, /PdfSaver\.savePdf/);
   assert.match(mainActivity, /registerPlugin\(PdfSaverPlugin\.class\)/);
   assert.match(pdfSaver, /Intent\.ACTION_CREATE_DOCUMENT/);

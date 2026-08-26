@@ -75,7 +75,7 @@ test("generic hosted routing is deterministic and fails closed", () => {
 test("managed component adapters expose Pages, Hotspots, and Activities without fake publication tools", async () => {
   const adapters = await read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx");
   assert.match(adapters, /"ultimate-b2-workbook": Object\.freeze/);
-  assert.match(adapters, /props\.tool === "pages" \? <ComponentPagesWorkspace/);
+  assert.match(adapters, /props\.tool === "pages" \? <UltimateB2PagesHostedWorkspace/);
   for (const slug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
     const start = adapters.indexOf(`"${slug}": Object.freeze`);
     const end = adapters.indexOf("  }),", start) + 5;

@@ -11,11 +11,12 @@ import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-buil
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const studentsHotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/studentsBookHotspots.json", "utf8"));
+const managedPageBytes = await readFile("unit/1/parts/HD/parts_part_1.png");
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 const previewAuthorization = `v1.eA.${"a".repeat(43)}`;
-const pixel = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 const components = Object.freeze({ workbook: "ultimate-b2-workbook", grammar: "ultimate-b2-grammar-book" });
 const exchangeRequests = [];
+const managedAssetRequests = [];
 
 function managedCatalog(componentSlug) {
   const title = componentSlug === components.workbook ? "Workbook" : "Grammar Book";
@@ -25,18 +26,22 @@ function managedCatalog(componentSlug) {
     revision: 2,
     component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed", title },
     units,
-    pages: [1, 2].map((number) => ({
-      id: `ultimate-b2-${abbreviation}-unit-1-page-${number}`,
-      componentSlug,
-      unitId: units[0].id,
-      unitNumber: 1,
-      unitTitle: "Unit 1",
-      label: `${title} page ${number}`,
-      printedLabel: String(number),
-      sortOrder: number * 10,
-      source: "managed-upload",
-      image: { source: "managed", url: pixel, width: 1, height: 1, checksumSha256: "a".repeat(64) },
-    })),
+    pages: [1, 2].map((number) => {
+      const pageId = `ultimate-b2-${abbreviation}-unit-1-page-${number}`;
+      const assetId = `40000000-0000-4000-8000-${String(number + (abbreviation === "gb" ? 100 : 0)).padStart(12, "0")}`;
+      return {
+        id: pageId,
+        componentSlug,
+        unitId: units[0].id,
+        unitNumber: 1,
+        unitTitle: "Unit 1",
+        label: `${title} page ${number}`,
+        printedLabel: String(number),
+        sortOrder: number * 10,
+        source: "managed-upload",
+        image: { source: "managed", assetId, url: `/preview/pages/books/ultimate-b2/components/${componentSlug}/pages/${pageId}/assets/${assetId}/preview?previewAuthorization=${encodeURIComponent(previewAuthorization)}`, width: 581, height: 794, checksumSha256: "a".repeat(64) },
+      };
+    }),
   };
 }
 
@@ -130,6 +135,11 @@ try {
     }
     const pagePreview = url.pathname.match(/^\/preview\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:workbook|grammar-book))$/);
     if (pagePreview) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(managedCatalogs[pagePreview[1]]) });
+    const managedAssetPreview = url.pathname.match(/^\/preview\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:workbook|grammar-book))\/pages\/([a-z0-9-]+)\/assets\/([0-9a-f-]+)\/preview$/);
+    if (managedAssetPreview) {
+      managedAssetRequests.push({ componentSlug: managedAssetPreview[1], pageId: managedAssetPreview[2], authorization: url.searchParams.get("previewAuthorization") });
+      return route.fulfill({ status: 200, contentType: "image/png", body: managedPageBytes });
+    }
     const hotspotPreview = url.pathname.match(/^\/preview\/content\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook|grammar-book))\/hotspots$/);
     if (hotspotPreview) {
       const componentSlug = hotspotPreview[1];
@@ -172,6 +182,13 @@ try {
     assert.deepEqual(await page.locator(".hosted-builder-tool-tabs a strong").allTextContents(), ["Pages", "Hotspot Builder", "Activity Builder"]);
     assert.equal(await page.locator(".component-pages-groups > section").count(), 11);
     assert.equal(await page.locator(".component-page-card").count(), 2);
+    const selectedCatalog = managedCatalogs[componentSlug];
+    await page.getByRole("button", { name: `Preview ${selectedCatalog.pages[1].label}` }).click();
+    await page.getByRole("button", { name: "Review", exact: true }).click();
+    const pagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
+    await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[1].label)).waitFor();
+    assert.deepEqual(await page.getByLabel("Review page").locator("option").allTextContents(), selectedCatalog.pages.map((item) => `Unit 1 · Pages ${item.printedLabel} · ${item.label}`));
+    await page.getByRole("button", { name: "Close Review" }).click();
 
     await page.goto(`${origin}/#/books/ultimate-b2/components/${componentSlug}/hotspots`, { waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: `${title} hotspot builder` }).waitFor();
@@ -183,6 +200,13 @@ try {
     await page.getByText("No activities yet", { exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "Add Activity" }).isEnabled(), true);
   }
+
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  const studentsPagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
+  await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
+  assert.equal((await page.getByLabel("Review page").locator("option").allTextContents()).some((label) => /Workbook|Grammar Book/.test(label)), false);
+  await page.getByRole("button", { name: "Close Review" }).click();
 
   for (const componentSlug of [components.workbook, components.grammar]) {
     const catalog = managedCatalogs[componentSlug];
@@ -210,6 +234,9 @@ try {
     ["ultimate-b2-students-book", components.workbook],
     [components.workbook, components.grammar],
   ]);
+  assert.equal(managedAssetRequests.length >= 6, true);
+  assert.equal(managedAssetRequests.every((entry) => entry.authorization === previewAuthorization && entry.pageId.startsWith(entry.componentSlug === components.workbook ? "ultimate-b2-wb-" : "ultimate-b2-gb-")), true);
+  assert.equal(failedResponses.some((entry) => /pub-.*\.r2\.dev|publishers\//i.test(entry)), false);
 
   assert.deepEqual(consoleErrors, [], failedResponses.join("\n"));
   assert.deepEqual(pageErrors, []);

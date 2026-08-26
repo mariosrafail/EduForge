@@ -20,7 +20,7 @@ function reviewPageLabel(page) {
   return `Unit ${page.unitNumber} · ${page.pageLabel} · ${page.sectionTitle}`;
 }
 
-export function UnifiedBuilderReview({ tool, pages, bookSlug, componentSlug, children }) {
+export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlug, componentSlug, externalLauncher = false, children }) {
   const normalizedPages = useMemo(() => [...(pages || [])], [pages]);
   const [toolContexts, setToolContexts] = useState({});
   const [lastPageId, setLastPageId] = useState(normalizedPages[0]?.pageId || "");
@@ -38,12 +38,20 @@ export function UnifiedBuilderReview({ tool, pages, bookSlug, componentSlug, chi
     if (normalizedPages.some((page) => page.pageId === pageId)) setLastPageId(pageId);
   }, [normalizedPages]);
 
+  useEffect(() => {
+    setLastPageId((current) => {
+      if (selectedPageId && normalizedPages.some((page) => page.pageId === selectedPageId)) return selectedPageId;
+      return normalizedPages.some((page) => page.pageId === current) ? current : normalizedPages[0]?.pageId || "";
+    });
+  }, [bookSlug, componentSlug, normalizedPages, selectedPageId]);
+
   const lastPage = normalizedPages.find((page) => page.pageId === lastPageId) || normalizedPages[0] || null;
   const currentContext = toolContexts[tool] || { view: "page", dirty: false, refreshKey: 0, release: null };
 
   const openReview = () => {
     const sourceMode = tool === "publication" && currentContext.release ? "release" : "draft";
-    setSession({ sourceMode, toolContext: currentContext, pageId: lastPage?.pageId || "" });
+    const contextPage = normalizedPages.find((page) => page.pageId === currentContext.pageId);
+    setSession({ sourceMode, toolContext: currentContext, pageId: contextPage?.pageId || lastPage?.pageId || "" });
   };
 
   const closeReview = useCallback(() => {
@@ -70,19 +78,21 @@ export function UnifiedBuilderReview({ tool, pages, bookSlug, componentSlug, chi
   const contextValue = useMemo(() => ({
     lastPage,
     pages: normalizedPages,
+    launcherRef,
+    openReview,
     registerToolContext,
     rememberPage,
-  }), [lastPage, normalizedPages, registerToolContext, rememberPage]);
+  }), [lastPage, normalizedPages, openReview, registerToolContext, rememberPage]);
 
   return <BuilderReviewContext.Provider value={contextValue}>
     {children}
-    <button
+    {!externalLauncher ? <button
       className="unified-builder-review-launcher"
       data-unified-review-launcher="true"
       ref={launcherRef}
       type="button"
       onClick={openReview}
-    >Review</button>
+    >Review</button> : null}
     <dialog
       className="unified-builder-review-dialog"
       ref={dialogRef}
@@ -116,7 +126,7 @@ export function UnifiedBuilderReview({ tool, pages, bookSlug, componentSlug, chi
           refreshKey={`${session.toolContext.refreshKey || 0}:${session.pageId}:${session.sourceMode}`}
           title={sourceTitle}
           description={session.sourceMode === "release" ? "Pinned to the exact selected release." : "Shows only the latest successfully saved Builder state."}
-        /> : <p role="status">Choose a valid Review source.</p>}
+        /> : <p role="status">No pages are available for Review in this component.</p>}
       </div> : null}
     </dialog>
   </BuilderReviewContext.Provider>;

@@ -84,7 +84,7 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
     "/builder/preview/open-response-import", "/builder/preview/open-response-teacher", "/builder/preview/open-response-assets", "/builder/preview/ui-assets",
   ]);
   assert.deepEqual(BUILDER_PLAYER_ROUTE_PREFIXES, [
-    "/preview/native-activities", "/preview/releases", "/preview/content", "/preview/open-response-import",
+    "/preview/pages", "/preview/authorization", "/preview/native-activities", "/preview/releases", "/preview/content", "/preview/open-response-import",
     "/preview/open-response-teacher", "/preview/open-response-assets", "/preview/ui-assets",
   ]);
   assert.equal(resolveBuilderWorkerRoute("/.netlify/functions/builder-auth"), null);
@@ -94,6 +94,43 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
     assert.equal(route.playerFacing, true);
     assert.equal(route.compatibilityPath, `/builder${prefix}/example`);
   }
+});
+
+test("managed Player page and authorization routes reach only their compatibility handlers without Builder cookies", async () => {
+  const observations = [];
+  const echo = async (event) => { observations.push(event); return legacyResult(200, { method: event.httpMethod, path: event.path, cookie: event.headers.cookie || null }); };
+  const worker = createBuilderWorker({ handlers: { pages: echo, previewAuthorization: echo } });
+  const catalogPath = "/preview/pages/books/ultimate-b2/components/ultimate-b2-workbook";
+  const assetPath = `${catalogPath}/pages/wb-page-one/assets/40000000-0000-4000-8000-000000000001/preview`;
+  for (const path of [catalogPath, assetPath]) {
+    const result = await payload(await worker.fetch(request(path), {}));
+    assert.deepEqual(result, { method: "GET", path: `/builder${path}`, cookie: null });
+  }
+  const exchange = await worker.fetch(new Request("https://builder.hhplms.workers.dev/preview/authorization/exchange", {
+    method: "POST", headers: { Cookie: "hh_builder_session=must-not-cross", "Content-Type": "application/json" }, body: "{}",
+  }), {});
+  assert.deepEqual(await payload(exchange), { method: "POST", path: "/builder/preview/authorization/exchange", cookie: null });
+  assert.equal(observations.every((event) => event.headers.cookie === undefined), true);
+  assert.equal((await worker.fetch(request("/preview/not-a-capability"), {})).status, 404);
+});
+
+test("managed Player page routes reject missing and cross-component preview authorization", async () => {
+  const pageId = "wb-page-one";
+  const managedIntent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "page", pageId, activityId: null, releaseId: null };
+  const token = issueBuilderPreviewAuthorization(managedIntent, { environment: secretEnvironment, now, nonce: "managed-page-route-nonce" }).token;
+  const authorize = (action, includePage = false) => async (event) => {
+    const componentSlug = event.path.includes("ultimate-b2-grammar-book") ? "ultimate-b2-grammar-book" : "ultimate-b2-workbook";
+    const decision = classifyBuilderPreviewAuthorization(event, { action, bookSlug: "ultimate-b2", componentSlug, ...(includePage ? { pageId } : {}) }, { environment: secretEnvironment, now });
+    return legacyResult(decision.authorized ? 200 : 401, decision);
+  };
+  const worker = createBuilderWorker({ handlers: { pages: async (event) => event.path.includes("/assets/") ? authorize("managed-page-asset", true)(event) : authorize("managed-page-catalog")(event) } });
+  const catalog = "/preview/pages/books/ultimate-b2/components/ultimate-b2-workbook";
+  const asset = `${catalog}/pages/${pageId}/assets/40000000-0000-4000-8000-000000000001/preview`;
+  assert.equal((await worker.fetch(request(catalog), {})).status, 401);
+  assert.equal((await worker.fetch(request(catalog, { token }), {})).status, 200);
+  assert.equal((await worker.fetch(request(asset, { token }), {})).status, 200);
+  const grammar = catalog.replace("workbook", "grammar-book");
+  assert.equal((await worker.fetch(request(grammar, { token }), {})).status, 401);
 });
 
 test("Player preview ignores a valid Builder cookie when authorization is missing", async () => {

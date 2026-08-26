@@ -1,7 +1,19 @@
 import { authorizedHostedPreviewPath, HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
+import { createHostedStartupAssets } from "./interactiveStartupAssets.js";
 
 const COMPONENTS = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
 const emptyUnits = () => Array.from({ length: 10 }, (_, index) => Object.freeze({ id: `unit-${index + 1}`, number: index + 1, title: `Unit ${index + 1}`, pages: Object.freeze([]) }));
+
+export const managedHostedStartupAssets = createHostedStartupAssets(Object.freeze({
+  runtimeAssets(pack) {
+    return (pack?.pageUnits || []).flatMap((unit) => (unit.pages || []).flatMap((page) => (page.images || []).map((url, index) => ({
+      key: `managed-page:${page.id}:${index + 1}`,
+      url,
+      kind: "image",
+      source: "managed-page",
+    }))));
+  },
+}));
 
 function assertComponent(componentSlug) {
   if (!COMPONENTS.has(componentSlug)) throw new Error("Managed review component is unsupported.");
@@ -70,12 +82,12 @@ export function createManagedReviewHotspotProvider(componentSlug) {
   });
 }
 
-export function createManagedReviewDescriptor(componentSlug, startupAssets) {
+export function createManagedReviewDescriptor(componentSlug) {
   assertComponent(componentSlug);
   return Object.freeze({
     bookSlug: "ultimate-b2", componentSlug, installationScope: "hosted-builder-review",
     contentPackProvider: createManagedReviewContentPackProvider(componentSlug), pageUnits: Object.freeze(emptyUnits()),
     hotspotProvider: createManagedReviewHotspotProvider(componentSlug), solutionProvider: Object.freeze({ get: () => null }),
-    startupAssets, uiManifestProvider: Object.freeze({ load: async () => null }),
+    startupAssets: managedHostedStartupAssets, uiManifestProvider: Object.freeze({ load: async () => null }),
   });
 }

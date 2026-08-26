@@ -25,12 +25,12 @@ function PageCard({ page, selected, managed, busy, onSelect, onReplace, onEdit, 
   </article>;
 }
 
-export function ComponentPagesWorkspace({ bookSlug, componentSlug }) {
+export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction = null, onPageLibraryChange = () => {}, onSelectedPageChange = () => {} }) {
   const identity = useMemo(() => ({ bookSlug, componentSlug }), [bookSlug, componentSlug]);
   const policy = policies[componentSlug] || null;
   const managed = Boolean(policy);
   const title = policy?.title || "Students Book";
-  const [state, setState] = useState({ loading: true, revision: 0, units: [], pages: [], error: "" });
+  const [state, setState] = useState({ loading: true, revision: 0, component: null, units: [], pages: [], error: "" });
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -40,11 +40,13 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug }) {
   const addInput = useRef(null);
 
   const apply = (result) => {
-    setState({ loading: false, revision: result.revision, units: result.units || [], pages: result.pages, error: "" });
+    setState({ loading: false, revision: result.revision, component: result.component, units: result.units || [], pages: result.pages, error: "" });
     setSelectedId((current) => result.pages.some((page) => page.id === current) ? current : result.pages[0]?.id || "");
   };
   const reload = async (signal) => { try { apply(await getBuilderPages(identity, { signal })); } catch (error) { if (error.name !== "AbortError") setState((current) => ({ ...current, loading: false, error: error.message || "Could not load pages." })); } };
   useEffect(() => { const controller = new AbortController(); reload(controller.signal); return () => controller.abort(); }, [identity]);
+  useEffect(() => { onPageLibraryChange(state); }, [onPageLibraryChange, state]);
+  useEffect(() => { onSelectedPageChange(selectedId); }, [onSelectedPageChange, selectedId]);
 
   const uploadOne = async ({ file, mode, pageId = "", metadata, expectedRevision }) => {
     const normalizedFile = file.type ? file : new File([file], file.name, { type: fileType(file) });
@@ -83,7 +85,7 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug }) {
     : [...new Set(state.pages.map((page) => page.unitNumber))].map((unitNumber) => ({ id: `unit-${unitNumber}`, title: `Unit ${unitNumber}`, pages: state.pages.filter((page) => page.unitNumber === unitNumber) }));
 
   return <main className="component-pages-workspace" data-component-pages={componentSlug}>
-    <header className="component-pages-header"><div><span>{title} · Pages</span><h1>Page library</h1><p>{managed ? `Upload, assign, label, order, replace, and safely remove ${title} pages.` : "Review every canonical Students Book page, replace its raster safely, or restore the baseline."}</p></div><div><button type="button" disabled={busy} onClick={() => reload()}><RefreshCcw aria-hidden="true" /> Refresh</button><input ref={addInput} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { if (event.target.files?.length && pendingUnitId.current) add(event.target.files, pendingUnitId.current); event.target.value = ""; pendingUnitId.current = ""; }} /></div></header>
+    <header className="component-pages-header"><div><span>{title} · Pages</span><h1>Page library</h1><p>{managed ? `Upload, assign, label, order, replace, and safely remove ${title} pages.` : "Review every canonical Students Book page, replace its raster safely, or restore the baseline."}</p></div><div>{reviewAction}<button type="button" disabled={busy} onClick={() => reload()}><RefreshCcw aria-hidden="true" /> Refresh</button><input ref={addInput} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { if (event.target.files?.length && pendingUnitId.current) add(event.target.files, pendingUnitId.current); event.target.value = ""; pendingUnitId.current = ""; }} /></div></header>
     {busy ? <div className="component-pages-progress" role="status"><span style={{ width: `${progress}%` }} /> Processing page assets… {progress ? `${progress}%` : ""}</div> : null}
     {state.error ? <p className="builder-inline-error component-pages-error" role="alert">{state.error}</p> : null}
     {state.loading ? <p className="component-pages-empty" role="status">Loading page library…</p> : <div className="component-pages-layout">

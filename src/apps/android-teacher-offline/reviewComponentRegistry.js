@@ -34,8 +34,8 @@ const studentsBookRuntime = {
 };
 
 const hostedManagedRuntimes = interactiveStartupAssets.hosted ? [
-  createManagedReviewDescriptor("ultimate-b2-workbook", interactiveStartupAssets),
-  createManagedReviewDescriptor("ultimate-b2-grammar-book", interactiveStartupAssets),
+  createManagedReviewDescriptor("ultimate-b2-workbook"),
+  createManagedReviewDescriptor("ultimate-b2-grammar-book"),
 ] : [];
 
 export const reviewComponentRegistry = createReviewComponentRegistry(bookProductCatalog, [studentsBookRuntime, ...hostedManagedRuntimes], DEFAULT_IDENTITY);

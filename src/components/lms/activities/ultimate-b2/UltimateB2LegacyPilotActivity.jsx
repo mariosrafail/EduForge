@@ -1,6 +1,6 @@
 import { Download, Eye, EyeOff, Headphones, Volume2 } from "lucide-react";
 import { useRef, useState } from "react";
-import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
 
 import {
   ultimateB2Unit1Part2HighlightGroups,
@@ -16,8 +16,8 @@ import { UltimateB2CompleteSentencesActivity } from "./UltimateB2CompleteSentenc
 import { UltimateB2CompleteSentencesStudentActivity } from "./UltimateB2CompleteSentencesStudentActivity.jsx";
 import { UltimateB2DebateClubActivity } from "./UltimateB2DebateClubActivity.jsx";
 import { activeBuildProfile } from "../../../../config/buildProfiles.js";
+import { PdfSaver } from "../../../native-video/pdfSaverPlugin.js";
 
-const PdfSaver = registerPlugin("PdfSaver");
 const teacherPresentationCode = activeBuildProfile.teacherPresentation || activeBuildProfile.authorizedTeacherPreview;
 
 function LegacyInstruction({ src, alt }) {

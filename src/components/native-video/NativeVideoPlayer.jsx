@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Capacitor, registerPlugin } from "@capacitor/core";
+import { Capacitor } from "@capacitor/core";
 import { Captions, CaptionsOff, Download, Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 import { findTimedTextCue } from "../../data/timed-media/timedText.js";
+import { PdfSaver } from "./pdfSaverPlugin.js";
 import "./nativeVideo.css";
-
-const PdfSaver = registerPlugin("PdfSaver");
 
 function formatTime(milliseconds) {
   const seconds = Math.max(0, Math.floor(Number(milliseconds || 0) / 1_000));

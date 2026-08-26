@@ -9,6 +9,7 @@ import {
   resolveUnifiedReviewIntent,
 } from "../src/apps/ultimate-b2-builder/builderReviewModel.js";
 import { hostedBuilderReviewHash, parseHostedBuilderHash } from "../src/apps/book-builder/hosted/hostedBuilderRouter.js";
+import { pageLibraryReviewNavigation } from "../src/apps/book-builder/hosted/pageLibraryReviewModel.js";
 
 const page = { pageId: "ub2-sb-unit-1-part-1", unitNumber: 1 };
 const release = { id: "10000000-0000-4000-8000-000000000012", number: 12, state: "stale" };
@@ -49,6 +50,25 @@ test("publication readiness errors retain safe actionable activity issues", () =
   assert.equal(publicationReadinessPresentation({ code: "builder_publication_failed" }), null);
 });
 
+function managedLibrary(componentSlug, prefix) {
+  const units = [{ id: `${prefix}-unit-id`, slug: "unit-1", title: "Unit 1", unitNumber: 1, sortOrder: 10 }];
+  return {
+    component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed" }, units,
+    pages: [2, 1].map((number) => ({ id: `${prefix}-page-${number}`, componentSlug, unitId: units[0].id, label: `${prefix.toUpperCase()} page ${number}`, printedLabel: String(number), sortOrder: number * 10 })),
+  };
+}
+
+test("Page Library Review navigation is deterministic and component-scoped", () => {
+  const workbookLibrary = managedLibrary("ultimate-b2-workbook", "wb");
+  workbookLibrary.pages.forEach((candidate) => { candidate.sortOrder = 10; });
+  const workbook = pageLibraryReviewNavigation(workbookLibrary, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" });
+  const grammar = pageLibraryReviewNavigation(managedLibrary("ultimate-b2-grammar-book", "gb"), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" });
+  assert.deepEqual(workbook.placements.map((item) => item.pageId), ["wb-page-1", "wb-page-2"]);
+  assert.deepEqual(grammar.placements.map((item) => item.pageId), ["gb-page-1", "gb-page-2"]);
+  assert.equal(workbook.placements.some((item) => item.pageId.startsWith("gb-")), false);
+  assert.throws(() => pageLibraryReviewNavigation(managedLibrary("ultimate-b2-workbook", "wb"), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" }), /identity/);
+});
+
 test("only the shared Review owner mounts the external hosted Viewer", async () => {
   const files = [
     "src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx",
@@ -63,4 +83,10 @@ test("only the shared Review owner mounts the external hosted Viewer", async () 
   assert.match(shared, /Release #\{release\.number\} is immutable and older than the current saved draft\./);
   assert.match(shared, /openPlayerHref=\{hostedBuilderReviewHash/);
   assert.doesNotMatch(shared, /previewAuthorization/);
+  const pages = await readFile("src/apps/book-builder/hosted/ComponentPagesWorkspace.jsx", "utf8");
+  assert.match(pages, /\{reviewAction\}/);
+  assert.doesNotMatch(pages, />Save<|Save pages|global Save/i);
+  const app = await readFile("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", "utf8");
+  assert.match(app, /type="button" onClick=\{openReview\}>Review<\/button>/);
+  assert.doesNotMatch(app, /disabled=\{!selectedPageId\}/);
 });
