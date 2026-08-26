@@ -1,3 +1,20 @@
+function normalizeBuilderPageRevision(value, { nullable }) {
+  if (value === null && nullable) return null;
+  const normalized = typeof value === "number"
+    ? value
+    : typeof value === "string" && /^(?:0|[1-9][0-9]*)$/.test(value)
+      ? Number(value)
+      : Number.NaN;
+  if (!Number.isSafeInteger(normalized) || normalized < 0) {
+    throw new Error("invalid_builder_page_revision");
+  }
+  return normalized;
+}
+
+function normalizeRevisionField(row, field, options = { nullable: true }) {
+  return row ? { ...row, [field]: normalizeBuilderPageRevision(row[field], options) } : null;
+}
+
 export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
   const components = await sql`
     select component.id,coalesce(revision.revision,0) revision
@@ -21,7 +38,7 @@ export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
       and page.stable_key like ${`${componentSlug}/pages/%`}
     order by page.sort_order,page.stable_key
   `;
-  return { revision: Number(components[0].revision), rows };
+  return { revision: normalizeBuilderPageRevision(components[0].revision, { nullable: false }), rows };
 }
 
 export async function prepareBuilderPageUpload(sql, input) {
@@ -30,12 +47,12 @@ export async function prepareBuilderPageUpload(sql, input) {
     ${input.clientMutationId}::uuid,${input.uploadId}::uuid,${input.requestSha256},${JSON.stringify(input.pageMetadata)}::jsonb,
     ${JSON.stringify(input.fileDescriptor)}::jsonb,${input.stagingObjectKey},${input.builderUserId}::uuid,${input.expiresAt}
   )`;
-  return rows[0] || null;
+  return normalizeRevisionField(rows[0] || null, "current_revision");
 }
 
 export async function claimBuilderPageUpload(sql, input) {
   const rows = await sql`select * from claim_builder_component_page_upload(${input.uploadId}::uuid,${input.expectedRevision},${input.clientMutationId}::uuid,${input.builderUserId}::uuid)`;
-  return rows[0] || null;
+  return normalizeRevisionField(rows[0] || null, "current_revision");
 }
 
 export async function completeBuilderPageUpload(sql, input) {
@@ -43,7 +60,7 @@ export async function completeBuilderPageUpload(sql, input) {
     ${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.objectKey},${input.storageBucket},${input.mimeType},
     ${input.byteSize},${input.checksumSha256},${input.width},${input.height}
   )`;
-  return rows[0] || null;
+  return normalizeRevisionField(rows[0] || null, "revision", { nullable: false });
 }
 
 export async function failBuilderPageUpload(sql, input) {
@@ -56,7 +73,7 @@ export async function mutateBuilderPage(sql, input) {
     ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.action},${input.expectedRevision},
     ${input.clientMutationId}::uuid,${JSON.stringify(input.pageMetadata)}::jsonb,${input.builderUserId}::uuid
   )`;
-  return rows[0] || null;
+  return normalizeRevisionField(rows[0] || null, "current_revision");
 }
 
 export async function loadBuilderPageAsset(sql, { bookSlug, componentSlug, pageKey, assetId }) {

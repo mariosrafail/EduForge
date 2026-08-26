@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import { expect } from "@playwright/test";
+
 export async function measureDragDrop(locator, { context, viewport }) {
   await locator.evaluate(async (surface) => {
     let previousSignature = "";
@@ -80,13 +82,46 @@ export async function measureDragDrop(locator, { context, viewport }) {
   return measurement;
 }
 
+async function dispatchPointer(source, type, init) {
+  await source.evaluate((element, payload) => {
+    const ownCapture = Object.getOwnPropertyDescriptor(element, "setPointerCapture");
+    if (payload.type === "pointerdown") Object.defineProperty(element, "setPointerCapture", { configurable: true, value() {} });
+    try {
+      element.dispatchEvent(new PointerEvent(payload.type, { bubbles: true, cancelable: true, pointerId: 41, pointerType: "mouse", isPrimary: true, ...payload.init }));
+    } finally {
+      if (payload.type === "pointerdown") {
+        if (ownCapture) Object.defineProperty(element, "setPointerCapture", ownCapture);
+        else delete element.setPointerCapture;
+      }
+    }
+  }, { type, init });
+}
+
 async function dragBetween(page, source, target) {
   const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
   assert.ok(sourceBox && targetBox);
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 8 });
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2);
   await page.mouse.up();
+}
+
+async function dispatchImmediatePointerSequence(source, target, { cancel = false } = {}) {
+  const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
+  assert.ok(sourceBox && targetBox);
+  await source.evaluate((element, payload) => {
+    const ownCapture = Object.getOwnPropertyDescriptor(element, "setPointerCapture");
+    Object.defineProperty(element, "setPointerCapture", { configurable: true, value() {} });
+    const event = (type, init) => element.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 42, pointerType: "mouse", isPrimary: true, ...init }));
+    try {
+      event("pointerdown", { button: 0, buttons: 1, clientX: payload.sourceX, clientY: payload.sourceY });
+      if (payload.cancel) event("pointercancel", { button: 0, buttons: 0, clientX: payload.targetX, clientY: payload.targetY });
+      event("pointerup", { button: 0, buttons: 0, clientX: payload.targetX, clientY: payload.targetY });
+    } finally {
+      if (ownCapture) Object.defineProperty(element, "setPointerCapture", ownCapture);
+      else delete element.setPointerCapture;
+    }
+  }, { sourceX: sourceBox.x + sourceBox.width / 2, sourceY: sourceBox.y + sourceBox.height / 2, targetX: targetBox.x + targetBox.width / 2, targetY: targetBox.y + targetBox.height / 2, cancel });
 }
 
 export async function exerciseValidatedDragDrop(page, surface, pair) {
@@ -96,15 +131,86 @@ export async function exerciseValidatedDragDrop(page, surface, pair) {
   const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
-  await dragBetween(page, wrongWord, target);
+  const correctWord = surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`);
+  await dispatchImmediatePointerSequence(correctWord, target, { cancel: true });
+  assert.equal(await target.getAttribute("data-occupied"), null);
+  assert.equal(await target.getAttribute("data-incorrect"), null);
+  assert.equal(await correctWord.getAttribute("data-used"), null);
+  await dispatchImmediatePointerSequence(wrongWord, target);
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), "true");
   assert.equal(await wrongWord.getAttribute("data-used"), null);
   assert.equal(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
   assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
-  await dragBetween(page, surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`), target);
+  await dispatchImmediatePointerSequence(correctWord, target);
   assert.equal(await target.getAttribute("data-occupied"), "true");
   assert.equal(await target.getAttribute("data-incorrect"), null);
   assert.notEqual(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
+  return target;
+}
+
+export async function exerciseDragDropPanelTransitionGuard(surface) {
+  const source = surface.locator("[data-drag-drop-word-id]").first();
+  const target = surface.locator("[data-drag-drop-target-id]").first();
+  const sourceBox = await source.boundingBox();
+  assert.ok(sourceBox);
+  await dispatchPointer(source, "pointerdown", { button: 0, buttons: 1, clientX: sourceBox.x + sourceBox.width / 2, clientY: sourceBox.y + sourceBox.height / 2 });
+  await surface.getByRole("button", { name: "Next", exact: true }).click();
+  const nextTarget = surface.locator("[data-drag-drop-target-id]").first();
+  const nextTargetBox = await nextTarget.boundingBox();
+  assert.ok(nextTargetBox);
+  await dispatchPointer(source, "pointerup", { button: 0, buttons: 0, clientX: nextTargetBox.x + nextTargetBox.width / 2, clientY: nextTargetBox.y + nextTargetBox.height / 2 });
+  assert.equal(await nextTarget.getAttribute("data-occupied"), null);
+  assert.equal(await source.getAttribute("data-used"), null);
+  await surface.getByRole("button", { name: "Previous", exact: true }).click();
+  assert.equal(await target.getAttribute("data-occupied"), null);
+}
+
+export async function exerciseDragDropResetGuard(page, surface, resetButton, pair) {
+  const source = surface.locator("[data-drag-drop-word-id]").first();
+  const target = surface.locator("[data-drag-drop-target-id]").first();
+  const revealedTarget = surface.locator("[data-drag-drop-target-id][data-revealed]").first();
+  assert.equal(await resetButton.isDisabled(), true);
+  assert.equal(await revealedTarget.count(), 0);
+  const sourceBox = await source.boundingBox();
+  assert.ok(sourceBox);
+  await dispatchPointer(source, "pointerdown", { button: 0, buttons: 1, clientX: sourceBox.x + sourceBox.width / 2, clientY: sourceBox.y + sourceBox.height / 2 });
+  await target.click();
+  await revealedTarget.waitFor();
+  const revealedTargetHandle = await revealedTarget.elementHandle();
+  assert.ok(revealedTargetHandle);
+  await resetButton.click({ trial: true });
+  assert.equal(await resetButton.isDisabled(), false);
+  await resetButton.click();
+  await revealedTargetHandle.waitForElementState("hidden");
+  assert.equal(await revealedTargetHandle.evaluate((element) => element.isConnected), false);
+  await revealedTarget.waitFor({ state: "detached" });
+  await target.waitFor({ state: "attached" });
+  assert.equal(await target.evaluate((element, previous) => element !== previous, revealedTargetHandle), true);
+  await expect(resetButton).toBeDisabled();
+  assert.equal(await resetButton.isDisabled(), true);
+  const targetBox = await target.boundingBox();
+  assert.ok(targetBox);
+  await dispatchPointer(source, "pointerup", { button: 0, buttons: 0, clientX: targetBox.x + targetBox.width / 2, clientY: targetBox.y + targetBox.height / 2 });
+  assert.equal(await target.getAttribute("data-occupied"), null);
+  assert.equal(await target.getAttribute("data-incorrect"), null);
+  assert.equal(await target.getAttribute("data-revealed"), null);
+  assert.equal(await source.getAttribute("data-used"), null);
+  assert.equal(await source.getAttribute("aria-pressed"), "false");
+
+  const targetId = await target.getAttribute("data-drag-drop-target-id");
+  const correctWordId = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId)?.wordId;
+  const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
+  assert.ok(correctWordId && wrongWordId);
+  const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
+  const correctWord = surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`);
+  await dragBetween(page, wrongWord, target);
+  assert.equal(await target.getAttribute("data-occupied"), null);
+  assert.equal(await target.getAttribute("data-incorrect"), "true");
+  assert.equal(await wrongWord.getAttribute("data-used"), null);
+  await dragBetween(page, correctWord, target);
+  assert.equal(await target.getAttribute("data-occupied"), "true");
+  assert.equal(await target.getAttribute("data-incorrect"), null);
+  assert.equal(await correctWord.getAttribute("data-used"), "true");
   return target;
 }

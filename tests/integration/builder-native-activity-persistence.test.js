@@ -29,7 +29,7 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "045_builder_component_pages.sql");
+  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Native Actor','native@example.test','hash')", [actor]);
   const sql = tag(pool);
   const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
@@ -268,7 +268,7 @@ test("isolated PostgreSQL reads a legacy native payload by its persisted checksu
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "045_builder_component_pages.sql");
+  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Checksum Actor','checksum@example.test','hash')", [actor]);
 
   const sql = tag(pool);
