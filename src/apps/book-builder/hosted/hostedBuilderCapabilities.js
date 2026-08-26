@@ -1,4 +1,5 @@
 export const hostedBuilderCapabilityByTool = Object.freeze({
+  pages: "pages",
   hotspots: "hotspots",
   activities: "activities",
   ui: "uiController",

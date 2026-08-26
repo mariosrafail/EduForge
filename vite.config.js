@@ -13,6 +13,7 @@ import { ultimateB2PublisherActivityBuilderPlugin } from "./scripts/ultimate-b2/
 import { ultimateB2Page5BuilderPlugin } from "./scripts/ultimate-b2/page5-builder-vite-plugin.mjs";
 import { ultimateB2ReadingExerciseBuilderPlugin } from "./scripts/ultimate-b2/reading-exercise-builder-vite-plugin.mjs";
 import { ultimateB2TeacherAppBuilderPlugin } from "./scripts/ultimate-b2/teacher-app-builder-vite-plugin.mjs";
+import { ultimateB2BuilderPageAssetsPlugin } from "./scripts/ultimate-b2/builder-page-assets-vite-plugin.mjs";
 import { teacherProjectVitePlugin } from "./scripts/teacher-project-builder/vite-plugin.mjs";
 import { committedHotspotVitePlugin } from "./scripts/netlify/committed-hotspot-vite-plugin.mjs";
 import { resolveBuildProfile } from "./src/config/buildProfiles.js";
@@ -186,6 +187,7 @@ export default defineConfig(({ mode }) => {
       listeningAuthoringPlugin,
       multipleChoicePresentationPlugin,
       committedHotspotVitePlugin({ enabled: isHostedReview }),
+      ultimateB2BuilderPageAssetsPlugin({ enabled: isHostedBuilderReview }),
       isAndroidTeacherProject ? teacherProjectVitePlugin({ configPath: env.TEACHER_PROJECT_RUNTIME_CONFIG || process.env.TEACHER_PROJECT_RUNTIME_CONFIG }) : null,
       !isAndroidTeacherProject && !isHostedReview ? ultimateB2HotspotBuilderPlugin({ environment: serverEnvironment }) : null,
       !isAndroidTeacherProject && !isHostedReview ? ultimateB2ListeningBuilderPlugin({ environment: serverEnvironment }) : null,

@@ -1,0 +1,46 @@
+.component-pages-workspace { min-height: calc(100vh - 170px); padding: clamp(20px,3vw,36px); background: #f7f9fc; color: #101828; }
+.component-pages-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; max-width: 1600px; margin: 0 auto 24px; }
+.component-pages-header span { color: #175cd3; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.component-pages-header h1 { margin: 5px 0; font-size: clamp(1.8rem,3vw,2.6rem); letter-spacing: -.04em; }
+.component-pages-header p { margin: 0; color: #667085; }
+.component-pages-header > div:last-child { display: flex; gap: 9px; }
+.component-pages-header button { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 0 15px; border: 1px solid #d5dfeb; border-radius: 9px; background: #fff; }
+.component-pages-header button svg { width: 18px; }
+.component-pages-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(270px,360px); gap: 24px; max-width: 1600px; margin: auto; align-items: start; }
+.component-pages-groups { display: grid; gap: 28px; }
+.component-pages-groups section > h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 11px; font-size: 1rem; }
+.component-pages-groups section > h2 span { display: inline-grid; min-width: 24px; height: 24px; padding: 0 6px; place-items: center; border-radius: 99px; color: #344054; background: #e9eef5; font-size: .72rem; }
+.component-page-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(210px,1fr)); gap: 13px; }
+.component-page-card { min-width: 0; overflow: hidden; border: 1px solid #d5dfeb; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(16,24,40,.05); }
+.component-page-card[data-selected] { border-color: #175cd3; box-shadow: 0 0 0 2px rgba(23,92,211,.14); }
+.component-page-image { display: grid; width: 100%; height: 150px; padding: 0; place-items: center; overflow: hidden; border: 0; border-bottom: 1px solid #e4e7ec; border-radius: 0; background: #eef2f7; }
+.component-page-image img { width: 100%; height: 100%; object-fit: contain; }
+.component-page-card-copy { display: grid; gap: 4px; padding: 11px 12px; }
+.component-page-card-copy span,.component-page-card-copy small { overflow: hidden; color: #667085; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.component-page-card-copy strong { overflow: hidden; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
+.component-page-actions { display: flex; min-height: 40px; padding: 5px 7px; gap: 4px; border-top: 1px solid #eef2f6; }
+.component-page-actions button,.component-page-file-action { display: inline-grid; width: 32px; height: 32px; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 7px; color: #475467; background: transparent; cursor: pointer; }
+.component-page-actions button:hover,.component-page-file-action:hover { border-color: #d5dfeb; background: #f2f4f7; }
+.component-page-actions svg { width: 16px; }
+.component-page-file-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.component-page-actions .is-danger { margin-left: auto; color: #b42318; }
+.component-page-inspector { position: sticky; top: 176px; overflow: hidden; border: 1px solid #d5dfeb; border-radius: 14px; background: #fff; box-shadow: 0 10px 30px rgba(16,24,40,.07); }
+.component-page-inspector > span,.component-page-inspector > h2,.component-page-inspector > dl { margin-inline: 17px; }
+.component-page-inspector > span { display: block; margin-top: 17px; color: #175cd3; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.component-page-inspector h2 { margin-top: 5px; font-size: 1.05rem; }
+.component-page-preview { display: grid; height: min(46vh,480px); margin-top: 14px; place-items: center; overflow: auto; border-block: 1px solid #e4e7ec; background: #eef2f7; }
+.component-page-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.component-page-inspector dl { display: grid; gap: 10px; margin-block: 16px; }
+.component-page-inspector dl div { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 8px; }
+.component-page-inspector dt { color: #667085; font-size: .75rem; }
+.component-page-inspector dd { min-width: 0; margin: 0; overflow: hidden; font-size: .78rem; text-overflow: ellipsis; }
+.component-pages-progress,.component-pages-error { max-width: 1600px; margin: 0 auto 18px; }
+.component-pages-progress { position: relative; overflow: hidden; padding: 10px 14px; border: 1px solid #b9d0f5; border-radius: 9px; background: #eff6ff; font-size: .82rem; }
+.component-pages-progress span { position: absolute; inset: auto 0 0; height: 3px; background: #175cd3; transition: width 150ms ease; }
+.component-pages-empty { display: grid; min-height: 300px; max-width: 900px; margin: 50px auto; padding: 40px; place-items: center; align-content: center; border: 1px dashed #b8c4d4; border-radius: 14px; text-align: center; background: #fff; }
+.component-pages-empty svg { width: 42px; color: #98a2b3; }
+.component-page-editor { display: grid; gap: 15px; }
+.component-page-editor label { display: grid; gap: 6px; }
+.component-page-editor input { min-height: 42px; padding: 8px 10px; border: 1px solid #b8c4d4; border-radius: 8px; }
+.component-page-editor footer,.component-page-delete > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+@media (max-width: 900px) { .component-pages-layout { grid-template-columns: 1fr; } .component-page-inspector { position: static; } .component-pages-header { flex-direction: column; } }

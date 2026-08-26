@@ -52,6 +52,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/api/pages/*"
+  to = "/.netlify/functions/builder-pages/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/api/publication/*"
   to = "/.netlify/functions/builder-publication/:splat"
   status = 200

@@ -73,7 +73,10 @@ const catalogInput = [
           compilerId: "ultimate-b2-students-book-v2",
         },
       }),
-      component("ultimate-b2", "workbook", "Workbook", "workbook", "workbook"),
+      component("ultimate-b2", "workbook", "Workbook", "workbook", "workbook", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b2-workbook",
+      }),
       component("ultimate-b2", "grammar-book", "Grammar Book", "grammar_book", "grammar-book"),
       component("ultimate-b2", "test-book", "Test Book", "test_book", null),
     ],

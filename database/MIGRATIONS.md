@@ -46,6 +46,7 @@ Apply production migrations in this exact order:
 42. `042_builder_native_activity_retirement.sql`
 43. `043_builder_activity_lifecycle.sql`
 44. `044_builder_unit_extra_asset_uploads.sql`
+45. `045_builder_component_pages.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
-import { Boxes, MapPinned, PanelsTopLeft, Rocket } from "lucide-react";
+import { Boxes, FileImage, MapPinned, PanelsTopLeft, Rocket } from "lucide-react";
 
 import {
   findHostedBuilderBook,
@@ -26,7 +26,7 @@ function useHostedBuilderRoute() {
 }
 
 function Breadcrumbs({ book, component, tool }) {
-  const toolLabels = { hotspots: "Hotspot Builder", activities: "Activity Builder", ui: "UI Controller", publication: "Publication" };
+  const toolLabels = { pages: "Pages", hotspots: "Hotspot Builder", activities: "Activity Builder", ui: "UI Controller", publication: "Publication" };
   return <nav className="hosted-builder-breadcrumbs" aria-label="Breadcrumb">
     <a href={hostedBuilderHash()}>Books</a>
     {book ? <><span aria-hidden="true">/</span><a href={hostedBuilderHash({ bookSlug: book.slug })}>{book.title}</a></> : null}
@@ -78,6 +78,7 @@ function Workspace({ book, component, tool }) {
   if (!resolveHostedBuilderTool(adapter, tool)) return <NotFound />;
   const WorkspaceComponent = adapter.Workspace;
   const tools = [
+    { id: "pages", label: "Pages", description: "Manage component pages", capability: "pages", Icon: FileImage },
     { id: "hotspots", label: "Hotspot Builder", description: "Place interactive targets", capability: "hotspots", Icon: MapPinned },
     { id: "activities", label: "Activity Builder", description: "Author learning activities", capability: "activities", Icon: Boxes },
     { id: "ui", label: "UI Controller", description: "Tune teacher controls", capability: "uiController", Icon: PanelsTopLeft },

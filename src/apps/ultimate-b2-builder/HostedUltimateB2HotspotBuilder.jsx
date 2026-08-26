@@ -11,6 +11,7 @@ import {
   saveBuilderContent,
 } from "../book-builder/hosted/builderContentApi.js";
 import { getActivityLifecycle, getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
+import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
 const contentIdentity = Object.freeze({
@@ -70,8 +71,10 @@ export function HostedUltimateB2HotspotBuilder() {
   const [viewerRefreshKey, setViewerRefreshKey] = useState(0);
   const [nativeActivities, setNativeActivities] = useState([]);
   const [activityLifecycle, setActivityLifecycle] = useState({ activities: {} });
+  const [pageLibrary, setPageLibrary] = useState(new Map());
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
+  const pageImageUrl = pageLibrary.get(page?.id)?.image?.url || page?.images?.[0];
   useEffect(() => {
     if (!page) return;
     rememberPage(page.id);
@@ -134,6 +137,7 @@ export function HostedUltimateB2HotspotBuilder() {
       loadLatest({ signal: controller.signal }),
       getNativeActivityCatalog(contentIdentity, { signal: controller.signal }).then(setNativeActivities),
       getActivityLifecycle(contentIdentity, { signal: controller.signal }).then((value) => setActivityLifecycle(value.document)),
+      getBuilderPages(contentIdentity, { signal: controller.signal }).then((value) => setPageLibrary(new Map(value.pages.map((item) => [item.id, item])))),
     ]).catch((requestError) => {
       if (requestError.name === "AbortError") return;
       setError(requestError.message);
@@ -291,7 +295,7 @@ export function HostedUltimateB2HotspotBuilder() {
         <p className="builder-keyboard-help">Arrow keys nudge · Shift moves farther · Delete removes · Escape clears</p>
       </aside>
       <div className="builder-canvas-scroll"><div className={`builder-page-surface ${fitToScreen ? "fit" : "zoomed"}`} style={{ width: naturalSize.width ? `${naturalSize.width * (fitToScreen ? 1 : zoom)}px` : "100%", maxWidth: fitToScreen ? "100%" : "none" }}>
-        <img src={page.images[0]} alt={`${pageLabel(page)} Students Book page`} draggable="false" onLoad={(event) => setNaturalSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
+        <img src={pageImageUrl} alt={`${pageLabel(page)} Students Book page`} draggable="false" onLoad={(event) => setNaturalSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
         <EditableHotspotLayer pageId={page.id} areas={hotspots} editing creating={creatingHotspot} selectedAreaId={selectedHotspotId} onSelectArea={(id) => { setSelectedHotspotId(id); if (id) setCreatingHotspot(false); }} onChangeAreas={updatePageHotspots} createArea={(geometry) => ({ id: newHotspotId(), unitNumber: page.unitNumber, pageId: page.id, pageNumber: page.pageNumber, ...geometry, label: "Clickable area", actionType: "normalized_activity", activityKey: "" })} />
       </div></div>
       <aside className="builder-properties">

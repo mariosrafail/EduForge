@@ -1,6 +1,6 @@
 import { isHostedViewerSafeId, normalizeHostedViewerIntent } from "./hostedViewerPreviewUrl.js";
 
-export const hostedBuilderTools = Object.freeze(["hotspots", "activities", "ui", "publication"]);
+export const hostedBuilderTools = Object.freeze(["pages", "hotspots", "activities", "ui", "publication"]);
 
 export function hostedBuilderHash({ bookSlug, componentSlug, tool } = {}) {
   if (!bookSlug) return "#/books";
@@ -71,7 +71,7 @@ export function parseHostedBuilderHash(hash = "") {
   if (segments[0] !== "books" || !segments[1]) return { kind: "not-found" };
   if (segments.length === 2) return { kind: "book", bookSlug: segments[1] };
   if (segments[2] !== "components" || !segments[3]) return { kind: "not-found" };
-  if (segments.length === 4) return { kind: "workspace", bookSlug: segments[1], componentSlug: segments[3], tool: "hotspots" };
+  if (segments.length === 4) return { kind: "workspace", bookSlug: segments[1], componentSlug: segments[3], tool: "pages" };
   if (segments.length === 5 && segments[4] === "review") {
     if (!isHostedViewerSafeId(segments[1]) || !isHostedViewerSafeId(segments[3])) return { kind: "not-found" };
     const intent = parseReviewQuery(rawQuery);

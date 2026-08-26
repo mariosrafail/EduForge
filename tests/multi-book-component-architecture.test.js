@@ -41,7 +41,11 @@ test("shared product catalog separates registration, install, authoring, LMS vis
   assert.deepEqual({ review: students.reviewState, authoring: students.authoringState, adapter: students.authoringAdapterId, visible: students.lmsVisible, edition: students.teacherEditionId }, {
     review: "installed", authoring: "active", adapter: "ultimate-b2-students-book", visible: true, edition: "students-book",
   });
-  for (const slug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+  const workbook = findProductComponent("ultimate-b2", "ultimate-b2-workbook");
+  assert.deepEqual({ review: workbook.reviewState, authoring: workbook.authoringState, adapter: workbook.authoringAdapterId, publication: workbook.publication }, {
+    review: "pending", authoring: "active", adapter: "ultimate-b2-workbook", publication: { readable: false, writable: false, compilerId: null },
+  });
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
     const item = findProductComponent("ultimate-b2", slug);
     assert.equal(item.registered, true);
     assert.equal(item.reviewState, "pending");
@@ -54,7 +58,8 @@ test("shared product catalog separates registration, install, authoring, LMS vis
 });
 
 test("Builder tool routes require an explicit readable adapter capability", () => {
-  const adapter = { capabilities: { hotspots: { readable: true, writable: true }, activities: { readable: false, writable: false } } };
+  const adapter = { capabilities: { pages: { readable: true, writable: true }, hotspots: { readable: true, writable: true }, activities: { readable: false, writable: false } } };
+  assert.equal(resolveHostedBuilderTool(adapter, "pages"), "pages");
   assert.equal(resolveHostedBuilderTool(adapter, "hotspots"), "hotspots");
   assert.equal(resolveHostedBuilderTool(adapter, "activities"), null);
   assert.equal(resolveHostedBuilderTool(adapter, "ui"), null);

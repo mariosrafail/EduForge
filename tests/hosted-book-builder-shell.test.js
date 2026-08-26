@@ -30,7 +30,9 @@ test("hosted authoring catalog registers all known titles and Ultimate B2 exact 
     { slug: "ultimate-b2-test-book", type: "test_book" },
   ]);
   assert.equal(findHostedBuilderComponent(book, "ultimate-b2-students-book").adapterId, "ultimate-b2-students-book");
-  for (const slug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
+  assert.equal(findHostedBuilderComponent(book, "ultimate-b2-workbook").adapterId, "ultimate-b2-workbook");
+  assert.equal(findHostedBuilderComponent(book, "ultimate-b2-workbook").status, "In authoring");
+  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
     const component = findHostedBuilderComponent(book, slug);
     assert.equal(component.adapterId, null);
     assert.equal(component.status, "Authoring adapter pending");
@@ -55,7 +57,10 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.deepEqual(parseHostedBuilderHash("#/books"), { kind: "library" });
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2"), { kind: "book", bookSlug: "ultimate-b2" });
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/ultimate-b2-students-book"), {
-    kind: "workspace", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "hotspots",
+    kind: "workspace", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "pages",
+  });
+  assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/ultimate-b2-workbook"), {
+    kind: "workspace", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", tool: "pages",
   });
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/ultimate-b2-students-book/activities"), {
     kind: "workspace", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "activities",
@@ -64,6 +69,15 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/invalid"), { kind: "not-found" });
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/unknown/delete"), { kind: "not-found" });
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
+});
+
+test("Students Book and Workbook adapters expose exact component-scoped Pages contracts", async () => {
+  const adapters = await read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx");
+  assert.match(adapters, /"ultimate-b2-workbook": Object\.freeze/);
+  assert.match(adapters, /props\.tool === "pages" \? <ComponentPagesWorkspace/);
+  const workbookBlock = adapters.slice(adapters.indexOf('"ultimate-b2-workbook"'));
+  assert.match(workbookBlock, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+  assert.doesNotMatch(workbookBlock, /hotspots:|activities:|uiController:|publication:/);
 });
 
 test("generic hosted Review routing round-trips strict token-free Viewer intents", () => {

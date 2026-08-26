@@ -50,12 +50,13 @@ test("Viewer refresh advances only after a successful persisted hotspot save", a
   assert.doesNotMatch(saveBody.match(/status === 409[\s\S]*?\} else/)?.[0] || "", /setViewerRefreshKey/);
 });
 
-test("adapter capabilities expose only hotspots and supported activities as writable tools", async () => {
+test("Students adapter exposes Pages plus every established writable tool", async () => {
   const [adapters, shell, workspace] = await Promise.all([
     read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
   ]);
+  assert.match(adapters, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /uiController: Object\.freeze\(\{ readable: true, writable: true \}\)/);
