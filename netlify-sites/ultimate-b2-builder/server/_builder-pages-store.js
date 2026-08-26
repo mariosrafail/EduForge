@@ -23,8 +23,16 @@ export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
     where package.slug=${bookSlug} and component.slug=${componentSlug} limit 1
   `;
   if (!components[0]) return null;
+  const units = await sql`
+    select unit.id,unit.slug,unit.title,unit.unit_number,unit.sort_order
+    from units unit
+    where unit.book_component_id=${components[0].id}
+      and unit.unit_number between 1 and 10
+    order by unit.sort_order,unit.unit_number,unit.slug
+  `;
   const rows = await sql`
-    select page.id,page.stable_key,page.label,page.sort_order,page.source_metadata,
+    select page.id,page.stable_key,page.label,page.sort_order,page.source_metadata,page.unit_id,
+      unit.slug unit_slug,unit.title unit_title,unit.unit_number,unit.sort_order unit_sort_order,
       asset.id asset_id,asset.object_key,asset.mime_type,asset.byte_size,asset.checksum_sha256,asset.width,asset.height
     from book_pages page
     join book_packages package on package.id=page.book_package_id
@@ -34,11 +42,12 @@ export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
       where candidate.page_id=page.id and candidate.asset_role='page_image' and candidate.publication_status='draft'
       order by candidate.updated_at desc limit 1
     ) asset on true
+    left join units unit on unit.id=page.unit_id and unit.book_component_id=page.book_component_id
     where package.slug=${bookSlug} and component.slug=${componentSlug}
       and page.stable_key like ${`${componentSlug}/pages/%`}
-    order by page.sort_order,page.stable_key
+    order by unit.sort_order nulls last,page.sort_order,page.stable_key
   `;
-  return { revision: normalizeBuilderPageRevision(components[0].revision, { nullable: false }), rows };
+  return { revision: normalizeBuilderPageRevision(components[0].revision, { nullable: false }), units, rows };
 }
 
 export async function prepareBuilderPageUpload(sql, input) {

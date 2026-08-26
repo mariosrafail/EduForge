@@ -36,6 +36,8 @@ const routeDefinitions = Object.freeze([
   { prefix: "/builder/api/ui-assets", handler: "teacherUiAssets" },
   { prefix: "/builder/api/unit-extras", handler: "unitExtraAssets" },
   { prefix: "/builder/api/pages", handler: "pages" },
+  { prefix: "/builder/preview/pages", handler: "pages" },
+  { prefix: "/builder/preview/authorization", handler: "previewAuthorization" },
   { prefix: "/builder/preview/native-activities", handler: "nativePreview" },
   { prefix: "/builder/preview/releases", handler: "publication" },
   { prefix: "/builder/preview/content", handler: "preview" },

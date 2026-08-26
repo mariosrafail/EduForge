@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { classifyBuilderPreviewAuthorization, issueBuilderPreviewAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
+import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { createBuilderPreviewAuthorizationHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 
@@ -77,4 +77,32 @@ test("authorization issuance fails closed as a server error when signing configu
   const response = await handler({ httpMethod: "POST", path: "/builder/api/preview-authorization", headers: { host: "builder.example", origin: "https://builder.example", "content-type": "application/json" }, body: JSON.stringify({ intent }) });
   assert.equal(response.statusCode, 500);
   assert.deepEqual(JSON.parse(response.body), { error: "preview_authorization_failed" });
+});
+
+test("component switching exchanges one scoped token without permitting direct cross-component reads", async () => {
+  const sourceIntent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "library", pageId: null, activityId: null, releaseId: null };
+  const targetIntent = { ...sourceIntent, componentSlug: "ultimate-b2-workbook" };
+  const source = issueBuilderPreviewAuthorization(sourceIntent, { environment, now, nonce: "source-component-nonce" });
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(source.token), { action: "managed-page-catalog", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" }, { environment, now }), false);
+  const handler = createBuilderPreviewAuthorizationHandler({
+    getDatabase: () => { throw new Error("exchange must not open the database"); },
+    authorize: async () => { throw new Error("exchange must not require a cross-origin Builder cookie"); },
+    inspect: (event, scope) => inspectBuilderPreviewAuthorizationScope(event, scope, { environment, now }),
+    issue: (value) => issueBuilderPreviewAuthorization(value, { environment, now, nonce: "target-component-nonce" }),
+    logger: { error() {} },
+  });
+  const request = (token = source.token, body = { source: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, intent: targetIntent }) => ({
+    httpMethod: "POST",
+    path: "/preview/authorization/exchange",
+    headers: { "content-type": "application/json", origin: "https://viewer.example" },
+    queryStringParameters: { previewAuthorization: token },
+    body: JSON.stringify(body),
+  });
+  const response = await handler(request());
+  assert.equal(response.statusCode, 200);
+  const exchanged = JSON.parse(response.body).token;
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(exchanged), { action: "managed-page-catalog", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" }, { environment, now }), true);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(exchanged), { action: "managed-page-catalog", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" }, { environment, now }), false);
+  assert.equal((await handler(request("malformed"))).statusCode, 401);
+  assert.equal((await handler(request(source.token, { source: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" }, intent: targetIntent }))).statusCode, 401);
 });

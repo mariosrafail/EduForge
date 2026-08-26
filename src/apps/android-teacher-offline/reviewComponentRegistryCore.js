@@ -14,7 +14,8 @@ export function createReviewComponentRegistry(productCatalog, installedDescripto
   for (const descriptor of installedDescriptors || []) {
     const key = reviewComponentKey(descriptor?.bookSlug, descriptor?.componentSlug);
     const registration = registrations.get(key);
-    if (!registration || registration.component.reviewState !== "installed") {
+    const hostedManaged = descriptor?.installationScope === "hosted-builder-review" && descriptor?.startupAssets?.hosted === true;
+    if (!registration || (registration.component.reviewState !== "installed" && !hostedManaged)) {
       throw new Error(`Installed review component is not registered as installed: ${key}`);
     }
     if (installed.has(key) || !descriptor.contentPackProvider?.load || !Array.isArray(descriptor.pageUnits)) {

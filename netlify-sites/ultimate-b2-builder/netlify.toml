@@ -70,6 +70,18 @@
   force = true
 
 [[redirects]]
+  from = "/builder/preview/pages/*"
+  to = "/.netlify/functions/builder-pages/preview/pages/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/builder/preview/authorization/exchange"
+  to = "/.netlify/functions/builder-preview-authorization/preview/authorization/exchange"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/releases/*"
   to = "/.netlify/functions/builder-publication/preview/releases/:splat"
   status = 200

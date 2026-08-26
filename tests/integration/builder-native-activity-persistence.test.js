@@ -29,7 +29,7 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
+  assert.equal(migrations.at(-1).filename, "047_ultimate_b2_managed_component_units.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Native Actor','native@example.test','hash')", [actor]);
   const sql = tag(pool);
   const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
@@ -109,6 +109,56 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
 
   const unauthorized = await createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 4, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "d".repeat(64), schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: "10000000-0000-4000-8000-000000000099", clientMutationId: randomUUID() });
   assert.equal(unauthorized.outcome, "unauthorized_actor");
+});
+
+test("isolated PostgreSQL derives managed native placement from active same-component pages and returns to empty", { skip: !enabled }, async (t) => {
+  const schema = `builder_managed_native_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 3 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Managed Native Actor','managed-native@example.test','hash')", [actor]);
+  const units = (await pool.query(`select component.slug component_slug,unit.id,unit.unit_number from units unit join book_components component on component.id=unit.book_component_id join book_packages package on package.id=component.book_package_id where package.slug='ultimate-b2' and component.slug in ('ultimate-b2-workbook','ultimate-b2-grammar-book') and unit.unit_number in (1,2) order by component.slug,unit.unit_number`)).rows;
+  const unit = (component, number) => units.find((row) => row.component_slug === component && row.unit_number === number).id;
+  const workbookPage1 = `wb-page-${randomUUID().replaceAll("-", "")}`;
+  const workbookPage2 = `wb-page-${randomUUID().replaceAll("-", "")}`;
+  const grammarPage = `gb-page-${randomUUID().replaceAll("-", "")}`;
+  for (const [componentSlug, pageId, unitId, sortOrder] of [
+    ["ultimate-b2-workbook", workbookPage1, unit("ultimate-b2-workbook", 1), 1],
+    ["ultimate-b2-workbook", workbookPage2, unit("ultimate-b2-workbook", 2), 1],
+    ["ultimate-b2-grammar-book", grammarPage, unit("ultimate-b2-grammar-book", 1), 1],
+  ]) {
+    await pool.query(`insert into book_pages(book_package_id,book_component_id,unit_id,stable_key,label,sort_order,source_metadata) select package.id,component.id,$1,$2,$3,$4,'{"source":"builder-pages","is_active":true}'::jsonb from book_packages package join book_components component on component.book_package_id=package.id where package.slug='ultimate-b2' and component.slug=$5`, [unitId, `${componentSlug}/pages/${pageId}`, pageId, sortOrder, componentSlug]);
+  }
+  const sql = tag(pool);
+  const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const managedEvent = (componentSlug, action, body) => ({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/${componentSlug}/${action}`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify(body) });
+  const workbookCreate = await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "open-response", pageId: workbookPage1, title: "First Workbook activity", clientMutationId: randomUUID() }));
+  assert.equal(workbookCreate.statusCode, 200);
+  const workbook = JSON.parse(workbookCreate.body);
+  assert.match(workbook.activityId, /^ultimate-b2-wb-/);
+  assert.deepEqual(workbook.placement, { pageId: workbookPage1 });
+  const createdWorkbookPublic = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_public' and document.document_key=$1", [workbook.activityId])).rows[0].payload;
+  assert.deepEqual(createdWorkbookPublic.placement, { pageId: workbookPage1 });
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "open-response", pageId: grammarPage, title: "Foreign", clientMutationId: randomUUID() }))).statusCode, 400);
+  const grammarCreate = await handler(managedEvent("ultimate-b2-grammar-book", "create", { kind: "single-choice", pageId: grammarPage, title: "First Grammar activity", clientMutationId: randomUUID() }));
+  assert.equal(grammarCreate.statusCode, 200);
+  assert.match(JSON.parse(grammarCreate.body).activityId, /^ultimate-b2-gb-/);
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/move`, { sourcePageId: workbookPage1, destinationPageId: grammarPage, clientMutationId: randomUUID() }))).statusCode, 400);
+  const moved = await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/move`, { sourcePageId: workbookPage1, destinationPageId: workbookPage2, clientMutationId: randomUUID() }));
+  assert.equal(moved.statusCode, 200);
+  assert.equal(JSON.parse(moved.body).destinationPageId, workbookPage2);
+  const movedPublic = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_public' and document.document_key=$1", [workbook.activityId])).rows[0].payload;
+  assert.equal(movedPublic.placement.pageId, workbookPage2);
+  await pool.query("update book_pages set source_metadata=source_metadata||'{\"is_active\":false}'::jsonb where stable_key=$1", [`ultimate-b2-workbook/pages/${workbookPage1}`]);
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "image", pageId: workbookPage1, title: "Inactive", clientMutationId: randomUUID() }))).statusCode, 400);
+  const index = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_index'")).rows[0].payload;
+  const deleted = await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/delete`, { clientMutationId: randomUUID() }));
+  assert.equal(deleted.statusCode, 200);
+  const after = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_index'")).rows[0].payload;
+  assert.equal(index.activities.length, 1);
+  assert.deepEqual(after.activities, []);
 });
 
 test("isolated PostgreSQL logically deletes native activity membership and hotspots while retaining immutable history", { skip: !enabled }, async (t) => {
@@ -268,7 +318,7 @@ test("isolated PostgreSQL reads a legacy native payload by its persisted checksu
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
+  assert.equal(migrations.at(-1).filename, "047_ultimate_b2_managed_component_units.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Checksum Actor','checksum@example.test','hash')", [actor]);
 
   const sql = tag(pool);

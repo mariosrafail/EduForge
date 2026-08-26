@@ -31,6 +31,7 @@ import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
 } from "./teacherOfflineActivityLocation.js";
+import { exchangeHostedPreviewComponentAuthorization } from "./hostedReleasePreview.js";
 import {
   isHostedViewerPreviewRequest,
   resolveHostedViewerComponentRequest,
@@ -143,7 +144,7 @@ export default function TeacherOfflineApp() {
   const settings = useTeacherOfflineSettings();
   const prefersReducedMotion = usePrefersReducedMotion();
   const animationsActive = settings.graphics.motionEnabled && !prefersReducedMotion;
-  const pageUnits = activeRuntime?.pageUnits || [];
+  const pageUnits = packState.pack?.pageUnits || activeRuntime?.pageUnits || [];
   const hostedPreviewRequested = isHostedViewerPreviewRequest(globalThis.location?.search || "", hosted);
   const [startupIntroPending, setStartupIntroPending] = useState(animationsActive && !hostedPreviewRequested);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -154,6 +155,7 @@ export default function TeacherOfflineApp() {
   const navigationRef = useRef(navigation);
   const settingsOpenRef = useRef(settingsOpen);
   const startupIntroPendingRef = useRef(startupIntroPending);
+  const switchedPreviewComponentRef = useRef(false);
   navigationRef.current = navigation;
   settingsOpenRef.current = settingsOpen;
   startupIntroPendingRef.current = startupIntroPending;
@@ -310,7 +312,7 @@ export default function TeacherOfflineApp() {
   }), [hosted, pack, pageUnits]);
 
   useEffect(() => {
-    if (!packReady || hostedPreviewIntent.kind !== "valid") return;
+    if (!packReady || hostedPreviewIntent.kind !== "valid" || switchedPreviewComponentRef.current) return;
     const next = { teacherOffline: true, ...componentIdentity(activeRuntime), ...hostedPreviewIntent.navigation };
     navigationRef.current = next;
     setNavigation(next);
@@ -343,7 +345,7 @@ export default function TeacherOfflineApp() {
     setNavigation(activityState);
     window.history.pushState(activityState, "", `#book/activity/${encodeURIComponent(activityId)}`);
   };
-  const switchTeacherEdition = (teacherEditionId) => {
+  const switchTeacherEdition = async (teacherEditionId, requestedUnitNumber = null) => {
     const resolution = resolveTeacherEditionComponent(activeRuntime.bookSlug, teacherEditionId);
     if (resolution.kind !== "installed") {
       const title = resolution.registration?.component?.title || "The requested component";
@@ -352,18 +354,49 @@ export default function TeacherOfflineApp() {
     }
     if (resolution.runtime.key === activeRuntime.key) {
       setComponentFeedback("");
+      if (requestedUnitNumber) openBook(requestedUnitNumber);
       return true;
     }
     const nextRuntime = resolution.runtime;
-    const location = readTeacherOfflineLocation(nextRuntime) || defaultLocation;
+    let exchangedAuthorization = "";
+    if (hostedPreviewRequested) {
+      try {
+        exchangedAuthorization = (await exchangeHostedPreviewComponentAuthorization({
+          sourceBookSlug: activeRuntime.bookSlug,
+          sourceComponentSlug: activeRuntime.componentSlug,
+          targetBookSlug: nextRuntime.bookSlug,
+          targetComponentSlug: nextRuntime.componentSlug,
+        })).token;
+      } catch {
+        setComponentFeedback("The selected component could not be authorized for Builder Review. Refresh the review and try again.");
+        return false;
+      }
+    }
+    const storedLocation = readTeacherOfflineLocation(nextRuntime) || defaultLocation;
+    const location = requestedUnitNumber ? { ...storedLocation, unitNumber: requestedUnitNumber, tab: "pages", pageId: "" } : storedLocation;
+    writeTeacherOfflineLocation(location, nextRuntime);
     const next = { teacherOffline: true, ...componentIdentity(nextRuntime), view: "book", location };
     setComponentFeedback("");
+    if (exchangedAuthorization) {
+      switchedPreviewComponentRef.current = true;
+      const previewUrl = new URL(globalThis.location.href);
+      previewUrl.searchParams.set("bookSlug", nextRuntime.bookSlug);
+      previewUrl.searchParams.set("componentSlug", nextRuntime.componentSlug);
+      previewUrl.searchParams.set("previewAuthorization", exchangedAuthorization);
+      previewUrl.searchParams.set("view", "library");
+      for (const key of ["unitNumber", "pageId", "activityId", "releaseId"]) previewUrl.searchParams.delete(key);
+      window.history.replaceState(next, "", `${previewUrl.pathname}${previewUrl.search}#book`);
+    }
     setActiveRuntime(nextRuntime);
     navigationRef.current = next;
     setNavigation(next);
-    window.history.replaceState(next, "", "#book");
+    if (!exchangedAuthorization) window.history.replaceState(next, "", "#book");
     return true;
   };
+  const unitAvailabilityByEdition = Object.fromEntries([...reviewComponentRegistry.installed.values()].map((runtime) => [
+    runtime.component.teacherEditionId,
+    new Set((runtime.pageUnits || []).map((unit) => Number(unit.number))),
+  ]));
   let content;
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
@@ -407,9 +440,8 @@ export default function TeacherOfflineApp() {
     content = (
       <TeacherOfflineLibrary
         menuSkin={menuSkin}
-        onOpenUnit={(editionId, unitNumber) => {
-          if (switchTeacherEdition(editionId)) openBook(unitNumber);
-        }}
+        unitAvailabilityByEdition={unitAvailabilityByEdition}
+        onOpenUnit={(editionId, unitNumber) => switchTeacherEdition(editionId, unitNumber)}
         animationsActive={animationsActive}
       />
     );

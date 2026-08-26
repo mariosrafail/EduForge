@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { normalizeNativeRuntimePublicDocument, normalizeNativeRuntimeTeacherDocument } from "../../data/native-activities/nativeActivityRuntimeValidation.js";
 import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
-const BOOK_SLUG = "ultimate-b2";
-const COMPONENT_SLUG = "ultimate-b2-students-book";
+const COMPONENTS = new Set(["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -15,14 +14,22 @@ function exactObject(value, keys, label) {
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has unsupported fields.`);
 }
 
-function nativeDraftPath(activityId, suffix, authorization) {
-  if (!SAFE_ID.test(String(activityId || "")) || !/^(?:public|teacher|assets\/[0-9a-f-]{36})$/i.test(suffix)) throw new Error("Invalid native draft preview path.");
-  return authorizedHostedPreviewPath(`/preview/native-activities/books/${BOOK_SLUG}/components/${COMPONENT_SLUG}/activities/${activityId}/${suffix}`, authorization);
+function currentIdentity(search = globalThis.location?.search || "") {
+  const parameters = new URLSearchParams(search);
+  const bookSlug = parameters.get("bookSlug") || "ultimate-b2";
+  const componentSlug = parameters.get("componentSlug") || "ultimate-b2-students-book";
+  if (bookSlug !== "ultimate-b2" || !COMPONENTS.has(componentSlug)) throw new Error("Invalid native draft component identity.");
+  return { bookSlug, componentSlug };
 }
 
-function normalizeEnvelope(value, { activityId, audience, publicDocument = null }) {
+function nativeDraftPath(activityId, suffix, authorization, identity = currentIdentity()) {
+  if (!SAFE_ID.test(String(activityId || "")) || !/^(?:public|teacher|assets\/[0-9a-f-]{36})$/i.test(suffix)) throw new Error("Invalid native draft preview path.");
+  return authorizedHostedPreviewPath(`/preview/native-activities/books/${identity.bookSlug}/components/${identity.componentSlug}/activities/${activityId}/${suffix}`, authorization);
+}
+
+function normalizeEnvelope(value, { activityId, audience, publicDocument = null, identity = currentIdentity() }) {
   exactObject(value, ["bookSlug", "componentSlug", "activityId", "kind", "audience", "schemaVersion", "revision", "document"], "Native draft envelope");
-  if (value.bookSlug !== BOOK_SLUG || value.componentSlug !== COMPONENT_SLUG || value.activityId !== activityId || value.audience !== audience
+  if (value.bookSlug !== identity.bookSlug || value.componentSlug !== identity.componentSlug || value.activityId !== activityId || value.audience !== audience
     || value.schemaVersion !== "1.0" || !Number.isSafeInteger(value.revision) || value.revision < 1) throw new Error("Native draft envelope identity is invalid.");
   const document = audience === "public"
     ? normalizeNativeRuntimePublicDocument(value.document, { activityId, kind: value.kind })
@@ -41,7 +48,7 @@ async function fetchEnvelope(path, { fetchImpl = fetch, signal } = {}) {
 export async function loadHostedNativeDraftPublicActivity(activityId, { context = resolveHostedViewerRuntimeContext(), fetchImpl = fetch, signal } = {}) {
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !SAFE_ID.test(String(activityId || ""))) return null;
   const payload = await fetchEnvelope(nativeDraftPath(activityId, "public", context.authorization), { fetchImpl, signal });
-  return payload ? normalizeEnvelope(payload, { activityId, audience: "public" }) : null;
+  return payload ? normalizeEnvelope(payload, { activityId, audience: "public", identity: currentIdentity() }) : null;
 }
 
 export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), fetchImpl = fetch, signal } = {}) {
@@ -49,7 +56,7 @@ export async function loadHostedNativeDraftTeacherActivity(publicEntry, { contex
   const activityId = publicEntry.document.activityId;
   const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization), { fetchImpl, signal });
   if (!payload) throw new Error("Native Teacher draft is unavailable.");
-  return normalizeEnvelope(payload, { activityId, audience: "teacher", publicDocument: publicEntry.document });
+  return normalizeEnvelope(payload, { activityId, audience: "teacher", publicDocument: publicEntry.document, identity: currentIdentity() });
 }
 
 export function shouldLoadHostedNativeDraftTeacherActivity(publicEntry, teacherMode) {

@@ -48,6 +48,7 @@ Apply production migrations in this exact order:
 44. `044_builder_unit_extra_asset_uploads.sql`
 45. `045_builder_component_pages.sql`
 46. `046_builder_component_pages_finalize_fix.sql`
+47. `047_ultimate_b2_managed_component_units.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

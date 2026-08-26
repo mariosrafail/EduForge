@@ -507,7 +507,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(app, /activityId=\{navigation\.activityId \|\| ""\}/);
   assert.match(book, /activeActivity=\{activeActivity\}/);
   assert.match(pages, /TeacherOfflineEmbeddedActivity/);
-  assert.match(pages, /students-book:activity:\$\{embeddedActivityId\}/);
+  assert.match(pages, /\$\{selectedBookId\}:activity:\$\{embeddedActivityId\}/);
   assert.match(pages, /activityActive \? \{\} : \{[\s\S]*onPointerDown/);
   assert.match(pages, /event\.target\.closest\?\.\("\.teacher-offline-page-hotspot"\)/);
   assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
@@ -559,9 +559,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /menuSkin\.extras/);
   assert.match(library, /ExtrasColumn/);
   assert.doesNotMatch(library, /LockKeyhole|legacy-home-lock|Locked|\sdisabled(?:=|\s|>)/);
-  assert.match(library, /aria-disabled=\{unit\.available \? undefined : "true"\}/);
+  assert.match(library, /aria-disabled=\{available \? undefined : "true"\}/);
   assert.match(library, /aria-disabled=\{item\.destination \? undefined : "true"\}/);
-  assert.match(library, /onClick=\{unit\.available \?/);
+  assert.match(library, /onClick=\{available \?/);
   assert.match(library, /menuSkin\.publisherLogo/);
   assert.match(library, /menuSkin\.units/);
   assert.match(library, /menuSkin\.editions/);

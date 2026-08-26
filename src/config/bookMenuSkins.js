@@ -9,7 +9,7 @@ export const bookMenuSkinCatalog = Object.freeze([
     id: BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY,
     label: "Ultimate B2 legacy",
     description: "Recovered Hamilton House Ultimate B2 classroom menu artwork",
-    packageIds: Object.freeze(["ultimate-b2-students-book"]),
+    packageIds: Object.freeze(["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]),
     status: "ready",
   }),
 ]);

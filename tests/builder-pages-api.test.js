@@ -14,6 +14,13 @@ const assetId = "10000000-0000-4000-8000-000000000003";
 const base = "/builder/api/pages/books/ultimate-b2/components";
 const first = canonicalStudentsBookPages[0];
 const canonicalBytes = await readFile(new URL(`../${runtime.units[0].pages[0].pageImage.localHdAssetPath}`, import.meta.url));
+const managedUnits = (componentSlug) => Array.from({ length: 10 }, (_, index) => ({
+  id: `${componentSlug === "ultimate-b2-workbook" ? "20000000" : "30000000"}-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+  slug: `unit-${index + 1}`,
+  unit_number: index + 1,
+  title: `Unit ${index + 1}`,
+  sort_order: index + 1,
+}));
 
 function request(path, body, overrides = {}) {
   return {
@@ -40,7 +47,7 @@ function harness(options = {}) {
     authorize: async (event) => event.headers.cookie === "live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
     randomUuid: () => uploadId,
     storage: () => storage,
-    loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, rows: [] },
+    loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, rows: [], units: identity.componentSlug === "ultimate-b2-students-book" ? [] : managedUnits(identity.componentSlug) },
     prepare: async (_sql, input) => {
       prepared = input;
       return { outcome: "prepared", upload_id: uploadId, current_revision: input.expectedRevision, session_state: "prepared", staging_object_key: input.stagingObjectKey };
@@ -75,12 +82,45 @@ test("Students Book Pages derives the complete canonical catalog and exposes no 
   assert.doesNotMatch(response.body, /repositoryPath|localHdAssetPath|Nextcloud|[A-Z]:\\/);
 });
 
-test("Workbook Pages is an authenticated, component-scoped empty library", async () => {
+test("Workbook and Grammar Pages are authenticated component-scoped ten-Unit empty libraries", async () => {
   const current = harness();
   assert.equal((await current.handler(request(`${base}/ultimate-b2-workbook`, null, { headers: { cookie: "" } }))).statusCode, 401);
   const response = await current.handler(request(`${base}/ultimate-b2-workbook`));
-  assert.deepEqual(JSON.parse(response.body).pages, []);
-  assert.equal((await current.handler(request(`${base}/ultimate-b2-grammar-book`))).statusCode, 404);
+  const workbook = JSON.parse(response.body);
+  assert.deepEqual(workbook.pages, []);
+  assert.deepEqual(workbook.units.map((unit) => unit.unitNumber), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const grammarResponse = await current.handler(request(`${base}/ultimate-b2-grammar-book`));
+  assert.equal(grammarResponse.statusCode, 200);
+  const grammar = JSON.parse(grammarResponse.body);
+  assert.equal(grammar.component.title, "Grammar Book");
+  assert.deepEqual(grammar.units.map((unit) => unit.title), Array.from({ length: 10 }, (_, index) => `Unit ${index + 1}`));
+});
+
+test("managed creation requires a valid Unit identity and preserves it in prepare metadata", async () => {
+  const current = harness();
+  const unitId = managedUnits("ultimate-b2-workbook")[0].id;
+  const descriptor = { mode: "create", pageId: "", expectedRevision: 0, clientMutationId: randomUUID(), metadata: { label: "Workbook page", printedLabel: "4", sortOrder: 1 }, file: { name: "page.png", size: canonicalBytes.length, type: "image/png" } };
+  assert.equal((await current.handler(request(`${base}/ultimate-b2-workbook/assets/prepare`, descriptor))).statusCode, 400);
+  const accepted = await current.handler(request(`${base}/ultimate-b2-workbook/assets/prepare`, { ...descriptor, clientMutationId: randomUUID(), metadata: { ...descriptor.metadata, unitId } }));
+  assert.equal(accepted.statusCode, 200);
+  assert.equal(current.getPrepared().pageMetadata.unitId, unitId);
+  assert.match(JSON.parse(accepted.body).pageId, /^wb-/);
+});
+
+test("managed list serializes relational Unit metadata and normalizes bigint revisions safely", async () => {
+  const units = managedUnits("ultimate-b2-grammar-book");
+  const current = harness({ loadPages: () => ({ revision: 9n, units, rows: [{
+    id: actor, stable_key: "ultimate-b2-grammar-book/pages/gb-one", label: "Grammar page", sort_order: 2,
+    unit_id: units[9].id, unit_slug: "unit-10", unit_number: 10, unit_title: "Unit 10", unit_sort_order: 10,
+    source_metadata: { is_active: true, printed_label: "88" }, asset_id: assetId, mime_type: "image/png", byte_size: 10n,
+    checksum_sha256: "a".repeat(64), width: 100, height: 200,
+  }] }) });
+  const response = await current.handler(request(`${base}/ultimate-b2-grammar-book`));
+  assert.equal(response.statusCode, 200);
+  const body = JSON.parse(response.body);
+  assert.equal(body.revision, 9);
+  assert.deepEqual({ unitId: body.pages[0].unitId, unitNumber: body.pages[0].unitNumber, unitTitle: body.pages[0].unitTitle }, { unitId: units[9].id, unitNumber: 10, unitTitle: "Unit 10" });
+  assert.equal(body.pages[0].image.byteSize, 10);
 });
 
 test("Students Book replacement prepare is baseline-bound and returns only signed upload authorization", async () => {

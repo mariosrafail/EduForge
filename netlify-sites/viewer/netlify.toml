@@ -26,6 +26,18 @@
   force = true
 
 [[redirects]]
+  from = "/preview/pages/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/pages/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/preview/authorization/exchange"
+  to = "https://hhplms-builder.netlify.app/builder/preview/authorization/exchange"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/preview/releases/*"
   to = "https://hhplms-builder.netlify.app/builder/preview/releases/:splat"
   status = 200

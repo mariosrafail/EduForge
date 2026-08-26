@@ -47,6 +47,26 @@ export function authorizedHostedPreviewPath(path, authorization = currentHostedP
   return `${url.pathname}${url.search}`;
 }
 
+export async function exchangeHostedPreviewComponentAuthorization({ sourceBookSlug, sourceComponentSlug, targetBookSlug, targetComponentSlug, fetchImpl = globalThis.fetch, signal } = {}) {
+  const context = resolveHostedViewerRuntimeContext();
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || typeof fetchImpl !== "function") throw new Error("Authorized Builder Review is required for component switching.");
+  const response = await fetchImpl(authorizedHostedPreviewPath("/preview/authorization/exchange", context.authorization), {
+    method: "POST",
+    credentials: "omit",
+    cache: "no-store",
+    signal,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source: { bookSlug: sourceBookSlug, componentSlug: sourceComponentSlug },
+      intent: { bookSlug: targetBookSlug, componentSlug: targetComponentSlug, view: "library", pageId: null, activityId: null, releaseId: null },
+    }),
+  });
+  if (!response?.ok) throw new Error("The selected component could not be authorized for Builder Review.");
+  const payload = await response.json();
+  if (!TOKEN.test(String(payload?.token || "")) || !Number.isFinite(Date.parse(payload?.expiresAt || ""))) throw new Error("Component switch authorization is invalid.");
+  return Object.freeze({ token: payload.token, expiresAt: payload.expiresAt });
+}
+
 export function hostedReleasePath(releaseId, suffix) {
   if (!UUID.test(String(releaseId || "")) || !/^(?:public|teacher-ui|teacher-solution\/[a-z0-9][a-z0-9-]{0,127}|native-teacher\/[a-z0-9][a-z0-9-]{0,127}|assets\/[a-f0-9]{64}\.(?:png|jpg|webp|mp3|mp4|pdf))$/.test(suffix)) throw new Error("Invalid hosted release preview path.");
   return authorizedHostedPreviewPath(`/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/${suffix}`);

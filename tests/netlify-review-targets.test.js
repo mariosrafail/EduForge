@@ -67,7 +67,7 @@ test("dedicated Builder site package isolates build output and Netlify Functions
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
     "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
-    "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_native-activity-adapters.js", "_native-activity-registry.js",
+    "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
@@ -86,6 +86,8 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderNetlify, /from = "\/builder\/api\/publication\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-publication\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/native-activities\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-native-activities\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/preview\/native-activities\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-native-preview\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/preview\/pages\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-pages\/preview\/pages\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/preview\/authorization\/exchange"[\s\S]*to = "\/\.netlify\/functions\/builder-preview-authorization\/preview\/authorization\/exchange"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/preview-authorization"[\s\S]*to = "\/\.netlify\/functions\/builder-preview-authorization"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/unit-extras\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-unit-extra-assets\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/pages\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-pages\/:splat"/);
@@ -115,8 +117,10 @@ test("dedicated Viewer site package isolates the Interactive output and Netlify 
   assert.match(viewerNetlify, /from = "\/preview\/open-response-assets\/\*"[\s\S]*builder\/preview\/open-response-assets\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/ui-assets\/\*"[\s\S]*builder\/preview\/ui-assets\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/native-activities\/\*"[\s\S]*builder\/preview\/native-activities\/:splat/);
+  assert.match(viewerNetlify, /from = "\/preview\/pages\/\*"[\s\S]*builder\/preview\/pages\/:splat/);
+  assert.match(viewerNetlify, /from = "\/preview\/authorization\/exchange"[\s\S]*builder\/preview\/authorization\/exchange/);
   assert.match(viewerNetlify, /from = "\/preview\/releases\/\*"[\s\S]*builder\/preview\/releases\/:splat/);
-  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 7);
+  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 9);
   assert.doesNotMatch(viewerNetlify, /\/builder\/api\/(?:auth|content)|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
 

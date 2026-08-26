@@ -72,8 +72,7 @@ test("Viewer startup performs one relative no-store fetch and installs revision 
     source: "database",
   });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], ultimateB2HotspotPreviewRoute);
-  assert.equal(calls[0][0], "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots");
+  assert.equal(calls[0][0], `${ultimateB2HotspotPreviewRoute}?previewAuthorization=${encodeURIComponent(previewAuthorization)}`);
   assert.deepEqual(calls[0][1], { cache: "no-store", credentials: "omit" });
   assert.deepEqual(runtime.getActions({ pageId, pageNumber: 8, unitNumber: 1 })[0], {
     id: "preview-hotspot",

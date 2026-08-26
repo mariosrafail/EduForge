@@ -12,6 +12,7 @@ import {
 } from "virtual:ultimate-b2-runtime-hotspots";
 import { getOfflineTeacherSolution } from "virtual:teacher-offline-solutions";
 import { createReviewComponentRegistry } from "./reviewComponentRegistryCore.js";
+import { createManagedReviewDescriptor } from "./managedReviewRuntime.js";
 
 const DEFAULT_IDENTITY = Object.freeze({
   bookSlug: "ultimate-b2",
@@ -32,7 +33,12 @@ const studentsBookRuntime = {
   uiManifestProvider: interactiveUiManifestProvider,
 };
 
-export const reviewComponentRegistry = createReviewComponentRegistry(bookProductCatalog, [studentsBookRuntime], DEFAULT_IDENTITY);
+const hostedManagedRuntimes = interactiveStartupAssets.hosted ? [
+  createManagedReviewDescriptor("ultimate-b2-workbook", interactiveStartupAssets),
+  createManagedReviewDescriptor("ultimate-b2-grammar-book", interactiveStartupAssets),
+] : [];
+
+export const reviewComponentRegistry = createReviewComponentRegistry(bookProductCatalog, [studentsBookRuntime, ...hostedManagedRuntimes], DEFAULT_IDENTITY);
 
 export function resolveReviewComponent(bookSlug, componentSlug, registry = reviewComponentRegistry) {
   return registry.resolve(bookSlug, componentSlug);

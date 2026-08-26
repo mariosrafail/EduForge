@@ -29,7 +29,7 @@ test("isolated PostgreSQL preserves immutable release history and stale-safe ato
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
+  assert.equal(migrations.at(-1).filename, "047_ultimate_b2_managed_component_units.sql");
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication Integration','publication@example.test','not-a-real-login-hash')`, [actor]);
   const sql = tag(pool);
 
@@ -109,7 +109,7 @@ test("migration 039 enforces exact v2 native/legacy freshness and serializes nat
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "046_builder_component_pages_finalize_fix.sql");
+  assert.equal(migrations.at(-1).filename, "047_ultimate_b2_managed_component_units.sql");
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'Publication v2 Integration','publication-v2@example.test','not-a-real-login-hash')`, [actor]);
   const sql = tag(pool);
   const sources = createPublicationV2FixtureSources();

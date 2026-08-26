@@ -14,6 +14,7 @@ import { handler as publicDispatcher } from "../netlify/functions/account-email-
 import { config as dispatchSchedule } from "../netlify/functions/scheduled-account-email-dispatch.js";
 import { config as cleanupSchedule } from "../netlify/functions/scheduled-lifecycle-cleanup.js";
 import { inviteRequestFingerprint } from "../netlify/functions/_class-utils.js";
+import { loadProductionMigrationManifest, migrationManifestSummary } from "../scripts/_migration-readiness.mjs";
 
 function fingerprint(urlText) {
   const url = new URL(urlText);
@@ -101,7 +102,7 @@ test("staging preflight rejects unsafe inboxes and accepts non-secret hosted met
   assert.throws(() => validateDedicatedStagingRecipient("person@gmail.com", "dedicated-nonproduction-inbox"), /personal mailbox/);
   const environment = hostedStagingEnvironment();
   const result = await checkStagingDeployment(environment);
-  assert.equal(result.latest_migration, "046_builder_component_pages_finalize_fix.sql");
+  assert.equal(result.latest_migration, migrationManifestSummary(await loadProductionMigrationManifest()).latestMigration);
   assert.equal(result.production_database_fingerprint_count, 3);
   const resultJson = JSON.stringify(result);
   for (const productionFingerprint of environment.STAGING_PRODUCTION_DATABASE_FINGERPRINTS.split(",")) {

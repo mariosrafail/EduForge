@@ -76,7 +76,7 @@ test("native creation HTTP boundary rejects missing auth, wrong origin, unknown 
   const { handler } = harness();
   assert.equal((await handler(request({ headers: { cookie: "" } }))).statusCode, 401);
   assert.equal((await handler(request({ headers: { origin: "https://attacker.example" } }))).statusCode, 403);
-  assert.equal((await handler(request({ path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/create" }))).statusCode, 404);
+  assert.equal((await handler(request({ path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/create" }))).statusCode, 400);
   assert.equal((await handler(request({ body: { kind: "matching", pageId, title: "x", clientMutationId: randomUUID() } }))).statusCode, 400);
   assert.equal((await handler(request({ body: { kind: "image", pageId: "unknown", title: "x", clientMutationId: randomUUID() } }))).statusCode, 400);
 });

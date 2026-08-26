@@ -15,21 +15,21 @@ function LegacyMenuArtwork({ artwork }) {
   );
 }
 
-function UnitColumn({ label, items, artwork, editionId, onOpenUnit, position }) {
+function UnitColumn({ label, items, artwork, editionId, onOpenUnit, position, availableUnits }) {
   return (
     <div className={`legacy-home-unit-column is-${position}`} aria-label={label}>
-      {items.map((unit) => (
+      {items.map((unit) => { const available = availableUnits?.has(unit.number) ?? unit.available; return (
         <button
           key={unit.number}
           type="button"
-          className={`legacy-home-unit${unit.available ? " available" : ""}`}
-          aria-disabled={unit.available ? undefined : "true"}
-          aria-label={unit.available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title}`}
-          onClick={unit.available ? () => onOpenUnit?.(editionId, unit.number) : undefined}
+          className={`legacy-home-unit${available ? " available" : ""}`}
+          aria-disabled={available ? undefined : "true"}
+          aria-label={available ? `Open Unit ${unit.number}: ${unit.title}` : `Unit ${unit.number}: ${unit.title}`}
+          onClick={available ? () => onOpenUnit?.(editionId, unit.number) : undefined}
         >
           <LegacyMenuArtwork artwork={artwork[unit.number - 1]} />
         </button>
-      ))}
+      ); })}
     </div>
   );
 }
@@ -54,7 +54,7 @@ function ExtrasColumn({ label, items, position }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive }) {
+export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {} }) {
   const [selectedEdition, setSelectedEdition] = useState("students-book");
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
@@ -71,10 +71,10 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animations
       <section className="legacy-home-classroom-surface" data-classroom-surface-id={surfaceKey} tabIndex={-1} aria-label={`${menuSkin.title.accessibleLabel} classroom launcher`}>
         <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="legacy-home-launcher">
-            {!extrasSelected ? <UnitColumn label="Units 1 to 5" position="left" items={units.slice(0, 5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} />
+            {!extrasSelected ? <UnitColumn label="Units 1 to 5" position="left" items={units.slice(0, 5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} availableUnits={unitAvailabilityByEdition[selectedEdition]} />
               : <ExtrasColumn label="Extras left column" position="left" items={extrasLeft} />}
             {menuSkin.title.kind === "legacy-gaf" && <LegacyMenuTitleAnimation animate={animationsActive} />}
-            {!extrasSelected ? <UnitColumn label="Units 6 to 10" position="right" items={units.slice(5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} />
+            {!extrasSelected ? <UnitColumn label="Units 6 to 10" position="right" items={units.slice(5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} availableUnits={unitAvailabilityByEdition[selectedEdition]} />
               : <ExtrasColumn label="Extras right column" position="right" items={extrasRight} />}
 
             <div className="legacy-home-book-row" aria-label="Book editions">

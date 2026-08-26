@@ -82,14 +82,14 @@ test("native draft public and teacher endpoints enforce audience separation", as
   assert.equal((await handler(request(publicationV2Fixture.imageId, "teacher"))).statusCode, 404);
 });
 
-test("page and activity preview scopes are least-privilege and library/release scopes are denied", async () => {
+test("page and activity scopes stay narrow while a component-scoped library token supports in-book activity launch", async () => {
   const handler = harness();
   const activityToken = tokenFor({ view: "activity", pageId: null, activityId: publicationV2Fixture.openResponseId });
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", activityToken))).statusCode, 200);
   assert.equal((await handler(request(publicationV2Fixture.imageId, "public", activityToken))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.singleChoiceId, "teacher", activityToken))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ pageId: "ub2-sb-unit-1-part-2" })))).statusCode, 401);
-  assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ view: "library", pageId: null })))).statusCode, 401);
+  assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ view: "library", pageId: null })))).statusCode, 200);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ componentSlug: "ultimate-b2-workbook" })))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ bookSlug: "another-book" })))).statusCode, 401);
   assert.equal((await harness({ authorizationNow: now + 301_000 })(request(publicationV2Fixture.openResponseId, "public"))).statusCode, 401);

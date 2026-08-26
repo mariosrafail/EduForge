@@ -4,6 +4,7 @@ import studentsBookAssets from "../../../src/data/ultimate-b2/generated/students
 export const builderPageComponents = Object.freeze({
   studentsBook: "ultimate-b2-students-book",
   workbook: "ultimate-b2-workbook",
+  grammarBook: "ultimate-b2-grammar-book",
 });
 
 const assetsByPageId = new Map(studentsBookAssets.pages.map((asset) => [asset.pageId, asset]));
@@ -47,6 +48,7 @@ export const canonicalStudentsBookPagesById = new Map(canonicalStudentsBookPages
 export function resolveBuilderPageComponent(bookSlug, componentSlug) {
   if (bookSlug !== "ultimate-b2") return null;
   if (componentSlug === builderPageComponents.studentsBook) return { kind: "students-book", componentSlug, baseline: canonicalStudentsBookPages };
-  if (componentSlug === builderPageComponents.workbook) return { kind: "workbook", componentSlug, baseline: Object.freeze([]) };
+  if (componentSlug === builderPageComponents.workbook) return { kind: "managed", title: "Workbook", pagePrefix: "wb", componentSlug, baseline: Object.freeze([]) };
+  if (componentSlug === builderPageComponents.grammarBook) return { kind: "managed", title: "Grammar Book", pagePrefix: "gb", componentSlug, baseline: Object.freeze([]) };
   return null;
 }

@@ -90,8 +90,8 @@ export default function TeacherOfflinePages({
   const readingPresentationFeatures = getUltimateB2ReadingExercisePresentationFeatures(embeddedActivityId);
   const showTextAvailable = readingPresentationFeatures.showTextEnabled;
   const classroomSurfaceKey = activityActive
-    ? `students-book:activity:${embeddedActivityId}`
-    : page ? `students-book:page:${page.id}` : "students-book:overview";
+    ? `${selectedBookId}:activity:${embeddedActivityId}`
+    : page ? `${selectedBookId}:page:${page.id}` : `${selectedBookId}:overview`;
   const stageRef = useRef(null);
   const viewerRef = useRef(null);
   const pointerState = useRef(new Map());
@@ -406,6 +406,8 @@ export default function TeacherOfflinePages({
       unit={unit}
       onSelectPage={onSelectPage}
       onBackToLibrary={onBackToLibrary}
+      selectedBookId={selectedBookId}
+      onBookSwitch={onBookSwitch}
     />
   );
 

@@ -5,6 +5,7 @@ import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { buildBuilderPageAssetObjectKey, buildBuilderPageAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES } from "../../../lib/book-assets/raster-inspection.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
+import { authorizeBuilderPreviewRequestWithDiagnostic } from "./_builder-preview-authorization.js";
 import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { canonicalStudentsBookPagesById, resolveBuilderPageComponent } from "./_builder-page-catalog.js";
 import {
@@ -18,6 +19,7 @@ import {
 } from "./_builder-pages-store.js";
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_ROUTE = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const SAFE_FILENAME = /^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/;
 const uploadTtlSeconds = 15 * 60;
@@ -26,13 +28,20 @@ const previewTtlSeconds = 5 * 60;
 const decode = (value) => { try { return decodeURIComponent(value); } catch { return ""; } };
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+const safeInteger = (value, label) => {
+  const normalized = typeof value === "bigint" ? Number(value) : Number(value);
+  if (!Number.isSafeInteger(normalized) || normalized < 0) throw new Error(`invalid_${label}`);
+  return normalized;
+};
 
 function route(event) {
   const pathname = String(event?.path || "").split("?")[0];
-  const root = /(?:\/builder\/api\/pages|\/\.netlify\/functions\/builder-pages)\/books\/([^/]+)\/components\/([^/]+)/;
+  const previewRoot = /(?:\/builder\/preview\/pages|\/\.netlify\/functions\/builder-pages\/preview\/pages)\/books\/([^/]+)\/components\/([^/]+)/;
+  const apiRoot = /(?:\/builder\/api\/pages|\/\.netlify\/functions\/builder-pages)\/books\/([^/]+)\/components\/([^/]+)/;
+  const root = previewRoot.test(pathname) ? previewRoot : apiRoot;
   const prefix = pathname.match(root);
   if (!prefix) return null;
-  const scope = { bookSlug: decode(prefix[1]), componentSlug: decode(prefix[2]) };
+  const scope = { bookSlug: decode(prefix[1]), componentSlug: decode(prefix[2]), preview: root === previewRoot };
   const suffix = pathname.slice(prefix.index + prefix[0].length).replace(/^\/+|\/+$/g, "");
   if (!suffix) return { ...scope, action: "list" };
   if (suffix === "assets/prepare") return { ...scope, action: "prepare" };
@@ -54,12 +63,14 @@ function parseJson(event, keys) {
   return exact(value, keys) ? { value } : { error: json(400, { error: "invalid_request" }) };
 }
 
-function pageMetadata(value) {
-  if (!exact(value, ["label", "printedLabel", "sortOrder"])) throw new Error("invalid_page_metadata");
+function pageMetadata(value, { managed = false, requireUnit = false } = {}) {
+  if (!exact(value, managed ? ["label", "printedLabel", "sortOrder", "unitId"] : ["label", "printedLabel", "sortOrder"])) throw new Error("invalid_page_metadata");
   const label = String(value.label || "").trim();
   const printedLabel = String(value.printedLabel || "").trim();
   if (!label || label.length > 160 || printedLabel.length > 40 || !Number.isSafeInteger(value.sortOrder) || value.sortOrder < 1 || value.sortOrder > 100000) throw new Error("invalid_page_metadata");
-  return { label, printedLabel, sortOrder: value.sortOrder };
+  const unitId = managed ? String(value.unitId || "") : "";
+  if (managed && ((requireUnit && !unitId) || (unitId && !UUID.test(unitId)))) throw new Error("invalid_page_unit");
+  return { label, printedLabel, sortOrder: value.sortOrder, ...(managed ? { unitId } : {}) };
 }
 
 function fileDescriptor(value) {
@@ -81,28 +92,30 @@ function pageIdFromStableKey(componentSlug, stableKey) {
   return String(stableKey || "").startsWith(prefix) ? String(stableKey).slice(prefix.length) : "";
 }
 
-function privateImage(parsed, pageId, row) {
+function privateImage(parsed, pageId, row, previewAuthorization = "") {
   if (!row?.asset_id) return null;
   return {
     source: "managed",
     assetId: String(row.asset_id),
-    url: `/builder/api/pages/books/${encodeURIComponent(parsed.bookSlug)}/components/${encodeURIComponent(parsed.componentSlug)}/pages/${encodeURIComponent(pageId)}/assets/${encodeURIComponent(row.asset_id)}/preview`,
+    url: previewAuthorization
+      ? `/preview/pages/books/${encodeURIComponent(parsed.bookSlug)}/components/${encodeURIComponent(parsed.componentSlug)}/pages/${encodeURIComponent(pageId)}/assets/${encodeURIComponent(row.asset_id)}/preview?previewAuthorization=${encodeURIComponent(previewAuthorization)}`
+      : `/builder/api/pages/books/${encodeURIComponent(parsed.bookSlug)}/components/${encodeURIComponent(parsed.componentSlug)}/pages/${encodeURIComponent(pageId)}/assets/${encodeURIComponent(row.asset_id)}/preview`,
     originalFilename: row.source_metadata?.original_filename || "page-image",
     mimeType: row.mime_type,
-    byteSize: Number(row.byte_size),
+    byteSize: safeInteger(row.byte_size, "page_asset_byte_size"),
     checksumSha256: row.checksum_sha256,
     width: Number(row.width),
     height: Number(row.height),
   };
 }
 
-function listPayload(parsed, policy, stored) {
+function listPayload(parsed, policy, stored, previewAuthorization = "") {
   const rows = new Map(stored.rows.map((row) => [pageIdFromStableKey(parsed.componentSlug, row.stable_key), row]));
   if (policy.kind === "students-book") {
     return policy.baseline.map((baseline) => {
       const row = rows.get(baseline.id);
       if (row?.source_metadata?.is_override !== true || !row.asset_id) return baseline;
-      return { ...baseline, source: "override", label: row.label, sortOrder: Number(row.sort_order), image: privateImage(parsed, baseline.id, row), baselineImage: baseline.image };
+      return { ...baseline, source: "override", label: row.label, sortOrder: Number(row.sort_order), image: privateImage(parsed, baseline.id, row, previewAuthorization), baselineImage: baseline.image };
     });
   }
   return stored.rows.filter((row) => row.source_metadata?.is_active === true && row.asset_id).map((row) => {
@@ -112,29 +125,38 @@ function listPayload(parsed, policy, stored) {
       stableKey: row.stable_key,
       componentSlug: parsed.componentSlug,
       source: "managed",
-      unitNumber: null,
-      unitTitle: row.source_metadata?.unit_title || "",
+      unitId: row.unit_id ? String(row.unit_id) : null,
+      unitSlug: row.unit_slug || null,
+      unitNumber: row.unit_number === null ? null : Number(row.unit_number),
+      unitTitle: row.unit_title || "",
+      unitSortOrder: row.unit_sort_order === null ? null : Number(row.unit_sort_order),
       sectionTitle: row.source_metadata?.section_title || "",
       partNumber: null,
       printedPages: [],
       printedLabel: row.source_metadata?.printed_label || "",
       sortOrder: Number(row.sort_order),
       label: row.label,
-      image: privateImage(parsed, pageId, row),
+      image: privateImage(parsed, pageId, row, previewAuthorization),
     };
   });
 }
 
-async function listResponse(dependencies, sql, parsed, policy) {
+async function listResponse(dependencies, sql, parsed, policy, previewAuthorization = "") {
   const stored = await dependencies.loadPages(sql, parsed);
   if (!stored) return null;
-  return { revision: stored.revision, component: { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, kind: policy.kind }, pages: listPayload(parsed, policy, stored) };
+  return {
+    revision: safeInteger(stored.revision, "builder_page_revision"),
+    component: { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, kind: policy.kind, title: policy.title || "Students Book" },
+    units: (stored.units || []).map((unit) => ({ id: String(unit.id), slug: unit.slug, title: unit.title, unitNumber: Number(unit.unit_number), sortOrder: Number(unit.sort_order) })),
+    pages: listPayload(parsed, policy, stored, previewAuthorization),
+  };
 }
 
 export function createBuilderPagesHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
     authorize: overrides.authorize || requireBuilderUser,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequestWithDiagnostic,
     loadPages: overrides.loadPages || loadBuilderPages,
     prepare: overrides.prepare || prepareBuilderPageUpload,
     claim: overrides.claim || claimBuilderPageUpload,
@@ -155,11 +177,23 @@ export function createBuilderPagesHandler(overrides = {}) {
     if (!policy) return json(404, { error: "page_component_not_found" });
     try {
       const sql = dependencies.getDatabase();
-      const auth = await dependencies.authorize(event, sql);
-      if (auth.error) return auth.error;
+      let auth = null;
+      if (parsed.preview) {
+        if (policy.kind !== "managed" || !["list", "preview"].includes(parsed.action)) return json(404, { error: "page_preview_not_found" });
+        const decision = await dependencies.authorizePreview(event, sql, {
+          action: parsed.action === "list" ? "managed-page-catalog" : "managed-page-asset",
+          bookSlug: parsed.bookSlug,
+          componentSlug: parsed.componentSlug,
+          ...(parsed.action === "preview" ? { pageId: parsed.pageId } : {}),
+        });
+        if (!(typeof decision === "boolean" ? decision : decision?.authorized === true)) return json(401, { error: "Unauthorized" });
+      } else {
+        auth = await dependencies.authorize(event, sql);
+        if (auth.error) return auth.error;
+      }
       if (parsed.action === "list") {
         if (event.httpMethod !== "GET") return json(405, { error: "method_not_allowed" });
-        const result = await listResponse(dependencies, sql, parsed, policy);
+        const result = await listResponse(dependencies, sql, parsed, policy, parsed.preview ? String(event?.queryStringParameters?.previewAuthorization || "") : "");
         return result ? json(200, result) : json(404, { error: "page_component_not_found" });
       }
       if (parsed.action === "preview") {
@@ -175,7 +209,7 @@ export function createBuilderPagesHandler(overrides = {}) {
       if (parsed.action === "prepare") {
         const body = parseJson(event, ["mode", "pageId", "expectedRevision", "clientMutationId", "metadata", "file"]); if (body.error) return body.error;
         if (!Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 0 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_upload_identity" });
-        let metadata; let file; try { metadata = pageMetadata(body.value.metadata); file = fileDescriptor(body.value.file); } catch (error) { return json(400, { error: failureCode(error) }); }
+        let metadata; let file; try { metadata = pageMetadata(body.value.metadata, { managed: policy.kind === "managed", requireUnit: policy.kind === "managed" && body.value.mode === "create" }); file = fileDescriptor(body.value.file); } catch (error) { return json(400, { error: failureCode(error) }); }
         let pageId = String(body.value.pageId || "");
         if (policy.kind === "students-book") {
           const baseline = canonicalStudentsBookPagesById.get(pageId);
@@ -183,8 +217,8 @@ export function createBuilderPagesHandler(overrides = {}) {
           metadata = { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, baselineWidth: baseline.image.width, baselineHeight: baseline.image.height };
         } else if (body.value.mode === "create") {
           if (pageId) return json(400, { error: "new_page_id_must_be_empty" });
-          pageId = `wb-page-${body.value.clientMutationId.replaceAll("-", "")}`;
-        } else if (body.value.mode !== "replace" || !SAFE_ROUTE.test(pageId)) return json(400, { error: "invalid_workbook_page_operation" });
+          pageId = `${policy.pagePrefix}-page-${body.value.clientMutationId.replaceAll("-", "")}`;
+        } else if (body.value.mode !== "replace" || !SAFE_ROUTE.test(pageId)) return json(400, { error: "invalid_managed_page_operation" });
         const uploadId = dependencies.randomUuid();
         const pageKey = `${parsed.componentSlug}/pages/${pageId}`;
         const stagingObjectKey = buildBuilderPageAssetStagingKey({ ...parsed, pageId, uploadId });
@@ -235,9 +269,9 @@ export function createBuilderPagesHandler(overrides = {}) {
         const body = parseJson(event, ["expectedRevision", "clientMutationId", "metadata"]); if (body.error) return body.error;
         if (!Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 0 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_mutation_identity" });
         if (policy.kind === "students-book" && parsed.action !== "restore") return json(400, { error: "students_book_baseline_metadata_locked" });
-        if (policy.kind === "workbook" && parsed.action === "restore") return json(400, { error: "workbook_page_cannot_restore_baseline" });
+        if (policy.kind === "managed" && parsed.action === "restore") return json(400, { error: "managed_page_cannot_restore_baseline" });
         let metadata = {};
-        if (["metadata", "reorder"].includes(parsed.action)) { try { metadata = pageMetadata(body.value.metadata); } catch (error) { return json(400, { error: failureCode(error) }); } }
+        if (["metadata", "reorder"].includes(parsed.action)) { try { metadata = pageMetadata(body.value.metadata, { managed: policy.kind === "managed" }); } catch (error) { return json(400, { error: failureCode(error) }); } }
         else if (!exact(body.value.metadata, [])) return json(400, { error: "invalid_page_metadata" });
         const result = await dependencies.mutate(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id });
         if (!result || ["revision_conflict", "mutation_id_conflict", "page_referenced"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null });

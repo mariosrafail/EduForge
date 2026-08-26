@@ -101,3 +101,58 @@ export function pruneUltimateB2ActivityHotspots(input, activityId) {
   }
   return { manifest: { ...manifest, pages }, removedCount };
 }
+
+const managedComponents = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+
+export function createEmptyManagedComponentHotspotManifest(componentSlug) {
+  if (!managedComponents.has(componentSlug)) throw new Error("Managed hotspot component is unsupported.");
+  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages: {} };
+}
+
+export function validateAndNormalizeManagedComponentHotspotManifest(input, { componentSlug, pages = null, activities = null } = {}) {
+  if (!managedComponents.has(componentSlug) || !input || typeof input !== "object" || Array.isArray(input)) throw new Error("Managed hotspot manifest is invalid.");
+  if (input.schemaVersion !== ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION || input.packageSlug !== ULTIMATE_B2_HOTSPOT_PACKAGE || input.componentSlug !== componentSlug
+    || !input.pages || typeof input.pages !== "object" || Array.isArray(input.pages)) throw new Error("Managed hotspot manifest identity is invalid.");
+  const pageById = pages === null ? null : new Map(pages.map((page) => [page.id, page]));
+  const activityById = activities === null ? null : new Map(activities.map((activity) => [activity.activityId || activity.activityKey, activity]));
+  const ids = new Set();
+  const normalizedPages = {};
+  for (const [pageId, hotspots] of Object.entries(input.pages)) {
+    if (!activityKeyPattern.test(pageId) || (pageById && !pageById.has(pageId))) throw new Error(`Unknown managed component page id: ${pageId}`);
+    if (!Array.isArray(hotspots)) throw new Error(`Hotspots for ${pageId} must be an array.`);
+    const page = pageById?.get(pageId) || null;
+    const normalized = hotspots.map((hotspot) => {
+      if (!hotspot || typeof hotspot !== "object" || Array.isArray(hotspot)) throw new Error(`Page ${pageId} contains an invalid hotspot.`);
+      const id = String(hotspot.id || "");
+      if (!hotspotIdPattern.test(id) || ids.has(id)) throw new Error(`Page ${pageId} contains an invalid or duplicate hotspot id.`);
+      ids.add(id);
+      if (hotspot.pageId !== pageId || hotspot.actionType !== "normalized_activity") throw new Error(`Hotspot ${id} has an invalid page or action.`);
+      const unitNumber = Number(hotspot.unitNumber);
+      if (!Number.isInteger(unitNumber) || unitNumber < 1 || unitNumber > 10 || (page && unitNumber !== page.unitNumber)) throw new Error(`Hotspot ${id} has an invalid unitNumber.`);
+      const activityKey = String(hotspot.activityKey || "");
+      if (!activityKeyPattern.test(activityKey) || (activityById && !activityById.has(activityKey))) throw new Error(`Hotspot ${id} references an unavailable activityKey.`);
+      const left = finiteCoordinate(hotspot.left, "left", id); const top = finiteCoordinate(hotspot.top, "top", id);
+      const width = finiteCoordinate(hotspot.width, "width", id); const height = finiteCoordinate(hotspot.height, "height", id);
+      if (left < 0 || top < 0 || width <= 0 || height <= 0 || left + width > 100 || top + height > 100) throw new Error(`Hotspot ${id} coordinates must stay within the page image.`);
+      return { id, unitNumber, pageId, left, top, width, height, label: String(hotspot.label || activityById?.get(activityKey)?.title || activityKey).trim().slice(0, 200), actionType: "normalized_activity", activityKey };
+    });
+    if (normalized.length) normalizedPages[pageId] = normalized;
+  }
+  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages: normalizedPages };
+}
+
+export function validateManagedComponentHotspotManifestStructure(input, componentSlug) {
+  return validateAndNormalizeManagedComponentHotspotManifest(input, { componentSlug });
+}
+
+export function pruneComponentActivityHotspots(input, activityId) {
+  if (input?.componentSlug === ULTIMATE_B2_HOTSPOT_COMPONENT) return pruneUltimateB2ActivityHotspots(input, activityId);
+  const manifest = validateManagedComponentHotspotManifestStructure(input, input?.componentSlug);
+  let removedCount = 0;
+  const pages = {};
+  for (const [pageId, hotspots] of Object.entries(manifest.pages)) {
+    const retained = hotspots.filter((hotspot) => { const remove = hotspot.activityKey === activityId; if (remove) removedCount += 1; return !remove; });
+    if (retained.length) pages[pageId] = retained;
+  }
+  return { manifest: { ...manifest, pages }, removedCount };
+}

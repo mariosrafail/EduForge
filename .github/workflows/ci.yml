@@ -34,10 +34,14 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build:netlify:ultimate-b2-builder
       - run: npm run verify:netlify:ultimate-b2-builder
+      - name: Run managed component Page Library acceptance
+        run: npm run test:builder:pages
       - name: Run unified Builder Review and native Viewer acceptance
         run: npm run test:builder:hosted-native-activity
       - run: npm run build:netlify:ultimate-b2-interactive
       - run: npm run verify:netlify:ultimate-b2-interactive
+      - name: Run Ultimate B2 multi-component Builder and Viewer acceptance
+        run: npm run test:builder:multi-book
       - run: npm run test:viewer:boundary
       - name: Run publication readiness and immutable Review acceptance
         run: npm run test:builder:publication

@@ -1,5 +1,5 @@
 export const ultimateB2HotspotPreviewRoute = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
-import { HOSTED_VIEWER_RUNTIME_MODES, hostedReleasePath, resolveHostedViewerRuntimeContext } from "../../apps/android-teacher-offline/hostedReleasePreview.js";
+import { authorizedHostedPreviewPath, HOSTED_VIEWER_RUNTIME_MODES, hostedReleasePath, resolveHostedViewerRuntimeContext } from "../../apps/android-teacher-offline/hostedReleasePreview.js";
 
 const envelopeKeys = Object.freeze([
   "bookSlug",
@@ -99,7 +99,7 @@ export function createHostedReviewHotspotRuntime(initialManifest) {
         const context = resolveHostedViewerRuntimeContext();
         if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return { revision: 0, source: "repository" };
         if (!context.teacherPreview || typeof fetchImpl !== "function") throw unavailable();
-        const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : ultimateB2HotspotPreviewRoute, {
+        const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : authorizedHostedPreviewPath(ultimateB2HotspotPreviewRoute, context.authorization), {
           cache: "no-store",
           credentials: "omit",
         });

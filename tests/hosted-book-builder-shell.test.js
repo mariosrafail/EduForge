@@ -32,11 +32,12 @@ test("hosted authoring catalog registers all known titles and Ultimate B2 exact 
   assert.equal(findHostedBuilderComponent(book, "ultimate-b2-students-book").adapterId, "ultimate-b2-students-book");
   assert.equal(findHostedBuilderComponent(book, "ultimate-b2-workbook").adapterId, "ultimate-b2-workbook");
   assert.equal(findHostedBuilderComponent(book, "ultimate-b2-workbook").status, "In authoring");
-  for (const slug of ["ultimate-b2-grammar-book", "ultimate-b2-test-book"]) {
-    const component = findHostedBuilderComponent(book, slug);
-    assert.equal(component.adapterId, null);
-    assert.equal(component.status, "Authoring adapter pending");
-  }
+  const grammar = findHostedBuilderComponent(book, "ultimate-b2-grammar-book");
+  assert.equal(grammar.adapterId, "ultimate-b2-grammar-book");
+  assert.equal(grammar.status, "In authoring");
+  const testBook = findHostedBuilderComponent(book, "ultimate-b2-test-book");
+  assert.equal(testBook.adapterId, null);
+  assert.equal(testBook.status, "Authoring adapter pending");
 });
 
 test("hosted authoring catalog is independent from LMS Phase One component hiding", () => {
@@ -71,13 +72,19 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
 });
 
-test("Students Book and Workbook adapters expose exact component-scoped Pages contracts", async () => {
+test("managed component adapters expose Pages, Hotspots, and Activities without fake publication tools", async () => {
   const adapters = await read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx");
   assert.match(adapters, /"ultimate-b2-workbook": Object\.freeze/);
   assert.match(adapters, /props\.tool === "pages" \? <ComponentPagesWorkspace/);
-  const workbookBlock = adapters.slice(adapters.indexOf('"ultimate-b2-workbook"'));
-  assert.match(workbookBlock, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
-  assert.doesNotMatch(workbookBlock, /hotspots:|activities:|uiController:|publication:/);
+  for (const slug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
+    const start = adapters.indexOf(`"${slug}": Object.freeze`);
+    const end = adapters.indexOf("  }),", start) + 5;
+    const block = adapters.slice(start, end);
+    assert.match(block, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+    assert.match(block, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+    assert.match(block, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+    assert.doesNotMatch(block, /uiController:|publication:/);
+  }
 });
 
 test("generic hosted Review routing round-trips strict token-free Viewer intents", () => {

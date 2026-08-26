@@ -60,7 +60,7 @@ test("Students, Workbook, and Grammar share one Unit launcher while navigation s
   assert.match(library, /!extrasSelected \? <UnitColumn[\s\S]*items=\{units\.slice\(0, 5\)\}/);
   assert.match(library, /!extrasSelected \? <UnitColumn[\s\S]*items=\{units\.slice\(5\)\}/);
   assert.match(library, /onOpenUnit\?\.\(editionId, unit\.number\)/);
-  assert.match(app, /if \(switchTeacherEdition\(editionId\)\) openBook\(unitNumber\)/);
+  assert.match(app, /onOpenUnit=\{\(editionId, unitNumber\) => switchTeacherEdition\(editionId, unitNumber\)\}/);
   assert.match(app, /resolveTeacherEditionComponent\(activeRuntime\.bookSlug, teacherEditionId\)/);
   assert.match(projectShell, /const showUnits = !showExtras/);
   assert.match(projectShell, /onOpenUnit\?\.\(editionId, unit\.id\)/);

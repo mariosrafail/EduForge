@@ -98,13 +98,16 @@ test("Builder content mutation enforces same origin and JSON before persistence"
   assert.equal(saveCalls.length, 1);
 });
 
-test("resource registry fails unknown books, components, resources, and pending B2 components closed", async () => {
+test("resource registry enables managed hotspots while unknown and Test Book resources fail closed", async () => {
   const { handler } = memoryHarness();
+  for (const componentSlug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
+    const response = await handler(event({ path: `/builder/api/content/books/ultimate-b2/components/${componentSlug}/hotspots` }));
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(parsed(response).document.pages, {});
+  }
   const paths = [
     "/builder/api/content/books/unknown/components/ultimate-b2-students-book/hotspots",
     "/builder/api/content/books/ultimate-b2/components/unknown/hotspots",
-    "/builder/api/content/books/ultimate-b2/components/ultimate-b2-workbook/hotspots",
-    "/builder/api/content/books/ultimate-b2/components/ultimate-b2-grammar-book/hotspots",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-test-book/hotspots",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-workbook/open-response/ultimate-b2-sb-u1-p5-o2",
     "/builder/api/content/books/ultimate-b2/components/ultimate-b2-grammar-book/open-response/ultimate-b2-sb-u1-p5-o2",

@@ -90,8 +90,8 @@ export function createBuilderPreviewHandler(overrides = {}) {
 
       stage = "database";
       const sql = dependencies.getDatabase();
-      if (resource.previewAudience === "teacher") {
-        const decision = await dependencies.authorizePreview(event, sql, { action: "teacher-ui-draft", bookSlug: resource.bookSlug, componentSlug: resource.componentSlug });
+      if (["teacher", "managed"].includes(resource.previewAudience)) {
+        const decision = await dependencies.authorizePreview(event, sql, { action: resource.previewAudience === "managed" ? "managed-hotspots" : "teacher-ui-draft", bookSlug: resource.bookSlug, componentSlug: resource.componentSlug });
         const authorized = typeof decision === "boolean" ? decision : decision?.authorized === true;
         if (!authorized) {
           const code = previewAuthorizationDiagnosticCodes.has(decision?.code) ? decision.code : "authorization_denied";
@@ -112,6 +112,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
       stage = "project_preview";
       const requiredRelated = resource.requiredRelatedForPreview || [];
       const projectionContext = requiredRelated.length ? {
+        sql,
         loadRelated: createBuilderRelatedDocumentLoader({
           sql,
           resource,

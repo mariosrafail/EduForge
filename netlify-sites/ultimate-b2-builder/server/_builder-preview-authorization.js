@@ -6,7 +6,7 @@ export const builderPreviewAuthorizationTtlSeconds = 5 * 60;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^v([12])\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]{43})$/;
-const ACTIONS = new Set(["teacher-ui-draft", "open-response-teacher", "native-draft-public", "native-draft-teacher", "native-draft-asset", "release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]);
+const ACTIONS = new Set(["teacher-ui-draft", "open-response-teacher", "native-draft-public", "native-draft-teacher", "native-draft-asset", "managed-page-catalog", "managed-page-asset", "managed-hotspots", "component-switch", "release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]);
 export const builderPreviewAuthorizationDiagnosticCodes = Object.freeze([
   "authorized",
   "builder_session",
@@ -44,8 +44,10 @@ function actionsFor(intent) {
   const actions = intent.releaseId
     ? ["release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]
     : ["teacher-ui-draft"];
-  if (!intent.releaseId && ["page", "activity"].includes(intent.view)) actions.push("native-draft-public", "native-draft-teacher", "native-draft-asset");
+  if (!intent.releaseId) actions.push("native-draft-public", "native-draft-teacher", "native-draft-asset");
   if (!intent.releaseId && intent.view === "activity") actions.push("open-response-teacher");
+  if (!intent.releaseId && intent.componentSlug !== "ultimate-b2-students-book") actions.push("managed-page-catalog", "managed-page-asset", "managed-hotspots");
+  if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(intent.componentSlug)) actions.push("component-switch");
   return actions;
 }
 
@@ -87,6 +89,7 @@ function inspectBuilderPreviewAuthorization(event, requestedScope, { environment
   if (!payload.actions.includes(requestedScope.action)) return { authorized: false, code: "action_denied" };
   if (payload.bookSlug !== requestedScope.bookSlug || payload.componentSlug !== requestedScope.componentSlug) return { authorized: false, code: "scope_mismatch" };
   if (requestedScope.releaseId && payload.releaseId !== String(requestedScope.releaseId).toLowerCase()) return { authorized: false, code: "scope_mismatch" };
+  if (requestedScope.pageId && payload.pageId !== null && payload.pageId !== requestedScope.pageId) return { authorized: false, code: "scope_mismatch" };
   if (requestedScope.activityId && payload.activityId !== null && payload.activityId !== requestedScope.activityId) return { authorized: false, code: "scope_mismatch" };
   return { authorized: true, code: "authorized", scope: Object.freeze({ version: payload.version, view: payload.view, pageId: payload.pageId || null, activityId: payload.activityId, releaseId: payload.releaseId }) };
 }

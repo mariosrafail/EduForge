@@ -38,7 +38,7 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
   const lifecycleEntries = lifecycle?.activities && typeof lifecycle.activities === "object" ? lifecycle.activities : {};
   const pageById = new Map();
   const model = units.map((unit, unitIndex) => {
-    const pages = (unit.lessons || []).filter((lesson) => lesson.exercises?.length).map((lesson, pageIndex) => {
+    const pages = (unit.lessons || []).map((lesson, pageIndex) => {
       const unitNumber = unit.unitNumber || unit.number || unitIndex + 1;
       const pageId = lesson.pageId || placements.find((placement) => placement.unitNumber === unitNumber && placement.pageLabel === lesson.pageLabel)?.pageId || lesson.id;
       const page = {
@@ -119,12 +119,13 @@ function matches(item, query, access, type) {
 
 export function filterActivityBuilderNavigation(model, { query = "", access = "all", type = "all" } = {}) {
   const needle = normalized(query);
+  const preserveEmptyPages = !needle && access === "all" && type === "all";
   return {
     units: model.units.map((unit) => ({ ...unit, pages: unit.pages.map((page) => ({
       ...page,
       activities: page.activities.filter((item) => matches(item, needle, access, type)
         || (needle && [unit.title, page.title, page.pageLabel].some((value) => normalized(value).includes(needle)))),
-    })).filter((page) => page.activities.length) })).filter((unit) => unit.pages.length),
+    })).filter((page) => preserveEmptyPages || page.activities.length) })).filter((unit) => preserveEmptyPages || unit.pages.length),
     unplaced: model.unplaced.filter((item) => matches(item, needle, access, type)),
   };
 }

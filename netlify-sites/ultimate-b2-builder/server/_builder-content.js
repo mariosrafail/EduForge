@@ -194,6 +194,7 @@ export function createBuilderContentHandler(overrides = {}) {
           await resource.validateMutationContext({
             document,
             currentDocument: currentState?.document || null,
+            sql,
             loadRelated: createBuilderRelatedDocumentLoader({
               sql,
               resource,

@@ -51,6 +51,7 @@ async function loadPublicContext(dependencies, sql, identity) {
 
 function matchesAuthorizedDraftScope(scope, identity, publicDocument) {
   if (!scope || scope.version !== 2 || scope.releaseId !== null) return false;
+  if (scope.view === "library") return scope.pageId === null && scope.activityId === null;
   if (scope.view === "activity") return scope.pageId === null && scope.activityId === identity.activityId;
   if (scope.view === "page") return scope.activityId === null && scope.pageId === publicDocument.placement.pageId;
   return false;

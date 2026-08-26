@@ -14,13 +14,7 @@ import { getActivityLifecycle, getNativeActivityCatalog } from "../book-builder/
 import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
 
-const contentIdentity = Object.freeze({
-  bookSlug: "ultimate-b2",
-  componentSlug: "ultimate-b2-students-book",
-  resource: "hotspots",
-});
-
-const pageRows = ultimateB2StudentsBookPageUnits
+const studentsPageRows = ultimateB2StudentsBookPageUnits
   .filter((unit) => [1, 2].includes(Number(unit.number)))
   .flatMap((unit) => unit.pages.map((page) => ({ ...page, unitNumber: Number(unit.number) })));
 
@@ -36,7 +30,8 @@ const legacyActivities = (catalog.units || []).flatMap((unit) => (unit.lessons |
 )));
 
 function pageLabel(page) {
-  return `${page.pageNumbers?.length > 1 ? "Pages" : "Page"} ${page.spreadNumber} — ${page.title}`;
+  if (page.printedLabel) return `Pages ${page.printedLabel} — ${page.label}`;
+  return page.spreadNumber ? `${page.pageNumbers?.length > 1 ? "Pages" : "Page"} ${page.spreadNumber} — ${page.title}` : page.label || page.id;
 }
 
 function newHotspotId() {
@@ -50,14 +45,18 @@ function isTextEditingTarget(target) {
   );
 }
 
-export function HostedUltimateB2HotspotBuilder() {
+export function HostedUltimateB2HotspotBuilder({ bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book" }) {
   const { registerToolContext, rememberPage } = useBuilderReview();
+  const managed = componentSlug !== "ultimate-b2-students-book";
+  const componentTitle = componentSlug === "ultimate-b2-workbook" ? "Workbook" : componentSlug === "ultimate-b2-grammar-book" ? "Grammar Book" : "Students Book";
+  const contentIdentity = useMemo(() => ({ bookSlug, componentSlug, resource: "hotspots" }), [bookSlug, componentSlug]);
+  const [pageRows, setPageRows] = useState(managed ? [] : studentsPageRows);
   const [manifest, setManifest] = useState(null);
   const [revision, setRevision] = useState(0);
   const [source, setSource] = useState("repository");
   const [unitNumber, setUnitNumber] = useState(1);
-  const unitPages = useMemo(() => pageRows.filter((page) => page.unitNumber === unitNumber), [unitNumber]);
-  const [pageId, setPageId] = useState(pageRows[0]?.id || "");
+  const unitPages = useMemo(() => pageRows.filter((page) => page.unitNumber === unitNumber), [pageRows, unitNumber]);
+  const [pageId, setPageId] = useState(managed ? "" : studentsPageRows[0]?.id || "");
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
   const [creatingHotspot, setCreatingHotspot] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -74,6 +73,7 @@ export function HostedUltimateB2HotspotBuilder() {
   const [pageLibrary, setPageLibrary] = useState(new Map());
   const mutationId = useRef(null);
   const page = pageRows.find((candidate) => candidate.id === pageId) || unitPages[0];
+  const unitNumbers = managed ? Array.from({ length: 10 }, (_, index) => index + 1) : [1, 2];
   const pageImageUrl = pageLibrary.get(page?.id)?.image?.url || page?.images?.[0];
   useEffect(() => {
     if (!page) return;
@@ -87,7 +87,7 @@ export function HostedUltimateB2HotspotBuilder() {
       release: null,
     });
   }, [dirty, page, registerToolContext, rememberPage, viewerRefreshKey]);
-  const activities = useMemo(() => [...legacyActivities.flatMap((activity) => {
+  const activities = useMemo(() => [...(managed ? [] : legacyActivities).flatMap((activity) => {
     const override = activityLifecycle.activities?.[activity.activityKey];
     if (override?.status === "retired") return [];
     const effectivePage = pageRows.find((row) => row.id === (override?.pageId || activity.pageId));
@@ -97,6 +97,7 @@ export function HostedUltimateB2HotspotBuilder() {
     return {
       activityKey: activity.activityId,
       title: activity.title,
+      pageId: activity.placement.pageId,
       unitNumber: activityPage?.unitNumber || 0,
       pageSpread: String(activityPage?.spreadNumber || ""),
       pageLabel: activityPage ? pageLabel(activityPage) : activity.placement.pageId,
@@ -105,17 +106,15 @@ export function HostedUltimateB2HotspotBuilder() {
       ready: activity.ready,
       issues: activity.issues,
     };
-  })], [activityLifecycle, nativeActivities]);
+  })], [activityLifecycle, managed, nativeActivities, pageRows]);
   const hotspots = manifest?.pages?.[page?.id] || [];
   const selectedHotspot = hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
-  const currentPageActivities = activities.filter((activity) => (
-    activity.unitNumber === page?.unitNumber && activity.pageSpread === String(page?.spreadNumber)
-  ));
+  const currentPageActivities = activities.filter((activity) => activity.pageId === page?.id || (activity.unitNumber === page?.unitNumber && activity.pageSpread === String(page?.spreadNumber)));
   // Native placement and canonical lifecycle overrides are authoritative. They
   // become selectable only on their destination canvas, which makes post-move
   // launch placement deliberate and prevents an old-page hotspot resurrection.
   const otherActivities = activities.filter((activity) => !currentPageActivities.includes(activity)
-    && !activity.native && !activityLifecycle.activities?.[activity.activityKey]);
+    && (managed || (!activity.native && !activityLifecycle.activities?.[activity.activityKey])));
 
   async function loadLatest({ signal } = {}) {
     setStatus("Loading");
@@ -137,14 +136,21 @@ export function HostedUltimateB2HotspotBuilder() {
       loadLatest({ signal: controller.signal }),
       getNativeActivityCatalog(contentIdentity, { signal: controller.signal }).then(setNativeActivities),
       getActivityLifecycle(contentIdentity, { signal: controller.signal }).then((value) => setActivityLifecycle(value.document)),
-      getBuilderPages(contentIdentity, { signal: controller.signal }).then((value) => setPageLibrary(new Map(value.pages.map((item) => [item.id, item])))),
+      getBuilderPages(contentIdentity, { signal: controller.signal }).then((value) => {
+        setPageLibrary(new Map(value.pages.map((item) => [item.id, item])));
+        if (managed) {
+          const rows = value.pages.filter((item) => item.unitNumber).map((item) => ({ ...item, title: item.label, spreadNumber: item.printedLabel || item.label, pageNumber: null, pageNumbers: [] }));
+          setPageRows(rows);
+          setPageId((current) => rows.some((item) => item.id === current) ? current : rows[0]?.id || "");
+        }
+      }),
     ]).catch((requestError) => {
       if (requestError.name === "AbortError") return;
       setError(requestError.message);
       setStatus("Load failed");
     });
     return () => controller.abort();
-  }, []);
+  }, [contentIdentity, managed]);
 
   useEffect(() => {
     const beforeUnload = (event) => {
@@ -260,11 +266,12 @@ export function HostedUltimateB2HotspotBuilder() {
     }
   }
 
-  if (!page || !manifest) return <main className="hotspot-builder b2-hosted-hotspot-editor"><header className="builder-header"><div><span>Ultimate B2 · Hotspot Builder</span><h1>Students Book hotspot builder</h1></div><div className="builder-save-state" role="status"><strong>{status}</strong>{error ? <small>{error}</small> : null}</div></header></main>;
+  if (!manifest) return <main className="hotspot-builder b2-hosted-hotspot-editor"><header className="builder-header"><div><span>Ultimate B2 · Hotspot Builder</span><h1>{componentTitle} hotspot builder</h1></div><div className="builder-save-state" role="status"><strong>{status}</strong>{error ? <small>{error}</small> : null}</div></header></main>;
+  if (!page) return <main className="hotspot-builder b2-hosted-hotspot-editor"><header className="builder-header"><div><span>Ultimate B2 · Hotspot Builder · Editable</span><h1>{componentTitle} hotspot builder</h1></div><div className="builder-save-state" role="status"><strong>{status}</strong>{error ? <small>{error}</small> : null}</div></header><section className="builder-controls" aria-label="Book and page controls"><label>Book<input readOnly value="Ultimate B2" /></label><label>Component<input readOnly value={componentTitle} /></label><label>Unit<select value={unitNumber} onChange={(event) => setUnitNumber(Number(event.target.value))}>{unitNumbers.map((number) => <option key={number} value={number}>Unit {number}</option>)}</select></label></section><section className="builder-inspector-empty" role="status"><strong>No page in Unit {unitNumber}</strong><p>Add and assign a page in the Page Library. Hotspots are optional enrichment and the empty document remains valid.</p></section></main>;
 
   return <main className="hotspot-builder b2-hosted-hotspot-editor">
     <header className="builder-header">
-      <div><span>Ultimate B2 · Hotspot Builder · Editable</span><h1>Students Book hotspot builder</h1><small>Revision {revision} · {source === "repository" ? "repository baseline" : "hosted authoring state"}</small></div>
+      <div><span>Ultimate B2 · Hotspot Builder · Editable</span><h1>{componentTitle} hotspot builder</h1><small>Revision {revision} · {source === "repository" ? "repository baseline" : "hosted authoring state"}</small></div>
       <div className="builder-save-state" role="status" data-dirty={dirty || undefined} data-conflict={status === "Conflict" || undefined}>
         <strong>{status}</strong>
         {error ? <small>{error}</small> : null}
@@ -275,8 +282,8 @@ export function HostedUltimateB2HotspotBuilder() {
 
     <section className="builder-controls" aria-label="Book and page controls">
       <label>Book<input readOnly value="Ultimate B2" /></label>
-      <label>Component<input readOnly value="Students Book" /></label>
-      <label>Unit<select value={unitNumber} onChange={(event) => { const next = Number(event.target.value); setUnitNumber(next); setPageId(pageRows.find((candidate) => candidate.unitNumber === next)?.id || ""); }}><option value="1">Unit 1</option><option value="2">Unit 2</option></select></label>
+      <label>Component<input readOnly value={componentTitle} /></label>
+      <label>Unit<select value={unitNumber} onChange={(event) => { const next = Number(event.target.value); setUnitNumber(next); setPageId(pageRows.find((candidate) => candidate.unitNumber === next)?.id || ""); }}>{unitNumbers.map((number) => <option key={number} value={number}>Unit {number}</option>)}</select></label>
       <label>Page / Spread<select value={page.id} onChange={(event) => setPageId(event.target.value)}>{unitPages.map((candidate) => <option key={candidate.id} value={candidate.id}>{pageLabel(candidate)}</option>)}</select></label>
       <div className="builder-zoom" aria-label="Page zoom controls">
         <button type="button" onClick={() => { setFitToScreen(false); setZoom((value) => Math.max(.6, value - .2)); }} aria-label="Zoom out"><ZoomOut size={18} /></button>
@@ -289,19 +296,19 @@ export function HostedUltimateB2HotspotBuilder() {
     <section className="builder-workspace studio-hotspot-workspace">
       <aside className="builder-object-navigator" aria-label="Hotspots on this page">
         <header><div><Layers3 aria-hidden="true" /><div><h2>Hotspots</h2><p>{hotspots.length} on this page</p></div></div></header>
-        <button className="builder-add-hotspot" type="button" aria-pressed={creatingHotspot} onClick={() => { setCreatingHotspot(true); setSelectedHotspotId(null); }}><Crosshair aria-hidden="true" />Add hotspot</button>
+        <button className="builder-add-hotspot" type="button" disabled={!activities.length} aria-pressed={creatingHotspot} onClick={() => { setCreatingHotspot(true); setSelectedHotspotId(null); }}><Crosshair aria-hidden="true" />Add hotspot</button>
         <div className="builder-hotspot-list">{hotspots.map((hotspot, index) => <button type="button" key={hotspot.id} aria-current={selectedHotspotId === hotspot.id ? "true" : undefined} onClick={() => { setCreatingHotspot(false); setSelectedHotspotId(hotspot.id); }}><span>{index + 1}</span><span><strong>{hotspot.label || `Hotspot ${index + 1}`}</strong><small>{hotspot.activityKey ? "Activity assigned" : "Needs an action"}</small></span></button>)}</div>
         {!hotspots.length ? <div className="builder-hotspot-empty"><Crosshair aria-hidden="true" /><strong>No hotspots yet</strong><p>Add a hotspot, then drag its rectangle on the page.</p></div> : null}
         <p className="builder-keyboard-help">Arrow keys nudge · Shift moves farther · Delete removes · Escape clears</p>
       </aside>
       <div className="builder-canvas-scroll"><div className={`builder-page-surface ${fitToScreen ? "fit" : "zoomed"}`} style={{ width: naturalSize.width ? `${naturalSize.width * (fitToScreen ? 1 : zoom)}px` : "100%", maxWidth: fitToScreen ? "100%" : "none" }}>
-        <img src={pageImageUrl} alt={`${pageLabel(page)} Students Book page`} draggable="false" onLoad={(event) => setNaturalSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
-        <EditableHotspotLayer pageId={page.id} areas={hotspots} editing creating={creatingHotspot} selectedAreaId={selectedHotspotId} onSelectArea={(id) => { setSelectedHotspotId(id); if (id) setCreatingHotspot(false); }} onChangeAreas={updatePageHotspots} createArea={(geometry) => ({ id: newHotspotId(), unitNumber: page.unitNumber, pageId: page.id, pageNumber: page.pageNumber, ...geometry, label: "Clickable area", actionType: "normalized_activity", activityKey: "" })} />
+        <img src={pageImageUrl} alt={`${pageLabel(page)} ${componentTitle} page`} draggable="false" onLoad={(event) => setNaturalSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
+        <EditableHotspotLayer pageId={page.id} areas={hotspots} editing creating={creatingHotspot} selectedAreaId={selectedHotspotId} onSelectArea={(id) => { setSelectedHotspotId(id); if (id) setCreatingHotspot(false); }} onChangeAreas={updatePageHotspots} createArea={(geometry) => ({ id: newHotspotId(), unitNumber: page.unitNumber, pageId: page.id, ...(!managed ? { pageNumber: page.pageNumber } : {}), ...geometry, label: "Clickable area", actionType: "normalized_activity", activityKey: "" })} />
       </div></div>
       <aside className="builder-properties">
         <h2>Hotspot properties</h2>
         {!selectedHotspot ? <div className="builder-inspector-empty"><Crosshair aria-hidden="true" /><strong>{creatingHotspot ? "Draw on the page" : "Select a hotspot"}</strong><p>{creatingHotspot ? "Drag on the page to create a hotspot. Escape cancels create mode." : "Choose a hotspot in the navigator or on the page to edit its action and geometry."}</p></div> : <>
-          <label>Activity<select value={selectedHotspot.activityKey || ""} onChange={(event) => selectActivity(event.target.value)}><option value="">Choose an implemented activity…</option>{currentPageActivities.length ? <optgroup label={`Current ${pageLabel(page)}`}>{currentPageActivities.map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup> : null}{[1, 2].map((unit) => <optgroup key={unit} label={`Unit ${unit}`}>{otherActivities.filter((activity) => activity.unitNumber === unit).map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.pageLabel} — {activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup>)}</select></label>
+          <label>Activity<select value={selectedHotspot.activityKey || ""} onChange={(event) => selectActivity(event.target.value)}><option value="">Choose an implemented activity…</option>{currentPageActivities.length ? <optgroup label={`Current ${pageLabel(page)}`}>{currentPageActivities.map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup> : null}{unitNumbers.map((unit) => <optgroup key={unit} label={`Unit ${unit}`}>{otherActivities.filter((activity) => activity.unitNumber === unit).map((activity) => <option key={activity.activityKey} value={activity.activityKey}>{activity.pageLabel} — {activity.native ? `${activity.ready ? "Ready" : "Incomplete"} · ${activity.kind} · ` : ""}{activity.title}</option>)}</optgroup>)}</select></label>
           <label>Label<input maxLength="200" value={selectedHotspot.label || ""} onChange={(event) => { setCustomLabels((current) => new Set(current).add(selectedHotspot.id)); updateSelectedHotspot({ label: event.target.value }); }} /></label>
           <div className="builder-stable-id"><span>Stable normalized activity id</span><code>{selectedHotspot.activityKey || "Not assigned"}</code></div>
           {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey)?.native ? <p role="status">Native {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).kind} · {activities.find((activity) => activity.activityKey === selectedHotspot.activityKey).ready ? "Ready to publish" : "Incomplete draft — Prepare Preview will explain what is missing"}</p> : null}

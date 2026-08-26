@@ -12,154 +12,64 @@ const root = path.resolve("dist-netlify/ultimate-b2-builder");
 const mime = { ".css": "text/css", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 const imageA = await readFile("unit/1/parts/HD/parts_part_1.png");
 const imageB = await readFile("unit/1/parts/HD/parts_part_2.png");
+const managedSlugs = ["ultimate-b2-workbook", "ultimate-b2-grammar-book"];
+const unitsFor = (componentSlug) => Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 }));
+const managedImage = (uploadId, bytes) => ({ source: "managed", assetId: uploadId, url: `/test-uploaded/${uploadId}`, originalFilename: "browser-page.png", mimeType: "image/png", byteSize: bytes.length, checksumSha256: "a".repeat(64), width: 581, height: 794 });
+const legacyAssetId = "40000000-0000-4000-8000-000000000001";
 const state = {
-  students: { revision: 0, pages: canonicalStudentsBookPages.map((page) => ({ ...page })) },
-  workbook: { revision: 0, pages: [] },
-  sessions: new Map(),
-  uploads: new Map(),
+  "ultimate-b2-students-book": { revision: 0, units: [], pages: canonicalStudentsBookPages.map((page) => ({ ...page })) },
+  "ultimate-b2-workbook": { revision: 0, units: unitsFor("ultimate-b2-workbook"), pages: [{ id: "wb-legacy-unassigned", stableKey: "ultimate-b2-workbook/pages/wb-legacy-unassigned", componentSlug: "ultimate-b2-workbook", source: "managed", unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null, printedPages: [], printedLabel: "L", sortOrder: 1, label: "Legacy unassigned", image: managedImage(legacyAssetId, imageA) }] },
+  "ultimate-b2-grammar-book": { revision: 0, units: unitsFor("ultimate-b2-grammar-book"), pages: [] },
 };
+const sessions = new Map();
+const uploads = new Map([[legacyAssetId, imageA]]);
 let origin;
 
-function json(response, status, body) {
-  const encoded = JSON.stringify(body);
-  response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(encoded), "Cache-Control": "no-store" });
-  response.end(encoded);
-}
-
-async function body(request) {
-  const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
-  return Buffer.concat(chunks);
-}
-
-function library(component) {
-  const current = component === "ultimate-b2-students-book" ? state.students : state.workbook;
-  return { revision: current.revision, component: { bookSlug: "ultimate-b2", componentSlug: component, kind: component.endsWith("workbook") ? "workbook" : "students-book" }, pages: current.pages };
-}
-
-function managedImage(pageId, uploadId, bytes) {
-  return { source: "managed", assetId: uploadId, url: `/test-uploaded/${uploadId}`, originalFilename: "browser-page.png", mimeType: "image/png", byteSize: bytes.length, checksumSha256: "a".repeat(64), width: 581, height: 794 };
-}
+function json(response, status, value) { const encoded = JSON.stringify(value); response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(encoded), "Cache-Control": "no-store" }); response.end(encoded); }
+async function requestBody(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); return Buffer.concat(chunks); }
+function library(componentSlug) { const current = state[componentSlug]; const title = componentSlug.endsWith("workbook") ? "Workbook" : componentSlug.endsWith("grammar-book") ? "Grammar Book" : "Students Book"; return { revision: current.revision, component: { bookSlug: "ultimate-b2", componentSlug, kind: managedSlugs.includes(componentSlug) ? "managed" : "students-book", title }, units: current.units, pages: current.pages }; }
+function unitMetadata(current, unitId) { const unit = current.units.find((candidate) => candidate.id === unitId); return unit ? { unitId: unit.id, unitSlug: unit.slug, unitNumber: unit.unitNumber, unitTitle: unit.title, unitSortOrder: unit.sortOrder } : { unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null }; }
 
 async function pagesApi(request, response, url) {
-  const match = url.pathname.match(/^\/builder\/api\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook))(.*)$/);
+  const match = url.pathname.match(/^\/builder\/api\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook|grammar-book))(.*)$/);
   if (!match) return false;
-  const [, component, suffix] = match;
-  const current = component.endsWith("workbook") ? state.workbook : state.students;
-  if (!suffix && request.method === "GET") { json(response, 200, library(component)); return true; }
-  const input = request.method === "POST" ? JSON.parse((await body(request)).toString("utf8")) : {};
+  const [, componentSlug, suffix] = match; const current = state[componentSlug];
+  if (!suffix && request.method === "GET") { json(response, 200, library(componentSlug)); return true; }
+  const input = request.method === "POST" ? JSON.parse((await requestBody(request)).toString("utf8")) : {};
   if (suffix === "/assets/prepare") {
     if (input.expectedRevision !== current.revision) { json(response, 409, { error: "revision_conflict", currentRevision: current.revision }); return true; }
-    const pageId = input.mode === "create" ? `wb-page-${input.clientMutationId.replaceAll("-", "")}` : input.pageId;
-    const uploadId = input.clientMutationId;
-    state.sessions.set(uploadId, { component, pageId, mode: input.mode, metadata: input.metadata });
-    json(response, 200, { pageId, uploadId, expectedRevision: current.revision, expiresIn: 900, authorization: { url: `${origin}/test-upload/${uploadId}`, headers: { "Content-Type": input.file.type } }, idempotent: false });
-    return true;
+    if (managedSlugs.includes(componentSlug) && input.mode === "create" && !current.units.some((unit) => unit.id === input.metadata.unitId)) { json(response, 400, { error: "invalid_page_unit" }); return true; }
+    const prefix = componentSlug.endsWith("workbook") ? "wb" : "gb"; const pageId = input.mode === "create" ? `${prefix}-page-${input.clientMutationId.replaceAll("-", "")}` : input.pageId; const uploadId = input.clientMutationId;
+    sessions.set(uploadId, { componentSlug, pageId, mode: input.mode, metadata: input.metadata }); json(response, 200, { pageId, uploadId, expectedRevision: current.revision, expiresIn: 900, authorization: { url: `${origin}/test-upload/${uploadId}`, headers: { "Content-Type": input.file.type } }, idempotent: false }); return true;
   }
   if (suffix === "/assets/finalize") {
-    const session = state.sessions.get(input.uploadId);
-    const bytes = state.uploads.get(input.uploadId);
-    if (!session || session.component !== component || !bytes) { json(response, 409, { error: "session_identity_conflict" }); return true; }
-    if (session.mode === "create") {
-      current.pages.push({ id: session.pageId, stableKey: `${component}/pages/${session.pageId}`, componentSlug: component, source: "managed", unitNumber: null, unitTitle: "", sectionTitle: "", partNumber: null, printedPages: [], printedLabel: session.metadata.printedLabel, sortOrder: session.metadata.sortOrder, label: session.metadata.label, image: managedImage(session.pageId, input.uploadId, bytes) });
-    } else {
-      const index = current.pages.findIndex((page) => page.id === session.pageId);
-      const existing = current.pages[index];
-      current.pages[index] = { ...existing, source: component.endsWith("students-book") ? "override" : "managed", image: managedImage(session.pageId, input.uploadId, bytes), ...(component.endsWith("students-book") ? { baselineImage: existing.baselineImage || existing.image } : {}) };
-    }
-    current.revision += 1;
-    json(response, 200, { ...library(component), idempotent: false }); return true;
+    const session = sessions.get(input.uploadId); const bytes = uploads.get(input.uploadId); if (!session || session.componentSlug !== componentSlug || !bytes) { json(response, 409, { error: "session_identity_conflict" }); return true; }
+    if (session.mode === "create") current.pages.push({ id: session.pageId, stableKey: `${componentSlug}/pages/${session.pageId}`, componentSlug, source: "managed", ...unitMetadata(current, session.metadata.unitId), printedPages: [], printedLabel: session.metadata.printedLabel, sortOrder: session.metadata.sortOrder, label: session.metadata.label, image: managedImage(input.uploadId, bytes) });
+    else { const index = current.pages.findIndex((page) => page.id === session.pageId); const existing = current.pages[index]; current.pages[index] = { ...existing, source: componentSlug.endsWith("students-book") ? "override" : "managed", image: managedImage(input.uploadId, bytes), ...(componentSlug.endsWith("students-book") ? { baselineImage: existing.baselineImage || existing.image } : {}) }; }
+    current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
   }
-  const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/);
-  if (mutation) {
-    const [, pageId, action] = mutation;
-    const index = current.pages.findIndex((page) => page.id === pageId);
-    if (index < 0) { json(response, 404, { error: "page_not_found" }); return true; }
-    if (component.endsWith("students-book") && action === "delete") { json(response, 400, { error: "students_book_baseline_metadata_locked" }); return true; }
-    if (action === "restore") {
-      const baseline = canonicalStudentsBookPages.find((page) => page.id === pageId);
-      current.pages[index] = { ...baseline };
-    } else if (action === "delete") current.pages.splice(index, 1);
-    else current.pages[index] = { ...current.pages[index], ...input.metadata };
-    current.revision += 1;
-    json(response, 200, { ...library(component), idempotent: false }); return true;
-  }
-  json(response, 404, { error: "page_route_not_found" }); return true;
+  const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
+  const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); if (index < 0) { json(response, 404, { error: "page_not_found" }); return true; }
+  if (action === "restore") current.pages[index] = { ...canonicalStudentsBookPages.find((page) => page.id === pageId) }; else if (action === "delete") current.pages.splice(index, 1); else current.pages[index] = { ...current.pages[index], ...input.metadata, ...unitMetadata(current, input.metadata.unitId) };
+  current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
 }
 
-async function staticFile(pathname, response) {
-  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
-  let file = path.resolve(root, relative);
-  let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null;
-  if (!details?.isFile()) { file = path.join(root, "index.html"); details = await stat(file); }
-  response.writeHead(200, { "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": details.size });
-  createReadStream(file).pipe(response);
-}
+async function staticFile(pathname, response) { const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(root, relative); let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) { file = path.join(root, "index.html"); details = await stat(file); } response.writeHead(200, { "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": details.size }); createReadStream(file).pipe(response); }
+const server = createServer(async (request, response) => { const url = new URL(request.url, "http://127.0.0.1"); if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "pages-browser", full_name: "Pages Browser", role: "developer", status: "active" } }); if (url.pathname.startsWith("/test-upload/") && request.method === "PUT") { uploads.set(url.pathname.split("/").at(-1), await requestBody(request)); response.writeHead(200); response.end(); return; } if (url.pathname.startsWith("/test-uploaded/")) { const bytes = uploads.get(url.pathname.split("/").at(-1)); if (!bytes) return json(response, 404, {}); response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }); response.end(bytes); return; } if (await pagesApi(request, response, url)) return; await staticFile(url.pathname, response); });
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url, "http://127.0.0.1");
-  if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "pages-browser", full_name: "Pages Browser", role: "developer", status: "active" } });
-  if (url.pathname.startsWith("/test-upload/") && request.method === "PUT") { state.uploads.set(url.pathname.split("/").at(-1), await body(request)); response.writeHead(200); response.end(); return; }
-  if (url.pathname.startsWith("/test-uploaded/")) { const bytes = state.uploads.get(url.pathname.split("/").at(-1)); if (!bytes) return json(response, 404, {}); response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }); response.end(bytes); return; }
-  if (await pagesApi(request, response, url)) return;
-  await staticFile(url.pathname, response);
-});
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-origin = `http://127.0.0.1:${server.address().port}`;
+function group(page, title) { return page.locator(".component-pages-groups section", { has: page.getByRole("heading", { name: new RegExp(`^${title}\\b`) }) }); }
+async function addFiles(page, unitTitle, files) { const chooser = page.waitForEvent("filechooser"); await group(page, unitTitle).getByRole("button", { name: "Add pages" }).click(); await (await chooser).setFiles(files); await page.locator(".component-pages-progress").waitFor({ state: "hidden" }); }
 
 let browser;
 try {
-  browser = await chromium.launch(localPlaywrightLaunchOptions());
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  page.setDefaultTimeout(60_000);
-
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "No pages added yet." }).waitFor();
-  const addChooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Add pages" }).first().click();
-  await (await addChooser).setFiles([{ name: "Workbook A.png", mimeType: "image/png", buffer: imageA }, { name: "Workbook B.png", mimeType: "image/png", buffer: imageB }]);
-  await page.locator(".component-page-card").nth(1).waitFor();
-  assert.deepEqual(await page.locator(".component-page-card-copy strong").allTextContents(), ["Workbook A", "Workbook B"]);
-  const firstId = await page.locator(".component-page-card").first().getAttribute("data-page-id");
-
-  await page.locator(".component-page-card").first().getByTitle("Edit metadata").click();
-  await page.getByLabel("Label").fill("Workbook opening page");
-  await page.getByLabel("Printed page or spread").fill("2");
-  await page.getByRole("button", { name: "Save metadata" }).click();
-  await page.locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor();
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor();
-  assert.equal(await page.locator(".component-page-card").first().getAttribute("data-page-id"), firstId);
-
-  const replaceChooser = page.waitForEvent("filechooser");
-  await page.locator(".component-page-card").first().getByTitle("Replace page image").click();
-  await (await replaceChooser).setFiles({ name: "replacement.png", mimeType: "image/png", buffer: imageB });
-  await page.locator(".component-pages-progress").waitFor({ state: "hidden" });
-  assert.equal(await page.locator(".component-page-card").first().getAttribute("data-page-id"), firstId);
-
-  await page.locator(".component-page-card").nth(1).getByTitle("Delete page").click();
-  await page.locator(".builder-modal .builder-danger-action").click();
-  await page.locator(".component-page-card").nth(1).waitFor({ state: "detached" });
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".component-page-card").first().waitFor();
-  assert.equal(await page.locator(".component-page-card").count(), 1);
-  assert.equal(await page.locator(".component-page-card").first().getAttribute("data-page-id"), firstId);
-
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
-  const baseline = canonicalStudentsBookPages[0];
-  assert.equal(await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).getAttribute("data-source"), "repository-baseline");
-  const studentReplace = page.waitForEvent("filechooser");
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).getByTitle("Replace page image").click();
-  await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA });
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor();
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).getByTitle("Restore canonical page").click();
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
-  assert.equal(state.workbook.pages.some((item) => item.id === baseline.id), false);
-
-  const foreign = await page.request.get(`${origin}/builder/api/pages/books/ultimate-b2/components/ultimate-b2-workbook/pages/${baseline.id}/assets/${baseline.id}/preview`);
-  assert.equal(foreign.status(), 404);
-  process.stdout.write("Component Pages browser acceptance passed.\n");
-} finally {
-  await browser?.close();
-  await new Promise((resolve) => server.close(resolve));
-}
+  browser = await chromium.launch(localPlaywrightLaunchOptions()); const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }); page.setDefaultTimeout(60_000); const errors = []; page.on("pageerror", (error) => errors.push(error.message)); page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" }); await page.getByRole("heading", { name: "Page library" }).waitFor(); assert.equal(await page.locator(".component-pages-groups section").count(), 11); for (let number = 1; number <= 10; number += 1) await group(page, `Unit ${number}`).waitFor();
+  await group(page, "Unassigned").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor(); await group(page, "Unassigned").getByTitle("Edit metadata").click(); await page.getByLabel("Unit").selectOption({ label: "Unit 1" }); await page.getByRole("button", { name: "Save metadata" }).click(); await group(page, "Unit 1").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor();
+  await addFiles(page, "Unit 1", [{ name: "Workbook A.png", mimeType: "image/png", buffer: imageA }, { name: "Workbook B.png", mimeType: "image/png", buffer: imageB }]); assert.deepEqual(await group(page, "Unit 1").locator(".component-page-card-copy strong").allTextContents(), ["Legacy unassigned", "Workbook A", "Workbook B"]);
+  const workbookA = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook A" }); const stableId = await workbookA.getAttribute("data-page-id"); await workbookA.getByTitle("Edit metadata").click(); await page.getByLabel("Unit").selectOption({ label: "Unit 2" }); await page.getByLabel("Label").fill("Workbook opening page"); await page.getByLabel("Printed page or spread").fill("2"); await page.getByRole("button", { name: "Save metadata" }).click(); await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor(); await page.reload({ waitUntil: "domcontentloaded" }); await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor(); assert.equal(await group(page, "Unit 2").locator(".component-page-card").getAttribute("data-page-id"), stableId);
+  const replacement = page.waitForEvent("filechooser"); await group(page, "Unit 2").getByTitle("Replace page image").click(); await (await replacement).setFiles({ name: "replacement.png", mimeType: "image/png", buffer: imageB }); await page.locator(".component-pages-progress").waitFor({ state: "hidden" }); const workbookB = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" }); await workbookB.getByTitle("Delete page").click(); await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click(); await workbookB.waitFor({ state: "detached" });
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book`, { waitUntil: "domcontentloaded" }); await page.getByText("Grammar Book · Pages").waitFor(); assert.equal(await page.locator(".component-pages-groups section").count(), 11); await addFiles(page, "Unit 10", [{ name: "Grammar A.png", mimeType: "image/png", buffer: imageA }, { name: "Grammar B.png", mimeType: "image/png", buffer: imageB }]); assert.deepEqual(await group(page, "Unit 10").locator(".component-page-card-copy strong").allTextContents(), ["Grammar A", "Grammar B"]); await page.reload({ waitUntil: "domcontentloaded" }); await group(page, "Unit 10").locator(".component-page-card").first().waitFor(); assert.equal(await group(page, "Unit 10").locator(".component-page-card").count(), 2);
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" }); const baseline = canonicalStudentsBookPages[0]; const studentCard = page.locator(`.component-page-card[data-page-id="${baseline.id}"]`); assert.equal(await studentCard.getAttribute("data-source"), "repository-baseline"); const studentReplace = page.waitForEvent("filechooser"); await studentCard.getByTitle("Replace page image").click(); await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA }); await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor(); await studentCard.getByTitle("Restore canonical page").click(); await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  assert.equal(state["ultimate-b2-workbook"].pages.some((item) => item.id === baseline.id), false); assert.equal(state["ultimate-b2-grammar-book"].pages.some((item) => item.id === baseline.id), false); assert.deepEqual(errors, []); process.stdout.write("Managed Workbook/Grammar and Students Pages browser acceptance passed.\n");
+} finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }

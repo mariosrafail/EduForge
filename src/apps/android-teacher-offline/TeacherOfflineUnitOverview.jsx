@@ -4,10 +4,23 @@ import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
 
-export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary }) {
-  const entries = buildStudentsBookOverviewEntries(unit);
+function buildManagedOverviewEntries(unit) {
+  const pages = unit?.pages || [];
+  const rowBreak = Math.ceil(pages.length / 2);
+  return pages.map((page, index) => ({
+    id: `unit-${unit.number}-managed-overview-${page.id}`,
+    label: page.title || page.label || null,
+    pageLabel: page.spreadNumber || page.label || `Page ${index + 1}`,
+    pageIds: [page.id],
+    pages: [page],
+    row: index < rowBreak ? 1 : 2,
+  }));
+}
+
+export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch }) {
+  const entries = selectedBookId === "students-book" ? buildStudentsBookOverviewEntries(unit) : buildManagedOverviewEntries(unit);
   const unitNumber = Number(unit.number);
-  const surfaceKey = `students-book:overview:unit-${unitNumber}`;
+  const surfaceKey = `${selectedBookId}:overview:unit-${unitNumber}`;
 
   return (
     <section className="teacher-offline-pages teacher-offline-unit-overview-screen" aria-label={`Unit ${unit.number} page overview`}>
@@ -49,7 +62,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
         </div>
       </div>
 
-      <TeacherBookNavigation onHome={onBackToLibrary} onBack={onBackToLibrary} />
+      <TeacherBookNavigation onHome={onBackToLibrary} onBack={onBackToLibrary} selectedBookId={selectedBookId} onBookSwitch={onBookSwitch} />
       <ClassroomToolbar surfaceKey={surfaceKey} />
     </section>
   );

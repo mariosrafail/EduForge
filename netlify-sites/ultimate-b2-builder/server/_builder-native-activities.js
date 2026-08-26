@@ -16,7 +16,7 @@ import { nativeDragDropAssetRequirements } from "../../../src/data/native-activi
 import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
-import { pruneUltimateB2ActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
+import { pruneComponentActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument, builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
@@ -103,7 +103,7 @@ async function createActivity(dependencies, sql, auth, parsedRoute, event) {
   const kind = resolveNativeActivityKind(parsed.value.kind);
   if (!adapter) return json(404, { error: "native_activity_component_not_found" });
   if (!kind || !adapter.kinds.includes(kind.kind)) return json(400, { error: "unsupported_native_activity_kind" });
-  let placement; try { placement = adapter.normalizePlacement({ pageId: parsed.value.pageId }); } catch { return json(400, { error: "invalid_native_activity_placement" }); }
+  let placement; try { placement = await adapter.normalizePlacement({ pageId: parsed.value.pageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); } catch { return json(400, { error: "invalid_native_activity_placement" }); }
   const title = parsed.value.title.trim() || `New ${kind.label}`;
   if (title.length > 300 || /[\u0000-\u001f\u007f]/.test(title)) return json(400, { error: "invalid_native_activity_title" });
   const requestSha256 = sha256(stableBuilderJson({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, kind: kind.kind, pageId: placement.pageId, title }));
@@ -163,7 +163,7 @@ async function deleteActivity(dependencies, sql, auth, parsedRoute, event) {
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
   const removed = removeNativeActivityIndexEntry(index, parsedRoute.activityId, { allowedKinds: adapter.kinds });
   const currentHotspots = storedHotspots?.document || hotspotResource.baseline();
-  const pruned = pruneUltimateB2ActivityHotspots(currentHotspots, parsedRoute.activityId);
+  const pruned = pruneComponentActivityHotspots(currentHotspots, parsedRoute.activityId);
   const requestSha256 = sha256(stableBuilderJson({
     bookSlug: parsedRoute.bookSlug,
     componentSlug: parsedRoute.componentSlug,
@@ -219,7 +219,7 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
   if (!adapter) return json(404, { error: "native_activity_component_not_found" });
   let destination = null;
   if (move) {
-    try { destination = adapter.normalizePlacement({ pageId: input.destinationPageId }); }
+    try { destination = await adapter.normalizePlacement({ pageId: input.destinationPageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); }
     catch { return json(400, { error: "invalid_native_activity_placement" }); }
   }
   const [lifecycleResource, indexResource, hotspotResource] = await Promise.all([
@@ -271,7 +271,7 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
     assertPublicBuilderDocument(publicDocument);
   }
   const currentHotspots = storedHotspots?.document || hotspotResource.baseline();
-  const pruned = pruneUltimateB2ActivityHotspots(currentHotspots, parsedRoute.activityId);
+  const pruned = pruneComponentActivityHotspots(currentHotspots, parsedRoute.activityId);
   const requestSha256 = sha256(stableBuilderJson({
     bookSlug: parsedRoute.bookSlug,
     componentSlug: parsedRoute.componentSlug,
