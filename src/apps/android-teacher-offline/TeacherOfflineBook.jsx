@@ -17,6 +17,8 @@ export default function TeacherOfflineBook({
   selectedBookId,
   onBookSwitch,
   hotspotProvider,
+  runtimeContext,
+  componentIdentity,
 }) {
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const availableUnitNumbers = (pageUnits || [])
@@ -56,6 +58,8 @@ export default function TeacherOfflineBook({
           selectedBookId={selectedBookId}
           onBookSwitch={onBookSwitch}
           hotspotProvider={hotspotProvider}
+          runtimeContext={runtimeContext}
+          componentIdentity={componentIdentity}
         />
       ) : (
         <>

@@ -10,13 +10,13 @@ import { NativeDragDropStudentSurface } from "../../../native-drag-drop/NativeDr
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";
 
-export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false, showMetadataHeader = true, presentation = null }) {
+export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode = false, showMetadataHeader = true, presentation = null, runtimeContext, identity }) {
   if (state.kind === "loading") return <p role="status">Loading native activity draft…</p>;
   if (state.kind === "unavailable") return <p role="alert">Native activity draft was not found.</p>;
   if (state.kind === "error") return <p role="alert">Native activity draft could not be loaded.</p>;
   if (state.kind !== "ready" || !state.entry) return null;
   const { kind, document } = state.entry;
-  const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId);
+  const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId, runtimeContext, identity);
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="hosted-native-draft-activity" data-native-kind={kind} data-native-draft="true">
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}

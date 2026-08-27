@@ -97,3 +97,21 @@ test("dispose aborts superseded authorization and prevents later state updates",
   await flush();
   assert.deepEqual(authorizations, []);
 });
+
+test("Saved Draft bootstrap mode validates one short-lived token without scheduling parent renewal", async () => {
+  const now = Date.parse("2026-08-15T16:00:00Z");
+  const timer = timerHarness();
+  const authorizations = [];
+  startHostedViewerAuthorizationLifecycle({
+    requestAuthorization: async () => ({ token: token(1), expiresAt: new Date(now + 300_000).toISOString() }),
+    onAuthorization: (value) => authorizations.push(value),
+    onError() { assert.fail("bootstrap authorization should succeed"); },
+    now: () => now,
+    setTimer: timer.setTimer,
+    clearTimer: timer.clearTimer,
+    renew: false,
+  });
+  await flush();
+  assert.deepEqual(authorizations, [token(1)]);
+  assert.deepEqual(timer.timers, []);
+});

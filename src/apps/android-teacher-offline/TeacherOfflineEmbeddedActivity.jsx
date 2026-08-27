@@ -21,19 +21,19 @@ const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o5": Object.freeze({ width: 1024, height: 582 }),
 });
 
-export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange }) {
+export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange, runtimeContext, componentIdentity }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
-  const hostedOpenResponseDraft = useHostedOpenResponseDraft(activityId);
-  const hostedOpenResponseImport = useHostedOpenResponseImport(activityId);
+  const hostedOpenResponseDraft = useHostedOpenResponseDraft(activityId, { runtimeContext });
+  const hostedOpenResponseImport = useHostedOpenResponseImport(activityId, { runtimeContext });
   const publication = usePublishedComponentRelease();
   const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
-  const runtimeContext = resolveHostedViewerRuntimeContext();
-  const nativeDraftCandidate = runtimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && !findStudentsBookImplementation(activityId);
+  const effectiveRuntimeContext = runtimeContext || resolveHostedViewerRuntimeContext();
+  const nativeDraftCandidate = effectiveRuntimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && !findStudentsBookImplementation(activityId);
   const teacherPreview = activeBuildProfile.teacherPresentation
-    || (activeBuildProfile.authorizedTeacherPreview && resolveHostedViewerRuntimeContext().teacherPreview);
-  const hostedNativeDraft = useHostedNativeDraftActivity(nativeDraftCandidate ? activityId : null, { teacherMode: teacherPreview });
+    || (activeBuildProfile.authorizedTeacherPreview && effectiveRuntimeContext.teacherPreview);
+  const hostedNativeDraft = useHostedNativeDraftActivity(nativeDraftCandidate ? activityId : null, { teacherMode: teacherPreview, runtimeContext: effectiveRuntimeContext, identity: componentIdentity });
   const authoredCanvas = sourceAuthoredCanvases[activityId] || null;
   const activityMode = teacherPreview
     ? ACTIVITY_MODES.TEACHER_PRESENTATION_OFFLINE
@@ -125,7 +125,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} runtimeContext={effectiveRuntimeContext} identity={componentIdentity} /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}

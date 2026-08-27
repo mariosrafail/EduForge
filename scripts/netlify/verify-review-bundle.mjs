@@ -182,7 +182,7 @@ async function verifyPublicViewerSourcesAndArtifact(root) {
   assert.match(profiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*teacherSolutions:\s*false[\s\S]*teacherPresentation:\s*false[\s\S]*authorizedTeacherPreview:\s*true/);
   assert.match(vite, /authorizedTeacherPreview[\s\S]*TeacherAnswerUi\.jsx/);
   assert.doesNotMatch(vite, /hostedReviewTeacherSolutions|teacher-solutions\.json/);
-  assert.match(embedded, /resolveHostedViewerRuntimeContext\(\)\.teacherPreview/);
+  assert.match(embedded, /runtimeContext \|\| resolveHostedViewerRuntimeContext\(\)[\s\S]*effectiveRuntimeContext\.teacherPreview/);
   assert.match(hostedSolutions, /hostedReleasePath[\s\S]*teacher-solution/);
   assert.doesNotMatch(hostedSolutions, /teacher-solutions\.json|acceptedAnswers|correctOptionId|modelAnswers?|revealText/i);
   assert.match(packagedSolutions, /teacher-solutions\.json[\s\S]*getOfflineTeacherSolution/);

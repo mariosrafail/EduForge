@@ -1,10 +1,10 @@
 import { hostedTeacherUiAssetPath, normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
-export function createTeacherRuntimeUiAssetModel({ authoring, resolveCanonicalAssetUrl, hostedPreview = null }) {
+export function createTeacherRuntimeUiAssetModel({ authoring, resolveCanonicalAssetUrl, hostedPreview = null, runtimeContext = resolveHostedViewerRuntimeContext() }) {
   if (!authoring || typeof resolveCanonicalAssetUrl !== "function") throw new TypeError("Teacher runtime UI asset factory requires canonical authoring and a URL resolver.");
   const overrides = hostedPreview ? normalizeHostedTeacherUiPreview(hostedPreview).assets : {};
-  const context = resolveHostedViewerRuntimeContext();
+  const context = runtimeContext;
   const url = (binding) => {
     if (!overrides[binding.id]) return resolveCanonicalAssetUrl(binding);
     const assetPath = hostedTeacherUiAssetPath(overrides[binding.id]);

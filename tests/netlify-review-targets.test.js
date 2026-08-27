@@ -298,7 +298,7 @@ test("Interactive provider split keeps Viewer answers remote and Android Teacher
   assert.match(vite, /isHostedInteractiveReview[\s\S]*hostedAuthorizedTeacherSolutions\.js/);
   assert.doesNotMatch(vite, /hostedReviewTeacherSolutions|teacher-solutions\.json/);
   assert.match(vite, /delete authoring\.source/);
-  assert.match(embedded, /activeBuildProfile\.authorizedTeacherPreview[\s\S]*resolveHostedViewerRuntimeContext\(\)\.teacherPreview[\s\S]*TEACHER_PRESENTATION_OFFLINE/);
+  assert.match(embedded, /runtimeContext \|\| resolveHostedViewerRuntimeContext\(\)[\s\S]*activeBuildProfile\.authorizedTeacherPreview[\s\S]*effectiveRuntimeContext\.teacherPreview[\s\S]*TEACHER_PRESENTATION_OFFLINE/);
   assert.doesNotMatch(vite, /hostname|window\.location|Netlify URL/i);
   assert.match(networkGuard, /\.netlify\\\/functions\|api\\\/\|auth\\\//);
 });

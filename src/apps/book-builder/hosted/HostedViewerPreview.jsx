@@ -29,6 +29,7 @@ export function HostedViewerPreview({
       requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization(resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent }), { signal }),
       onAuthorization: (token) => { setAuthorization(token); if (token) setAuthorizationError(false); },
       onError: () => setAuthorizationError(true),
+      renew: Boolean(intent.releaseId),
     });
   }, [bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
   const src = authorization ? createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug, previewAuthorization: authorization }) : "";

@@ -43,8 +43,9 @@ test("Teacher runtime resolves menu visuals by package without exposing assets t
   assert.match(runtime, /resolveTeacherBookMenuSkin/);
   assert.match(runtime, /canonicalTeacherRuntimeUiAssets/);
   assert.match(runtime, /runtimeUiAssets\.classroom/);
-  assert.match(app, /selectedBookMenuSkinId\(bookMenuSkinSelections, pack\.manifest\.packageId\)/);
-  assert.match(app, /resolveTeacherBookMenuSkin\(pack\.manifest\.packageId, selectedMenuSkinId, runtimeUiAssets\)/);
+  assert.match(app, /const productPackageId = "ultimate-b2-students-book"/);
+  assert.match(app, /selectedBookMenuSkinId\(bookMenuSkinSelections, productPackageId\)/);
+  assert.match(app, /resolveTeacherBookMenuSkin\(productPackageId, selectedMenuSkinId, runtimeUiAssets\)/);
   assert.match(library, /data-book-menu-skin=\{menuSkin\.id\}/);
   assert.doesNotMatch(library, /legacyClassroomAssets/);
   assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);
@@ -61,7 +62,7 @@ test("Students, Workbook, and Grammar share one Unit launcher while navigation s
   assert.match(library, /!extrasSelected \? <UnitColumn[\s\S]*items=\{units\.slice\(5\)\}/);
   assert.match(library, /onOpenUnit\?\.\(editionId, unit\.number\)/);
   assert.match(app, /onOpenUnit=\{\(editionId, unitNumber\) => switchTeacherEdition\(editionId, unitNumber\)\}/);
-  assert.match(app, /resolveTeacherEditionComponent\(activeRuntime\.bookSlug, teacherEditionId\)/);
+  assert.match(app, /resolveTeacherEditionComponent\(\(activeRuntime \|\| initialRuntime\)\.bookSlug, teacherEditionId\)/);
   assert.match(projectShell, /const showUnits = !showExtras/);
   assert.match(projectShell, /onOpenUnit\?\.\(editionId, unit\.id\)/);
   assert.match(projectPresentation, /if \(editionId !== "students-book"\) return/);

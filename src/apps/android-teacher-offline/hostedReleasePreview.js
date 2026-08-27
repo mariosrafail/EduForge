@@ -47,10 +47,29 @@ export function authorizedHostedPreviewPath(path, authorization = currentHostedP
   return `${url.pathname}${url.search}`;
 }
 
-export async function exchangeHostedPreviewComponentAuthorization({ sourceBookSlug, sourceComponentSlug, targetBookSlug, targetComponentSlug, fetchImpl = globalThis.fetch, signal } = {}) {
-  const context = resolveHostedViewerRuntimeContext();
+export function createHostedBuilderPreviewRuntimeContext(authorization) {
+  if (!TOKEN.test(String(authorization || ""))) throw new Error("Authorized Builder Review is required.");
+  return Object.freeze({
+    kind: HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW,
+    teacherPreview: true,
+    authorization,
+  });
+}
+
+export async function exchangeHostedPreviewComponentAuthorization({
+  sourceBookSlug,
+  sourceComponentSlug,
+  targetBookSlug,
+  targetComponentSlug,
+  sourceAuthorization,
+  runtimeContext = resolveHostedViewerRuntimeContext(),
+  fetchImpl = globalThis.fetch,
+  signal,
+} = {}) {
+  const context = runtimeContext;
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || typeof fetchImpl !== "function") throw new Error("Authorized Builder Review is required for component switching.");
-  const response = await fetchImpl(authorizedHostedPreviewPath("/preview/authorization/exchange", context.authorization), {
+  const authorization = sourceAuthorization || context.authorization;
+  const response = await fetchImpl(authorizedHostedPreviewPath("/preview/authorization/exchange", authorization), {
     method: "POST",
     credentials: "omit",
     cache: "no-store",

@@ -4,15 +4,15 @@ import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, hostedRelease
 const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 
 export const interactiveUiManifestProvider = Object.freeze({
-  async load({ signal } = {}) {
-    const context = resolveHostedViewerRuntimeContext();
+  async load({ runtimeContext = resolveHostedViewerRuntimeContext(), fetchImpl = globalThis.fetch, signal } = {}) {
+    const context = runtimeContext;
     if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return null;
     if (!context.teacherPreview) {
       const error = new Error("The requested Viewer preview context is invalid.");
       error.code = "LIVE_PREVIEW_UNAVAILABLE";
       throw error;
     }
-    const response = await fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
+    const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
       ? hostedReleasePath(context.releaseId, "teacher-ui")
       : authorizedHostedPreviewPath(previewPath, context.authorization), { method: "GET", cache: "no-store", credentials: "omit", signal });
     if (response.status === 404) return null;

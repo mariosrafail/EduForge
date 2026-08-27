@@ -196,10 +196,13 @@ test("Android runtime remains a bundled no-op with no preview route dependency",
   assert.match(vite, /hostedReviewHotspots/);
   assert.match(vite, /studentsBookHotspots/);
   assert.doesNotMatch(vite, /window\.location|hostname|netlify\.app/i);
-  assert.match(app, /loadContentPack: \(\) => activeRuntime\.contentPackProvider\.load\(\)/);
-  assert.match(app, /prepareHotspots: \(\) => activeRuntime\.hotspotProvider\?\.prepare/);
-  assert.match(app, /startupAssets: activeRuntime\.startupAssets/);
-  assert.match(app, /activeRuntime\.startupAssets\.hosted[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait/);
+  assert.match(app, /loadContentPack: \(\) => initialRuntime\.contentPackProvider\.load/);
+  assert.match(app, /prepareHotspots: \(\) => initialRuntime\.hotspotProvider\?\.prepare/);
+  assert.match(app, /startupAssets: initialRuntime\.startupAssets/);
+  assert.match(app, /productState\.status === "loading"[\s\S]*TeacherViewerStartupStatus[\s\S]*teacher-offline-pack-wait/);
+  assert.match(app, /start\(\)\.catch\(\(error\)[\s\S]*setProductState\(failed\)[\s\S]*updateComponentState\(initialRuntime, failed\)/);
+  assert.doesNotMatch(app, /\[activeRuntime, startupAttempt\]/);
+  assert.match(app, /initialRuntimeContext\.kind === HOSTED_VIEWER_RUNTIME_MODES\.BUILDER_PREVIEW/);
   assert.match(registry, /prepareUltimateB2StudentsBookHotspots/);
   assert.match(generatedProvider, /interactiveStartupAssets = createNoopStartupAssets\(\)/);
   assert.doesNotMatch(generatedProvider, /hostedReviewStartupAssets/);

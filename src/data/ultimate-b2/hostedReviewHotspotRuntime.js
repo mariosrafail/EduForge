@@ -94,14 +94,15 @@ export function createHostedReviewHotspotRuntime(initialManifest) {
     getActions(identity = {}) {
       return getHotspots(identity).map(ultimateB2StudentsBookHotspotToAction).filter(Boolean);
     },
-    async prepare({ fetchImpl = globalThis.fetch } = {}) {
+    async prepare({ runtimeContext = resolveHostedViewerRuntimeContext(), fetchImpl = globalThis.fetch, signal } = {}) {
       try {
-        const context = resolveHostedViewerRuntimeContext();
+        const context = runtimeContext;
         if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return { revision: 0, source: "repository" };
         if (!context.teacherPreview || typeof fetchImpl !== "function") throw unavailable();
         const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : authorizedHostedPreviewPath(ultimateB2HotspotPreviewRoute, context.authorization), {
           cache: "no-store",
           credentials: "omit",
+          ...(signal ? { signal } : {}),
         });
         if (!response?.ok) throw unavailable();
         const payload = await response.json();

@@ -1,17 +1,13 @@
 import { authorizedHostedPreviewPath, HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 import { createHostedStartupAssets } from "./interactiveStartupAssets.js";
+import { hostedTeacherUiAssetPath } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
 
 const COMPONENTS = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
 const emptyUnits = () => Array.from({ length: 10 }, (_, index) => Object.freeze({ id: `unit-${index + 1}`, number: index + 1, title: `Unit ${index + 1}`, pages: Object.freeze([]) }));
 
 export const managedHostedStartupAssets = createHostedStartupAssets(Object.freeze({
-  runtimeAssets(pack) {
-    return (pack?.pageUnits || []).flatMap((unit) => (unit.pages || []).flatMap((page) => (page.images || []).map((url, index) => ({
-      key: `managed-page:${page.id}:${index + 1}`,
-      url,
-      kind: "image",
-      source: "managed-page",
-    }))));
+  uiAssetUrls(uiManifest) {
+    return Object.values(uiManifest?.assets || {}).map(hostedTeacherUiAssetPath);
   },
 }));
 
@@ -19,8 +15,8 @@ function assertComponent(componentSlug) {
   if (!COMPONENTS.has(componentSlug)) throw new Error("Managed review component is unsupported.");
 }
 
-function previewContext() {
-  const context = resolveHostedViewerRuntimeContext();
+function previewContext(runtimeContext = resolveHostedViewerRuntimeContext()) {
+  const context = runtimeContext;
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) {
     const error = new Error("Managed component drafts require authorized Builder Review.");
     error.code = "LIVE_PREVIEW_UNAVAILABLE";
@@ -35,7 +31,10 @@ export function managedPageUnitsFromCatalog(payload, componentSlug) {
   const pagesByUnit = new Map(payload.units.map((unit) => [unit.id, []]));
   for (const page of payload.pages) {
     if (!page?.id || !page.unitId || !pagesByUnit.has(page.unitId) || page.componentSlug !== componentSlug || page.image?.source !== "managed" || !page.image.url) throw new Error("Managed page catalog contains an invalid page.");
-    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), images: Object.freeze([page.image.url]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
+    const imageUrl = new URL(page.image.url, "https://viewer.invalid");
+    imageUrl.searchParams.delete("previewAuthorization");
+    const imagePath = `${imageUrl.pathname}${imageUrl.search}`;
+    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), images: Object.freeze([imagePath]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
   }
   return Object.freeze(payload.units.map((unit) => Object.freeze({ id: unit.slug, number: unit.unitNumber, title: unit.title, pages: Object.freeze(pagesByUnit.get(unit.id).sort((left, right) => left.sortOrder - right.sortOrder)) })));
 }
@@ -43,8 +42,8 @@ export function managedPageUnitsFromCatalog(payload, componentSlug) {
 export function createManagedReviewContentPackProvider(componentSlug) {
   assertComponent(componentSlug);
   return Object.freeze({
-    async load({ fetchImpl = globalThis.fetch, signal } = {}) {
-      const context = previewContext();
+    async load({ runtimeContext, fetchImpl = globalThis.fetch, signal } = {}) {
+      const context = previewContext(runtimeContext);
       const path = authorizedHostedPreviewPath(`/preview/pages/books/ultimate-b2/components/${componentSlug}`, context.authorization);
       const response = await fetchImpl(path, { method: "GET", credentials: "omit", cache: "no-store", signal });
       if (!response?.ok) throw new Error("Managed page catalog is unavailable.");
@@ -68,8 +67,8 @@ export function createManagedReviewHotspotProvider(componentSlug) {
   assertComponent(componentSlug);
   let document = { schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug, pages: {} };
   return Object.freeze({
-    async prepare({ fetchImpl = globalThis.fetch, signal } = {}) {
-      const context = previewContext();
+    async prepare({ runtimeContext, fetchImpl = globalThis.fetch, signal } = {}) {
+      const context = previewContext(runtimeContext);
       const path = authorizedHostedPreviewPath(`/preview/content/books/ultimate-b2/components/${componentSlug}/hotspots`, context.authorization);
       const response = await fetchImpl(path, { method: "GET", credentials: "omit", cache: "no-store", signal });
       if (!response?.ok) throw new Error("Managed hotspot document is unavailable.");
@@ -82,6 +81,16 @@ export function createManagedReviewHotspotProvider(componentSlug) {
   });
 }
 
+export function authorizeManagedReviewPageUnits(pageUnits, authorization) {
+  return Object.freeze((pageUnits || []).map((unit) => Object.freeze({
+    ...unit,
+    pages: Object.freeze((unit.pages || []).map((page) => Object.freeze({
+      ...page,
+      images: Object.freeze((page.images || []).map((path) => authorizedHostedPreviewPath(path, authorization))),
+    }))),
+  })));
+}
+
 export function createManagedReviewDescriptor(componentSlug) {
   assertComponent(componentSlug);
   return Object.freeze({
@@ -89,5 +98,6 @@ export function createManagedReviewDescriptor(componentSlug) {
     contentPackProvider: createManagedReviewContentPackProvider(componentSlug), pageUnits: Object.freeze(emptyUnits()),
     hotspotProvider: createManagedReviewHotspotProvider(componentSlug), solutionProvider: Object.freeze({ get: () => null }),
     startupAssets: managedHostedStartupAssets, uiManifestProvider: Object.freeze({ load: async () => null }),
+    authorizePageUnits: authorizeManagedReviewPageUnits,
   });
 }

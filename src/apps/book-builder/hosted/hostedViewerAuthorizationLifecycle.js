@@ -16,6 +16,7 @@ export function startHostedViewerAuthorizationLifecycle({
   setTimer = globalThis.setTimeout,
   clearTimer = globalThis.clearTimeout,
   createController = () => new AbortController(),
+  renew = true,
 }) {
   if (typeof requestAuthorization !== "function" || typeof onAuthorization !== "function" || typeof onError !== "function") throw new TypeError("Viewer authorization lifecycle callbacks are required.");
   let disposed = false;
@@ -30,6 +31,7 @@ export function startHostedViewerAuthorizationLifecycle({
       if (!value || !TOKEN.test(String(value.token || ""))) throw new Error("Viewer authorization response is invalid.");
       const delay = previewAuthorizationRenewalDelay(value.expiresAt, now());
       onAuthorization(value.token);
+      if (!renew) return;
       renewalTimer = setTimer(() => {
         renewalTimer = null;
         void issue();

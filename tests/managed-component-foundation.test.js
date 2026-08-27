@@ -11,6 +11,7 @@ import { createNoopStartupAssets, runInteractiveViewerStartup } from "../src/app
 import {
   createManagedReviewContentPackProvider,
   createManagedReviewHotspotProvider,
+  authorizeManagedReviewPageUnits,
   managedHostedStartupAssets,
   managedPageUnitsFromCatalog,
 } from "../src/apps/android-teacher-offline/managedReviewRuntime.js";
@@ -111,7 +112,7 @@ test("managed hosted runtime starts and browses a ten-Unit two-page pack with ze
   }
 });
 
-test("managed page-only startup blocks only its authorized page images and never Students assets", () => {
+test("managed component preparation keeps heavy page images on demand and reauthorizes cached metadata", () => {
   for (const componentSlug of [workbook, grammar]) {
     const pageUnits = managedPageUnitsFromCatalog(managedCatalog(componentSlug), componentSlug);
     const plan = managedHostedStartupAssets.createLoadPlan({
@@ -119,11 +120,14 @@ test("managed page-only startup blocks only its authorized page images and never
       activities: { activities: [] },
       assetsManifest: { assets: [] },
     }, null);
-    assert.deepEqual(plan.blocking.map((asset) => asset.url), [
-      `/preview/pages/${componentSlug}/1`,
-      `/preview/pages/${componentSlug}/2`,
-    ]);
+    assert.deepEqual(plan.blocking, []);
     assert.deepEqual(plan.background, []);
-    assert.equal(plan.blocking.some((asset) => /publishers\/|students-book|legacy|\.mp3(?:$|\?)/i.test(asset.url)), false);
+    const firstAuthorization = `v2.${Buffer.from("first").toString("base64url")}.${"a".repeat(43)}`;
+    const secondAuthorization = `v2.${Buffer.from("second").toString("base64url")}.${"b".repeat(43)}`;
+    const first = authorizeManagedReviewPageUnits(pageUnits, firstAuthorization);
+    const second = authorizeManagedReviewPageUnits(pageUnits, secondAuthorization);
+    assert.equal(new URL(first[0].pages[0].images[0], "https://viewer.example").searchParams.get("previewAuthorization"), firstAuthorization);
+    assert.equal(new URL(second[0].pages[0].images[0], "https://viewer.example").searchParams.get("previewAuthorization"), secondAuthorization);
+    assert.equal(pageUnits[0].pages[0].images[0].includes("previewAuthorization"), false);
   }
 });

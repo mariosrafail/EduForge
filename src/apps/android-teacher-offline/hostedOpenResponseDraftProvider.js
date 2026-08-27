@@ -29,13 +29,13 @@ export function validateHostedOpenResponsePreviewEnvelope(value, activityId) {
   return value.document;
 }
 
-export function useHostedOpenResponseDraft(activityId) {
+export function useHostedOpenResponseDraft(activityId, { runtimeContext = resolveHostedViewerRuntimeContext() } = {}) {
   const [draft, setDraft] = useState(null);
 
   useEffect(() => {
     setDraft(null);
     if (!isUltimateB2ConfigurableOpenResponse(activityId)) return undefined;
-    const context = resolveHostedViewerRuntimeContext();
+    const context = runtimeContext;
     if (!context.teacherPreview) return undefined;
     const controller = new AbortController();
     fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : `${routeRoot}/${encodeURIComponent(activityId)}`, {
@@ -54,7 +54,7 @@ export function useHostedOpenResponseDraft(activityId) {
       if (!controller.signal.aborted) setDraft(null);
     });
     return () => controller.abort();
-  }, [activityId]);
+  }, [activityId, runtimeContext]);
 
   return draft;
 }
@@ -66,12 +66,12 @@ function validateImportEnvelope(value, activityId, kind) {
     : normalizeUltimateB2HostedOpenResponseTeacherImport(value.document, activityId);
 }
 
-export function useHostedOpenResponseImport(activityId) {
+export function useHostedOpenResponseImport(activityId, { runtimeContext = resolveHostedViewerRuntimeContext() } = {}) {
   const [state, setState] = useState({ publicImport: null, teacherSolution: null, revision: 0 });
   useEffect(() => {
     setState({ publicImport: null, teacherSolution: null, revision: 0 });
     if (!isUltimateB2ConfigurableOpenResponse(activityId)) return undefined;
-    const context = resolveHostedViewerRuntimeContext();
+    const context = runtimeContext;
     if (!context.teacherPreview) return undefined;
     const controller = new AbortController();
     if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
@@ -104,6 +104,6 @@ export function useHostedOpenResponseImport(activityId) {
       if (!controller.signal.aborted) setState({ publicImport: null, teacherSolution: null, revision: 0 });
     });
     return () => controller.abort();
-  }, [activityId]);
+  }, [activityId, runtimeContext]);
   return state;
 }

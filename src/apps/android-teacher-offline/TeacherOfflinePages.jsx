@@ -68,6 +68,8 @@ export default function TeacherOfflinePages({
   selectedBookId,
   onBookSwitch,
   hotspotProvider,
+  runtimeContext,
+  componentIdentity,
 }) {
   const publication = usePublishedComponentRelease();
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
@@ -442,6 +444,8 @@ export default function TeacherOfflinePages({
               onListeningStateChange={setListeningView}
               activityPresentationCommand={activityPresentationCommand}
               onActivityPresentationStateChange={onActivityPresentationStateChange}
+              runtimeContext={runtimeContext}
+              componentIdentity={componentIdentity}
             />
           ) : image && !assetError ? (
             <div

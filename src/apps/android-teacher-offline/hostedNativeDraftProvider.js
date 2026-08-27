@@ -38,52 +38,52 @@ function normalizeEnvelope(value, { activityId, audience, publicDocument = null,
   return { kind: value.kind, revision: value.revision, document };
 }
 
-async function fetchEnvelope(path, { fetchImpl = fetch, signal } = {}) {
+async function fetchEnvelope(path, { fetchImpl = globalThis.fetch, signal } = {}) {
   const response = await fetchImpl(path, { method: "GET", credentials: "omit", cache: "no-store", signal });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error("Native draft preview is unavailable.");
   return response.json();
 }
 
-export async function loadHostedNativeDraftPublicActivity(activityId, { context = resolveHostedViewerRuntimeContext(), fetchImpl = fetch, signal } = {}) {
+export async function loadHostedNativeDraftPublicActivity(activityId, { context = resolveHostedViewerRuntimeContext(), identity = currentIdentity(), fetchImpl = globalThis.fetch, signal } = {}) {
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !SAFE_ID.test(String(activityId || ""))) return null;
-  const payload = await fetchEnvelope(nativeDraftPath(activityId, "public", context.authorization), { fetchImpl, signal });
-  return payload ? normalizeEnvelope(payload, { activityId, audience: "public", identity: currentIdentity() }) : null;
+  const payload = await fetchEnvelope(nativeDraftPath(activityId, "public", context.authorization, identity), { fetchImpl, signal });
+  return payload ? normalizeEnvelope(payload, { activityId, audience: "public", identity }) : null;
 }
 
-export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), fetchImpl = fetch, signal } = {}) {
+export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), identity = currentIdentity(), fetchImpl = globalThis.fetch, signal } = {}) {
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["open-response", "single-choice", "complete-sentences", "listening", "drag-drop"].includes(publicEntry?.kind)) return null;
   const activityId = publicEntry.document.activityId;
-  const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization), { fetchImpl, signal });
+  const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization, identity), { fetchImpl, signal });
   if (!payload) throw new Error("Native Teacher draft is unavailable.");
-  return normalizeEnvelope(payload, { activityId, audience: "teacher", publicDocument: publicEntry.document, identity: currentIdentity() });
+  return normalizeEnvelope(payload, { activityId, audience: "teacher", publicDocument: publicEntry.document, identity });
 }
 
 export function shouldLoadHostedNativeDraftTeacherActivity(publicEntry, teacherMode) {
   return Boolean(teacherMode && ["open-response", "single-choice", "complete-sentences", "listening", "drag-drop"].includes(publicEntry?.kind));
 }
 
-export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext()) {
+export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext(), identity = currentIdentity()) {
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !UUID.test(String(assetId || ""))) return "";
-  return nativeDraftPath(activityId, `assets/${String(assetId).toLowerCase()}`, context.authorization);
+  return nativeDraftPath(activityId, `assets/${String(assetId).toLowerCase()}`, context.authorization, identity);
 }
 
-export function useHostedNativeDraftActivity(activityId, { teacherMode = false } = {}) {
-  const context = resolveHostedViewerRuntimeContext();
-  const contextKey = `${context.kind}:${context.authorization || ""}:${context.releaseId || ""}`;
+export function useHostedNativeDraftActivity(activityId, { teacherMode = false, runtimeContext = resolveHostedViewerRuntimeContext(), identity = currentIdentity() } = {}) {
+  const context = runtimeContext;
+  const contextKey = `${context.kind}:${context.authorization || ""}:${context.releaseId || ""}:${identity.bookSlug}:${identity.componentSlug}`;
   const [state, setState] = useState({ activityId: null, kind: "idle", entry: null, teacher: { kind: "idle", entry: null } });
   useEffect(() => {
     setState({ activityId, kind: "idle", entry: null, teacher: { kind: "idle", entry: null } });
     if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !SAFE_ID.test(String(activityId || ""))) return undefined;
     const controller = new AbortController();
     setState({ activityId, kind: "loading", entry: null, teacher: { kind: "idle", entry: null } });
-    loadHostedNativeDraftPublicActivity(activityId, { context, signal: controller.signal })
+    loadHostedNativeDraftPublicActivity(activityId, { context, identity, signal: controller.signal })
       .then((entry) => {
         if (controller.signal.aborted) return;
         if (!entry) { setState({ activityId, kind: "unavailable", entry: null, teacher: { kind: "idle", entry: null } }); return; }
         if (!shouldLoadHostedNativeDraftTeacherActivity(entry, teacherMode)) { setState({ activityId, kind: "ready", entry, teacher: { kind: "idle", entry: null } }); return; }
         setState({ activityId, kind: "ready", entry, teacher: { kind: "loading", entry: null } });
-        loadHostedNativeDraftTeacherActivity(entry, { context, signal: controller.signal })
+        loadHostedNativeDraftTeacherActivity(entry, { context, identity, signal: controller.signal })
           .then((teacher) => { if (!controller.signal.aborted) setState({ activityId, kind: "ready", entry, teacher: { kind: "ready", entry: teacher } }); })
           .catch(() => { if (!controller.signal.aborted) setState({ activityId, kind: "ready", entry, teacher: { kind: "error", entry: null } }); });
       })

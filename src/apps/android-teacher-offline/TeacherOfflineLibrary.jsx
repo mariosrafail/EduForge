@@ -54,7 +54,7 @@ function ExtrasColumn({ label, items, position }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {}, initialEditionId = "students-book" }) {
+export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {}, initialEditionId = "students-book", onSelectEdition }) {
   const [selectedEdition, setSelectedEdition] = useState(initialEditionId);
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
@@ -79,7 +79,7 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animations
 
             <div className="legacy-home-book-row" aria-label="Book editions">
               {menuSkin.editions.map((edition) => (
-                <button key={edition.id} type="button" className="legacy-home-book-button" data-teacher-control-id={edition.controlId} data-sound-category="button" aria-label={edition.label} aria-pressed={selectedEdition === edition.id} onClick={() => setSelectedEdition(edition.id)}>
+                <button key={edition.id} type="button" className="legacy-home-book-button" data-teacher-control-id={edition.controlId} data-sound-category="button" aria-label={edition.label} aria-pressed={selectedEdition === edition.id} onClick={() => { setSelectedEdition(edition.id); onSelectEdition?.(edition.id); }}>
                   <LegacyMenuArtwork artwork={edition} />
                 </button>
               ))}

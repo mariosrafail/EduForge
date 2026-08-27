@@ -13,8 +13,10 @@ const hotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/stude
 const token = `v1.${Buffer.from("viewer-boundary-smoke").toString("base64url")}.${"a".repeat(43)}`;
 const uiPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 const hotspotsPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+const exchangePath = "/preview/authorization/exchange";
 const mime = { ".css": "text/css", ".gaf": "application/octet-stream", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".pdf": "application/pdf", ".png": "image/png", ".svg": "image/svg+xml" };
 const observedPreviewRequests = [];
+const observedExchanges = [];
 
 function sendJson(response, status, value) {
   const body = Buffer.from(JSON.stringify(value));
@@ -25,11 +27,32 @@ function sendJson(response, status, value) {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname.startsWith("/preview/")) observedPreviewRequests.push(url);
+  if (url.pathname === exchangePath && request.method === "POST") {
+    if (url.searchParams.get("previewAuthorization") !== token) return sendJson(response, 401, { error: "Unauthorized" });
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    observedExchanges.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+    return sendJson(response, 200, { token, expiresAt: new Date(Date.now() + 300_000).toISOString() });
+  }
   if (url.pathname === uiPath) {
     if (url.searchParams.get("previewAuthorization") !== token) return sendJson(response, 401, { error: "Unauthorized" });
     return sendJson(response, 200, { document: { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} } });
   }
   if (url.pathname === hotspotsPath) return sendJson(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "hotspots", schemaVersion: "1.0", revision: 43, source: "database", document: hotspots });
+  const managedPageMatch = url.pathname.match(/^\/preview\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:workbook|grammar-book))$/);
+  if (managedPageMatch) {
+    const componentSlug = managedPageMatch[1];
+    return sendJson(response, 200, {
+      component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed" },
+      units: Array.from({ length: 10 }, (_, index) => ({ id: `unit-${index + 1}`, slug: `unit-${index + 1}`, unitNumber: index + 1, title: `Unit ${index + 1}` })),
+      pages: [],
+    });
+  }
+  const managedHotspotMatch = url.pathname.match(/^\/preview\/content\/books\/ultimate-b2\/components\/(ultimate-b2-(?:workbook|grammar-book))\/hotspots$/);
+  if (managedHotspotMatch) {
+    const componentSlug = managedHotspotMatch[1];
+    return sendJson(response, 200, { bookSlug: "ultimate-b2", componentSlug, document: { schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug, pages: {} } });
+  }
   if (url.pathname.startsWith("/preview/")) return sendJson(response, 401, { error: "Unauthorized" });
   const relative = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname).replace(/^\/+/, "");
   let file = path.resolve(root, relative);
@@ -55,6 +78,14 @@ try {
   const requestCheckpoint = () => observedPreviewRequests.length;
   const requestsSince = (checkpoint) => observedPreviewRequests.slice(checkpoint);
   const waitForLibrary = () => page.locator(".teacher-offline-library").waitFor();
+  const waitForPreviewFailure = async () => {
+    try {
+      await page.locator('main[role="alert"], .teacher-offline-pack-error').first().waitFor();
+    } catch (error) {
+      console.error(JSON.stringify({ url: page.url(), body: await page.locator("body").innerText(), consoleErrors }, null, 2));
+      throw error;
+    }
+  };
 
   let checkpoint = requestCheckpoint();
   await page.goto(`${origin}/#library`, { waitUntil: "domcontentloaded" });
@@ -73,6 +104,9 @@ try {
   const authorizedRequests = requestsSince(checkpoint);
   const uiRequest = authorizedRequests.find((url) => url.pathname === uiPath);
   assert.equal(uiRequest?.searchParams.get("previewAuthorization"), token);
+  assert.ok(authorizedRequests.some((url) => url.pathname === exchangePath), "Authorized Builder preview must exchange its initial component token once.");
+  const installedComponentSlugs = new Set(["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+  assert.ok(observedExchanges.every((exchange) => exchange.source.bookSlug === "ultimate-b2" && exchange.intent.bookSlug === "ultimate-b2" && installedComponentSlugs.has(exchange.source.componentSlug) && installedComponentSlugs.has(exchange.intent.componentSlug)));
   assert.ok(authorizedRequests.some((url) => url.pathname === hotspotsPath), "Authorized Builder preview must load saved hotspot preview state.");
   assert.equal(authorizedRequests.filter((url) => /teacher-solution|native-teacher|open-response-teacher/.test(url.pathname)).length, 0, "Teacher answer endpoints must remain on-demand.");
   assert.equal(authorizedRequests.filter((url) => /native-activities/.test(url.pathname)).length, 0, "Library preview must not receive native draft access.");
@@ -83,7 +117,7 @@ try {
   ]) {
     checkpoint = requestCheckpoint();
     await page.goto(`${origin}/?${search}`, { waitUntil: "domcontentloaded" });
-    await page.locator('main[role="alert"], .teacher-offline-pack-error').first().waitFor();
+    await waitForPreviewFailure();
     assert.deepEqual(requestsSince(checkpoint).map((url) => url.pathname), [], "Invalid preview authorization must fail before preview requests.");
     assert.equal(await page.getByText("Publisher answer", { exact: true }).count(), 0);
   }

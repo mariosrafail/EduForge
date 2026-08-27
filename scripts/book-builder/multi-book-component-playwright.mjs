@@ -23,12 +23,13 @@ const managedPageBytes = await readFile("unit/1/parts/HD/parts_part_1.png");
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 const components = Object.freeze({ workbook: "ultimate-b2-workbook", grammar: "ultimate-b2-grammar-book" });
 const previewEnvironment = { BUILDER_PREVIEW_AUTH_SECRET: "multi-book-browser-test-secret-with-at-least-thirty-two-bytes" };
-const previewNow = Date.parse("2026-08-27T12:00:00Z");
+const previewNow = Date.now();
 const teacherUiChecksum = createHash("sha256").update(managedPageBytes).digest("hex");
 const teacherUiObjectKey = buildBookAssetHostedTeacherUiPublicKey({ checksum: teacherUiChecksum, extension: "png" });
 const exchangeRequests = [];
 const authorizationIntents = [];
 const managedAssetRequests = [];
+const managedCatalogRequests = [];
 const managedStorageObjectRequests = [];
 const teacherUiObjectRequests = [];
 const canonicalViewerAssetRequests = [];
@@ -140,6 +141,7 @@ const builderPagesHandler = createBuilderPagesHandler({
   getDatabase: () => managedPreviewSql,
   authorize: async () => ({ builderUser: { id: "ultimate-b2-acceptance" } }),
   authorizePreview: async (event, _sql, scope) => {
+    if (scope.action === "managed-page-catalog") managedCatalogRequests.push({ ...scope, authorization: event.queryStringParameters?.previewAuthorization || "" });
     if (scope.action === "managed-page-asset") managedAssetRequests.push({ ...scope, authorization: event.queryStringParameters?.previewAuthorization || "" });
     return classifyBuilderPreviewAuthorization(event, scope, { environment: previewEnvironment, now: previewNow });
   },
@@ -325,6 +327,23 @@ let browser;
 try {
   browser = await chromium.launch(localPlaywrightLaunchOptions());
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await context.addInitScript(() => {
+    const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
+    let acceleratedAuthorizationTimers = 0;
+    globalThis.setTimeout = (callback, delay, ...args) => nativeSetTimeout(
+      callback,
+      Number(delay) >= 240_000 && acceleratedAuthorizationTimers++ < 3 ? 120 : delay,
+      ...args,
+    );
+    globalThis.__teacherPreparationCounts = {};
+    globalThis.__teacherProductStartupCount = 0;
+    globalThis.addEventListener("teacher:component-prepared", (event) => {
+      globalThis.__teacherPreparationCounts[event.detail.componentSlug] = event.detail.count;
+    });
+    globalThis.addEventListener("teacher:product-startup", (event) => {
+      globalThis.__teacherProductStartupCount = event.detail.count;
+    });
+  });
   const consoleErrors = [];
   const pageErrors = [];
   const failedResponses = [];
@@ -385,6 +404,7 @@ try {
     await page.getByRole("button", { name: "Review", exact: true }).click();
     const pagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
     await pagesReview.locator(".teacher-offline-library").waitFor();
+    assert.match(await pagesReview.locator(".teacher-offline-library").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`), "Workbook/Grammar-launched Review must immediately use the shared Students-owned shell override");
     const frameSource = await page.locator(".unified-builder-review-dialog iframe").getAttribute("src");
     managedReviewTokens.set(componentSlug, new URL(frameSource).searchParams.get("previewAuthorization"));
     assert.equal(new URL(frameSource).searchParams.get("view"), "library");
@@ -425,6 +445,9 @@ try {
     assert.equal(await page.getByRole("button", { name: "Add Activity" }).isEnabled(), true);
   }
 
+  const residentExchangeStart = exchangeRequests.length;
+  const residentCatalogStart = managedCatalogRequests.length;
+  const residentPreviewLoadStart = managedPreviewLoads.length;
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Review", exact: true }).click();
   const studentsPagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
@@ -435,7 +458,11 @@ try {
   assert.equal(new URL(studentsFrameSource).searchParams.get("view"), "library");
   assert.equal(await page.getByLabel("Review page").count(), 0);
   assert.equal(await studentsPagesReview.getByRole("button", { name: "Students Book", exact: true }).getAttribute("aria-pressed"), "true");
-  await page.locator(".unified-builder-review-dialog iframe").evaluate((iframe) => { iframe.dataset.productViewerInstance = "single"; });
+  const residentIframeLocator = page.locator(".unified-builder-review-dialog iframe");
+  const residentIframe = await residentIframeLocator.elementHandle();
+  assert.ok(residentIframe);
+  await residentIframeLocator.evaluate((iframe) => { iframe.dataset.productViewerInstance = "single"; });
+  assert.match(await studentsPagesReview.locator(".teacher-offline-library").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
   await studentsPagesReview.locator(".teacher-unit-page-card").first().click();
@@ -447,6 +474,7 @@ try {
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
   await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 1,/ }).click();
   await studentsPagesReview.getByAltText(/Workbook page 1/).waitFor();
+  assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   assert.equal(await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).getAttribute("aria-pressed"), "true");
@@ -455,7 +483,33 @@ try {
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
   await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 1,/ }).click();
   await studentsPagesReview.getByAltText(/Grammar Book page 1/).waitFor();
+  assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
+  await page.waitForTimeout(500);
+  const renewedResidentExchanges = exchangeRequests.slice(residentExchangeStart);
+  assert.equal(renewedResidentExchanges.length >= 6, true, "controlled short timers renew all scoped component authorizations inside the resident Viewer");
+  assert.equal(renewedResidentExchanges.some((entry) => entry.source.componentSlug === entry.intent.componentSlug), true, "controlled renewal must use same-component scope");
+  await studentsPagesReview.getByAltText(/Grammar Book page 1/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.getByRole("button", { name: "Students Book", exact: true }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+  await studentsPagesReview.locator(".teacher-unit-page-card").first().click();
+  await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
+  assert.equal(await residentIframeLocator.evaluate((node, original) => node === original, residentIframe), true, "all content switches and token renewal preserve iframe DOM identity");
+  assert.equal(await residentIframeLocator.getAttribute("src"), studentsFrameSource, "Saved Draft renewal must not rewrite iframe src");
   assert.equal(await page.locator('.unified-builder-review-dialog iframe[data-product-viewer-instance="single"]').count(), 1, "component switching must preserve the one Viewer iframe");
+  assert.deepEqual(await studentsPagesReview.locator("body").evaluate(() => globalThis.__teacherPreparationCounts), {
+    "ultimate-b2-students-book": 1,
+    "ultimate-b2-workbook": 1,
+    "ultimate-b2-grammar-book": 1,
+  });
+  assert.equal(await studentsPagesReview.locator("body").evaluate(() => globalThis.__teacherProductStartupCount), 1);
+  const residentCatalogs = managedCatalogRequests.slice(residentCatalogStart);
+  assert.equal(residentCatalogs.filter((entry) => entry.componentSlug === components.workbook).length, 1);
+  assert.equal(residentCatalogs.filter((entry) => entry.componentSlug === components.grammar).length, 1);
+  const residentPreviewLoads = managedPreviewLoads.slice(residentPreviewLoadStart);
+  assert.equal(residentPreviewLoads.filter((entry) => entry === "ultimate-b2-students-book:ui-controller:default").length, 1, "the product shell UI manifest loads once");
+  assert.equal(exchangeRequests.slice(residentExchangeStart).some((entry) => entry.source.componentSlug !== entry.intent.componentSlug), true);
   assert.equal(teacherUiObjectRequests.some(({ operation, objectKey }) => operation === "get" && objectKey === teacherUiObjectKey), true);
   const overrideObjectRequestCount = teacherUiObjectRequests.length;
   await page.getByRole("button", { name: "Close Review" }).click();
@@ -474,10 +528,9 @@ try {
   assert.deepEqual(fallbackConsoleErrors, ["Failed to load resource: the server responded with a status of 404 (Not Found)"]);
   await page.getByRole("button", { name: "Close Review" }).click();
   teacherUiOverrideEnabled = true;
-  assert.deepEqual(exchangeRequests.map((entry) => [entry.source.componentSlug, entry.intent.componentSlug]), [
-    ["ultimate-b2-students-book", components.workbook],
-    [components.workbook, components.grammar],
-  ]);
+  assert.equal(exchangeRequests.every((entry) => entry.source.bookSlug === "ultimate-b2" && entry.intent.bookSlug === "ultimate-b2"), true);
+  assert.equal(exchangeRequests.some((entry) => entry.intent.componentSlug === components.workbook), true);
+  assert.equal(exchangeRequests.some((entry) => entry.intent.componentSlug === components.grammar), true);
   assert.equal(managedAssetRequests.length >= 9, true);
   assert.equal(managedAssetRequests.every((entry) => entry.pageId.startsWith(entry.componentSlug === components.workbook ? "ultimate-b2-wb-" : "ultimate-b2-gb-")
     && classifyBuilderPreviewAuthorization({ queryStringParameters: { previewAuthorization: entry.authorization } }, {

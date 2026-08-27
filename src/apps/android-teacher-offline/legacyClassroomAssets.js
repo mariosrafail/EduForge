@@ -4,11 +4,12 @@ import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherApp
 import { resolveUltimateB2AuthoredAssetUrl } from "../../data/ultimate-b2/ultimateB2AuthoredAssetUrls.js";
 import { createTeacherRuntimeUiAssetModel } from "./teacherRuntimeUiAssetModel.js";
 
-export function createUltimateB2TeacherRuntimeUiAssets(hostedPreview = null) {
+export function createUltimateB2TeacherRuntimeUiAssets(hostedPreview = null, runtimeContext) {
   return createTeacherRuntimeUiAssetModel({
     authoring: ultimateB2TeacherAppAuthoring,
     resolveCanonicalAssetUrl: resolveUltimateB2AuthoredAssetUrl,
     hostedPreview,
+    runtimeContext,
   });
 }
 
