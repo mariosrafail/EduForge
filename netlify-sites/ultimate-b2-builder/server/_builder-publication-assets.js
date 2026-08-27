@@ -1,9 +1,20 @@
-import { componentPublicationAssetStorageTarget } from "../../../lib/book-assets/publication-asset-storage.js";
-import { inspectManagedMp3 } from "../../../lib/book-assets/audio-inspection.js";
-import { inspectManagedRaster } from "../../../lib/book-assets/raster-inspection.js";
-import { inspectManagedPdf } from "../../../lib/book-assets/pdf-inspection.js";
-import { inspectManagedMp4 } from "../../../lib/book-assets/video-inspection.js";
+import { componentPublicationAssetStorageTarget, componentPublicationCanonicalPrivateSourceObjectKey } from "../../../lib/book-assets/publication-asset-storage.js";
 import { isPrivateMaterializedComponentReleaseAssetRole } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
+
+const STORAGE_COPY_FAILURES = new Set([
+  "source_object_missing",
+  "source_head_failed",
+  "source_checksum_mismatch",
+  "source_byte_size_mismatch",
+  "source_media_type_mismatch",
+  "source_etag_missing",
+  "immutable_object_missing",
+  "immutable_checksum_mismatch",
+  "immutable_byte_size_mismatch",
+  "immutable_media_type_mismatch",
+  "copy_precondition_failed",
+  "copy_failed",
+]);
 
 function safeDiagnosticValue(value, maximumLength) {
   const normalized = String(value || "");
@@ -36,26 +47,35 @@ export async function materializeNativeReleaseAssets(storage, { bookSlug, compon
     const { descriptor, row } = source;
     try {
       if (!isPrivateMaterializedComponentReleaseAssetRole(descriptor.role)) throw unavailable(source, "materialize", "unsupported_asset_role");
-      let head;
-      try { head = await storage.head({ profile: "private", objectKey: row.object_key }); }
-      catch { throw unavailable(source, "materialize", "source_object_missing"); }
-      if (head.checksumSha256 !== descriptor.sha256) throw unavailable(source, "materialize", "source_checksum_mismatch");
-      if (head.byteSize !== Number(row.byte_size)) throw unavailable(source, "materialize", "source_byte_size_mismatch");
-      if (head.contentType !== descriptor.mediaType) throw unavailable(source, "materialize", "source_media_type_mismatch");
-      let bytes;
-      try { bytes = await storage.download({ profile: "private", objectKey: row.object_key }); }
-      catch { throw unavailable(source, "materialize", "source_download_failed"); }
-      const inspected = descriptor.mediaType === "application/pdf" ? inspectManagedPdf(bytes) : descriptor.mediaType === "audio/mpeg" ? inspectManagedMp3(bytes) : descriptor.mediaType === "video/mp4" ? inspectManagedMp4(bytes) : await inspectManagedRaster(bytes);
-      if (inspected.checksumSha256 !== descriptor.sha256) throw unavailable(source, "materialize", "downloaded_checksum_mismatch");
-      if (inspected.byteSize !== Number(row.byte_size)) throw unavailable(source, "materialize", "downloaded_byte_size_mismatch");
-      if (inspected.mimeType !== descriptor.mediaType || inspected.extension !== `.${descriptor.extension}`) throw unavailable(source, "materialize", "downloaded_media_type_mismatch");
-      if (descriptor.mediaType === "video/mp4" && Math.round(Number(row.duration_seconds) * 1_000) !== inspected.durationMs) throw unavailable(source, "materialize", "downloaded_duration_mismatch");
-      if (descriptor.mediaType.startsWith("image/") && (inspected.width !== Number(row.width) || inspected.height !== Number(row.height))) throw unavailable(source, "materialize", "downloaded_dimensions_mismatch");
+      if (row.asset_role !== descriptor.role) throw unavailable(source, "materialize", "source_asset_role_mismatch");
+      if (row.checksum_sha256 !== descriptor.sha256) throw unavailable(source, "materialize", "source_checksum_mismatch");
+      if (row.mime_type !== descriptor.mediaType) throw unavailable(source, "materialize", "source_media_type_mismatch");
+      if (!Number.isSafeInteger(Number(row.byte_size)) || Number(row.byte_size) < 1) throw unavailable(source, "materialize", "source_byte_size_invalid");
+      if (row.storage_profile !== "private" || row.publication_status !== "draft" || row.access_level !== "internal") throw unavailable(source, "materialize", "source_storage_policy_mismatch");
+      let privateBucket;
+      try { privateBucket = storage.bucket("private"); }
+      catch { throw unavailable(source, "materialize", "source_storage_policy_mismatch"); }
+      if (row.storage_bucket !== privateBucket) throw unavailable(source, "materialize", "source_storage_bucket_mismatch");
+      let canonicalSourceObjectKey;
+      try { canonicalSourceObjectKey = componentPublicationCanonicalPrivateSourceObjectKey({ bookSlug, componentSlug, descriptor, row }); }
+      catch { throw unavailable(source, "materialize", "source_identity_mismatch"); }
+      if (!canonicalSourceObjectKey || row.object_key !== canonicalSourceObjectKey) throw unavailable(source, "materialize", "source_identity_mismatch");
       const target = componentPublicationAssetStorageTarget({ bookSlug, componentSlug, ...descriptor });
       if (!target || target.profile !== "private") throw unavailable(source, "materialize", "unsupported_asset_role");
-      await storage.upload({ profile: target.profile, objectKey: target.objectKey, body: inspected.bytes, contentType: descriptor.mediaType, checksumSha256: descriptor.sha256, byteSize: inspected.byteSize });
+      try {
+        await storage.copyVerifiedImmutable({
+          profile: target.profile,
+          sourceObjectKey: canonicalSourceObjectKey,
+          destinationObjectKey: target.objectKey,
+          expectedChecksumSha256: descriptor.sha256,
+          expectedByteSize: Number(row.byte_size),
+          expectedContentType: descriptor.mediaType,
+        });
+      } catch (error) {
+        throw unavailable(source, "materialize", STORAGE_COPY_FAILURES.has(error?.code) ? error.code : "storage_copy_failure");
+      }
     } catch (error) {
-      throw error instanceof ComponentPublicationAssetError ? error : unavailable(source, "materialize", "storage_or_inspection_failure");
+      throw error instanceof ComponentPublicationAssetError ? error : unavailable(source, "materialize", "storage_copy_failure");
     }
   }
 }

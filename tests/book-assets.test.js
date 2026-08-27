@@ -5,7 +5,7 @@ import { classifyAssetAccess, canDeliverAsset } from "../lib/book-assets/access.
 import { normalizeSignedUrlTtl, readBookAssetStorageConfig, signedUrlTtlBounds, signedUrlTtlForAsset } from "../lib/book-assets/config.js";
 import { validateBookManifestStructure } from "../lib/book-assets/manifest.js";
 import { buildBookAssetHostedOpenResponseArchiveKey, buildBookAssetHostedOpenResponsePublicKey, buildBookAssetImportStagingKey, buildBookAssetObjectKey, ensureSourceWithinRoot, normalizeObjectKeySegment, validateObjectKey } from "../lib/book-assets/object-keys.js";
-import { S3BookAssetStorage } from "../lib/book-assets/storage.js";
+import { applyR2CopyDestinationCreateOnlyHeader, S3BookAssetStorage } from "../lib/book-assets/storage.js";
 import { getBookAssetAccess } from "../netlify/functions/_book-asset-access.js";
 
 test("object keys normalize segments and include immutable version/checksum identity", () => {
@@ -48,6 +48,111 @@ test("storage uploads are conditional and verify checksum metadata", async () =>
   const put = commands.find((command) => command.constructor.name === "PutObjectCommand");
   assert.equal(put.input.IfNoneMatch, "*");
   assert.equal(result.reused, false);
+});
+
+test("storage performs same-private-bucket immutable copies with strict conditional identity", async () => {
+  const checksum = "b".repeat(64);
+  const sourceKey = `builder-native-assets/book/component/activity/assets/${checksum}.mp4`;
+  const destinationKey = `builder-release-assets/book/component/${checksum}.mp4`;
+  const commands = [];
+  let destinationHeads = 0;
+  const notFound = () => Object.assign(new Error("Not Found"), { $metadata: { httpStatusCode: 404 } });
+  const exactHead = { ContentLength: 900_000_000, ContentType: "video/mp4", Metadata: { sha256: checksum }, ETag: '"source-etag"' };
+  const client = { send: async (command) => {
+    commands.push(command);
+    if (command.constructor.name === "HeadObjectCommand" && command.input.Key === destinationKey) {
+      destinationHeads += 1;
+      if (destinationHeads === 1) throw notFound();
+      return { ...exactHead, ETag: '"destination-etag"' };
+    }
+    if (command.constructor.name === "HeadObjectCommand") return exactHead;
+    return {};
+  } };
+  const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, client);
+  const result = await storage.copyVerifiedImmutable({ profile: "private", sourceObjectKey: sourceKey, destinationObjectKey: destinationKey, expectedChecksumSha256: checksum, expectedByteSize: 900_000_000, expectedContentType: "video/mp4" });
+  const copy = commands.find((command) => command.constructor.name === "CopyObjectCommand");
+  assert.deepEqual(copy.input, {
+    Bucket: "private",
+    Key: destinationKey,
+    CopySource: `/private/${sourceKey}`,
+    CopySourceIfMatch: '"source-etag"',
+    IfNoneMatch: "*",
+    MetadataDirective: "REPLACE",
+    Metadata: { sha256: checksum },
+    ContentType: "video/mp4",
+  });
+  assert.ok(copy.middlewareStack.identify().some((entry) => entry.includes("r2CopyDestinationCreateOnly")));
+  assert.equal(commands.some((command) => ["GetObjectCommand", "PutObjectCommand"].includes(command.constructor.name)), false);
+  assert.equal(result.reused, false);
+  assert.equal(result.copied, true);
+});
+
+test("R2 immutable CopyObject middleware adds the documented create-only destination header", () => {
+  const request = { headers: { "x-amz-copy-source": "/private/source" } };
+  applyR2CopyDestinationCreateOnlyHeader(request);
+  assert.equal(request.headers["cf-copy-destination-if-none-match"], "*");
+  assert.throws(() => applyR2CopyDestinationCreateOnlyHeader({}), (error) => error.code === "copy_request_invalid");
+});
+
+test("immutable copy reuses exact targets and rejects mismatched targets without overwriting", async () => {
+  const checksum = "c".repeat(64);
+  const request = { profile: "private", sourceObjectKey: `builder-native-assets/source/${checksum}.png`, destinationObjectKey: `builder-release-assets/book/component/${checksum}.png`, expectedChecksumSha256: checksum, expectedByteSize: 68, expectedContentType: "image/png" };
+  for (const candidate of [
+    { name: "exact", head: { ContentLength: 68, ContentType: "image/png", Metadata: { sha256: checksum }, ETag: '"target"' }, result: "reuse" },
+    { name: "wrong checksum", head: { ContentLength: 68, ContentType: "image/png", Metadata: { sha256: "d".repeat(64) }, ETag: '"target"' }, error: "immutable_checksum_mismatch" },
+    { name: "wrong size", head: { ContentLength: 69, ContentType: "image/png", Metadata: { sha256: checksum }, ETag: '"target"' }, error: "immutable_byte_size_mismatch" },
+    { name: "wrong media type", head: { ContentLength: 68, ContentType: "application/octet-stream", Metadata: { sha256: checksum }, ETag: '"target"' }, error: "immutable_media_type_mismatch" },
+  ]) {
+    const commands = [];
+    const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => { commands.push(command); return candidate.head; } });
+    if (candidate.result) {
+      const result = await storage.copyVerifiedImmutable(request);
+      assert.equal(result.reused, true, candidate.name);
+    } else {
+      await assert.rejects(storage.copyVerifiedImmutable(request), (error) => error.code === candidate.error, candidate.name);
+    }
+    assert.equal(commands.length, 1, candidate.name);
+    assert.equal(commands[0].constructor.name, "HeadObjectCommand", candidate.name);
+  }
+});
+
+test("immutable copy handles concurrent exact creation and fails closed on source or post-copy mismatch", async () => {
+  const checksum = "e".repeat(64);
+  const request = { profile: "private", sourceObjectKey: `builder-native-assets/source/${checksum}.pdf`, destinationObjectKey: `builder-release-assets/book/component/${checksum}.pdf`, expectedChecksumSha256: checksum, expectedByteSize: 412, expectedContentType: "application/pdf" };
+  const notFound = () => Object.assign(new Error("Not Found"), { $metadata: { httpStatusCode: 404 } });
+  const exact = { ContentLength: 412, ContentType: "application/pdf", Metadata: { sha256: checksum }, ETag: '"etag"' };
+  {
+    let call = 0;
+    const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => {
+      call += 1;
+      if (call === 1) throw notFound();
+      if (command.constructor.name === "CopyObjectCommand") throw Object.assign(new Error("Precondition Failed"), { $metadata: { httpStatusCode: 412 } });
+      return exact;
+    } });
+    const result = await storage.copyVerifiedImmutable(request);
+    assert.equal(result.reused, true);
+    assert.equal(result.copied, false);
+  }
+  {
+    let call = 0;
+    const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => {
+      call += 1;
+      if (call <= 2) throw notFound();
+      return command;
+    } });
+    await assert.rejects(storage.copyVerifiedImmutable(request), (error) => error.code === "source_object_missing");
+  }
+  {
+    let call = 0;
+    const storage = new S3BookAssetStorage({ endpoint: "https://s3.invalid", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => {
+      call += 1;
+      if (call === 1) throw notFound();
+      if (command.constructor.name === "CopyObjectCommand") return {};
+      if (call === 2) return exact;
+      return { ...exact, Metadata: { sha256: "f".repeat(64) } };
+    } });
+    await assert.rejects(storage.copyVerifiedImmutable(request), (error) => error.code === "immutable_checksum_mismatch");
+  }
 });
 
 test("hosted import keys are opaque/content-addressed and signed PUT is private-only", async () => {

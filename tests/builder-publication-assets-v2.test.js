@@ -1,135 +1,130 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { buildComponentReleaseAssetObjectKey } from "../lib/book-assets/object-keys.js";
-import { inspectManagedMp4 } from "../lib/book-assets/video-inspection.js";
+import {
+  buildComponentReleaseAssetObjectKey,
+  buildNativeActivityAssetObjectKey,
+  buildUnitExtraAssetObjectKey,
+} from "../lib/book-assets/object-keys.js";
 import { materializeNativeReleaseAssets } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-assets.js";
 
-const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
-const mp3 = Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(500).fill(0)]);
-const pdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
-const mp4 = await readFile(new URL("../src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4", import.meta.url));
-const inspectedMp4 = inspectManagedMp4(mp4);
-const checksum = createHash("sha256").update(png).digest("hex");
+const bookSlug = "ultimate-b2";
+const componentSlug = "ultimate-b2-students-book";
+const privateBucket = "private-assets";
+const checksum = "a".repeat(64);
 const descriptor = { sha256: checksum, extension: "png", mediaType: "image/png", role: "activity_artwork" };
-const row = { object_key: "builder-native-assets/source.png", byte_size: png.length, width: 1, height: 1 };
+const row = {
+  id: "10000000-0000-4000-8000-000000000020",
+  checksum_sha256: checksum,
+  asset_role: "activity_artwork",
+  object_key: buildNativeActivityAssetObjectKey({ bookSlug, componentSlug, activityId: "native-activity", assetSlot: "background", checksum, extension: ".png" }),
+  storage_profile: "private",
+  storage_bucket: privateBucket,
+  mime_type: "image/png",
+  byte_size: 68,
+  width: 1,
+  height: 1,
+  publication_status: "draft",
+  access_level: "internal",
+  source_metadata: { native_activity_id: "native-activity", asset_slot: "background" },
+};
 
-test("native draft bytes materialize idempotently to a private component release content address", async () => {
-  const uploads = [];
-  const storage = {
-    async head({ objectKey }) {
-      assert.equal(objectKey, row.object_key);
-      return { checksumSha256: checksum, byteSize: png.length, contentType: "image/png" };
-    },
-    async download({ objectKey }) { assert.equal(objectKey, row.object_key); return png; },
-    async upload(input) { uploads.push(input); return { reused: uploads.length > 1 }; },
+function storageWithCopy(copyVerifiedImmutable) {
+  return {
+    bucket(profile) { assert.equal(profile, "private"); return privateBucket; },
+    copyVerifiedImmutable,
+    async download() { throw new Error("Prepare must not download managed asset bodies"); },
+    async upload() { throw new Error("Prepare must not upload managed asset bodies"); },
   };
-  const input = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor, row }] };
-  await materializeNativeReleaseAssets(storage, input);
-  await materializeNativeReleaseAssets(storage, input);
-  assert.equal(uploads.length, 2);
-  assert.equal(uploads[0].profile, "private");
-  assert.equal(uploads[0].objectKey, buildComponentReleaseAssetObjectKey({ bookSlug: input.bookSlug, componentSlug: input.componentSlug, checksum, extension: "png" }));
-  assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${checksum}.png`);
+}
+
+function input(source = { descriptor, row }) {
+  return { bookSlug, componentSlug, nativeAssetSources: [source] };
+}
+
+test("native draft assets materialize idempotently by server-side copy without reading object bodies", async () => {
+  const copies = [];
+  const storage = storageWithCopy(async (request) => { copies.push(request); return { reused: copies.length > 1 }; });
+  await materializeNativeReleaseAssets(storage, input());
+  await materializeNativeReleaseAssets(storage, input());
+  assert.equal(copies.length, 2);
+  assert.deepEqual(copies[0], {
+    profile: "private",
+    sourceObjectKey: row.object_key,
+    destinationObjectKey: buildComponentReleaseAssetObjectKey({ bookSlug, componentSlug, checksum, extension: "png" }),
+    expectedChecksumSha256: checksum,
+    expectedByteSize: row.byte_size,
+    expectedContentType: "image/png",
+  });
+  assert.equal(Object.hasOwn(copies[0], "body"), false);
 });
 
-test("release asset materialization fails closed with safe diagnostics for missing, wrong-size, wrong-checksum, and unsupported sources", async () => {
-  const input = (source, storage) => materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [source] });
+test("Prepare work is body-size independent for a synthetic multi-gigabyte finalized asset", async () => {
+  const hugeRow = { ...row, byte_size: 4_000_000_000 };
+  let request;
+  await materializeNativeReleaseAssets(storageWithCopy(async (value) => { request = value; return { reused: false }; }), input({ descriptor, row: hugeRow }));
+  assert.equal(request.expectedByteSize, hugeRow.byte_size);
+  assert.equal(Object.hasOwn(request, "body"), false);
+});
+
+test("private PNG, MP3, MP4, and PDF sources use canonical private keys and immutable release targets", async () => {
+  const cases = [
+    { checksum: "b".repeat(64), extension: "png", mediaType: "image/png", role: "activity_artwork", slot: "background", byteSize: 68 },
+    { checksum: "c".repeat(64), extension: "mp3", mediaType: "audio/mpeg", role: "activity_artwork", slot: "listening-audio", byteSize: 25_000_000 },
+    { checksum: "d".repeat(64), extension: "pdf", mediaType: "application/pdf", role: "activity_artwork", slot: "video-worksheet", byteSize: 50_000_000 },
+    { checksum: "e".repeat(64), extension: "mp4", mediaType: "video/mp4", role: "unit_extra_video", slot: "unit-extra-video", byteSize: 900_000_000 },
+  ];
+  for (const candidate of cases) {
+    const sourceDescriptor = { sha256: candidate.checksum, extension: candidate.extension, mediaType: candidate.mediaType, role: candidate.role };
+    const sourceRow = candidate.role === "unit_extra_video" ? {
+      ...row,
+      checksum_sha256: candidate.checksum,
+      asset_role: candidate.role,
+      mime_type: candidate.mediaType,
+      byte_size: candidate.byteSize,
+      object_key: buildUnitExtraAssetObjectKey({ bookSlug, componentSlug, unitSlug: "unit-2", itemId: "video-one", checksum: candidate.checksum, extension: ".mp4" }),
+      source_metadata: { unit_slug: "unit-2", unit_extra_item_id: "video-one", asset_slot: candidate.slot },
+    } : {
+      ...row,
+      checksum_sha256: candidate.checksum,
+      mime_type: candidate.mediaType,
+      byte_size: candidate.byteSize,
+      object_key: buildNativeActivityAssetObjectKey({ bookSlug, componentSlug, activityId: "native-activity", assetSlot: candidate.slot, checksum: candidate.checksum, extension: `.${candidate.extension}` }),
+      source_metadata: { native_activity_id: "native-activity", asset_slot: candidate.slot },
+    };
+    let copied;
+    await materializeNativeReleaseAssets(storageWithCopy(async (request) => { copied = request; return { reused: false }; }), input({ descriptor: sourceDescriptor, row: sourceRow }));
+    assert.equal(copied.sourceObjectKey, sourceRow.object_key);
+    assert.equal(copied.destinationObjectKey, `builder-release-assets/${bookSlug}/${componentSlug}/${candidate.checksum}.${candidate.extension}`);
+    assert.equal(copied.expectedByteSize, candidate.byteSize);
+  }
+});
+
+test("release materialization fails closed with safe diagnostics for invalid source identity and storage failures", async () => {
+  const codedError = (code, message = "private source key must stay private") => Object.assign(new Error(message), { code });
   const scenarios = [
-    {
-      name: "missing source",
-      source: { descriptor, row: { ...row, id: "10000000-0000-4000-8000-000000000020" } },
-      storage: { async head() { throw new Error("private source key must stay private"); } },
-      failureClass: "source_object_missing",
-    },
-    {
-      name: "wrong byte size",
-      source: { descriptor, row: { ...row, id: "10000000-0000-4000-8000-000000000021" } },
-      storage: { async head() { return { checksumSha256: checksum, byteSize: png.length + 1, contentType: "image/png" }; } },
-      failureClass: "source_byte_size_mismatch",
-    },
-    {
-      name: "wrong SHA-256",
-      source: { descriptor, row: { ...row, id: "10000000-0000-4000-8000-000000000022" } },
-      storage: { async head() { return { checksumSha256: "f".repeat(64), byteSize: png.length, contentType: "image/png" }; } },
-      failureClass: "source_checksum_mismatch",
-    },
-    {
-      name: "unsupported role",
-      source: { descriptor: { ...descriptor, role: "future_private_asset" }, row: { ...row, id: "10000000-0000-4000-8000-000000000023" } },
-      storage: { async head() { throw new Error("must not inspect unsupported roles"); } },
-      failureClass: "unsupported_asset_role",
-    },
+    { name: "wrong asset role", source: { descriptor, row: { ...row, asset_role: "other_role" } }, failureClass: "source_asset_role_mismatch" },
+    { name: "wrong row checksum", source: { descriptor, row: { ...row, checksum_sha256: "f".repeat(64) } }, failureClass: "source_checksum_mismatch" },
+    { name: "wrong storage profile", source: { descriptor, row: { ...row, storage_profile: "public" } }, failureClass: "source_storage_policy_mismatch" },
+    { name: "wrong storage bucket", source: { descriptor, row: { ...row, storage_bucket: "other-private" } }, failureClass: "source_storage_bucket_mismatch" },
+    { name: "noncanonical source key", source: { descriptor, row: { ...row, object_key: "builder-native-assets/staging/source.png" } }, failureClass: "source_identity_mismatch" },
+    { name: "unsupported role", source: { descriptor: { ...descriptor, role: "future_private_asset" }, row }, failureClass: "unsupported_asset_role" },
+    { name: "missing source", source: { descriptor, row }, copyError: codedError("source_object_missing"), failureClass: "source_object_missing" },
+    { name: "wrong source size", source: { descriptor, row }, copyError: codedError("source_byte_size_mismatch"), failureClass: "source_byte_size_mismatch" },
+    { name: "wrong source checksum", source: { descriptor, row }, copyError: codedError("source_checksum_mismatch"), failureClass: "source_checksum_mismatch" },
+    { name: "wrong immutable checksum", source: { descriptor, row }, copyError: codedError("immutable_checksum_mismatch"), failureClass: "immutable_checksum_mismatch" },
+    { name: "unknown storage failure", source: { descriptor, row }, copyError: new Error("secret key"), failureClass: "storage_copy_failure" },
   ];
   for (const scenario of scenarios) {
-    await assert.rejects(input(scenario.source, scenario.storage), (error) => {
+    const storage = storageWithCopy(async () => { if (scenario.copyError) throw scenario.copyError; throw new Error("copy must not run"); });
+    await assert.rejects(materializeNativeReleaseAssets(storage, input(scenario.source)), (error) => {
       assert.equal(error.code, "release_asset_unavailable", scenario.name);
       assert.equal(error.assetId, scenario.source.row.id, scenario.name);
       assert.equal(error.assetRole, scenario.source.descriptor.role, scenario.name);
       assert.equal(error.assetStage, "materialize", scenario.name);
       assert.equal(error.failureClass, scenario.failureClass, scenario.name);
-      assert.doesNotMatch(JSON.stringify(error), /builder-native-assets\/source\.png|private source key/i, scenario.name);
+      assert.doesNotMatch(JSON.stringify(error), /builder-native-assets|private source key|secret key/i, scenario.name);
       return true;
     });
   }
-});
-
-test("managed Unit Extra MP4 bytes materialize to the immutable private release namespace", async () => {
-  const unitExtraDescriptor = { sha256: inspectedMp4.checksumSha256, extension: "mp4", mediaType: "video/mp4", role: "unit_extra_video" };
-  const unitExtraRow = {
-    id: "10000000-0000-4000-8000-000000000024",
-    object_key: "builder-unit-extra-assets/source.mp4",
-    byte_size: inspectedMp4.byteSize,
-    duration_seconds: inspectedMp4.durationMs / 1_000,
-    width: null,
-    height: null,
-  };
-  const uploads = [];
-  const storage = {
-    async head() { return { checksumSha256: inspectedMp4.checksumSha256, byteSize: inspectedMp4.byteSize, contentType: "video/mp4" }; },
-    async download() { return mp4; },
-    async upload(input) { uploads.push(input); return { reused: false }; },
-  };
-  await materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor: unitExtraDescriptor, row: unitExtraRow }] });
-  assert.equal(uploads.length, 1);
-  assert.deepEqual({ profile: uploads[0].profile, objectKey: uploads[0].objectKey, contentType: uploads[0].contentType, byteSize: uploads[0].byteSize }, {
-    profile: "private",
-    objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${inspectedMp4.checksumSha256}.mp4`,
-    contentType: "video/mp4",
-    byteSize: inspectedMp4.byteSize,
-  });
-});
-
-test("managed MP3 bytes materialize to the immutable private release content address", async () => {
-  const audioChecksum = createHash("sha256").update(mp3).digest("hex");
-  const audioDescriptor = { sha256: audioChecksum, extension: "mp3", mediaType: "audio/mpeg", role: "activity_artwork" };
-  const audioRow = { object_key: "builder-native-assets/source.mp3", byte_size: mp3.length, width: null, height: null };
-  const uploads = [];
-  const storage = {
-    async head() { return { checksumSha256: audioChecksum, byteSize: mp3.length, contentType: "audio/mpeg" }; },
-    async download() { return mp3; },
-    async upload(input) { uploads.push(input); return { reused: false }; },
-  };
-  await materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor: audioDescriptor, row: audioRow }] });
-  assert.equal(uploads.length, 1);
-  assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${audioChecksum}.mp3`);
-  assert.equal(uploads[0].contentType, "audio/mpeg");
-});
-
-test("validated worksheet PDF bytes materialize to the immutable private release content address", async () => {
-  const pdfChecksum = createHash("sha256").update(pdf).digest("hex");
-  const pdfDescriptor = { sha256: pdfChecksum, extension: "pdf", mediaType: "application/pdf", role: "activity_artwork" };
-  const pdfRow = { object_key: "builder-native-assets/video-worksheet.pdf", byte_size: pdf.length, width: null, height: null };
-  const uploads = [];
-  const storage = {
-    async head() { return { checksumSha256: pdfChecksum, byteSize: pdf.length, contentType: "application/pdf" }; },
-    async download() { return pdf; },
-    async upload(input) { uploads.push(input); return { reused: false }; },
-  };
-  await materializeNativeReleaseAssets(storage, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", nativeAssetSources: [{ descriptor: pdfDescriptor, row: pdfRow }] });
-  assert.equal(uploads.length, 1);
-  assert.equal(uploads[0].objectKey, `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${pdfChecksum}.pdf`);
-  assert.equal(uploads[0].contentType, "application/pdf");
 });
