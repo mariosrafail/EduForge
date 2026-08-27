@@ -66,7 +66,7 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
 
   const selectedPage = normalizedPages.find((page) => page.pageId === session?.pageId) || lastPage;
   const release = session?.toolContext?.release || null;
-  const intent = session && selectedPage ? resolveUnifiedReviewIntent({
+  const intent = session && (session.sourceMode === "draft" || selectedPage) ? resolveUnifiedReviewIntent({
     sourceMode: session.sourceMode,
     toolContext: session.toolContext,
     page: selectedPage,
@@ -111,7 +111,7 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
             <button type="button" aria-pressed={session.sourceMode === "draft"} onClick={() => setSession((current) => ({ ...current, sourceMode: "draft" }))}>Saved Draft</button>
             <button type="button" aria-pressed={session.sourceMode === "release"} disabled={!release} onClick={() => setSession((current) => ({ ...current, sourceMode: "release" }))}>{release ? `Release #${release.number} · Immutable` : "No release prepared"}</button>
           </div>
-          {intent?.view === "page" ? <label>Review page<select value={selectedPage?.pageId || ""} onChange={(event) => { const pageId = event.target.value; rememberPage(pageId); setSession((current) => ({ ...current, pageId })); }}>{normalizedPages.map((page) => <option key={page.pageId} value={page.pageId}>{reviewPageLabel(page)}</option>)}</select></label> : null}
+          {session.sourceMode === "release" && intent?.view === "page" ? <label>Review page<select value={selectedPage?.pageId || ""} onChange={(event) => { const pageId = event.target.value; rememberPage(pageId); setSession((current) => ({ ...current, pageId })); }}>{normalizedPages.map((page) => <option key={page.pageId} value={page.pageId}>{reviewPageLabel(page)}</option>)}</select></label> : null}
         </div>
         <div className="unified-builder-review-messages">
           {session.toolContext.dirty && session.sourceMode === "draft" ? <p className="unified-builder-review-notice" role="status">Unsaved changes are not included in Review. Save them first.</p> : null}
@@ -123,9 +123,9 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
           bookSlug={bookSlug}
           componentSlug={componentSlug}
           openPlayerHref={hostedBuilderReviewHash({ bookSlug, componentSlug, intent })}
-          refreshKey={`${session.toolContext.refreshKey || 0}:${session.pageId}:${session.sourceMode}`}
+          refreshKey={`${session.toolContext.refreshKey || 0}:${session.sourceMode === "release" ? session.pageId : "product-library"}:${session.sourceMode}`}
           title={sourceTitle}
-          description={session.sourceMode === "release" ? "Pinned to the exact selected release." : "Shows only the latest successfully saved Builder state."}
+          description={session.sourceMode === "release" ? "Pinned to the exact selected release." : "Opens the Ultimate B2 launcher with the latest successfully saved Builder state."}
         /> : <p role="status">No pages are available for Review in this component.</p>}
       </div> : null}
     </dialog>

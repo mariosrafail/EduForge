@@ -555,9 +555,11 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(toolsContext, /drawings:[\s\S]*overlays:/);
   assert.match(toolsContext, /clearCovers[\s\S]*setSpotlight[\s\S]*clearAllMarkup/);
   for (const title of ["Respect Our Planet", "Fit For Life", "Law and Order", "You're Hired!", "Add to Cart", "Making the Grade", "Better Together", "It's Just Science!"]) assert.match(unitMetadata, new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(library, /useState\("students-book"\)/);
+  assert.match(library, /initialEditionId = "students-book"/);
+  assert.match(library, /useState\(initialEditionId\)/);
   assert.match(library, /menuSkin\.editions\.map/);
   assert.match(library, /aria-pressed=\{selectedEdition === edition\.id\}/);
+  assert.match(app, /initialEditionId=\{activeRuntime\.component\.teacherEditionId\}/);
   assert.match(library, /menuSkin\.extras/);
   assert.match(library, /ExtrasColumn/);
   assert.doesNotMatch(library, /LockKeyhole|legacy-home-lock|Locked|\sdisabled(?:=|\s|>)/);

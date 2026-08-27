@@ -90,7 +90,7 @@ test("runtime factory changes only the selected binding and reaches menu, toolba
   const canonical = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}` });
   const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
   const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview });
-  assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/ui-assets/${checksum}.png`);
+  assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/ui-assets-v2/${checksum}.png`);
   assert.equal(resolved.classroom.backgrounds.studentsBookPartsBackground, canonical.classroom.backgrounds.studentsBookPartsBackground);
   for (const value of [resolved.classroom.branding.bookMenu.units, resolved.toolbarItems, resolved.classroom.bookSwitches, resolved.classroom.revealControls, resolved.classroom.branding.menuTitle, resolved.classroom.sounds, resolved.classroom.controls, resolved.classroom.mediaPlayer]) assert.ok(value);
 });
@@ -230,15 +230,17 @@ test("save requires same-actor binding candidates, preserves revision conflicts,
   assert.equal((await revert(event("/builder/api/ui-assets/save", { expectedRevision: 1, clientMutationId: randomUUID(), document: createEmptyHostedTeacherUiDocument(), candidateUploadIds: [] }))).statusCode, 200);
 });
 
-test("public UI asset delivery is exact, immutable, GET/HEAD-only, and never accepts an object key", async () => {
+test("public UI asset delivery keeps v1 compatibility and adds the isolated v2 cache namespace", async () => {
   const storage = new MemoryStorage();
   const objectKey = `publishers/hamilton-house/books/ultimate-b2/editions/students-book/versions/hosted-draft/components/ultimate-b2-students-book/teacher-ui/assets/${checksum}.png`;
   storage.objects.set(storage.key("public", objectKey), { body: png, contentType: "image/png", sha256: checksum });
   const handler = createBuilderTeacherUiAssetsHandler({ storage: () => storage, logger: { error() {} } });
-  const response = await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "GET", {}));
-  assert.equal(response.statusCode, 302);
-  assert.equal(response.headers.Location, `https://books.invalid/${objectKey}`);
-  assert.equal(response.headers["Cache-Control"], "public, max-age=31536000, immutable");
+  for (const namespace of ["ui-assets", "ui-assets-v2"]) {
+    const response = await handler(event(`/preview/${namespace}/${checksum}.png`, undefined, "GET", {}));
+    assert.equal(response.statusCode, 302);
+    assert.equal(response.headers.Location, `https://books.invalid/${objectKey}`);
+    assert.equal(response.headers["Cache-Control"], "public, max-age=31536000, immutable");
+  }
   assert.equal((await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "POST", {}))).statusCode, 405);
   assert.equal((await handler(event(`/preview/ui-assets/${"a".repeat(64)}.png`, undefined, "GET", {}))).statusCode, 404);
   assert.equal((await handler(event("/preview/ui-assets/../../private/key", undefined, "GET", {}))).statusCode, 404);

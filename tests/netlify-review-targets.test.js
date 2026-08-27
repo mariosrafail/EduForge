@@ -83,6 +83,7 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.doesNotMatch(`${builderAuthEntry}\n${builderContentEntry}\n${builderImportEntry}\n${builderPreviewEntry}\n${builderUiAssetsEntry}`, /function\s+handler\s*\([^)]*\)\s*\{[^}]*404/is);
   assert.match(builderNetlify, /from = "\/builder\/api\/content\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-content\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/ui-assets\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-teacher-ui-assets\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/preview\/ui-assets-v2\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-teacher-ui-assets\/preview\/ui-assets-v2\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/publication\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-publication\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/native-activities\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-native-activities\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/preview\/native-activities\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-native-preview\/:splat"/);
@@ -115,12 +116,13 @@ test("dedicated Viewer site package isolates the Interactive output and Netlify 
   assert.match(viewerNetlify, /from = "\/preview\/open-response-import\/\*"[\s\S]*builder\/preview\/open-response-import\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/open-response-teacher\/\*"[\s\S]*builder\/preview\/open-response-teacher\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/open-response-assets\/\*"[\s\S]*builder\/preview\/open-response-assets\/:splat/);
+  assert.match(viewerNetlify, /from = "\/preview\/ui-assets-v2\/\*"[\s\S]*builder\/preview\/ui-assets-v2\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/ui-assets\/\*"[\s\S]*builder\/preview\/ui-assets\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/native-activities\/\*"[\s\S]*builder\/preview\/native-activities\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/pages\/\*"[\s\S]*builder\/preview\/pages\/:splat/);
   assert.match(viewerNetlify, /from = "\/preview\/authorization\/exchange"[\s\S]*builder\/preview\/authorization\/exchange/);
   assert.match(viewerNetlify, /from = "\/preview\/releases\/\*"[\s\S]*builder\/preview\/releases\/:splat/);
-  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 9);
+  assert.equal([...viewerNetlify.matchAll(/https?:\/\//g)].length, 10);
   assert.doesNotMatch(viewerNetlify, /\/builder\/api\/(?:auth|content)|\/\.netlify\/functions|DATABASE_URL|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => /\.(?:[cm]?[jt]sx?|go)$/i.test(file)), []);
 

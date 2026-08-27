@@ -112,6 +112,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/preview/ui-assets-v2/*"
+  to = "/.netlify/functions/builder-teacher-ui-assets/preview/ui-assets-v2/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/ui-assets/*"
   to = "/.netlify/functions/builder-teacher-ui-assets/preview/ui-assets/:splat"
   status = 200

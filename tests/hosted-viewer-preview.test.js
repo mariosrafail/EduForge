@@ -28,6 +28,12 @@ const previewAuthorization = `v1.${Buffer.from("scope").toString("base64url")}.$
 const identity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${previewAuthorization}`;
 
 test("navigable managed draft Review separates component authorization from initial page navigation", () => {
+  const productIntent = { view: "library" };
+  for (const componentSlug of ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
+    assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug, intent: productIntent }), {
+      bookSlug: "ultimate-b2", componentSlug, view: "library", pageId: null, activityId: null, releaseId: null,
+    });
+  }
   const pageIntent = { view: "page", unitNumber: 1, pageId: "ultimate-b2-wb-unit-1-page-1" };
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
     bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "library", pageId: null, activityId: null, releaseId: null,

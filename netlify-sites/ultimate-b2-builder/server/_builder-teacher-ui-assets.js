@@ -163,7 +163,7 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
 
   return async function builderTeacherUiAssetsHandler(event) {
     const pathname = String(event?.path || "").split("?")[0];
-    const publicMatch = pathname.match(/\/preview\/ui-assets\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/);
+    const publicMatch = pathname.match(/\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/);
     try {
       if (publicMatch) {
         if (!["GET", "HEAD"].includes(event.httpMethod)) return uiJson(405, { error: "method_not_allowed" });

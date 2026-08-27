@@ -72,6 +72,8 @@ const managedStorageObjects = new Set(Object.values(managedCatalogs).flatMap((ca
 const managedPreviewResolutions = [];
 const managedPreviewLoads = [];
 let teacherUiOverrideEnabled = true;
+let immutableRedirectSourceRequests = 0;
+let immutableRedirectTargetRequests = 0;
 const managedPreviewSql = async (strings, ...values) => {
   const query = strings.join(" ");
   if (query.includes("from book_packages package join book_components component")) return [{ id: values[1], revision: managedCatalogs[values[1]].revision }];
@@ -245,8 +247,36 @@ async function staticFile(root, pathname, response) {
   createReadStream(file).pipe(response);
 }
 
+const immutableRedirectTargetServer = createServer((request, response) => {
+  if (request.url?.startsWith("/publishers/hamilton-house/teacher-ui/assets/")) {
+    immutableRedirectTargetRequests += 1;
+    response.writeHead(200, { "Cache-Control": "public, max-age=31536000, immutable", "Content-Length": managedPageBytes.length, "Content-Type": "image/png" });
+    response.end(managedPageBytes);
+    return;
+  }
+  response.writeHead(404, { "Content-Type": "text/plain" });
+  response.end("Not found");
+});
+await new Promise((resolve) => immutableRedirectTargetServer.listen(0, "127.0.0.1", resolve));
+const immutableRedirectTargetOrigin = `http://127.0.0.1:${immutableRedirectTargetServer.address().port}`;
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
+  if (url.pathname === "/__immutable-ui-redirect-probe") {
+    const body = `<!doctype html><img alt="cached redirect probe" src="/preview/ui-assets/${teacherUiChecksum}.png">`;
+    response.writeHead(200, { "Cache-Control": "no-store", "Content-Length": Buffer.byteLength(body), "Content-Type": "text/html" });
+    response.end(body);
+    return;
+  }
+  if (url.pathname === `/preview/ui-assets/${teacherUiChecksum}.png`) {
+    immutableRedirectSourceRequests += 1;
+    response.writeHead(302, {
+      "Cache-Control": "public, max-age=31536000, immutable",
+      Location: `${immutableRedirectTargetOrigin}/publishers/hamilton-house/teacher-ui/assets/${teacherUiChecksum}.png`,
+    });
+    response.end();
+    return;
+  }
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") {
     sendJson(response, { authenticated: true, builderUser: { id: "ultimate-b2-acceptance", full_name: "Ultimate B2 Acceptance", role: "developer", status: "active" } }); return;
   }
@@ -300,6 +330,15 @@ try {
   const failedResponses = [];
   const failedRequests = [];
   const browserRequests = [];
+  const redirectProbe = await context.newPage();
+  await redirectProbe.goto(`${origin}/__immutable-ui-redirect-probe`, { waitUntil: "load" });
+  assert.equal(await redirectProbe.getByAltText("cached redirect probe").evaluate((image) => image.complete && image.naturalWidth > 0), true);
+  await redirectProbe.reload({ waitUntil: "load" });
+  assert.equal(await redirectProbe.getByAltText("cached redirect probe").evaluate((image) => image.complete && image.naturalWidth > 0), true);
+  assert.equal(immutableRedirectSourceRequests, 1, "an explicitly immutable 302 remains cached under its original URL");
+  assert.equal(immutableRedirectTargetRequests >= 1, true);
+  await redirectProbe.close();
+
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -345,22 +384,34 @@ try {
     await page.getByRole("button", { name: `Preview ${selectedCatalog.pages[0].label}` }).click();
     await page.getByRole("button", { name: "Review", exact: true }).click();
     const pagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
-    await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[0].label)).waitFor();
+    await pagesReview.locator(".teacher-offline-library").waitFor();
     const frameSource = await page.locator(".unified-builder-review-dialog iframe").getAttribute("src");
     managedReviewTokens.set(componentSlug, new URL(frameSource).searchParams.get("previewAuthorization"));
-    assert.deepEqual(await page.getByLabel("Review page").locator("option").allTextContents(), selectedCatalog.pages.map((item) => `Unit ${item.unitNumber} · Pages ${item.printedLabel} · ${item.label}`));
-    assert.equal(await pagesReview.getByRole("button", { name: "Previous page" }).isDisabled(), true);
-    await pagesReview.getByRole("button", { name: "Next page" }).click();
-    await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[1].label)).waitFor();
-    assert.equal(await pagesReview.getByRole("button", { name: "Next page" }).isDisabled(), true);
-    await pagesReview.getByRole("button", { name: "Previous page" }).click();
+    assert.equal(new URL(frameSource).searchParams.get("view"), "library");
+    assert.equal(await page.getByLabel("Review page").count(), 0);
+    assert.equal(await pagesReview.getByRole("button", { name: title, exact: true }).getAttribute("aria-pressed"), "true");
+    assert.equal(await pagesReview.getByRole("button", { name: /^Open Unit \d+:/ }).count(), 10);
+    await pagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+    await pagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+    assert.equal(await pagesReview.locator(".teacher-unit-page-card").count(), 2);
+    assert.equal(await pagesReview.locator(`.teacher-unit-page-card[data-page-ids^="ultimate-b2-${componentSlug === components.workbook ? "wb" : "gb"}-"]`).count(), 2);
+    await pagesReview.getByRole("button", { name: new RegExp(`^Open ${selectedCatalog.pages[0].label},`) }).click();
     await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[0].label)).waitFor();
     await pagesReview.getByRole("button", { name: "Home" }).click();
-    await pagesReview.getByRole("button", { name: title, exact: true }).click();
+    await pagesReview.locator(".teacher-offline-library").waitFor();
+    assert.equal(await pagesReview.getByRole("button", { name: title, exact: true }).getAttribute("aria-pressed"), "true");
     await pagesReview.getByRole("button", { name: /^Open Unit 2:/ }).click();
     await pagesReview.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
+    assert.equal(await pagesReview.locator(".teacher-unit-page-card").count(), 1);
     await pagesReview.getByRole("button", { name: new RegExp(`^Open ${selectedCatalog.pages[2].label},`) }).click();
     await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[2].label)).waitFor();
+    if (componentSlug === components.workbook) {
+      await pagesReview.getByRole("button", { name: "Home" }).click();
+      await pagesReview.getByRole("button", { name: /^Open Unit 3:/ }).click();
+      await pagesReview.getByText("No pages are available for this Unit yet.", { exact: true }).waitFor();
+      await pagesReview.getByRole("button", { name: "Back" }).click();
+      await pagesReview.locator(".teacher-offline-library").waitFor();
+    }
     await page.getByRole("button", { name: "Close Review" }).click();
 
     await page.goto(`${origin}/#/books/ultimate-b2/components/${componentSlug}/hotspots`, { waitUntil: "domcontentloaded" });
@@ -377,10 +428,34 @@ try {
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Review", exact: true }).click();
   const studentsPagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
-  await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
+  await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   const studentsFrameSource = await page.locator(".unified-builder-review-dialog iframe").getAttribute("src");
   const studentsPreviewAuthorization = new URL(studentsFrameSource).searchParams.get("previewAuthorization");
-  assert.equal((await page.getByLabel("Review page").locator("option").allTextContents()).some((label) => /Workbook|Grammar Book/.test(label)), false);
+  assert.ok(studentsPreviewAuthorization);
+  assert.equal(new URL(studentsFrameSource).searchParams.get("view"), "library");
+  assert.equal(await page.getByLabel("Review page").count(), 0);
+  assert.equal(await studentsPagesReview.getByRole("button", { name: "Students Book", exact: true }).getAttribute("aria-pressed"), "true");
+  await page.locator(".unified-builder-review-dialog iframe").evaluate((iframe) => { iframe.dataset.productViewerInstance = "single"; });
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+  await studentsPagesReview.locator(".teacher-unit-page-card").first().click();
+  await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.locator(".teacher-offline-library").waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 1,/ }).click();
+  await studentsPagesReview.getByAltText(/Workbook page 1/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.locator(".teacher-offline-library").waitFor();
+  assert.equal(await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).getAttribute("aria-pressed"), "true");
+  await studentsPagesReview.getByRole("button", { name: "Grammar Book", exact: true }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 1,/ }).click();
+  await studentsPagesReview.getByAltText(/Grammar Book page 1/).waitFor();
+  assert.equal(await page.locator('.unified-builder-review-dialog iframe[data-product-viewer-instance="single"]').count(), 1, "component switching must preserve the one Viewer iframe");
   assert.equal(teacherUiObjectRequests.some(({ operation, objectKey }) => operation === "get" && objectKey === teacherUiObjectKey), true);
   const overrideObjectRequestCount = teacherUiObjectRequests.length;
   await page.getByRole("button", { name: "Close Review" }).click();
@@ -390,7 +465,7 @@ try {
   const fallbackConsoleStart = consoleErrors.length;
   teacherUiOverrideEnabled = false;
   await page.getByRole("button", { name: "Review", exact: true }).click();
-  await page.frameLocator(".unified-builder-review-dialog iframe").locator(".teacher-offline-page-stage").waitFor();
+  await page.frameLocator(".unified-builder-review-dialog iframe").locator(".teacher-offline-library").waitFor();
   assert.equal(teacherUiObjectRequests.length, overrideObjectRequestCount, "canonical fallback must not request a hosted Teacher UI object");
   const fallbackFailures = failedResponses.splice(fallbackFailureStart);
   assert.equal(fallbackFailures.length, 1);
@@ -399,17 +474,6 @@ try {
   assert.deepEqual(fallbackConsoleErrors, ["Failed to load resource: the server responded with a status of 404 (Not Found)"]);
   await page.getByRole("button", { name: "Close Review" }).click();
   teacherUiOverrideEnabled = true;
-
-  const studentsIdentity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${encodeURIComponent(studentsPreviewAuthorization)}`;
-  await page.goto(`https://hhplms-viewer.netlify.app/?${studentsIdentity}&view=page&unitNumber=1&pageId=ub2-sb-unit-1-part-1`, { waitUntil: "domcontentloaded" });
-  await page.locator(".teacher-offline-page-stage").waitFor();
-  assert.equal(await page.locator('.teacher-book-navigation-book-switch[data-book-id="students-book"]').getAttribute("aria-current"), "page");
-  await page.locator('.teacher-book-navigation-book-switch[data-book-id="workbook"]').click();
-  await page.locator(".teacher-offline-page-stage").waitFor();
-  await page.locator('.teacher-book-navigation-book-switch[data-book-id="workbook"][aria-current="page"]').waitFor();
-  await page.locator('.teacher-book-navigation-book-switch[data-book-id="grammar-book"]').click();
-  await page.locator(".teacher-offline-page-stage").waitFor();
-  await page.locator('.teacher-book-navigation-book-switch[data-book-id="grammar-book"][aria-current="page"]').waitFor();
   assert.deepEqual(exchangeRequests.map((entry) => [entry.source.componentSlug, entry.intent.componentSlug]), [
     ["ultimate-b2-students-book", components.workbook],
     [components.workbook, components.grammar],
@@ -423,7 +487,7 @@ try {
     assert.equal(authorizationIntents.some((intent) => intent.componentSlug === componentSlug && intent.view === "library" && intent.pageId === null), true);
     assert.ok(managedReviewTokens.get(componentSlug));
   }
-  assert.equal(authorizationIntents.some((intent) => intent.componentSlug === "ultimate-b2-students-book" && intent.view === "page" && intent.pageId === "ub2-sb-unit-1-part-1"), true);
+  assert.equal(authorizationIntents.some((intent) => intent.componentSlug === "ultimate-b2-students-book" && intent.view === "library" && intent.pageId === null), true);
 
   const workerStatus = async (path, token = null) => {
     const url = new URL(path, "https://builder.hhplms.workers.dev");
@@ -453,6 +517,8 @@ try {
   assert.equal(managedStorageObjectRequests.length >= 9, true);
   assert.equal(managedStorageObjectRequests.every((objectKey) => managedStorageObjects.has(objectKey)), true);
   assert.equal(canonicalViewerAssetRequests.some((pathname) => /\.(?:png|jpg|webp|gaf|mp3)$/i.test(pathname)), true);
+  assert.equal(browserRequests.some((entry) => entry.includes(`/preview/ui-assets-v2/${teacherUiChecksum}.png`)), true);
+  assert.equal(browserRequests.some((entry) => entry.includes(`/preview/ui-assets/${teacherUiChecksum}.png`)), false, "new Viewer code must not reuse the immutable v1 redirect cache key");
   assert.equal(failedResponses.some((entry) => /^401 .*\/preview\/pages\//.test(entry)), false);
   assert.equal(browserRequests.some((entry) => /pub-.*\.r2\.dev|\/publishers\//i.test(entry)), false);
   assert.equal(failedRequests.some((entry) => /pub-.*\.r2\.dev|\/publishers\//i.test(entry)), false);
@@ -463,4 +529,5 @@ try {
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));
+  await new Promise((resolve) => immutableRedirectTargetServer.close(resolve));
 }

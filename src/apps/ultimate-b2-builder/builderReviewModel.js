@@ -29,16 +29,16 @@ export function activityReviewIntent(activityId, page = null) {
   return intent;
 }
 
-export function resolveUnifiedReviewIntent({ sourceMode, toolContext, page, release }) {
+export function productDraftReviewIntent() {
+  return Object.freeze({ view: "library" });
+}
+
+export function resolveUnifiedReviewIntent({ sourceMode, page, release }) {
   if (sourceMode === "release") {
     if (!release) return null;
     return pageReviewIntent(page, release.id);
   }
-  if (toolContext?.view === "activity") return activityReviewIntent(toolContext.activityId, toolContext.pageId ? toolContext : null);
-  return pageReviewIntent(toolContext?.pageId ? {
-    pageId: toolContext.pageId,
-    unitNumber: toolContext.unitNumber,
-  } : page);
+  return productDraftReviewIntent();
 }
 
 function safeIssues(value) {

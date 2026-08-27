@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   activityReviewIntent,
   pageReviewIntent,
+  productDraftReviewIntent,
   publicationReadinessPresentation,
   resolveUnifiedReviewIntent,
 } from "../src/apps/ultimate-b2-builder/builderReviewModel.js";
@@ -14,12 +15,14 @@ import { pageLibraryReviewNavigation } from "../src/apps/book-builder/hosted/pag
 const page = { pageId: "ub2-sb-unit-1-part-1", unitNumber: 1 };
 const release = { id: "10000000-0000-4000-8000-000000000012", number: 12, state: "stale" };
 
-test("unified review resolves exact activity, page, and immutable release intents", () => {
+test("unified review enters one product library for every saved draft and preserves immutable release page intent", () => {
   assert.deepEqual(activityReviewIntent("ultimate-b2-sb-u1-p1-o90"), { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90" });
   assert.deepEqual(activityReviewIntent("ultimate-b2-sb-u1-p1-o90", page), { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId });
   assert.deepEqual(pageReviewIntent(page), { view: "page", unitNumber: 1, pageId: page.pageId });
-  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId }, page, release }), { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId });
-  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId });
+  assert.deepEqual(productDraftReviewIntent(), { view: "library" });
+  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId }, page, release }), { view: "library" });
+  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page, release }), { view: "library" });
+  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page: null, release }), { view: "library" });
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId, releaseId: release.id });
   assert.equal(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release: null }), null);
 });
@@ -81,6 +84,8 @@ test("only the shared Review owner mounts the external hosted Viewer", async () 
   assert.equal(shared.match(/<HostedViewerPreview\b/g)?.length, 1);
   assert.match(shared, /Unsaved changes are not included in Review\. Save them first\./);
   assert.match(shared, /Release #\{release\.number\} is immutable and older than the current saved draft\./);
+  assert.match(shared, /session\.sourceMode === "release" && intent\?\.view === "page"/);
+  assert.match(shared, /product-library/);
   assert.match(shared, /openPlayerHref=\{hostedBuilderReviewHash/);
   assert.doesNotMatch(shared, /previewAuthorization/);
   const pages = await readFile("src/apps/book-builder/hosted/ComponentPagesWorkspace.jsx", "utf8");

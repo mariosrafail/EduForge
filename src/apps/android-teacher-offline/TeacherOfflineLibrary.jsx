@@ -54,8 +54,8 @@ function ExtrasColumn({ label, items, position }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {} }) {
-  const [selectedEdition, setSelectedEdition] = useState("students-book");
+export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {}, initialEditionId = "students-book" }) {
+  const [selectedEdition, setSelectedEdition] = useState(initialEditionId);
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
   const extrasSelected = selectedEdition === "extras";

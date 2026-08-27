@@ -443,6 +443,7 @@ export default function TeacherOfflineApp() {
         unitAvailabilityByEdition={unitAvailabilityByEdition}
         onOpenUnit={(editionId, unitNumber) => switchTeacherEdition(editionId, unitNumber)}
         animationsActive={animationsActive}
+        initialEditionId={activeRuntime.component.teacherEditionId}
       />
     );
   }

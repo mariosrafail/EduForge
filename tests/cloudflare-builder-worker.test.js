@@ -109,6 +109,7 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
   assert.equal(resolveBuilderWorkerRoute("/.netlify/functions/builder-auth"), null);
   assert.equal(resolveBuilderWorkerRoute("/builder/api/unknown"), null);
   assert.equal(resolveBuilderWorkerRoute(`/preview/ui-assets/${"a".repeat(64)}.png`), null, "Teacher UI assets use the dedicated R2 route, not a Netlify compatibility handler");
+  assert.equal(resolveBuilderWorkerRoute(`/preview/ui-assets-v2/${"a".repeat(64)}.png`), null, "Versioned Teacher UI assets use the dedicated R2 route, not a Netlify compatibility handler");
   for (const prefix of BUILDER_PLAYER_ROUTE_PREFIXES) {
     const route = resolveBuilderWorkerRoute(`${prefix}/example`);
     assert.equal(route.playerFacing, true);
@@ -153,13 +154,13 @@ test("managed Player page routes reject missing and cross-component preview auth
   assert.equal((await worker.fetch(request(grammar, { token }), {})).status, 401);
 });
 
-test("Teacher UI preview assets stream same-origin from the exact canonical public R2 key", async () => {
+test("v2 Teacher UI preview assets stream same-origin from the exact canonical public R2 key", async () => {
   const checksum = "b".repeat(64);
   const contentTypes = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", wav: "audio/wav", gaf: "application/x-gaf" };
   const bucket = teacherUiBucket();
   const worker = createBuilderWorker({ handlers: { teacherUiAssets: async () => { throw new Error("Player Teacher UI assets must bypass the redirecting Netlify handler."); } } });
   for (const [extension, contentType] of Object.entries(contentTypes)) {
-    const path = `/preview/ui-assets/${checksum}.${extension}`;
+    const path = `/preview/ui-assets-v2/${checksum}.${extension}`;
     const response = await worker.fetch(request(`${path}?objectKey=private%2Fmust-not-be-used`, { cookie: null }), { PLAYER_MEDIA: bucket });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("location"), null);
@@ -174,9 +175,9 @@ test("Teacher UI preview assets stream same-origin from the exact canonical publ
   assert.equal(bucket.calls.every(({ key }) => key.startsWith("publishers/hamilton-house/books/ultimate-b2/editions/students-book/versions/hosted-draft/components/ultimate-b2-students-book/teacher-ui/assets/")), true);
 });
 
-test("Teacher UI R2 route is GET/HEAD-only, exact, missing-safe, and binding-fail-closed", async () => {
+test("Teacher UI v1/v2 R2 routes are GET/HEAD-only, exact, missing-safe, and binding-fail-closed", async () => {
   const checksum = "c".repeat(64);
-  const path = `/preview/ui-assets/${checksum}.png`;
+  const path = `/preview/ui-assets-v2/${checksum}.png`;
   const bucket = teacherUiBucket();
   const env = { PLAYER_MEDIA: bucket, ASSETS: { fetch: async () => new Response("missing", { status: 404 }) } };
   const worker = createBuilderWorker();
@@ -185,19 +186,20 @@ test("Teacher UI R2 route is GET/HEAD-only, exact, missing-safe, and binding-fai
   assert.equal(head.body, null);
   assert.equal(head.headers.get("content-length"), "4");
   assert.equal(bucket.calls.at(-1).operation, "head");
+  assert.equal((await worker.fetch(request(`/preview/ui-assets/${checksum}.png`, { cookie: null }), env)).status, 200, "v1 remains available for backward compatibility");
 
   const mutation = await worker.fetch(new Request(new URL(path, "https://builder.hhplms.workers.dev"), { method: "POST", body: "no" }), env);
   assert.equal(mutation.status, 405);
   assert.equal(mutation.headers.get("allow"), "GET, HEAD");
-  assert.equal(bucket.calls.length, 1);
+  assert.equal(bucket.calls.length, 2);
 
   for (const invalidPath of [
-    `/preview/ui-assets/${checksum}.svg`,
-    `/preview/ui-assets/${checksum}.png/private-key`,
-    "/preview/ui-assets/../../private/key",
-    `/preview/ui-assets/${checksum.toUpperCase()}.png`,
+    `/preview/ui-assets-v2/${checksum}.svg`,
+    `/preview/ui-assets-v2/${checksum}.png/private-key`,
+    "/preview/ui-assets-v2/../../private/key",
+    `/preview/ui-assets-v2/${checksum.toUpperCase()}.png`,
   ]) assert.equal((await worker.fetch(request(invalidPath, { cookie: null }), env)).status, 404);
-  assert.equal(bucket.calls.length, 1);
+  assert.equal(bucket.calls.length, 2);
   assert.equal((await worker.fetch(request(path, { cookie: null }), { PLAYER_MEDIA: teacherUiBucket({ missing: true }) })).status, 404);
   assert.equal((await worker.fetch(request(path, { cookie: null }), {})).status, 503);
 });

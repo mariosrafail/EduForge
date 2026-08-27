@@ -34,7 +34,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
         <div id="teacher-unit-overview-panel" className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber}`} data-classroom-surface-id={surfaceKey} tabIndex={-1}>
           <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="teacher-unit-overview-grid">
-            {entries.map((entry) => (
+            {entries.length ? entries.map((entry) => (
               <button
                 key={entry.id}
                 type="button"
@@ -55,7 +55,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
                   ))}
                 </span>
               </button>
-            ))}
+            )) : <p className="teacher-unit-overview-empty" role="status">No pages are available for this Unit yet.</p>}
           </div>
           <ClassroomToolOverlay surfaceKey={surfaceKey} />
           </ClassroomStageTransform>

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { createManagedNativeActivityAdapter } from "../netlify-sites/ultimate-b2-builder/server/_managed-native-activity-adapter.js";
@@ -18,6 +19,20 @@ const workbook = "ultimate-b2-workbook";
 const grammar = "ultimate-b2-grammar-book";
 const activity = "ultimate-b2-wb-managed-page-o1";
 const pages = [{ id: "wb-page-one", unitNumber: 1 }, { id: "wb-page-two", unitNumber: 2 }];
+
+test("the shared product shell keeps empty managed Units navigable and highlights the originating edition", async () => {
+  const [app, library, pagesView, overview] = await Promise.all([
+    readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflinePages.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineUnitOverview.jsx", "utf8"),
+  ]);
+  assert.match(app, /initialEditionId=\{activeRuntime\.component\.teacherEditionId\}/);
+  assert.match(library, /useState\(initialEditionId\)/);
+  assert.doesNotMatch(pagesView, /if \(!pages\.length\) return/);
+  assert.match(overview, /No pages are available for this Unit yet\./);
+  assert.match(overview, /TeacherBookNavigation onHome=\{onBackToLibrary\} onBack=\{onBackToLibrary\}/);
+});
 
 test("managed hotspot manifests accept empty page maps and enforce page, activity, identity, and geometry scope", () => {
   for (const componentSlug of [workbook, grammar]) {

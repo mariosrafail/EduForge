@@ -54,7 +54,7 @@ try {
 
   const requestCheckpoint = () => observedPreviewRequests.length;
   const requestsSince = (checkpoint) => observedPreviewRequests.slice(checkpoint);
-  const waitForLibrary = () => page.locator(".legacy-home-launcher").waitFor();
+  const waitForLibrary = () => page.locator(".teacher-offline-library").waitFor();
 
   let checkpoint = requestCheckpoint();
   await page.goto(`${origin}/#library`, { waitUntil: "domcontentloaded" });
@@ -95,7 +95,7 @@ try {
   mobilePage.on("console", (message) => { if (message.type() === "error" && !/favicon|ERR_ABORTED|ERR_CACHE_MISS/i.test(message.text())) mobileConsoleErrors.push(message.text()); });
   checkpoint = requestCheckpoint();
   await mobilePage.goto(authorized.toString(), { waitUntil: "domcontentloaded" });
-  await mobilePage.locator(".legacy-home-launcher").waitFor();
+  await mobilePage.locator(".teacher-offline-library").waitFor();
   assert.equal(await mobilePage.getByText("Viewer could not start", { exact: true }).count(), 0);
   const mobileRequests = requestsSince(checkpoint);
   assert.equal(mobileRequests.find((url) => url.pathname === uiPath)?.searchParams.get("previewAuthorization"), token);

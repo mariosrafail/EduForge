@@ -399,7 +399,6 @@ export default function TeacherOfflinePages({
     onNext: () => sendActivityCommand("next-panel"),
   } : null;
 
-  if (!pages.length) return <section className="teacher-offline-empty">No local pages are installed for this unit.</section>;
   if (!page) return (
     <TeacherOfflineUnitOverview
       key={`unit-overview-${unit.number}`}

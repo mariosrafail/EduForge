@@ -68,6 +68,12 @@
   force = true
 
 [[redirects]]
+  from = "/preview/ui-assets-v2/*"
+  to = "https://hhplms-builder.netlify.app/builder/preview/ui-assets-v2/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/preview/ui-assets/*"
   to = "https://hhplms-builder.netlify.app/builder/preview/ui-assets/:splat"
   status = 200

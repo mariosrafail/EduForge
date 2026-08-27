@@ -85,5 +85,5 @@ export function hostedTeacherUiAssetPath(asset) {
   if (releaseIds.length === 1 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(releaseIds[0])) {
     return `/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseIds[0].toLowerCase()}/assets/${asset.sha256}.${asset.extension}`;
   }
-  return `/preview/ui-assets/${asset.sha256}.${asset.extension}`;
+  return `/preview/ui-assets-v2/${asset.sha256}.${asset.extension}`;
 }

@@ -1,6 +1,6 @@
 import { buildBookAssetHostedTeacherUiPublicKey } from "../../lib/book-assets/object-keys.js";
 
-const ASSET_ROUTE = /^\/preview\/ui-assets\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/;
+const ASSET_ROUTE = /^\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/;
 const CONTENT_TYPES = Object.freeze({
   png: "image/png",
   jpg: "image/jpeg",
@@ -29,7 +29,8 @@ function notFound() {
 }
 
 export function isTeacherUiAssetNamespace(pathname) {
-  return pathname === "/preview/ui-assets" || pathname.startsWith("/preview/ui-assets/");
+  return pathname === "/preview/ui-assets" || pathname.startsWith("/preview/ui-assets/")
+    || pathname === "/preview/ui-assets-v2" || pathname.startsWith("/preview/ui-assets-v2/");
 }
 
 export async function serveTeacherUiAsset(request, bucket) {
