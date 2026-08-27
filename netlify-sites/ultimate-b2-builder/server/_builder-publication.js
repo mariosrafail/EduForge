@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
-import { buildBookAssetHostedOpenResponsePublicKey, buildBookAssetHostedTeacherUiPublicKey, buildComponentReleaseAssetObjectKey } from "../../../lib/book-assets/object-keys.js";
+import { componentPublicationAssetStorageTarget } from "../../../lib/book-assets/publication-asset-storage.js";
 import { findProductComponent } from "../../../src/data/bookProductCatalog.js";
+import { componentPublicationAssetRolePolicy } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
-import { materializeNativeReleaseAssets } from "./_builder-publication-assets.js";
+import { ComponentPublicationAssetError, materializeNativeReleaseAssets } from "./_builder-publication-assets.js";
 import { resolvePublicationCompiler, verifyImmutableComponentRelease } from "./_builder-publication-compilers.js";
 import { ultimateB2PublicationCanonicalSeeds } from "./_builder-publication-compiler.js";
 import { createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, publicationV2DatabaseReady, publishComponentRelease } from "./_builder-publication-store.js";
@@ -35,14 +36,29 @@ function publicationComponent(bookSlug, componentSlug, writable = false) {
   return component;
 }
 
-async function verifyAssets(storage, assets) {
+const assetSourceIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
+
+async function verifyAssets(storage, assets, nativeAssetSources = [], { bookSlug, componentSlug }) {
+  const privateSources = new Map(nativeAssetSources.map((source) => [assetSourceIdentity(source.descriptor), source]));
   for (const asset of assets) {
-    if (asset.role === "activity_artwork") continue;
-    const objectKey = asset.role === "teacher_ui"
-      ? buildBookAssetHostedTeacherUiPublicKey({ checksum: asset.sha256, extension: asset.extension })
-      : buildBookAssetHostedOpenResponsePublicKey({ checksum: asset.sha256, extension: `.${asset.extension}` });
-    const head = await storage.head({ profile: "public", objectKey });
-    if (head.checksumSha256 !== asset.sha256 || head.byteSize < 1) throw new Error("release_asset_unavailable");
+    const policy = componentPublicationAssetRolePolicy(asset.role);
+    const source = privateSources.get(assetSourceIdentity(asset));
+    const target = policy && componentPublicationAssetStorageTarget({ bookSlug, componentSlug, ...asset });
+    const diagnostic = (failureClass) => new ComponentPublicationAssetError({
+      assetId: source?.row?.id || asset.sha256,
+      role: asset.role,
+      stage: "verify",
+      failureClass,
+    });
+    if (!policy || !target) throw diagnostic("unsupported_asset_role");
+    if (policy.materialized === true && !source) throw diagnostic("materialized_source_missing");
+    let head;
+    try { head = await storage.head({ profile: target.profile, objectKey: target.objectKey }); }
+    catch { throw diagnostic("immutable_object_missing"); }
+    if (head.checksumSha256 !== asset.sha256) throw diagnostic("immutable_checksum_mismatch");
+    if (policy.materialized === true && head.byteSize !== Number(source.row.byte_size)) throw diagnostic("immutable_byte_size_mismatch");
+    if (policy.materialized !== true && (!Number.isSafeInteger(Number(head.byteSize)) || Number(head.byteSize) < 1)) throw diagnostic("immutable_byte_size_invalid");
+    if (head.contentType && head.contentType !== asset.mediaType) throw diagnostic("immutable_media_type_mismatch");
   }
 }
 
@@ -82,17 +98,15 @@ export function createBuilderPublicationHandler(overrides = {}) {
         let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
         if (parsedRoute.action === "assets") {
           const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|wav|gaf)$/);
-          const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && ["open_response_artwork", "teacher_ui", "activity_artwork"].includes(candidate.role));
+          const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && componentPublicationAssetRolePolicy(candidate.role));
           if (!asset) return json(404, { error: "release_asset_not_found" });
-          if (asset.role === "activity_artwork") {
-            const objectKey = buildComponentReleaseAssetObjectKey({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, checksum: match[1], extension: match[2] });
-            const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey });
+          const target = componentPublicationAssetStorageTarget({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, ...asset });
+          if (!target) return json(404, { error: "release_asset_not_found" });
+          if (!target.public) {
+            const location = await dependencies.storage().signedGetUrl({ profile: target.profile, objectKey: target.objectKey });
             return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
           }
-          const objectKey = asset.role === "teacher_ui"
-            ? buildBookAssetHostedTeacherUiPublicKey({ checksum: match[1], extension: match[2] })
-            : buildBookAssetHostedOpenResponsePublicKey({ checksum: match[1], extension: `.${match[2]}` });
-          return { statusCode: 302, headers: { Location: dependencies.storage().publicUrl(objectKey), "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
+          return { statusCode: 302, headers: { Location: dependencies.storage().publicUrl(target.objectKey), "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
         }
         if (parsedRoute.action === "public") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), releaseSha256: release.release_sha256, compatibility: release.runtime_compatibility_sha256, compilerId: release.compiler_id, releaseSchemaVersion: release.release_schema_version, projection: verified.publicProjection }, { "Cache-Control": "private, no-store", Vary: "Cookie" });
         if (parsedRoute.action === "teacher-ui") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), document: release.teacher_projection.ui });
@@ -121,8 +135,9 @@ export function createBuilderPublicationHandler(overrides = {}) {
         if (!builderClientMutationIdPattern.test(parsed.value.clientMutationId) || typeof parsed.value.releaseNote !== "string" || parsed.value.releaseNote.length > 240) return json(400, { error: "invalid_request" });
         if (configuredCompiler.releaseSchemaVersion === "2.0" && !await dependencies.v2Ready(sql)) return json(409, { error: "publication_schema_unavailable" });
         const compiled = await collectAndCompile();
-        await dependencies.materialize(dependencies.storage(), { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, nativeAssetSources: compiled.nativeAssetSources || [] });
-        await verifyAssets(dependencies.storage(), compiled.assetManifest);
+        const storage = dependencies.storage();
+        await dependencies.materialize(storage, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, nativeAssetSources: compiled.nativeAssetSources || [] });
+        await verifyAssets(storage, compiled.assetManifest, compiled.nativeAssetSources || [], parsedRoute);
         const requestSha256 = sha256(stableBuilderJson({ sourceSnapshotSha256: compiled.sourceSnapshotSha256, releaseSha256: compiled.releaseSha256, releaseNote: parsed.value.releaseNote }));
         const result = await dependencies.create(sql, { ...parsedRoute, ...compiled, releaseSchemaVersion: configuredCompiler.releaseSchemaVersion, requestSha256, releaseNote: parsed.value.releaseNote, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
         if (result.outcome === "mutation_id_conflict") return json(409, { error: result.outcome });
@@ -151,7 +166,15 @@ export function createBuilderPublicationHandler(overrides = {}) {
       }
       return json(404, { error: "publication_route_not_found" });
     } catch (error) {
-      dependencies.logger.error("Builder publication request failed", { code: /^[A-Za-z0-9_.-]+$/.test(String(error?.code || "")) ? error.code : "unknown" });
+      dependencies.logger.error("Builder publication request failed", {
+        code: /^[A-Za-z0-9_.-]+$/.test(String(error?.code || "")) ? error.code : "unknown",
+        ...(error instanceof ComponentPublicationAssetError ? {
+          assetId: error.assetId,
+          assetRole: error.assetRole,
+          assetStage: error.assetStage,
+          failureClass: error.failureClass,
+        } : {}),
+      });
       const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "release_asset_unavailable"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
       return safeCode ? json(409, { error: safeCode, ...(error.activityId ? { activityId: error.activityId } : {}), ...(error.issues?.length ? { issues: error.issues } : {}) }) : json(500, { error: "builder_publication_failed" });
     }

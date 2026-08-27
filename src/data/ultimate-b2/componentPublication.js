@@ -2,10 +2,11 @@ import { normalizeUltimateB2HostedOpenResponseDraft } from "./hostedOpenResponse
 import { normalizeUltimateB2HostedOpenResponseImport, normalizeUltimateB2HostedOpenResponseTeacherImport } from "./hostedOpenResponseImport.js";
 import { normalizeHostedTeacherUiPreview } from "./hostedTeacherUiDocument.js";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
+import { COMPONENT_PUBLICATION_ASSET_ROLES, isPublicProjectionComponentPublicationAssetRole } from "./componentPublicationAssetRoles.js";
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION = "1.0";
 export const ULTIMATE_B2_COMPONENT_RELEASE_COMPILER_ID = "ultimate-b2-students-book-v1";
-export const ULTIMATE_B2_PUBLISHED_ASSET_PATH = /^\/\.netlify\/functions\/book-content\?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})&sha256=([a-f0-9]{64})&extension=(png|jpg|webp)$/i;
+export const ULTIMATE_B2_PUBLISHED_ASSET_PATH = /^\/\.netlify\/functions\/book-content\?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})&sha256=([a-f0-9]{64})&extension=(png|jpg|webp|mp3|mp4|pdf)$/i;
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -64,9 +65,12 @@ function normalizeAsset(value, label) {
 }
 
 export function publishedReleaseAssetPath(asset, releaseId) {
-  const normalized = normalizeAsset(asset, "Published release asset");
+  exactObject(asset, ["sha256", "extension", "mediaType", "role"], "Published release asset");
+  const extension = String(asset.extension || "").toLowerCase();
+  const expectedMediaType = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", pdf: "application/pdf" }[extension];
+  if (!SHA256.test(String(asset.sha256 || "")) || !expectedMediaType || asset.mediaType !== expectedMediaType || !isPublicProjectionComponentPublicationAssetRole(asset.role)) throw new Error("Published release asset identity is invalid");
   if (!UUID.test(String(releaseId || ""))) throw new Error("Published release identity is invalid");
-  return `/.netlify/functions/book-content?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseId}&sha256=${normalized.sha256}&extension=${normalized.extension}`;
+  return `/.netlify/functions/book-content?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseId}&sha256=${asset.sha256}&extension=${extension}`;
 }
 
 function normalizeReleaseImport(input, activityId, questionIds) {
@@ -76,7 +80,7 @@ function normalizeReleaseImport(input, activityId, questionIds) {
     artworkLayers: input.artworkLayers.map((layer, index) => {
       exactObject(layer, ["id", "binding", "asset", "sha256", "naturalSize", "area", "order", "altText", "accessibilityStatus"], `Published artworkLayers[${index}]`);
       const asset = normalizeAsset(layer.asset, `Published artworkLayers[${index}].asset`);
-      if (asset.role !== "open_response_artwork" || asset.sha256 !== layer.sha256 || !["png", "jpg", "webp"].includes(asset.extension)) throw new Error("Published artwork identity is invalid.");
+      if (asset.role !== COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK || asset.sha256 !== layer.sha256 || !["png", "jpg", "webp"].includes(asset.extension)) throw new Error("Published artwork identity is invalid.");
       const { asset: _asset, ...rest } = layer;
       return { ...rest, assetPath: `/preview/open-response-assets/${asset.sha256}.${asset.extension}` };
     }),
@@ -87,7 +91,7 @@ function normalizeReleaseImport(input, activityId, questionIds) {
     artworkLayers: normalized.artworkLayers.map((layer, index) => {
       const extension = layer.assetPath.match(/\.([a-z]+)$/)?.[1];
       const { assetPath: _assetPath, ...rest } = layer;
-      return { ...rest, asset: normalizeAsset({ sha256: layer.sha256, extension, mediaType: extension === "png" ? "image/png" : extension === "jpg" ? "image/jpeg" : "image/webp", role: "open_response_artwork" }, `Published artworkLayers[${index}].asset`) };
+      return { ...rest, asset: normalizeAsset({ sha256: layer.sha256, extension, mediaType: extension === "png" ? "image/png" : extension === "jpg" ? "image/jpeg" : "image/webp", role: COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK }, `Published artworkLayers[${index}].asset`) };
     }),
   };
 }
@@ -125,7 +129,7 @@ export function normalizeUltimateB2PublicReleaseProjection(value, canonicalSeeds
   const assets = value.assets.map((asset, index) => {
     const normalized = normalizeAsset(asset, `Public release assets[${index}]`);
     const expectedMediaType = normalized.extension === "png" ? "image/png" : normalized.extension === "jpg" ? "image/jpeg" : normalized.extension === "webp" ? "image/webp" : null;
-    if (normalized.role !== "open_response_artwork" || normalized.mediaType !== expectedMediaType) throw new Error("Public release asset role is invalid.");
+    if (normalized.role !== COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK || normalized.mediaType !== expectedMediaType) throw new Error("Public release asset role is invalid.");
     return normalized;
   });
   const expectedAssets = Object.values(activities).flatMap((entry) => entry.import?.artworkLayers?.map((layer) => layer.asset) || []);

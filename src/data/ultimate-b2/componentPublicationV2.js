@@ -16,6 +16,10 @@ import {
   normalizeUltimateB2TeacherReleaseProjection,
 } from "./componentPublication.js";
 import { normalizePublishedUltimateB2UnitExtras } from "./unitExtras.js";
+import {
+  COMPONENT_PUBLICATION_ASSET_ROLES,
+  isPublicProjectionComponentPublicationAssetRole,
+} from "./componentPublicationAssetRoles.js";
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION = "2.0";
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID = "ultimate-b2-students-book-v2";
@@ -82,7 +86,7 @@ function normalizeAsset(value, label) {
   exactObject(value, ["sha256", "extension", "mediaType", "role"], label);
   const extension = String(value.extension || "").toLowerCase();
   if (!SHA256.test(String(value.sha256 || "")) || !mediaTypeByExtension[extension] || value.mediaType !== mediaTypeByExtension[extension]) throw new Error(`${label} identity is invalid.`);
-  if (!["open_response_artwork", "activity_artwork", "unit_extra_video"].includes(value.role)) throw new Error(`${label} role is invalid.`);
+  if (!isPublicProjectionComponentPublicationAssetRole(value.role)) throw new Error(`${label} role is invalid.`);
   return { sha256: value.sha256, extension, mediaType: value.mediaType, role: value.role };
 }
 
@@ -158,7 +162,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   const hotspots = validateAndNormalizeUltimateB2HotspotManifest(value.hotspots, hotspotCatalog(nativeActivities));
   const rawAssets = Array.isArray(value.assets) ? value.assets.map((asset, index) => normalizeAsset(asset, `Public release v2 assets[${index}]`)) : null;
   if (!rawAssets) throw new Error("Public release v2 assets are invalid.");
-  const legacyAssets = rawAssets.filter((asset) => asset.role === "open_response_artwork");
+  const legacyAssets = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK);
   const legacy = normalizeUltimateB2PublicReleaseProjection({
     schemaVersion: "1.0",
     bookSlug: value.bookSlug,
@@ -168,11 +172,11 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
     activities: value.activities,
     assets: legacyAssets,
   }, canonicalSeedsById);
-  const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.activity_artwork`));
-  const actualNative = rawAssets.filter((asset) => asset.role === "activity_artwork").map((asset) => `${asset.sha256}.${asset.role}`);
+  const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK}`));
+  const actualNative = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK).map((asset) => `${asset.sha256}.${asset.role}`);
   const unitExtras = includeUnitExtras ? normalizePublishedUltimateB2UnitExtras(value.unitExtras) : null;
-  const expectedUnitExtras = unitExtras ? unitExtras.units.flatMap((unit) => unit.categories.videos.map((entry) => `${entry.video.asset.checksumSha256}.unit_extra_video`)) : [];
-  const actualUnitExtras = rawAssets.filter((asset) => asset.role === "unit_extra_video").map((asset) => `${asset.sha256}.${asset.role}`);
+  const expectedUnitExtras = unitExtras ? unitExtras.units.flatMap((unit) => unit.categories.videos.map((entry) => `${entry.video.asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO}`)) : [];
+  const actualUnitExtras = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO).map((asset) => `${asset.sha256}.${asset.role}`);
   if (new Set(rawAssets.map(assetIdentity)).size !== rawAssets.length
     || new Set(actualNative).size !== actualNative.length
     || [...new Set(expectedNative)].sort().join("\0") !== [...actualNative].sort().join("\0")

@@ -6,6 +6,9 @@ const getActions = [
   "class-by-invite",
   "dashboard-metrics",
   "teacher-activity-solutions",
+  "active-component-release",
+  "published-native-teacher",
+  "published-release-asset",
   "asset-access",
   "list",
   "activity",
@@ -51,6 +54,9 @@ test("book-content entry retains every explicit GET and POST action contract", a
   assert.match(entry, /Method not allowed/);
   assert.match(entry, /Assignment database migration is missing/);
   assert.match(entry, /databaseNotConfiguredResponse/);
+  assert.match(entry, /query\.action === "active-component-release"[\s\S]*verifyPackageAccess\(sql, currentUser, \{ packageSlug: query\.bookSlug \}\)[\s\S]*getActiveComponentRelease/);
+  assert.match(entry, /query\.action === "published-native-teacher"[\s\S]*requireResourceRole\(currentUser, \["teacher", "admin"\]\)[\s\S]*verifyPackageAccess\(sql, currentUser, \{ packageSlug: query\.bookSlug \}\)[\s\S]*getPublishedNativeTeacherDocument/);
+  assert.match(entry, /query\.action === "published-release-asset"[\s\S]*verifyPackageAccess\(sql, currentUser, \{ packageSlug: query\.bookSlug \}\)[\s\S]*getPublishedReleaseAsset/);
 });
 
 test("book-content remains a thin compatible entry over cohesive domain modules", async () => {

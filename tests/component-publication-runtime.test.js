@@ -10,6 +10,7 @@ import { findStudentsBookImplementation } from "../src/data/ultimate-b2/students
 import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.js";
 import { task6SourceBundle } from "./fixtures/open-response-task6.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "./fixtures/publication-v2.js";
+import { publishedReleaseAssetPath, ULTIMATE_B2_PUBLISHED_ASSET_PATH } from "../src/data/ultimate-b2/componentPublication.js";
 
 function row(compiled = compileUltimateB2ComponentRelease()) {
   return { id: "10000000-0000-4000-8000-000000000099", release_number: 4, release_schema_version: "1.0", compiler_id: "ultimate-b2-students-book-v1", release_sha256: compiled.releaseSha256, runtime_compatibility_sha256: compiled.compatibility, source_snapshot: compiled.sourceSnapshot, source_snapshot_sha256: compiled.sourceSnapshotSha256, public_projection: compiled.publicProjection, public_projection_sha256: compiled.publicProjectionSha256, teacher_projection: compiled.teacherProjection, teacher_projection_sha256: compiled.teacherProjectionSha256, asset_manifest: compiled.assetManifest };
@@ -84,6 +85,16 @@ test("v2 LMS delivery is Student-safe, release-bound, private, and Teacher role 
   assert.equal(asset.statusCode, 302);
   assert.equal(asset.headers["Cache-Control"], "private, no-store");
   assert.deepEqual(signed[0], { profile: "private", objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${publicationV2Fixture.assetChecksum}.png` });
+
+  const unitExtraAsset = await getPublishedReleaseAsset(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, sha256: publicationV2Fixture.unitExtraAssetChecksum, extension: "mp4" }, { storage: { signedGetUrl: async (request) => { signed.push(request); return "https://private-assets.example/signed-unit-extra"; } } });
+  assert.equal(unitExtraAsset.statusCode, 302);
+  assert.equal(unitExtraAsset.headers.Location, "https://private-assets.example/signed-unit-extra");
+  assert.equal(unitExtraAsset.headers["Cache-Control"], "private, no-store");
+  assert.deepEqual(signed[1], { profile: "private", objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${publicationV2Fixture.unitExtraAssetChecksum}.mp4` });
+  const unitExtraDescriptor = compiled.publicProjection.assets.find((candidate) => candidate.sha256 === publicationV2Fixture.unitExtraAssetChecksum);
+  const unitExtraPath = publishedReleaseAssetPath(unitExtraDescriptor, release.id);
+  assert.match(unitExtraPath, ULTIMATE_B2_PUBLISHED_ASSET_PATH);
+  assert.match(unitExtraPath, /extension=mp4$/);
 
   const teacher = await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: publicationV2Fixture.openResponseId });
   assert.equal(teacher.statusCode, 200);

@@ -6,6 +6,7 @@ import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../../src/data/ultima
 import { findStudentsBookImplementation } from "../../../src/data/ultimate-b2/studentsBookCatalog.js";
 import { createEmptyHostedTeacherUiDocument, normalizeHostedTeacherUiDocument, projectHostedTeacherUiPreview } from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_EDITABLE_UI_BINDINGS_BY_ID } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
+import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import {
   assertStudentSafeReleaseProjection,
@@ -74,7 +75,7 @@ export function compileUltimateB2ComponentRelease({ documents = {}, imports = {}
     if (publicImport) {
       for (const layer of publicImport.artworkLayers) {
         const extension = layer.assetPath.match(/\.([a-z]+)$/)?.[1];
-        assets.set(`${layer.sha256}.${extension}`, { sha256: layer.sha256, extension, mediaType: mediaTypes[extension], role: "open_response_artwork" });
+        assets.set(`${layer.sha256}.${extension}`, { sha256: layer.sha256, extension, mediaType: mediaTypes[extension], role: COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK });
       }
     }
     if (imported) solutions[activityId] = normalizeUltimateB2HostedOpenResponseTeacherImport(imported.teacherProjection, activityId, seed.questions.map((question) => question.id));
@@ -83,7 +84,7 @@ export function compileUltimateB2ComponentRelease({ documents = {}, imports = {}
       artworkLayers: publicImport.artworkLayers.map((layer) => {
         const extension = layer.assetPath.match(/\.([a-z]+)$/)?.[1];
         const { assetPath: _assetPath, ...rest } = layer;
-        return { ...rest, asset: { sha256: layer.sha256, extension, mediaType: mediaTypes[extension], role: "open_response_artwork" } };
+        return { ...rest, asset: { sha256: layer.sha256, extension, mediaType: mediaTypes[extension], role: COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK } };
       }),
     } : null };
     sourceSnapshot.openResponse[activityId] = {
@@ -92,10 +93,10 @@ export function compileUltimateB2ComponentRelease({ documents = {}, imports = {}
     };
   }
   for (const asset of Object.values(projectHostedTeacherUiPreview(teacherUi).assets)) {
-    assets.set(`${asset.sha256}.${asset.extension}`, { sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: "teacher_ui" });
+    assets.set(`${asset.sha256}.${asset.extension}`, { sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI });
   }
   const normalizedSourceSnapshot = normalizeUltimateB2ReleaseSourceSnapshot(sourceSnapshot, seeds);
-  const publicProjection = normalizeUltimateB2PublicReleaseProjection({ schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", compatibility, hotspots, activities, assets: [...assets.values()].filter((asset) => asset.role !== "teacher_ui").sort((a, b) => a.sha256.localeCompare(b.sha256)) }, seeds);
+  const publicProjection = normalizeUltimateB2PublicReleaseProjection({ schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", compatibility, hotspots, activities, assets: [...assets.values()].filter((asset) => asset.role !== COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI).sort((a, b) => a.sha256.localeCompare(b.sha256)) }, seeds);
   const teacherProjection = normalizeUltimateB2TeacherReleaseProjection({ schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION, bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", solutions, ui: projectHostedTeacherUiPreview(teacherUi) }, seeds);
   assertStudentSafeReleaseProjection(publicProjection);
   const hashes = {

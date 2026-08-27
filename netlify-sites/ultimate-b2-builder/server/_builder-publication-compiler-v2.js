@@ -9,6 +9,7 @@ import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-ac
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { createEmptyUltimateB2UnitExtras, projectUltimateB2UnitExtrasForPublication, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
+import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 import {
   normalizeUltimateB2PublicReleaseV2Projection,
   normalizeUltimateB2ReleaseV2SourceSnapshot,
@@ -157,7 +158,7 @@ function validateAssetRows(nativeEntries, assetRows) {
       const existing = sources.get(identity);
       if (existing && existing.descriptor.mediaType !== row.mime_type) throw new NativePublicationError("native_activity_asset_invalid", activityId, ["Managed artwork content identity is inconsistent."]);
       if (!existing) sources.set(identity, {
-        descriptor: { sha256: reference.checksumSha256, extension, mediaType: row.mime_type, role: "activity_artwork" },
+        descriptor: { sha256: reference.checksumSha256, extension, mediaType: row.mime_type, role: COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK },
         row,
       });
     }
@@ -197,7 +198,7 @@ function validateUnitExtraAssetRows(document, assetRows) {
   for (const unit of document.units) for (const video of unit.categories.videos) {
     if (!video.asset) throw new NativePublicationError("unit_extra_video_not_ready", video.id, ["A managed MP4 is required."]);
     const row = byId.get(video.asset.assetId);
-    if (!row || row.checksum_sha256 !== video.asset.checksumSha256 || row.asset_role !== "unit_extra_video"
+    if (!row || row.checksum_sha256 !== video.asset.checksumSha256 || row.asset_role !== COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO
       || row.mime_type !== "video/mp4" || row.publication_status !== "draft" || row.access_level !== "internal" || row.storage_profile !== "private"
       || row.activity_id !== null || row.page_id !== null || row.source_metadata?.unit_slug !== unit.unitId
       || row.source_metadata?.unit_extra_item_id !== video.id || row.source_metadata?.asset_slot !== video.assetSlot
@@ -205,7 +206,7 @@ function validateUnitExtraAssetRows(document, assetRows) {
       throw new NativePublicationError("unit_extra_asset_invalid", video.id, ["Managed MP4 is missing, invalid, or owned by another Unit."]);
     }
     const identity = `${row.checksum_sha256}.mp4`;
-    if (!sources.has(identity)) sources.set(identity, { descriptor: { sha256: row.checksum_sha256, extension: "mp4", mediaType: "video/mp4", role: "unit_extra_video" }, row });
+    if (!sources.has(identity)) sources.set(identity, { descriptor: { sha256: row.checksum_sha256, extension: "mp4", mediaType: "video/mp4", role: COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO }, row });
   }
   return [...sources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256));
 }

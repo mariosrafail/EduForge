@@ -19,11 +19,12 @@ import {
   resolveUltimateB2PublicationV2CompatibilityVariant,
 } from "./_builder-publication-compiler-v2.js";
 import { collectUltimateB2PublicationSources, collectUltimateB2PublicationV2Sources } from "./_builder-publication-store.js";
+import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 
 function expectedAssetManifest(publicProjection, teacherProjection) {
   return [
     ...publicProjection.assets,
-    ...Object.values(teacherProjection.ui.assets).map((asset) => ({ sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: "teacher_ui" })),
+    ...Object.values(teacherProjection.ui.assets).map((asset) => ({ sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI })),
   ].sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
 }
 

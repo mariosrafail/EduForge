@@ -1,5 +1,5 @@
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
-import { buildBookAssetHostedOpenResponsePublicKey, buildComponentReleaseAssetObjectKey } from "../../../lib/book-assets/object-keys.js";
+import { componentPublicationAssetStorageTarget } from "../../../lib/book-assets/publication-asset-storage.js";
 import { verifyImmutableComponentRelease } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
 import { ultimateB2PublicationCanonicalSeeds } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
 import { hostedTeacherImportAsSolution, normalizeUltimateB2HostedOpenResponseTeacherImport } from "../../../src/data/ultimate-b2/hostedOpenResponseImport.js";
@@ -53,14 +53,13 @@ export async function getPublishedReleaseAsset(sql, query, { storage = createBoo
   const verified = verifiedPublicProjection(row);
   const asset = verified.publicProjection.assets.find((candidate) => candidate.sha256 === query.sha256 && candidate.extension === extension);
   if (!asset) return json(404, { error: "Asset not found" });
-  if (asset.role === "activity_artwork") {
-    const objectKey = buildComponentReleaseAssetObjectKey({ bookSlug: query.bookSlug, componentSlug: query.componentSlug, checksum: query.sha256, extension });
-    const location = await storage.signedGetUrl({ profile: "private", objectKey });
+  const target = componentPublicationAssetStorageTarget({ bookSlug: query.bookSlug, componentSlug: query.componentSlug, ...asset });
+  if (!target) return json(404, { error: "Asset not found" });
+  if (!target.public) {
+    const location = await storage.signedGetUrl({ profile: target.profile, objectKey: target.objectKey });
     return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
   }
-  if (asset.role !== "open_response_artwork") return json(404, { error: "Asset not found" });
-  const objectKey = buildBookAssetHostedOpenResponsePublicKey({ checksum: query.sha256, extension: `.${extension}` });
-  return { statusCode: 302, headers: { Location: storage.publicUrl(objectKey), "Cache-Control": "private, max-age=300", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
+  return { statusCode: 302, headers: { Location: storage.publicUrl(target.objectKey), "Cache-Control": "private, max-age=300", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
 }
 
 export async function getPublishedNativeTeacherDocument(sql, query) {
