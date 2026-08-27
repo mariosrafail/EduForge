@@ -3,9 +3,16 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
+import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderPublicationHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication.js";
+import { compileUltimateB2ComponentRelease } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
+import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.js";
+import { createUltimateB2HostedOpenResponseSeed } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
+import { createEmptyHostedTeacherUiDocument } from "../src/data/ultimate-b2/hostedTeacherUiDocument.js";
+import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "./fixtures/publication-v2.js";
+import { task6SourceBundle } from "./fixtures/open-response-task6.js";
 
 const base = "/builder/api/publication/books/ultimate-b2/components/ultimate-b2-students-book";
 const actor = "10000000-0000-4000-8000-000000000001";
@@ -199,6 +206,41 @@ test("prepared Unit Extra video preview is release-bound, authorized, and privat
   assert.equal(response.headers.Location, "https://private-assets.example/signed-unit-extra");
   assert.equal(response.headers["Cache-Control"], "private, no-store");
   assert.deepEqual(signed, [{ profile: "private", objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${publicationV2Fixture.unitExtraAssetChecksum}.mp4` }]);
+});
+
+test("public immutable release assets redirect only to Worker-controlled same-origin namespaces", async () => {
+  const teacherChecksum = "e".repeat(64);
+  const teacherDocument = {
+    ...createEmptyHostedTeacherUiDocument(),
+    assets: { "background.main": { sha256: teacherChecksum, extension: "png", mediaType: "image/png", sizeBytes: 68, width: 1, height: 1, originalFilename: "background.png" } },
+  };
+  const teacherRelease = compileUltimateB2ComponentRelease({ documents: { teacherUi: { revision: 1, sha256: builderDocumentSha256(teacherDocument), payload: teacherDocument } } });
+  let publicUrlCalls = 0;
+  const storage = () => ({ publicUrl() { publicUrlCalls += 1; return "https://pub-storage.invalid/raw-object"; } });
+  const teacherHarness = harness({ release: teacherRelease, storage });
+  const teacherPath = `/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${teacherHarness.id}/assets/${teacherChecksum}.png`;
+  assert.equal((await teacherHarness.handler(event(teacherPath, "GET", null, { cookie: "" }))).statusCode, 401);
+  const teacherResponse = await teacherHarness.handler(event(teacherPath, "HEAD", null, { cookie: "", "x-preview-authorized": "yes" }));
+  assert.equal(teacherResponse.statusCode, 302);
+  assert.equal(teacherResponse.headers.Location, `/preview/ui-assets-v2/${teacherChecksum}.png`);
+  assert.equal(teacherResponse.headers["Cache-Control"], "private, no-store");
+
+  const activityId = "ultimate-b2-sb-u2-p1-o1";
+  const seed = createUltimateB2HostedOpenResponseSeed(findStudentsBookImplementation(activityId));
+  const imported = await importUltimateB2HostedOpenResponseBundle({
+    activityId,
+    files: await task6SourceBundle(),
+    expectedQuestionIds: seed.questions.map((question) => question.id),
+    assetPathFor: (sha256, extension) => `/preview/open-response-assets/${sha256}${extension}`,
+  });
+  const openResponseRelease = compileUltimateB2ComponentRelease({ imports: { [activityId]: { revision: 1, fingerprint: imported.fingerprint, publicProjection: imported.publicProjection, teacherProjection: imported.teacherProjection } } });
+  const openResponseAsset = openResponseRelease.assetManifest.find((asset) => asset.role === "open_response_artwork");
+  const openResponseHarness = harness({ release: openResponseRelease, storage });
+  const openResponsePath = `/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${openResponseHarness.id}/assets/${openResponseAsset.sha256}.${openResponseAsset.extension}`;
+  const openResponse = await openResponseHarness.handler(event(openResponsePath, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
+  assert.equal(openResponse.statusCode, 302);
+  assert.equal(openResponse.headers.Location, `/preview/open-response-assets/${openResponseAsset.sha256}.${openResponseAsset.extension}`);
+  assert.equal(publicUrlCalls, 0, "immutable Review must never send public release assets to the raw storage host");
 });
 
 test("prepared native Teacher projection is separately authorized and release-member checked", async () => {

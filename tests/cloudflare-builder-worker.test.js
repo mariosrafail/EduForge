@@ -8,7 +8,10 @@ import {
   resolveBuilderWorkerRoute,
 } from "../cloudflare/builder/worker.js";
 import { PLAYER_MEDIA_RECORDS } from "../cloudflare/builder/player-media.js";
-import { buildBookAssetHostedTeacherUiPublicKey } from "../lib/book-assets/object-keys.js";
+import {
+  buildBookAssetHostedOpenResponsePublicKey,
+  buildBookAssetHostedTeacherUiPublicKey,
+} from "../lib/book-assets/object-keys.js";
 import {
   classifyBuilderPreviewAuthorization,
   issueBuilderPreviewAuthorization,
@@ -104,12 +107,13 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
   ]);
   assert.deepEqual(BUILDER_PLAYER_ROUTE_PREFIXES, [
     "/preview/pages", "/preview/authorization", "/preview/native-activities", "/preview/releases", "/preview/content", "/preview/open-response-import",
-    "/preview/open-response-teacher", "/preview/open-response-assets",
+    "/preview/open-response-teacher",
   ]);
   assert.equal(resolveBuilderWorkerRoute("/.netlify/functions/builder-auth"), null);
   assert.equal(resolveBuilderWorkerRoute("/builder/api/unknown"), null);
   assert.equal(resolveBuilderWorkerRoute(`/preview/ui-assets/${"a".repeat(64)}.png`), null, "Teacher UI assets use the dedicated R2 route, not a Netlify compatibility handler");
   assert.equal(resolveBuilderWorkerRoute(`/preview/ui-assets-v2/${"a".repeat(64)}.png`), null, "Versioned Teacher UI assets use the dedicated R2 route, not a Netlify compatibility handler");
+  assert.equal(resolveBuilderWorkerRoute(`/preview/open-response-assets/${"a".repeat(64)}.png`), null, "Open Response assets use the dedicated R2 route, not a Netlify compatibility handler");
   for (const prefix of BUILDER_PLAYER_ROUTE_PREFIXES) {
     const route = resolveBuilderWorkerRoute(`${prefix}/example`);
     assert.equal(route.playerFacing, true);
@@ -202,6 +206,33 @@ test("Teacher UI v1/v2 R2 routes are GET/HEAD-only, exact, missing-safe, and bin
   assert.equal(bucket.calls.length, 2);
   assert.equal((await worker.fetch(request(path, { cookie: null }), { PLAYER_MEDIA: teacherUiBucket({ missing: true }) })).status, 404);
   assert.equal((await worker.fetch(request(path, { cookie: null }), {})).status, 503);
+});
+
+test("Open Response public assets stream same-origin from the exact canonical public R2 key", async () => {
+  const checksum = "e".repeat(64);
+  const bucket = teacherUiBucket();
+  const worker = createBuilderWorker({ handlers: { openResponseImport: async () => { throw new Error("Public Open Response assets must bypass the redirecting Netlify handler."); } } });
+  for (const [extension, contentType] of Object.entries({ png: "image/png", jpg: "image/jpeg", webp: "image/webp" })) {
+    const path = `/preview/open-response-assets/${checksum}.${extension}`;
+    const response = await worker.fetch(request(`${path}?objectKey=private%2Fmust-not-be-used`, { cookie: null }), { PLAYER_MEDIA: bucket });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("location"), null);
+    assert.equal(response.headers.get("content-type"), contentType);
+    assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(bucket.calls.at(-1).key, buildBookAssetHostedOpenResponsePublicKey({ checksum, extension: `.${extension}` }));
+  }
+  const path = `/preview/open-response-assets/${checksum}.png`;
+  const head = await worker.fetch(new Request(new URL(path, "https://builder.hhplms.workers.dev"), { method: "HEAD" }), { PLAYER_MEDIA: bucket });
+  assert.equal(head.status, 200);
+  assert.equal(head.body, null);
+  assert.equal(bucket.calls.at(-1).operation, "head");
+  for (const invalidPath of [
+    `/preview/open-response-assets/${checksum}.svg`,
+    `/preview/open-response-assets/${checksum}.png/private-key`,
+    `/preview/open-response-assets/${checksum.toUpperCase()}.png`,
+  ]) assert.equal((await worker.fetch(request(invalidPath, { cookie: null }), { PLAYER_MEDIA: bucket })).status, 404);
+  assert.equal((await worker.fetch(request(path, { cookie: null }), { PLAYER_MEDIA: teacherUiBucket({ missing: true }) })).status, 404);
 });
 
 test("Player preview ignores a valid Builder cookie when authorization is missing", async () => {

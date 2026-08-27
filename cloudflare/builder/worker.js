@@ -11,7 +11,7 @@ import { handler as builderUnitExtraAssets } from "../../netlify-sites/ultimate-
 import { handler as builderPages } from "../../netlify-sites/ultimate-b2-builder/functions/builder-pages.js";
 import { invokeNetlifyHandler } from "../shared/netlify-handler-adapter.js";
 import { servePlayerMedia } from "./player-media.js";
-import { isTeacherUiAssetNamespace, serveTeacherUiAsset } from "./teacher-ui-assets.js";
+import { isBuilderPublicAssetNamespace, serveBuilderPublicAsset } from "./teacher-ui-assets.js";
 
 const productionHandlers = Object.freeze({
   auth: builderAuth,
@@ -56,7 +56,6 @@ const playerRouteDefinitions = Object.freeze([
   { prefix: "/preview/content", handler: "preview" },
   { prefix: "/preview/open-response-import", handler: "openResponseImport" },
   { prefix: "/preview/open-response-teacher", handler: "openResponseImport" },
-  { prefix: "/preview/open-response-assets", handler: "openResponseImport" },
 ]);
 
 export const BUILDER_DYNAMIC_ROUTE_PREFIXES = Object.freeze(routeDefinitions.map(({ prefix }) => prefix));
@@ -120,13 +119,13 @@ async function serveStaticAsset(request, env) {
   return env.ASSETS.fetch(request);
 }
 
-export function createBuilderWorker({ handlers: handlerOverrides = {}, playerMediaHandler = servePlayerMedia, teacherUiAssetHandler = serveTeacherUiAsset } = {}) {
+export function createBuilderWorker({ handlers: handlerOverrides = {}, playerMediaHandler = servePlayerMedia, publicAssetHandler = serveBuilderPublicAsset } = {}) {
   const handlers = Object.freeze({ ...productionHandlers, ...handlerOverrides });
   return {
     async fetch(request, env) {
       const pathname = new URL(request.url).pathname;
       if (isPlayerMediaNamespace(pathname)) return playerMediaHandler(request, env.PLAYER_MEDIA);
-      if (isTeacherUiAssetNamespace(pathname)) return teacherUiAssetHandler(request, env.PLAYER_MEDIA);
+      if (isBuilderPublicAssetNamespace(pathname)) return publicAssetHandler(request, env.PLAYER_MEDIA);
       const route = resolveBuilderWorkerRoute(pathname);
       if (route) return invokeNetlifyHandler(handlers[route.handler], compatibilityRequest(request, route));
       if (isDynamicNamespace(pathname)) return dynamicNotFound();

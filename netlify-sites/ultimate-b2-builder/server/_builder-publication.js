@@ -106,7 +106,7 @@ export function createBuilderPublicationHandler(overrides = {}) {
             const location = await dependencies.storage().signedGetUrl({ profile: target.profile, objectKey: target.objectKey });
             return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
           }
-          return { statusCode: 302, headers: { Location: dependencies.storage().publicUrl(target.objectKey), "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
+          return { statusCode: 302, headers: { Location: target.publicPath, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
         }
         if (parsedRoute.action === "public") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), releaseSha256: release.release_sha256, compatibility: release.runtime_compatibility_sha256, compilerId: release.compiler_id, releaseSchemaVersion: release.release_schema_version, projection: verified.publicProjection }, { "Cache-Control": "private, no-store", Vary: "Cookie" });
         if (parsedRoute.action === "teacher-ui") return json(200, { releaseId: release.id, releaseNumber: Number(release.release_number), document: release.teacher_projection.ui });

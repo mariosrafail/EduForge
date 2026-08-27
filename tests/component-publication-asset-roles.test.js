@@ -44,11 +44,13 @@ test("canonical role storage resolution keeps private release assets private and
   assert.deepEqual(componentPublicationAssetStorageTarget({ ...identity, extension: "webp", role: COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK }), {
     profile: "public",
     objectKey: `publishers/hamilton-house/books/ultimate-b2/editions/students-book/versions/hosted-draft/components/ultimate-b2-students-book/open-response/assets/${sha256}.webp`,
+    publicPath: `/preview/open-response-assets/${sha256}.webp`,
     public: true,
   });
   assert.deepEqual(componentPublicationAssetStorageTarget({ ...identity, extension: "wav", role: COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI }), {
     profile: "public",
     objectKey: `publishers/hamilton-house/books/ultimate-b2/editions/students-book/versions/hosted-draft/components/ultimate-b2-students-book/teacher-ui/assets/${sha256}.wav`,
+    publicPath: `/preview/ui-assets-v2/${sha256}.wav`,
     public: true,
   });
   assert.equal(componentPublicationAssetStorageTarget({ ...identity, extension: "png", role: "unsupported" }), null);
