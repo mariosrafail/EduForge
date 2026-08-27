@@ -106,3 +106,18 @@ test("component switching exchanges one scoped token without permitting direct c
   assert.equal((await handler(request("malformed"))).statusCode, 401);
   assert.equal((await handler(request(source.token, { source: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" }, intent: targetIntent }))).statusCode, 401);
 });
+
+test("managed library tokens are component-wide only for already-allowlisted managed capabilities", () => {
+  const managedIntent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "library", pageId: null, activityId: null, releaseId: null };
+  const library = issueBuilderPreviewAuthorization(managedIntent, { environment, now, nonce: "managed-library-nonce" });
+  const pageOne = issueBuilderPreviewAuthorization({ ...managedIntent, view: "page", pageId: "ultimate-b2-wb-unit-1-page-1" }, { environment, now, nonce: "managed-page-one-nonce" });
+  const assetScope = (pageId, componentSlug = managedIntent.componentSlug, bookSlug = managedIntent.bookSlug) => ({ action: "managed-page-asset", bookSlug, componentSlug, pageId });
+  for (const pageId of ["ultimate-b2-wb-unit-1-page-1", "ultimate-b2-wb-unit-2-page-1"]) {
+    assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), assetScope(pageId), { environment, now }), true);
+  }
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(pageOne.token), assetScope("ultimate-b2-wb-unit-1-page-1"), { environment, now }), true);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(pageOne.token), assetScope("ultimate-b2-wb-unit-1-page-2"), { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), assetScope("ultimate-b2-gb-unit-1-page-1", "ultimate-b2-grammar-book"), { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), assetScope("ultimate-b2-wb-unit-1-page-1", managedIntent.componentSlug, "another-book"), { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), { action: "open-response-teacher", bookSlug: managedIntent.bookSlug, componentSlug: managedIntent.componentSlug, activityId: "ultimate-b2-wb-unit-1-page-1-o1" }, { environment, now }), false);
+});

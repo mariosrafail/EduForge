@@ -6,6 +6,7 @@ import test from "node:test";
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { canonicalStudentsBookPages } from "../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { createBuilderPagesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
+import { classifyBuilderPreviewAuthorization, issueBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import runtime from "../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
 
 const actor = "10000000-0000-4000-8000-000000000001";
@@ -27,6 +28,7 @@ function request(path, body, overrides = {}) {
     httpMethod: overrides.method || (body ? "POST" : "GET"),
     path,
     headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers },
+    ...(overrides.queryStringParameters ? { queryStringParameters: overrides.queryStringParameters } : {}),
     ...(body ? { body: JSON.stringify(body) } : {}),
   };
 }
@@ -45,6 +47,7 @@ function harness(options = {}) {
   const handler = createBuilderPagesHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
+    ...(options.authorizePreview ? { authorizePreview: options.authorizePreview } : {}),
     randomUuid: () => uploadId,
     storage: () => storage,
     loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, rows: [], units: identity.componentSlug === "ultimate-b2-students-book" ? [] : managedUnits(identity.componentSlug) },
@@ -172,6 +175,43 @@ test("baseline delete is rejected while Workbook mutations remain revision-bound
   assert.equal(workbook.statusCode, 200);
   assert.equal(current.getMutation().pageKey, "ultimate-b2-workbook/pages/wb-page-safe");
   assert.equal(current.getMutation().componentSlug, "ultimate-b2-workbook");
+});
+
+test("managed preview library authorization reaches every same-component page while page authorization remains exact", async () => {
+  const environment = { BUILDER_PREVIEW_AUTH_SECRET: "managed-pages-test-secret-with-at-least-thirty-two-bytes" };
+  const now = Date.parse("2026-08-27T12:00:00Z");
+  const componentSlug = "ultimate-b2-workbook";
+  const units = managedUnits(componentSlug);
+  const pageIds = ["ultimate-b2-wb-unit-1-page-1", "ultimate-b2-wb-unit-1-page-2"];
+  const rows = pageIds.map((pageId, index) => ({
+    stable_key: `${componentSlug}/pages/${pageId}`, label: `Workbook page ${index + 1}`, sort_order: index + 1,
+    unit_id: units[0].id, unit_slug: units[0].slug, unit_number: 1, unit_title: "Unit 1", unit_sort_order: 1,
+    source_metadata: { is_active: true, printed_label: String(index + 1) }, asset_id: assetId, mime_type: "image/png", byte_size: 10,
+    checksum_sha256: "a".repeat(64), width: 100, height: 200,
+  }));
+  const current = harness({
+    authorizePreview: async (event, _sql, requestedScope) => classifyBuilderPreviewAuthorization(event, requestedScope, { environment, now }),
+    loadPages: () => ({ revision: 2, units, rows }),
+    loadAsset: async (_sql, input) => pageIds.includes(input.pageId) && input.componentSlug === componentSlug ? { object_key: `private/${input.pageId}.png` } : null,
+  });
+  const issue = (view, pageId, issuedAt = now) => issueBuilderPreviewAuthorization({ bookSlug: "ultimate-b2", componentSlug, view, pageId, activityId: null, releaseId: null }, { environment, now: issuedAt, nonce: `${view}-managed-pages-nonce` }).token;
+  const libraryToken = issue("library", null);
+  const pageToken = issue("page", pageIds[0]);
+  const previewRoot = `/builder/preview/pages/books/ultimate-b2/components/${componentSlug}`;
+  const call = (path, token) => current.handler(request(path, null, { headers: { cookie: "" }, queryStringParameters: token === undefined ? {} : { previewAuthorization: token } }));
+
+  const catalog = await call(previewRoot, libraryToken);
+  assert.equal(catalog.statusCode, 200);
+  const catalogBody = JSON.parse(catalog.body);
+  assert.deepEqual(catalogBody.pages.map(({ id }) => id), pageIds);
+  assert.equal(catalogBody.pages.every((page) => new URL(page.image.url, "https://viewer.example").searchParams.get("previewAuthorization") === libraryToken), true);
+  for (const pageId of pageIds) assert.equal((await call(`${previewRoot}/pages/${pageId}/assets/${assetId}/preview`, libraryToken)).statusCode, 302);
+  assert.equal((await call(`${previewRoot}/pages/${pageIds[0]}/assets/${assetId}/preview`, pageToken)).statusCode, 302);
+  assert.equal((await call(`${previewRoot}/pages/${pageIds[1]}/assets/${assetId}/preview`, pageToken)).statusCode, 401);
+  assert.equal((await call(previewRoot.replace("workbook", "grammar-book"), libraryToken)).statusCode, 401);
+  assert.equal((await call(previewRoot, undefined)).statusCode, 401);
+  assert.equal((await call(previewRoot, "malformed")).statusCode, 401);
+  assert.equal((await call(previewRoot, issue("library", null, now - 600_000))).statusCode, 401);
 });
 
 function metadata(page) {

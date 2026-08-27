@@ -237,6 +237,7 @@ test("public UI asset delivery is exact, immutable, GET/HEAD-only, and never acc
   const handler = createBuilderTeacherUiAssetsHandler({ storage: () => storage, logger: { error() {} } });
   const response = await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "GET", {}));
   assert.equal(response.statusCode, 302);
+  assert.equal(response.headers.Location, `https://books.invalid/${objectKey}`);
   assert.equal(response.headers["Cache-Control"], "public, max-age=31536000, immutable");
   assert.equal((await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "POST", {}))).statusCode, 405);
   assert.equal((await handler(event(`/preview/ui-assets/${"a".repeat(64)}.png`, undefined, "GET", {}))).statusCode, 404);

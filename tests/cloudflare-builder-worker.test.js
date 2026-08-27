@@ -8,6 +8,7 @@ import {
   resolveBuilderWorkerRoute,
 } from "../cloudflare/builder/worker.js";
 import { PLAYER_MEDIA_RECORDS } from "../cloudflare/builder/player-media.js";
+import { buildBookAssetHostedTeacherUiPublicKey } from "../lib/book-assets/object-keys.js";
 import {
   classifyBuilderPreviewAuthorization,
   issueBuilderPreviewAuthorization,
@@ -76,6 +77,24 @@ function playerMediaBucket({ missing = false } = {}) {
   };
 }
 
+function teacherUiBucket({ missing = false } = {}) {
+  const calls = [];
+  const bytes = new Uint8Array([1, 2, 3, 4]);
+  const metadata = () => ({
+    size: bytes.byteLength,
+    httpEtag: '"teacher-ui-etag"',
+    writeHttpMetadata(headers) { headers.set("Content-Type", "application/octet-stream"); },
+  });
+  return {
+    calls,
+    async head(key) { calls.push({ operation: "head", key }); return missing ? null : metadata(); },
+    async get(key) {
+      calls.push({ operation: "get", key });
+      return missing ? null : { ...metadata(), body: new ReadableStream({ start(controller) { controller.enqueue(bytes); controller.close(); } }) };
+    },
+  };
+}
+
 test("Builder Worker exposes only the explicit current Builder and Player namespaces", () => {
   assert.deepEqual(BUILDER_DYNAMIC_ROUTE_PREFIXES, [
     "/builder/api/auth", "/builder/api/content", "/builder/api/native-activities", "/builder/api/open-response-import",
@@ -85,10 +104,11 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
   ]);
   assert.deepEqual(BUILDER_PLAYER_ROUTE_PREFIXES, [
     "/preview/pages", "/preview/authorization", "/preview/native-activities", "/preview/releases", "/preview/content", "/preview/open-response-import",
-    "/preview/open-response-teacher", "/preview/open-response-assets", "/preview/ui-assets",
+    "/preview/open-response-teacher", "/preview/open-response-assets",
   ]);
   assert.equal(resolveBuilderWorkerRoute("/.netlify/functions/builder-auth"), null);
   assert.equal(resolveBuilderWorkerRoute("/builder/api/unknown"), null);
+  assert.equal(resolveBuilderWorkerRoute(`/preview/ui-assets/${"a".repeat(64)}.png`), null, "Teacher UI assets use the dedicated R2 route, not a Netlify compatibility handler");
   for (const prefix of BUILDER_PLAYER_ROUTE_PREFIXES) {
     const route = resolveBuilderWorkerRoute(`${prefix}/example`);
     assert.equal(route.playerFacing, true);
@@ -131,6 +151,55 @@ test("managed Player page routes reject missing and cross-component preview auth
   assert.equal((await worker.fetch(request(asset, { token }), {})).status, 200);
   const grammar = catalog.replace("workbook", "grammar-book");
   assert.equal((await worker.fetch(request(grammar, { token }), {})).status, 401);
+});
+
+test("Teacher UI preview assets stream same-origin from the exact canonical public R2 key", async () => {
+  const checksum = "b".repeat(64);
+  const contentTypes = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", wav: "audio/wav", gaf: "application/x-gaf" };
+  const bucket = teacherUiBucket();
+  const worker = createBuilderWorker({ handlers: { teacherUiAssets: async () => { throw new Error("Player Teacher UI assets must bypass the redirecting Netlify handler."); } } });
+  for (const [extension, contentType] of Object.entries(contentTypes)) {
+    const path = `/preview/ui-assets/${checksum}.${extension}`;
+    const response = await worker.fetch(request(`${path}?objectKey=private%2Fmust-not-be-used`, { cookie: null }), { PLAYER_MEDIA: bucket });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("location"), null);
+    assert.equal(response.headers.get("content-type"), contentType);
+    assert.equal(response.headers.get("content-length"), "4");
+    assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(response.headers.get("etag"), '"teacher-ui-etag"');
+    assert.equal((await response.arrayBuffer()).byteLength, 4);
+    assert.equal(bucket.calls.at(-1).key, buildBookAssetHostedTeacherUiPublicKey({ checksum, extension }));
+  }
+  assert.equal(bucket.calls.every(({ key }) => key.startsWith("publishers/hamilton-house/books/ultimate-b2/editions/students-book/versions/hosted-draft/components/ultimate-b2-students-book/teacher-ui/assets/")), true);
+});
+
+test("Teacher UI R2 route is GET/HEAD-only, exact, missing-safe, and binding-fail-closed", async () => {
+  const checksum = "c".repeat(64);
+  const path = `/preview/ui-assets/${checksum}.png`;
+  const bucket = teacherUiBucket();
+  const env = { PLAYER_MEDIA: bucket, ASSETS: { fetch: async () => new Response("missing", { status: 404 }) } };
+  const worker = createBuilderWorker();
+  const head = await worker.fetch(new Request(new URL(path, "https://builder.hhplms.workers.dev"), { method: "HEAD" }), env);
+  assert.equal(head.status, 200);
+  assert.equal(head.body, null);
+  assert.equal(head.headers.get("content-length"), "4");
+  assert.equal(bucket.calls.at(-1).operation, "head");
+
+  const mutation = await worker.fetch(new Request(new URL(path, "https://builder.hhplms.workers.dev"), { method: "POST", body: "no" }), env);
+  assert.equal(mutation.status, 405);
+  assert.equal(mutation.headers.get("allow"), "GET, HEAD");
+  assert.equal(bucket.calls.length, 1);
+
+  for (const invalidPath of [
+    `/preview/ui-assets/${checksum}.svg`,
+    `/preview/ui-assets/${checksum}.png/private-key`,
+    "/preview/ui-assets/../../private/key",
+    `/preview/ui-assets/${checksum.toUpperCase()}.png`,
+  ]) assert.equal((await worker.fetch(request(invalidPath, { cookie: null }), env)).status, 404);
+  assert.equal(bucket.calls.length, 1);
+  assert.equal((await worker.fetch(request(path, { cookie: null }), { PLAYER_MEDIA: teacherUiBucket({ missing: true }) })).status, 404);
+  assert.equal((await worker.fetch(request(path, { cookie: null }), {})).status, 503);
 });
 
 test("Player preview ignores a valid Builder cookie when authorization is missing", async () => {

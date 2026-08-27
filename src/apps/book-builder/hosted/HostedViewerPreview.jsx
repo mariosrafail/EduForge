@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { VIEWER_EXIT_FULLSCREEN_MESSAGE } from "../../../shared/viewerPresentationProtocol.js";
 import { createHostedViewerPreviewUrl, HOSTED_VIEWER_ORIGIN } from "./hostedViewerPreviewUrl.js";
-import { createBuilderPreviewAuthorization } from "./builderPreviewAuthorizationApi.js";
+import { createBuilderPreviewAuthorization, resolveBuilderPreviewAuthorizationIntent } from "./builderPreviewAuthorizationApi.js";
 import { startHostedViewerAuthorizationLifecycle } from "./hostedViewerAuthorizationLifecycle.js";
 
 export function HostedViewerPreview({
@@ -26,7 +26,7 @@ export function HostedViewerPreview({
   useEffect(() => {
     setAuthorization(null); setAuthorizationError(false);
     return startHostedViewerAuthorizationLifecycle({
-      requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization({ bookSlug, componentSlug, view: intent.view, pageId: intent.view === "page" ? intent.pageId : null, activityId: intent.view === "activity" ? intent.activityId : null, releaseId: intent.releaseId || null }, { signal }),
+      requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization(resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent }), { signal }),
       onAuthorization: (token) => { setAuthorization(token); if (token) setAuthorizationError(false); },
       onError: () => setAuthorizationError(true),
     });

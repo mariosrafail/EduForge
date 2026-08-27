@@ -13,6 +13,7 @@ import { isHostedViewerPreviewRequest, resolveHostedViewerPreviewIntent } from "
 import { HOSTED_VIEWER_RUNTIME_MODES, resolveHostedViewerRuntimeContext } from "../src/apps/android-teacher-offline/hostedReleasePreview.js";
 import { getOfflineTeacherSolution } from "../src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js";
 import { createReviewComponentRegistry } from "../src/apps/android-teacher-offline/reviewComponentRegistryCore.js";
+import { resolveBuilderPreviewAuthorizationIntent } from "../src/apps/book-builder/hosted/builderPreviewAuthorizationApi.js";
 
 const pageUnits = [{ number: 1, pages: [{ id: "ub2-sb-unit-1-part-1", activities: [{ activityKey: "ultimate-b2-sb-u1-p1-o1" }] }] }];
 const activities = [{ stableActivityId: "ultimate-b2-sb-u1-p1-o1", unitNumber: 1, printedPage: 5 }];
@@ -25,6 +26,26 @@ const runtime = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-
 const registry = createReviewComponentRegistry(productCatalog, [runtime], { bookSlug: runtime.bookSlug, componentSlug: runtime.componentSlug });
 const previewAuthorization = `v1.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
 const identity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${previewAuthorization}`;
+
+test("navigable managed draft Review separates component authorization from initial page navigation", () => {
+  const pageIntent = { view: "page", unitNumber: 1, pageId: "ultimate-b2-wb-unit-1-page-1" };
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "library", pageId: null, activityId: null, releaseId: null,
+  });
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book", intent: pageIntent }), {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book", view: "library", pageId: null, activityId: null, releaseId: null,
+  });
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", intent: pageIntent }), {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null,
+  });
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
+    bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null,
+  });
+  const releaseId = "10000000-0000-4000-8000-000000000099";
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: { ...pageIntent, releaseId } }), {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId,
+  });
+});
 
 test("Builder creates deterministic canonical Viewer URLs from a fixed trusted origin", () => {
   assert.equal(DEFAULT_HOSTED_VIEWER_BASE_URL, "https://hhplms-viewer.netlify.app/");
