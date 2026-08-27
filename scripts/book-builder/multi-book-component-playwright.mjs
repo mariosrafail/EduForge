@@ -7,6 +7,8 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
+import { createBuilderPreviewHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview.js";
+import { resolveBuilderContentResource } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
@@ -48,6 +50,32 @@ function managedCatalog(componentSlug) {
 const managedCatalogs = Object.freeze({
   [components.workbook]: managedCatalog(components.workbook),
   [components.grammar]: managedCatalog(components.grammar),
+});
+
+const managedPreviewResolutions = [];
+const managedPreviewLoads = [];
+const managedPreviewSql = async (strings, ...values) => {
+  const query = strings.join(" ");
+  if (query.includes("from book_packages package join book_components component")) return [{ id: values[1], revision: managedCatalogs[values[1]].revision }];
+  if (query.includes("from units unit")) return managedCatalogs[values[0]].units.map((unit) => ({ id: unit.id, slug: unit.slug, title: unit.title, unit_number: unit.unitNumber, sort_order: unit.sortOrder }));
+  if (query.includes("from book_pages page")) return managedCatalogs[values[1]].pages.map((page) => ({
+    id: page.id, stable_key: `${values[1]}/pages/${page.id}`, source_metadata: { is_active: true },
+    unit_id: page.unitId, unit_number: 1, asset_id: page.image.assetId,
+  }));
+  return [];
+};
+const managedPreviewHandler = createBuilderPreviewHandler({
+  getDatabase: () => managedPreviewSql,
+  resolveResource: async (...arguments_) => {
+    managedPreviewResolutions.push(`${arguments_[1]}:${arguments_[2]}:${arguments_[3] || ""}`);
+    return resolveBuilderContentResource(...arguments_);
+  },
+  loadDocument: async (_sql, resource) => {
+    managedPreviewLoads.push(`${resource.componentSlug}:${resource.resource}:${resource.documentKey}`);
+    return null;
+  },
+  authorizePreview: async (event, _sql, scope) => scope.action === "managed-hotspots"
+    && event.queryStringParameters?.previewAuthorization === previewAuthorization,
 });
 
 function managedHotspots(componentSlug) {
@@ -143,10 +171,17 @@ try {
     const hotspotPreview = url.pathname.match(/^\/preview\/content\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook|grammar-book))\/hotspots$/);
     if (hotspotPreview) {
       const componentSlug = hotspotPreview[1];
-      const body = componentSlug === "ultimate-b2-students-book"
-        ? { bookSlug: "ultimate-b2", componentSlug, resource: "hotspots", schemaVersion: "1.0", revision: 0, source: "repository", document: studentsHotspots }
-        : managedHotspots(componentSlug);
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+      if (componentSlug === "ultimate-b2-students-book") {
+        const body = { bookSlug: "ultimate-b2", componentSlug, resource: "hotspots", schemaVersion: "1.0", revision: 0, source: "repository", document: studentsHotspots };
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+      }
+      const previewResponse = await managedPreviewHandler({
+        httpMethod: request.method(),
+        path: `/builder${url.pathname}`,
+        headers: request.headers(),
+        queryStringParameters: Object.fromEntries(url.searchParams),
+      });
+      return route.fulfill({ status: previewResponse.statusCode, headers: previewResponse.headers, body: previewResponse.body });
     }
     if (url.pathname === "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ document: { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} } }) });
@@ -236,6 +271,14 @@ try {
   ]);
   assert.equal(managedAssetRequests.length >= 6, true);
   assert.equal(managedAssetRequests.every((entry) => entry.authorization === previewAuthorization && entry.pageId.startsWith(entry.componentSlug === components.workbook ? "ultimate-b2-wb-" : "ultimate-b2-gb-")), true);
+  for (const componentSlug of [components.workbook, components.grammar]) {
+    assert.equal(managedPreviewResolutions.includes(`${componentSlug}:hotspots:`), true);
+    assert.equal(managedPreviewResolutions.includes(`${componentSlug}:native-activity-index:`), true);
+    assert.equal(managedPreviewLoads.includes(`${componentSlug}:hotspots:default`), true);
+    assert.equal(managedPreviewLoads.includes(`${componentSlug}:native-activity-index:default`), true);
+  }
+  assert.equal(managedPreviewResolutions.some((entry) => entry.includes(":activity-lifecycle:")), false);
+  assert.equal(managedPreviewLoads.some((entry) => /:activity-lifecycle:|:native-activity-teacher:/.test(entry)), false);
   assert.equal(failedResponses.some((entry) => /pub-.*\.r2\.dev|publishers\//i.test(entry)), false);
 
   assert.deepEqual(consoleErrors, [], failedResponses.join("\n"));

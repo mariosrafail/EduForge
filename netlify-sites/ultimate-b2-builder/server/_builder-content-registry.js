@@ -28,8 +28,9 @@ import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycl
 import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
 
 async function loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical = true } = {}) {
-  const storedLifecycle = await loadRelated("activity-lifecycle", "");
-  const lifecycle = storedLifecycle?.document || createEmptyUltimateB2ActivityLifecycle();
+  const lifecycle = includeCanonical
+    ? (await loadRelated("activity-lifecycle", ""))?.document || createEmptyUltimateB2ActivityLifecycle()
+    : null;
   const storedIndex = await loadRelated("native-activity-index", "");
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
   const nativeActivities = [];
