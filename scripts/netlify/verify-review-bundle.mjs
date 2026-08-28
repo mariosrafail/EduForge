@@ -235,14 +235,18 @@ async function verifyBuilderFunctionLayout() {
   assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-pages.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-managed-publication-compiler.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
-    "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
+    "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
     "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   for (const entry of ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-pages.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]) {
     const source = await readFile(path.join(functionsRoot, entry), "utf8");
-    assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|NativePreview|OpenResponseImport|Pages|PreviewAuthorization|Preview|Publication|TeacherUiAssets|UnitExtraAssets)Handler\(\)/);
+    if (entry === "builder-publication.js") {
+      assert.match(source, /parseBuilderProductPublicationRoute\(event\)[\s\S]*productHandler\(event, context\)[\s\S]*componentHandler\(event, context\)/);
+    } else {
+      assert.match(source, /export const handler = createBuilder(?:Auth|Content|NativeActivities|NativePreview|OpenResponseImport|Pages|PreviewAuthorization|Preview|TeacherUiAssets|UnitExtraAssets)Handler\(\)/);
+    }
   }
 }
 
