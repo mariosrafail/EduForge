@@ -9,6 +9,7 @@ import catalog from "../android-content-packs/ultimate-b2-students-book/catalog.
 import activities from "../android-content-packs/ultimate-b2-students-book/activities.json" with { type: "json" };
 import assetsManifest from "../android-content-packs/ultimate-b2-students-book/assets-manifest.json" with { type: "json" };
 import studentsBookRuntime from "../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
+import { teacherAvailableStudentsBookUnits } from "../src/apps/android-teacher-offline/teacherOfflineUnitMetadata.js";
 import {
   ACTIVITY_MODES,
   canOpenActivityInMode,
@@ -41,12 +42,23 @@ import {
   isTeacherOfflinePageLocation,
   resolveTeacherOfflineActivityLocation,
 } from "../src/apps/android-teacher-offline/teacherOfflineActivityLocation.js";
+
 import {
   calculateEmbeddedActivityScale,
   EMBEDDED_ACTIVITY_MIN_TARGET_SIZE,
   resolveEmbeddedActivityFit,
 } from "../src/apps/android-teacher-offline/embeddedActivityFit.js";
 import { renderedDeltaToTeacherStage } from "../src/apps/android-teacher-offline/teacherStageGeometry.js";
+
+test("Teacher Review exposes all ten canonical Students Book Units without enabling authored-disabled activities", () => {
+  assert.deepEqual(teacherAvailableStudentsBookUnits.map((unit) => unit.number), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(studentsBookRuntime.units.map((unit) => unit.number), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  for (const unit of studentsBookRuntime.units.filter((candidate) => candidate.number >= 3)) {
+    const activities = unit.pages.flatMap((page) => page.activities || []);
+    assert.ok(activities.length > 0);
+    assert.ok(activities.every((activity) => activity.availability === "disabled"));
+  }
+});
 
 const multipleChoiceId = "ultimate-b2-sb-u1-p2-o3";
 const typedId = "ultimate-b2-sb-u2-p3-o4";
@@ -481,6 +493,7 @@ test("previous and next traverse exactly the 78 enabled activities", () => {
 });
 
 test("teacher app embeds book activities in the mounted page shell with one classroom toolbar", async () => {
+  const preparation = await readFile("src/apps/android-teacher-offline/hostedComponentPreparation.js", "utf8");
   const [app, book, pages, embedded, activityLocation, overview, presentation, media, library, unitMetadata, toolbar, overlay, toolsContext, renderer, provider, storage, entry, networkGuard, pageViewerStyles, classroomToolStyles] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineBook.jsx", "utf8"),
@@ -562,7 +575,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(app, /initialEditionId=\{activeRuntime\.component\.teacherEditionId\}/);
   assert.match(library, /menuSkin\.extras/);
   assert.match(library, /ExtrasColumn/);
-  assert.doesNotMatch(library, /LockKeyhole|legacy-home-lock|Locked|\sdisabled(?:=|\s|>)/);
+  assert.doesNotMatch(library, /LockKeyhole|legacy-home-lock|Locked/);
+  assert.match(library, /disabled=\{unavailable\}/);
   assert.match(library, /aria-disabled=\{available \? undefined : "true"\}/);
   assert.match(library, /aria-disabled=\{item\.destination \? undefined : "true"\}/);
   assert.match(library, /onClick=\{available \?/);
@@ -586,7 +600,8 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(renderer, /preload="metadata"/);
   assert.match(renderer, /onError=\{\(\) => setMediaError/);
   assert.match(app, /initialRuntime\.contentPackProvider\.load/);
-  assert.match(app, /componentPreparationRef\.current\.get\(runtime\.key\)/);
+  assert.match(app, /preparationCache: componentPreparationRef\.current/);
+  assert.match(preparation, /preparationCache\.get\(runtime\.key\)/);
   assert.doesNotMatch(app, /\[activeRuntime, startupAttempt\]/);
   assert.match(app, /reviewComponentRegistry/);
   assert.match(app, /App\.addListener\("backButton"/);

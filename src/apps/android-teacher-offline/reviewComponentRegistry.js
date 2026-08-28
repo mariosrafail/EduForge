@@ -22,7 +22,7 @@ const DEFAULT_IDENTITY = Object.freeze({
 const studentsBookRuntime = {
   ...DEFAULT_IDENTITY,
   contentPackProvider: interactiveContentPackProvider,
-  pageUnits: ultimateB2StudentsBookPageUnits.filter((unit) => [1, 2].includes(Number(unit.number))),
+  pageUnits: ultimateB2StudentsBookPageUnits,
   hotspotProvider: Object.freeze({
     prepare: prepareUltimateB2StudentsBookHotspots,
     getActions: getUltimateB2StudentsBookHotspotActions,

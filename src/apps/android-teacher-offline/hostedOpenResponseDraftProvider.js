@@ -38,7 +38,7 @@ export function useHostedOpenResponseDraft(activityId, { runtimeContext = resolv
     const context = runtimeContext;
     if (!context.teacherPreview) return undefined;
     const controller = new AbortController();
-    fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : `${routeRoot}/${encodeURIComponent(activityId)}`, {
+    fetch(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, "public") : `${routeRoot}/${encodeURIComponent(activityId)}`, {
       method: "GET",
       credentials: "omit",
       cache: "no-store",
@@ -76,14 +76,14 @@ export function useHostedOpenResponseImport(activityId, { runtimeContext = resol
     const controller = new AbortController();
     if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
       Promise.all([
-        fetch(hostedReleasePath(context.releaseId, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => {
+        fetch(hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => {
           if (!response.ok) return null;
           const imported = (await response.json())?.projection?.activities?.[activityId]?.import || null;
           if (!imported) return null;
           const seed = createUltimateB2HostedOpenResponseSeed(findStudentsBookImplementation(activityId));
-          return hydrateUltimateB2ReleaseImport(imported, activityId, seed.questions.map((question) => question.id), (asset) => hostedReleasePath(context.releaseId, `assets/${asset.sha256}.${asset.extension}`));
+          return hydrateUltimateB2ReleaseImport(imported, activityId, seed.questions.map((question) => question.id), (asset) => hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, `assets/${asset.sha256}.${asset.extension}`));
         }),
-        fetch(hostedReleasePath(context.releaseId, `teacher-solution/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => response.status === 404 ? null : response.ok ? (await response.json()).document : Promise.reject(new Error("Release solution unavailable"))),
+        fetch(hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, `teacher-solution/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal: controller.signal }).then(async (response) => response.status === 404 ? null : response.ok ? (await response.json()).document : Promise.reject(new Error("Release solution unavailable"))),
       ]).then(([publicImport, teacher]) => {
         if (!controller.signal.aborted) setState({ publicImport, teacherSolution: hostedTeacherImportAsSolution(teacher, activityId), revision: 0 });
       }).catch(() => { if (!controller.signal.aborted) setState({ publicImport: null, teacherSolution: null, revision: 0 }); });

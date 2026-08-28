@@ -43,11 +43,11 @@ test("shared product catalog separates registration, install, authoring, LMS vis
   });
   const workbook = findProductComponent("ultimate-b2", "ultimate-b2-workbook");
   assert.deepEqual({ review: workbook.reviewState, authoring: workbook.authoringState, adapter: workbook.authoringAdapterId, publication: workbook.publication }, {
-    review: "pending", authoring: "active", adapter: "ultimate-b2-workbook", publication: { readable: false, writable: false, compilerId: null },
+    review: "installed", authoring: "active", adapter: "ultimate-b2-workbook", publication: { readable: true, writable: false, compilerId: "ultimate-b2-workbook-v1" },
   });
   const grammar = findProductComponent("ultimate-b2", "ultimate-b2-grammar-book");
   assert.deepEqual({ registered: grammar.registered, review: grammar.reviewState, authoring: grammar.authoringState, adapter: grammar.authoringAdapterId }, {
-    registered: true, review: "pending", authoring: "active", adapter: "ultimate-b2-grammar-book",
+    registered: true, review: "installed", authoring: "active", adapter: "ultimate-b2-grammar-book",
   });
   const testBook = findProductComponent("ultimate-b2", "ultimate-b2-test-book");
   assert.deepEqual({ registered: testBook.registered, review: testBook.reviewState, authoring: testBook.authoringState, adapter: testBook.authoringAdapterId }, {

@@ -102,11 +102,11 @@ test("Builder Worker exposes only the explicit current Builder and Player namesp
   assert.deepEqual(BUILDER_DYNAMIC_ROUTE_PREFIXES, [
     "/builder/api/auth", "/builder/api/content", "/builder/api/native-activities", "/builder/api/open-response-import",
     "/builder/api/preview-authorization", "/builder/api/publication", "/builder/api/ui-assets", "/builder/api/unit-extras", "/builder/api/pages",
-    "/builder/preview/pages", "/builder/preview/authorization", "/builder/preview/native-activities", "/builder/preview/releases", "/builder/preview/content",
+    "/builder/preview/pages", "/builder/preview/authorization", "/builder/preview/native-activities", "/builder/preview/releases", "/builder/preview/unit-extras", "/builder/preview/content",
     "/builder/preview/open-response-import", "/builder/preview/open-response-teacher", "/builder/preview/open-response-assets", "/builder/preview/ui-assets",
   ]);
   assert.deepEqual(BUILDER_PLAYER_ROUTE_PREFIXES, [
-    "/preview/pages", "/preview/authorization", "/preview/native-activities", "/preview/releases", "/preview/content", "/preview/open-response-import",
+    "/preview/pages", "/preview/authorization", "/preview/native-activities", "/preview/releases", "/preview/unit-extras", "/preview/content", "/preview/open-response-import",
     "/preview/open-response-teacher",
   ]);
   assert.equal(resolveBuilderWorkerRoute("/.netlify/functions/builder-auth"), null);

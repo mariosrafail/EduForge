@@ -13,7 +13,7 @@ export const interactiveUiManifestProvider = Object.freeze({
       throw error;
     }
     const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
-      ? hostedReleasePath(context.releaseId, "teacher-ui")
+      ? hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, "teacher-ui")
       : authorizedHostedPreviewPath(previewPath, context.authorization), { method: "GET", cache: "no-store", credentials: "omit", signal });
     if (response.status === 404) return null;
     if (!response.ok) {

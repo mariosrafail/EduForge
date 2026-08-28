@@ -26,30 +26,34 @@ const runtime = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-
 const registry = createReviewComponentRegistry(productCatalog, [runtime], { bookSlug: runtime.bookSlug, componentSlug: runtime.componentSlug });
 const previewAuthorization = `v1.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
 const identity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${previewAuthorization}`;
+const productReleaseId = "20000000-0000-4000-8000-000000000099";
+const releaseId = "10000000-0000-4000-8000-000000000099";
+const memberSha256 = "b".repeat(64);
+const releaseAuthorization = `v3.${Buffer.from("release-member-scope").toString("base64url")}.${"c".repeat(43)}`;
+const releaseIdentity = `builderPreview=1&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&previewAuthorization=${releaseAuthorization}&productReleaseId=${productReleaseId}&releaseId=${releaseId}&memberSha256=${memberSha256}`;
 
 test("navigable managed draft Review separates component authorization from initial page navigation", () => {
   const productIntent = { view: "library" };
   for (const componentSlug of ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
     assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug, intent: productIntent }), {
-      bookSlug: "ultimate-b2", componentSlug, view: "library", pageId: null, activityId: null, releaseId: null,
+      bookSlug: "ultimate-b2", componentSlug, view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: null,
     });
   }
   const pageIntent = { view: "page", unitNumber: 1, pageId: "ultimate-b2-wb-unit-1-page-1" };
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
-    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "library", pageId: null, activityId: null, releaseId: null,
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: null,
   });
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book", intent: pageIntent }), {
-    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book", view: "library", pageId: null, activityId: null, releaseId: null,
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book", view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: null,
   });
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", intent: pageIntent }), {
-    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null,
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null, productReleaseId: null,
   });
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
-    bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null,
+    bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null, productReleaseId: null,
   });
-  const releaseId = "10000000-0000-4000-8000-000000000099";
-  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: { ...pageIntent, releaseId } }), {
-    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId,
+  assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: { ...pageIntent, productReleaseId } }), {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null, productReleaseId,
   });
 });
 
@@ -88,27 +92,26 @@ test("hosted Viewer resolves strict library, page, and canonical activity intent
   assert.deepEqual(resolveHostedViewerPreviewIntent({ search: `?${identity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o90&unitNumber=1&pageId=ub2-sb-unit-1-part-1`, hosted: true, activities, pageUnits, registry }), { kind: "valid", view: "activity", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", navigation: { view: "book", location: { unitNumber: 1, tab: "pages", pageId: "ub2-sb-unit-1-part-1" }, activityId: "ultimate-b2-sb-u1-p1-o90" } });
 });
 
-test("release preview requires one strict UUID and remains a read-only pinned intent", () => {
-  const releaseId = "10000000-0000-4000-8000-000000000099";
-  const intent = resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${releaseId}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry });
+test("release preview requires one exact product member identity and remains read-only", () => {
+  const intent = resolveHostedViewerPreviewIntent({ search: `?${releaseIdentity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`, hosted: true, activities, pageUnits, registry });
   assert.equal(intent.kind, "valid");
   assert.equal(intent.releaseId, releaseId);
-  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "library", releaseId, previewAuthorization }), /releaseId=10000000-0000-4000-8000-000000000099/);
-  for (const value of ["latest", "../draft", `${releaseId}&releaseId=${releaseId}`]) assert.equal(resolveHostedViewerPreviewIntent({ search: `?${identity}&releaseId=${value}&view=library`, hosted: true, registry }).kind, "invalid");
+  assert.equal(intent.productReleaseId, productReleaseId);
+  assert.equal(intent.memberSha256, memberSha256);
+  assert.match(createHostedViewerPreviewUrl({ ...runtime, view: "library", productReleaseId, releaseId, memberSha256, previewAuthorization: releaseAuthorization }), /productReleaseId=20000000-0000-4000-8000-000000000099/);
+  for (const search of [`?${identity}&releaseId=${releaseId}&view=library`, `?${releaseIdentity.replace(memberSha256, "bad")}&view=library`, `?${releaseIdentity}&releaseId=${releaseId}&view=library`]) assert.equal(resolveHostedViewerPreviewIntent({ search, hosted: true, registry }).kind, "invalid");
 });
 
 test("hosted Viewer runtime separates bare, authorized draft, exact release, and invalid contexts", () => {
-  const releaseId = "10000000-0000-4000-8000-000000000099";
   assert.deepEqual(resolveHostedViewerRuntimeContext(""), { kind: HOSTED_VIEWER_RUNTIME_MODES.BARE, teacherPreview: false });
   assert.deepEqual(resolveHostedViewerRuntimeContext(`?${identity}&view=library`), { kind: HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW, teacherPreview: true, authorization: previewAuthorization });
-  assert.deepEqual(resolveHostedViewerRuntimeContext(`?${identity}&releaseId=${releaseId}&view=library`), { kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW, teacherPreview: true, authorization: previewAuthorization, releaseId });
+  assert.deepEqual(resolveHostedViewerRuntimeContext(`?${releaseIdentity}&view=library`), { kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW, teacherPreview: true, authorization: releaseAuthorization, productReleaseId, releaseId, memberSha256 });
   for (const search of ["?builderPreview=1", `?builderPreview=1&previewAuthorization=malformed`, `?previewAuthorization=${previewAuthorization}`, `?${identity}&releaseId=latest&view=library`]) {
     assert.deepEqual(resolveHostedViewerRuntimeContext(search), { kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
   }
 });
 
 test("Viewer Teacher solutions are unavailable anonymously and fetched only for an authorized exact release", async () => {
-  const releaseId = "10000000-0000-4000-8000-000000000099";
   const locationDescriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
   const fetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
   const calls = [];
@@ -122,7 +125,7 @@ test("Viewer Teacher solutions are unavailable anonymously and fetched only for 
       assert.equal(await getOfflineTeacherSolution("ultimate-b2-sb-u1-p1-o1"), null);
     }
     assert.deepEqual(calls, []);
-    Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?${identity}&releaseId=${releaseId}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`) });
+    Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?${releaseIdentity}&view=activity&activityId=ultimate-b2-sb-u1-p1-o1`) });
     assert.deepEqual(await getOfflineTeacherSolution("ultimate-b2-sb-u1-p1-o1"), { solutionAvailability: "available" });
     assert.match(calls[0][0], new RegExp(`/preview/releases/.*/${releaseId}/teacher-solution/ultimate-b2-sb-u1-p1-o1\\?previewAuthorization=`));
     assert.deepEqual(calls[0][1], { method: "GET", credentials: "omit", cache: "no-store" });

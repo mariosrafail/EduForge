@@ -444,3 +444,30 @@ test("actual Teacher UI preview authorization accepts fresh exact scope and reje
   const wrongScope = issueBuilderPreviewAuthorization({ ...intent, componentSlug: "ultimate-b2-workbook" }, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
   assert.equal((await handlerAt(now + 1_000)(request(wrongScope.token))).statusCode, 401);
 });
+
+test("Saved Draft Unit Extras require exact scoped authorization and project only Viewer media fields", async () => {
+  const unitExtrasResource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "unit-extras");
+  const sources = createPublicationV2FixtureSources();
+  const unitExtrasRoute = "/builder/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/unit-extras";
+  const scopes = [];
+  const handler = createBuilderPreviewHandler({
+    getDatabase: () => ({}),
+    authorizePreview: async (_request, _sql, scope) => { scopes.push(scope); return true; },
+    loadDocument: async () => ({ revision: sources.unitExtras.document.revision, source: "database", document: sources.unitExtras.document.payload }),
+  });
+  const response = await handler(event("GET", unitExtrasRoute));
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(scopes, [{ action: "unit-extras-draft", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }]);
+  const body = parsed(response);
+  assert.equal(body.resource, "unit-extras");
+  assert.equal(body.source, "database");
+  assert.equal(body.document.units[0].categories.videos.length, 2);
+  assert.equal(body.document.units[0].categories.videos[0].video.cues.length, 1);
+  assert.doesNotMatch(JSON.stringify(body.document), /fileName|byteSize/);
+
+  const denied = createBuilderPreviewHandler({
+    getDatabase: () => ({}), authorizePreview: async () => false,
+    loadDocument: async () => { throw new Error("must not load unauthorized Unit Extras"); },
+  });
+  assert.equal((await denied(event("GET", unitExtrasRoute))).statusCode, 401);
+});

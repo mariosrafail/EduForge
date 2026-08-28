@@ -7,9 +7,9 @@ const ALLOWED_PARAMETERS = Object.freeze({
   page: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "unitNumber", "pageId", "previewAuthorization"]),
   activity: new Set(["builderPreview", "bookSlug", "componentSlug", "view", "activityId", "previewAuthorization"]),
 });
-const RELEASE_ALLOWED_PARAMETERS = Object.freeze(Object.fromEntries(Object.entries(ALLOWED_PARAMETERS).map(([view, keys]) => [view, new Set([...keys, "releaseId"])])));
+const RELEASE_ALLOWED_PARAMETERS = Object.freeze(Object.fromEntries(Object.entries(ALLOWED_PARAMETERS).map(([view, keys]) => [view, new Set([...keys, "productReleaseId", "releaseId", "memberSha256"])])));
 const ACTIVITY_LOCATION_PARAMETERS = new Set([...ALLOWED_PARAMETERS.activity, "unitNumber", "pageId"]);
-const RELEASE_ACTIVITY_LOCATION_PARAMETERS = new Set([...ACTIVITY_LOCATION_PARAMETERS, "releaseId"]);
+const RELEASE_ACTIVITY_LOCATION_PARAMETERS = new Set([...ACTIVITY_LOCATION_PARAMETERS, "productReleaseId", "releaseId", "memberSha256"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function invalid() {
@@ -76,16 +76,18 @@ export function resolveHostedViewerPreviewIntent({
 
   const view = parameters.get("view");
   const releaseId = parameters.get("releaseId");
+  const productReleaseId = parameters.get("productReleaseId");
+  const memberSha256 = parameters.get("memberSha256");
   const previewAuthorization = parameters.get("previewAuthorization") || "";
   const hasActivityLocation = view === "activity" && (parameters.has("unitNumber") || parameters.has("pageId"));
   const allowed = hasActivityLocation
     ? (releaseId ? RELEASE_ACTIVITY_LOCATION_PARAMETERS : ACTIVITY_LOCATION_PARAMETERS)
     : (releaseId ? RELEASE_ALLOWED_PARAMETERS[view] : ALLOWED_PARAMETERS[view]);
-  if (!allowed || !hasExactParameters(parameters, allowed) || !/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
-  if (releaseId && !UUID.test(releaseId)) return invalid();
+  if (!allowed || !hasExactParameters(parameters, allowed) || !/^v[123]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(previewAuthorization)) return invalid();
+  if (releaseId && (!UUID.test(releaseId) || !UUID.test(String(productReleaseId || "")) || !/^[a-f0-9]{64}$/.test(String(memberSha256 || "")) || !previewAuthorization.startsWith("v3."))) return invalid();
 
   if (view === "library") {
-    return Object.freeze({ kind: "valid", view, bookSlug: componentRequest.bookSlug, componentSlug: componentRequest.componentSlug, ...(releaseId ? { releaseId } : {}), navigation: Object.freeze({ view: "library" }) });
+    return Object.freeze({ kind: "valid", view, bookSlug: componentRequest.bookSlug, componentSlug: componentRequest.componentSlug, ...(releaseId ? { productReleaseId, releaseId, memberSha256 } : {}), navigation: Object.freeze({ view: "library" }) });
   }
 
   if (view === "page") {
@@ -100,7 +102,7 @@ export function resolveHostedViewerPreviewIntent({
       view,
       bookSlug: componentRequest.bookSlug,
       componentSlug: componentRequest.componentSlug,
-      ...(releaseId ? { releaseId } : {}),
+      ...(releaseId ? { productReleaseId, releaseId, memberSha256 } : {}),
       navigation: Object.freeze({ view: "book", location: Object.freeze({ unitNumber, tab: "pages", pageId }) }),
     });
   }
@@ -124,7 +126,7 @@ export function resolveHostedViewerPreviewIntent({
     view,
     bookSlug: componentRequest.bookSlug,
     componentSlug: componentRequest.componentSlug,
-    ...(releaseId ? { releaseId } : {}),
+    ...(releaseId ? { productReleaseId, releaseId, memberSha256 } : {}),
     navigation: Object.freeze({ view: "book", location: Object.freeze(location), activityId }),
   });
 }

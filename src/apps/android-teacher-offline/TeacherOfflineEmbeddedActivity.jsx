@@ -27,7 +27,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
   const hostedOpenResponseDraft = useHostedOpenResponseDraft(activityId, { runtimeContext });
   const hostedOpenResponseImport = useHostedOpenResponseImport(activityId, { runtimeContext });
-  const publication = usePublishedComponentRelease();
+  const publication = usePublishedComponentRelease({ runtimeContext, identity: componentIdentity });
   const publishedNative = publication.kind === "published" ? publication.projection.nativeActivities?.[activityId] : null;
   const effectiveRuntimeContext = runtimeContext || resolveHostedViewerRuntimeContext();
   const nativeDraftCandidate = effectiveRuntimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && !findStudentsBookImplementation(activityId);

@@ -34,9 +34,11 @@ import {
 import {
   exchangeHostedPreviewComponentAuthorization,
   HOSTED_VIEWER_RUNTIME_MODES,
+  loadHostedReleaseFamily,
   resolveHostedViewerRuntimeContext,
 } from "./hostedReleasePreview.js";
 import { createHostedPreviewComponentAuthorizationSession } from "./hostedPreviewComponentAuthorizationSession.js";
+import { createHostedComponentPreparation, markUnavailableReleaseMembers } from "./hostedComponentPreparation.js";
 import {
   isHostedViewerPreviewRequest,
   resolveHostedViewerComponentRequest,
@@ -217,40 +219,24 @@ export default function TeacherOfflineApp() {
     });
     authorizationSessionRef.current = authorizationSession;
     const preparationCounts = new Map();
+    const unavailableReleaseMembers = new Map();
     const recordPreparation = (runtime) => {
       const count = (preparationCounts.get(runtime.componentSlug) || 0) + 1;
       preparationCounts.set(runtime.componentSlug, count);
       globalThis.dispatchEvent?.(new CustomEvent("teacher:component-prepared", { detail: { componentSlug: runtime.componentSlug, count } }));
     };
 
-    const prepareMetadata = (runtime) => {
-      const existing = componentPreparationRef.current.get(runtime.key);
-      if (existing) return existing;
-      recordPreparation(runtime);
-      updateComponentState(runtime, emptyComponentState("loading"));
-      const pending = authorizationSession.ensure(componentIdentity(runtime)).then(async (runtimeContext) => {
-        const [pack] = await Promise.all([
-          runtime.contentPackProvider.load({ runtimeContext, signal: controller.signal }),
-          runtime.hotspotProvider?.prepare?.({ runtimeContext, signal: controller.signal }) || Promise.resolve(),
-        ]);
-        const ready = { status: "ready", phase: "ready", progress: null, pack, error: null, message: "" };
-        updateComponentState(runtime, ready);
-        return ready;
-      }).catch((error) => {
-        if (!controller.signal.aborted) updateComponentState(runtime, {
-          ...emptyComponentState("error"),
-          error,
-          message: startupErrorMessage(error, runtime.startupAssets.hosted),
-        });
-        throw error;
-      });
-      componentPreparationRef.current.set(runtime.key, pending);
-      return pending;
-    };
+    const prepareMetadata = createHostedComponentPreparation({ authorizationSession, componentIdentity,
+      preparationCache: componentPreparationRef.current, recordPreparation, signal: controller.signal,
+      startupErrorMessage, unavailableReleaseMembers, updateComponentState, emptyComponentState });
     prepareComponentRef.current = prepareMetadata;
 
     const start = async () => {
       const runtimeContext = await authorizationSession.ensure(componentIdentity(initialRuntime));
+      if (runtimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
+        const family = await loadHostedReleaseFamily({ runtimeContext, identity: componentIdentity(initialRuntime), signal: controller.signal });
+        markUnavailableReleaseMembers({ family, registry: reviewComponentRegistry, unavailableReleaseMembers, updateComponentState, emptyComponentState });
+      }
       const shellRuntime = reviewComponentRegistry.resolve("ultimate-b2", "ultimate-b2-students-book").runtime;
       const shellContext = await authorizationSession.ensure(componentIdentity(shellRuntime));
       recordPreparation(initialRuntime);
@@ -474,6 +460,11 @@ export default function TeacherOfflineApp() {
       setComponentFeedback(`${title} content is registered but not installed for Teacher Review.`);
       return false;
     }
+    const unavailableState = componentStatesRef.current[resolution.runtime.key];
+    if (unavailableState?.status === "unavailable") {
+      setComponentFeedback(unavailableState.message || `${resolution.runtime.component.title} is unavailable in this release.`);
+      return false;
+    }
     if (resolution.runtime.key === activeRuntime?.key) {
       setComponentFeedback("");
       try {
@@ -500,6 +491,11 @@ export default function TeacherOfflineApp() {
   const selectTeacherEdition = (teacherEditionId) => {
     const resolution = resolveTeacherEditionComponent((activeRuntime || initialRuntime).bookSlug, teacherEditionId);
     if (resolution.kind !== "installed") return;
+    const unavailableState = componentStatesRef.current[resolution.runtime.key];
+    if (unavailableState?.status === "unavailable") {
+      setComponentFeedback(unavailableState.message || `${resolution.runtime.component.title} is unavailable in this release.`);
+      return;
+    }
     const nextRuntime = resolution.runtime;
     setActiveRuntime(nextRuntime);
     const next = libraryState(nextRuntime);
@@ -515,6 +511,12 @@ export default function TeacherOfflineApp() {
     runtime.component.teacherEditionId,
     new Set(((componentStates[runtime.key]?.pack?.pageUnits) || runtime.pageUnits || []).map((unit) => Number(unit.number))),
   ]));
+  const unavailableEditionIds = new Set([...reviewComponentRegistry.installed.values()]
+    .filter((runtime) => componentStates[runtime.key]?.status === "unavailable")
+    .map((runtime) => runtime.component.teacherEditionId));
+  const unavailableEditionMessages = new Map([...reviewComponentRegistry.installed.values()]
+    .filter((runtime) => componentStates[runtime.key]?.status === "unavailable")
+    .map((runtime) => [runtime.component.teacherEditionId, componentStates[runtime.key].message]));
   let content;
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
@@ -555,6 +557,7 @@ export default function TeacherOfflineApp() {
         viewportProfile={viewport.profile}
         selectedBookId={activeRuntime.component.teacherEditionId}
         onBookSwitch={switchTeacherEdition}
+        unavailableBookIds={unavailableEditionIds}
         hotspotProvider={activeRuntime.hotspotProvider}
         runtimeContext={activeRuntimeContext}
         componentIdentity={componentIdentity(activeRuntime)}
@@ -569,6 +572,8 @@ export default function TeacherOfflineApp() {
         animationsActive={animationsActive}
         initialEditionId={activeRuntime.component.teacherEditionId}
         onSelectEdition={selectTeacherEdition}
+        unavailableEditionIds={unavailableEditionIds}
+        unavailableEditionMessages={unavailableEditionMessages}
       />
     );
   }

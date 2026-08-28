@@ -22,8 +22,9 @@ export function usePublishedComponentRelease() {
   return state;
 }
 
-export function hydratePublishedActivityImport(activityId, input, releaseId) {
+export function hydratePublishedActivityImport(activityId, input, releaseIdentity) {
   if (!input) return null;
+  const releaseId = typeof releaseIdentity === "object" ? releaseIdentity.releaseId : releaseIdentity;
   const seed = createUltimateB2HostedOpenResponseSeed(findStudentsBookImplementation(activityId));
   return hydrateUltimateB2ReleaseImport(input, activityId, seed.questions.map((question) => question.id), (asset) => publishedReleaseAssetPath(asset, releaseId));
 }

@@ -36,7 +36,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, s
     if (publication.kind === "error") return <Card><div className="inline-status error">{publication.message}</div></Card>;
     if (publication.kind === "loading") return <Card><div className="inline-status">Loading published content…</div></Card>;
     const publishedActivity = publication.kind === "published" ? publication.projection?.activities?.[activityKey] : null;
-    return <NormalizedStudentsBookActivity activityId={activityKey} mode={mode} onSubmit={onSubmit} submission={submission} activityPublicDraft={publishedActivity?.authoring || null} activityPublicImport={hydratePublishedActivityImport(activityKey, publishedActivity?.import, publication.releaseId)} />;
+    return <NormalizedStudentsBookActivity activityId={activityKey} mode={mode} onSubmit={onSubmit} submission={submission} activityPublicDraft={publishedActivity?.authoring || null} activityPublicImport={hydratePublishedActivityImport(activityKey, publishedActivity?.import, publication)} />;
   }
   if (activity?.questions?.length) {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;

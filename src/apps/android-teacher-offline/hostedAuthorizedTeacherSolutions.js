@@ -6,7 +6,7 @@ export async function getOfflineTeacherSolution(activityId) {
   const context = resolveHostedViewerRuntimeContext();
   const normalizedActivityId = String(activityId || "");
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW || !SAFE_ACTIVITY_ID.test(normalizedActivityId)) return null;
-  const response = await fetch(hostedReleasePath(context.releaseId, `teacher-solution/${normalizedActivityId}`), {
+  const response = await fetch(hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, `teacher-solution/${normalizedActivityId}`), {
     method: "GET",
     credentials: "omit",
     cache: "no-store",

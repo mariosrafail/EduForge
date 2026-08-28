@@ -67,11 +67,12 @@ export default function TeacherOfflinePages({
   onBackToLibrary,
   selectedBookId,
   onBookSwitch,
+  unavailableBookIds,
   hotspotProvider,
   runtimeContext,
   componentIdentity,
 }) {
-  const publication = usePublishedComponentRelease();
+  const publication = usePublishedComponentRelease({ runtimeContext, identity: componentIdentity });
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const legacyClassroomAssets = runtimeUiAssets.classroom;
   const pages = unit?.pages || [];
@@ -409,6 +410,7 @@ export default function TeacherOfflinePages({
       onBackToLibrary={onBackToLibrary}
       selectedBookId={selectedBookId}
       onBookSwitch={onBookSwitch}
+      unavailableBookIds={unavailableBookIds}
     />
   );
 
@@ -537,6 +539,7 @@ export default function TeacherOfflinePages({
         internalNavigation={internalNavigation}
         selectedBookId={selectedBookId}
         onBookSwitch={onBookSwitch}
+        unavailableBookIds={unavailableBookIds}
       />
 
       <ClassroomToolbar surfaceKey={classroomSurfaceKey} />

@@ -152,7 +152,7 @@ export function normalizePublishedUltimateB2UnitExtras(value) {
 }
 
 export function unitExtrasForPage(publication, { unitNumber, pageId } = {}) {
-  const extras = publication?.kind === "published" ? publication.projection?.unitExtras : null;
+  const extras = ["published", "draft"].includes(publication?.kind) ? publication.projection?.unitExtras : null;
   if (!extras) return [];
   const page = extras.pages.find((entry) => entry.pageId === pageId && entry.unitId === `unit-${unitNumber}`);
   if (!page?.extrasVisibility.videos) return [];

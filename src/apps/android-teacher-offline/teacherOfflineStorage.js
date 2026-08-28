@@ -8,8 +8,12 @@ function componentKey(identity) {
     : DEFAULT_COMPONENT_KEY;
 }
 
+function validUnitNumber(value) {
+  return Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 10;
+}
+
 function normalizeLocation(value) {
-  if (!value || ![1, 2].includes(Number(value.unitNumber))) return null;
+  if (!value || !validUnitNumber(value.unitNumber)) return null;
   return {
     unitNumber: Number(value.unitNumber),
     tab: value.tab === "exercises" ? "exercises" : "pages",
@@ -33,7 +37,7 @@ export function readTeacherOfflineLocation(identity) {
 export function writeTeacherOfflineLocation(location, identity) {
   if (typeof localStorage === "undefined") return;
   const safeLocation = {
-    unitNumber: [1, 2].includes(Number(location?.unitNumber)) ? Number(location.unitNumber) : 1,
+    unitNumber: validUnitNumber(location?.unitNumber) ? Number(location.unitNumber) : 1,
     tab: location?.tab === "exercises" ? "exercises" : "pages",
     pageId: String(location?.pageId || ""),
   };

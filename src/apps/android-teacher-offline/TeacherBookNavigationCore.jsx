@@ -15,6 +15,7 @@ export default function TeacherBookNavigationCore({
   bookSwitches = [],
   selectedBookId = "students-book",
   onBookSwitch = noOp,
+  unavailableBookIds = new Set(),
   renderBookSwitch = null,
 }) {
   const actions = contextActions || (contextAction ? [contextAction] : []);
@@ -41,19 +42,20 @@ export default function TeacherBookNavigationCore({
           title={action.title || action.label}
         >{renderContextIcon?.(action) || renderIcon(action.activeIconName && action.active ? action.activeIconName : action.iconName)}</button>
       ))}
-      {bookSwitches.map((item) => (
+      {bookSwitches.map((item) => { const unavailable = unavailableBookIds.has(item.id); return (
         <button
           key={item.id}
           type="button"
           className="teacher-book-navigation-book-switch"
           data-teacher-control-id={item.controlId}
           data-book-id={item.id}
-          aria-label={item.label}
+          aria-label={unavailable ? `${item.label} unavailable in this release` : item.label}
           aria-current={selectedBookId === item.id ? "page" : undefined}
-          title={item.label}
+          title={unavailable ? `${item.label} was not included in this release.` : item.label}
+          disabled={unavailable}
           onClick={() => onBookSwitch(item.id)}
         >{renderBookSwitch?.(item)}</button>
-      ))}
+      ); })}
     </nav>
   );
 }

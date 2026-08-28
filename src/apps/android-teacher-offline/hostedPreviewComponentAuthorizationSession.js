@@ -1,5 +1,6 @@
 import {
   createHostedBuilderPreviewRuntimeContext,
+  createHostedReleasePreviewRuntimeContext,
   exchangeHostedPreviewComponentAuthorization,
   HOSTED_VIEWER_RUNTIME_MODES,
 } from "./hostedReleasePreview.js";
@@ -34,14 +35,17 @@ export function createHostedPreviewComponentAuthorizationSession({
 
   if (initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) {
     entries.set(identityKey(initial), Object.freeze({ ...initial, token: initialContext.authorization, expiresAt: "" }));
+  } else if (initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
+    entries.set(identityKey(initial), Object.freeze({ ...initial, token: initialContext.authorization, expiresAt: "", productReleaseId: initialContext.productReleaseId, componentReleaseId: initialContext.releaseId, memberSha256: initialContext.memberSha256 }));
   }
 
   const contextFor = (identity) => {
-    if (initialContext.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) return initialContext;
+    if (initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return initialContext;
     const entry = entries.get(identityKey(identity));
-    return entry?.token
-      ? createHostedBuilderPreviewRuntimeContext(entry.token)
-      : Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
+    if (!entry?.token) return Object.freeze({ kind: HOSTED_VIEWER_RUNTIME_MODES.INVALID, teacherPreview: false });
+    return initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
+      ? createHostedReleasePreviewRuntimeContext({ authorization: entry.token, productReleaseId: entry.productReleaseId, componentReleaseId: entry.componentReleaseId, memberSha256: entry.memberSha256 })
+      : createHostedBuilderPreviewRuntimeContext(entry.token);
   };
 
   const notify = () => {
@@ -77,10 +81,10 @@ export function createHostedPreviewComponentAuthorizationSession({
       targetBookSlug: targetIdentity.bookSlug,
       targetComponentSlug: targetIdentity.componentSlug,
       sourceAuthorization: source.token,
-      runtimeContext: createHostedBuilderPreviewRuntimeContext(source.token),
+      runtimeContext: contextFor(source),
     })).then((value) => {
       if (disposed) throw new Error("Viewer authorization session is closed.");
-      const entry = Object.freeze({ ...targetIdentity, token: value.token, expiresAt: value.expiresAt });
+      const entry = Object.freeze({ ...targetIdentity, token: value.token, expiresAt: value.expiresAt, ...(initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? { productReleaseId: value.productReleaseId, componentReleaseId: value.componentReleaseId, memberSha256: value.memberSha256 } : {}) });
       entries.set(key, entry);
       schedule(entry);
       notify();
@@ -96,8 +100,11 @@ export function createHostedPreviewComponentAuthorizationSession({
       const target = normalizedIdentity(identity);
       if (initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return initialContext;
       if (initialContext.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) {
-        if (identityKey(target) !== identityKey(initial)) throw new Error("Release Review cannot exchange component authorization.");
-        return initialContext;
+        const current = entries.get(identityKey(target));
+        if (current && (!current.expiresAt || Date.parse(current.expiresAt) - Number(now()) > HOSTED_COMPONENT_AUTHORIZATION_RENEWAL_MARGIN_MS)) return contextFor(target);
+        const source = current?.token ? current : [...entries.values()].find((entry) => entry.token);
+        if (!source) throw new Error("No scoped release member authorization is available for exchange.");
+        return refresh(source, target);
       }
       if (initialContext.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) throw new Error("Authorized Builder Review is required.");
       const current = entries.get(identityKey(target));
@@ -111,6 +118,7 @@ export function createHostedPreviewComponentAuthorizationSession({
         bookSlug: entry.bookSlug,
         componentSlug: entry.componentSlug,
         expiresAt: entry.expiresAt,
+        ...(entry.productReleaseId ? { productReleaseId: entry.productReleaseId, componentReleaseId: entry.componentReleaseId, memberSha256: entry.memberSha256 } : {}),
       })])));
     },
     dispose() {

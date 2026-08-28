@@ -14,6 +14,12 @@ const identities = Object.freeze({
   grammar: Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" }),
 });
 const token = (value) => `v2.${Buffer.from(`component-${value}`).toString("base64url")}.${String(value).slice(-1).repeat(43)}`;
+const releaseToken = (value) => `v3.${Buffer.from(`release-member-${value}`).toString("base64url")}.${String(value).slice(-1).repeat(43)}`;
+const productReleaseId = "20000000-0000-4000-8000-000000000099";
+const studentsReleaseId = "10000000-0000-4000-8000-000000000099";
+const workbookReleaseId = "10000000-0000-4000-8000-000000000098";
+const studentsMemberSha256 = "a".repeat(64);
+const workbookMemberSha256 = "b".repeat(64);
 
 function timerHarness() {
   const timers = [];
@@ -64,7 +70,7 @@ test("resident Builder Review caches one renewable authorization per exact compo
   session.dispose();
 });
 
-test("bare and release sessions never broaden authorization across components", async () => {
+test("bare sessions stay local while release sessions exchange exact immutable family members", async () => {
   const bare = createHostedPreviewComponentAuthorizationSession({
     initialContext: { kind: HOSTED_VIEWER_RUNTIME_MODES.BARE, teacherPreview: false },
     initialIdentity: identities.students,
@@ -73,11 +79,24 @@ test("bare and release sessions never broaden authorization across components", 
   bare.dispose();
 
   const release = createHostedPreviewComponentAuthorizationSession({
-    initialContext: { kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW, teacherPreview: true, authorization: token(1), releaseId: "10000000-0000-4000-8000-000000000099" },
+    initialContext: { kind: HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW, teacherPreview: true, authorization: releaseToken(1), productReleaseId, releaseId: studentsReleaseId, memberSha256: studentsMemberSha256 },
     initialIdentity: identities.students,
+    exchange: async (request) => {
+      assert.equal(request.runtimeContext.productReleaseId, productReleaseId);
+      assert.equal(request.runtimeContext.releaseId, studentsReleaseId);
+      assert.equal(request.runtimeContext.memberSha256, studentsMemberSha256);
+      return { token: releaseToken(2), expiresAt: "2026-08-27T12:05:00.000Z", productReleaseId, componentReleaseId: workbookReleaseId, memberSha256: workbookMemberSha256 };
+    },
+    now: () => Date.parse("2026-08-27T12:00:00Z"),
   });
-  assert.equal((await release.ensure(identities.students)).kind, HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW);
-  await assert.rejects(release.ensure(identities.workbook), /cannot exchange/i);
+  const initialMember = await release.ensure(identities.students);
+  assert.equal(initialMember.kind, HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW);
+  assert.equal(initialMember.releaseId, studentsReleaseId);
+  const workbookMember = await release.ensure(identities.workbook);
+  assert.equal(workbookMember.productReleaseId, productReleaseId);
+  assert.equal(workbookMember.releaseId, workbookReleaseId);
+  assert.equal(workbookMember.memberSha256, workbookMemberSha256);
+  assert.deepEqual(release.snapshot()[identities.workbook.componentSlug], { ...identities.workbook, expiresAt: "2026-08-27T12:05:00.000Z", productReleaseId, componentReleaseId: workbookReleaseId, memberSha256: workbookMemberSha256 });
   release.dispose();
 });
 

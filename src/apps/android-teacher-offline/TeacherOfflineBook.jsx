@@ -16,6 +16,7 @@ export default function TeacherOfflineBook({
   viewportProfile,
   selectedBookId,
   onBookSwitch,
+  unavailableBookIds,
   hotspotProvider,
   runtimeContext,
   componentIdentity,
@@ -57,6 +58,7 @@ export default function TeacherOfflineBook({
           viewportProfile={viewportProfile}
           selectedBookId={selectedBookId}
           onBookSwitch={onBookSwitch}
+          unavailableBookIds={unavailableBookIds}
           hotspotProvider={hotspotProvider}
           runtimeContext={runtimeContext}
           componentIdentity={componentIdentity}
@@ -72,6 +74,7 @@ export default function TeacherOfflineBook({
             onBack={() => update({ tab: "pages", pageId: "" })}
             selectedBookId={selectedBookId}
             onBookSwitch={onBookSwitch}
+            unavailableBookIds={unavailableBookIds}
           />
         </>
       )}

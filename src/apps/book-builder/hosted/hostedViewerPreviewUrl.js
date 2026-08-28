@@ -29,6 +29,9 @@ export function normalizeHostedViewerIntent(intent) {
   if (intent?.releaseId) {
     if (!UUID.test(String(intent.releaseId))) throw new TypeError("Viewer release ID is invalid.");
     normalized.releaseId = String(intent.releaseId).toLowerCase();
+    if (!UUID.test(String(intent.productReleaseId || "")) || !/^[a-f0-9]{64}$/.test(String(intent.memberSha256 || ""))) throw new TypeError("Viewer product release member identity is invalid.");
+    normalized.productReleaseId = String(intent.productReleaseId).toLowerCase();
+    normalized.memberSha256 = intent.memberSha256;
   }
   if (intent?.view === "library") {
     normalized.view = "library";
@@ -60,13 +63,17 @@ export function normalizeHostedViewerIntent(intent) {
 
 export function createHostedViewerPreviewUrl(intent, { baseUrl = HOSTED_VIEWER_BASE_URL } = {}) {
   const url = new URL(normalizeHostedViewerBaseUrl(baseUrl));
-  if (!/^v[12]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(String(intent?.previewAuthorization || ""))) throw new TypeError("Viewer preview authorization is required.");
+  if (!/^v[123]\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(String(intent?.previewAuthorization || ""))) throw new TypeError("Viewer preview authorization is required.");
   const normalized = normalizeHostedViewerIntent(intent);
   url.searchParams.set("builderPreview", "1");
   url.searchParams.set("bookSlug", requiredSafeId(intent?.bookSlug, "Viewer book slug"));
   url.searchParams.set("componentSlug", requiredSafeId(intent?.componentSlug, "Viewer component slug"));
   url.searchParams.set("previewAuthorization", intent.previewAuthorization);
-  if (normalized.releaseId) url.searchParams.set("releaseId", normalized.releaseId);
+  if (normalized.releaseId) {
+    url.searchParams.set("productReleaseId", normalized.productReleaseId);
+    url.searchParams.set("releaseId", normalized.releaseId);
+    url.searchParams.set("memberSha256", normalized.memberSha256);
+  }
   url.searchParams.set("view", normalized.view);
   if (normalized.unitNumber) url.searchParams.set("unitNumber", String(normalized.unitNumber));
   if (normalized.pageId) url.searchParams.set("pageId", normalized.pageId);

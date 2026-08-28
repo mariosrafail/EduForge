@@ -25,7 +25,7 @@ import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle, normalizeUltimateB2ActivityLifecycle, ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/activityLifecycle.js";
-import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
+import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, projectUltimateB2UnitExtrasForPublication, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
 
 async function loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical = true } = {}) {
   const lifecycle = includeCanonical
@@ -143,9 +143,12 @@ const registry = Object.freeze({
     audience: "public",
     readable: true,
     writeAllowed: true,
-    previewReadable: false,
+    previewReadable: true,
+    previewAudience: "unit-extras",
+    previewRequiresStored: true,
     baseline: createEmptyUltimateB2UnitExtras,
     validate: normalizeUltimateB2UnitExtrasDocument,
+    projectPreview: projectUltimateB2UnitExtrasForPublication,
   }),
   ...Object.fromEntries(managedComponentSlugs.flatMap((componentSlug) => [
     [`ultimate-b2/${componentSlug}/hotspots`, managedHotspotResource(componentSlug)],

@@ -17,7 +17,7 @@ function buildManagedOverviewEntries(unit) {
   }));
 }
 
-export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch }) {
+export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch, unavailableBookIds }) {
   const entries = selectedBookId === "students-book" ? buildStudentsBookOverviewEntries(unit) : buildManagedOverviewEntries(unit);
   const unitNumber = Number(unit.number);
   const surfaceKey = `${selectedBookId}:overview:unit-${unitNumber}`;
@@ -62,7 +62,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
         </div>
       </div>
 
-      <TeacherBookNavigation onHome={onBackToLibrary} onBack={onBackToLibrary} selectedBookId={selectedBookId} onBookSwitch={onBookSwitch} />
+      <TeacherBookNavigation onHome={onBackToLibrary} onBack={onBackToLibrary} selectedBookId={selectedBookId} onBookSwitch={onBookSwitch} unavailableBookIds={unavailableBookIds} />
       <ClassroomToolbar surfaceKey={surfaceKey} />
     </section>
   );

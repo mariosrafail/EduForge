@@ -37,13 +37,13 @@ const adapters = Object.freeze({
     bookSlug: "ultimate-b2",
     componentSlug: "ultimate-b2-workbook",
     nativeActivities: Object.freeze({ enabled: true, kinds: NATIVE_ACTIVITY_KINDS, placements: Object.freeze([]), managed: true }),
-    capabilities: Object.freeze({ pages: Object.freeze({ readable: true, writable: true }), hotspots: Object.freeze({ readable: true, writable: true }), activities: Object.freeze({ readable: true, writable: true }) }),
+    capabilities: Object.freeze({ pages: Object.freeze({ readable: true, writable: true }), hotspots: Object.freeze({ readable: true, writable: true }), activities: Object.freeze({ readable: true, writable: true }), publication: Object.freeze({ readable: true, writable: true }) }),
     Workspace(props) { return props.tool === "pages" ? <UltimateB2PagesHostedWorkspace {...props} /> : <UltimateB2ManagedComponentHostedWorkspace {...props} />; },
   }),
   "ultimate-b2-grammar-book": Object.freeze({
     id: "ultimate-b2-grammar-book", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book",
     nativeActivities: Object.freeze({ enabled: true, kinds: NATIVE_ACTIVITY_KINDS, placements: Object.freeze([]), managed: true }),
-    capabilities: Object.freeze({ pages: Object.freeze({ readable: true, writable: true }), hotspots: Object.freeze({ readable: true, writable: true }), activities: Object.freeze({ readable: true, writable: true }) }),
+    capabilities: Object.freeze({ pages: Object.freeze({ readable: true, writable: true }), hotspots: Object.freeze({ readable: true, writable: true }), activities: Object.freeze({ readable: true, writable: true }), publication: Object.freeze({ readable: true, writable: true }) }),
     Workspace(props) { return props.tool === "pages" ? <UltimateB2PagesHostedWorkspace {...props} /> : <UltimateB2ManagedComponentHostedWorkspace {...props} />; },
   }),
 });

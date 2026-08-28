@@ -1,14 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
+import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, issueBuilderReleaseMemberAuthorization, verifyBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { createBuilderPreviewAuthorizationHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
+import { productReleaseMemberSha256, productReleaseSha256, productReleaseSourceSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-product-publication-domain.js";
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 
 const environment = { BUILDER_PREVIEW_AUTH_SECRET: "test-only-preview-secret-with-at-least-thirty-two-bytes" };
 const now = Date.parse("2026-08-14T12:00:00Z");
 const intent = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", view: "activity", pageId: null, activityId: "ultimate-b2-sb-u1-p1-o1", releaseId: null };
 const eventFor = (token) => ({ queryStringParameters: { previewAuthorization: token } });
+
+const releaseMembers = ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].map((componentSlug, index) => {
+  const member = {
+    componentSlug, order: index + 1, status: "included",
+    componentReleaseId: `10000000-0000-4000-8000-00000000009${9 - index}`,
+    compilerId: index ? `ultimate-b2-${index === 1 ? "workbook" : "grammar-book"}-v1` : "ultimate-b2-students-book-v2",
+    releaseSchemaVersion: index ? "1.0" : "2.0", releaseSha256: String(index + 1).repeat(64), compatibility: String(index + 4).repeat(64), unavailableReason: null,
+  };
+  return Object.freeze({ ...member, memberSha256: productReleaseMemberSha256(member) });
+});
+
+function familyFixture({ productReleaseId = "20000000-0000-4000-8000-000000000099", members = releaseMembers, compilerId = "ultimate-b2-product-v1" } = {}) {
+  const base = { id: productReleaseId, number: 7, bookSlug: "ultimate-b2", compilerId, releaseSchemaVersion: "1.0", releaseNote: "", createdAt: "2026-08-14T11:00:00.000Z" };
+  const sourceSnapshotSha256 = productReleaseSourceSha256({ bookSlug: base.bookSlug, releaseNumber: base.number, members });
+  return Object.freeze({ ...base, sourceSnapshotSha256, releaseSha256: productReleaseSha256({ ...base, releaseNumber: base.number, sourceSnapshotSha256, members }), members });
+}
+
+function componentReleaseFor(member) {
+  return { id: member.componentReleaseId, compiler_id: member.compilerId, release_schema_version: member.releaseSchemaVersion, release_sha256: member.releaseSha256, runtime_compatibility_sha256: member.compatibility };
+}
 
 test("short-lived preview authorization is signed and restricted to exact action and resource", () => {
   const issued = issueBuilderPreviewAuthorization(intent, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
@@ -53,6 +74,27 @@ test("release library tokens may address only membership-checked resources in th
   const issued = issueBuilderPreviewAuthorization({ ...intent, view: "library", activityId: null, releaseId }, { environment, now, nonce: "abcdefghijklmnopQRSTUV" });
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { action: "release-native-teacher", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, releaseId, activityId: "ultimate-b2-sb-u1-p1-o99" }, { environment, now }), true);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { action: "release-native-teacher", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, releaseId: "10000000-0000-4000-8000-000000000098", activityId: "ultimate-b2-sb-u1-p1-o99" }, { environment, now }), false);
+});
+
+test("v3 release-member authorization binds product, member, component release, resource, action, and expiry", () => {
+  const productReleaseId = "20000000-0000-4000-8000-000000000099";
+  const componentReleaseId = "10000000-0000-4000-8000-000000000099";
+  const memberSha256 = "a".repeat(64);
+  const releaseIntent = { ...intent, releaseId: null, productReleaseId };
+  const issued = issueBuilderReleaseMemberAuthorization({ intent: releaseIntent, productReleaseId, componentReleaseId, memberSha256 }, { environment, now, nonce: "release-member-nonce" });
+  const exactScope = { action: "release-teacher-solution", bookSlug: intent.bookSlug, componentSlug: intent.componentSlug, productReleaseId, releaseId: componentReleaseId, memberSha256, activityId: intent.activityId };
+  assert.match(issued.token, /^v3\./);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), exactScope, { environment, now }), true);
+  for (const scope of [
+    { ...exactScope, productReleaseId: "20000000-0000-4000-8000-000000000098" },
+    { ...exactScope, releaseId: "10000000-0000-4000-8000-000000000098" },
+    { ...exactScope, memberSha256: "b".repeat(64) },
+    { ...exactScope, componentSlug: "ultimate-b2-workbook" },
+    { ...exactScope, activityId: "ultimate-b2-sb-u1-p1-o2" },
+  ]) assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), scope, { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), { ...exactScope, action: "managed-page-catalog" }, { environment, now }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(issued.token), exactScope, { environment, now: now + 301_000 }), false);
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(`${issued.token.slice(0, -1)}x`), exactScope, { environment, now }), false);
 });
 
 test("authorization issuance requires Builder auth, same origin, and exact intent", async () => {
@@ -120,4 +162,60 @@ test("managed library tokens are component-wide only for already-allowlisted man
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), assetScope("ultimate-b2-gb-unit-1-page-1", "ultimate-b2-grammar-book"), { environment, now }), false);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), assetScope("ultimate-b2-wb-unit-1-page-1", managedIntent.componentSlug, "another-book"), { environment, now }), false);
   assert.equal(verifyBuilderPreviewAuthorization(eventFor(library.token), { action: "open-response-teacher", bookSlug: managedIntent.bookSlug, componentSlug: managedIntent.componentSlug, activityId: "ultimate-b2-wb-unit-1-page-1-o1" }, { environment, now }), false);
+});
+
+test("release-family switching re-verifies the exact source and derives only an included target member server-side", async () => {
+  const family = familyFixture();
+  const bySlug = new Map(family.members.map((member) => [member.componentSlug, member]));
+  let databaseCalls = 0;
+  const handler = createBuilderPreviewAuthorizationHandler({
+    getDatabase: () => { databaseCalls += 1; return {}; },
+    authorize: async () => ({ builderUser: { id: "actor" } }),
+    inspect: (event, scope) => inspectBuilderPreviewAuthorizationScope(event, scope, { environment, now }),
+    issueReleaseMember: (value) => issueBuilderReleaseMemberAuthorization(value, { environment, now, nonce: "derived-member-nonce" }),
+    loadProductRelease: async (_sql, input) => input.productReleaseId === family.id ? family : null,
+    loadComponentRelease: async (_sql, input) => componentReleaseFor(bySlug.get(input.componentSlug)),
+    verifyComponentRelease: () => true,
+    logger: { error() {} },
+  });
+  const students = bySlug.get("ultimate-b2-students-book");
+  const workbook = bySlug.get("ultimate-b2-workbook");
+  const initialIntent = { bookSlug: family.bookSlug, componentSlug: students.componentSlug, view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: family.id };
+  const initialResponse = await handler({ httpMethod: "POST", path: "/builder/api/preview-authorization", headers: { host: "builder.example", origin: "https://builder.example", "content-type": "application/json" }, body: JSON.stringify({ intent: initialIntent }) });
+  assert.equal(initialResponse.statusCode, 200);
+  const initial = JSON.parse(initialResponse.body);
+  assert.deepEqual({ productReleaseId: initial.productReleaseId, componentReleaseId: initial.componentReleaseId, memberSha256: initial.memberSha256 }, { productReleaseId: family.id, componentReleaseId: students.componentReleaseId, memberSha256: students.memberSha256 });
+
+  const source = { bookSlug: family.bookSlug, componentSlug: students.componentSlug, productReleaseId: family.id, componentReleaseId: students.componentReleaseId, memberSha256: students.memberSha256 };
+  const targetIntent = { ...initialIntent, componentSlug: workbook.componentSlug };
+  const exchangeRequest = (sourceOverride = source, intentOverride = targetIntent) => ({ httpMethod: "POST", path: "/preview/authorization/release-member-exchange", headers: { "content-type": "application/json" }, queryStringParameters: { previewAuthorization: initial.token }, body: JSON.stringify({ source: sourceOverride, intent: intentOverride }) });
+  const exchangedResponse = await handler(exchangeRequest());
+  assert.equal(exchangedResponse.statusCode, 200);
+  const exchanged = JSON.parse(exchangedResponse.body);
+  assert.deepEqual({ productReleaseId: exchanged.productReleaseId, componentReleaseId: exchanged.componentReleaseId, memberSha256: exchanged.memberSha256 }, { productReleaseId: family.id, componentReleaseId: workbook.componentReleaseId, memberSha256: workbook.memberSha256 });
+  assert.equal(verifyBuilderPreviewAuthorization(eventFor(exchanged.token), { action: "release-public", bookSlug: family.bookSlug, componentSlug: workbook.componentSlug, productReleaseId: family.id, releaseId: workbook.componentReleaseId, memberSha256: workbook.memberSha256 }, { environment, now }), true);
+  assert.equal((await handler(exchangeRequest({ ...source, memberSha256: "f".repeat(64) }))).statusCode, 401);
+  assert.equal((await handler(exchangeRequest(source, { ...targetIntent, productReleaseId: "20000000-0000-4000-8000-000000000098" }))).statusCode, 401);
+  assert.ok(databaseCalls >= 2, "initial issuance and exchange must resolve immutable family membership from storage");
+});
+
+test("historical unavailable release members are explicit and cannot be exchanged", async () => {
+  const students = releaseMembers[0];
+  const unavailable = [releaseMembers[1], releaseMembers[2]].map((member) => {
+    const value = { componentSlug: member.componentSlug, order: member.order, status: "unavailable", componentReleaseId: null, compilerId: null, releaseSchemaVersion: null, releaseSha256: null, compatibility: null, unavailableReason: "not_in_legacy_release" };
+    return { ...value, memberSha256: productReleaseMemberSha256(value) };
+  });
+  const family = familyFixture({ members: [students, ...unavailable], compilerId: "ultimate-b2-product-legacy-v1" });
+  const initialIntent = { bookSlug: family.bookSlug, componentSlug: students.componentSlug, view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: family.id };
+  const issued = issueBuilderReleaseMemberAuthorization({ intent: initialIntent, productReleaseId: family.id, componentReleaseId: students.componentReleaseId, memberSha256: students.memberSha256 }, { environment, now, nonce: "legacy-member-nonce" });
+  const handler = createBuilderPreviewAuthorizationHandler({
+    getDatabase: () => ({}), inspect: (event, scope) => inspectBuilderPreviewAuthorizationScope(event, scope, { environment, now }),
+    issueReleaseMember: (value) => issueBuilderReleaseMemberAuthorization(value, { environment, now, nonce: "unavailable-target" }),
+    loadProductRelease: async () => family, loadComponentRelease: async () => componentReleaseFor(students), verifyComponentRelease: () => true, logger: { error() {} },
+  });
+  const source = { bookSlug: family.bookSlug, componentSlug: students.componentSlug, productReleaseId: family.id, componentReleaseId: students.componentReleaseId, memberSha256: students.memberSha256 };
+  const target = { ...initialIntent, componentSlug: "ultimate-b2-workbook" };
+  const response = await handler({ httpMethod: "POST", path: "/preview/authorization/release-member-exchange", headers: { "content-type": "application/json" }, queryStringParameters: { previewAuthorization: issued.token }, body: JSON.stringify({ source, intent: target }) });
+  assert.equal(response.statusCode, 409);
+  assert.deepEqual(JSON.parse(response.body), { error: "release_member_unavailable", componentSlug: "ultimate-b2-workbook", productReleaseId: family.id, releaseNumber: family.number });
 });

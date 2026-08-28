@@ -27,12 +27,22 @@ export function HostedViewerPreview({
     setAuthorization(null); setAuthorizationError(false);
     return startHostedViewerAuthorizationLifecycle({
       requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization(resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent }), { signal }),
-      onAuthorization: (token) => { setAuthorization(token); if (token) setAuthorizationError(false); },
+      onAuthorization: (token, response) => { setAuthorization(token ? { token, ...response } : null); if (token) setAuthorizationError(false); },
       onError: () => setAuthorizationError(true),
-      renew: Boolean(intent.releaseId),
+      renew: Boolean(intent.productReleaseId),
     });
-  }, [bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.releaseId, refreshKey, manualRefresh]);
-  const src = authorization ? createHostedViewerPreviewUrl({ ...intent, bookSlug, componentSlug, previewAuthorization: authorization }) : "";
+  }, [bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.productReleaseId, refreshKey, manualRefresh]);
+  const src = authorization ? createHostedViewerPreviewUrl({
+    ...intent,
+    bookSlug,
+    componentSlug,
+    previewAuthorization: authorization.token,
+    ...(intent.productReleaseId ? {
+      productReleaseId: authorization.productReleaseId,
+      releaseId: authorization.componentReleaseId,
+      memberSha256: authorization.memberSha256,
+    } : {}),
+  }) : "";
   const frameKey = `${src}:${refreshKey}:${manualRefresh}`;
 
   useEffect(() => setFrameState("loading"), [frameKey]);

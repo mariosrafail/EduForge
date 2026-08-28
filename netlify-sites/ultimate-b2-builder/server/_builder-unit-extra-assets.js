@@ -6,6 +6,7 @@ import { buildUnitExtraAssetObjectKey, buildUnitExtraAssetStagingKey } from "../
 import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../../../lib/book-assets/video-inspection.js";
 import { normalizeUltimateB2UnitExtrasDocument } from "../../../src/data/ultimate-b2/unitExtras.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
+import { authorizeBuilderPreviewRequestWithDiagnostic } from "./_builder-preview-authorization.js";
 import { builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { saveBuilderComponentDocument } from "./_builder-content-store.js";
@@ -31,7 +32,8 @@ const decode = (value) => { try { return decodeURIComponent(value); } catch { re
 
 function route(event) {
   const pathname = String(event?.path || "").split("?")[0];
-  const root = /(?:\/builder\/api\/unit-extras|\/\.netlify\/functions\/builder-unit-extra-assets)\/books\/([^/]+)\/components\/([^/]+)/;
+  const previewScoped = pathname.includes("/preview/unit-extras/");
+  const root = /(?:\/builder\/api\/unit-extras|\/builder\/preview\/unit-extras|\/\.netlify\/functions\/builder-unit-extra-assets(?:\/preview\/unit-extras)?)\/books\/([^/]+)\/components\/([^/]+)/;
   const prefix = pathname.match(root);
   if (!prefix) return null;
   const scope = { bookSlug: decode(prefix[1]), componentSlug: decode(prefix[2]) };
@@ -40,7 +42,7 @@ function route(event) {
   let match = suffix.match(/^units\/([a-z0-9-]+)\/videos\/(video-[a-f0-9]{32})\/assets\/(prepare|finalize)$/);
   if (match) return { ...scope, unitSlug: match[1], itemId: match[2], action: match[3] };
   match = suffix.match(/^units\/([a-z0-9-]+)\/videos\/(video-[a-f0-9]{32})\/assets\/([0-9a-f-]+)\/preview$/);
-  if (match) return { ...scope, unitSlug: match[1], itemId: match[2], assetId: match[3], action: "preview" };
+  if (match) return { ...scope, unitSlug: match[1], itemId: match[2], assetId: match[3], action: "preview", previewScoped };
   return null;
 }
 
@@ -83,6 +85,7 @@ export function createBuilderUnitExtraAssetsHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
     authorize: overrides.authorize || requireBuilderUser,
+    authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequestWithDiagnostic,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     saveDocument: overrides.saveDocument || saveBuilderComponentDocument,
     prepare: overrides.prepare || prepareBuilderUnitExtraAssetUpload,
@@ -103,8 +106,15 @@ export function createBuilderUnitExtraAssetsHandler(overrides = {}) {
     if (!parsed || !SAFE_ROUTE.test(parsed.bookSlug) || !SAFE_ROUTE.test(parsed.componentSlug) || (parsed.unitSlug && !SAFE_ROUTE.test(parsed.unitSlug))) return json(404, { error: "unit_extra_route_not_found" });
     try {
       const sql = dependencies.getDatabase();
-      const auth = await dependencies.authorize(event, sql);
-      if (auth.error) return auth.error;
+      let auth = null;
+      if (parsed.previewScoped) {
+        if (parsed.action !== "preview") return json(404, { error: "unit_extra_route_not_found" });
+        const decision = await dependencies.authorizePreview(event, sql, { action: "unit-extra-draft-asset", bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug });
+        if (!(typeof decision === "boolean" ? decision : decision?.authorized === true)) return json(401, { error: "Unauthorized" });
+      } else {
+        auth = await dependencies.authorize(event, sql);
+        if (auth.error) return auth.error;
+      }
       if (parsed.action === "preview") {
         if (!['GET', 'HEAD'].includes(event.httpMethod) || !UUID_V4.test(parsed.assetId)) return json(event.httpMethod === "GET" ? 404 : 405, { error: "method_not_allowed" });
         const result = await responseForAsset(dependencies, sql, parsed, parsed.assetId);

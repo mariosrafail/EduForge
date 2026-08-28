@@ -46,6 +46,7 @@ function harness({ claimOverrides = {}, storedActivityId = null, storedPageId = 
   const handler = createBuilderUnitExtraAssetsHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
+    authorizePreview: async (event) => ({ authorized: event.headers["x-preview-authorized"] === "yes" }),
     resolveResource: async () => ({ schemaVersion: "1.0", validate: (value) => value }),
     randomUuid: () => uploadId,
     storage: () => storage,
@@ -92,6 +93,16 @@ test("Unit Extra finalize inspects MP4, persists Unit-owned metadata, and expose
   const preview = await current.handler(request(`${base}/${assetId}/preview`, null, { method: "GET" }));
   assert.equal(preview.statusCode, 302);
   assert.equal(preview.headers.Location, "https://storage.example/preview");
+});
+
+test("Saved Draft Unit Extra media uses a separate scoped no-cookie preview route", async () => {
+  const previewPath = `/builder/preview/unit-extras/books/ultimate-b2/components/ultimate-b2-students-book/units/unit-1/videos/${itemId}/assets/${assetId}/preview`;
+  const current = harness();
+  assert.equal((await current.handler(request(previewPath, null, { method: "GET", headers: { cookie: "" } }))).statusCode, 401);
+  const response = await current.handler(request(previewPath, null, { method: "GET", headers: { cookie: "", "x-preview-authorized": "yes" } }));
+  assert.equal(response.statusCode, 302);
+  assert.equal(response.headers.Location, "https://storage.example/preview");
+  assert.equal(response.headers["Cache-Control"], "private, no-store");
 });
 
 test("Unit Extra finalize rejects cross-Unit sessions and activity/page-owned assets", async () => {

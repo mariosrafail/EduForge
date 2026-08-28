@@ -99,7 +99,7 @@ export function createHostedReviewHotspotRuntime(initialManifest) {
         const context = runtimeContext;
         if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return { revision: 0, source: "repository" };
         if (!context.teacherPreview || typeof fetchImpl !== "function") throw unavailable();
-        const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context.releaseId, "public") : authorizedHostedPreviewPath(ultimateB2HotspotPreviewRoute, context.authorization), {
+        const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW ? hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, "public") : authorizedHostedPreviewPath(ultimateB2HotspotPreviewRoute, context.authorization), {
           cache: "no-store",
           credentials: "omit",
           ...(signal ? { signal } : {}),

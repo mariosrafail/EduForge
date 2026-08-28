@@ -88,6 +88,12 @@
   force = true
 
 [[redirects]]
+  from = "/builder/preview/unit-extras/*"
+  to = "/.netlify/functions/builder-unit-extra-assets/preview/unit-extras/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/builder/preview/content/*"
   to = "/.netlify/functions/builder-preview/:splat"
   status = 200
