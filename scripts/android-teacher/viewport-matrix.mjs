@@ -132,7 +132,7 @@ try {
     assertNear(initialScaleVariables.effective, 1, .001, `${target.name} user interface scale variable`);
     assert.equal(await page.locator(".teacher-offline-library").count(), 1, `${target.name} library`);
     assert.equal(await page.locator(".legacy-home-launcher").count(), 1, `${target.name} launcher`);
-    assert.equal(await page.locator(".legacy-home-unit.available").count(), 2, `${target.name} available units`);
+    assert.equal(await page.locator(".legacy-home-unit.available").count(), 10, `${target.name} page-visible units`);
     const launcherLayout = await page.evaluate(() => {
       const units = [...document.querySelectorAll(".legacy-home-unit")].map((button) => button.getBoundingClientRect());
       const chrome = document.querySelector("[data-teacher-shell-chrome]");
