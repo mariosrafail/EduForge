@@ -8,7 +8,15 @@
   "minimumSupportedContentSchemaVersion": 1,
   "includedUnits": [
     1,
-    2
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
   ],
   "enabledActivityCount": 78,
   "disabledActivityCount": 12,
@@ -16,19 +24,19 @@
     "1": 38,
     "2": 40
   },
-  "pageCount": 22,
+  "pageCount": 110,
   "assetCountsByType": {
     "cover": 1,
-    "page": 22,
+    "page": 110,
     "image": 0,
     "audio": 11,
     "video": 7,
     "font": 0
   },
-  "assetCount": 41,
-  "totalContentSizeBytes": 449002256,
-  "totalAssetBytes": 448515130,
-  "totalMetadataBytes": 487126,
+  "assetCount": 129,
+  "totalContentSizeBytes": 493364543,
+  "totalAssetBytes": 492849550,
+  "totalMetadataBytes": 514993,
   "files": {
     "catalog.json": {
       "sizeBytes": 59748,
@@ -46,12 +54,12 @@
       "semanticSha256": "a3c3f5b8ddb4c0182d54122a5d140b5259695a791e8c6fb2797cda835fa92514"
     },
     "assets-manifest.json": {
-      "sizeBytes": 13014,
-      "sha256": "ab5603410051d2952dc37893c05bce14af582f40e5ec8379d917c1d1e4c529d5",
-      "semanticSha256": "98ffff9dd968f26c549d317969de49565a5de9fdefc3c09cf6a5e615bad68d96"
+      "sizeBytes": 40881,
+      "sha256": "58f2e43eea0c3de6ea1457752cb5948bdd02781cdb3b98255d7baafc1c1ef756",
+      "semanticSha256": "de71fee8334895bf7224a4bd7dd30aad4613c835fce9f4aadcbdfb8496598434"
     }
   },
-  "assetSetSha256": "367cf7c14343ccc7afa0b208b26f59c30c564f69f63fff4741b206a0c09496c3",
+  "assetSetSha256": "34b5d42797de7811a368c5227de06d4c1232fd28f5d38e062b9ae61ca6798ad3",
   "deterministicBuild": {
     "reproducible": true,
     "generator": "scripts/android-teacher/build-pack.mjs",

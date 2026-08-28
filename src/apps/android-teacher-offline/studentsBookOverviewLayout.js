@@ -26,9 +26,19 @@ export const studentsBookOverviewLayout = Object.freeze({
 
 export function buildStudentsBookOverviewEntries(unit) {
   const configuration = studentsBookOverviewLayout[Number(unit?.number)];
-  if (!configuration) throw new Error(`No Students Book overview layout exists for Unit ${unit?.number}.`);
-
   const realPages = unit?.pages || [];
+  if (!configuration) {
+    const rowBreak = Math.ceil(realPages.length / 2);
+    return realPages.map((page, index) => ({
+      id: `unit-${unit.number}-overview-${index + 1}`,
+      label: page.title || page.label || null,
+      pageLabel: page.spreadNumber || page.label || `Page ${index + 1}`,
+      pageIds: [page.id],
+      pages: [page],
+      row: index < rowBreak ? 1 : 2,
+    }));
+  }
+
   const pagesById = new Map(realPages.map((page) => [page.id, page]));
   const configuredIds = configuration.flatMap((entry) => entry.pageIds);
   const duplicateIds = configuredIds.filter((id, index) => configuredIds.indexOf(id) !== index);

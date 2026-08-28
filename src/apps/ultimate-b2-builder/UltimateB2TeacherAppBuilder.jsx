@@ -137,11 +137,11 @@ export function UltimateB2TeacherAppBuilder({ onSaved }) {
   if (!model || !overrides) return <main className="b2-teacher-app-builder"><p>{error || status}</p></main>;
   const selectedPage = model.pages.find((page) => page.id === selectedPageId) || model.pages[0];
   const slot = (binding, label) => <AssetSlot key={binding.id} {...{ binding, label, revision, draftUrls, onImport: importAsset }} warning={warnings[binding.id]} />;
-  const groupedPages = [1, 2].map((unitNumber) => ({ unitNumber, pages: model.pages.filter((page) => page.unitNumber === unitNumber) }));
+  const groupedPages = Array.from({ length: 10 }, (_, index) => index + 1).map((unitNumber) => ({ unitNumber, pages: model.pages.filter((page) => page.unitNumber === unitNumber) }));
 
   return (
     <main className="b2-teacher-app-builder">
-      <header className="b2-teacher-app-header"><div><span>Ultimate B2 bound authoring</span><h1>UI Controller</h1><p>Repository-backed shell and the same 22 page identities used by hotspots, activities and the Teacher pack.</p></div><div className="b2-teacher-save-state" role="status"><strong>{status}</strong>{error && <small>{error}</small>}<button type="button" onClick={save} disabled={!dirty || status === "Saving…"}><Save size={17} /> Save</button></div></header>
+      <header className="b2-teacher-app-header"><div><span>Ultimate B2 bound authoring</span><h1>UI Controller</h1><p>Repository-backed shell and all 110 page identities used by the Teacher pack. Canonical activities remain enabled only where authored.</p></div><div className="b2-teacher-save-state" role="status"><strong>{status}</strong>{error && <small>{error}</small>}<button type="button" onClick={save} disabled={!dirty || status === "Saving…"}><Save size={17} /> Save</button></div></header>
       <nav className="b2-teacher-section-tabs" aria-label="UI Controller authoring sections">{sections.map(([id, label]) => <button key={id} type="button" aria-selected={section === id} onClick={() => setSection(id)}>{label}</button>)}</nav>
       <div className="b2-teacher-layout">
         <section className="b2-teacher-editor-panel">

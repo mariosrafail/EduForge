@@ -109,7 +109,6 @@ async function buildAssets(sequence) {
   )).map((dependency) => dependency.logicalKey).filter(Boolean));
   const expectedPageKeys = new Set(
     (studentsBookContent.units || [])
-      .filter((unit) => [1, 2].includes(Number(unit.number)))
       .flatMap((unit) => (unit.pages || []).map((page) => page.pageImage?.identity).filter(Boolean)),
   );
   const requiredPageMedia = new Set(
@@ -180,7 +179,7 @@ async function main() {
     contentVersion,
     minimumSupportedAppVersion: "0.1.0",
     minimumSupportedContentSchemaVersion: 1,
-    includedUnits: [1, 2],
+    includedUnits: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     enabledActivityCount: sequence.length,
     disabledActivityCount: disabledCount,
     activityCountsByUnit: {

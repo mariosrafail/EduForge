@@ -147,7 +147,7 @@ function buildDefaultAssets() {
     asset("toolbar.keyboard.active", "toolbar", `${legacyRoot}/icons/teacher-tools/button-keyboard-active.png`),
   );
   for (const id of ["button", "correct", "incorrect", "page-turn"]) entries.push(asset(`sound.${id}`, "sound", `${legacyRoot}/audio/ui/${id}.mp3`, "audio/mpeg"));
-  for (const unit of (studentsBookRuntime.units || []).filter((candidate) => [1, 2].includes(Number(candidate.number)))) {
+  for (const unit of (studentsBookRuntime.units || [])) {
     for (const page of unit.pages || []) entries.push(asset(
       `page.${page.id}`,
       "page",
@@ -200,7 +200,6 @@ function authoredAsset(id, overrides) {
 export function buildUltimateB2TeacherAppAuthoring(candidate = storedOverrides) {
   const overrides = normalizeUltimateB2TeacherAppOverrides(candidate);
   const pages = (studentsBookRuntime.units || [])
-    .filter((unit) => [1, 2].includes(Number(unit.number)))
     .flatMap((unit) => (unit.pages || []).map((page) => Object.freeze({
       id: page.id,
       unitNumber: Number(unit.number),

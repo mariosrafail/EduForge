@@ -34,10 +34,11 @@ const knownActivityId = "ultimate-b2-sb-u1-p1-o1";
 test("canonical Teacher App model deterministically binds all current B2 pages and shell artwork", async () => {
   const rebuilt = buildUltimateB2TeacherAppAuthoring(emptyOverrides);
   assert.deepEqual(rebuilt, buildUltimateB2TeacherAppAuthoring(emptyOverrides));
-  assert.equal(rebuilt.pages.length, 22);
+  assert.equal(rebuilt.pages.length, 110);
   assert.equal(rebuilt.pages.filter((page) => page.unitNumber === 1).length, 10);
   assert.equal(rebuilt.pages.filter((page) => page.unitNumber === 2).length, 12);
-  assert.equal(new Set(rebuilt.pages.map((page) => page.id)).size, 22);
+  assert.deepEqual(Array.from({ length: 10 }, (_, index) => rebuilt.pages.filter((page) => page.unitNumber === index + 1).length), [10, 12, 10, 12, 10, 12, 10, 12, 10, 12]);
+  assert.equal(new Set(rebuilt.pages.map((page) => page.id)).size, 110);
   assert.equal(rebuilt.shell.units.length, 10);
   assert.deepEqual(rebuilt.shell.editions.map(({ id, label }) => ({ id, label })), ultimateB2TeacherEditionDefinitions.map(({ id, label }) => ({ id, label })));
   assert.deepEqual(rebuilt.shell.editions.map((edition) => edition.label), ["Students Book", "Workbook", "Grammar Book", "Extras"]);

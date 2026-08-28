@@ -166,18 +166,14 @@ try {
   assert.equal(Number(await settingsSurface.evaluate((surface) => getComputedStyle(surface).getPropertyValue("--teacher-ui-scale"))), 1, "1280x720 effective UI scale must remain 1");
   assert.equal(await settingsSurface.getAttribute("data-teacher-theme"), "legacy", "Legacy must be the active teacher theme");
   assert.equal(await settingsSurface.getAttribute("data-teacher-motion"), "on", "Motion must default on");
-  assert.equal(await page.getByRole("button", { name: /Open Unit/ }).count(), 2, "Only Units 1 and 2 may be available");
-  for (const unit of [1, 2]) {
-    assert.equal(await page.getByRole("button", { name: new RegExp(`^Open Unit ${unit}:`) }).isEnabled(), true);
-  }
-  for (const unit of [3, 4, 5, 6, 7, 8, 9, 10]) {
-    const placeholderUnit = page.getByRole("button", { name: new RegExp(`^Unit ${unit}:`) });
-    assert.equal(await placeholderUnit.getAttribute("disabled"), null, `Unit ${unit} must retain full-strength native button artwork`);
-    assert.equal(await placeholderUnit.getAttribute("aria-disabled"), "true", `Unit ${unit} must remain an inert placeholder`);
-    assert.deepEqual(await placeholderUnit.evaluate((button) => {
+  assert.equal(await page.getByRole("button", { name: /Open Unit/ }).count(), 10, "Units 1 through 10 must expose their page images");
+  for (const unit of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+    const unitButton = page.getByRole("button", { name: new RegExp(`^Open Unit ${unit}:`) });
+    assert.equal(await unitButton.isEnabled(), true, `Unit ${unit} page navigation must be available`);
+    assert.deepEqual(await unitButton.evaluate((button) => {
       const style = getComputedStyle(button);
       return { opacity: style.opacity, filter: style.filter, notAllowed: style.cursor === "not-allowed" };
-    }), { opacity: "1", filter: "none", notAllowed: false }, `Unit ${unit} must render at full visual strength`);
+    }), { opacity: "1", filter: "none", notAllowed: false }, `Unit ${unit} page navigation must render at full visual strength`);
   }
   assert.equal(await page.locator(".legacy-home-unit.locked, .legacy-home-unit .legacy-home-lock").count(), 0);
   for (const book of ["Students Book", "Workbook", "Grammar Book", "Extras"]) {
@@ -201,8 +197,8 @@ try {
   for (const [label, button] of [
     ["Unit 1", page.getByRole("button", { name: /^Open Unit 1:/ })],
     ["Unit 2", page.getByRole("button", { name: /^Open Unit 2:/ })],
-    ["Unit 3", page.getByRole("button", { name: /^Unit 3:/ })],
-    ["Unit 10", page.getByRole("button", { name: /^Unit 10:/ })],
+    ["Unit 3", page.getByRole("button", { name: /^Open Unit 3:/ })],
+    ["Unit 10", page.getByRole("button", { name: /^Open Unit 10:/ })],
     ["Workbook", page.getByRole("button", { name: "Workbook", exact: true })],
     ["Grammar Book", page.getByRole("button", { name: "Grammar Book", exact: true })],
     ["Extras", page.getByRole("button", { name: "Extras", exact: true })],
@@ -313,7 +309,15 @@ try {
   assert.equal(await page.getByRole("switch", { name: "Menu buttons auto-hide" }).count(), 0);
   await page.getByRole("button", { name: "Close settings" }).click();
   const initialHash = await page.evaluate(() => location.hash);
-  await page.getByRole("button", { name: /^Unit 3:/ }).evaluate((button) => button.click());
+  await page.getByRole("button", { name: /^Open Unit 3:/ }).click();
+  const unitThreeOverview = page.getByRole("region", { name: "Unit 3 page overview" });
+  await unitThreeOverview.waitFor();
+  assert.ok(await unitThreeOverview.locator(".teacher-unit-page-thumb img").count() > 0, "Unit 3 must expose its page images");
+  await page.waitForFunction(() => [...document.querySelectorAll(".teacher-unit-page-thumb img")]
+    .every((image) => image.complete && image.naturalWidth > 0));
+  await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Home", exact: true }).click();
+  await page.locator(".legacy-home-launcher").waitFor();
+  assert.equal(await page.evaluate(() => location.hash), initialHash, "Unit 3 page review must return cleanly to the launcher");
   const editionButtons = page.locator(".legacy-home-book-row .legacy-home-book-button");
   const unitLauncherSignature = () => page.locator(".legacy-home-unit").evaluateAll((buttons) => buttons.map((button) => {
     const box = button.getBoundingClientRect();
@@ -352,7 +356,7 @@ try {
   await page.getByRole("button", { name: "Students Book", exact: true }).click();
   assert.deepEqual(await editionButtons.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))), ["true", "false", "false", "false"]);
   assert.equal(await page.locator(".legacy-home-unit").count(), 10, "Students Book must restore the existing Unit launcher");
-  assert.equal(await page.evaluate(() => location.hash), initialHash, "Placeholder launcher controls must not navigate");
+  assert.equal(await page.evaluate(() => location.hash), initialHash, "Edition selection must not navigate away from the launcher");
   assert.equal(await page.locator(".legacy-home-launcher").isVisible(), true);
   const coldStartupMs = Math.round(performance.now() - startupStartedAt);
   const bookOpenStartedAt = performance.now();

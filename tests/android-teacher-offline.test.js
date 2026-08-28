@@ -148,7 +148,7 @@ test("Teacher page pan converts rendered pointer deltas into logical stage pixel
   assert.equal(renderedDeltaToTeacherStage(100, 2), 50);
 });
 
-test("Students Book overview groups every real Unit 1 and Unit 2 page exactly once", () => {
+test("Students Book overview groups every real Unit 1-10 page exactly once", () => {
   const unit1 = studentsBookRuntime.units.find((unit) => unit.number === 1);
   const unit2 = studentsBookRuntime.units.find((unit) => unit.number === 2);
   const unit1Entries = buildStudentsBookOverviewEntries(unit1);
@@ -165,6 +165,13 @@ test("Students Book overview groups every real Unit 1 and Unit 2 page exactly on
   assert.deepEqual(unit2Entries.find((entry) => entry.label === "Practice 2").pageIds, ["practice-31", "practice-32"]);
   assert.deepEqual(unit2Entries.find((entry) => entry.label === "Progress check 1").pageIds, ["progress-check-33", "progress-check-34"]);
   assert.deepEqual(studentsBookOverviewLayout[2][0], { label: null, pageLabel: "pg 19", pageIds: ["reading-19"], row: 1 });
+
+  for (const unit of studentsBookRuntime.units.filter((candidate) => candidate.number >= 3 && candidate.number <= 10)) {
+    const entries = buildStudentsBookOverviewEntries(unit);
+    assert.equal(entries.length, unit.pages.length);
+    assert.deepEqual(entries.flatMap((entry) => entry.pageIds), unit.pages.map((page) => page.id));
+    assert.ok(entries.every((entry) => entry.pages.length === 1 && [1, 2].includes(entry.row)));
+  }
 
   assert.throws(
     () => buildStudentsBookOverviewEntries({ ...unit1, pages: unit1.pages.slice(1) }),

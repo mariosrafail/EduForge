@@ -56,7 +56,7 @@ async function main() {
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.packageId, "ultimate-b2-students-book");
   assert.equal(manifest.minimumSupportedAppVersion, "0.1.0");
-  assert.deepEqual(manifest.includedUnits, [1, 2]);
+  assert.deepEqual(manifest.includedUnits, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.equal(manifest.enabledActivityCount, 78);
   assert.equal(manifest.activityCountsByUnit["1"], 38);
   assert.equal(manifest.activityCountsByUnit["2"], 40);
@@ -108,12 +108,12 @@ async function main() {
   for (const logicalKey of pageActionAssetKeys) {
     assert.ok(assetKeys.has(logicalKey), `Required page action asset is unavailable: ${logicalKey}`);
   }
-  assert.equal(manifest.pageCount, 22);
+  assert.equal(manifest.pageCount, 110);
   assert.equal(manifest.assetCountsByType.cover, 1);
-  assert.equal(manifest.assetCountsByType.page, 22);
+  assert.equal(manifest.assetCountsByType.page, 110);
   assert.equal(manifest.assetCountsByType.audio, 11);
   assert.equal(manifest.assetCountsByType.video, 7);
-  assert.equal(manifest.assetCount, 41);
+  assert.equal(manifest.assetCount, 129);
   assert.equal(manifest.assetSetSha256, semanticSha256(assetsManifest.assets));
 
   const sourcesByKey = new Map(teacherPackAssetSources().map((asset) => [asset.logicalKey, asset]));
