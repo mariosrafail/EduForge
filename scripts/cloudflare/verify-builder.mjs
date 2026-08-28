@@ -11,6 +11,7 @@ import {
   builderPlayerMediaManifest,
   validateBuilderPlayerMediaManifest,
 } from "./builder-player-media.mjs";
+import { BUILDER_RELEASE_SOURCE_ASSETS_BUCKET } from "../../cloudflare/builder/storage-bindings.js";
 
 const root = path.resolve("dist-cloudflare/builder");
 const configPath = path.resolve("cloudflare/builder/wrangler.jsonc");
@@ -36,7 +37,7 @@ assert.equal(config.assets.not_found_handling, "none");
 assert.deepEqual(config.assets.run_worker_first, expectedWorkerFirst);
 assert.deepEqual(config.r2_buckets, [
   { binding: "PLAYER_MEDIA", bucket_name: "hhplms-book-public-dev" },
-  { binding: "RELEASE_SOURCE_ASSETS", bucket_name: "hhplms-book-private-dev" },
+  { binding: "RELEASE_SOURCE_ASSETS", bucket_name: BUILDER_RELEASE_SOURCE_ASSETS_BUCKET },
 ]);
 for (const forbidden of ["routes", "route", "domains", "domain", "triggers", "vars"]) {
   assert.equal(Object.hasOwn(config, forbidden), false, `Wrangler config must not contain ${forbidden}`);

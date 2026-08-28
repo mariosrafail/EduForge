@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
+import { createBuilderWorker } from "../cloudflare/builder/worker.js";
+import { BUILDER_RELEASE_SOURCE_ASSETS_BUCKET } from "../cloudflare/builder/storage-bindings.js";
+import { buildBuilderPageAssetObjectKey } from "../lib/book-assets/object-keys.js";
+import { createBuilderPublicationFunction } from "../netlify-sites/ultimate-b2-builder/functions/builder-publication.js";
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { ComponentPublicationAssetError } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-assets.js";
+import { freezeComponentPublicationAssetPins } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-pins.js";
 import { createBuilderProductPublicationHandler, parseBuilderProductPublicationRoute } from "../netlify-sites/ultimate-b2-builder/server/_builder-product-publication.js";
 
 const base = "/builder/api/publication/books/ultimate-b2";
@@ -42,6 +47,54 @@ function compiledMembers(sourceOverride = new Map()) {
   }));
 }
 
+function managedPageSource() {
+  const componentSlug = components[0][0];
+  const descriptor = { sha256: digest("f"), extension: "png", mediaType: "image/png", role: "managed_page_image" };
+  const pageId = "students-page-one";
+  return {
+    descriptor,
+    row: {
+      id: randomUUID(),
+      book_slug: "ultimate-b2",
+      component_slug: componentSlug,
+      asset_role: "page_image",
+      checksum_sha256: descriptor.sha256,
+      byte_size: 68,
+      mime_type: descriptor.mediaType,
+      object_key: buildBuilderPageAssetObjectKey({ bookSlug: "ultimate-b2", componentSlug, pageId, checksum: descriptor.sha256, extension: ".png" }),
+      storage_profile: "private",
+      storage_bucket: BUILDER_RELEASE_SOURCE_ASSETS_BUCKET,
+      publication_status: "draft",
+      access_level: "internal",
+      source_metadata: { publication_page_id: pageId },
+    },
+  };
+}
+
+function compiledMembersWith(source) {
+  const compiled = compiledMembers();
+  compiled[0].compiled.assetManifest = [source.descriptor];
+  compiled[0].compiled.nativeAssetSources = [source];
+  return compiled;
+}
+
+function releaseSourceBucket(source, changes = {}) {
+  const calls = [];
+  return {
+    calls,
+    async head(objectKey) {
+      calls.push(objectKey);
+      if (changes.missing) return null;
+      return {
+        size: Object.hasOwn(changes, "size") ? changes.size : Number(source.row.byte_size),
+        httpMetadata: { contentType: Object.hasOwn(changes, "contentType") ? changes.contentType : source.row.mime_type },
+        customMetadata: Object.hasOwn(changes, "customMetadata") ? changes.customMetadata : { sha256: source.row.checksum_sha256 },
+        etag: "binding-etag",
+      };
+    },
+  };
+}
+
 function candidate(overrides = {}) {
   return {
     id: overrides.id || randomUUID(),
@@ -75,6 +128,7 @@ function harness(overrides = {}) {
   let createdInput;
   let publishInput;
   let frozen = [];
+  let storageCalls = 0;
   const release = overrides.release || candidate();
   const handler = createBuilderProductPublicationHandler({
     getDatabase: () => ({}),
@@ -84,7 +138,7 @@ function harness(overrides = {}) {
     compileProduct: async () => compiled,
     status: async () => ({ headRevision: 0, published: null, releases: [] }),
     freezePins: async (storage, input) => { frozen.push(input.componentSlug); return overrides.freezePins ? overrides.freezePins(storage, input) : []; },
-    storage: () => ({}),
+    storage: () => { storageCalls += 1; return overrides.storage ? overrides.storage() : {}; },
     randomUuid: randomUUID,
     create: async (sql, input) => { createdInput = input; return overrides.create ? overrides.create(sql, input) : { outcome: "created", productReleaseId: release.id, releaseNumber: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, members: release.members }; },
     loadRelease: async () => release,
@@ -94,7 +148,7 @@ function harness(overrides = {}) {
     publish: async (sql, input) => { publishInput = input; return overrides.publish ? overrides.publish(sql, input) : { outcome: "published", productReleaseId: input.productReleaseId, releaseNumber: 1, headRevision: 1 }; },
     logger: overrides.logger || { error() {} },
   });
-  return { handler, release, get createdInput() { return createdInput; }, get publishInput() { return publishInput; }, get frozen() { return frozen; }, setCompiled(value) { compiled = value; } };
+  return { handler, release, get createdInput() { return createdInput; }, get publishInput() { return publishInput; }, get frozen() { return frozen; }, get storageCalls() { return storageCalls; }, setCompiled(value) { compiled = value; } };
 }
 
 test("product route is distinct from component routes and requires auth, schema, and same origin", async () => {
@@ -118,6 +172,98 @@ test("Prepare compiles, source-verifies, and pins Students, Workbook, and Gramma
   assert.ok(run.createdInput.members.every((member) => /^[0-9a-f-]{36}$/.test(member.releaseId)));
   assert.ok(run.createdInput.members.every((member) => member.assetStorageMode === "pinned-source-v1" && Array.isArray(member.assetPins)));
   assert.equal(parsed(response).productReleaseId, run.release.id);
+});
+
+test("Cloudflare Worker, Netlify adapter, and publication wrapper propagate RELEASE_SOURCE_ASSETS into Product Prepare", async () => {
+  const source = managedPageSource();
+  const binding = releaseSourceBucket(source);
+  const run = harness({ compiled: compiledMembersWith(source), freezePins: freezeComponentPublicationAssetPins });
+  const publication = createBuilderPublicationFunction({
+    componentHandler: async () => { throw new Error("Product Prepare must not select the component handler"); },
+    productHandler: run.handler,
+  });
+  const worker = createBuilderWorker({ handlers: { publication } });
+  const response = await worker.fetch(new Request(`https://builder.hhplms.workers.dev${base}/prepare`, {
+    method: "POST",
+    headers: {
+      Host: "builder.hhplms.workers.dev",
+      Origin: "https://builder.hhplms.workers.dev",
+      Cookie: "hh_builder_session=live",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ clientMutationId: randomUUID(), releaseNote: "Binding-backed" }),
+  }), { RELEASE_SOURCE_ASSETS: binding });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(binding.calls, [source.row.object_key]);
+  assert.equal(run.storageCalls, 0, "Cloudflare runtime must not instantiate local S3 storage");
+  assert.equal(run.createdInput.members[0].assetPins[0].objectKey, source.row.object_key);
+});
+
+test("Product Prepare preserves the local S3-compatible storage path outside Cloudflare context", async () => {
+  const localStorage = {};
+  const run = harness({
+    storage: () => localStorage,
+    async freezePins(storage) {
+      assert.equal(storage, localStorage);
+      return [];
+    },
+  });
+  const response = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: "Local" }));
+  assert.equal(response.statusCode, 200);
+  assert.equal(run.storageCalls, 1);
+  assert.ok(run.createdInput);
+});
+
+test("Cloudflare Product Prepare fails closed for missing objects, invalid metadata, or a missing binding", async () => {
+  const scenarios = [
+    ["missing object", { missing: true }],
+    ["checksum mismatch", { customMetadata: { sha256: digest("e") } }],
+    ["missing checksum metadata", { customMetadata: {} }],
+    ["malformed checksum metadata", { customMetadata: { sha256: "not-a-sha256" } }],
+    ["byte-size mismatch", { size: 69 }],
+    ["MIME mismatch", { contentType: "image/webp" }],
+  ];
+  for (const [label, changes] of scenarios) {
+    const source = managedPageSource();
+    const binding = releaseSourceBucket(source, changes);
+    const diagnostics = [];
+    const run = harness({
+      compiled: compiledMembersWith(source),
+      freezePins: freezeComponentPublicationAssetPins,
+      logger: { error(_message, diagnostic) { diagnostics.push(diagnostic); } },
+    });
+    const response = await run.handler(
+      event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: label }),
+      { cloudflare: { releaseSourceAssets: binding, releaseSourceAssetsBucket: BUILDER_RELEASE_SOURCE_ASSETS_BUCKET } },
+    );
+    assert.equal(response.statusCode, 409, label);
+    assert.deepEqual(parsed(response), { error: "release_asset_unavailable" }, label);
+    assert.equal(run.createdInput, undefined, label);
+    assert.equal(run.storageCalls, 0, `${label} must not fall back to local S3`);
+    assert.doesNotMatch(JSON.stringify(parsed(response)), /bucket|object|key|credential|token|secret/i, label);
+    assert.doesNotMatch(JSON.stringify(diagnostics), new RegExp(source.row.object_key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), label);
+  }
+
+  for (const [label, releaseSourceAssets] of [["missing binding", undefined], ["unusable binding", {}]]) {
+    const diagnostics = [];
+    const run = harness({ logger: { error(_message, diagnostic) { diagnostics.push(diagnostic); } } });
+    const response = await run.handler(
+      event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: label }),
+      { cloudflare: { releaseSourceAssets, releaseSourceAssetsBucket: BUILDER_RELEASE_SOURCE_ASSETS_BUCKET } },
+    );
+    assert.equal(response.statusCode, 409, label);
+    assert.deepEqual(parsed(response), { error: "release_asset_unavailable" }, label);
+    assert.equal(run.createdInput, undefined, label);
+    assert.equal(run.storageCalls, 0, `${label} must not fall back to local S3`);
+    assert.deepEqual(diagnostics, [{
+      code: "release_asset_unavailable",
+      assetId: "unknown",
+      assetRole: "unknown",
+      assetStage: "pin-storage",
+      failureClass: "source_storage_identity_invalid",
+    }], label);
+  }
 });
 
 test("managed page source-integrity failures keep product Prepare atomic, safely logged, and retryable", async () => {

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { createCloudflareR2BookAssetHeadStorage } from "../../../lib/book-assets/cloudflare-r2-head-storage.js";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { findProductBook, findProductComponent } from "../../../src/data/bookProductCatalog.js";
 import {
@@ -123,6 +124,21 @@ function withAssetModes(release, modeRows, { legacySchema = false } = {}) {
   return { ...release, assetStorageMode: modes.size === 1 ? [...modes][0] : "mixed", members };
 }
 
+function prepareStorage(context, dependencies) {
+  if (!Object.hasOwn(context || {}, "cloudflare")) return dependencies.storage();
+  try {
+    return dependencies.cloudflareStorage({
+      binding: context?.cloudflare?.releaseSourceAssets,
+      privateBucket: context?.cloudflare?.releaseSourceAssetsBucket,
+    });
+  } catch {
+    throw new ComponentPublicationAssetError({
+      stage: "pin-storage",
+      failureClass: "source_storage_identity_invalid",
+    });
+  }
+}
+
 export function createBuilderProductPublicationHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
@@ -140,11 +156,12 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
     loadAssetModes: overrides.loadAssetModes || loadProductPublicationAssetModes,
     freezePins: overrides.freezePins || freezeComponentPublicationAssetPins,
     storage: overrides.storage || (() => createBookAssetStorage()),
+    cloudflareStorage: overrides.cloudflareStorage || createCloudflareR2BookAssetHeadStorage,
     randomUuid: overrides.randomUuid || randomUUID,
     logger: overrides.logger || console,
   };
 
-  return async function handler(event) {
+  return async function handler(event, context = {}) {
     const parsedRoute = parseBuilderProductPublicationRoute(event);
     const configuration = parsedRoute && productConfiguration(parsedRoute.bookSlug);
     if (!configuration) return json(404, { error: "publication_product_not_found" });
@@ -181,7 +198,7 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
         if (!builderClientMutationIdPattern.test(parsed.value.clientMutationId) || typeof parsed.value.releaseNote !== "string" || parsed.value.releaseNote.length > 240) return json(400, { error: "invalid_request" });
         if (!pinSchemaReady) return json(409, { error: "release_pin_schema_unavailable" });
         const compiledMembers = await dependencies.compileProduct(sql, configuration, dependencies);
-        const storage = dependencies.storage();
+        const storage = prepareStorage(context, dependencies);
         const pinnedMembers = await Promise.all(compiledMembers.map(async (entry) => ({
           entry,
           pins: await dependencies.freezePins(storage, { bookSlug: parsedRoute.bookSlug, componentSlug: entry.componentSlug, assetManifest: entry.compiled.assetManifest, nativeAssetSources: entry.compiled.nativeAssetSources || [] }),

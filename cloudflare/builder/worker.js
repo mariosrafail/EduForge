@@ -11,6 +11,7 @@ import { handler as builderUnitExtraAssets } from "../../netlify-sites/ultimate-
 import { handler as builderPages } from "../../netlify-sites/ultimate-b2-builder/functions/builder-pages.js";
 import { invokeNetlifyHandler } from "../shared/netlify-handler-adapter.js";
 import { servePlayerMedia } from "./player-media.js";
+import { BUILDER_RELEASE_SOURCE_ASSETS_BUCKET } from "./storage-bindings.js";
 import { isBuilderPublicAssetNamespace, serveBuilderPublicAsset } from "./teacher-ui-assets.js";
 
 const productionHandlers = Object.freeze({
@@ -132,7 +133,11 @@ export function createBuilderWorker({ handlers: handlerOverrides = {}, playerMed
       if (route) {
         const compatible = compatibilityRequest(request, route);
         return invokeNetlifyHandler(handlers[route.handler], compatible, {
-          context: { cloudflare: { request: compatible, releaseSourceAssets: env.RELEASE_SOURCE_ASSETS } },
+          context: { cloudflare: {
+            request: compatible,
+            releaseSourceAssets: env.RELEASE_SOURCE_ASSETS,
+            releaseSourceAssetsBucket: BUILDER_RELEASE_SOURCE_ASSETS_BUCKET,
+          } },
         });
       }
       if (isDynamicNamespace(pathname)) return dynamicNotFound();
