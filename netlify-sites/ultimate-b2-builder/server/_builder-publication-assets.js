@@ -12,7 +12,13 @@ const STORAGE_COPY_FAILURES = new Set([
   "immutable_checksum_mismatch",
   "immutable_byte_size_mismatch",
   "immutable_media_type_mismatch",
+  "copy_invalid_request",
+  "copy_permission_denied",
   "copy_precondition_failed",
+  "copy_not_supported",
+  "copy_throttled",
+  "copy_provider_unavailable",
+  "copy_transport_failed",
   "copy_failed",
 ]);
 
@@ -22,7 +28,7 @@ function safeDiagnosticValue(value, maximumLength) {
 }
 
 export class ComponentPublicationAssetError extends Error {
-  constructor({ assetId, role, stage, failureClass }) {
+  constructor({ assetId, role, stage, failureClass, providerStatus, providerCode }) {
     super("release_asset_unavailable");
     this.name = "ComponentPublicationAssetError";
     this.code = "release_asset_unavailable";
@@ -30,15 +36,19 @@ export class ComponentPublicationAssetError extends Error {
     this.assetRole = safeDiagnosticValue(role, 64);
     this.assetStage = safeDiagnosticValue(stage, 64);
     this.failureClass = safeDiagnosticValue(failureClass, 64);
+    if (Number.isInteger(providerStatus) && providerStatus >= 100 && providerStatus <= 599) this.providerStatus = providerStatus;
+    if (/^[A-Za-z0-9_.-]{1,64}$/.test(String(providerCode || ""))) this.providerCode = providerCode;
   }
 }
 
-function unavailable(source, stage, failureClass) {
+function unavailable(source, stage, failureClass, diagnostics = {}) {
   return new ComponentPublicationAssetError({
     assetId: source?.row?.id || source?.descriptor?.sha256,
     role: source?.descriptor?.role,
     stage,
     failureClass,
+    providerStatus: diagnostics.providerStatus,
+    providerCode: diagnostics.providerCode,
   });
 }
 
@@ -73,7 +83,7 @@ export async function materializeNativeReleaseAssets(storage, { bookSlug, compon
           expectedContentType: descriptor.mediaType,
         });
       } catch (error) {
-        throw unavailable(source, "materialize", STORAGE_COPY_FAILURES.has(error?.code) ? error.code : "storage_copy_failure");
+        throw unavailable(source, "materialize", STORAGE_COPY_FAILURES.has(error?.code) ? error.code : "storage_copy_failure", error);
       }
     } catch (error) {
       throw error instanceof ComponentPublicationAssetError ? error : unavailable(source, "materialize", "storage_copy_failure");

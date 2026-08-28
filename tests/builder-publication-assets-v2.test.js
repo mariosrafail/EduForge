@@ -113,6 +113,7 @@ test("release materialization fails closed with safe diagnostics for invalid sou
     { name: "wrong source size", source: { descriptor, row }, copyError: codedError("source_byte_size_mismatch"), failureClass: "source_byte_size_mismatch" },
     { name: "wrong source checksum", source: { descriptor, row }, copyError: codedError("source_checksum_mismatch"), failureClass: "source_checksum_mismatch" },
     { name: "wrong immutable checksum", source: { descriptor, row }, copyError: codedError("immutable_checksum_mismatch"), failureClass: "immutable_checksum_mismatch" },
+    { name: "safe provider classification", source: { descriptor, row }, copyError: Object.assign(codedError("copy_invalid_request", "private bucket source destination CopySource ETag Authorization Cookie"), { providerStatus: 400, providerCode: "InvalidArgument", bucket: "private-assets", sourceObjectKey: row.object_key }), failureClass: "copy_invalid_request", providerStatus: 400, providerCode: "InvalidArgument" },
     { name: "unknown storage failure", source: { descriptor, row }, copyError: new Error("secret key"), failureClass: "storage_copy_failure" },
   ];
   for (const scenario of scenarios) {
@@ -123,7 +124,9 @@ test("release materialization fails closed with safe diagnostics for invalid sou
       assert.equal(error.assetRole, scenario.source.descriptor.role, scenario.name);
       assert.equal(error.assetStage, "materialize", scenario.name);
       assert.equal(error.failureClass, scenario.failureClass, scenario.name);
-      assert.doesNotMatch(JSON.stringify(error), /builder-native-assets|private source key|secret key/i, scenario.name);
+      assert.equal(error.providerStatus, scenario.providerStatus, scenario.name);
+      assert.equal(error.providerCode, scenario.providerCode, scenario.name);
+      assert.doesNotMatch(JSON.stringify(error), /builder-native-assets|private source key|secret key|private-assets|CopySource|ETag|Authorization|Cookie/i, scenario.name);
       return true;
     });
   }

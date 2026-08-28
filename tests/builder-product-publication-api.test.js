@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
+import { ComponentPublicationAssetError } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-assets.js";
 import { createBuilderProductPublicationHandler, parseBuilderProductPublicationRoute } from "../netlify-sites/ultimate-b2-builder/server/_builder-product-publication.js";
 
 const base = "/builder/api/publication/books/ultimate-b2";
@@ -81,16 +82,16 @@ function harness(overrides = {}) {
     ready: overrides.ready || (async () => true),
     compileProduct: async () => compiled,
     status: async () => ({ headRevision: 0, published: null, releases: [] }),
-    materialize: async (_storage, input) => { materialized.push(input.componentSlug); },
-    verifyAssets: async () => {},
+    materialize: async (storage, input) => { materialized.push(input.componentSlug); return overrides.materialize?.(storage, input); },
+    verifyAssets: overrides.verifyAssets || (async () => {}),
     storage: () => ({}),
     randomUuid: randomUUID,
-    create: async (_sql, input) => { createdInput = input; return { outcome: "created", productReleaseId: release.id, releaseNumber: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, members: release.members }; },
+    create: async (sql, input) => { createdInput = input; return overrides.create ? overrides.create(sql, input) : { outcome: "created", productReleaseId: release.id, releaseNumber: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, members: release.members }; },
     loadRelease: async () => release,
     verifyCandidate: async () => true,
     loadMutation: async () => overrides.replay || null,
-    publish: async (_sql, input) => { publishInput = input; return { outcome: "published", productReleaseId: input.productReleaseId, releaseNumber: 1, headRevision: 1 }; },
-    logger: { error() {} },
+    publish: async (sql, input) => { publishInput = input; return overrides.publish ? overrides.publish(sql, input) : { outcome: "published", productReleaseId: input.productReleaseId, releaseNumber: 1, headRevision: 1 }; },
+    logger: overrides.logger || { error() {} },
   });
   return { handler, release, get createdInput() { return createdInput; }, get publishInput() { return publishInput; }, get materialized() { return materialized; }, setCompiled(value) { compiled = value; } };
 }
@@ -115,6 +116,67 @@ test("Prepare compiles, materializes, and creates Students, Workbook, and Gramma
   assert.equal(run.createdInput.members.some((member) => member.componentSlug.includes("test-book")), false);
   assert.ok(run.createdInput.members.every((member) => /^[0-9a-f-]{36}$/.test(member.releaseId)));
   assert.equal(parsed(response).productReleaseId, run.release.id);
+});
+
+test("managed page CopyObject failures keep product Prepare atomic, safely logged, and retryable", async () => {
+  for (const failingComponent of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
+    let failOnce = true;
+    let createCalls = 0;
+    let publishCalls = 0;
+    let reused = 0;
+    const materializedObjects = new Set();
+    const diagnostics = [];
+    const run = harness({
+      async materialize(_storage, input) {
+        if (failOnce && input.componentSlug === failingComponent) {
+          failOnce = false;
+          throw Object.assign(new ComponentPublicationAssetError({
+            assetId: randomUUID(),
+            role: "managed_page_image",
+            stage: "materialize",
+            failureClass: "copy_invalid_request",
+            providerStatus: 400,
+            providerCode: "InvalidArgument",
+          }), {
+            bucket: "private-secret-bucket",
+            sourceObjectKey: "builder-pages/private/source.png",
+            destinationObjectKey: "builder-release-assets/private/destination.png",
+            copySource: "/private-secret-bucket/source.png",
+            etag: '"private-etag"',
+            authorization: "secret Authorization",
+            cookie: "secret Cookie",
+          });
+        }
+        if (materializedObjects.has(input.componentSlug)) reused += 1;
+        materializedObjects.add(input.componentSlug);
+      },
+      async create() { createCalls += 1; return { outcome: "created", productReleaseId: run.release.id, releaseNumber: 1, releaseSha256: run.release.releaseSha256, sourceSnapshotSha256: run.release.sourceSnapshotSha256, members: run.release.members }; },
+      async publish() { publishCalls += 1; return { outcome: "published" }; },
+      logger: { error(_message, diagnostic) { diagnostics.push(diagnostic); } },
+    });
+    const first = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: `Fail ${failingComponent}` }));
+    assert.equal(first.statusCode, 409, failingComponent);
+    assert.deepEqual(parsed(first), { error: "release_asset_unavailable" }, failingComponent);
+    assert.equal(createCalls, 0, failingComponent);
+    assert.equal(publishCalls, 0, failingComponent);
+    assert.deepEqual(diagnostics[0], {
+      code: "release_asset_unavailable",
+      assetId: diagnostics[0].assetId,
+      assetRole: "managed_page_image",
+      assetStage: "materialize",
+      failureClass: "copy_invalid_request",
+      providerStatus: 400,
+      providerCode: "InvalidArgument",
+    }, failingComponent);
+    assert.match(diagnostics[0].assetId, /^[0-9a-f-]{36}$/i, failingComponent);
+    assert.doesNotMatch(JSON.stringify(diagnostics), /bucket|sourceObjectKey|destinationObjectKey|CopySource|ETag|Authorization|Cookie|private/i, failingComponent);
+
+    const retry = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: `Retry ${failingComponent}` }));
+    assert.equal(retry.statusCode, 200, failingComponent);
+    assert.equal(createCalls, 1, failingComponent);
+    assert.equal(publishCalls, 0, failingComponent);
+    assert.ok(reused >= 1, `${failingComponent} retry must reuse earlier verified component materialization`);
+  }
 });
 
 test("Publish rejects family staleness before the atomic head move and permits exact mutation replay", async () => {

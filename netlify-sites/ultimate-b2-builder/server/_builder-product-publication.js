@@ -209,7 +209,14 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
     } catch (error) {
       dependencies.logger.error("Builder product publication request failed", {
         code: /^[A-Za-z0-9_.-]+$/.test(String(error?.code || error?.message || "")) ? (error.code || error.message) : "unknown",
-        ...(error instanceof ComponentPublicationAssetError ? { assetId: error.assetId, assetRole: error.assetRole, assetStage: error.assetStage, failureClass: error.failureClass } : {}),
+        ...(error instanceof ComponentPublicationAssetError ? {
+          assetId: error.assetId,
+          assetRole: error.assetRole,
+          assetStage: error.assetStage,
+          failureClass: error.failureClass,
+          ...(error.providerStatus ? { providerStatus: error.providerStatus } : {}),
+          ...(error.providerCode ? { providerCode: error.providerCode } : {}),
+        } : {}),
       });
       const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "managed_page_not_ready", "release_asset_unavailable", "publication_compiler_mismatch"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
       return safeCode ? json(409, { error: safeCode, ...(error.activityId ? { activityId: error.activityId } : {}), ...(error.issues?.length ? { issues: error.issues } : {}) }) : json(500, { error: "builder_product_publication_failed" });

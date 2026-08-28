@@ -173,6 +173,8 @@ export function createBuilderPublicationHandler(overrides = {}) {
           assetRole: error.assetRole,
           assetStage: error.assetStage,
           failureClass: error.failureClass,
+          ...(error.providerStatus ? { providerStatus: error.providerStatus } : {}),
+          ...(error.providerCode ? { providerCode: error.providerCode } : {}),
         } : {}),
       });
       const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "release_asset_unavailable"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
