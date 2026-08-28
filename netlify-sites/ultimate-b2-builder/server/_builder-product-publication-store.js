@@ -48,7 +48,15 @@ export async function productPublicationPinDatabaseReady(sql) {
     select to_regclass('book_component_release_asset_pins') is not null
       and exists(select 1 from information_schema.columns where table_schema=current_schema()
         and table_name='book_component_releases' and column_name='asset_storage_mode')
-      and to_regprocedure('create_builder_pinned_product_release(uuid,text,text,text,jsonb,text,text,uuid,uuid)') is not null ready
+      and to_regprocedure('create_builder_pinned_product_release(uuid,text,text,text,jsonb,text,text,uuid,uuid)') is not null
+      and exists(
+        select 1 from pg_constraint constraint_record
+        join pg_class relation on relation.oid=constraint_record.conrelid
+        join pg_namespace namespace on namespace.oid=relation.relnamespace
+        where namespace.nspname=current_schema() and relation.relname='book_component_release_asset_pins'
+          and constraint_record.contype='p'
+          and pg_get_constraintdef(constraint_record.oid)='PRIMARY KEY (component_release_id, checksum_sha256, extension, asset_role)'
+      ) ready
   `;
   return rows[0]?.ready === true;
 }

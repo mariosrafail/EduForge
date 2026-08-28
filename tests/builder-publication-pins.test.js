@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { buildBuilderPageAssetObjectKey, buildNativeActivityAssetObjectKey, buildUnitExtraAssetObjectKey } from "../lib/book-assets/object-keys.js";
@@ -45,6 +45,19 @@ function storageFor(source, mutateHead = {}) {
   };
 }
 
+function storageForSources(sources, verifiedObjectKeys = []) {
+  return {
+    bucket: () => bucket,
+    async head({ objectKey }) {
+      const source = sources.find((candidate) => candidate.row.object_key === objectKey);
+      assert.ok(source, "every role-scoped source must be HEAD-verified");
+      verifiedObjectKeys.push(objectKey);
+      return { checksumSha256: source.row.checksum_sha256, byteSize: Number(source.row.byte_size), contentType: source.row.mime_type };
+    },
+    async copyVerifiedImmutable() { throw new Error("CopyObject must never be selected by pin verification"); },
+  };
+}
+
 test("all three private publication roles freeze exact canonical source identities without CopyObject", async () => {
   for (const role of ["managed_page_image", "activity_artwork", "unit_extra_video"]) {
     const source = fixture(role);
@@ -54,6 +67,67 @@ test("all three private publication roles freeze exact canonical source identiti
     assert.equal(pins[0].objectKey, source.row.object_key);
     assert.equal(pins[0].pinSha256.length, 64);
     assert.match(publicationAssetPinFingerprint(pins[0]), /^builder-release-asset-pin-v1\n/);
+  }
+});
+
+test("identical bytes under different legitimate roles produce two independently verified pins", async () => {
+  const sharedChecksum = checksum("e");
+  const artwork = fixture("activity_artwork");
+  const video = fixture("unit_extra_video");
+  artwork.descriptor = { sha256: sharedChecksum, extension: "mp4", mediaType: "video/mp4", role: "activity_artwork" };
+  artwork.row.checksum_sha256 = sharedChecksum;
+  artwork.row.byte_size = video.row.byte_size;
+  artwork.row.mime_type = "video/mp4";
+  artwork.row.object_key = buildNativeActivityAssetObjectKey({
+    bookSlug,
+    componentSlug,
+    activityId: artwork.row.source_metadata.native_activity_id,
+    assetSlot: artwork.row.source_metadata.asset_slot,
+    checksum: sharedChecksum,
+    extension: ".mp4",
+  });
+  video.descriptor = { ...video.descriptor, sha256: sharedChecksum };
+  video.row.checksum_sha256 = sharedChecksum;
+  video.row.object_key = buildUnitExtraAssetObjectKey({
+    bookSlug,
+    componentSlug,
+    unitSlug: video.row.source_metadata.unit_slug,
+    itemId: video.row.source_metadata.unit_extra_item_id,
+    checksum: sharedChecksum,
+    extension: ".mp4",
+  });
+  const sources = [artwork, video];
+  const verifiedObjectKeys = [];
+  const pins = await freezeComponentPublicationAssetPins(storageForSources(sources, verifiedObjectKeys), {
+    bookSlug,
+    componentSlug,
+    assetManifest: sources.map((source) => source.descriptor),
+    nativeAssetSources: sources,
+  });
+  assert.deepEqual(verifiedObjectKeys.sort(), sources.map((source) => source.row.object_key).sort());
+  assert.deepEqual(pins.map((pin) => pin.role), ["activity_artwork", "unit_extra_video"]);
+  assert.equal(new Set(pins.map((pin) => pin.pinSha256)).size, 2);
+  for (const source of sources) {
+    const pin = pins.find((candidate) => candidate.role === source.descriptor.role);
+    const ownerKey = source.descriptor.role === "unit_extra_video"
+      ? source.row.source_metadata.unit_extra_item_id
+      : source.row.source_metadata.native_activity_id;
+    assert.deepEqual({
+      assetId: pin.assetId,
+      role: pin.role,
+      sourceAssetRole: pin.sourceAssetRole,
+      ownerKey: pin.ownerKey,
+      assetSlot: pin.assetSlot,
+      objectKey: pin.objectKey,
+    }, {
+      assetId: source.row.id,
+      role: source.descriptor.role,
+      sourceAssetRole: source.row.asset_role,
+      ownerKey,
+      assetSlot: source.row.source_metadata.asset_slot,
+      objectKey: source.row.object_key,
+    });
+    assert.equal(pin.pinSha256, createHash("sha256").update(publicationAssetPinFingerprint(pin)).digest("hex"));
   }
 });
 

@@ -425,7 +425,7 @@ const productPublicationHandler = createBuilderProductPublicationHandler({
 });
 
 function pinFor(identity) {
-  return findComponentRelease(identity)?.releasePins?.find((pin) => pin.checksum_sha256 === identity.sha256 && pin.extension === identity.extension) || null;
+  return findComponentRelease(identity)?.releasePins?.find((pin) => pin.checksum_sha256 === identity.sha256 && pin.extension === identity.extension && pin.asset_role === identity.role) || null;
 }
 
 function pinnedBytes(pin) {

@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
-import { createBuilderPublicationHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication.js";
+import { createBuilderPublicationHandler, selectComponentReleaseAsset } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication.js";
 import { compileUltimateB2ComponentRelease } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { importUltimateB2HostedOpenResponseBundle } from "../scripts/ultimate-b2/open-response-hosted-import.js";
@@ -217,22 +217,27 @@ test("pinned-source release assets resolve an exact pin through the authorized s
   const asset = release.assetManifest.find((candidate) => candidate.role === "unit_extra_video");
   let signedCalls = 0;
   let delivered;
+  let loadedIdentity;
   const run = harness({
     release,
     releaseRow: { asset_storage_mode: "pinned-source-v1" },
     storage: () => ({ async signedGetUrl() { signedCalls += 1; return "https://raw.invalid"; } }),
-    loadAssetPin: async () => ({
+    loadAssetPin: async (_sql, identity) => {
+      loadedIdentity = identity;
+      return ({
       component_release_id: run.id, book_asset_id: randomUUID(), asset_role: asset.role, source_asset_role: asset.role,
       checksum_sha256: asset.sha256, byte_size: 4096, media_type: asset.mediaType, extension: asset.extension,
       storage_profile: "private", storage_bucket: "never-public", object_key: "never/public", source_owner_key: "video-owner",
       source_asset_slot: "video-owner", pin_sha256: "f".repeat(64),
-    }),
+      });
+    },
     servePinnedAsset: async (input) => { delivered = input; return { statusCode: 206, headers: { "Content-Type": asset.mediaType }, body: "streamed" }; },
   });
   const path = `/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${run.id}/assets/${asset.sha256}.${asset.extension}`;
   const response = await run.handler(event(path, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
   assert.equal(response.statusCode, 206);
   assert.equal(delivered.pin.object_key, "never/public");
+  assert.equal(loadedIdentity.role, asset.role);
   assert.equal(signedCalls, 0);
 
   const missing = harness({ release, releaseRow: { asset_storage_mode: "pinned-source-v1" }, loadAssetPin: async () => null });
@@ -240,6 +245,14 @@ test("pinned-source release assets resolve an exact pin through the authorized s
   const failed = await missing.handler(event(missingPath, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
   assert.equal(failed.statusCode, 409);
   assert.equal(parsed(failed).error, "release_pin_integrity_failed");
+});
+
+test("shared release URL bytes select a deterministic role-scoped descriptor independent of manifest order", () => {
+  const sha256 = "9".repeat(64);
+  const artwork = { sha256, extension: "mp4", mediaType: "video/mp4", role: "activity_artwork" };
+  const unitExtra = { sha256, extension: "mp4", mediaType: "video/mp4", role: "unit_extra_video" };
+  assert.deepEqual(selectComponentReleaseAsset([unitExtra, artwork], sha256, "mp4"), artwork);
+  assert.deepEqual(selectComponentReleaseAsset([artwork, unitExtra], sha256, "mp4"), artwork);
 });
 
 test("public immutable release assets redirect only to Worker-controlled same-origin namespaces", async () => {

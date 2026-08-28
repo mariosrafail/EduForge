@@ -39,6 +39,12 @@ function publicationComponent(bookSlug, componentSlug, writable = false) {
 
 const assetSourceIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
+export function selectComponentReleaseAsset(assetManifest, sha256, extension) {
+  return (assetManifest || [])
+    .filter((candidate) => candidate.sha256 === sha256 && candidate.extension === extension && componentPublicationAssetRolePolicy(candidate.role))
+    .sort((left, right) => assetSourceIdentity(left).localeCompare(assetSourceIdentity(right)))[0] || null;
+}
+
 export async function verifyAssets(storage, assets, nativeAssetSources = [], { bookSlug, componentSlug }) {
   const privateSources = new Map(nativeAssetSources.map((source) => [assetSourceIdentity(source.descriptor), source]));
   for (const asset of assets) {
@@ -101,14 +107,14 @@ export function createBuilderPublicationHandler(overrides = {}) {
         let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
         if (parsedRoute.action === "assets") {
           const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|wav|gaf)$/);
-          const asset = match && release.asset_manifest?.find((candidate) => candidate.sha256 === match[1] && candidate.extension === match[2] && componentPublicationAssetRolePolicy(candidate.role));
+          const asset = match && selectComponentReleaseAsset(release.asset_manifest, match[1], match[2]);
           if (!asset) return json(404, { error: "release_asset_not_found" });
           const target = componentPublicationAssetStorageTarget({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, ...asset });
           if (!target) return json(404, { error: "release_asset_not_found" });
           if (!target.public) {
             const storageMode = release.asset_storage_mode || "materialized-v1";
             if (storageMode === "pinned-source-v1") {
-              const pin = await dependencies.loadAssetPin(sql, { ...parsedRoute, sha256: asset.sha256, extension: asset.extension });
+              const pin = await dependencies.loadAssetPin(sql, { ...parsedRoute, sha256: asset.sha256, extension: asset.extension, role: asset.role });
               if (!pin || pin.component_release_id !== release.id || pin.asset_role !== asset.role || pin.checksum_sha256 !== asset.sha256
                 || pin.extension !== asset.extension || pin.media_type !== asset.mediaType || Number(pin.byte_size) < 1
                 || pin.storage_profile !== "private") return json(409, { error: "release_pin_integrity_failed" });

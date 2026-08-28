@@ -136,7 +136,15 @@ export async function publicationAssetPinDatabaseReady(sql) {
   const rows = await sql`
     select to_regclass('book_component_release_asset_pins') is not null
       and exists(select 1 from information_schema.columns where table_schema=current_schema()
-        and table_name='book_component_releases' and column_name='asset_storage_mode') ready
+        and table_name='book_component_releases' and column_name='asset_storage_mode')
+      and exists(
+        select 1 from pg_constraint constraint_record
+        join pg_class relation on relation.oid=constraint_record.conrelid
+        join pg_namespace namespace on namespace.oid=relation.relnamespace
+        where namespace.nspname=current_schema() and relation.relname='book_component_release_asset_pins'
+          and constraint_record.contype='p'
+          and pg_get_constraintdef(constraint_record.oid)='PRIMARY KEY (component_release_id, checksum_sha256, extension, asset_role)'
+      ) ready
   `;
   return rows[0]?.ready === true;
 }
@@ -260,7 +268,7 @@ export async function loadComponentRelease(sql, { bookSlug, componentSlug, relea
   return rows[0] || null;
 }
 
-export async function loadComponentReleaseAssetPin(sql, { bookSlug, componentSlug, releaseId, sha256, extension }) {
+export async function loadComponentReleaseAssetPin(sql, { bookSlug, componentSlug, releaseId, sha256, extension, role }) {
   const rows = await sql`
     select pin.component_release_id,pin.book_asset_id,pin.asset_role,pin.source_asset_role,pin.checksum_sha256,
       pin.byte_size,pin.media_type,pin.extension,pin.storage_profile,pin.storage_bucket,pin.object_key,
@@ -272,6 +280,7 @@ export async function loadComponentReleaseAssetPin(sql, { bookSlug, componentSlu
     join book_components component on component.id=release.book_component_id and component.book_package_id=package.id
     where package.slug=${bookSlug} and component.slug=${componentSlug} and release.id=${releaseId}::uuid
       and release.asset_storage_mode='pinned-source-v1' and pin.checksum_sha256=${sha256} and pin.extension=${extension}
+      and pin.asset_role=${role}
     limit 1
   `;
   return rows[0] || null;

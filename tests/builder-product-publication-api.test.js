@@ -174,7 +174,7 @@ test("managed page source-integrity failures keep product Prepare atomic, safely
   }
 });
 
-test("new Prepare fails closed before compilation when migration 049 is unavailable", async () => {
+test("new Prepare fails closed before compilation when role-scoped pin schema migration 050 is unavailable", async () => {
   const run = harness({ pinReady: async () => false });
   const response = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: "" }));
   assert.equal(response.statusCode, 409);

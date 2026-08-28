@@ -9,8 +9,10 @@ import {
   collectUltimateB2ManagedPublicationSources,
   collectUltimateB2PublicationV2Sources,
   createComponentRelease,
+  publicationAssetPinDatabaseReady,
   publishComponentRelease,
 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
+import { productPublicationPinDatabaseReady } from "../../netlify-sites/ultimate-b2-builder/server/_builder-product-publication-store.js";
 import {
   productReleaseMemberSha256,
   productReleaseSha256,
@@ -87,7 +89,7 @@ async function createProduct(pool, { productReleaseId, members, mutationId, requ
   )).rows[0];
 }
 
-test("migrations 048/049 preserve truthful legacy families and publish exact three-member pinned products atomically", { skip: !enabled, timeout: 120_000 }, async (t) => {
+test("migrations 048/049/050 preserve truthful legacy families and publish exact three-member role-scoped pinned products atomically", { skip: !enabled, timeout: 120_000 }, async (t) => {
   const schema = `builder_product_publication_${randomBytes(8).toString("hex")}`;
   const admin = new Pool({ connectionString: databaseUrl, max: 1 });
   await admin.query(`create schema "${schema}"`);
@@ -100,7 +102,11 @@ test("migrations 048/049 preserve truthful legacy families and publish exact thr
 
   const migrations = await loadProductionMigrationManifest();
   const productMigrationIndex = migrations.findIndex((migration) => migration.filename === "048_ultimate_b2_product_publication.sql");
-  assert.equal(productMigrationIndex, migrations.length - 2);
+  const pinMigrationIndex = migrations.findIndex((migration) => migration.filename === "049_builder_publication_asset_pins.sql");
+  const rolePinMigrationIndex = migrations.findIndex((migration) => migration.filename === "050_builder_publication_role_scoped_asset_pins.sql");
+  assert.equal(pinMigrationIndex, productMigrationIndex + 1);
+  assert.equal(rolePinMigrationIndex, pinMigrationIndex + 1);
+  assert.equal(rolePinMigrationIndex, migrations.length - 1);
   await pool.query("create table eduforge_migration_history(filename text primary key,checksum_sha256 text not null,applied_at timestamptz not null default now())");
   await apply(pool, migrations.slice(0, productMigrationIndex));
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Product Publication Integration','product-publication@example.test','not-a-real-login-hash')", [actor]);
@@ -128,7 +134,12 @@ test("migrations 048/049 preserve truthful legacy families and publish exact thr
   });
   assert.equal(legacyPublished.outcome, "published");
 
-  await apply(pool, migrations.slice(productMigrationIndex));
+  await apply(pool, migrations.slice(productMigrationIndex, rolePinMigrationIndex));
+  assert.equal(await publicationAssetPinDatabaseReady(sql), false);
+  assert.equal(await productPublicationPinDatabaseReady(sql), false);
+  await apply(pool, migrations.slice(rolePinMigrationIndex));
+  assert.equal(await publicationAssetPinDatabaseReady(sql), true);
+  assert.equal(await productPublicationPinDatabaseReady(sql), true);
   const legacy = (await pool.query(`
     select product.id,product.release_number,product.compiler_id,product.release_schema_version,
       product.source_snapshot_sha256,product.release_sha256,coalesce(product.release_note,'') release_note,product.created_at,
@@ -215,8 +226,21 @@ test("migrations 048/049 preserve truthful legacy families and publish exact thr
     byteSize: 4096, mediaType: videoDescriptor.mediaType, extension: videoDescriptor.extension, storageProfile: "private", storageBucket: "private-fixture",
     objectKey: videoObjectKey, ownerKey: videoItem, assetSlot: videoItem };
   const videoPin = { ...videoPinBase, pinSha256: createHash("sha256").update(publicationAssetPinFingerprint(videoPinBase)).digest("hex") };
-  students.assetManifest = [videoDescriptor];
-  const members = [students, workbook, grammar].map((member) => ({ ...member, assetStorageMode: "pinned-source-v1", assetPins: member === workbook ? [pin] : member === students ? [videoPin] : [] }));
+  const artworkAssetId = randomUUID();
+  const artworkOwner = "ultimate-b2-sb-u1-p1-o77";
+  const artworkSlot = "shared-video";
+  const artworkObjectKey = `builder-native-assets/ultimate-b2/ultimate-b2-students-book/${artworkOwner}/assets/${artworkSlot}/${videoChecksum}.mp4`;
+  await pool.query(`insert into book_assets(id,book_package_id,edition_id,book_component_id,unit_id,stable_logical_key,asset_role,
+    object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,duration_seconds,edition_identifier,version,publication_status,access_level,source_metadata)
+    values($1,$2,$3,$4,$5,$6,'activity_artwork',$7,'private','private-fixture','video/mp4',4096,$8,10,'pin-test','shared-video','archived','internal',$9::jsonb)`,
+  [artworkAssetId, scope.package_id, edition.id, studentsScope.component_id, studentsScope.unit_id, `ultimate-b2.pin-test.${artworkOwner}`, artworkObjectKey, videoChecksum, JSON.stringify({ native_activity_id: artworkOwner, asset_slot: artworkSlot })]);
+  await pool.query("update book_assets set publication_status='draft' where id=$1", [artworkAssetId]);
+  const artworkDescriptor = { ...videoDescriptor, role: "activity_artwork" };
+  const artworkPinBase = { ...videoPinBase, assetId: artworkAssetId, role: artworkDescriptor.role, sourceAssetRole: artworkDescriptor.role,
+    objectKey: artworkObjectKey, ownerKey: artworkOwner, assetSlot: artworkSlot };
+  const artworkPin = { ...artworkPinBase, pinSha256: createHash("sha256").update(publicationAssetPinFingerprint(artworkPinBase)).digest("hex") };
+  students.assetManifest = [artworkDescriptor, videoDescriptor];
+  const members = [students, workbook, grammar].map((member) => ({ ...member, assetStorageMode: "pinned-source-v1", assetPins: member === workbook ? [pin] : member === students ? [artworkPin, videoPin] : [] }));
   const mutationId = randomUUID();
   const productReleaseId = randomUUID();
   const before = (await pool.query("select count(*)::int count from book_component_releases")).rows[0].count;
@@ -227,11 +251,23 @@ test("migrations 048/049 preserve truthful legacy families and publish exact thr
   assert.equal((await createProduct(pool, { productReleaseId, members, mutationId })).outcome, "idempotent");
   assert.equal((await createProduct(pool, { productReleaseId, members, mutationId, requestSha256: hash("7") })).outcome, "mutation_id_conflict");
   assert.equal((await pool.query("select count(*)::int count from book_component_releases")).rows[0].count, before + 3);
+  const storedRolePins = (await pool.query("select asset_role,checksum_sha256,extension from book_component_release_asset_pins where component_release_id=$1 order by asset_role", [students.releaseId])).rows;
+  assert.deepEqual(storedRolePins, [
+    { asset_role: "activity_artwork", checksum_sha256: videoChecksum, extension: "mp4" },
+    { asset_role: "unit_extra_video", checksum_sha256: videoChecksum, extension: "mp4" },
+  ]);
   assert.deepEqual((await pool.query("select distinct asset_storage_mode from book_component_releases where id=any($1::uuid[])", [members.map((member) => member.releaseId)])).rows, [{ asset_storage_mode: "pinned-source-v1" }]);
   const storedPin = (await pool.query("select * from book_component_release_asset_pins where component_release_id=$1", [workbook.releaseId])).rows[0];
   assert.equal(storedPin.book_asset_id, pinnedAssetId);
   assert.equal(storedPin.object_key, pinObjectKey);
   assert.equal(storedPin.pin_sha256, pin.pinSha256);
+  const duplicateRoleMembers = structuredClone(members).map((member) => ({ ...member, releaseId: randomUUID() }));
+  duplicateRoleMembers[0].assetManifest = [videoDescriptor, videoDescriptor];
+  duplicateRoleMembers[0].assetPins = [videoPin, videoPin];
+  await assert.rejects(
+    createProduct(pool, { productReleaseId: randomUUID(), members: duplicateRoleMembers, mutationId: randomUUID(), requestSha256: hash("2") }),
+    /release_pin_conflict/,
+  );
   const archived = (await pool.query("select * from archive_unreferenced_builder_unit_extra_assets('ultimate-b2','ultimate-b2-students-book',$1)", [actor])).rows;
   assert.equal(archived.some((row) => row.asset_id === pinnedVideoAssetId), false);
   assert.equal(archived.some((row) => row.asset_id === unpinnedVideoAssetId), true);
@@ -294,6 +330,6 @@ test("migrations 048/049 preserve truthful legacy families and publish exact thr
     join book_product_release_members member on member.component_release_id=pin.component_release_id
     where member.product_release_id=any($1::uuid[])
   `, [concurrent.map((result) => result.product_release_id)]);
-  assert.equal(concurrentPinCount.rows[0].count, 4);
+  assert.equal(concurrentPinCount.rows[0].count, 6);
   assert.equal((await pool.query("update book_assets set publication_status='archived' where id=$1 returning publication_status", [pinnedAssetId])).rows[0].publication_status, "archived");
 });
