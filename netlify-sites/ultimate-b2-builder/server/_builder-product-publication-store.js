@@ -43,8 +43,18 @@ export async function productPublicationDatabaseReady(sql) {
   return rows[0]?.ready === true;
 }
 
+export async function productPublicationPinDatabaseReady(sql) {
+  const rows = await sql`
+    select to_regclass('book_component_release_asset_pins') is not null
+      and exists(select 1 from information_schema.columns where table_schema=current_schema()
+        and table_name='book_component_releases' and column_name='asset_storage_mode')
+      and to_regprocedure('create_builder_pinned_product_release(uuid,text,text,text,jsonb,text,text,uuid,uuid)') is not null ready
+  `;
+  return rows[0]?.ready === true;
+}
+
 export async function createProductRelease(sql, input) {
-  const rows = await sql`select * from create_builder_product_release(
+  const rows = await sql`select * from create_builder_pinned_product_release(
     ${input.productReleaseId}::uuid,${input.bookSlug},${input.releaseSchemaVersion},${input.compilerId},
     ${JSON.stringify(input.members)}::jsonb,${input.requestSha256},${input.releaseNote},${input.builderUserId}::uuid,${input.clientMutationId}::uuid
   )`;
@@ -58,6 +68,20 @@ export async function createProductRelease(sql, input) {
     releaseSha256: row.release_sha256,
     members: row.members || [],
   };
+}
+
+export async function loadProductPublicationAssetModes(sql, { bookSlug, productReleaseId = null }) {
+  const rows = await sql`
+    select product.id product_release_id,component.slug component_slug,release.asset_storage_mode
+    from book_product_releases product
+    join book_packages package on package.id=product.book_package_id
+    join book_product_release_members member on member.product_release_id=product.id and member.member_status='included'
+    join book_components component on component.id=member.book_component_id
+    join book_component_releases release on release.id=member.component_release_id
+    where package.slug=${bookSlug} and (${productReleaseId}::uuid is null or product.id=${productReleaseId}::uuid)
+    order by product.release_number desc,member.member_order
+  `;
+  return rows;
 }
 
 export async function publishProductRelease(sql, input) {

@@ -13,6 +13,9 @@ import { createBuilderPreviewAuthorizationHandler } from "../../netlify-sites/ul
 import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, issueBuilderReleaseMemberAuthorization } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { createBuilderPublicationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication.js";
+import { createBuilderProductPublicationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-product-publication.js";
+import { servePinnedReleaseSourceAsset } from "../../netlify-sites/ultimate-b2-builder/server/_builder-release-source-delivery.js";
+import { componentPublicationCanonicalPrivateSourceObjectKey } from "../../lib/book-assets/publication-asset-storage.js";
 import { resolveNativeActivityKind } from "../../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { createNativeOpenResponseQuestion } from "../../src/data/native-activities/nativeOpenResponse.js";
 import { nativeChildIdFromUuid } from "../../src/data/native-activities/nativeChildIdentity.js";
@@ -45,6 +48,8 @@ let sourceVersion = 1;
 let headRevision = 0;
 let activeReleaseId = null;
 let publicationFailure = null;
+let preparedUuidQueue = [];
+let copyObjectCalls = 0;
 const releases = [];
 const legacyReleases = [];
 const viewerReleaseRequests = [];
@@ -128,8 +133,7 @@ function projection(prompt) {
     { id: listeningAudio.assetId, checksum_sha256: listeningAudio.checksumSha256, asset_role: listeningAudio.role, object_key: "builder-native-assets/publication-listening.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 32_000, duration_seconds: 12, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: listeningActivityId, asset_slot: listeningAudio.slot } },
     { id: listeningBackground.assetId, checksum_sha256: listeningBackground.checksumSha256, asset_role: listeningBackground.role, object_key: "builder-native-assets/publication-listening.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 68, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: listeningActivityId, asset_slot: listeningBackground.slot } },
   );
-  const compiled = compileUltimateB2ComponentReleaseV2(sources);
-  return { publicProjection: compiled.publicProjection, teacherProjection: compiled.teacherProjection, sourceSnapshot: compiled.sourceSnapshot, compatibility: compiled.compatibility, releaseSha256: compiled.releaseSha256 };
+  return canonicalizeCompiled(compileUltimateB2ComponentReleaseV2(sources), "ultimate-b2-students-book");
 }
 function sourceSha() { return `${sourceVersion}`.repeat(64).slice(0, 64); }
 
@@ -158,7 +162,7 @@ function managedProjection(componentSlug, version) {
     schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug,
     pages: { [pageId]: [{ id: `${componentSlug}-publication-activity`, unitNumber: 1, pageId, left: 4, top: 4, width: 12, height: 12, label: `${componentTitle} component activity`, actionType: "normalized_activity", activityKey: activityId }] },
   };
-  return compileUltimateB2ManagedComponentRelease({
+  return canonicalizeCompiled(compileUltimateB2ManagedComponentRelease({
     pages: {
       revision: version,
       units,
@@ -193,7 +197,17 @@ function managedProjection(componentSlug, version) {
       activities: { [activityId]: { index: indexEntry, public: source(publicDocument), teacher: source(teacherDocument) } },
       assetRows: [],
     },
-  }, componentSlug);
+  }, componentSlug), componentSlug);
+}
+
+function canonicalizeCompiled(compiled, componentSlug) {
+  for (const source of compiled.nativeAssetSources || []) {
+    source.row.book_slug = "ultimate-b2";
+    source.row.component_slug = componentSlug;
+    source.row.storage_bucket = "private";
+    source.row.object_key = componentPublicationCanonicalPrivateSourceObjectKey({ bookSlug: "ultimate-b2", componentSlug, descriptor: source.descriptor, row: source.row });
+  }
+  return compiled;
 }
 
 function componentReleaseRow({ id, number, componentSlug, compiled }) {
@@ -216,6 +230,8 @@ function componentReleaseRow({ id, number, componentSlug, compiled }) {
       ...Object.values(compiled.teacherProjection.ui.assets).map((asset) => ({ sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: "teacher_ui" })),
     ].sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`)),
     release_sha256: compiled.releaseSha256,
+    asset_storage_mode: "pinned-source-v1",
+    releasePins: [],
   };
 }
 
@@ -244,7 +260,7 @@ function buildProductRelease(number) {
 }
 
 function buildLegacyProductRelease(studentsRelease) {
-  const studentsRow = studentsRelease.componentReleases["ultimate-b2-students-book"];
+  const studentsRow = { ...studentsRelease.componentReleases["ultimate-b2-students-book"], asset_storage_mode: "materialized-v1", releasePins: [] };
   const included = { componentSlug: "ultimate-b2-students-book", order: 1, status: "included", componentReleaseId: studentsRow.id, compilerId: studentsRow.compiler_id, releaseSchemaVersion: studentsRow.release_schema_version, releaseSha256: studentsRow.release_sha256, compatibility: studentsRow.runtime_compatibility_sha256, unavailableReason: null };
   const unavailable = (componentSlug, order) => ({ componentSlug, order, status: "unavailable", componentReleaseId: null, compilerId: null, releaseSchemaVersion: null, releaseSha256: null, compatibility: null, unavailableReason: "not_in_legacy_release" });
   const members = [included, unavailable("ultimate-b2-workbook", 2), unavailable("ultimate-b2-grammar-book", 3)].map((member) => ({ ...member, memberSha256: productReleaseMemberSha256(member) }));
@@ -259,9 +275,9 @@ function buildLegacyProductRelease(studentsRelease) {
 }
 
 function productMembers(release) {
-  return release.members.map((member) => ({ ...member, sourceSnapshotSha256: release.componentReleases[member.componentSlug].source_snapshot_sha256 }));
+  return release.members.map((member) => ({ ...member, sourceSnapshotSha256: release.componentReleases[member.componentSlug].source_snapshot_sha256, assetStorageMode: release.componentReleases[member.componentSlug].asset_storage_mode }));
 }
-function metadata(release) { return { id: release.productReleaseId, number: release.number, compilerId: "ultimate-b2-product-v1", releaseSchemaVersion: "1.0", releaseSha256: release.productSha256, sourceSnapshotSha256: release.productSourceSha256, createdAt: release.createdAt, current: activeReleaseId === release.productReleaseId, publishedAt: activeReleaseId === release.productReleaseId ? "2026-08-14T10:05:00Z" : null, state: release.sourceSha === sourceSha() ? "current" : "stale", members: productMembers(release) }; }
+function metadata(release) { return { id: release.productReleaseId, number: release.number, compilerId: "ultimate-b2-product-v1", releaseSchemaVersion: "1.0", releaseSha256: release.productSha256, sourceSnapshotSha256: release.productSourceSha256, assetStorageMode: "pinned-source-v1", createdAt: release.createdAt, current: activeReleaseId === release.productReleaseId, publishedAt: activeReleaseId === release.productReleaseId ? "2026-08-14T10:05:00Z" : null, state: release.sourceSha === sourceSha() ? "current" : "stale", members: productMembers(release) }; }
 function sendJson(response, statusCode, value) { const body = Buffer.from(JSON.stringify(value)); response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": body.length, "Content-Type": "application/json" }); response.end(body); }
 async function staticResponse(root, pathname, response, fallback) { const relative = pathname === "/" ? fallback : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(root, relative); let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) { file = path.join(root, fallback); details = await stat(file); } response.writeHead(200, { "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": details.size }); createReadStream(file).pipe(response); }
 
@@ -351,10 +367,93 @@ const previewAuthorizationHandler = createBuilderPreviewAuthorizationHandler({
   logger: { error() {} },
 });
 
+let compiledPrepareMembers = [];
+const productPublicationHandler = createBuilderProductPublicationHandler({
+  getDatabase: () => null,
+  authorize: async () => ({ builderUser: { id: "task-9" } }),
+  ready: async () => true,
+  pinReady: async () => true,
+  compileProduct: async () => {
+    compiledPrepareMembers = [
+      { componentSlug: "ultimate-b2-students-book", compiled: projection(savedPrompt) },
+      { componentSlug: "ultimate-b2-workbook", compiled: managedProjection("ultimate-b2-workbook", sourceVersion) },
+      { componentSlug: "ultimate-b2-grammar-book", compiled: managedProjection("ultimate-b2-grammar-book", sourceVersion) },
+    ];
+    return compiledPrepareMembers;
+  },
+  storage: () => ({
+    bucket: () => "private",
+    async head({ objectKey }) {
+      const source = compiledPrepareMembers.flatMap((entry) => entry.compiled.nativeAssetSources || []).find((candidate) => candidate.row.object_key === objectKey);
+      if (!source) throw new Error("source missing");
+      return { checksumSha256: source.row.checksum_sha256, byteSize: Number(source.row.byte_size), contentType: source.row.mime_type };
+    },
+    async copyVerifiedImmutable() { copyObjectCalls += 1; throw new Error("CopyObject forbidden in pinned acceptance"); },
+  }),
+  randomUuid: () => {
+    const value = preparedUuidQueue.shift();
+    if (!value) throw new Error("deterministic release UUID queue exhausted");
+    return value;
+  },
+  create: async (_sql, input) => {
+    const release = buildProductRelease(releases.length + 1);
+    assert.equal(input.productReleaseId, release.productReleaseId);
+    for (const member of input.members) {
+      const row = release.componentReleases[member.componentSlug];
+      assert.equal(member.releaseId, row.id);
+      assert.equal(member.assetStorageMode, "pinned-source-v1");
+      row.releasePins = member.assetPins.map((pin) => ({
+        component_release_id: row.id, book_asset_id: pin.assetId, asset_role: pin.role, source_asset_role: pin.sourceAssetRole,
+        checksum_sha256: pin.checksumSha256, byte_size: pin.byteSize, media_type: pin.mediaType, extension: pin.extension,
+        storage_profile: pin.storageProfile, storage_bucket: pin.storageBucket, object_key: pin.objectKey,
+        source_owner_key: pin.ownerKey, source_asset_slot: pin.assetSlot, pin_sha256: pin.pinSha256,
+      }));
+    }
+    releases.push(release);
+    return { outcome: "created", productReleaseId: release.productReleaseId, releaseNumber: release.number, releaseSha256: release.productSha256, sourceSnapshotSha256: release.productSourceSha256, members: release.members };
+  },
+  loadRelease: async (_sql, { productReleaseId }) => {
+    const release = releases.find((candidate) => candidate.productReleaseId === productReleaseId);
+    return release ? { ...metadata(release), bookSlug: "ultimate-b2", releaseNote: "" } : null;
+  },
+  loadAssetModes: async (_sql, { productReleaseId }) => {
+    const release = releases.find((candidate) => !productReleaseId || candidate.productReleaseId === productReleaseId);
+    return release ? release.members.map((member) => ({ product_release_id: release.productReleaseId, component_slug: member.componentSlug, asset_storage_mode: "pinned-source-v1" })) : [];
+  },
+  verifyCandidate: async () => true,
+  logger: { error() {} },
+});
+
+function pinFor(identity) {
+  return findComponentRelease(identity)?.releasePins?.find((pin) => pin.checksum_sha256 === identity.sha256 && pin.extension === identity.extension) || null;
+}
+
+function pinnedBytes(pin) {
+  if (pin.media_type === "video/mp4") return unitExtraMp4;
+  if (pin.media_type === "image/png") return Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+  return Buffer.alloc(Math.min(Number(pin.byte_size), 32_000));
+}
+
+const releaseSourceBucket = {
+  async head(key) {
+    const pin = [...releases].flatMap((release) => Object.values(release.componentReleases)).flatMap((row) => row.releasePins || []).find((candidate) => candidate.object_key === key);
+    return pin ? { size: Number(pin.byte_size) } : null;
+  },
+  async get(key, options) {
+    const pin = [...releases].flatMap((release) => Object.values(release.componentReleases)).flatMap((row) => row.releasePins || []).find((candidate) => candidate.object_key === key);
+    if (!pin) return null;
+    const bytes = pinnedBytes(pin);
+    const selected = options?.range ? bytes.subarray(options.range.offset, options.range.offset + options.range.length) : bytes;
+    return { size: Number(pin.byte_size), body: new ReadableStream({ start(controller) { controller.enqueue(selected); controller.close(); } }) };
+  },
+};
+
 const publicationPreviewHandler = createBuilderPublicationHandler({
   getDatabase: () => null,
   authorizePreview: async (event, _sql, scope) => classifyBuilderPreviewAuthorization(event, scope, { environment: previewEnvironment }).authorized,
   loadRelease: async (_sql, identity) => findComponentRelease(identity),
+  loadAssetPin: async (_sql, identity) => pinFor(identity),
+  servePinnedAsset: servePinnedReleaseSourceAsset,
   storage: () => ({ signedGetUrl: async () => "https://private-storage.invalid/release-asset" }),
   logger: { error() {} },
 });
@@ -387,8 +486,15 @@ const server = createServer(async (request, response) => {
   if (url.pathname === publication && request.method === "GET" && publicationFailure) return sendJson(response, 409, publicationFailure);
   if (url.pathname === publication && request.method === "GET") return sendJson(response, 200, { bookSlug: "ultimate-b2", compilerId: "ultimate-b2-product-v1", releaseSchemaVersion: "1.0", headRevision, components: ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].map((componentSlug) => ({ componentSlug, currentSourceSha256: sourceSha() })), published: activeReleaseId ? metadata(releases.find((release) => release.productReleaseId === activeReleaseId)) : null, releases: [...releases].reverse().map(metadata) });
   if (url.pathname === `${publication}/prepare` && request.method === "POST") {
-    const number = releases.length + 1; const release = buildProductRelease(number); releases.push(release);
-    return sendJson(response, 200, { outcome: "created", productReleaseId: release.productReleaseId, releaseNumber: number, releaseSha256: release.productSha256, sourceSnapshot: release.sourceSnapshot, members: productMembers(release) });
+    const number = releases.length + 1;
+    preparedUuidQueue = [releaseIds[number - 1], `30000000-0000-4000-8000-00000000009${number}`, `40000000-0000-4000-8000-00000000009${number}`, productReleaseIds[number - 1]];
+    const chunks = []; for await (const chunk of request) chunks.push(chunk);
+    return sendNetlify(response, await productPublicationHandler(netlifyEvent({
+      path: url.pathname,
+      method: request.method,
+      headers: Object.fromEntries(Object.entries(request.headers).map(([key, value]) => [key, Array.isArray(value) ? value.join(",") : String(value || "")])),
+      body: Buffer.concat(chunks).toString("utf8"),
+    })));
   }
   if (url.pathname === `${publication}/publish` && request.method === "POST") {
     const chunks = []; for await (const chunk of request) chunks.push(chunk); const body = JSON.parse(Buffer.concat(chunks).toString("utf8")); const release = releases.find((item) => item.productReleaseId === body.productReleaseId);
@@ -441,7 +547,17 @@ try {
     const match = url.pathname.match(/^\/preview\/releases\/books\/ultimate-b2\/components\/([^/]+)\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|assets)(?:\/(.*))?$/);
     if (match) {
       viewerReleaseRequests.push({ pathname: url.pathname, componentSlug: match[1], componentReleaseId: match[2], action: match[3], authorization: url.searchParams.get("previewAuthorization") });
-      const result = await publicationPreviewHandler({ ...event, path: url.pathname.replace(/^\/preview\/releases/, "/builder/preview/releases") });
+      const compatibleRequest = new Request(url, { method: browserRequest.method(), headers: browserRequest.headers() });
+      const result = await publicationPreviewHandler(
+        { ...event, path: url.pathname.replace(/^\/preview\/releases/, "/builder/preview/releases") },
+        { cloudflare: { request: compatibleRequest, releaseSourceAssets: releaseSourceBucket } },
+      );
+      if (result instanceof Response) {
+        const responseHeaders = Object.fromEntries(result.headers);
+        delete responseHeaders["content-length"];
+        if (result.status >= 400) lifecycle("release-response-error", { path: url.pathname, status: result.status, body: "bounded" });
+        return route.fulfill({ status: result.status, headers: responseHeaders, body: Buffer.from(await result.arrayBuffer()) });
+      }
       if (result.statusCode >= 400) lifecycle("release-response-error", { path: url.pathname, status: result.statusCode, body: result.body });
       if (result.statusCode === 302) {
         return route.fulfill((match[4] || "").endsWith(".mp4")
@@ -482,7 +598,6 @@ try {
   await page.getByRole("heading", { name: "Review · Saved Draft", exact: true }).waitFor();
   await page.getByRole("button", { name: "Release #1 · Immutable", exact: true }).click();
   const immutableReviewFrame = page.locator(".unified-builder-review-dialog iframe");
-  const immutableReviewFrameHandle = await immutableReviewFrame.elementHandle();
   const immutableReview = page.frameLocator(".unified-builder-review-dialog iframe");
   await immutableReview.getByRole("button", { name: "Home", exact: true }).click();
   await immutableReview.locator(".teacher-offline-library").waitFor();
@@ -490,6 +605,7 @@ try {
   await immutableReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await immutableReview.getByRole("button", { name: /^Open Workbook immutable version 1,/ }).click();
   await immutableReview.getByAltText("Workbook immutable version 1").waitFor();
+  assert.equal(await immutableReviewFrame.count(), 1, "Workbook switch retains one resident Viewer iframe");
   await immutableReview.getByRole("button", { name: "Home", exact: true }).click();
   await immutableReview.locator(".teacher-offline-library").waitFor();
   assert.equal(await immutableReview.getByRole("button", { name: "Workbook", exact: true }).getAttribute("aria-pressed"), "true");
@@ -497,10 +613,11 @@ try {
   await immutableReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await immutableReview.getByRole("button", { name: /^Open Grammar Book immutable version 1,/ }).click();
   await immutableReview.getByAltText("Grammar Book immutable version 1").waitFor();
+  assert.equal(await immutableReviewFrame.count(), 1, "Grammar switch retains one resident Viewer iframe");
   await immutableReview.getByRole("button", { name: "Home", exact: true }).click();
   await immutableReview.locator(".teacher-offline-library").waitFor();
   await immutableReview.getByRole("button", { name: "Students Book", exact: true }).click();
-  assert.equal(await immutableReviewFrame.evaluate((node, original) => node === original, immutableReviewFrameHandle), true, "immutable component switches preserve the one resident Viewer iframe");
+  assert.equal(await immutableReviewFrame.count(), 1, "Students switch retains one resident Viewer iframe");
   assert.equal(releaseMemberExchangeRequests.some((request) => request.intent?.componentSlug === "ultimate-b2-workbook"), true);
   assert.equal(releaseMemberExchangeRequests.some((request) => request.intent?.componentSlug === "ultimate-b2-grammar-book"), true);
   assert.equal(viewerReleaseRequests.some((request) => request.componentSlug === "ultimate-b2-workbook" && request.action === "public"), true);
@@ -684,6 +801,9 @@ try {
       assert.equal(publicJson.includes(managedTeacherSentinels["ultimate-b2-grammar-book"]), false);
     }
   }
+  assert.equal(copyObjectCalls, 0, "pinned-source-v1 product Prepare never invokes CopyObject");
+  assert.ok(releases.every((release) => Object.values(release.componentReleases).every((row) => row.asset_storage_mode === "pinned-source-v1")));
+  assert.ok(releases.every((release) => Object.values(release.componentReleases).some((row) => row.releasePins.length > 0)), "each accepted product family freezes exact private source pins");
   assert.equal(immutableViewerRequests.some((request) => new URL(request).pathname.startsWith("/preview/content/")), false, "immutable Review never falls back to mutable Draft content");
   assert.deepEqual(rawStorageRequests, [], "immutable Review never requests a raw private storage host");
   lifecycle("acceptance-complete");

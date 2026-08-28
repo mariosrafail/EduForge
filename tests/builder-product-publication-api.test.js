@@ -74,26 +74,27 @@ function harness(overrides = {}) {
   let compiled = overrides.compiled || compiledMembers();
   let createdInput;
   let publishInput;
-  let materialized = [];
+  let frozen = [];
   const release = overrides.release || candidate();
   const handler = createBuilderProductPublicationHandler({
     getDatabase: () => ({}),
     authorize: async (request) => request.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
     ready: overrides.ready || (async () => true),
+    pinReady: overrides.pinReady || (async () => true),
     compileProduct: async () => compiled,
     status: async () => ({ headRevision: 0, published: null, releases: [] }),
-    materialize: async (storage, input) => { materialized.push(input.componentSlug); return overrides.materialize?.(storage, input); },
-    verifyAssets: overrides.verifyAssets || (async () => {}),
+    freezePins: async (storage, input) => { frozen.push(input.componentSlug); return overrides.freezePins ? overrides.freezePins(storage, input) : []; },
     storage: () => ({}),
     randomUuid: randomUUID,
     create: async (sql, input) => { createdInput = input; return overrides.create ? overrides.create(sql, input) : { outcome: "created", productReleaseId: release.id, releaseNumber: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, members: release.members }; },
     loadRelease: async () => release,
+    loadAssetModes: async () => release.members.map((member) => ({ product_release_id: release.id, component_slug: member.componentSlug, asset_storage_mode: "pinned-source-v1" })),
     verifyCandidate: async () => true,
     loadMutation: async () => overrides.replay || null,
     publish: async (sql, input) => { publishInput = input; return overrides.publish ? overrides.publish(sql, input) : { outcome: "published", productReleaseId: input.productReleaseId, releaseNumber: 1, headRevision: 1 }; },
     logger: overrides.logger || { error() {} },
   });
-  return { handler, release, get createdInput() { return createdInput; }, get publishInput() { return publishInput; }, get materialized() { return materialized; }, setCompiled(value) { compiled = value; } };
+  return { handler, release, get createdInput() { return createdInput; }, get publishInput() { return publishInput; }, get frozen() { return frozen; }, setCompiled(value) { compiled = value; } };
 }
 
 test("product route is distinct from component routes and requires auth, schema, and same origin", async () => {
@@ -106,37 +107,34 @@ test("product route is distinct from component routes and requires auth, schema,
   assert.equal((await handler(event("/builder/api/publication/books/ultimate-b1"))).statusCode, 404);
 });
 
-test("Prepare compiles, materializes, and creates Students, Workbook, and Grammar as one ordered family", async () => {
+test("Prepare compiles, source-verifies, and pins Students, Workbook, and Grammar as one ordered family without CopyObject", async () => {
   const run = harness();
   const response = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: "Atomic" }));
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(run.materialized, components.map(([componentSlug]) => componentSlug));
+  assert.deepEqual(run.frozen, components.map(([componentSlug]) => componentSlug));
   assert.deepEqual(run.createdInput.members.map((member) => member.componentSlug), components.map(([componentSlug]) => componentSlug));
   assert.equal(run.createdInput.members.length, 3);
   assert.equal(run.createdInput.members.some((member) => member.componentSlug.includes("test-book")), false);
   assert.ok(run.createdInput.members.every((member) => /^[0-9a-f-]{36}$/.test(member.releaseId)));
+  assert.ok(run.createdInput.members.every((member) => member.assetStorageMode === "pinned-source-v1" && Array.isArray(member.assetPins)));
   assert.equal(parsed(response).productReleaseId, run.release.id);
 });
 
-test("managed page CopyObject failures keep product Prepare atomic, safely logged, and retryable", async () => {
+test("managed page source-integrity failures keep product Prepare atomic, safely logged, and retryable", async () => {
   for (const failingComponent of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
     let failOnce = true;
     let createCalls = 0;
     let publishCalls = 0;
-    let reused = 0;
-    const materializedObjects = new Set();
     const diagnostics = [];
     const run = harness({
-      async materialize(_storage, input) {
+      async freezePins(_storage, input) {
         if (failOnce && input.componentSlug === failingComponent) {
           failOnce = false;
           throw Object.assign(new ComponentPublicationAssetError({
             assetId: randomUUID(),
             role: "managed_page_image",
-            stage: "materialize",
-            failureClass: "copy_invalid_request",
-            providerStatus: 400,
-            providerCode: "InvalidArgument",
+            stage: `pin-${input.componentSlug}`,
+            failureClass: "source_checksum_mismatch",
           }), {
             bucket: "private-secret-bucket",
             sourceObjectKey: "builder-pages/private/source.png",
@@ -147,8 +145,7 @@ test("managed page CopyObject failures keep product Prepare atomic, safely logge
             cookie: "secret Cookie",
           });
         }
-        if (materializedObjects.has(input.componentSlug)) reused += 1;
-        materializedObjects.add(input.componentSlug);
+        return [];
       },
       async create() { createCalls += 1; return { outcome: "created", productReleaseId: run.release.id, releaseNumber: 1, releaseSha256: run.release.releaseSha256, sourceSnapshotSha256: run.release.sourceSnapshotSha256, members: run.release.members }; },
       async publish() { publishCalls += 1; return { outcome: "published" }; },
@@ -163,10 +160,8 @@ test("managed page CopyObject failures keep product Prepare atomic, safely logge
       code: "release_asset_unavailable",
       assetId: diagnostics[0].assetId,
       assetRole: "managed_page_image",
-      assetStage: "materialize",
-      failureClass: "copy_invalid_request",
-      providerStatus: 400,
-      providerCode: "InvalidArgument",
+      assetStage: `pin-${failingComponent}`,
+      failureClass: "source_checksum_mismatch",
     }, failingComponent);
     assert.match(diagnostics[0].assetId, /^[0-9a-f-]{36}$/i, failingComponent);
     assert.doesNotMatch(JSON.stringify(diagnostics), /bucket|sourceObjectKey|destinationObjectKey|CopySource|ETag|Authorization|Cookie|private/i, failingComponent);
@@ -175,8 +170,17 @@ test("managed page CopyObject failures keep product Prepare atomic, safely logge
     assert.equal(retry.statusCode, 200, failingComponent);
     assert.equal(createCalls, 1, failingComponent);
     assert.equal(publishCalls, 0, failingComponent);
-    assert.ok(reused >= 1, `${failingComponent} retry must reuse earlier verified component materialization`);
+    assert.equal(run.frozen.length >= 3, true, `${failingComponent} retry must re-verify sources without materialization`);
   }
+});
+
+test("new Prepare fails closed before compilation when migration 049 is unavailable", async () => {
+  const run = harness({ pinReady: async () => false });
+  const response = await run.handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: "" }));
+  assert.equal(response.statusCode, 409);
+  assert.deepEqual(parsed(response), { error: "release_pin_schema_unavailable" });
+  assert.deepEqual(run.frozen, []);
+  assert.equal(run.createdInput, undefined);
 });
 
 test("Publish rejects family staleness before the atomic head move and permits exact mutation replay", async () => {

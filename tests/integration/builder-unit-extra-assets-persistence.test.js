@@ -52,7 +52,7 @@ test("isolated PostgreSQL enforces Unit Extra upload ownership, lifecycle, reuse
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "048_ultimate_b2_product_publication.sql");
+  assert.equal(migrations.at(-1).filename, "049_builder_publication_asset_pins.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Unit Extra Actor','unit-extra@example.test','hash'),($2,'Other Actor','unit-extra-other@example.test','hash')", [actor, otherActor]);
   const sql = tag(pool);
   const resource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "unit-extras");

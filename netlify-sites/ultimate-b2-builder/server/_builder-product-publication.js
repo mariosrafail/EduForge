@@ -9,17 +9,19 @@ import {
 } from "../../../src/data/ultimate-b2/productPublication.js";
 import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
-import { ComponentPublicationAssetError, materializeNativeReleaseAssets } from "./_builder-publication-assets.js";
+import { ComponentPublicationAssetError } from "./_builder-publication-assets.js";
+import { freezeComponentPublicationAssetPins } from "./_builder-publication-pins.js";
 import { resolvePublicationCompiler, verifyImmutableComponentRelease } from "./_builder-publication-compilers.js";
-import { verifyAssets } from "./_builder-publication.js";
 import { verifyProductReleaseEnvelope } from "./_builder-product-publication-domain.js";
 import {
   createProductRelease,
   loadProductPublicationMutation,
+  loadProductPublicationAssetModes,
   loadProductPublicationStatus,
   loadProductRelease,
   loadProductReleaseComponentRows,
   productPublicationDatabaseReady,
+  productPublicationPinDatabaseReady,
   publishProductRelease,
 } from "./_builder-product-publication-store.js";
 
@@ -109,11 +111,24 @@ function releaseState(release, currentSources) {
   return release.members.every((member) => currentSources.get(member.componentSlug) === member.sourceSnapshotSha256) ? "current" : "stale";
 }
 
+function withAssetModes(release, modeRows, { legacySchema = false } = {}) {
+  if (!release) return null;
+  const rows = modeRows.filter((row) => row.product_release_id === release.id);
+  const byComponent = new Map(rows.map((row) => [row.component_slug, row.asset_storage_mode]));
+  const members = release.members.map((member) => ({
+    ...member,
+    assetStorageMode: member.status === "included" ? (byComponent.get(member.componentSlug) || (legacySchema ? "materialized-v1" : "unknown")) : null,
+  }));
+  const modes = new Set(members.map((member) => member.assetStorageMode).filter(Boolean));
+  return { ...release, assetStorageMode: modes.size === 1 ? [...modes][0] : "mixed", members };
+}
+
 export function createBuilderProductPublicationHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
     authorize: overrides.authorize || requireBuilderUser,
     ready: overrides.ready || productPublicationDatabaseReady,
+    pinReady: overrides.pinReady || productPublicationPinDatabaseReady,
     compileProduct: overrides.compileProduct || compileProduct,
     create: overrides.create || createProductRelease,
     publish: overrides.publish || publishProductRelease,
@@ -122,8 +137,8 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
     loadComponentRows: overrides.loadComponentRows || loadProductReleaseComponentRows,
     verifyCandidate: overrides.verifyCandidate || verifyCandidate,
     loadMutation: overrides.loadMutation || loadProductPublicationMutation,
-    materialize: overrides.materialize || materializeNativeReleaseAssets,
-    verifyAssets: overrides.verifyAssets || verifyAssets,
+    loadAssetModes: overrides.loadAssetModes || loadProductPublicationAssetModes,
+    freezePins: overrides.freezePins || freezeComponentPublicationAssetPins,
     storage: overrides.storage || (() => createBookAssetStorage()),
     randomUuid: overrides.randomUuid || randomUUID,
     logger: overrides.logger || console,
@@ -138,10 +153,15 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
       if (!await dependencies.ready(sql)) return json(409, { error: "publication_schema_unavailable" });
+      const pinSchemaReady = await dependencies.pinReady(sql);
       if (event.httpMethod === "GET" && parsedRoute.action === "status") {
-        const [status, compiledMembers] = await Promise.all([dependencies.status(sql, parsedRoute.bookSlug), dependencies.compileProduct(sql, configuration, dependencies)]);
+        const [status, compiledMembers, modeRows] = await Promise.all([
+          dependencies.status(sql, parsedRoute.bookSlug),
+          dependencies.compileProduct(sql, configuration, dependencies),
+          pinSchemaReady ? dependencies.loadAssetModes(sql, { bookSlug: parsedRoute.bookSlug }) : Promise.resolve([]),
+        ]);
         const currentSources = new Map(compiledMembers.map((entry) => [entry.componentSlug, entry.compiled.sourceSnapshotSha256]));
-        const decorate = (release) => release ? { ...release, state: releaseState(release, currentSources) } : null;
+        const decorate = (release) => release ? { ...withAssetModes(release, modeRows, { legacySchema: !pinSchemaReady }), state: releaseState(release, currentSources) } : null;
         return json(200, {
           bookSlug: parsedRoute.bookSlug,
           compilerId: ULTIMATE_B2_PRODUCT_RELEASE_COMPILER_ID,
@@ -159,14 +179,15 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
         const parsed = body(event, ["clientMutationId", "releaseNote"]);
         if (parsed.error) return parsed.error;
         if (!builderClientMutationIdPattern.test(parsed.value.clientMutationId) || typeof parsed.value.releaseNote !== "string" || parsed.value.releaseNote.length > 240) return json(400, { error: "invalid_request" });
+        if (!pinSchemaReady) return json(409, { error: "release_pin_schema_unavailable" });
         const compiledMembers = await dependencies.compileProduct(sql, configuration, dependencies);
         const storage = dependencies.storage();
-        for (const entry of compiledMembers) {
-          await dependencies.materialize(storage, { bookSlug: parsedRoute.bookSlug, componentSlug: entry.componentSlug, nativeAssetSources: entry.compiled.nativeAssetSources || [] });
-          await dependencies.verifyAssets(storage, entry.compiled.assetManifest, entry.compiled.nativeAssetSources || [], { bookSlug: parsedRoute.bookSlug, componentSlug: entry.componentSlug });
-        }
-        const members = compiledMembers.map((entry) => ({ ...entry.compiled, componentSlug: entry.componentSlug, releaseId: dependencies.randomUuid(), requestSha256: entry.compiled.releaseSha256 }));
-        const requestSha256 = sha256(stableBuilderJson({ releaseNote: parsed.value.releaseNote, members: members.map((member) => ({ componentSlug: member.componentSlug, sourceSnapshotSha256: member.sourceSnapshotSha256, releaseSha256: member.releaseSha256 })) }));
+        const pinnedMembers = await Promise.all(compiledMembers.map(async (entry) => ({
+          entry,
+          pins: await dependencies.freezePins(storage, { bookSlug: parsedRoute.bookSlug, componentSlug: entry.componentSlug, assetManifest: entry.compiled.assetManifest, nativeAssetSources: entry.compiled.nativeAssetSources || [] }),
+        })));
+        const members = pinnedMembers.map(({ entry, pins }) => ({ ...entry.compiled, componentSlug: entry.componentSlug, releaseId: dependencies.randomUuid(), requestSha256: entry.compiled.releaseSha256, assetStorageMode: "pinned-source-v1", assetPins: pins }));
+        const requestSha256 = sha256(stableBuilderJson({ releaseNote: parsed.value.releaseNote, members: members.map((member) => ({ componentSlug: member.componentSlug, sourceSnapshotSha256: member.sourceSnapshotSha256, releaseSha256: member.releaseSha256, pinSha256: member.assetPins.map((pin) => pin.pinSha256) })) }));
         const result = await dependencies.create(sql, {
           productReleaseId: dependencies.randomUuid(),
           bookSlug: parsedRoute.bookSlug,
@@ -180,7 +201,8 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
         });
         if (["mutation_id_conflict"].includes(result.outcome)) return json(409, { error: result.outcome });
         if (!['created', 'idempotent'].includes(result.outcome)) return json(result.outcome === "product_not_found" ? 404 : 400, { error: result.outcome });
-        const candidate = await dependencies.loadRelease(sql, { bookSlug: parsedRoute.bookSlug, productReleaseId: result.productReleaseId });
+        const candidateRaw = await dependencies.loadRelease(sql, { bookSlug: parsedRoute.bookSlug, productReleaseId: result.productReleaseId });
+        const candidate = withAssetModes(candidateRaw, await dependencies.loadAssetModes(sql, { bookSlug: parsedRoute.bookSlug, productReleaseId: result.productReleaseId }));
         await dependencies.verifyCandidate(sql, candidate, dependencies);
         return json(200, { ...result, idempotent: result.outcome === "idempotent", release: candidate });
       }
@@ -218,7 +240,7 @@ export function createBuilderProductPublicationHandler(overrides = {}) {
           ...(error.providerCode ? { providerCode: error.providerCode } : {}),
         } : {}),
       });
-      const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "managed_page_not_ready", "release_asset_unavailable", "publication_compiler_mismatch"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
+      const safeCode = ["native_activity_not_found", "native_activity_pair_invalid", "native_activity_not_ready", "native_activity_asset_invalid", "managed_page_not_ready", "release_asset_unavailable", "publication_compiler_mismatch", "release_pin_conflict", "release_pin_integrity_failed"].includes(error?.code || error?.message) ? (error.code || error.message) : null;
       return safeCode ? json(409, { error: safeCode, ...(error.activityId ? { activityId: error.activityId } : {}), ...(error.issues?.length ? { issues: error.issues } : {}) }) : json(500, { error: "builder_product_publication_failed" });
     }
   };

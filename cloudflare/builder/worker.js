@@ -129,7 +129,12 @@ export function createBuilderWorker({ handlers: handlerOverrides = {}, playerMed
       if (isPlayerMediaNamespace(pathname)) return playerMediaHandler(request, env.PLAYER_MEDIA);
       if (isBuilderPublicAssetNamespace(pathname)) return publicAssetHandler(request, env.PLAYER_MEDIA);
       const route = resolveBuilderWorkerRoute(pathname);
-      if (route) return invokeNetlifyHandler(handlers[route.handler], compatibilityRequest(request, route));
+      if (route) {
+        const compatible = compatibilityRequest(request, route);
+        return invokeNetlifyHandler(handlers[route.handler], compatible, {
+          context: { cloudflare: { request: compatible, releaseSourceAssets: env.RELEASE_SOURCE_ASSETS } },
+        });
+      }
       if (isDynamicNamespace(pathname)) return dynamicNotFound();
       return serveStaticAsset(request, env);
     },

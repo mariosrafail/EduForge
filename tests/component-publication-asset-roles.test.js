@@ -7,6 +7,7 @@ import {
   COMPONENT_PUBLICATION_ASSET_STORAGE,
   componentPublicationAssetRolePolicy,
   isPrivateMaterializedComponentReleaseAssetRole,
+  isPrivatePinnableComponentReleaseAssetRole,
   isPublicComponentPublicationAssetRole,
   isPublicProjectionComponentPublicationAssetRole,
 } from "../src/data/ultimate-b2/componentPublicationAssetRoles.js";
@@ -19,11 +20,13 @@ test("publication asset roles have one explicit private-materialized versus host
   for (const role of [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO]) {
     assert.equal(componentPublicationAssetRolePolicy(role).storage, COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE);
     assert.equal(isPrivateMaterializedComponentReleaseAssetRole(role), true);
+    assert.equal(isPrivatePinnableComponentReleaseAssetRole(role), true);
     assert.equal(isPublicComponentPublicationAssetRole(role), false);
     assert.equal(isPublicProjectionComponentPublicationAssetRole(role), true);
   }
   for (const role of [COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI]) {
     assert.equal(isPrivateMaterializedComponentReleaseAssetRole(role), false);
+    assert.equal(isPrivatePinnableComponentReleaseAssetRole(role), false);
     assert.equal(isPublicComponentPublicationAssetRole(role), true);
   }
   assert.equal(isPublicProjectionComponentPublicationAssetRole(COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI), false);

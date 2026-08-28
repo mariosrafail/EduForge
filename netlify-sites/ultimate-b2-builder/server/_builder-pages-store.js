@@ -33,7 +33,8 @@ export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
   const rows = await sql`
     select page.id,page.stable_key,page.label,page.sort_order,page.source_metadata,page.unit_id,
       unit.slug unit_slug,unit.title unit_title,unit.unit_number,unit.sort_order unit_sort_order,
-      asset.id asset_id,asset.object_key,asset.asset_role,asset.storage_profile,asset.storage_bucket,
+      asset.id asset_id,package.slug book_slug,component.slug component_slug,
+      asset.book_package_id,asset.book_component_id,asset.object_key,asset.asset_role,asset.storage_profile,asset.storage_bucket,
       asset.publication_status,asset.access_level,asset.mime_type,asset.byte_size,asset.checksum_sha256,asset.width,asset.height
     from book_pages page
     join book_packages package on package.id=page.book_package_id

@@ -16,16 +16,19 @@ const rolePolicies = Object.freeze({
   [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK]: Object.freeze({
     storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
     materialized: true,
+    pinnable: true,
     publicProjection: true,
   }),
   [COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE]: Object.freeze({
     storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
     materialized: true,
+    pinnable: true,
     publicProjection: true,
   }),
   [COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO]: Object.freeze({
     storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
     materialized: true,
+    pinnable: true,
     publicProjection: true,
   }),
   [COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK]: Object.freeze({
@@ -49,6 +52,11 @@ export function componentPublicationAssetRolePolicy(role) {
 export function isPrivateMaterializedComponentReleaseAssetRole(role) {
   const policy = componentPublicationAssetRolePolicy(role);
   return policy?.storage === COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE && policy.materialized === true;
+}
+
+export function isPrivatePinnableComponentReleaseAssetRole(role) {
+  const policy = componentPublicationAssetRolePolicy(role);
+  return policy?.storage === COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE && policy.pinnable === true;
 }
 
 export function isPublicComponentPublicationAssetRole(role) {

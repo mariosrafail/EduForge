@@ -157,7 +157,7 @@ function publicationPages(sources, componentSlug) {
     const image = { sha256: row.checksum_sha256, extension, mediaType: row.mime_type, role: COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, byteSize: Number(row.byte_size), width: Number(row.width), height: Number(row.height) };
     pages.push(normalizePage({ id: pageId, stableKey: row.stable_key, unitId: String(row.unit_id), unitSlug: row.unit_slug, unitNumber: Number(row.unit_number), unitTitle: row.unit_title || "", sectionTitle: row.source_metadata?.section_title || "", printedLabel: row.source_metadata?.printed_label || "", sortOrder: Number(row.sort_order), label: row.label, image }, componentSlug));
     const identity = `${image.sha256}.${image.extension}.${image.role}`;
-    if (!assetSources.has(identity)) assetSources.set(identity, { descriptor: normalizeAssetDescriptor({ sha256: image.sha256, extension: image.extension, mediaType: image.mediaType, role: image.role }, COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE), row: { ...row, asset_role: "page_image", source_metadata: { ...row.source_metadata, publication_page_id: pageId } } });
+    if (!assetSources.has(identity)) assetSources.set(identity, { descriptor: normalizeAssetDescriptor({ sha256: image.sha256, extension: image.extension, mediaType: image.mediaType, role: image.role }, COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE), row: { ...row, id: row.asset_id, asset_role: "page_image", source_metadata: { ...row.source_metadata, publication_page_id: pageId } } });
   }
   return { units, pages, assetSources: [...assetSources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256)) };
 }

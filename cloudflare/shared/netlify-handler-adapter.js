@@ -94,6 +94,7 @@ function appendHeader(headers, name, value) {
 }
 
 export function netlifyResultToResponse(result = {}) {
+  if (result instanceof Response) return result;
   const headers = new Headers();
   for (const [name, value] of Object.entries(result.headers || {})) appendHeader(headers, name, value);
   for (const [name, values] of Object.entries(result.multiValueHeaders || {})) {
@@ -110,7 +111,7 @@ export function netlifyResultToResponse(result = {}) {
 export async function invokeNetlifyHandler(handler, request, options) {
   try {
     const event = await requestToNetlifyEvent(request, options);
-    return netlifyResultToResponse(await handler(event, {}));
+    return netlifyResultToResponse(await handler(event, options?.context || {}));
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) {
       return new Response(JSON.stringify({ error: "Request body too large" }), {

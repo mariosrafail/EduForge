@@ -10,6 +10,10 @@
     {
       "binding": "PLAYER_MEDIA",
       "bucket_name": "hhplms-book-public-dev"
+    },
+    {
+      "binding": "RELEASE_SOURCE_ASSETS",
+      "bucket_name": "hhplms-book-private-dev"
     }
   ],
   "assets": {

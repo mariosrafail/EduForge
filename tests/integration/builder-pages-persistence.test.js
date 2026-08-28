@@ -66,7 +66,7 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "048_ultimate_b2_product_publication.sql");
+  assert.equal(migrations.at(-1).filename, "049_builder_publication_asset_pins.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Page Actor','page-actor@example.test','hash'),($2,'Other Page Actor','page-other@example.test','hash')", [actor, otherActor]);
   const sql = tag(pool);
   const unitRows = await pool.query(`select component.slug component_slug,unit.id,unit.unit_number from units unit join book_components component on component.id=unit.book_component_id join book_packages package on package.id=component.book_package_id where package.slug='ultimate-b2' and component.slug in ('ultimate-b2-workbook','ultimate-b2-grammar-book') order by component.slug,unit.unit_number`);

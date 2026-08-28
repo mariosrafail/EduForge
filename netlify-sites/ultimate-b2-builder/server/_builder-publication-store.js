@@ -112,7 +112,8 @@ export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug
   if (!references.length) return [];
   const ids = [...new Set(references.map((reference) => reference.assetId))];
   return sql`
-    select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
+    select asset.id,package.slug book_slug,component.slug component_slug,
+      asset.book_package_id,asset.book_component_id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
       asset.storage_bucket,asset.mime_type,asset.byte_size,asset.width,asset.height,asset.duration_seconds,
       asset.unit_id,asset.page_id,asset.activity_id,
       asset.publication_status,asset.access_level,asset.source_metadata
@@ -127,6 +128,15 @@ export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug
 export async function publicationV2DatabaseReady(sql) {
   const rows = await sql`
     select position('ultimate-b2-students-book-v2' in pg_get_functiondef('builder_release_sources_are_current(uuid)'::regprocedure)) > 0 as ready
+  `;
+  return rows[0]?.ready === true;
+}
+
+export async function publicationAssetPinDatabaseReady(sql) {
+  const rows = await sql`
+    select to_regclass('book_component_release_asset_pins') is not null
+      and exists(select 1 from information_schema.columns where table_schema=current_schema()
+        and table_name='book_component_releases' and column_name='asset_storage_mode') ready
   `;
   return rows[0]?.ready === true;
 }
@@ -245,6 +255,23 @@ export async function loadComponentRelease(sql, { bookSlug, componentSlug, relea
     left join book_component_publication_heads head on head.book_component_id=component.id
     where package.slug=${bookSlug} and component.slug=${componentSlug} and release.id=${releaseId}::uuid
       and (${activeOnly}::boolean=false or head.release_id=release.id)
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+export async function loadComponentReleaseAssetPin(sql, { bookSlug, componentSlug, releaseId, sha256, extension }) {
+  const rows = await sql`
+    select pin.component_release_id,pin.book_asset_id,pin.asset_role,pin.source_asset_role,pin.checksum_sha256,
+      pin.byte_size,pin.media_type,pin.extension,pin.storage_profile,pin.storage_bucket,pin.object_key,
+      pin.source_owner_key,pin.source_asset_slot,pin.pin_sha256
+    from book_component_release_asset_pins pin
+    join book_component_releases release on release.id=pin.component_release_id
+      and release.book_component_id=pin.book_component_id and release.book_package_id=pin.book_package_id
+    join book_packages package on package.id=release.book_package_id
+    join book_components component on component.id=release.book_component_id and component.book_package_id=package.id
+    where package.slug=${bookSlug} and component.slug=${componentSlug} and release.id=${releaseId}::uuid
+      and release.asset_storage_mode='pinned-source-v1' and pin.checksum_sha256=${sha256} and pin.extension=${extension}
     limit 1
   `;
   return rows[0] || null;

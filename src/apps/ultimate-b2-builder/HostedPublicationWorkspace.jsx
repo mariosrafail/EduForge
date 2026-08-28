@@ -36,7 +36,7 @@ const componentTitle = (slug) => ({
 function ReleaseMembers({ release }) {
   return <div className="publication-member-grid">{release.members.map((member) => <section key={member.componentSlug} data-member-status={member.status}>
     <span>{componentTitle(member.componentSlug)}</span>
-    {member.status === "included" ? <><strong>Included exactly</strong><small>{member.compilerId} · schema {member.releaseSchemaVersion}</small><code>{short(member.releaseSha256)}</code></> : <><strong>Unavailable</strong><small>{member.unavailableReason === "not_in_legacy_release" ? `Not included in historical Release #${release.number}` : member.unavailableReason}</small></>}
+    {member.status === "included" ? <><strong>Included exactly</strong><small>{member.assetStorageMode === "pinned-source-v1" ? "Frozen from Saved Draft" : "Immutable materialized asset set"}</small><small>{member.compilerId} · schema {member.releaseSchemaVersion}</small><code>{short(member.releaseSha256)}</code></> : <><strong>Unavailable</strong><small>{member.unavailableReason === "not_in_legacy_release" ? `Not included in historical Release #${release.number}` : member.unavailableReason}</small></>}
   </section>)}</div>;
 }
 
@@ -84,6 +84,8 @@ export function HostedPublicationWorkspace() {
       await refresh(); setSelectedId(result.productReleaseId);
     } catch (error) {
       if (error.code === "release_asset_unavailable") setMessage("A referenced immutable asset could not be verified. No release was created.");
+      else if (error.code === "release_pin_schema_unavailable") setMessage("Publication Freeze v2 is waiting for migration 049. Saved Draft and historical Review remain available.");
+      else if (["release_pin_conflict", "release_pin_integrity_failed"].includes(error.code)) setMessage("Saved Draft assets could not be frozen consistently. No release was created.");
       else if (error.code?.startsWith("native_activity_")) setPublicationFailure(publicationReadinessPresentation(error));
       else if (error.code === "managed_page_not_ready") setMessage("A managed Workbook or Grammar page is incomplete. No product release was created.");
       else if (error.code === "publication_schema_unavailable") setMessage("Product publication is waiting for migration 048. No release was created.");

@@ -26,6 +26,7 @@ function harness(overrides = {}) {
   let mutation = null;
   const id = randomUUID();
   let published = false;
+  const releaseRow = { id, release_number: 1, release_schema_version: release.releaseSchemaVersion, compiler_id: release.compilerId, release_sha256: release.releaseSha256, runtime_compatibility_sha256: release.compatibility, source_snapshot: release.sourceSnapshot, source_snapshot_sha256: release.sourceSnapshotSha256, public_projection: release.publicProjection, public_projection_sha256: release.publicProjectionSha256, teacher_projection: release.teacherProjection, teacher_projection_sha256: release.teacherProjectionSha256, asset_manifest: release.assetManifest, ...(overrides.releaseRow || {}) };
   const handler = createBuilderPublicationHandler({
     getDatabase: () => ({}), authorize: async (request) => request.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
     authorizePreview: async (request) => request.headers["x-preview-authorized"] === "yes",
@@ -35,7 +36,10 @@ function harness(overrides = {}) {
     status: async () => ({ headRevision: published ? 1 : 0, published: published ? { id, number: 1, sourceSnapshotSha256: release.sourceSnapshotSha256 } : null, releases: [{ id, number: 1, releaseSha256: release.releaseSha256, sourceSnapshotSha256: release.sourceSnapshotSha256, createdAt: "2026-01-01T00:00:00Z" }] }),
     publish: async (_sql, input) => { published = true; return { outcome: "published", releaseId: input.releaseId, releaseNumber: 1, headRevision: 1 }; },
     loadMutation: async () => mutation,
-    loadRelease: async () => ({ id, release_number: 1, release_schema_version: release.releaseSchemaVersion, compiler_id: release.compilerId, release_sha256: release.releaseSha256, runtime_compatibility_sha256: release.compatibility, source_snapshot: release.sourceSnapshot, source_snapshot_sha256: release.sourceSnapshotSha256, public_projection: release.publicProjection, public_projection_sha256: release.publicProjectionSha256, teacher_projection: release.teacherProjection, teacher_projection_sha256: release.teacherProjectionSha256, asset_manifest: release.assetManifest }), logger: overrides.logger || { error() {} },
+    loadRelease: overrides.loadRelease || (async () => releaseRow),
+    loadAssetPin: overrides.loadAssetPin,
+    servePinnedAsset: overrides.servePinnedAsset,
+    logger: overrides.logger || { error() {} },
   });
   return { handler, id, release, isPublished() { return published; }, setCurrentRelease(value) { currentRelease = value; }, setMutation(value) { mutation = value; } };
 }
@@ -206,6 +210,36 @@ test("prepared Unit Extra video preview is release-bound, authorized, and privat
   assert.equal(response.headers.Location, "https://private-assets.example/signed-unit-extra");
   assert.equal(response.headers["Cache-Control"], "private, no-store");
   assert.deepEqual(signed, [{ profile: "private", objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${publicationV2Fixture.unitExtraAssetChecksum}.mp4` }]);
+});
+
+test("pinned-source release assets resolve an exact pin through the authorized same-origin delivery path and never fall back", async () => {
+  const release = compilePublicationV2Fixture();
+  const asset = release.assetManifest.find((candidate) => candidate.role === "unit_extra_video");
+  let signedCalls = 0;
+  let delivered;
+  const run = harness({
+    release,
+    releaseRow: { asset_storage_mode: "pinned-source-v1" },
+    storage: () => ({ async signedGetUrl() { signedCalls += 1; return "https://raw.invalid"; } }),
+    loadAssetPin: async () => ({
+      component_release_id: run.id, book_asset_id: randomUUID(), asset_role: asset.role, source_asset_role: asset.role,
+      checksum_sha256: asset.sha256, byte_size: 4096, media_type: asset.mediaType, extension: asset.extension,
+      storage_profile: "private", storage_bucket: "never-public", object_key: "never/public", source_owner_key: "video-owner",
+      source_asset_slot: "video-owner", pin_sha256: "f".repeat(64),
+    }),
+    servePinnedAsset: async (input) => { delivered = input; return { statusCode: 206, headers: { "Content-Type": asset.mediaType }, body: "streamed" }; },
+  });
+  const path = `/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${run.id}/assets/${asset.sha256}.${asset.extension}`;
+  const response = await run.handler(event(path, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
+  assert.equal(response.statusCode, 206);
+  assert.equal(delivered.pin.object_key, "never/public");
+  assert.equal(signedCalls, 0);
+
+  const missing = harness({ release, releaseRow: { asset_storage_mode: "pinned-source-v1" }, loadAssetPin: async () => null });
+  const missingPath = path.replace(run.id, missing.id);
+  const failed = await missing.handler(event(missingPath, "GET", null, { cookie: "", "x-preview-authorized": "yes" }));
+  assert.equal(failed.statusCode, 409);
+  assert.equal(parsed(failed).error, "release_pin_integrity_failed");
 });
 
 test("public immutable release assets redirect only to Worker-controlled same-origin namespaces", async () => {

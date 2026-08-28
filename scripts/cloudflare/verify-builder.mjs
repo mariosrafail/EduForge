@@ -34,7 +34,10 @@ assert.equal(config.assets.directory, "../../dist-cloudflare/builder");
 assert.equal(config.assets.binding, "ASSETS");
 assert.equal(config.assets.not_found_handling, "none");
 assert.deepEqual(config.assets.run_worker_first, expectedWorkerFirst);
-assert.deepEqual(config.r2_buckets, [{ binding: "PLAYER_MEDIA", bucket_name: "hhplms-book-public-dev" }]);
+assert.deepEqual(config.r2_buckets, [
+  { binding: "PLAYER_MEDIA", bucket_name: "hhplms-book-public-dev" },
+  { binding: "RELEASE_SOURCE_ASSETS", bucket_name: "hhplms-book-private-dev" },
+]);
 for (const forbidden of ["routes", "route", "domains", "domain", "triggers", "vars"]) {
   assert.equal(Object.hasOwn(config, forbidden), false, `Wrangler config must not contain ${forbidden}`);
 }
@@ -107,6 +110,7 @@ try {
   if (result.status !== 0) throw new Error(`Wrangler dry-run failed:\n${result.stdout}\n${result.stderr}`);
   assert.match(`${result.stdout}\n${result.stderr}`, /builder/i);
   assert.match(`${result.stdout}\n${result.stderr}`, /PLAYER_MEDIA/);
+  assert.match(`${result.stdout}\n${result.stderr}`, /RELEASE_SOURCE_ASSETS/);
 
   metafile = JSON.parse(await readFile(metafilePath, "utf8"));
   const inputs = Object.keys(metafile.inputs || {});

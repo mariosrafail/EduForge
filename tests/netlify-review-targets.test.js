@@ -66,8 +66,8 @@ test("dedicated Builder site package isolates build output and Netlify Functions
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-managed-publication-compiler.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
-    "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
-    "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
+    "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-pins.js", "_builder-publication-store.js", "_builder-publication.js",
+    "_builder-related-context.js", "_builder-release-source-delivery.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);

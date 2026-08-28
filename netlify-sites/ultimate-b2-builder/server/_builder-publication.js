@@ -8,8 +8,9 @@ import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from ".
 import { authorizeBuilderPreviewRequest } from "./_builder-preview-authorization.js";
 import { ComponentPublicationAssetError, materializeNativeReleaseAssets } from "./_builder-publication-assets.js";
 import { resolvePublicationCompiler, verifyImmutableComponentRelease } from "./_builder-publication-compilers.js";
+import { servePinnedReleaseSourceAsset } from "./_builder-release-source-delivery.js";
 import { ultimateB2PublicationCanonicalSeeds } from "./_builder-publication-compiler.js";
-import { createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, publicationV2DatabaseReady, publishComponentRelease } from "./_builder-publication-store.js";
+import { createComponentRelease, loadComponentPublicationMutation, loadComponentPublicationStatus, loadComponentRelease, loadComponentReleaseAssetPin, publicationV2DatabaseReady, publishComponentRelease } from "./_builder-publication-store.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -75,13 +76,15 @@ export function createBuilderPublicationHandler(overrides = {}) {
     publish: overrides.publish || publishComponentRelease,
     status: overrides.status || loadComponentPublicationStatus,
     loadRelease: overrides.loadRelease || loadComponentRelease,
+    loadAssetPin: overrides.loadAssetPin || loadComponentReleaseAssetPin,
+    servePinnedAsset: overrides.servePinnedAsset || servePinnedReleaseSourceAsset,
     loadMutation: overrides.loadMutation || loadComponentPublicationMutation,
     v2Ready: overrides.v2Ready || (overrides.compile ? async () => true : publicationV2DatabaseReady),
     materialize: overrides.materialize || materializeNativeReleaseAssets,
     storage: overrides.storage || (() => createBookAssetStorage()),
     logger: overrides.logger || console,
   };
-  return async function handler(event) {
+  return async function handler(event, context = {}) {
     const parsedRoute = route(event);
     const component = parsedRoute && publicationComponent(parsedRoute.bookSlug, parsedRoute.componentSlug, parsedRoute.action === "prepare" || parsedRoute.action === "publish");
     if (!component) return json(404, { error: "publication_component_not_found" });
@@ -103,6 +106,15 @@ export function createBuilderPublicationHandler(overrides = {}) {
           const target = componentPublicationAssetStorageTarget({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, ...asset });
           if (!target) return json(404, { error: "release_asset_not_found" });
           if (!target.public) {
+            const storageMode = release.asset_storage_mode || "materialized-v1";
+            if (storageMode === "pinned-source-v1") {
+              const pin = await dependencies.loadAssetPin(sql, { ...parsedRoute, sha256: asset.sha256, extension: asset.extension });
+              if (!pin || pin.component_release_id !== release.id || pin.asset_role !== asset.role || pin.checksum_sha256 !== asset.sha256
+                || pin.extension !== asset.extension || pin.media_type !== asset.mediaType || Number(pin.byte_size) < 1
+                || pin.storage_profile !== "private") return json(409, { error: "release_pin_integrity_failed" });
+              return dependencies.servePinnedAsset({ event, context, release, asset, pin });
+            }
+            if (storageMode !== "materialized-v1") return json(409, { error: "release_pin_integrity_failed" });
             const location = await dependencies.storage().signedGetUrl({ profile: target.profile, objectKey: target.objectKey });
             return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", Vary: "Cookie", "X-Content-Type-Options": "nosniff" }, body: "" };
           }

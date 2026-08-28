@@ -26,6 +26,7 @@
     "check:ultimate-b2:student-pages": "node scripts/ultimate-b2/generate-students-book-page-assets.mjs --check",
     "audit:source-structure": "node scripts/audit-source-structure.mjs",
     "audit:branding": "node scripts/audit-branding.mjs",
+    "audit:builder:publication-assets": "node scripts/audit-builder-publication-assets.mjs",
     "test:e2e:staging": "playwright test",
     "staging:migrate": "node scripts/run-staging-migrations.mjs",
     "staging:integrity": "node scripts/verify-tenant-integrity.mjs",
