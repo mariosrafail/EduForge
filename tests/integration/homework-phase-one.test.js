@@ -112,10 +112,10 @@ test("Homework persists mixed ordered targets atomically and idempotently with t
     join lessons lesson on lesson.id=activity.lesson_id
     join units unit_record on unit_record.id=lesson.unit_id
     join book_components component on component.id=unit_record.book_component_id
-    where component.book_package_id=$1 and activity.is_assignable=true
+    where component.book_package_id=$1 and component.id=$2 and activity.is_assignable=true
     order by activity.id
     limit 1
-  `, [scope.package_id])).rows[0];
+  `, [scope.package_id, scope.component_id])).rows[0];
   assert.ok(teacher && student && scope && legacyActivity);
   const secondLegacyActivity = (await pool.query(`
     insert into activities(lesson_id,title,slug,type,activity_type,content,content_json,settings_json,is_assignable)
@@ -185,7 +185,7 @@ test("Homework persists mixed ordered targets atomically and idempotently with t
   };
 
   const created = parse(await createHomework(sql, request, teacherUser));
-  assert.equal(created.status, 201);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
   assert.equal(created.body.homework.itemCount, 2);
   assert.deepEqual(created.body.homework.items.map((item) => item.targetKind), ["legacy_activity", "published_native"]);
   assert.equal(created.body.homework.items.every((item) => item.assignments.length === 2), true);
