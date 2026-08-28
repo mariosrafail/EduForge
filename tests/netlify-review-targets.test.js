@@ -64,9 +64,9 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-pages.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]);
   assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
     "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
-    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
+    "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-managed-publication-compiler.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js",
-    "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
+    "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-store.js", "_builder-publication.js",
     "_builder-related-context.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
@@ -74,7 +74,7 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderImportEntry, /export const handler = createBuilderOpenResponseImportHandler\(\)/);
   assert.match(builderPreviewEntry, /export const handler = createBuilderPreviewHandler\(\)/);
   assert.match(builderUiAssetsEntry, /export const handler = createBuilderTeacherUiAssetsHandler\(\)/);
-  assert.match(builderPublicationEntry, /export const handler = createBuilderPublicationHandler\(\)/);
+  assert.match(builderPublicationEntry, /parseBuilderProductPublicationRoute\(event\)[\s\S]*productHandler\(event, context\)[\s\S]*componentHandler\(event, context\)/);
   assert.match(nativeEntry, /export const handler = createBuilderNativeActivitiesHandler\(\)/);
   assert.match(nativePreviewEntry, /export const handler = createBuilderNativePreviewHandler\(\)/);
   assert.match(previewAuthorizationEntry, /export const handler = createBuilderPreviewAuthorizationHandler\(\)/);
@@ -91,6 +91,7 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.match(builderNetlify, /from = "\/builder\/preview\/authorization\/exchange"[\s\S]*to = "\/\.netlify\/functions\/builder-preview-authorization\/preview\/authorization\/exchange"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/preview-authorization"[\s\S]*to = "\/\.netlify\/functions\/builder-preview-authorization"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/unit-extras\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-unit-extra-assets\/:splat"/);
+  assert.match(builderNetlify, /from = "\/builder\/preview\/unit-extras\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-unit-extra-assets\/preview\/unit-extras\/:splat"/);
   assert.match(builderNetlify, /from = "\/builder\/api\/pages\/\*"[\s\S]*to = "\/\.netlify\/functions\/builder-pages\/:splat"/);
   assert.doesNotMatch(builderNetlify, /platform-admin|auth-signin|book-builder|__hhplms/i);
 

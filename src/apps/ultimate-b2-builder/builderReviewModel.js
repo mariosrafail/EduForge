@@ -7,13 +7,13 @@ function safeId(value, label) {
   return normalized;
 }
 
-export function pageReviewIntent(page, releaseId = null) {
+export function pageReviewIntent(page, productReleaseId = null) {
   const unitNumber = Number(page?.unitNumber);
   if (!Number.isInteger(unitNumber) || unitNumber < 1 || unitNumber > 99) throw new TypeError("Review unit number is invalid.");
   const intent = { view: "page", unitNumber, pageId: safeId(page?.pageId, "Review page ID") };
-  if (releaseId !== null) {
-    if (!UUID.test(String(releaseId || ""))) throw new TypeError("Review release ID is invalid.");
-    intent.releaseId = String(releaseId).toLowerCase();
+  if (productReleaseId !== null) {
+    if (!UUID.test(String(productReleaseId || ""))) throw new TypeError("Review product release ID is invalid.");
+    intent.productReleaseId = String(productReleaseId).toLowerCase();
   }
   return intent;
 }
@@ -36,7 +36,7 @@ export function productDraftReviewIntent() {
 export function resolveUnifiedReviewIntent({ sourceMode, page, release }) {
   if (sourceMode === "release") {
     if (!release) return null;
-    return pageReviewIntent(page, release.id);
+    return pageReviewIntent(page, release.productReleaseId || release.id);
   }
   return productDraftReviewIntent();
 }

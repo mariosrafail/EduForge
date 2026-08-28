@@ -48,8 +48,13 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
   const lastPage = normalizedPages.find((page) => page.pageId === lastPageId) || normalizedPages[0] || null;
   const currentContext = toolContexts[tool] || { view: "page", dirty: false, refreshKey: 0, release: null };
 
+  const memberAvailable = (release) => {
+    const member = release?.members?.find((candidate) => candidate.componentSlug === componentSlug);
+    return !release?.members || member?.status === "included";
+  };
+
   const openReview = () => {
-    const sourceMode = tool === "publication" && currentContext.release ? "release" : "draft";
+    const sourceMode = tool === "publication" && currentContext.release && memberAvailable(currentContext.release) ? "release" : "draft";
     const contextPage = normalizedPages.find((page) => page.pageId === currentContext.pageId);
     setSession({ sourceMode, toolContext: currentContext, pageId: contextPage?.pageId || lastPage?.pageId || "" });
   };
@@ -66,6 +71,8 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
 
   const selectedPage = normalizedPages.find((page) => page.pageId === session?.pageId) || lastPage;
   const release = session?.toolContext?.release || null;
+  const releaseMemberAvailable = memberAvailable(release);
+  const releaseMember = release?.members?.find((candidate) => candidate.componentSlug === componentSlug) || null;
   const intent = session && (session.sourceMode === "draft" || selectedPage) ? resolveUnifiedReviewIntent({
     sourceMode: session.sourceMode,
     toolContext: session.toolContext,
@@ -109,12 +116,13 @@ export function UnifiedBuilderReview({ tool, pages, selectedPageId = "", bookSlu
         <div className="unified-builder-review-controls">
           <div role="group" aria-label="Review source">
             <button type="button" aria-pressed={session.sourceMode === "draft"} onClick={() => setSession((current) => ({ ...current, sourceMode: "draft" }))}>Saved Draft</button>
-            <button type="button" aria-pressed={session.sourceMode === "release"} disabled={!release} onClick={() => setSession((current) => ({ ...current, sourceMode: "release" }))}>{release ? `Release #${release.number} · Immutable` : "No release prepared"}</button>
+            <button type="button" aria-pressed={session.sourceMode === "release"} disabled={!release || !releaseMemberAvailable} title={release && !releaseMemberAvailable ? `This component was not included in historical Release #${release.number}.` : undefined} onClick={() => setSession((current) => ({ ...current, sourceMode: "release" }))}>{release ? releaseMemberAvailable ? `Release #${release.number} · Immutable` : `Unavailable in Release #${release.number}` : "No release prepared"}</button>
           </div>
           {session.sourceMode === "release" && intent?.view === "page" ? <label>Review page<select value={selectedPage?.pageId || ""} onChange={(event) => { const pageId = event.target.value; rememberPage(pageId); setSession((current) => ({ ...current, pageId })); }}>{normalizedPages.map((page) => <option key={page.pageId} value={page.pageId}>{reviewPageLabel(page)}</option>)}</select></label> : null}
         </div>
         <div className="unified-builder-review-messages">
           {session.toolContext.dirty && session.sourceMode === "draft" ? <p className="unified-builder-review-notice" role="status">Unsaved changes are not included in Review. Save them first.</p> : null}
+          {release && !releaseMemberAvailable ? <p className="unified-builder-review-notice" role="status">{releaseMember?.unavailableReason === "not_in_legacy_release" ? `This component was not included in historical Release #${release.number}.` : `This component is unavailable in Release #${release.number}.`}</p> : null}
           {session.sourceMode === "release" && release?.state === "stale" ? <p className="unified-builder-review-notice" role="status">Release #{release.number} is immutable and older than the current saved draft.</p> : null}
           {session.sourceMode === "release" && release?.state !== "stale" ? <p className="unified-builder-review-immutable" role="status">This is the exact immutable release projection. Later Builder saves cannot change it.</p> : null}
         </div>

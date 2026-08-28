@@ -247,7 +247,7 @@ export function UltimateB2ManagedComponentHostedWorkspace({ tool = "hotspots", n
   const navigation = useMemo(() => pageLibrary
     ? pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug })
     : { units: [], placements: [] }, [bookSlug, componentSlug, pageLibrary]);
-  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={navigation.placements} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}</UnifiedBuilderReview></div>;
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={navigation.placements} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</UnifiedBuilderReview></div>;
 }
 
 function PagesWorkspaceReviewBridge({ bookSlug, componentSlug, selectedPageId, setPageLibrary, setSelectedPageId }) {
