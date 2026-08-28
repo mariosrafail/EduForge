@@ -43,8 +43,8 @@ jobs:
       - name: Run Ultimate B2 multi-component Builder and Viewer acceptance
         run: npm run test:builder:multi-book
       - run: npm run test:viewer:boundary
-      - name: Run publication readiness and immutable Review acceptance
-        run: npm run test:builder:publication
+      - name: Run atomic product publication and immutable Review acceptance
+        run: npm run test:builder:product-publication
       - run: node scripts/book-builder/teacher-project-authoring-playwright.mjs
       - run: npm run test:book-builder:studio:visual
       - run: npm run test:android-teacher-offline:smoke

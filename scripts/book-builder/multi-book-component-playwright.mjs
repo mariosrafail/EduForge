@@ -15,11 +15,16 @@ import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorization
 import { resolveBuilderContentResource } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { createBuilderWorker } from "../../cloudflare/builder/worker.js";
 import { buildBookAssetHostedTeacherUiPublicKey } from "../../lib/book-assets/object-keys.js";
+import { nativeChildIdFromUuid } from "../../src/data/native-activities/nativeChildIdentity.js";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
 const studentsHotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/studentsBookHotspots.json", "utf8"));
 const managedPageBytes = await readFile("unit/1/parts/HD/parts_part_1.png");
+const draftUnitExtraBytes = await readFile("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4");
+const draftUnitExtraVideoId = nativeChildIdFromUuid("video", "10000000-0000-4000-8000-000000000081");
+const draftUnitExtraAssetId = "10000000-0000-4000-8000-000000000082";
+const draftUnitExtrasDocument = Object.freeze({ schemaVersion: "1.0", units: [{ unitId: "unit-1", unitNumber: 1, categories: { videos: [{ id: draftUnitExtraVideoId, title: "Saved Draft Extra", assetSlot: draftUnitExtraVideoId, asset: { assetId: draftUnitExtraAssetId, checksumSha256: "8".repeat(64), role: "unit_extra_video", slot: draftUnitExtraVideoId }, fileName: "saved-draft-extra.mp4", byteSize: draftUnitExtraBytes.length, durationMs: 5_840, cues: [] }] } }], pages: [{ pageId: "ub2-sb-unit-1-part-1", unitId: "unit-1", extrasVisibility: { videos: true } }] });
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 const components = Object.freeze({ workbook: "ultimate-b2-workbook", grammar: "ultimate-b2-grammar-book" });
 const previewEnvironment = { BUILDER_PREVIEW_AUTH_SECRET: "multi-book-browser-test-secret-with-at-least-thirty-two-bytes" };
@@ -33,6 +38,7 @@ const managedCatalogRequests = [];
 const managedStorageObjectRequests = [];
 const teacherUiObjectRequests = [];
 const canonicalViewerAssetRequests = [];
+const draftUnitExtraRequests = [];
 const managedReviewTokens = new Map();
 const managedStorageOrigin = "https://hhplms-viewer.netlify.app";
 
@@ -93,6 +99,7 @@ const builderPreviewHandler = createBuilderPreviewHandler({
   },
   loadDocument: async (_sql, resource) => {
     managedPreviewLoads.push(`${resource.componentSlug}:${resource.resource}:${resource.documentKey}`);
+    if (resource.resource === "unit-extras") return { revision: 4, source: "database", document: draftUnitExtrasDocument };
     if (resource.resource === "ui-controller" && teacherUiOverrideEnabled) return {
       revision: 3,
       source: "database",
@@ -171,6 +178,14 @@ const builderAuthorizationHandler = async (event) => {
   return rawAuthorizationHandler(event);
 };
 
+const builderUnitExtraAssetsHandler = async (event) => {
+  const scope = { action: "unit-extra-draft-asset", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
+  const decision = classifyBuilderPreviewAuthorization(event, scope, { environment: previewEnvironment, now: previewNow });
+  draftUnitExtraRequests.push({ path: event.path, authorization: event.queryStringParameters?.previewAuthorization || "", decision });
+  if (!decision.authorized || !event.path.endsWith(`/units/unit-1/videos/${draftUnitExtraVideoId}/assets/${draftUnitExtraAssetId}/preview`)) return { statusCode: decision.authorized ? 404 : 401, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ error: "Unauthorized" }) };
+  return { statusCode: 302, headers: { Location: `${managedStorageOrigin}/__draft-unit-extra.mp4`, "Cache-Control": "private, no-store" }, body: "" };
+};
+
 const publicBucket = {
   async head(objectKey) {
     teacherUiObjectRequests.push({ operation: "head", objectKey });
@@ -188,7 +203,7 @@ const publicBucket = {
 };
 
 const builderWorker = createBuilderWorker({
-  handlers: { pages: builderPagesHandler, previewAuthorization: builderAuthorizationHandler, preview: builderPreviewHandler },
+  handlers: { pages: builderPagesHandler, previewAuthorization: builderAuthorizationHandler, preview: builderPreviewHandler, unitExtraAssets: builderUnitExtraAssetsHandler },
 });
 
 function managedHotspots(componentSlug) {
@@ -229,6 +244,9 @@ function sendNetlify(response, result) {
 
 async function fulfillWorkerResponse(route, response) {
   const location = response.headers.get("Location");
+  if (response.status === 302 && location === `${managedStorageOrigin}/__draft-unit-extra.mp4`) {
+    return route.fulfill({ status: 200, contentType: "video/mp4", body: draftUnitExtraBytes });
+  }
   if (response.status === 302 && location?.startsWith(`${managedStorageOrigin}/__managed-page-storage/`)) {
     const objectKey = decodeURIComponent(new URL(location).pathname.slice("/__managed-page-storage/".length));
     managedStorageObjectRequests.push(objectKey);
@@ -326,7 +344,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
   browser = await chromium.launch(localPlaywrightLaunchOptions());
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
   await context.addInitScript(() => {
     const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
     let acceleratedAuthorizationTimers = 0;
@@ -361,6 +379,7 @@ try {
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    if (url.pathname === "/__draft-unit-extra.mp4") return route.fulfill({ status: 200, contentType: "video/mp4", body: draftUnitExtraBytes });
     if (url.pathname.startsWith("/preview/")) {
       const init = { method: request.method(), headers: request.headers() };
       if (!["GET", "HEAD"].includes(request.method())) init.body = request.postData() || "";
@@ -373,7 +392,6 @@ try {
     if (url.pathname.startsWith("/assets/")) canonicalViewerAssetRequests.push(url.pathname);
     return route.fulfill({ status: 200, contentType: mime[path.extname(file).toLowerCase()] || "application/octet-stream", body: await readFile(file) });
   });
-
   const page = await context.newPage();
   page.setDefaultTimeout(60_000);
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
@@ -396,7 +414,7 @@ try {
   for (const [componentSlug, title] of [[components.workbook, "Workbook"], [components.grammar, "Grammar Book"]]) {
     await page.goto(`${origin}/#/books/ultimate-b2/components/${componentSlug}`, { waitUntil: "domcontentloaded" });
     await page.locator(`[data-component-pages="${componentSlug}"]`).waitFor();
-    assert.deepEqual(await page.locator(".hosted-builder-tool-tabs a strong").allTextContents(), ["Pages", "Hotspot Builder", "Activity Builder"]);
+    assert.deepEqual(await page.locator(".hosted-builder-tool-tabs a strong").allTextContents(), ["Pages", "Hotspot Builder", "Activity Builder", "Publication"]);
     assert.equal(await page.locator(".component-pages-groups > section").count(), 11);
     assert.equal(await page.locator(".component-page-card").count(), 3);
     const selectedCatalog = managedCatalogs[componentSlug];
@@ -467,6 +485,13 @@ try {
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
   await studentsPagesReview.locator(".teacher-unit-page-card").first().click();
   await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
+  const draftExtraLauncher = studentsPagesReview.getByRole("button", { name: "Extra Videos", exact: true });
+  await draftExtraLauncher.waitFor(); await draftExtraLauncher.click();
+  await studentsPagesReview.getByRole("menuitem", { name: "Saved Draft Extra", exact: true }).click();
+  const draftExtraDialog = studentsPagesReview.getByRole("dialog", { name: "Saved Draft Extra" });
+  await draftExtraDialog.waitFor(); await draftExtraDialog.locator("video").waitFor();
+  assert.match(await draftExtraDialog.locator("video").getAttribute("src"), /^\/preview\/unit-extras\//);
+  await draftExtraDialog.getByRole("button", { name: "Close Extra Video" }).click();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).click();
@@ -504,6 +529,7 @@ try {
     "ultimate-b2-grammar-book": 1,
   });
   assert.equal(await studentsPagesReview.locator("body").evaluate(() => globalThis.__teacherProductStartupCount), 1);
+  assert.equal(draftUnitExtraRequests.some((entry) => entry.decision.authorized && /^v2\./.test(entry.authorization)), true, "Saved Draft media uses an exact Students component token");
   const residentCatalogs = managedCatalogRequests.slice(residentCatalogStart);
   assert.equal(residentCatalogs.filter((entry) => entry.componentSlug === components.workbook).length, 1);
   assert.equal(residentCatalogs.filter((entry) => entry.componentSlug === components.grammar).length, 1);
