@@ -13,6 +13,9 @@ import { createBuilderPreviewAuthorizationHandler } from "../../netlify-sites/ul
 import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, issueBuilderReleaseMemberAuthorization } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { createBuilderPublicationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication.js";
+import { resolveNativeActivityKind } from "../../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
+import { createNativeOpenResponseQuestion } from "../../src/data/native-activities/nativeOpenResponse.js";
+import { nativeChildIdFromUuid } from "../../src/data/native-activities/nativeChildIdentity.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "../../tests/fixtures/publication-v2.js";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
@@ -24,6 +27,14 @@ const dragDropActivityId = publicationV2Fixture.dragDropId;
 const listeningActivityId = "ultimate-b2-sb-u1-p1-o95";
 const listeningAudio = { assetId: "10000000-0000-4000-8000-000000000051", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "publication-listening-audio" };
 const listeningBackground = { assetId: "10000000-0000-4000-8000-000000000052", checksumSha256: "f".repeat(64), role: "activity_artwork", slot: "publication-listening-background" };
+const managedActivityIds = Object.freeze({
+  "ultimate-b2-workbook": "ultimate-b2-wb-unit-1-page-1-o1",
+  "ultimate-b2-grammar-book": "ultimate-b2-gb-unit-1-page-1-o1",
+});
+const managedTeacherSentinels = Object.freeze({
+  "ultimate-b2-workbook": "WORKBOOK_PUBLICATION_PRIVATE_TEACHER_SENTINEL",
+  "ultimate-b2-grammar-book": "GRAMMAR_PUBLICATION_PRIVATE_TEACHER_SENTINEL",
+});
 const unitExtraMp4 = await readFile(path.resolve("src/assets/books/ultimate-b2/teacher-offline-media/ultimate-b2-startup-intro.mp4"));
 const releaseIds = ["10000000-0000-4000-8000-000000000091", "10000000-0000-4000-8000-000000000092"];
 const productReleaseIds = ["20000000-0000-4000-8000-000000000091", "20000000-0000-4000-8000-000000000092"];
@@ -125,6 +136,8 @@ function sourceSha() { return `${sourceVersion}`.repeat(64).slice(0, 64); }
 function managedProjection(componentSlug, version) {
   const componentTitle = componentSlug === "ultimate-b2-workbook" ? "Workbook" : "Grammar Book";
   const componentNumber = componentSlug === "ultimate-b2-workbook" ? 5 : 6;
+  const pageId = `${componentSlug}-unit-1-page-1`;
+  const activityId = managedActivityIds[componentSlug];
   const units = Array.from({ length: 10 }, (_, index) => ({
     id: `${componentNumber}0000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
     slug: `unit-${index + 1}`,
@@ -133,13 +146,25 @@ function managedProjection(componentSlug, version) {
     sort_order: index + 1,
   }));
   const imageChecksum = createHash("sha256").update(`${componentSlug}:version:${version}`).digest("hex");
+  const kind = resolveNativeActivityKind("open-response");
+  const questionId = nativeChildIdFromUuid("q", `${componentNumber}3000000-0000-4000-8000-000000000001`);
+  const publicDocument = kind.createBlankPublic({ activityId, title: `${componentTitle} component activity`, placement: { pageId } });
+  publicDocument.parts[0].interaction.questions = [{ ...createNativeOpenResponseQuestion(questionId), prompt: `${componentTitle} immutable activity version ${version}` }];
+  const teacherDocument = kind.createBlankTeacher({ activityId });
+  teacherDocument.parts[0].solution.modelAnswers = [{ questionId, text: managedTeacherSentinels[componentSlug] }];
+  const indexEntry = { activityId, kind: "open-response", placement: { pageId }, sortOrder: 1 };
+  const source = (payload, revision = version) => ({ payload, revision, sha256: builderDocumentSha256(payload) });
+  const hotspotPayload = {
+    schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug,
+    pages: { [pageId]: [{ id: `${componentSlug}-publication-activity`, unitNumber: 1, pageId, left: 4, top: 4, width: 12, height: 12, label: `${componentTitle} component activity`, actionType: "normalized_activity", activityKey: activityId }] },
+  };
   return compileUltimateB2ManagedComponentRelease({
     pages: {
       revision: version,
       units,
       rows: [{
         id: `${componentNumber}1000000-0000-4000-8000-000000000001`,
-        stable_key: `${componentSlug}/pages/${componentSlug}-unit-1-page-1`,
+        stable_key: `${componentSlug}/pages/${pageId}`,
         label: `${componentTitle} immutable version ${version}`,
         sort_order: 10,
         source_metadata: { is_active: true, section_title: "Acceptance", printed_label: "1" },
@@ -162,8 +187,12 @@ function managedProjection(componentSlug, version) {
         height: 1,
       }],
     },
-    documents: { hotspots: null, activityLifecycle: null },
-    native: { index: null, activities: {}, assetRows: [] },
+    documents: { hotspots: source(hotspotPayload), activityLifecycle: null },
+    native: {
+      index: source({ schemaVersion: "1.0", activities: [indexEntry] }),
+      activities: { [activityId]: { index: indexEntry, public: source(publicDocument), teacher: source(teacherDocument) } },
+      assetRows: [],
+    },
   }, componentSlug);
 }
 
@@ -635,6 +664,26 @@ try {
   assert.equal(releases[1].componentReleases["ultimate-b2-workbook"].public_projection.pages[0].label, "Workbook immutable version 2");
   assert.equal(releases[0].componentReleases["ultimate-b2-grammar-book"].public_projection.pages[0].label, "Grammar Book immutable version 1");
   assert.equal(releases[1].componentReleases["ultimate-b2-grammar-book"].public_projection.pages[0].label, "Grammar Book immutable version 2");
+  for (const release of releases) {
+    const studentsPublic = release.componentReleases["ultimate-b2-students-book"].public_projection;
+    const workbookPublic = release.componentReleases["ultimate-b2-workbook"].public_projection;
+    const grammarPublic = release.componentReleases["ultimate-b2-grammar-book"].public_projection;
+    assert.ok(studentsPublic.nativeActivities[publicationV2Fixture.openResponseId]);
+    assert.deepEqual(Object.keys(workbookPublic.nativeActivities), [managedActivityIds["ultimate-b2-workbook"]]);
+    assert.deepEqual(Object.keys(grammarPublic.nativeActivities), [managedActivityIds["ultimate-b2-grammar-book"]]);
+    assert.equal(studentsPublic.nativeActivities[managedActivityIds["ultimate-b2-workbook"]], undefined);
+    assert.equal(studentsPublic.nativeActivities[managedActivityIds["ultimate-b2-grammar-book"]], undefined);
+    assert.equal(workbookPublic.nativeActivities[publicationV2Fixture.openResponseId], undefined);
+    assert.equal(workbookPublic.nativeActivities[managedActivityIds["ultimate-b2-grammar-book"]], undefined);
+    assert.equal(grammarPublic.nativeActivities[publicationV2Fixture.openResponseId], undefined);
+    assert.equal(grammarPublic.nativeActivities[managedActivityIds["ultimate-b2-workbook"]], undefined);
+    for (const publicProjection of [studentsPublic, workbookPublic, grammarPublic]) {
+      const publicJson = JSON.stringify(publicProjection);
+      assert.equal(publicJson.includes(publicationV2Fixture.teacherSentinel), false);
+      assert.equal(publicJson.includes(managedTeacherSentinels["ultimate-b2-workbook"]), false);
+      assert.equal(publicJson.includes(managedTeacherSentinels["ultimate-b2-grammar-book"]), false);
+    }
+  }
   assert.equal(immutableViewerRequests.some((request) => new URL(request).pathname.startsWith("/preview/content/")), false, "immutable Review never falls back to mutable Draft content");
   assert.deepEqual(rawStorageRequests, [], "immutable Review never requests a raw private storage host");
   lifecycle("acceptance-complete");

@@ -122,6 +122,20 @@ export async function claimBuilderNativeAssetUpload(sql, input) {
   } : null;
 }
 
+export async function loadBuilderNativeAssetUploadScope(sql, { uploadId, builderUserId }) {
+  const rows = await sql`
+    select package.slug as book_slug,component.slug as component_slug,upload.activity_id
+    from builder_native_asset_upload_sessions upload
+    join book_packages package on package.id=upload.book_package_id
+    join book_components component on component.id=upload.book_component_id
+      and component.book_package_id=package.id
+    where upload.id=${uploadId}::uuid and upload.created_by_builder_user_id=${builderUserId}::uuid
+    limit 1
+  `;
+  const row = rows[0];
+  return row ? { bookSlug: row.book_slug, componentSlug: row.component_slug, activityId: row.activity_id } : null;
+}
+
 export async function completeBuilderNativeAssetUpload(sql, input) {
   const rows = await sql`select complete_builder_native_asset_upload(
     ${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.objectKey},${input.storageBucket},

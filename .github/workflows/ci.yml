@@ -42,6 +42,8 @@ jobs:
       - run: npm run verify:netlify:ultimate-b2-interactive
       - name: Run Ultimate B2 multi-component Builder and Viewer acceptance
         run: npm run test:builder:multi-book
+      - name: Gate strict multi-component Activity authoring
+        run: npm run test:builder:multi-component-authoring
       - run: npm run test:viewer:boundary
       - name: Run atomic product publication and immutable Review acceptance
         run: npm run test:builder:product-publication

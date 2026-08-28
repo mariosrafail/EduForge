@@ -35,6 +35,7 @@ export const ultimateB2NativeActivityAdapter = Object.freeze({
   componentSlug: "ultimate-b2-students-book",
   kinds: NATIVE_ACTIVITY_KINDS,
   placements: ultimateB2NativeActivityPlacements,
+  ownsActivityId(activityId) { return /^ultimate-b2-sb-[a-z0-9-]+-o\d+$/.test(String(activityId || "")); },
   normalizePlacement: normalizeUltimateB2NativeActivityPlacement,
   nextActivityId: nextUltimateB2NativeActivityIdentity,
   sortOrder({ placement, activityId }) {

@@ -28,6 +28,7 @@ import {
   deleteBuilderNativeActivity,
   failBuilderNativeAssetUpload,
   loadBuilderNativeAsset,
+  loadBuilderNativeAssetUploadScope,
   isBuilderNativeDraftAssetRecord,
   loadBuilderNativeActivityIds,
   mutateBuilderActivityLifecycle,
@@ -37,7 +38,7 @@ import {
 } from "./_builder-native-activity-store.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
-import { collectUltimateB2PublicationV2Sources } from "./_builder-publication-store.js";
+import { collectBuilderNativeActivityCatalogSources } from "./_builder-publication-store.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -234,7 +235,9 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
   const lifecycle = storedLifecycle?.document || createEmptyUltimateB2ActivityLifecycle();
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
   const nativeEntry = index.activities.find((entry) => entry.activityId === parsedRoute.activityId) || null;
-  const canonical = ultimateB2StudentsBookAuthoringActivities.find((entry) => entry.activityKey === parsedRoute.activityId) || null;
+  const canonical = parsedRoute.bookSlug === "ultimate-b2" && parsedRoute.componentSlug === "ultimate-b2-students-book"
+    ? ultimateB2StudentsBookAuthoringActivities.find((entry) => entry.activityKey === parsedRoute.activityId) || null
+    : null;
   if (!nativeEntry && !canonical) return json(404, { error: "activity_not_found" });
   const family = nativeEntry ? "native" : "canonical";
   if (!move && family === "native") return json(400, { error: "use_native_retirement" });
@@ -437,6 +440,10 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["uploadId", "clientMutationId"]); if (parsed.error) return parsed.error;
   if (!uuidV4.test(String(parsed.value.uploadId || "")) || !builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_finalize_identity" });
   if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
+  const uploadScope = await dependencies.loadAssetUploadScope(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id });
+  if (!uploadScope) return json(404, { error: "session_not_found" });
+  if (uploadScope.bookSlug !== parsedRoute.bookSlug || uploadScope.componentSlug !== parsedRoute.componentSlug
+    || uploadScope.activityId !== parsedRoute.activityId) return json(409, { error: "upload_scope_conflict" });
   let claimed;
   try {
     claimed = await dependencies.claimAsset(sql, { uploadId: parsed.value.uploadId, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
@@ -474,21 +481,28 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   }
 }
 
-async function nativeCatalog(dependencies, sql) {
-  const sources = await dependencies.collectCatalog(sql);
+async function nativeCatalog(dependencies, sql, parsedRoute) {
+  const sources = await dependencies.collectCatalog(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+  const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
+  if (!adapter || !sources?.native || !sources.native.activities) throw new Error("Native activity catalog scope is unavailable.");
   const assetRows = new Map((sources.native.assetRows || []).map((row) => [String(row.id), row]));
   const activities = [];
   for (const entry of sources.native.index?.payload?.activities || []) {
+    if (!adapter.ownsActivityId?.(entry.activityId) || !adapter.kinds.includes(entry.kind)) throw new Error("Native activity catalog identity is outside its component.");
+    const placement = await adapter.normalizePlacement(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+    if (placement.pageId !== entry.placement.pageId) throw new Error("Native activity catalog placement is outside its component.");
     const pair = sources.native.activities[entry.activityId];
     const kind = resolveNativeActivityKind(entry.kind);
     let ready = false;
     let issues = [];
-    if (!kind || !pair?.public || !pair?.teacher) {
-      issues = ["Native activity pair is incomplete."];
+    if (!kind || !pair?.public || !pair?.teacher || pair.index?.activityId !== entry.activityId || pair.index?.kind !== entry.kind
+      || pair.index?.placement?.pageId !== entry.placement.pageId) {
+      throw new Error("Native activity pair is incomplete.");
     } else {
       try {
         const publicDocument = kind.normalizePublic(pair.public.payload, entry.activityId);
         const teacherDocument = kind.normalizeTeacher(pair.teacher.payload, entry.activityId);
+        validateNativeActivityPair(publicDocument, teacherDocument);
         if (publicDocument.placement.pageId !== entry.placement.pageId) throw new Error("Native placement does not match its index.");
         const readiness = kind.assessReadiness(publicDocument, teacherDocument);
         issues = [...readiness.issues];
@@ -496,7 +510,7 @@ async function nativeCatalog(dependencies, sql) {
           const asset = assetRows.get(reference.assetId);
           if (!asset || asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
             || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
-            || asset.source_metadata?.native_activity_id !== entry.activityId || asset.source_metadata?.asset_slot !== reference.slot) issues.push("Managed artwork is invalid.");
+            || asset.source_metadata?.native_activity_id !== entry.activityId || asset.source_metadata?.asset_slot !== reference.slot) throw new Error("Managed artwork is outside its component.");
         }
         {
           const requirements = [
@@ -523,13 +537,13 @@ async function nativeCatalog(dependencies, sql) {
         ready = issues.length === 0;
         activities.push({ activityId: entry.activityId, kind: entry.kind, title: publicDocument.metadata.title, placement: entry.placement, ready, issues: [...new Set(issues)] });
         continue;
-      } catch {
-        issues = ["Native activity pair is invalid."];
+      } catch (error) {
+        if (String(error?.message || "").includes("outside its component")) throw error;
+        throw new Error("Native activity pair is invalid.");
       }
     }
-    activities.push({ activityId: entry.activityId, kind: entry.kind, title: entry.activityId, placement: entry.placement, ready, issues });
   }
-  return json(200, { schemaVersion: "1.0", activities });
+  return json(200, { schemaVersion: "1.0", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, activities });
 }
 
 export function createBuilderNativeActivitiesHandler(overrides = {}) {
@@ -547,10 +561,11 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     validateAssets: overrides.validateAssets || validateBuilderNativeAssetReferences,
     prepareAsset: overrides.prepareAsset || prepareBuilderNativeAssetUpload,
     claimAsset: overrides.claimAsset || claimBuilderNativeAssetUpload,
+    loadAssetUploadScope: overrides.loadAssetUploadScope || loadBuilderNativeAssetUploadScope,
     completeAsset: overrides.completeAsset || completeBuilderNativeAssetUpload,
     failAsset: overrides.failAsset || failBuilderNativeAssetUpload,
     loadAsset: overrides.loadAsset || loadBuilderNativeAsset,
-    collectCatalog: overrides.collectCatalog || collectUltimateB2PublicationV2Sources,
+    collectCatalog: overrides.collectCatalog || collectBuilderNativeActivityCatalogSources,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,
@@ -567,7 +582,8 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       const sql = dependencies.getDatabase();
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
-      if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? nativeCatalog(dependencies, sql) : json(405, { error: "method_not_allowed" });
+      if (!dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug)) return json(404, { error: "native_activity_component_not_found" });
+      if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? await nativeCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "lifecycle") return event.httpMethod === "GET" ? activityLifecycleCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "asset-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });

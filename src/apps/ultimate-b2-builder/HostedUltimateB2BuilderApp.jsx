@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Boxes, ChevronDown, ChevronLeft, ChevronRight, FileImage, ListChecks, MessageSquareText, MoveRight, Plus, Search, Trash2, Video } from "lucide-react";
 
 import catalog from "../../../android-content-packs/ultimate-b2-students-book/catalog.json";
@@ -39,6 +39,12 @@ function firstAvailableActivityId(lifecycle, nativeActivities, excluded = "", ca
   return nativeActivities.find((activity) => activity.activityId !== excluded)?.activityId || canonical?.stableActivityId || "";
 }
 
+function activityComponentLabel(componentSlug) {
+  if (componentSlug === "ultimate-b2-workbook") return "Workbook";
+  if (componentSlug === "ultimate-b2-grammar-book") return "Grammar Book";
+  return "Students Book";
+}
+
 function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const { registerToolContext } = useBuilderReview();
   const managed = nativeActivities?.managed === true;
@@ -46,12 +52,17 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const nativePlacements = managed ? managedNavigation.placements : nativeActivities?.placements || [];
   const canonicalUnits = managed ? managedNavigation.units : catalog.units || [];
   const nativeKinds = nativeActivities?.kinds || [];
+  const nativeKindsKey = nativeKinds.join("\0");
   const firstId = managed ? "" : catalog.units?.[0]?.lessons?.[0]?.exercises?.[0]?.stableActivityId || "";
+  const initialExpandedPageId = managed ? "" : nativeActivities?.placements?.[0]?.pageId || catalog.units?.[0]?.lessons?.[0]?.id || "";
+  const scopeKey = `${bookSlug}:${componentSlug}`;
+  const componentLabel = activityComponentLabel(componentSlug);
   const [selectedId, setSelectedId] = useState(firstId);
   const [dirty, setDirty] = useState(false);
   const [viewerRefresh, setViewerRefresh] = useState(0);
   const [nativeCatalog, setNativeCatalog] = useState([]);
   const [lifecycle, setLifecycle] = useState({ schemaVersion: "1.0", activities: {} });
+  const [catalogState, setCatalogState] = useState({ status: "loading", error: "" });
   const [addOpen, setAddOpen] = useState(false);
   const [deleteState, setDeleteState] = useState({ open: false, saving: false, error: "" });
   const [moveState, setMoveState] = useState({ open: false, pageId: "", saving: false, error: "", placementRequired: false });
@@ -72,6 +83,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const activityWorkspaceRef = useRef(null);
   const navigationCloseTimerRef = useRef(null);
   const manualNavigationCollapseRef = useRef(false);
+  const scopeGenerationRef = useRef(0);
   const model = useMemo(() => buildActivityBuilderNavigation({ units: canonicalUnits, nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, isEditable: managed ? () => false : isUltimateB2ConfigurableOpenResponse }), [canonicalUnits, lifecycle, managed, nativeCatalog, nativePlacements]);
   const filtered = useMemo(() => filterActivityBuilderNavigation(model, { query, access, type }), [access, model, query, type]);
   const selection = findActivityBuilderItem(model, selectedId);
@@ -85,16 +97,36 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   useEffect(() => {
     registerToolContext("activities", { view: "activity", activityId: selectedId, ...(nativeSelectedPlacement ? { pageId: nativeSelectedPlacement.pageId, unitNumber: nativeSelectedPlacement.unitNumber } : {}), dirty, refreshKey: viewerRefresh, release: null });
   }, [dirty, nativeSelectedPlacement, registerToolContext, selectedId, viewerRefresh]);
-  const loadCatalogs = async (signal) => {
+  const loadCatalogs = useCallback(async (signal, generation = scopeGenerationRef.current, requestedScope = scopeKey) => {
     const [native, currentLifecycle, pageLibrary] = await Promise.all([
       getNativeActivityCatalog({ bookSlug, componentSlug }, { signal }),
       getActivityLifecycle({ bookSlug, componentSlug }, { signal }),
       managed ? getBuilderPages({ bookSlug, componentSlug }, { signal }) : Promise.resolve(null),
     ]);
+    if (signal?.aborted || generation !== scopeGenerationRef.current || requestedScope !== scopeKey) return null;
     if (pageLibrary) setManagedNavigation(pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug }));
     setNativeCatalog(native); setLifecycle(currentLifecycle.document); return { native, lifecycle: currentLifecycle.document };
-  };
-  useEffect(() => { const controller = new AbortController(); loadCatalogs(controller.signal).catch(() => {}); return () => controller.abort(); }, []);
+  }, [bookSlug, componentSlug, managed, scopeKey]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const generation = scopeGenerationRef.current + 1;
+    scopeGenerationRef.current = generation;
+    setManagedNavigation({ units: [], placements: [] });
+    setNativeCatalog([]); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
+    setDirty(false); setViewerRefresh(0); setAddOpen(false); setDeleteState({ open: false, saving: false, error: "" });
+    setMoveState({ open: false, pageId: "", saving: false, error: "", placementRequired: false }); setSwitchTarget("");
+    setQuery(""); setAccess("all"); setType("all"); setExpandedUnits(new Set(managed ? [] : [catalog.units?.[0]?.id]));
+    setExpandedPages(new Set(initialExpandedPageId ? [initialExpandedPageId] : [])); setCreateState({ kind: nativeKinds[0] || "", pageId: "", title: "", saving: false, error: "" });
+    setExtrasUnit(null); setCatalogState({ status: "loading", error: "" });
+    loadCatalogs(controller.signal, generation, scopeKey).then((result) => {
+      if (result) setCatalogState({ status: "ready", error: "" });
+    }).catch(() => {
+      if (!controller.signal.aborted && generation === scopeGenerationRef.current) {
+        setCatalogState({ status: "error", error: `${componentLabel} activities could not be loaded.` });
+      }
+    });
+    return () => controller.abort();
+  }, [componentLabel, firstId, initialExpandedPageId, loadCatalogs, managed, nativeKindsKey, scopeKey]);
   useEffect(() => {
     const query = globalThis.matchMedia?.("(hover: hover) and (pointer: fine)");
     if (!query) return undefined;
@@ -104,8 +136,8 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   }, []);
   useEffect(() => () => globalThis.clearTimeout(navigationCloseTimerRef.current), []);
   useEffect(() => {
-    if (!findActivityBuilderItem(model, selectedId)) setSelectedId(firstAvailableActivityId(lifecycle, nativeCatalog, "", canonicalUnits));
-  }, [canonicalUnits, lifecycle, model, nativeCatalog, selectedId]);
+    if (catalogState.status === "ready" && !findActivityBuilderItem(model, selectedId)) setSelectedId(firstAvailableActivityId(lifecycle, nativeCatalog, "", canonicalUnits));
+  }, [canonicalUnits, catalogState.status, lifecycle, model, nativeCatalog, selectedId]);
   useEffect(() => {
     if (nativePlacements.length && !nativePlacements.some((page) => page.pageId === createState.pageId)) setCreateState((current) => ({ ...current, pageId: nativePlacements[0].pageId }));
   }, [createState.pageId, nativePlacements]);
@@ -129,8 +161,10 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const submitNativeActivity = async (event) => {
     event.preventDefault(); setCreateState((current) => ({ ...current, saving: true, error: "" }));
     try {
+      const generation = scopeGenerationRef.current;
       const created = await createNativeActivity({ bookSlug, componentSlug, kind: createState.kind, pageId: createState.pageId, title: createState.title });
-      await loadCatalogs();
+      const refreshed = await loadCatalogs(undefined, generation, scopeKey);
+      if (!refreshed) return;
       const createdPlacement = placementFor(createState.pageId);
       const createdUnit = canonicalUnits.find((unit) => unit.unitNumber === createdPlacement?.unitNumber);
       setExpandedPages((current) => new Set(current).add(createState.pageId));
@@ -143,10 +177,12 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
     if (!selection?.item || !selection.page) return;
     setDeleteState((current) => ({ ...current, saving: true, error: "" }));
     try {
+      const generation = scopeGenerationRef.current;
       const identity = { bookSlug, componentSlug, activityId: selection.item.id };
       if (nativeSelected) await deleteNativeActivity(identity);
       else await retireCanonicalActivity({ ...identity, sourcePageId: selection.page.id });
-      const remaining = await loadCatalogs();
+      const remaining = await loadCatalogs(undefined, generation, scopeKey);
+      if (!remaining) return;
       setDirty(false);
       setViewerRefresh((value) => value + 1);
       setSelectedId(firstAvailableActivityId(remaining.lifecycle, remaining.native, selection.item.id, canonicalUnits));
@@ -160,11 +196,13 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
     if (!selection?.item || !selection.page) return;
     setMoveState((current) => ({ ...current, saving: true, error: "", placementRequired: false }));
     try {
+      const generation = scopeGenerationRef.current;
       await moveActivity({
         bookSlug, componentSlug, activityId: selection.item.id,
         sourcePageId: selection.page.id, destinationPageId: moveState.pageId,
       });
-      await loadCatalogs();
+      const refreshed = await loadCatalogs(undefined, generation, scopeKey);
+      if (!refreshed) return;
       const destinationPlacement = placementFor(moveState.pageId);
       const destinationUnit = canonicalUnits.find((unit) => unit.unitNumber === destinationPlacement?.unitNumber);
       setExpandedPages((current) => new Set(current).add(moveState.pageId));
@@ -197,7 +235,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   };
 
   return <main className="activity-builder-shell b2-hosted-activity-review">
-    <header className="activity-builder-header"><div><span>Ultimate B2 · Activity Builder</span><h1>Activity authoring</h1><p>Find, edit, and preview activities in their book placement.</p></div><div className="activity-builder-header-actions"><button ref={addTriggerRef} className="hosted-builder-action" type="button" onClick={openCreate}><Plus aria-hidden="true" /> Add Activity</button></div></header>
+    <header className="activity-builder-header"><div><span>Ultimate B2 · Activity Builder</span><h1>Activity authoring</h1><p>Find, edit, and preview activities in their book placement.</p></div><div className="activity-builder-header-actions"><button ref={addTriggerRef} className="hosted-builder-action" type="button" disabled={catalogState.status !== "ready" || !nativePlacements.length} onClick={openCreate}><Plus aria-hidden="true" /> Add Activity</button></div></header>
 
     <BuilderModal open={addOpen} title="Add activity" description={`Choose an activity type and its location in the ${managed ? componentSlug === "ultimate-b2-workbook" ? "Workbook" : "Grammar Book" : "Students Book"}.`} busy={createState.saving} onClose={() => setAddOpen(false)} returnFocusRef={addTriggerRef}><form className="native-activity-create" onSubmit={submitNativeActivity}>
       <fieldset><legend>Activity type</legend><div className="native-activity-kind-cards">{nativeKinds.map((kind) => { const Icon = kindIcons[kind] || Boxes; return <label key={kind} data-selected={createState.kind === kind || undefined}><input type="radio" name="activity-kind" value={kind} checked={createState.kind === kind} onChange={() => setCreateState((current) => ({ ...current, kind }))} /><Icon aria-hidden="true" /><strong>{nativeActivityKindLabels[kind]}</strong><span>{kindDescriptions[kind]}</span></label>; })}</div></fieldset>
@@ -207,7 +245,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
     </form></BuilderModal>
     {!managed ? <UnitExtrasEditor open={Boolean(extrasUnit)} unit={extrasUnit} onClose={() => setExtrasUnit(null)} returnFocusRef={extrasTriggerRef} /> : null}
     <BuilderModal open={Boolean(switchTarget)} title="Discard unsaved changes?" description="Opening another activity will discard the changes in this editor." onClose={() => setSwitchTarget("")}><div className="builder-confirm-actions"><button type="button" autoFocus onClick={() => setSwitchTarget("")}>Keep editing</button><button className="builder-danger-action" type="button" onClick={() => { setDirty(false); setSelectedId(switchTarget); setSwitchTarget(""); }}>Discard changes and open activity</button></div></BuilderModal>
-    <BuilderModal open={deleteState.open} title="Delete activity?" description="This logically retires the activity and removes every Students Book page hotspot that opens it." busy={deleteState.saving} onClose={() => setDeleteState({ open: false, saving: false, error: "" })} returnFocusRef={deleteTriggerRef}><div className="native-activity-delete-confirm"><p><strong>{selection?.item?.title}</strong></p><code>{selection?.item?.id}</code><p>Canonical source, revision history, managed assets, and immutable historical releases will not be changed.</p>{dirty ? <p><strong>Unsaved changes in this editor will be discarded.</strong></p> : null}{deleteState.error ? <p className="builder-inline-error" role="alert">{deleteState.error}</p> : null}<div className="builder-confirm-actions"><button type="button" autoFocus disabled={deleteState.saving} onClick={() => setDeleteState({ open: false, saving: false, error: "" })}>Cancel</button><button className="builder-danger-action" type="button" disabled={deleteState.saving} onClick={confirmDeleteActivity}>{deleteState.saving ? "Deleting…" : "Delete Activity"}</button></div></div></BuilderModal>
+    <BuilderModal open={deleteState.open} title="Delete activity?" description={`This logically retires the activity and removes every ${componentLabel} page hotspot that opens it.`} busy={deleteState.saving} onClose={() => setDeleteState({ open: false, saving: false, error: "" })} returnFocusRef={deleteTriggerRef}><div className="native-activity-delete-confirm"><p><strong>{selection?.item?.title}</strong></p><code>{selection?.item?.id}</code><p>Canonical source, revision history, managed assets, and immutable historical releases will not be changed.</p>{dirty ? <p><strong>Unsaved changes in this editor will be discarded.</strong></p> : null}{deleteState.error ? <p className="builder-inline-error" role="alert">{deleteState.error}</p> : null}<div className="builder-confirm-actions"><button type="button" autoFocus disabled={deleteState.saving} onClick={() => setDeleteState({ open: false, saving: false, error: "" })}>Cancel</button><button className="builder-danger-action" type="button" disabled={deleteState.saving} onClick={confirmDeleteActivity}>{deleteState.saving ? "Deleting…" : "Delete Activity"}</button></div></div></BuilderModal>
     <BuilderModal open={moveState.open} title="Move activity" description="Choose a destination. Existing launch hotspots will be removed; place one deliberately on the destination page." busy={moveState.saving} onClose={() => setMoveState((current) => ({ ...current, open: false, error: "" }))}><form className="native-activity-create" onSubmit={confirmMoveActivity}><label><span>Destination</span><select autoFocus value={moveState.pageId} onChange={(event) => setMoveState((current) => ({ ...current, pageId: event.target.value }))}>{[...new Set(nativePlacements.map((page) => page.unitNumber))].map((unitNumber) => <optgroup key={unitNumber} label={`Unit ${unitNumber}`}>{nativePlacements.filter((page) => page.unitNumber === unitNumber && page.pageId !== selection?.page?.id).map((page) => <option key={page.pageId} value={page.pageId}>{`${page.pageLabel} · ${page.sectionTitle}`}</option>)}</optgroup>)}</select></label>{moveState.error ? <p className="builder-inline-error" role="alert">{moveState.error}</p> : null}<footer><button type="button" disabled={moveState.saving} onClick={() => setMoveState((current) => ({ ...current, open: false, error: "" }))}>Cancel</button><button className="hosted-builder-action" type="submit" disabled={moveState.saving || !moveState.pageId || moveState.pageId === selection?.page?.id}>{moveState.saving ? "Moving…" : "Move Activity"}</button></footer></form></BuilderModal>
 
     <div className={`b2-hosted-activity-layout ${navigationExpanded ? "is-navigation-expanded" : "is-navigation-collapsed"}`} data-navigation-expanded={navigationExpanded}>
@@ -222,7 +260,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
       <div ref={activityWorkspaceRef} className="b2-hosted-activity-preview" tabIndex={-1}>
         {moveState.placementRequired ? <p className="activity-filter-notice" role="status">Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.</p> : null}
         <div className="b2-hosted-preview-identity"><div><strong>{nativeSelected?.title || selected?.title}</strong><span>{nativeSelected ? "Native draft" : supported ? "Editable canonical activity" : "Read-only canonical activity"}</span></div><div className="native-activity-identity-actions"><details><summary>Technical details</summary><code>{selectedId}</code></details>{selection?.item?.movable ? <button type="button" disabled={dirty} title={dirty ? "Save or discard changes before moving this activity." : undefined} onClick={() => { const destination = nativePlacements.find((page) => page.pageId !== selection.page?.id)?.pageId || ""; setMoveState({ open: true, pageId: destination, saving: false, error: "", placementRequired: false }); }}><MoveRight aria-hidden="true" /> Move Activity</button> : null}{selection?.item?.retirable ? <button ref={deleteTriggerRef} className="builder-danger-action" type="button" onClick={() => setDeleteState({ open: true, saving: false, error: "" })}><Trash2 aria-hidden="true" /> Delete Activity</button> : null}</div></div>
-        {nativeSelected ? <NativeActivityFoundationEditor key={`${selectedId}:${nativeSelected.placement?.pageId}`} bookSlug={bookSlug} componentSlug={componentSlug} activityId={selectedId} kind={nativeSelected.kind} placementLabel={placementFor(nativeSelected.placement?.pageId)?.pageLabel || nativeSelected.placement?.pageId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : supported ? <HostedOpenResponseEditor key={selectedId} activityId={selectedId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : selection ? <section className="b2-hosted-unsupported-activity" role="status"><strong>Read-only canonical activity</strong><p>This activity family has no hosted mutation capability. Use Review for the deployed Viewer runtime.</p></section> : <section className="b2-hosted-unsupported-activity" role="status"><strong>No activities yet</strong><p>{nativePlacements.length ? "Add the first native activity to this component page library." : "Add and assign a page before creating an activity."}</p></section>}
+        {catalogState.status === "loading" ? <section className="b2-hosted-unsupported-activity" role="status"><strong>Loading {componentLabel} activities…</strong></section> : catalogState.status === "error" ? <section className="b2-hosted-unsupported-activity" role="alert"><strong>{catalogState.error}</strong><p>Reload this workspace to try again. No activity from another component will be shown.</p></section> : nativeSelected ? <NativeActivityFoundationEditor key={`${scopeKey}:${selectedId}:${nativeSelected.placement?.pageId}`} bookSlug={bookSlug} componentSlug={componentSlug} activityId={selectedId} kind={nativeSelected.kind} placementLabel={placementFor(nativeSelected.placement?.pageId)?.pageLabel || nativeSelected.placement?.pageId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : supported ? <HostedOpenResponseEditor key={`${scopeKey}:${selectedId}`} activityId={selectedId} onDirtyChange={setDirty} onSaved={() => setViewerRefresh((value) => value + 1)} /> : selection ? <section className="b2-hosted-unsupported-activity" role="status"><strong>Read-only canonical activity</strong><p>This activity family has no hosted mutation capability. Use Review for the deployed Viewer runtime.</p></section> : <section className="b2-hosted-unsupported-activity" role="status"><strong>No activities yet</strong><p>{nativePlacements.length ? "Add the first native activity to this component page library." : "Add and assign a page before creating an activity."}</p></section>}
       </div>
     </div>
   </main>;

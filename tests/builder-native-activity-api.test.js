@@ -272,10 +272,11 @@ test("native documents are authenticated reads and paired writes are the only mu
 
 test("authenticated native catalog exposes page-aware readiness without Teacher answers", async () => {
   const sources = createPublicationV2FixtureSources();
+  const scopes = [];
   const handler = createBuilderNativeActivitiesHandler({
     getDatabase: () => ({}),
     authorize: async (event) => event.headers.cookie === "hh_builder_session=live" ? { builderUser: { id: actor } } : { error: json(401, { error: "Unauthorized" }) },
-    collectCatalog: async () => sources,
+    collectCatalog: async (_sql, scope) => { scopes.push(scope); return sources; },
     logger: { error() {} },
   });
   const path = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog";
@@ -283,13 +284,66 @@ test("authenticated native catalog exposes page-aware readiness without Teacher 
   const response = await handler(request({ method: "GET", path }));
   assert.equal(response.statusCode, 200);
   const payload = JSON.parse(response.body);
+  assert.deepEqual({ bookSlug: payload.bookSlug, componentSlug: payload.componentSlug }, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
+  assert.deepEqual(scopes[0], { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
   assert.deepEqual(payload.activities.map((activity) => activity.activityId), [publicationV2Fixture.openResponseId, publicationV2Fixture.imageId, publicationV2Fixture.singleChoiceId, publicationV2Fixture.dragDropId]);
   assert.equal(payload.activities.every((activity) => activity.placement.pageId === publicationV2Fixture.pageId && activity.ready), true);
   assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.teacherSentinel));
 
   sources.native.activities[publicationV2Fixture.openResponseId].public.payload.parts[0].interaction.questions = [];
   sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload.parts[0].solution.modelAnswers = [];
-  const incomplete = JSON.parse((await handler(request({ method: "GET", path }))).body).activities.find((activity) => activity.activityId === publicationV2Fixture.openResponseId);
-  assert.equal(incomplete.ready, false);
-  assert.ok(incomplete.issues.length > 0);
+  const incomplete = await handler(request({ method: "GET", path }));
+  assert.equal(incomplete.statusCode, 500);
+  assert.equal(JSON.parse(incomplete.body).error, "native_activity_request_failed");
+  assert.doesNotMatch(incomplete.body, new RegExp(publicationV2Fixture.openResponseId));
+});
+
+test("catalog fails closed when a Students Book activity is supplied for Workbook", async () => {
+  const sources = createPublicationV2FixtureSources();
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => async () => [],
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async (_sql, scope) => {
+      assert.deepEqual(scope, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" });
+      return sources;
+    },
+    logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
+  assert.equal(response.statusCode, 500);
+  assert.equal(JSON.parse(response.body).error, "native_activity_request_failed");
+  assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.openResponseId));
+});
+
+test("a component with no stored native index returns an exact empty catalog without falling back", async () => {
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => async () => [], authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => ({ native: { index: null, activities: {}, assetRows: [] } }), logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", activities: [] });
+});
+
+test("Workbook lifecycle never treats a Students Book canonical ID as component-local", async () => {
+  let mutationCalls = 0;
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => async () => [],
+    authorize: async () => ({ builderUser: { id: actor } }),
+    loadDocument: async (_sql, resource) => {
+      if (resource.documentType === "native_activity_index") return { revision: 1, document: { schemaVersion: "1.0", activities: [] } };
+      if (resource.documentType === "activity_lifecycle") return { revision: 1, document: { schemaVersion: "1.0", activities: {} } };
+      if (resource.documentType === "hotspots") return { revision: 1, document: resource.baseline() };
+      return null;
+    },
+    mutateLifecycle: async () => { mutationCalls += 1; return { outcome: "retired" }; },
+    logger: { error() {} },
+  });
+  const canonicalId = "ultimate-b2-sb-u1-p1-o4";
+  const response = await handler(request({
+    path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/activities/${canonicalId}/retire`,
+    body: { sourcePageId: "ultimate-b2-wb-unit-1-page-1", clientMutationId: randomUUID() },
+  }));
+  assert.equal(response.statusCode, 404);
+  assert.equal(mutationCalls, 0);
 });

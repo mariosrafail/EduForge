@@ -5,6 +5,7 @@ import { ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, createEmptyManagedComponentHotspotM
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
 import { collectNativeEntriesForPublication, validateNativePublicationAssetRows } from "./_builder-publication-compiler-v2.js";
+import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 
 export const ULTIMATE_B2_MANAGED_COMPONENT_RELEASE_SCHEMA_VERSION = "1.0";
 export const ULTIMATE_B2_MANAGED_COMPONENT_COMPILERS = Object.freeze({
@@ -167,6 +168,10 @@ function compatibility(componentSlug, nativeKinds) {
 
 export function compileUltimateB2ManagedComponentRelease(sources, componentSlug) {
   const identity = componentIdentity(componentSlug);
+  const adapter = resolveNativeActivityAdapter(identity.bookSlug, componentSlug);
+  if (!adapter || (sources.native?.index?.payload?.activities || []).some((entry) => !adapter.ownsActivityId?.(entry.activityId))) {
+    throw new Error("Managed native activity identity is outside its component.");
+  }
   const normalizedPages = publicationPages(sources, componentSlug);
   const nativeActivities = sources.native?.activities || {};
   const hotspotSource = sources.documents?.hotspots || null;

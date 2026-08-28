@@ -170,7 +170,7 @@ const server = createServer(async (request, response) => {
   });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
   if (url.pathname === `${nativeRoot}/lifecycle` && request.method === "GET") return json(response, 200, envelope("activity-lifecycle", "default", lifecycleRevision, activityLifecycle));
-  if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
+  if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
   if (url.pathname === `${nativeRoot}/create` && request.method === "POST") {
     const body = await requestJson(request); const activityId = `ultimate-b2-sb-u1-p1-o${nextNativeOrdinal++}`; const title = body.title.trim() || `New ${body.kind === "image" ? "Image" : body.kind === "single-choice" ? "Multiple Choice" : body.kind === "complete-sentences" ? "Complete the Sentences" : body.kind === "listening" ? "Listening" : body.kind === "drag-drop" ? "Drag & Drop" : "Open Response"}`;
     nativeDocuments.set(activityId, nativeDocumentPair(activityId, body.kind, body.pageId, title)); indexRevision += 1;

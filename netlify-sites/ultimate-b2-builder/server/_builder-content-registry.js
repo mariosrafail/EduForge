@@ -24,6 +24,7 @@ import {
 import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
+import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle, normalizeUltimateB2ActivityLifecycle, ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, projectUltimateB2UnitExtrasForPublication, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
 
@@ -169,12 +170,18 @@ function nativeComponent(bookSlug, componentSlug) {
 function nativeIndexResource(bookSlug, componentSlug, resource, documentKey) {
   const component = nativeComponent(bookSlug, componentSlug);
   if (!component || resource !== "native-activity-index" || documentKey) return null;
-  return Object.freeze({ ...component, resource, documentType: "native_activity_index", documentKey: "default", schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION, audience: "public", readable: true, writeAllowed: false, previewReadable: false, baseline: createEmptyNativeActivityIndex, validate(document) { return normalizeNativeActivityIndex(document, { allowedKinds: NATIVE_ACTIVITY_KINDS }); } });
+  const adapter = resolveNativeActivityAdapter(bookSlug, componentSlug);
+  return Object.freeze({ ...component, resource, documentType: "native_activity_index", documentKey: "default", schemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION, audience: "public", readable: true, writeAllowed: false, previewReadable: false, baseline: createEmptyNativeActivityIndex, validate(document) {
+    const normalized = normalizeNativeActivityIndex(document, { allowedKinds: NATIVE_ACTIVITY_KINDS });
+    if (!adapter || normalized.activities.some((entry) => !adapter.ownsActivityId?.(entry.activityId))) throw new Error("Native activity index contains a foreign component identity.");
+    return normalized;
+  } });
 }
 
 function nativeDocumentResource(bookSlug, componentSlug, resource, documentKey) {
   const component = nativeComponent(bookSlug, componentSlug);
-  if (!component || !nativeActivityIdPattern.test(documentKey)) return null;
+  const adapter = resolveNativeActivityAdapter(bookSlug, componentSlug);
+  if (!component || !adapter?.ownsActivityId?.(documentKey) || !nativeActivityIdPattern.test(documentKey)) return null;
   const teacher = resource === "native-activity-teacher";
   if (!teacher && resource !== "native-activity-public") return null;
   return Object.freeze({

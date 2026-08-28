@@ -9,6 +9,8 @@ import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
+import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
 import { createBuilderPreviewHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview.js";
 import { createBuilderPreviewAuthorizationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
 import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
@@ -72,6 +74,130 @@ function managedCatalog(componentSlug) {
 const managedCatalogs = Object.freeze({
   [components.workbook]: managedCatalog(components.workbook),
   [components.grammar]: managedCatalog(components.grammar),
+});
+
+const managedNativeStates = Object.fromEntries(Object.values(components).map((componentSlug) => [componentSlug, {
+  index: { revision: 1, document: { schemaVersion: "1.0", activities: [] } },
+  lifecycle: { revision: 1, document: { schemaVersion: "1.0", activities: {} } },
+  hotspots: { revision: 1, document: managedHotspots(componentSlug).document },
+  documents: new Map(), assets: new Map(), uploads: new Map(), mutations: new Map(),
+}]));
+const nativeScopeRequests = [];
+const nativeContentRequests = [];
+let delayedWorkbookCatalog = false;
+let nativeSequence = 500;
+
+function nativeState(componentSlug) { return managedNativeStates[componentSlug] || null; }
+function nativeDocumentKey(resource) { return `${resource.documentType}:${resource.documentKey}`; }
+const managedNativeSql = async (strings, ...values) => {
+  const query = strings.join(" ");
+  if (!query.includes("from book_pages page")) return [];
+  const stableKey = values.find((value) => typeof value === "string" && value.includes("/pages/"));
+  const [componentSlug, , pageId] = String(stableKey || "").split("/");
+  const page = managedCatalogs[componentSlug]?.pages.find((candidate) => candidate.id === pageId);
+  return page ? [{ stable_key: stableKey, sort_order: page.sortOrder, unit_id: page.unitId, unit_number: page.unitNumber, unit_title: page.unitTitle }] : [];
+};
+
+async function loadNativeDocument(_sql, resource) {
+  const state = nativeState(resource.componentSlug);
+  if (!state) return null;
+  if (resource.documentType === "native_activity_index") return state.index;
+  if (resource.documentType === "activity_lifecycle") return state.lifecycle;
+  if (resource.documentType === "hotspots") return state.hotspots;
+  return state.documents.get(nativeDocumentKey(resource)) || null;
+}
+
+function nativeSources(componentSlug) {
+  const state = nativeState(componentSlug);
+  const source = (stored) => stored ? { revision: stored.revision, payload: stored.document } : null;
+  return {
+    native: {
+      index: source(state.index),
+      activities: Object.fromEntries(state.index.document.activities.map((entry) => [entry.activityId, {
+        index: entry,
+        public: source(state.documents.get(`native_activity_public:${entry.activityId}`)),
+        teacher: source(state.documents.get(`native_activity_teacher:${entry.activityId}`)),
+      }])),
+      assetRows: [...state.assets.values()],
+    },
+  };
+}
+
+const nativeStorage = {
+  signedPutUrl: async ({ objectKey, contentType }) => ({ url: `${origin}/__native-upload/${encodeURIComponent(objectKey)}`, headers: { "Content-Type": contentType }, expiresIn: 900 }),
+  signedGetUrl: async ({ objectKey }) => `${origin}/__native-asset/${encodeURIComponent(objectKey)}`,
+  head: async ({ objectKey }) => {
+    for (const state of Object.values(managedNativeStates)) for (const upload of state.uploads.values()) if (upload.stagingObjectKey === objectKey) return { byteSize: upload.bytes?.length || 0 };
+    return null;
+  },
+  download: async ({ objectKey }) => {
+    for (const state of Object.values(managedNativeStates)) for (const upload of state.uploads.values()) if (upload.stagingObjectKey === objectKey) return upload.bytes;
+    return Buffer.alloc(0);
+  },
+  upload: async () => ({ reused: false }), delete: async () => {}, bucket: () => "browser-private-assets",
+};
+
+const nativeHandler = createBuilderNativeActivitiesHandler({
+  getDatabase: () => managedNativeSql,
+  authorize: async () => ({ builderUser: { id: "10000000-0000-4000-8000-000000000001" } }),
+  loadDocument: loadNativeDocument,
+  loadKnownActivityIds: async (_sql, scope) => [...nativeState(scope.componentSlug).documents.keys()].filter((key) => key.startsWith("native_activity_public:")).map((key) => key.split(":")[1]),
+  collectCatalog: async (_sql, scope) => { nativeScopeRequests.push({ action: "catalog", ...scope }); return nativeSources(scope.componentSlug); },
+  create: async (_sql, input) => {
+    const state = nativeState(input.componentSlug); const replay = state.mutations.get(input.clientMutationId);
+    if (replay) return replay.requestSha256 === input.requestSha256 ? { ...replay.result, outcome: "idempotent" } : { outcome: "mutation_id_conflict" };
+    state.index = { revision: state.index.revision + 1, document: input.indexDocument };
+    state.documents.set(`native_activity_public:${input.activityId}`, { revision: 1, document: input.publicDocument });
+    state.documents.set(`native_activity_teacher:${input.activityId}`, { revision: 1, document: input.teacherDocument });
+    const result = { outcome: "created", activityId: input.activityId, indexRevision: state.index.revision, publicRevision: 1, teacherRevision: 1 };
+    state.mutations.set(input.clientMutationId, { requestSha256: input.requestSha256, result }); return result;
+  },
+  savePair: async (_sql, input) => {
+    const state = nativeState(input.componentSlug); const publicState = state.documents.get(`native_activity_public:${input.activityId}`); const teacherState = state.documents.get(`native_activity_teacher:${input.activityId}`);
+    if (publicState.revision !== input.expectedPublicRevision || teacherState.revision !== input.expectedTeacherRevision) return { outcome: "revision_conflict", currentPublicRevision: publicState.revision, currentTeacherRevision: teacherState.revision };
+    publicState.revision += 1; teacherState.revision += 1; publicState.document = input.publicDocument; teacherState.document = input.teacherDocument;
+    return { outcome: "saved", publicRevision: publicState.revision, teacherRevision: teacherState.revision, currentPublicRevision: publicState.revision, currentTeacherRevision: teacherState.revision };
+  },
+  mutateLifecycle: async (_sql, input) => {
+    const state = nativeState(input.componentSlug);
+    if (input.sourcePageId !== input.authoritativeSourcePageId) return { outcome: "location_conflict" };
+    state.index = { revision: state.index.revision + 1, document: input.indexDocument };
+    const publicState = state.documents.get(`native_activity_public:${input.activityId}`); publicState.revision += 1; publicState.document = input.publicDocument;
+    if (input.hotspotChanged) state.hotspots = { revision: state.hotspots.revision + 1, document: input.hotspotDocument };
+    return { outcome: "moved", activityId: input.activityId, lifecycleRevision: state.lifecycle.revision, indexRevision: state.index.revision, publicRevision: publicState.revision, hotspotRevision: state.hotspots.revision, removedHotspotCount: input.removedHotspotCount };
+  },
+  validateAssets: async (_sql, input) => {
+    const state = nativeState(input.componentSlug);
+    for (const reference of input.assets) if (state.assets.get(reference.assetId)?.source_metadata?.native_activity_id !== input.activityId) throw new Error("Native managed asset references are invalid.");
+    return true;
+  },
+  prepareAsset: async (_sql, input) => {
+    const state = nativeState(input.componentSlug); state.uploads.set(input.uploadId, { ...input, bytes: null });
+    return { outcome: "prepared", uploadId: input.uploadId, state: "prepared", fileDescriptor: input.fileDescriptor, stagingObjectKey: input.stagingObjectKey };
+  },
+  loadAssetUploadScope: async (_sql, input) => {
+    for (const [componentSlug, state] of Object.entries(managedNativeStates)) { const upload = state.uploads.get(input.uploadId); if (upload) return { bookSlug: upload.bookSlug, componentSlug, activityId: upload.activityId }; }
+    return null;
+  },
+  claimAsset: async (_sql, input) => {
+    for (const state of Object.values(managedNativeStates)) { const upload = state.uploads.get(input.uploadId); if (upload) return { outcome: "claimed", activityId: upload.activityId, assetSlot: upload.assetSlot, fileDescriptor: upload.fileDescriptor, stagingObjectKey: upload.stagingObjectKey }; }
+    return { outcome: "session_not_found" };
+  },
+  completeAsset: async (_sql, input) => {
+    for (const state of Object.values(managedNativeStates)) { const upload = state.uploads.get(input.uploadId); if (!upload) continue; const assetId = `10000000-0000-4000-8000-${String(nativeSequence++).padStart(12, "0")}`; state.assets.set(assetId, { id: assetId, checksum_sha256: input.checksumSha256, asset_role: "activity_artwork", object_key: input.objectKey, storage_profile: "private", storage_bucket: input.storageBucket, mime_type: input.mimeType, byte_size: input.byteSize, width: input.width, height: input.height, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: upload.activityId, asset_slot: upload.assetSlot } }); return assetId; }
+    return null;
+  },
+  failAsset: async () => {},
+  loadAsset: async (_sql, input) => nativeState(input.componentSlug)?.assets.get(input.assetId) || null,
+  randomUuid: () => `10000000-0000-4000-8000-${String(nativeSequence++).padStart(12, "0")}`,
+  storage: () => nativeStorage,
+  logger: { error() {} },
+});
+
+const nativeContentHandler = createBuilderContentHandler({
+  getDatabase: () => managedNativeSql,
+  authorize: async () => ({ builderUser: { id: "10000000-0000-4000-8000-000000000001" } }),
+  loadDocument: async (sql, resource) => { nativeContentRequests.push({ componentSlug: resource.componentSlug, resource: resource.resource, documentKey: resource.documentKey }); return loadNativeDocument(sql, resource); },
 });
 const managedStorageObjects = new Set(Object.values(managedCatalogs).flatMap((catalog) => catalog.pages.map((page) =>
   `managed-pages/${page.componentSlug}/${page.id}/${page.image.assetId}.png`)));
@@ -225,6 +351,12 @@ async function requestBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+async function requestBytes(request) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 function netlifyEvent(request, url, body = "") {
   return {
     httpMethod: request.method,
@@ -329,11 +461,40 @@ const server = createServer(async (request, response) => {
   if (url.pathname.startsWith("/builder/api/open-response-import/status/") && request.method === "GET") {
     sendJson(response, { revision: 0, fingerprint: null, updatedAt: null, files: [] }); return;
   }
-  const nativeMatch = url.pathname.match(/^\/builder\/api\/native-activities\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook|grammar-book))\/(catalog|lifecycle)$/);
-  if (nativeMatch && request.method === "GET") {
-    sendJson(response, nativeMatch[2] === "catalog"
-      ? { schemaVersion: "1.0", activities: [] }
-      : { schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: {} } });
+  if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" && request.method === "GET") {
+    nativeScopeRequests.push({ action: "catalog", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
+    sendJson(response, { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activities: [] }); return;
+  }
+  if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/lifecycle" && request.method === "GET") {
+    sendJson(response, { schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: {} } }); return;
+  }
+  if (url.pathname.startsWith("/builder/api/native-activities/")) {
+    const event = netlifyEvent(request, url, await requestBody(request));
+    if (delayedWorkbookCatalog && url.pathname.endsWith("/ultimate-b2-workbook/catalog")) {
+      delayedWorkbookCatalog = false;
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    sendNetlify(response, await nativeHandler(event));
+    return;
+  }
+  if (/^\/builder\/api\/content\/books\/ultimate-b2\/components\/ultimate-b2-(?:workbook|grammar-book)\/(?:native-activity-public|native-activity-teacher)\//.test(url.pathname)) {
+    sendNetlify(response, await nativeContentHandler(netlifyEvent(request, url, await requestBody(request))));
+    return;
+  }
+  if (url.pathname.startsWith("/__native-upload/") && request.method === "PUT") {
+    const objectKey = decodeURIComponent(url.pathname.slice("/__native-upload/".length));
+    const bytes = await requestBytes(request);
+    for (const state of Object.values(managedNativeStates)) for (const upload of state.uploads.values()) if (upload.stagingObjectKey === objectKey) upload.bytes = bytes;
+    response.writeHead(200); response.end();
+    return;
+  }
+  if (url.pathname.startsWith("/__native-asset/")) {
+    const objectKey = decodeURIComponent(url.pathname.slice("/__native-asset/".length));
+    for (const state of Object.values(managedNativeStates)) {
+      const asset = [...state.assets.values()].find((candidate) => candidate.object_key === objectKey);
+      if (asset) { response.writeHead(200, { "Content-Type": asset.mime_type, "Content-Length": managedPageBytes.length }); response.end(managedPageBytes); return; }
+    }
+    response.writeHead(404); response.end();
     return;
   }
   await staticFile(builderRoot, url.pathname, response);
@@ -461,7 +622,59 @@ try {
     await page.getByRole("heading", { name: "Activity authoring" }).waitFor();
     await page.getByText("No activities yet", { exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "Add Activity" }).isEnabled(), true);
+    await page.getByRole("button", { name: "Add Activity" }).click();
+    await page.getByText(`Choose an activity type and its location in the ${title}.`, { exact: true }).waitFor();
+    await page.getByRole("radio", { name: /^Image/ }).check();
+    await page.getByLabel(/Initial title/).fill(`${title} component-local image`);
+    await page.getByRole("button", { name: "Create activity" }).click();
+    await page.locator(".native-image-editor").waitFor();
+    const state = nativeState(componentSlug);
+    assert.equal(state.index.document.activities.length, 1);
+    const activityId = state.index.document.activities[0].activityId;
+    const expectedPrefix = componentSlug === components.workbook ? "ultimate-b2-wb-" : "ultimate-b2-gb-";
+    const forbiddenPrefixes = componentSlug === components.workbook ? ["ultimate-b2-sb-", "ultimate-b2-gb-"] : ["ultimate-b2-sb-", "ultimate-b2-wb-"];
+    assert.match(activityId, new RegExp(`^${expectedPrefix}`));
+    await page.getByText(activityId, { exact: true }).first().waitFor();
+    for (const prefix of forbiddenPrefixes) assert.equal((await page.locator("body").innerText()).includes(prefix), false);
+    assert.equal(nativeContentRequests.some((entry) => entry.componentSlug === componentSlug && entry.documentKey === activityId && entry.resource === "native-activity-public"), true);
+    assert.equal(nativeContentRequests.some((entry) => entry.componentSlug === componentSlug && entry.documentKey === activityId && entry.resource === "native-activity-teacher"), true);
+    await page.getByLabel("Activity title").fill(`${title} saved image`);
+    await page.getByRole("textbox", { name: /^Content/ }).fill(`${title} public image content.`);
+    await page.getByRole("tab", { name: "Layout" }).click();
+    await page.locator(".native-or-upload input[type=file]").setInputFiles({ name: `${componentSlug}.png`, mimeType: "image/png", buffer: managedPageBytes });
+    await page.locator(".native-image-surface img").waitFor();
+    await page.getByLabel("Alt text").fill(`${title} classroom diagram`);
+    await page.getByRole("button", { name: "Save Draft" }).click();
+    await page.getByText("Draft saved.", { exact: true }).waitFor();
+    assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.metadata.title, `${title} saved image`);
+    assert.doesNotMatch(JSON.stringify(state.documents.get(`native_activity_public:${activityId}`).document), /solution|answerKey|modelAnswer/i);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByLabel("Activity title").waitFor();
+    assert.equal(await page.getByLabel("Activity title").inputValue(), `${title} saved image`);
+    await page.getByRole("button", { name: "Move Activity" }).click();
+    const destination = managedCatalogs[componentSlug].pages[1].id;
+    const moveDialog = page.getByRole("dialog", { name: "Move activity" });
+    await moveDialog.getByLabel("Destination").selectOption(destination);
+    await moveDialog.getByRole("button", { name: "Move Activity", exact: true }).click();
+    await page.getByText("Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.", { exact: true }).waitFor();
+    assert.equal(state.index.document.activities[0].placement.pageId, destination);
+    assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.placement.pageId, destination);
   }
+
+  delayedWorkbookCatalog = true;
+  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.workbook}/activities`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(40);
+  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.grammar}/activities`, { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Activity title").waitFor();
+  assert.equal(await page.getByLabel("Activity title").inputValue(), "Grammar Book saved image");
+  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-wb-"), false, "a delayed Workbook catalog cannot repopulate Grammar state");
+  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.workbook}/activities`, { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Activity title").waitFor();
+  assert.equal(await page.getByLabel("Activity title").inputValue(), "Workbook saved image");
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Activity authoring" }).waitFor();
+  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-wb-"), false);
+  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-gb-"), false);
 
   const residentExchangeStart = exchangeRequests.length;
   const residentCatalogStart = managedCatalogRequests.length;

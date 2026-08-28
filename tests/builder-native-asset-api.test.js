@@ -21,7 +21,7 @@ const pdf = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n
 const base = `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
-function harness({ bytes = png, contentType = "image/png", inspectRaster = inspectManagedRaster, inspectAudio = inspectManagedMp3, inspectVideo = inspectManagedMp4, resolvedSlot = "asset-one" } = {}) {
+function harness({ bytes = png, contentType = "image/png", inspectRaster = inspectManagedRaster, inspectAudio = inspectManagedMp3, inspectVideo = inspectManagedMp4, resolvedSlot = "asset-one", uploadScope = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId }, onClaim = () => {} } = {}) {
   let prepared = null; let completed = null; let failed = null;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/signed-put", headers: { "Content-Type": contentType }, expiresIn: 900 }),
@@ -42,7 +42,8 @@ function harness({ bytes = png, contentType = "image/png", inspectRaster = inspe
     inspectAudio,
     inspectVideo,
     prepareAsset: async (_sql, input) => { prepared = input; return { outcome: "prepared", uploadId, state: "prepared", fileDescriptor: input.fileDescriptor, stagingObjectKey: input.stagingObjectKey }; },
-    claimAsset: async (_sql, input) => ({ outcome: "claimed", activityId, assetSlot: prepared.assetSlot, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey }),
+    claimAsset: async (_sql, input) => { onClaim(input); return { outcome: "claimed", activityId, assetSlot: prepared.assetSlot, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey }; },
+    loadAssetUploadScope: async () => uploadScope,
     completeAsset: async (_sql, input) => { completed = input; return assetId; },
     failAsset: async (_sql, input) => { failed = input; },
     loadAsset: async (_sql, input) => input.activityId === activityId && input.assetId === assetId ? { id: assetId, checksum_sha256: completed?.checksumSha256 || "a".repeat(64), asset_role: "activity_artwork", object_key: completed?.objectKey || "builder-native-assets/object.png", storage_profile: "private", storage_bucket: "private-assets", mime_type: completed?.mimeType || contentType, byte_size: completed?.byteSize || bytes.length, width: completed?.width ?? (contentType.startsWith("image/") ? 1 : null), height: completed?.height ?? (contentType.startsWith("image/") ? 1 : null), publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: resolvedSlot } } : null,
@@ -74,6 +75,18 @@ test("native finalize returns the persisted canonical slot instead of the newly 
   const finalized = await handler(request(`${base}/finalize`, { uploadId, clientMutationId }));
   assert.equal(finalized.statusCode, 200);
   assert.equal(JSON.parse(finalized.body).reference.slot, "asset-canonical");
+});
+
+test("native finalize rejects a cross-component upload session before claiming it", async () => {
+  let claimed = false;
+  const current = harness({ uploadScope: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", activityId }, onClaim: () => { claimed = true; } });
+  const original = current.handler;
+  const clientMutationId = randomUUID();
+  await original(request(`${base}/prepare`, { name: "diagram.png", size: png.length, type: "image/png", assetSlot: "asset-one", clientMutationId }));
+  const finalized = await original(request(`${base}/finalize`, { uploadId, clientMutationId }));
+  assert.equal(finalized.statusCode, 409);
+  assert.equal(JSON.parse(finalized.body).error, "upload_scope_conflict");
+  assert.equal(claimed, false);
 });
 
 test("native raster finalize inspects real bytes, creates a private book asset reference, and supports authenticated preview", async () => {

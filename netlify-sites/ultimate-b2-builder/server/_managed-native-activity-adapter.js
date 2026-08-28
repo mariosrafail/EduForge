@@ -12,6 +12,7 @@ export function createManagedNativeActivityAdapter(componentSlug) {
   const prefix = prefixFor(componentSlug);
   return Object.freeze({
     id: `${componentSlug}-native-activities`, bookSlug: "ultimate-b2", componentSlug, kinds: NATIVE_ACTIVITY_KINDS,
+    ownsActivityId(activityId) { return new RegExp(`^${prefix}-[a-z0-9-]+-o\\d+$`).test(String(activityId || "")); },
     async normalizePlacement(input, { sql, bookSlug, componentSlug: requestedComponentSlug } = {}) {
       if (!SAFE_PAGE_ID.test(String(input?.pageId || "")) || typeof sql !== "function" || bookSlug !== "ultimate-b2" || requestedComponentSlug !== componentSlug) throw new Error("Managed native activity placement is invalid.");
       const stableKey = `${componentSlug}/pages/${input.pageId}`;

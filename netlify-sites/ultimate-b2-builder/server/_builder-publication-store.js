@@ -99,6 +99,15 @@ export async function collectUltimateB2ManagedPublicationSources(sql, componentS
   return { pages, documents: { hotspots, activityLifecycle }, native: { index, activities, assetRows } };
 }
 
+export async function collectBuilderNativeActivityCatalogSources(sql, { bookSlug, componentSlug }) {
+  if (bookSlug !== "ultimate-b2") throw new Error("Publication component is unavailable");
+  if (componentSlug === "ultimate-b2-students-book") return collectUltimateB2PublicationV2Sources(sql);
+  if (["ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) {
+    return collectUltimateB2ManagedPublicationSources(sql, componentSlug);
+  }
+  throw new Error("Publication component is unavailable");
+}
+
 export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug, references }) {
   if (!references.length) return [];
   const ids = [...new Set(references.map((reference) => reference.assetId))];
