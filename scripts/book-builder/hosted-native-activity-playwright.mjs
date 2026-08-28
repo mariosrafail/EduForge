@@ -26,7 +26,7 @@ const contentRoot = "/builder/api/content/books/ultimate-b2/components/ultimate-
 const nativeRoot = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book";
 const unitExtraRoot = "/builder/api/unit-extras/books/ultimate-b2/components/ultimate-b2-students-book";
 const previewToken = `v2.${Buffer.from('{"fixture":true}').toString("base64url")}.${"a".repeat(43)}`;
-const publicationRoot = "/builder/api/publication/books/ultimate-b2/components/ultimate-b2-students-book";
+const publicationRoot = "/builder/api/publication/books/ultimate-b2";
 const mime = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".pdf": "application/pdf" };
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFgAI/ScL4WQAAAABJRU5ErkJggg==", "base64");
 const secondPixelPng = Buffer.concat([onePixelPng, Buffer.from([0])]);
@@ -160,7 +160,14 @@ const server = createServer(async (request, response) => {
   const unitExtraPreviewMatch = url.pathname.match(new RegExp(`^${unitExtraRoot}/units/(unit-[0-9]+)/videos/(video-[a-f0-9]+)/assets/([0-9a-f-]+)/preview$`));
   if (unitExtraPreviewMatch && request.method === "GET") { const asset = unitExtraAssets.get(unitExtraPreviewMatch[3]); if (!asset) return json(response, 404, {}); response.writeHead(200, { "Content-Type": "video/mp4", "Content-Length": asset.bytes.length }); return response.end(asset.bytes); }
   if (url.pathname === `${contentRoot}/ui-controller` && request.method === "GET") return json(response, 200, envelope("ui-controller", "default", 0, createEmptyHostedTeacherUiDocument()));
-  if (url.pathname === publicationRoot && request.method === "GET") return json(response, 200, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", compilerId: "ultimate-b2-students-book-v2", releaseSchemaVersion: "2.0", currentSourceSha256: "1".repeat(64), headRevision: 0, published: null, releases: [] });
+  if (url.pathname === publicationRoot && request.method === "GET") return json(response, 200, {
+    bookSlug: "ultimate-b2", compilerId: "ultimate-b2-product-v1", releaseSchemaVersion: "1.0", headRevision: 0, published: null, releases: [],
+    components: [
+      { componentSlug: "ultimate-b2-students-book", compilerId: "ultimate-b2-students-book-v2", releaseSchemaVersion: "2.0", currentSourceSha256: "1".repeat(64) },
+      { componentSlug: "ultimate-b2-workbook", compilerId: "ultimate-b2-workbook-v1", releaseSchemaVersion: "1.0", currentSourceSha256: "2".repeat(64) },
+      { componentSlug: "ultimate-b2-grammar-book", compilerId: "ultimate-b2-grammar-book-v1", releaseSchemaVersion: "1.0", currentSourceSha256: "3".repeat(64) },
+    ],
+  });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
   if (url.pathname === `${nativeRoot}/lifecycle` && request.method === "GET") return json(response, 200, envelope("activity-lifecycle", "default", lifecycleRevision, activityLifecycle));
   if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
