@@ -113,6 +113,7 @@ test("release materialization fails closed with safe diagnostics for invalid sou
     { name: "wrong source size", source: { descriptor, row }, copyError: codedError("source_byte_size_mismatch"), failureClass: "source_byte_size_mismatch" },
     { name: "wrong source checksum", source: { descriptor, row }, copyError: codedError("source_checksum_mismatch"), failureClass: "source_checksum_mismatch" },
     { name: "wrong immutable checksum", source: { descriptor, row }, copyError: codedError("immutable_checksum_mismatch"), failureClass: "immutable_checksum_mismatch" },
+    { name: "invalid internal copy request", source: { descriptor, row }, copyError: codedError("copy_request_invalid"), failureClass: "copy_request_invalid" },
     { name: "safe provider classification", source: { descriptor, row }, copyError: Object.assign(codedError("copy_invalid_request", "private bucket source destination CopySource ETag Authorization Cookie"), { providerStatus: 400, providerCode: "InvalidArgument", bucket: "private-assets", sourceObjectKey: row.object_key }), failureClass: "copy_invalid_request", providerStatus: 400, providerCode: "InvalidArgument" },
     { name: "unknown storage failure", source: { descriptor, row }, copyError: new Error("secret key"), failureClass: "storage_copy_failure" },
   ];

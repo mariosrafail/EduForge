@@ -7,7 +7,7 @@ import { classifyAssetAccess, canDeliverAsset } from "../lib/book-assets/access.
 import { normalizeSignedUrlTtl, readBookAssetStorageConfig, signedUrlTtlBounds, signedUrlTtlForAsset } from "../lib/book-assets/config.js";
 import { validateBookManifestStructure } from "../lib/book-assets/manifest.js";
 import { buildBookAssetHostedOpenResponseArchiveKey, buildBookAssetHostedOpenResponsePublicKey, buildBookAssetImportStagingKey, buildBookAssetObjectKey, ensureSourceWithinRoot, normalizeObjectKeySegment, validateObjectKey } from "../lib/book-assets/object-keys.js";
-import { applyR2CopyDestinationCreateOnlyHeader, classifyImmutableCopyProviderFailure, isCloudflareR2S3Endpoint, S3BookAssetStorage } from "../lib/book-assets/storage.js";
+import { applyR2CopyDestinationCreateOnlyHeader, BookAssetImmutableCopyError, buildCopySource, classifyImmutableCopyProviderFailure, isCloudflareR2S3Endpoint, S3BookAssetStorage } from "../lib/book-assets/storage.js";
 import { getBookAssetAccess } from "../netlify/functions/_book-asset-access.js";
 
 test("object keys normalize segments and include immutable version/checksum identity", () => {
@@ -31,6 +31,20 @@ test("signed URL TTL is short, bounded, and storage configuration remains server
   const config = readBookAssetStorageConfig({ BOOK_ASSET_STORAGE_PROVIDER: "s3", BOOK_ASSET_S3_ENDPOINT: "https://r2.example/", BOOK_ASSET_S3_REGION: "auto", BOOK_ASSET_S3_ACCESS_KEY_ID: "key", BOOK_ASSET_S3_SECRET_ACCESS_KEY: "secret", BOOK_ASSET_PUBLIC_BUCKET: "public", BOOK_ASSET_PRIVATE_BUCKET: "private", BOOK_ASSET_ARCHIVE_BUCKET: "archive", BOOK_ASSET_PUBLIC_BASE_URL: "https://books.example", BOOK_ASSET_SIGNED_URL_TTL_SECONDS: "90" });
   assert.equal(config.endpoint, "https://r2.example");
   assert.equal(config.signedUrlTtlSeconds, 90);
+});
+
+test("CopySource uses one validated canonical bucket/key identity without a leading slash", () => {
+  assert.equal(buildCopySource("private-assets", "builder-pages/book/page-1/image.png"), "private-assets/builder-pages/book/page-1/image.png");
+  assert.equal(buildCopySource("private", "nested/path.with-punctuation/file_name-1.png"), "private/nested/path.with-punctuation/file_name-1.png");
+  const canonical = buildCopySource("private", "nested/already-safe.png");
+  assert.doesNotMatch(canonical, /^\//);
+  assert.doesNotMatch(canonical, /%25/);
+  for (const unsafeKey of ["path/with space.png", "path/with+plus.png", "path/with%percent.png", "path/with-unicode-\u03b1.png", "path/already%20encoded.png", "", "path/../unsafe.png"]) {
+    assert.throws(() => buildCopySource("private", unsafeKey), (error) => error instanceof BookAssetImmutableCopyError && error.code === "copy_request_invalid", unsafeKey);
+  }
+  for (const unsafeBucket of ["", " private", "private/bucket", "192.168.0.1"]) {
+    assert.throws(() => buildCopySource(unsafeBucket, "safe/key.png"), (error) => error instanceof BookAssetImmutableCopyError && error.code === "copy_request_invalid", unsafeBucket);
+  }
 });
 
 test("storage uploads are conditional and verify checksum metadata", async () => {
@@ -76,7 +90,7 @@ test("storage performs same-private-bucket immutable copies with strict conditio
   assert.deepEqual(copy.input, {
     Bucket: "private",
     Key: destinationKey,
-    CopySource: `/private/${sourceKey}`,
+    CopySource: `private/${sourceKey}`,
     CopySourceIfMatch: '"source-etag"',
     MetadataDirective: "REPLACE",
     Metadata: { sha256: checksum },
@@ -122,7 +136,10 @@ test("R2 immutable CopyObject serializes only the provider-specific destination 
   const result = await storage.copyVerifiedImmutable({ profile: "private", sourceObjectKey: sourceKey, destinationObjectKey: destinationKey, expectedChecksumSha256: checksum, expectedByteSize: 68, expectedContentType: "image/png" });
   assert.equal(result.copied, true);
   assert.equal(copyRequest.method, "PUT");
-  assert.equal(copyRequest.headers["x-amz-copy-source"], `/private/${sourceKey}`);
+  assert.equal(copyRequest.hostname, "private.0123456789abcdef.r2.cloudflarestorage.com");
+  assert.equal(copyRequest.path, `/${destinationKey}`);
+  assert.equal(copyRequest.headers["x-amz-copy-source"], `private/${sourceKey}`);
+  assert.doesNotMatch(copyRequest.headers["x-amz-copy-source"], /^\//);
   assert.equal(copyRequest.headers["x-amz-copy-source-if-match"], '"source-etag"');
   assert.equal(copyRequest.headers["x-amz-metadata-directive"], "REPLACE");
   assert.equal(copyRequest.headers["content-type"], "image/png");
@@ -130,6 +147,7 @@ test("R2 immutable CopyObject serializes only the provider-specific destination 
   assert.equal(copyRequest.headers["cf-copy-destination-if-none-match"], "*");
   assert.equal(copyRequest.headers["if-none-match"], undefined);
   assert.equal(Object.keys(copyRequest.headers).filter((name) => name.includes("destination-if-none-match") || name === "if-none-match").length, 1);
+  assert.match(copyRequest.headers.authorization, /SignedHeaders=[^,]*cf-copy-destination-if-none-match/);
 });
 
 test("immutable copy selects destination conditions by safely parsed endpoint identity", async () => {
@@ -142,24 +160,69 @@ test("immutable copy selects destination conditions by safely parsed endpoint id
   const destinationKey = `builder-release-assets/book/component/${checksum}.png`;
   const notFound = () => Object.assign(new Error("Not Found"), { $metadata: { httpStatusCode: 404 } });
   const exact = { ContentLength: 68, ContentType: "image/png", Metadata: { sha256: checksum }, ETag: '"etag"' };
-  const commands = [];
-  let destinationHeads = 0;
-  const storage = new S3BookAssetStorage({ endpoint: "https://s3.us-east-1.amazonaws.com", region: "us-east-1", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => {
-    commands.push(command);
-    if (command.constructor.name === "HeadObjectCommand" && command.input.Key === destinationKey && destinationHeads++ === 0) throw notFound();
-    return exact;
-  } });
+  const exactHeaders = { "content-length": "68", "content-type": "image/png", "x-amz-meta-sha256": checksum, etag: '"etag"' };
+  let call = 0;
+  let copyRequest;
+  const config = { endpoint: "https://s3.us-east-1.amazonaws.com", region: "us-east-1", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 };
+  const client = new S3Client({ endpoint: config.endpoint, region: config.region, forcePathStyle: false, credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey }, requestHandler: { async handle(request) {
+    call += 1;
+    if (call === 1) return { response: { statusCode: 404, headers: {}, body: Readable.from([]) } };
+    if (call === 2 || call === 4) return { response: { statusCode: 200, headers: exactHeaders, body: Readable.from([]) } };
+    copyRequest = request;
+    return { response: { statusCode: 200, headers: { "content-type": "application/xml" }, body: Readable.from(['<CopyObjectResult><ETag>&quot;etag&quot;</ETag><LastModified>2026-08-28T00:00:00.000Z</LastModified></CopyObjectResult>']) } };
+  } } });
+  const storage = new S3BookAssetStorage(config, client);
   await storage.copyVerifiedImmutable({ profile: "private", sourceObjectKey: sourceKey, destinationObjectKey: destinationKey, expectedChecksumSha256: checksum, expectedByteSize: 68, expectedContentType: "image/png" });
-  const copy = commands.find((command) => command.constructor.name === "CopyObjectCommand");
-  assert.equal(copy.input.IfNoneMatch, "*");
-  assert.equal(copy.middlewareStack.identify().some((entry) => entry.includes("r2CopyDestinationCreateOnly")), false);
+  assert.equal(copyRequest.hostname, "private.s3.us-east-1.amazonaws.com");
+  assert.equal(copyRequest.path, `/${destinationKey}`);
+  assert.equal(copyRequest.headers["x-amz-copy-source"], `private/${sourceKey}`);
+  assert.equal(copyRequest.headers["if-none-match"], "*");
+  assert.equal(copyRequest.headers["cf-copy-destination-if-none-match"], undefined);
+  assert.equal(Object.keys(copyRequest.headers).filter((name) => name.includes("destination-if-none-match") || name === "if-none-match").length, 1);
 });
 
 test("R2 immutable CopyObject middleware adds the documented create-only destination header", () => {
-  const request = { headers: { "x-amz-copy-source": "/private/source" } };
+  const request = { headers: { "x-amz-copy-source": "private/source" } };
   applyR2CopyDestinationCreateOnlyHeader(request);
   assert.equal(request.headers["cf-copy-destination-if-none-match"], "*");
   assert.throws(() => applyR2CopyDestinationCreateOnlyHeader({}), (error) => error.code === "copy_request_invalid");
+});
+
+test("CopyObject provider classification safely traverses bounded and cyclic causes", () => {
+  assert.deepEqual(classifyImmutableCopyProviderFailure(Object.assign(new Error("opaque"), { cause: { name: "AccessDenied", $metadata: { httpStatusCode: 403 } } })), { failureClass: "copy_permission_denied", providerStatus: 403, providerCode: "AccessDenied" });
+  assert.deepEqual(classifyImmutableCopyProviderFailure(Object.assign(new Error("opaque"), { cause: { name: "ServiceUnavailable", $response: { statusCode: 503 } } })), { failureClass: "copy_provider_unavailable", providerStatus: 503, providerCode: "ServiceUnavailable" });
+  assert.deepEqual(classifyImmutableCopyProviderFailure(Object.assign(new Error("opaque"), { cause: { code: "ETIMEDOUT" } })), { failureClass: "copy_transport_failed", providerStatus: undefined, providerCode: "ETIMEDOUT" });
+  assert.deepEqual(classifyImmutableCopyProviderFailure(Object.assign(new Error("opaque"), { cause: { Code: "InvalidRequest" } })), { failureClass: "copy_invalid_request", providerStatus: undefined, providerCode: "InvalidRequest" });
+  const beyondMaximumDepth = Object.assign(new Error("one"), { cause: Object.assign(new Error("two"), { cause: Object.assign(new Error("three"), { cause: { name: "AccessDenied", $metadata: { httpStatusCode: 403 } } }) }) });
+  assert.deepEqual(classifyImmutableCopyProviderFailure(beyondMaximumDepth), { failureClass: "copy_failed", providerStatus: undefined, providerCode: undefined });
+  const cyclic = new Error("cycle");
+  cyclic.cause = cyclic;
+  assert.deepEqual(classifyImmutableCopyProviderFailure(cyclic), { failureClass: "copy_failed", providerStatus: undefined, providerCode: undefined });
+  const hostileFields = {};
+  Object.defineProperties(hostileFields, {
+    cause: { get() { throw new Error("private cause"); } },
+    name: { get() { throw new Error("private name"); } },
+    $metadata: { value: { httpStatusCode: { valueOf() { throw new Error("private status"); } } } },
+  });
+  assert.deepEqual(classifyImmutableCopyProviderFailure(hostileFields), { failureClass: "copy_failed", providerStatus: undefined, providerCode: undefined });
+});
+
+test("CopyObject provider codes without reliable status use only the explicit bounded mapping", () => {
+  for (const [providerCode, failureClass] of [
+    ["InvalidArgument", "copy_invalid_request"],
+    ["InvalidRequest", "copy_invalid_request"],
+    ["NoSuchKey", "copy_invalid_request"],
+    ["AccessDenied", "copy_permission_denied"],
+    ["SignatureDoesNotMatch", "copy_permission_denied"],
+    ["PreconditionFailed", "copy_precondition_failed"],
+    ["NotImplemented", "copy_not_supported"],
+    ["SlowDown", "copy_throttled"],
+    ["InternalError", "copy_provider_unavailable"],
+  ]) {
+    assert.deepEqual(classifyImmutableCopyProviderFailure({ Code: providerCode }), { failureClass, providerStatus: undefined, providerCode }, providerCode);
+  }
+  assert.deepEqual(classifyImmutableCopyProviderFailure({ Code: "UnmappedProviderCode" }), { failureClass: "copy_failed", providerStatus: undefined, providerCode: "UnmappedProviderCode" });
+  assert.deepEqual(classifyImmutableCopyProviderFailure({ Code: "unsafe provider code with spaces" }), { failureClass: "copy_failed", providerStatus: undefined, providerCode: undefined });
 });
 
 test("CopyObject provider failures map to bounded non-sensitive diagnostics", async () => {
@@ -200,6 +263,51 @@ test("CopyObject provider failures map to bounded non-sensitive diagnostics", as
       return true;
     });
   }
+});
+
+test("CopyObject preserves already-safe internal immutable-copy failures", async () => {
+  const checksum = "6".repeat(64);
+  const request = { profile: "private", sourceObjectKey: `builder-native-assets/source/${checksum}.png`, destinationObjectKey: `builder-release-assets/book/component/${checksum}.png`, expectedChecksumSha256: checksum, expectedByteSize: 68, expectedContentType: "image/png" };
+  const notFound = () => Object.assign(new Error("Not Found"), { $metadata: { httpStatusCode: 404 } });
+  const exact = { ContentLength: 68, ContentType: "image/png", Metadata: { sha256: checksum }, ETag: '"etag"' };
+  for (const code of ["copy_request_invalid", "copy_identity_invalid", "source_checksum_mismatch", "immutable_checksum_mismatch"]) {
+    const internal = new BookAssetImmutableCopyError(code, { providerStatus: 400, providerCode: "InvalidArgument" });
+    let destinationHeads = 0;
+    const storage = new S3BookAssetStorage({ endpoint: "https://account.r2.cloudflarestorage.com", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 }, { send: async (command) => {
+      if (command.constructor.name === "HeadObjectCommand" && command.input.Key === request.destinationObjectKey && destinationHeads++ === 0) throw notFound();
+      if (command.constructor.name === "HeadObjectCommand") return exact;
+      throw internal;
+    } });
+    await assert.rejects(storage.copyVerifiedImmutable(request), (error) => {
+      assert.equal(error, internal, code);
+      assert.equal(error.code, code);
+      assert.equal(error.providerStatus, 400);
+      assert.equal(error.providerCode, "InvalidArgument");
+      return true;
+    });
+  }
+});
+
+test("AWS CopyObject embedded errors retain only bounded provider diagnostics", async () => {
+  const checksum = "4".repeat(64);
+  const sourceKey = `builder-pages/book/component/page/assets/${checksum}.png`;
+  const destinationKey = `builder-release-assets/book/component/${checksum}.png`;
+  const exactHeaders = { "content-length": "68", "content-type": "image/png", "x-amz-meta-sha256": checksum, etag: '"etag"' };
+  const secretBody = '<Error><Code>InvalidRequest</Code><Message>private/source Authorization Cookie ETag credential</Message><RequestId>private-key</RequestId></Error>';
+  const config = { endpoint: "https://account.r2.cloudflarestorage.com", region: "auto", accessKeyId: "key", secretAccessKey: "secret", publicBucket: "public", privateBucket: "private", archiveBucket: "archive", publicBaseUrl: "https://public.invalid", signedUrlTtlSeconds: 60 };
+  const client = new S3Client({ endpoint: config.endpoint, region: config.region, forcePathStyle: false, credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey }, maxAttempts: 1, requestHandler: { async handle(request) {
+    if (request.method === "HEAD" && request.path === `/${destinationKey}`) return { response: { statusCode: 404, headers: {}, body: Readable.from([]) } };
+    if (request.method === "HEAD") return { response: { statusCode: 200, headers: exactHeaders, body: Readable.from([]) } };
+    return { response: { statusCode: 200, headers: { "content-type": "application/xml" }, body: Readable.from([secretBody]) } };
+  } } });
+  const storage = new S3BookAssetStorage(config, client);
+  await assert.rejects(storage.copyVerifiedImmutable({ profile: "private", sourceObjectKey: sourceKey, destinationObjectKey: destinationKey, expectedChecksumSha256: checksum, expectedByteSize: 68, expectedContentType: "image/png" }), (error) => {
+    assert.equal(error.code, "copy_provider_unavailable");
+    assert.equal(error.providerStatus, 503);
+    assert.equal(error.providerCode, "InvalidRequest");
+    assert.doesNotMatch(JSON.stringify(error), /private\/source|Authorization|Cookie|ETag|credential|RequestId/i);
+    return true;
+  });
 });
 
 test("immutable copy keeps specific source verification failures", async () => {

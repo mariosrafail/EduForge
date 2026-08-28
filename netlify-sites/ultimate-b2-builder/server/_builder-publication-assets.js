@@ -13,6 +13,7 @@ const STORAGE_COPY_FAILURES = new Set([
   "immutable_byte_size_mismatch",
   "immutable_media_type_mismatch",
   "copy_invalid_request",
+  "copy_request_invalid",
   "copy_permission_denied",
   "copy_precondition_failed",
   "copy_not_supported",
