@@ -1,6 +1,7 @@
 import { builderDocumentSha256 } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
+import { loadBuilderPages } from "./_builder-pages-store.js";
 
 function document(row, resource) {
   if (!row) return null;
@@ -51,6 +52,51 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
   const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => unit.categories.videos.flatMap((video) => video.asset ? [video.asset] : []));
   const unitExtraAssetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references: unitExtraReferences });
   return { ...legacy, native: { index, activities, assetRows }, unitExtras: { document: unitExtras, assetRows: unitExtraAssetRows } };
+}
+
+export async function collectUltimateB2ManagedPublicationSources(sql, componentSlug) {
+  if (!["ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) throw new Error("Publication component is unavailable");
+  const [pages, rows] = await Promise.all([
+    loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug }),
+    sql`
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'document_type',document.document_type,'document_key',document.document_key,'schema_version',document.schema_version,
+        'revision',document.revision,'payload',document.payload,'payload_sha256',document.payload_sha256
+      ) order by document.document_type,document.document_key) filter(where document.id is not null), '[]'::jsonb) documents
+      from book_packages package
+      join book_components component on component.book_package_id=package.id
+      left join builder_component_documents document on document.book_component_id=component.id
+        and document.document_type in ('hotspots','activity_lifecycle','native_activity_index','native_activity_public','native_activity_teacher')
+      where package.slug='ultimate-b2' and component.slug=${componentSlug}
+      group by component.id
+      limit 1
+    `,
+  ]);
+  if (!pages || !rows[0]) throw new Error("Publication component is unavailable");
+  const documentRows = new Map((rows[0].documents || []).map((row) => [`${row.document_type}/${row.document_key}`, row]));
+  const [hotspotsResource, lifecycleResource, indexResource] = await Promise.all([
+    resolveBuilderContentResource("ultimate-b2", componentSlug, "hotspots"),
+    resolveBuilderContentResource("ultimate-b2", componentSlug, "activity-lifecycle"),
+    resolveBuilderContentResource("ultimate-b2", componentSlug, "native-activity-index"),
+  ]);
+  const hotspots = document(documentRows.get("hotspots/default"), hotspotsResource);
+  const activityLifecycle = document(documentRows.get("activity_lifecycle/default"), lifecycleResource);
+  const index = document(documentRows.get("native_activity_index/default"), indexResource);
+  const activities = {};
+  for (const entry of index?.payload?.activities || []) {
+    const [publicResource, teacherResource] = await Promise.all([
+      resolveBuilderContentResource("ultimate-b2", componentSlug, "native-activity-public", entry.activityId),
+      resolveBuilderContentResource("ultimate-b2", componentSlug, "native-activity-teacher", entry.activityId),
+    ]);
+    activities[entry.activityId] = {
+      index: entry,
+      public: document(documentRows.get(`native_activity_public/${entry.activityId}`), publicResource),
+      teacher: document(documentRows.get(`native_activity_teacher/${entry.activityId}`), teacherResource),
+    };
+  }
+  const references = Object.values(activities).flatMap((entry) => entry.public?.payload?.assets || []);
+  const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug, references });
+  return { pages, documents: { hotspots, activityLifecycle }, native: { index, activities, assetRows } };
 }
 
 export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug, references }) {

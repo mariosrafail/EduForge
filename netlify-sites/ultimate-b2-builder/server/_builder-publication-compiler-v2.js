@@ -140,7 +140,7 @@ function referencedNativeIds(hotspots, nativeActivities) {
   return [...new Set(Object.values(hotspots.pages).flat().map((hotspot) => hotspot.activityKey).filter((activityId) => nativeIds.has(activityId)))].sort();
 }
 
-function validateAssetRows(nativeEntries, assetRows) {
+export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
   const byId = new Map(assetRows.map((row) => [String(row.id), row]));
   const sources = new Map();
   for (const [activityId, entry] of nativeEntries) {
@@ -211,7 +211,7 @@ function validateUnitExtraAssetRows(document, assetRows) {
   return [...sources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256));
 }
 
-function collectNativeEntries(sources, hotspots) {
+export function collectNativeEntriesForPublication(sources, hotspots) {
   const selected = [];
   for (const activityId of referencedNativeIds(hotspots, sources.native.activities)) {
     const source = sources.native.activities[activityId];
@@ -248,8 +248,8 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     const ambiguous = String(error?.message || "").startsWith("Ambiguous Students Book activity id:");
     throw new NativePublicationError(ambiguous ? "native_activity_pair_invalid" : "native_activity_not_found", null, [String(error?.message || "Saved hotspot target is invalid.")]);
   }
-  const selectedNative = collectNativeEntries(sources, hotspots);
-  const nativeAssetSources = validateAssetRows(selectedNative, sources.native?.assetRows || []);
+  const selectedNative = collectNativeEntriesForPublication(sources, hotspots);
+  const nativeAssetSources = validateNativePublicationAssetRows(selectedNative, sources.native?.assetRows || []);
   const unitExtrasSource = sources.unitExtras?.document || null;
   const unitExtrasDocument = unitExtrasSource?.payload || createEmptyUltimateB2UnitExtras();
   const unitExtraAssetSources = validateUnitExtraAssetRows(unitExtrasDocument, sources.unitExtras?.assetRows || []);

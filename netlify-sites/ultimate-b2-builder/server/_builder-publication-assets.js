@@ -47,7 +47,8 @@ export async function materializeNativeReleaseAssets(storage, { bookSlug, compon
     const { descriptor, row } = source;
     try {
       if (!isPrivateMaterializedComponentReleaseAssetRole(descriptor.role)) throw unavailable(source, "materialize", "unsupported_asset_role");
-      if (row.asset_role !== descriptor.role) throw unavailable(source, "materialize", "source_asset_role_mismatch");
+      const expectedSourceRole = descriptor.role === "managed_page_image" ? "page_image" : descriptor.role;
+      if (row.asset_role !== expectedSourceRole) throw unavailable(source, "materialize", "source_asset_role_mismatch");
       if (row.checksum_sha256 !== descriptor.sha256) throw unavailable(source, "materialize", "source_checksum_mismatch");
       if (row.mime_type !== descriptor.mediaType) throw unavailable(source, "materialize", "source_media_type_mismatch");
       if (!Number.isSafeInteger(Number(row.byte_size)) || Number(row.byte_size) < 1) throw unavailable(source, "materialize", "source_byte_size_invalid");

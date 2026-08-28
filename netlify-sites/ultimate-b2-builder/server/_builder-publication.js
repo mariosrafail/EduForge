@@ -38,7 +38,7 @@ function publicationComponent(bookSlug, componentSlug, writable = false) {
 
 const assetSourceIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-async function verifyAssets(storage, assets, nativeAssetSources = [], { bookSlug, componentSlug }) {
+export async function verifyAssets(storage, assets, nativeAssetSources = [], { bookSlug, componentSlug }) {
   const privateSources = new Map(nativeAssetSources.map((source) => [assetSourceIdentity(source.descriptor), source]));
   for (const asset of assets) {
     const policy = componentPublicationAssetRolePolicy(asset.role);

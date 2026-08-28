@@ -44,7 +44,7 @@ test("publication mutations require Builder auth, same origin, JSON, and explici
   const { handler } = harness();
   assert.equal((await handler(event(base, "GET", null, { cookie: "" }))).statusCode, 401);
   assert.equal((await handler(event(`${base}/prepare`, "POST", { clientMutationId: randomUUID(), releaseNote: "" }, { origin: "https://attacker.example" }))).statusCode, 403);
-  assert.equal((await handler(event("/builder/api/publication/books/ultimate-b2/components/ultimate-b2-workbook", "GET"))).statusCode, 404);
+  assert.equal((await handler(event("/builder/api/publication/books/ultimate-b2/components/ultimate-b2-test-book", "GET"))).statusCode, 404);
 });
 
 test("prepare returns an immutable inactive release identity and only publish moves the active head", async () => {
@@ -88,7 +88,7 @@ test("release preview is pinned by strict component-owned UUID and exposes proje
   assert.equal((await handler(event(`${prefix}/teacher-solution/ultimate-b2-sb-u1-p1-o1`, "GET", null, { cookie: "" }))).statusCode, 401);
   assert.equal((await handler(event(`${prefix}/assets/${"a".repeat(64)}.png`, "HEAD", null, { cookie: "", "x-preview-authorized": "yes" }))).statusCode, 404);
   assert.equal((await handler(event(`${prefix}/assets/${"a".repeat(64)}.png`, "POST", null, { cookie: "" }))).statusCode, 405);
-  assert.equal((await handler(event(`/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-workbook/${id}/public`, "GET", null, { cookie: "" }))).statusCode, 404);
+  assert.equal((await handler(event(`/builder/preview/releases/books/ultimate-b2/components/ultimate-b2-workbook/${id}/public`, "GET", null, { cookie: "" }))).statusCode, 401);
 });
 
 test("release preview rejects an asset manifest that is not exactly derived from its projections", async () => {

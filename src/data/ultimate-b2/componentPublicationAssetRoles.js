@@ -1,6 +1,7 @@
 export const COMPONENT_PUBLICATION_ASSET_ROLES = Object.freeze({
   OPEN_RESPONSE_ARTWORK: "open_response_artwork",
   ACTIVITY_ARTWORK: "activity_artwork",
+  MANAGED_PAGE_IMAGE: "managed_page_image",
   UNIT_EXTRA_VIDEO: "unit_extra_video",
   TEACHER_UI: "teacher_ui",
 });
@@ -13,6 +14,11 @@ export const COMPONENT_PUBLICATION_ASSET_STORAGE = Object.freeze({
 
 const rolePolicies = Object.freeze({
   [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK]: Object.freeze({
+    storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
+    materialized: true,
+    publicProjection: true,
+  }),
+  [COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE]: Object.freeze({
     storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
     materialized: true,
     publicProjection: true,

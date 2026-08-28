@@ -19,6 +19,13 @@ import {
   resolveUltimateB2PublicationV2CompatibilityVariant,
 } from "./_builder-publication-compiler-v2.js";
 import { collectUltimateB2PublicationSources, collectUltimateB2PublicationV2Sources } from "./_builder-publication-store.js";
+import { collectUltimateB2ManagedPublicationSources } from "./_builder-publication-store.js";
+import {
+  compileUltimateB2ManagedComponentRelease,
+  ULTIMATE_B2_MANAGED_COMPONENT_COMPILERS,
+  ULTIMATE_B2_MANAGED_COMPONENT_RELEASE_SCHEMA_VERSION,
+  verifyUltimateB2ManagedComponentRelease,
+} from "./_builder-managed-publication-compiler.js";
 import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 
 function expectedAssetManifest(publicProjection, teacherProjection) {
@@ -119,7 +126,20 @@ const v2 = Object.freeze({
   },
 });
 
-const registry = Object.freeze({ [v1.compilerId]: v1, [v2.compilerId]: v2 });
+function managed(componentSlug) {
+  const compilerId = ULTIMATE_B2_MANAGED_COMPONENT_COMPILERS[componentSlug];
+  return Object.freeze({
+    compilerId,
+    releaseSchemaVersion: ULTIMATE_B2_MANAGED_COMPONENT_RELEASE_SCHEMA_VERSION,
+    collect(sql) { return collectUltimateB2ManagedPublicationSources(sql, componentSlug); },
+    compile(sources) { return compileUltimateB2ManagedComponentRelease(sources, componentSlug); },
+    verifyRelease(release) { return verifyUltimateB2ManagedComponentRelease(release, componentSlug); },
+  });
+}
+
+const workbook = managed("ultimate-b2-workbook");
+const grammarBook = managed("ultimate-b2-grammar-book");
+const registry = Object.freeze({ [v1.compilerId]: v1, [v2.compilerId]: v2, [workbook.compilerId]: workbook, [grammarBook.compilerId]: grammarBook });
 
 export function resolvePublicationCompiler(compilerId, releaseSchemaVersion = null) {
   const compiler = registry[compilerId] || null;

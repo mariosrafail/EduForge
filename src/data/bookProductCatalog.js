@@ -74,12 +74,24 @@ const catalogInput = [
         },
       }),
       component("ultimate-b2", "workbook", "Workbook", "workbook", "workbook", {
+        reviewState: "installed",
         authoringState: "active",
         authoringAdapterId: "ultimate-b2-workbook",
+        publication: {
+          readable: true,
+          writable: false,
+          compilerId: "ultimate-b2-workbook-v1",
+        },
       }),
       component("ultimate-b2", "grammar-book", "Grammar Book", "grammar_book", "grammar-book", {
+        reviewState: "installed",
         authoringState: "active",
         authoringAdapterId: "ultimate-b2-grammar-book",
+        publication: {
+          readable: true,
+          writable: false,
+          compilerId: "ultimate-b2-grammar-book-v1",
+        },
       }),
       component("ultimate-b2", "test-book", "Test Book", "test_book", null),
     ],
