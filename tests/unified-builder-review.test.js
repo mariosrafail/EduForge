@@ -23,7 +23,7 @@ test("unified review enters one product library for every saved draft and preser
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o90", unitNumber: 1, pageId: page.pageId }, page, release }), { view: "library" });
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page, release }), { view: "library" });
   assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "draft", toolContext: { view: "page" }, page: null, release }), { view: "library" });
-  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId, releaseId: release.id });
+  assert.deepEqual(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release }), { view: "page", unitNumber: 1, pageId: page.pageId, productReleaseId: release.id });
   assert.equal(resolveUnifiedReviewIntent({ sourceMode: "release", toolContext: { view: "page" }, page, release: null }), null);
 });
 
@@ -36,7 +36,7 @@ test("resolved draft and release intents create deterministic token-free Builder
     assert.deepEqual(parseHostedBuilderHash(hash), { kind: "review", ...identity, intent });
     assert.doesNotMatch(hash, /previewAuthorization|token|secret/i);
   }
-  assert.match(hostedBuilderReviewHash({ ...identity, intent: releaseIntent }), new RegExp(`releaseId=${release.id}$`));
+  assert.match(hostedBuilderReviewHash({ ...identity, intent: releaseIntent }), new RegExp(`productReleaseId=${release.id}$`));
 });
 
 test("publication readiness errors retain safe actionable activity issues", () => {

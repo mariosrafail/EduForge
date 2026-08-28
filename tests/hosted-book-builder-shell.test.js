@@ -72,7 +72,7 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
 });
 
-test("managed component adapters expose Pages, Hotspots, and Activities without fake publication tools", async () => {
+test("managed component adapters expose Pages, Hotspots, Activities, and atomic product publication without Teacher UI", async () => {
   const adapters = await read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx");
   assert.match(adapters, /"ultimate-b2-workbook": Object\.freeze/);
   assert.match(adapters, /props\.tool === "pages" \? <UltimateB2PagesHostedWorkspace/);
@@ -83,19 +83,20 @@ test("managed component adapters expose Pages, Hotspots, and Activities without 
     assert.match(block, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
     assert.match(block, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
     assert.match(block, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
-    assert.doesNotMatch(block, /uiController:|publication:/);
+    assert.match(block, /publication: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+    assert.doesNotMatch(block, /uiController:/);
   }
 });
 
 test("generic hosted Review routing round-trips strict token-free Viewer intents", () => {
   const identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
-  const releaseId = "10000000-0000-4000-8000-000000000012";
+  const productReleaseId = "10000000-0000-4000-8000-000000000012";
   const intents = [
     { view: "library" },
     { view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1" },
     { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o8" },
     { view: "activity", activityId: "ultimate-b2-sb-u1-p1-o8", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1" },
-    { view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", releaseId },
+    { view: "page", unitNumber: 1, pageId: "ub2-sb-unit-1-part-1", productReleaseId },
   ];
   for (const intent of intents) {
     const hash = hostedBuilderReviewHash({ ...identity, intent });
@@ -120,7 +121,8 @@ test("generic hosted Review routing rejects malformed and over-scoped input", ()
     `${base}?view=library&unknown=value`,
     `${base}?view=library&previewAuthorization=secret`,
     `${base}?view=library&token=secret`,
-    `${base}?view=library&releaseId=latest`,
+    `${base}?view=library&releaseId=10000000-0000-4000-8000-000000000012`,
+    `${base}?view=library&productReleaseId=latest`,
     `${base}?view=%E0%A4%A`,
     "#/books/%E0%A4%A/components/ultimate-b2-students-book/review?view=library",
   ];

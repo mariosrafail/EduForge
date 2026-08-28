@@ -26,12 +26,17 @@ function requiredSafeId(value, label) {
 
 export function normalizeHostedViewerIntent(intent) {
   const normalized = {};
-  if (intent?.releaseId) {
-    if (!UUID.test(String(intent.releaseId))) throw new TypeError("Viewer release ID is invalid.");
-    normalized.releaseId = String(intent.releaseId).toLowerCase();
-    if (!UUID.test(String(intent.productReleaseId || "")) || !/^[a-f0-9]{64}$/.test(String(intent.memberSha256 || ""))) throw new TypeError("Viewer product release member identity is invalid.");
+  const hasProductReleaseId = intent?.productReleaseId !== undefined && intent.productReleaseId !== null && intent.productReleaseId !== "";
+  const hasReleaseId = intent?.releaseId !== undefined && intent.releaseId !== null && intent.releaseId !== "";
+  const hasMemberSha256 = intent?.memberSha256 !== undefined && intent.memberSha256 !== null && intent.memberSha256 !== "";
+  if (hasProductReleaseId || hasReleaseId || hasMemberSha256) {
+    if (!UUID.test(String(intent.productReleaseId || ""))) throw new TypeError("Viewer product release ID is invalid.");
     normalized.productReleaseId = String(intent.productReleaseId).toLowerCase();
-    normalized.memberSha256 = intent.memberSha256;
+    if (hasReleaseId || hasMemberSha256) {
+      if (!hasReleaseId || !hasMemberSha256 || !UUID.test(String(intent.releaseId)) || !/^[a-f0-9]{64}$/.test(String(intent.memberSha256))) throw new TypeError("Viewer product release member identity is invalid.");
+      normalized.releaseId = String(intent.releaseId).toLowerCase();
+      normalized.memberSha256 = String(intent.memberSha256);
+    }
   }
   if (intent?.view === "library") {
     normalized.view = "library";

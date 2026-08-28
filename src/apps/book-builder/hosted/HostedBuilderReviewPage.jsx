@@ -9,7 +9,7 @@ function reviewContext(intent) {
 }
 
 export function HostedBuilderReviewPage({ book, component, intent }) {
-  const immutable = Boolean(intent.releaseId);
+  const immutable = Boolean(intent.productReleaseId);
   const backHref = hostedBuilderHash({ bookSlug: book.slug, componentSlug: component.slug });
   const sourceLabel = immutable ? "Immutable Release" : "Saved Draft";
   return <main className="hosted-builder-review-page" id="main-content">
@@ -24,7 +24,7 @@ export function HostedBuilderReviewPage({ book, component, intent }) {
     <section className="hosted-builder-review-identity" aria-label="Review identity">
       <strong>{sourceLabel}</strong>
       <span>{reviewContext(intent)}</span>
-      {immutable ? <code>{intent.releaseId}</code> : null}
+      {immutable ? <code>{intent.productReleaseId}</code> : null}
     </section>
     <HostedViewerPreview
       intent={intent}

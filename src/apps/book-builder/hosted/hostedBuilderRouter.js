@@ -9,7 +9,7 @@ export function hostedBuilderHash({ bookSlug, componentSlug, tool } = {}) {
   return tool ? `${base}/${encodeURIComponent(tool)}` : base;
 }
 
-const reviewQueryKeys = new Set(["view", "unitNumber", "pageId", "activityId", "releaseId"]);
+const reviewQueryKeys = new Set(["view", "unitNumber", "pageId", "activityId", "productReleaseId"]);
 
 function strictDecode(value) {
   try {
@@ -31,9 +31,9 @@ function parseReviewQuery(rawQuery) {
     values[key] = value;
   }
   const allowedByView = {
-    library: new Set(["view", "releaseId"]),
-    page: new Set(["view", "unitNumber", "pageId", "releaseId"]),
-    activity: new Set(["view", "activityId", "unitNumber", "pageId", "releaseId"]),
+    library: new Set(["view", "productReleaseId"]),
+    page: new Set(["view", "unitNumber", "pageId", "productReleaseId"]),
+    activity: new Set(["view", "activityId", "unitNumber", "pageId", "productReleaseId"]),
   };
   const allowed = allowedByView[values.view];
   if (!allowed || Object.keys(values).some((key) => !allowed.has(key))) return null;
@@ -53,7 +53,7 @@ export function hostedBuilderReviewHash({ bookSlug, componentSlug, intent } = {}
   if (normalized.activityId) query.set("activityId", normalized.activityId);
   if (normalized.unitNumber) query.set("unitNumber", String(normalized.unitNumber));
   if (normalized.pageId) query.set("pageId", normalized.pageId);
-  if (normalized.releaseId) query.set("releaseId", normalized.releaseId);
+  if (normalized.productReleaseId) query.set("productReleaseId", normalized.productReleaseId);
   return `${hostedBuilderHash({ bookSlug, componentSlug })}/review?${query}`;
 }
 

@@ -97,9 +97,11 @@ test("runtime factory changes only the selected binding and reaches menu, toolba
 
 test("exact release Teacher UI assets carry the preview authorization", () => {
   const releaseId = "10000000-0000-4000-8000-000000000099";
-  const token = `v1.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
+  const productReleaseId = "10000000-0000-4000-8000-000000000098";
+  const memberSha256 = "b".repeat(64);
+  const token = `v3.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
-  Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?builderPreview=1&previewAuthorization=${token}&releaseId=${releaseId}`) });
+  Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?builderPreview=1&previewAuthorization=${token}&productReleaseId=${productReleaseId}&releaseId=${releaseId}&memberSha256=${memberSha256}`) });
   try {
     const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
     const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview });
