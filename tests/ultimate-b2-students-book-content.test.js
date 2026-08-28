@@ -146,7 +146,7 @@ test("shared page model resolves every web/Android page and preserves Unit 2 hot
   assert.match(offlineAssets, /ultimateB2PageAssets\.teacher-offline\.js/);
   assert.match(teacherAssets, /getUltimateB2TeacherAppPageByPart/);
   assert.match(teacherAssets, /resolveUltimateB2AuthoredAssetUrl/);
-  assert.match(authoredUrls, /unit\/\{1,2\}\/parts\/HD/);
+  assert.match(authoredUrls, /unit\/\{1,2,3,4,5,6,7,8,9,10\}\/parts\/HD/);
   assert.match(authoredUrls, /authoring\/teacher-app/);
   assert.match(androidViewer, /<BookPackageBrowser/);
 });
