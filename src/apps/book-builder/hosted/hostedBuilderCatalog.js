@@ -14,6 +14,11 @@ export function createHostedBuilderCatalog(books) {
       if (!identityPattern.test(component.slug) || componentIds.has(identity)) throw new Error(`Invalid or duplicate hosted Builder component: ${identity}`);
       componentIds.add(identity);
     }
+    const packageToolIds = new Set();
+    for (const tool of book.packageTools || []) {
+      if (!identityPattern.test(tool.id) || packageToolIds.has(tool.id)) throw new Error(`Invalid or duplicate hosted Builder package tool: ${book.slug}/${tool.id}`);
+      packageToolIds.add(tool.id);
+    }
   }
   return Object.freeze(books.map((book) => Object.freeze(book)));
 }

@@ -80,7 +80,7 @@ test("only the shared Review owner mounts the external hosted Viewer", async () 
     "src/apps/ultimate-b2-builder/HostedPublicationWorkspace.jsx",
   ];
   for (const file of files) assert.doesNotMatch(await readFile(file, "utf8"), /<HostedViewerPreview\b/);
-  const shared = await readFile("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx", "utf8");
+  const shared = await readFile("src/apps/book-builder/hosted/HostedPackageReview.jsx", "utf8");
   assert.equal(shared.match(/<HostedViewerPreview\b/g)?.length, 1);
   assert.match(shared, /Unsaved changes are not included in Review\. Save them first\./);
   assert.match(shared, /Release #\{release\.number\} is immutable and older than the current saved draft\./);
@@ -88,10 +88,11 @@ test("only the shared Review owner mounts the external hosted Viewer", async () 
   assert.match(shared, /product-library/);
   assert.match(shared, /openPlayerHref=\{hostedBuilderReviewHash/);
   assert.doesNotMatch(shared, /previewAuthorization/);
+  assert.doesNotMatch(shared, /<iframe[^>]*key=/);
   const pages = await readFile("src/apps/book-builder/hosted/ComponentPagesWorkspace.jsx", "utf8");
-  assert.match(pages, /\{reviewAction\}/);
+  assert.doesNotMatch(pages, /reviewAction|<HostedViewerPreview\b/);
   assert.doesNotMatch(pages, />Save<|Save pages|global Save/i);
-  const app = await readFile("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", "utf8");
-  assert.match(app, /type="button" onClick=\{openReview\}>Review<\/button>/);
+  const app = await readFile("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx", "utf8");
+  assert.match(app, /<HostedPackageReview\b/);
   assert.doesNotMatch(app, /disabled=\{!selectedPageId\}/);
 });

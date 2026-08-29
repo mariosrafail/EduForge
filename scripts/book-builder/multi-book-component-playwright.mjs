@@ -288,7 +288,9 @@ const builderPagesHandler = createBuilderPagesHandler({
     if (scope.action === "managed-page-asset") managedAssetRequests.push({ ...scope, authorization: event.queryStringParameters?.previewAuthorization || "" });
     return classifyBuilderPreviewAuthorization(event, scope, { environment: previewEnvironment, now: previewNow });
   },
-  loadPages: async (_sql, identity) => storedManagedPages(identity.componentSlug),
+  loadPages: async (_sql, identity) => identity.componentSlug === "ultimate-b2-students-book"
+    ? { revision: 0, hotspotRevision: 0, units: [], rows: [] }
+    : storedManagedPages(identity.componentSlug),
   loadAsset: async (_sql, identity) => {
     const page = managedCatalogs[identity.componentSlug]?.pages.find((candidate) => candidate.id === identity.pageId && candidate.image.assetId === identity.assetId);
     return page ? { object_key: `managed-pages/${identity.componentSlug}/${identity.pageId}/${identity.assetId}.png` } : null;
@@ -806,6 +808,7 @@ try {
   const fallbackConsoleStart = consoleErrors.length;
   teacherUiOverrideEnabled = false;
   await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.getByRole("button", { name: "Refresh Viewer", exact: true }).click();
   await page.frameLocator(".unified-builder-review-dialog iframe").locator(".teacher-offline-library").waitFor();
   assert.equal(teacherUiObjectRequests.length, overrideObjectRequestCount, "canonical fallback must not request a hosted Teacher UI object");
   const fallbackFailures = failedResponses.splice(fallbackFailureStart);

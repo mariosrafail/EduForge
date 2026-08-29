@@ -13,8 +13,10 @@ import {
   HOSTED_TEACHER_UI_CATEGORY_LABELS,
   HOSTED_TEACHER_UI_TITLE_BINDING_IDS,
 } from "../../data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
-import { normalizeHostedTeacherUiDocument } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
-import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
+import { hostedTeacherUiAssetPath, normalizeHostedTeacherUiDocument } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
+import { resolveUltimateB2BuilderVisualAssetUrl } from "../../data/ultimate-b2/ultimateB2BuilderVisualAssetUrls.js";
+import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherAppAuthoring.js";
+import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
 
 const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller" });
 const titleIds = new Set(HOSTED_TEACHER_UI_TITLE_BINDING_IDS);
@@ -43,16 +45,25 @@ function stateLabel(bindingId, savedAssets, changes) {
 function metadataLabel(asset) {
   if (!asset) return "Tracked canonical artwork";
   const dimensions = asset.width && asset.height ? ` - ${asset.width} x ${asset.height}` : "";
-  return `${asset.originalFilename || asset.mediaType} - ${Math.ceil(asset.sizeBytes / 1024)} KB${dimensions}`;
+  const name = asset.originalFilename || String(asset.repositoryPath || "").split("/").pop() || asset.mediaType || "Canonical artwork";
+  const size = Number.isSafeInteger(asset.sizeBytes) ? ` - ${Math.ceil(asset.sizeBytes / 1024)} KB` : "";
+  return `${name}${asset.mediaType ? ` · ${asset.mediaType}` : ""}${size}${dimensions}`;
+}
+
+function effectiveAsset(binding, savedAssets, changes, previewUrls) {
+  if (previewUrls[binding.id]) return { url: previewUrls[binding.id], metadata: changes[binding.id] };
+  if (changes[binding.id] === null) return { url: resolveUltimateB2BuilderVisualAssetUrl(binding.id), metadata: ultimateB2TeacherAppAuthoring.assets[binding.id] };
+  const saved = changes[binding.id] || savedAssets[binding.id];
+  if (saved) return { url: hostedTeacherUiAssetPath(saved), metadata: saved };
+  return { url: resolveUltimateB2BuilderVisualAssetUrl(binding.id), metadata: ultimateB2TeacherAppAuthoring.assets[binding.id] };
 }
 
 function AssetSlot({ binding, savedAssets, changes, previewUrls, activity, onReplace, onRevert }) {
-  const current = changes[binding.id] || savedAssets[binding.id] || null;
+  const current = effectiveAsset(binding, savedAssets, changes, previewUrls);
   const state = stateLabel(binding.id, savedAssets, changes);
-  const preview = previewUrls[binding.id];
   return <article className="b2-hosted-ui-slot" data-binding-id={binding.id} data-binding-state={state.toLowerCase().replaceAll(" ", "-")}>
-    <div className="b2-hosted-ui-slot-preview">{preview ? <img src={preview} alt="Local unsaved candidate" /> : <Upload aria-hidden="true" />}</div>
-    <div className="b2-hosted-ui-slot-copy"><strong>{binding.label}</strong><code>{binding.id}</code><span>{state}</span><small>{metadataLabel(current)}</small>{activity?.error ? <em><AlertTriangle /> {activity.error}</em> : null}</div>
+    <div className="b2-hosted-ui-slot-preview">{current.url && binding.mediaFamily !== "gaf" ? <img src={current.url} alt={`${binding.label} effective asset`} /> : <Upload aria-hidden="true" />}</div>
+    <div className="b2-hosted-ui-slot-copy"><strong>{binding.label}</strong><code>{binding.id}</code><span>{state}</span><small>{metadataLabel(current.metadata)}</small>{activity?.error ? <em><AlertTriangle /> {activity.error}</em> : null}</div>
     <div className="b2-hosted-ui-slot-actions">
       <label><input type="file" accept={accept(binding)} disabled={activity?.busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) onReplace(binding, file); }} /><Upload size={15} /> {activity?.busy ? activity.label : "Browse / Replace"}</label>
       {(savedAssets[binding.id] || changes[binding.id]) ? <button type="button" onClick={() => onRevert(binding.id)} disabled={activity?.busy}><RotateCcw size={15} /> Revert to canonical</button> : null}
@@ -65,7 +76,7 @@ function TitleGroup({ bindings, savedAssets, changes, previewUrls, activity, onV
   const complete = bindings.every(({ id }) => files[id]);
   return <section className="b2-hosted-ui-title-group" data-atomic-group="title-animation">
     <header><div><h3>Atomic title animation package</h3><p>The GAF and all current SD/HD atlas slots validate and save as one package. Partial replacement is never accepted.</p></div>{bindings.some(({ id }) => savedAssets[id] || changes[id]) ? <button type="button" onClick={onRevert}><RotateCcw size={15} /> Revert complete title package</button> : null}</header>
-    {bindings.map((binding) => <article className="b2-hosted-ui-title-file" key={binding.id}><div><strong>{binding.label}</strong><code>{binding.id}</code><small>{files[binding.id]?.name || stateLabel(binding.id, savedAssets, changes)}</small></div><label><input type="file" accept={accept(binding)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) setFiles((current) => ({ ...current, [binding.id]: file })); }} />Choose file</label>{previewUrls[binding.id] ? <img src={previewUrls[binding.id]} alt="Local unsaved title atlas" /> : null}</article>)}
+    {bindings.map((binding) => { const effective = effectiveAsset(binding, savedAssets, changes, previewUrls); return <article className="b2-hosted-ui-title-file" key={binding.id}><div><strong>{binding.label}</strong><code>{binding.id}</code><small>{files[binding.id]?.name || `${stateLabel(binding.id, savedAssets, changes)} · ${metadataLabel(effective.metadata)}`}</small>{binding.mediaFamily === "gaf" ? <span>Binary GAF · member of atomic title animation package</span> : null}</div><label><input type="file" accept={accept(binding)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) setFiles((current) => ({ ...current, [binding.id]: file })); }} />Choose file</label>{effective.url && binding.mediaFamily !== "gaf" ? <img src={effective.url} alt={`${binding.label} effective atlas`} /> : null}</article>; })}
     {activity?.error ? <p className="b2-hosted-ui-error"><AlertTriangle /> {activity.error}</p> : null}
     <button type="button" className="b2-hosted-ui-validate-title" disabled={!complete || activity?.busy} onClick={async () => { const succeeded = await onValidate(bindings.map(({ id }) => ({ bindingId: id, file: files[id] }))); if (succeeded) setFiles({}); }}><Upload size={16} /> {activity?.busy ? activity.label : "Validate complete title package"}</button>
   </section>;
@@ -115,7 +126,8 @@ export function HostedTeacherUiController() {
 
   const savedAssets = loaded?.document.assets || {};
   const draftAssets = useMemo(() => applyChanges(savedAssets, changes), [savedAssets, changes]);
-  const categories = useMemo(() => Object.keys(HOSTED_TEACHER_UI_CATEGORY_LABELS), []);
+  const visualBindings = useMemo(() => HOSTED_EDITABLE_UI_BINDINGS.filter(({ category, mediaFamily }) => category !== "sounds" && mediaFamily !== "audio"), []);
+  const categories = useMemo(() => [...new Set(visualBindings.map(({ category }) => category))], [visualBindings]);
 
   const validateFiles = async (files) => {
     if (!loaded) return false;
@@ -190,15 +202,15 @@ export function HostedTeacherUiController() {
   };
 
   if (!loaded) return <main className="b2-teacher-app-builder b2-hosted-ui-editor"><p role="status">{error || status}</p></main>;
-  const titleBindings = HOSTED_EDITABLE_UI_BINDINGS.filter(({ id }) => titleIds.has(id));
-  const visibleBindings = HOSTED_EDITABLE_UI_BINDINGS.filter(({ category, id }) => category === section && !titleIds.has(id));
+  const titleBindings = visualBindings.filter(({ id }) => titleIds.has(id));
+  const visibleBindings = visualBindings.filter(({ category, id }) => category === section && !titleIds.has(id));
 
   return <main className="b2-teacher-app-builder b2-hosted-ui-editor">
-    <header className="b2-teacher-app-header"><div><span>Ultimate B2 hosted review</span><h1>UI Controller</h1><p>Edit approved artwork for stable, runtime-wired Teacher interface bindings. The canonical Viewer remains the full runtime preview.</p></div><div className="b2-hosted-ui-save-state" role="status"><strong>{status}</strong><span>Revision {loaded.revision}</span>{error ? <small>{error}</small> : null}<button type="button" onClick={save} disabled={!dirty || status === "Saving"}><Save size={16} /> Save UI draft</button>{conflict ? <button type="button" onClick={() => load({ preserveChanges: true })}>Reload latest and keep local choices</button> : null}</div></header>
+    <header className="b2-teacher-app-header"><div><span>Ultimate B2 package tools</span><h1>Page UI Controller</h1><p>Edit approved shared graphics for stable, runtime-wired Teacher interface bindings across all package components.</p></div><div className="b2-hosted-ui-save-state" role="status"><strong>{status}</strong><span>Revision {loaded.revision}</span>{error ? <small>{error}</small> : null}<button type="button" onClick={save} disabled={!dirty || status === "Saving"}><Save size={16} /> Save UI draft</button>{conflict ? <button type="button" onClick={() => load({ preserveChanges: true })}>Reload latest and keep local choices</button> : null}</div></header>
     <div className="b2-hosted-ui-workspace">
       <nav aria-label="UI Controller sections"><button type="button" aria-current={section === "overview" ? "page" : undefined} onClick={() => setSection("overview")}>Overview</button>{categories.map((id) => <button key={id} type="button" aria-current={section === id ? "page" : undefined} onClick={() => setSection(id)}>{HOSTED_TEACHER_UI_CATEGORY_LABELS[id]}</button>)}</nav>
       <section className="b2-hosted-ui-editor-panel">
-        {section === "overview" ? <div className="b2-hosted-ui-overview"><h2>Bound Teacher interface assets</h2><dl><div><dt>Editable runtime bindings</dt><dd>{HOSTED_EDITABLE_UI_BINDINGS.length}</dd></div><div><dt>Saved overrides</dt><dd>{Object.keys(savedAssets).length}</dd></div><div><dt>Unsaved changes</dt><dd>{Object.keys(changes).length}</dd></div></dl><p>Stable control IDs, actions, labels, routing, layout, and accessibility semantics remain canonical.</p><aside><strong>Read-only content artwork - not part of Task 7</strong><span>Students Book pages/spreads and the future/unwired Navibar asset library have no hosted replacement controls.</span></aside></div> : null}
+        {section === "overview" ? <div className="b2-hosted-ui-overview"><h2>Bound Teacher interface graphics</h2><dl><div><dt>Editable visual bindings</dt><dd>{visualBindings.length}</dd></div><div><dt>Saved overrides</dt><dd>{Object.keys(savedAssets).filter((id) => !id.startsWith("sound.")).length}</dd></div><div><dt>Unsaved changes</dt><dd>{Object.keys(changes).length}</dd></div></dl><p>Stable control IDs, actions, labels, routing, layout, accessibility semantics, and existing sound overrides remain canonical.</p></div> : null}
         {section === "branding-title" ? <TitleGroup bindings={titleBindings} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity["title-animation"]} onValidate={validateFiles} onRevert={() => revert(HOSTED_TEACHER_UI_TITLE_BINDING_IDS)} /> : null}
         {section !== "overview" ? <div className="b2-hosted-ui-slots">{visibleBindings.map((binding) => <AssetSlot key={binding.id} binding={binding} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity[binding.id]} onReplace={(selected, file) => validateFiles([{ bindingId: selected.id, file }])} onRevert={revert} />)}</div> : null}
       </section>

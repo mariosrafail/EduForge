@@ -1,9 +1,11 @@
 import { isHostedViewerSafeId, normalizeHostedViewerIntent } from "./hostedViewerPreviewUrl.js";
 
 export const hostedBuilderTools = Object.freeze(["pages", "hotspots", "activities", "ui", "publication"]);
+export const hostedBuilderPackageTools = Object.freeze(["ui", "sounds"]);
 
-export function hostedBuilderHash({ bookSlug, componentSlug, tool } = {}) {
+export function hostedBuilderHash({ bookSlug, componentSlug, tool, packageTool } = {}) {
   if (!bookSlug) return "#/books";
+  if (packageTool) return `#/books/${encodeURIComponent(bookSlug)}/${encodeURIComponent(packageTool)}`;
   if (!componentSlug) return `#/books/${encodeURIComponent(bookSlug)}`;
   const base = `#/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}`;
   return tool ? `${base}/${encodeURIComponent(tool)}` : base;
@@ -70,6 +72,7 @@ export function parseHostedBuilderHash(hash = "") {
   if (!segments.length || (segments.length === 1 && segments[0] === "books")) return { kind: "library" };
   if (segments[0] !== "books" || !segments[1]) return { kind: "not-found" };
   if (segments.length === 2) return { kind: "book", bookSlug: segments[1] };
+  if (segments.length === 3 && hostedBuilderPackageTools.includes(segments[2])) return { kind: "package-tool", bookSlug: segments[1], tool: segments[2] };
   if (segments[2] !== "components" || !segments[3]) return { kind: "not-found" };
   if (segments.length === 4) return { kind: "workspace", bookSlug: segments[1], componentSlug: segments[3], tool: "pages" };
   if (segments.length === 5 && segments[4] === "review") {
@@ -80,6 +83,7 @@ export function parseHostedBuilderHash(hash = "") {
       : { kind: "not-found" };
   }
   if (segments.length === 5 && hostedBuilderTools.includes(segments[4])) {
+    if (segments[4] === "ui") return { kind: "legacy-package-tool", bookSlug: segments[1], componentSlug: segments[3], tool: "ui" };
     return { kind: "workspace", bookSlug: segments[1], componentSlug: segments[3], tool: segments[4] };
   }
   return { kind: "not-found" };

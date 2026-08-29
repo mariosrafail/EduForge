@@ -207,7 +207,7 @@ test("only the explicitly marked dedicated Viewer site may use production contex
 test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only registered public document mutations", async () => {
   const [hosted, unifiedReview, hostedHotspots, hostedOpenResponse, hostedUi, contentClient, importClient, uiAssetClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
-    read("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx"),
+    read("src/apps/book-builder/hosted/HostedPackageReview.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx"),
     read("src/apps/ultimate-b2-builder/HostedTeacherUiController.jsx"),
@@ -221,10 +221,10 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
     read("vite.config.js"),
     read("ultimate-b2-builder.html"),
   ]);
-  assert.deepEqual([...shell.matchAll(/\{ id: "(hotspots|activities|ui|publication)", label: "(Hotspot Builder|Activity Builder|UI Controller|Publication)"/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "UI Controller", "Publication"]);
-  assert.match(hosted, /HostedTeacherUiController/);
+  assert.deepEqual([...shell.matchAll(/\{ id: "(hotspots|activities|publication)", label: "(Hotspot Builder|Activity Builder|Publication)"/g)].map((match) => match[2]), ["Hotspot Builder", "Activity Builder", "Publication"]);
+  assert.doesNotMatch(hosted, /HostedTeacherUiController/);
   assert.match(hosted, /HostedUltimateB2HotspotBuilder/);
-  assert.match(hosted, /UnifiedBuilderReview/);
+  assert.doesNotMatch(hosted, /UnifiedBuilderReview/);
   assert.match(unifiedReview, /HostedViewerPreview/);
   assert.doesNotMatch(hosted, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|android-teacher-offline|ACTIVITY_MODES/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|onPublisherActivityCreated/);

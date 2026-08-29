@@ -158,6 +158,7 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
   const registryPath = path.resolve("src/apps/android-teacher-offline/legacyClassroomAssets.js");
   const canonicalRegistryPath = path.resolve("src/data/ultimate-b2/teacherAppAuthoring.js");
   const canonicalResolverPath = path.resolve("src/data/ultimate-b2/ultimateB2AuthoredAssetUrls.js");
+  const builderVisualResolverPath = path.resolve("src/data/ultimate-b2/ultimateB2BuilderVisualAssetUrls.js");
   const registry = await readFile(registryPath, "utf8");
   const legacyPrefix = "src/assets/books/ultimate-b2/legacy-classroom-ui/";
   const importedOutputs = Object.values(ultimateB2TeacherAppDefaultAssets)
@@ -178,10 +179,13 @@ test("teacher registry imports only in-use baseline and catalog remains outside 
   const sourceFiles = await filesBelow(path.resolve("src"));
   for (const sourceFile of sourceFiles) {
     if (sourceFile.startsWith(`${path.resolve("src/apps/android-teacher-offline")}${path.sep}`)) continue;
-    if (sourceFile === canonicalRegistryPath || sourceFile === canonicalResolverPath) continue;
+    if (sourceFile === canonicalRegistryPath || sourceFile === canonicalResolverPath || sourceFile === builderVisualResolverPath) continue;
     if (!/\.(?:js|jsx|ts|tsx|css)$/.test(sourceFile)) continue;
     assert.doesNotMatch(await readFile(sourceFile, "utf8"), /legacyClassroomAssets|legacy-classroom-ui/);
   }
+  const builderVisualResolver = await readFile(builderVisualResolverPath, "utf8");
+  assert.match(builderVisualResolver, /\{png,jpg,jpeg,webp\}/);
+  assert.doesNotMatch(builderVisualResolver, /\.(?:mp3|wav|gaf)["']/i);
   assert.equal(execFileSync("git", ["ls-files", "--", "Ultimate English B2.app/**"], { encoding: "utf8" }).trim(), "");
 });
 

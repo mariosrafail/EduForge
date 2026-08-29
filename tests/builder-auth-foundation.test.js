@@ -37,7 +37,7 @@ test("Builder frontend gates the hosted shell without browser token persistence 
     read("src/apps/book-builder/BuilderAuthGate.jsx"),
     read("src/apps/book-builder/builderAuthApi.js"),
     read("src/apps/ultimate-b2-builder/activityBuilderEntry.jsx"),
-    read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/book-builder/hosted/HostedAuthenticatedBookBuilderApp.jsx"),
   ]);
   assert.match(entry, /virtual:book-builder-app/);

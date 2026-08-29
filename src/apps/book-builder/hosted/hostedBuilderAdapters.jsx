@@ -12,6 +12,12 @@ const UltimateB2ManagedComponentHostedWorkspace = lazy(() => import(
 const UltimateB2PagesHostedWorkspace = lazy(() => import(
   "../../ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"
 ).then((module) => ({ default: module.UltimateB2PagesHostedWorkspace })));
+const HostedTeacherUiController = lazy(() => import(
+  "../../ultimate-b2-builder/HostedTeacherUiController.jsx"
+).then((module) => ({ default: module.HostedTeacherUiController })));
+const HostedSoundController = lazy(() => import(
+  "../../ultimate-b2-builder/HostedSoundController.jsx"
+).then((module) => ({ default: module.HostedSoundController })));
 
 function UltimateB2StudentsBookWorkspace(props) {
   return props.tool === "pages" ? <UltimateB2PagesHostedWorkspace {...props} /> : <UltimateB2StudentsBookHostedWorkspace {...props} />;
@@ -27,7 +33,6 @@ const adapters = Object.freeze({
       pages: Object.freeze({ readable: true, writable: true }),
       hotspots: Object.freeze({ readable: true, writable: true }),
       activities: Object.freeze({ readable: true, writable: true }),
-      uiController: Object.freeze({ readable: true, writable: true }),
       publication: Object.freeze({ readable: true, writable: true }),
     }),
     Workspace: UltimateB2StudentsBookWorkspace,
@@ -56,3 +61,14 @@ export function resolveHostedBuilderAdapter(book, component) {
 }
 
 export const hostedBuilderAdapters = adapters;
+
+const packageToolAdapters = Object.freeze({
+  "ultimate-b2-page-ui": Object.freeze({ Tool: HostedTeacherUiController }),
+  "ultimate-b2-sounds": Object.freeze({ Tool: HostedSoundController }),
+});
+
+export function resolveHostedBuilderPackageTool(book, toolId) {
+  const declaration = book?.packageTools?.find((tool) => tool.id === toolId);
+  const adapter = declaration ? packageToolAdapters[declaration.adapterId] : null;
+  return adapter ? Object.freeze({ declaration, adapter }) : null;
+}

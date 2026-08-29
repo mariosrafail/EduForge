@@ -65,7 +65,7 @@ test("major authoring surfaces are active-tab rendered and local previews consum
 test("compact Save remains independent from saved-state Review", async () => {
   const [controls, review, css] = await Promise.all([
     read("src/components/builder-studio/StudioControls.jsx"),
-    read("src/apps/ultimate-b2-builder/UnifiedBuilderReview.jsx"),
+    read("src/apps/book-builder/hosted/HostedPackageReview.jsx"),
     read("src/apps/ultimate-b2-builder/studioAuthoring.css"),
   ]);
   assert.match(controls, /Unsaved changes/);

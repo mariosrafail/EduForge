@@ -38,6 +38,10 @@ test("hosted authoring catalog registers all known titles and Ultimate B2 exact 
   const testBook = findHostedBuilderComponent(book, "ultimate-b2-test-book");
   assert.equal(testBook.adapterId, null);
   assert.equal(testBook.status, "Authoring adapter pending");
+  assert.deepEqual(book.packageTools.map(({ id, title, status }) => ({ id, title, status })), [
+    { id: "ui", title: "Page UI Controller", status: "Editable" },
+    { id: "sounds", title: "Sound Controller", status: "Read-only" },
+  ]);
 });
 
 test("hosted authoring catalog is independent from LMS Phase One component hiding", () => {
@@ -66,10 +70,14 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/ultimate-b2-students-book/activities"), {
     kind: "workspace", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "activities",
   });
+  assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/ui"), { kind: "package-tool", bookSlug: "ultimate-b2", tool: "ui" });
+  assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/sounds"), { kind: "package-tool", bookSlug: "ultimate-b2", tool: "sounds" });
+  assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/ultimate-b2-students-book/ui"), { kind: "legacy-package-tool", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" });
   assert.equal(parseHostedBuilderHash("#/books/unknown").bookSlug, "unknown");
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/invalid"), { kind: "not-found" });
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/unknown/delete"), { kind: "not-found" });
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
+  assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", packageTool: "ui" }), "#/books/ultimate-b2/ui");
 });
 
 test("managed component adapters expose Pages, Hotspots, Activities, and atomic product publication without Teacher UI", async () => {
@@ -147,9 +155,10 @@ test("generic shell owns navigation while B2 imports stay inside the adapter bou
   assert.match(adapters, /UltimateB2StudentsBookHostedWorkspace/);
   assert.doesNotMatch(b2Workspace, /NormalizedStudentsBookActivity|ACTIVITY_MODES/);
   assert.match(b2Workspace, /HostedUltimateB2HotspotBuilder/);
-  assert.match(b2Workspace, /UnifiedBuilderReview/);
+  assert.doesNotMatch(b2Workspace, /UnifiedBuilderReview|externalLauncher|reviewAction/);
   assert.doesNotMatch(b2Workspace, /TeacherOfflineLibrary|ClassroomToolsProvider|teacherBookMenuSkins|hostedReviewUiAssets|android-teacher-offline/);
-  assert.match(b2Workspace, /HostedTeacherUiController/);
+  assert.match(adapters, /HostedTeacherUiController/);
+  assert.match(adapters, /HostedSoundController/);
   assert.doesNotMatch(b2Workspace, /window\.location\.hash|history\.replaceState/);
   assert.match(router, /hashchange/);
   assert.match(entry, /HostedAuthenticatedBookBuilderApp/);

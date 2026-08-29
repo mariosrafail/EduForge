@@ -20,6 +20,11 @@ export const ultimateB2HostedBook = Object.freeze({
   ...product,
   status: "In authoring",
   cover: ultimateB2HostedCovers.studentsBook,
+  review: Object.freeze({ defaultComponentSlug: "ultimate-b2-students-book" }),
+  packageTools: Object.freeze([
+    Object.freeze({ id: "ui", title: "Page UI Controller", description: "Controls shared Ultimate B2 Teacher graphics across all package components.", status: "Editable", adapterId: "ultimate-b2-page-ui" }),
+    Object.freeze({ id: "sounds", title: "Sound Controller", description: "Inventories shared Ultimate B2 interface sounds and their effective source.", status: "Read-only", adapterId: "ultimate-b2-sounds" }),
+  ]),
   components: Object.freeze(product.components.map((component) => Object.freeze({
     ...component,
     status: component.authoringState === "active" ? "In authoring" : "Authoring adapter pending",

@@ -64,6 +64,23 @@ test("hosted Teacher UI catalog is the unique live subset of canonical bindings"
   assert.equal(HOSTED_EDITABLE_UI_BINDINGS.some(({ id }) => id.startsWith("page.")), false);
   assert.equal(HOSTED_EDITABLE_UI_BINDINGS.some(({ id }) => ultimateB2TeacherAppDefaultAssets[id].role === "navibar-library"), false);
   assert.deepEqual(HOSTED_TEACHER_UI_TITLE_BINDING_IDS, ["title.gaf", "title.sd.1", "title.sd.2", "title.hd.1", "title.hd.2"]);
+  assert.deepEqual(HOSTED_EDITABLE_UI_BINDINGS.filter(({ category, mediaFamily }) => category === "sounds" && mediaFamily === "audio").map(({ id }) => id), ["sound.button", "sound.correct", "sound.incorrect", "sound.page-turn"]);
+});
+
+test("package controllers separate effective visual thumbnails from the read-only four-sound inventory", async () => {
+  const [visualController, soundController] = await Promise.all([
+    readFile("src/apps/ultimate-b2-builder/HostedTeacherUiController.jsx", "utf8"),
+    readFile("src/apps/ultimate-b2-builder/HostedSoundController.jsx", "utf8"),
+  ]);
+  assert.match(visualController, /category !== "sounds" && mediaFamily !== "audio"/);
+  assert.match(visualController, /previewUrls\[binding\.id\][\s\S]*hostedTeacherUiAssetPath\(saved\)[\s\S]*resolveUltimateB2BuilderVisualAssetUrl\(binding\.id\)/);
+  assert.match(visualController, /URL\.createObjectURL\(file\)/);
+  assert.match(visualController, /URL\.revokeObjectURL/);
+  assert.match(visualController, /effective (?:asset|atlas)/);
+  assert.match(soundController, /category === "sounds" && binding\.mediaFamily === "audio"/);
+  assert.match(soundController, /Sound authoring will be added in a later milestone\./);
+  assert.match(soundController, /saved \? "Saved override" : "Canonical"/);
+  assert.doesNotMatch(soundController, /type="file"|uploadTeacherUiAsset|saveTeacherUiDocument|<audio\b|<button\b/);
 });
 
 test("hosted Teacher UI operational errors have concise non-secret messages", () => {

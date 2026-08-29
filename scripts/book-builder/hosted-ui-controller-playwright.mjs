@@ -13,7 +13,6 @@ import {
   projectHostedTeacherUiPreview,
 } from "../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import {
-  hostedTeacherUiPngFixture,
   invalidHostedTeacherUiPngFixture,
 } from "../../tests/fixtures/hosted-teacher-ui-assets.js";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
@@ -25,7 +24,10 @@ const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultima
 const contentPath = "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
 const hotspotPreviewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots";
+const pageCatalogPreviewPath = "/preview/pages/books/ultimate-b2/components/ultimate-b2-students-book";
 const hotspots = JSON.parse(await readFile("src/data/ultimate-b2/authoring/studentsBookHotspots.json", "utf8"));
+const studentsBookRuntime = JSON.parse(await readFile("src/data/ultimate-b2/generated/students-book.runtime.json", "utf8"));
+const hostedTeacherUiPngFixture = Object.freeze({ name: "valid-ui.png", mimeType: "image/png", buffer: await readFile("src/assets/books/ultimate-b2/legacy-classroom-ui/controls/teacher-tools/annotation-container-low.png") });
 const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 
 let origin = "";
@@ -33,11 +35,31 @@ let saved = null;
 let forceConflict = false;
 const sessions = new Map();
 const mutations = new Map();
+const requestedUiAssets = [];
+const requestedPreviewPaths = [];
 
 function json(response, statusCode, value, headers = {}) {
   const body = Buffer.from(JSON.stringify(value));
   response.writeHead(statusCode, { "Cache-Control": "no-store", "Content-Length": body.length, "Content-Type": "application/json", ...headers });
   response.end(body);
+}
+
+async function waitForViewerBackground(page, expectedHash) {
+  const deadline = Date.now() + 15_000;
+  let lastBackground = "";
+  while (Date.now() < deadline) {
+    const backgroundImage = await page
+      .frameLocator(".unified-builder-review-dialog iframe")
+      .locator(".teacher-fixed-stage-host")
+      .evaluate((node) => node.style.backgroundImage)
+      .catch(() => "");
+    lastBackground = backgroundImage || lastBackground;
+    if (backgroundImage.includes(expectedHash)) return;
+    await page.waitForTimeout(50);
+  }
+  const frameSrc = await page.locator(".unified-builder-review-dialog iframe").getAttribute("src").catch(() => "");
+  const frameText = await page.frameLocator(".unified-builder-review-dialog iframe").locator("body").innerText().catch(() => "");
+  throw new Error(`saved background did not reach Viewer (src=${frameSrc}, background=${lastBackground}, assets=${requestedUiAssets.join(",")}, preview=${requestedPreviewPaths.join(",")}, text=${frameText.slice(0, 500)})`);
 }
 
 async function bytes(request) {
@@ -123,6 +145,12 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: actorId, full_name: "Task 7 Browser", role: "developer", status: "active" } });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: `v1.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" });
   if (url.pathname === contentPath && request.method === "GET") return json(response, 200, builderEnvelope());
+  const savedAsset = url.pathname.match(/^\/preview\/ui-assets-v2\/([a-f0-9]{64})\.(png|jpg|webp)$/);
+  if (savedAsset && request.method === "GET") {
+    const item = [...storage.objects.entries()].find(([key]) => key.startsWith("public:") && key.endsWith(`${savedAsset[1]}.${savedAsset[2]}`))?.[1];
+    if (!item) return json(response, 404, { error: "asset_not_found" });
+    response.writeHead(200, { "Cache-Control": "public, max-age=31536000, immutable", "Content-Length": item.body.length, "Content-Type": item.contentType }); response.end(item.body); return;
+  }
   if (url.pathname === "/test/force-conflict" && request.method === "POST") { forceConflict = true; return json(response, 200, { ok: true }); }
   if (url.pathname.startsWith("/object-upload/") && request.method === "PUT") {
     const token = url.pathname.split("/").at(-1);
@@ -151,15 +179,19 @@ let browser;
 try {
   browser = await chromium.launch(localPlaywrightLaunchOptions());
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const requestedUiAssets = [];
   await context.route("https://hhplms-viewer.netlify.app/**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname.startsWith("/preview/")) requestedPreviewPaths.push(url.pathname);
+    if (url.pathname === "/preview/authorization/exchange" && route.request().method() === "POST") {
+      return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ token: `v1.eA.${"b".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" }) });
+    }
     if (url.pathname === hotspotPreviewPath) return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ ...identity, resource: "hotspots", revision: 1, source: "database", document: hotspots }) });
+    if (url.pathname === pageCatalogPreviewPath) return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ component: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", kind: "students-book" }, pages: studentsBookRuntime.units.flatMap((unit) => unit.pages.map((page) => ({ id: page.id, source: "canonical" }))) }) });
     if (url.pathname === previewPath) {
       if (!saved) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       return route.fulfill({ status: 200, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ ...identity, revision: saved.revision, source: "database", document: projectHostedTeacherUiPreview(saved.document) }) });
     }
-    const assetMatch = url.pathname.match(/^\/preview\/ui-assets\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)$/);
+    const assetMatch = url.pathname.match(/^\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)$/);
     if (assetMatch) {
       requestedUiAssets.push(url.pathname);
       const item = [...storage.objects.entries()].find(([key]) => key.startsWith("public:") && key.endsWith(`${assetMatch[1]}.${assetMatch[2]}`))?.[1];
@@ -174,17 +206,33 @@ try {
 
   const page = await context.newPage();
   page.setDefaultTimeout(60_000);
+  await page.goto(`${origin}/#/books/ultimate-b2`, { waitUntil: "domcontentloaded" });
+  const packageTools = page.locator(".hosted-builder-package-tools");
+  await packageTools.getByRole("heading", { name: "Package tools" }).waitFor();
+  assert.deepEqual(await packageTools.locator("h3").allTextContents(), ["Page UI Controller", "Sound Controller"]);
+  assert.ok((await packageTools.boundingBox()).y < (await page.locator(".hosted-builder-component-grid").boundingBox()).y);
+  assert.equal(await page.locator('[data-unified-review-launcher="true"]').count(), 1);
+  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1);
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/ui`, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.location.hash === "#/books/ultimate-b2/ui");
   const editor = page.locator(".b2-hosted-ui-editor");
   await editor.getByText("Revision 0", { exact: true }).waitFor();
-  await editor.getByText("Editable runtime bindings").waitFor();
-  assert.equal(await editor.getByText("Read-only content artwork - not part of Task 7", { exact: true }).count(), 1);
-  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0);
+  await editor.getByText("Bound Teacher interface graphics").waitFor();
+  assert.equal(await editor.getByRole("button", { name: "Sounds", exact: true }).count(), 0);
+  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 1);
+  await editor.getByRole("button", { name: "Shell / Background", exact: true }).click();
+  const canonicalThumbnail = editor.locator('[data-binding-id="background.main"] img');
+  await canonicalThumbnail.waitFor();
+  await canonicalThumbnail.evaluate((image) => image.decode());
+  assert.ok(await canonicalThumbnail.evaluate((image) => image.naturalWidth > 0), "canonical effective thumbnail is broken");
   await page.getByRole("button", { name: "Review", exact: true }).click();
   const frame = () => page.frameLocator(".unified-builder-review-dialog iframe");
+  await page.waitForFunction(() => {
+    const src = document.querySelector(".unified-builder-review-dialog iframe")?.getAttribute("src");
+    return src && src !== "about:blank";
+  });
   const initialFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
-  assert.equal(initialFrameUrl.searchParams.get("view"), "page");
-  assert.ok(initialFrameUrl.searchParams.get("pageId"));
+  assert.equal(initialFrameUrl.searchParams.get("view"), "library");
   await frame().locator(".teacher-fixed-stage-host").waitFor();
   await page.getByRole("button", { name: "Close Review" }).click();
 
@@ -193,7 +241,7 @@ try {
     await editor.getByRole("button", { name: section, exact: true }).click();
     const slot = editor.locator(`[data-binding-id="${bindingId}"]`);
     await slot.locator('input[type="file"]').setInputFiles(fixture(`${bindingId.replaceAll(".", "-")}.png`));
-    await slot.getByText("Unsaved replacement", { exact: true }).waitFor();
+    await slot.getByText("Unsaved replacement", { exact: true }).waitFor({ timeout: 15_000 }).catch(async () => { throw new Error(`UI candidate did not validate: ${await slot.textContent()}`); });
   }
   assert.equal(saved, null, "validated candidates must remain unsaved");
   await page.getByRole("button", { name: "Review", exact: true }).click();
@@ -202,13 +250,12 @@ try {
   await page.getByRole("button", { name: "Close Review" }).click();
   await editor.getByRole("button", { name: "Save UI draft", exact: true }).click();
   await editor.getByText("Revision 1", { exact: true }).waitFor();
+  await editor.getByRole("button", { name: "Shell / Background", exact: true }).click();
+  await editor.locator('[data-binding-id="background.main"] img').evaluate((image) => image.decode());
+  assert.ok(await editor.locator('[data-binding-id="background.main"] img').evaluate((image) => image.naturalWidth > 0), "saved effective thumbnail is broken");
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await frame().locator(".teacher-fixed-stage-host").waitFor();
-  await frame().locator(".teacher-fixed-stage-host").evaluate((node, hash) => new Promise((resolve, reject) => {
-    const started = Date.now();
-    const check = () => node.style.backgroundImage.includes(hash) ? resolve() : Date.now() - started > 15_000 ? reject(new Error("saved background did not reach Viewer")) : setTimeout(check, 50);
-    check();
-  }), expectedHash);
+  await waitForViewerBackground(page, expectedHash);
   assert.ok(requestedUiAssets.some((url) => url.includes(expectedHash)), "Viewer did not fetch the immutable saved UI asset");
   await page.getByRole("button", { name: "Close Review" }).click();
 
@@ -242,6 +289,15 @@ try {
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await frame().locator(".teacher-fixed-stage-host").waitFor();
   assert.equal((await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage)).includes(expectedHash), false, "reverted background remained in Viewer");
+  await page.getByRole("button", { name: "Close Review" }).click();
+  await page.goto(`${origin}/#/books/ultimate-b2/sounds`, { waitUntil: "domcontentloaded" });
+  const soundController = page.locator(".b2-sound-controller");
+  await soundController.getByRole("heading", { name: "Sound Controller" }).waitFor();
+  assert.deepEqual(await soundController.locator("article").evaluateAll((items) => items.map((item) => item.dataset.bindingId)), ["sound.button", "sound.correct", "sound.incorrect", "sound.page-turn"]);
+  assert.equal(await soundController.locator('input[type="file"],button,audio').count(), 0);
+  assert.equal(await soundController.getByText("Sound authoring will be added in a later milestone.", { exact: true }).count(), 1);
+  assert.equal(await page.locator('[data-unified-review-launcher="true"]').count(), 1);
+  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1);
   process.stdout.write(`Task 7 hosted UI Controller browser acceptance passed at revision ${saved.revision} with ${overriddenBindings.length} runtime categories exercised.\n`);
 } finally {
   await browser?.close();

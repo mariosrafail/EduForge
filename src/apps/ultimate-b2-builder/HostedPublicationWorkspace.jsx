@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { hostedBuilderHash } from "../book-builder/hosted/hostedBuilderRouter.js";
-import { publicationReadinessPresentation } from "./builderReviewModel.js";
-import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
+import { publicationReadinessPresentation } from "../book-builder/hosted/builderReviewModel.js";
+import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
 
 const endpoint = "/builder/api/publication/books/ultimate-b2";
 

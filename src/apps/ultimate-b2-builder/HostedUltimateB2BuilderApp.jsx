@@ -7,15 +7,14 @@ import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/ope
 import { BuilderModal } from "../book-builder/hosted/BuilderModal.jsx";
 import { ComponentPagesWorkspace } from "../book-builder/hosted/ComponentPagesWorkspace.jsx";
 import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getNativeActivityCatalog, moveActivity, retireCanonicalActivity } from "../book-builder/hosted/builderNativeActivityApi.js";
-import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { NativeActivityFoundationEditor } from "../book-builder/hosted/NativeActivityFoundationEditor.jsx";
+import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { pageLibraryReviewNavigation } from "../book-builder/hosted/pageLibraryReviewModel.js";
 import { activityBuilderTypeOptions, buildActivityBuilderNavigation, filterActivityBuilderNavigation, findActivityBuilderItem } from "./activityBuilderNavigation.js";
 import { HostedOpenResponseEditor } from "./HostedOpenResponseEditor.jsx";
 import { HostedPublicationWorkspace } from "./HostedPublicationWorkspace.jsx";
-import { HostedTeacherUiController } from "./HostedTeacherUiController.jsx";
 import { HostedUltimateB2HotspotBuilder } from "./HostedUltimateB2HotspotBuilder.jsx";
-import { UnifiedBuilderReview, useBuilderReview } from "./UnifiedBuilderReview.jsx";
+import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
 import { UnitExtrasEditor } from "./UnitExtrasEditor.jsx";
 import "./ultimateB2HotspotBuilder.css";
 import "./hostedUltimateB2BuilderReview.css";
@@ -49,7 +48,9 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const { registerToolContext } = useBuilderReview();
   const managed = nativeActivities?.managed === true;
   const [managedNavigation, setManagedNavigation] = useState({ units: [], placements: [] });
-  const nativePlacements = managed ? managedNavigation.placements : nativeActivities?.placements || [];
+  const [activePageIds, setActivePageIds] = useState(null);
+  const configuredPlacements = managed ? managedNavigation.placements : nativeActivities?.placements || [];
+  const nativePlacements = useMemo(() => activePageIds ? configuredPlacements.filter((placement) => activePageIds.includes(placement.pageId)) : configuredPlacements, [activePageIds, configuredPlacements]);
   const canonicalUnits = managed ? managedNavigation.units : catalog.units || [];
   const nativeKinds = nativeActivities?.kinds || [];
   const nativeKindsKey = nativeKinds.join("\0");
@@ -84,7 +85,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const navigationCloseTimerRef = useRef(null);
   const manualNavigationCollapseRef = useRef(false);
   const scopeGenerationRef = useRef(0);
-  const model = useMemo(() => buildActivityBuilderNavigation({ units: canonicalUnits, nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, isEditable: managed ? () => false : isUltimateB2ConfigurableOpenResponse }), [canonicalUnits, lifecycle, managed, nativeCatalog, nativePlacements]);
+  const model = useMemo(() => buildActivityBuilderNavigation({ units: canonicalUnits, nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, activePageIds, isEditable: managed ? () => false : isUltimateB2ConfigurableOpenResponse }), [activePageIds, canonicalUnits, lifecycle, managed, nativeCatalog, nativePlacements]);
   const filtered = useMemo(() => filterActivityBuilderNavigation(model, { query, access, type }), [access, model, query, type]);
   const selection = findActivityBuilderItem(model, selectedId);
   const filteredSelection = findActivityBuilderItem(filtered, selectedId);
@@ -101,17 +102,21 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
     const [native, currentLifecycle, pageLibrary] = await Promise.all([
       getNativeActivityCatalog({ bookSlug, componentSlug }, { signal }),
       getActivityLifecycle({ bookSlug, componentSlug }, { signal }),
-      managed ? getBuilderPages({ bookSlug, componentSlug }, { signal }) : Promise.resolve(null),
+      getBuilderPages({ bookSlug, componentSlug }, { signal }),
     ]);
     if (signal?.aborted || generation !== scopeGenerationRef.current || requestedScope !== scopeKey) return null;
-    if (pageLibrary) setManagedNavigation(pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug }));
+    if (pageLibrary) {
+      const navigation = pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug });
+      if (managed) setManagedNavigation(navigation);
+      setActivePageIds(pageLibrary.pages.map((page) => page.id));
+    }
     setNativeCatalog(native); setLifecycle(currentLifecycle.document); return { native, lifecycle: currentLifecycle.document };
   }, [bookSlug, componentSlug, managed, scopeKey]);
   useEffect(() => {
     const controller = new AbortController();
     const generation = scopeGenerationRef.current + 1;
     scopeGenerationRef.current = generation;
-    setManagedNavigation({ units: [], placements: [] });
+    setManagedNavigation({ units: [], placements: [] }); setActivePageIds(null);
     setNativeCatalog([]); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
     setDirty(false); setViewerRefresh(0); setAddOpen(false); setDeleteState({ open: false, saving: false, error: "" });
     setMoveState({ open: false, pageId: "", saving: false, error: "", placementRequired: false }); setSwitchTarget("");
@@ -268,47 +273,19 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
 
 function ActivityTree({ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages, allowExtras = true, onOpenExtras }) {
   const itemButton = (activity) => <button type="button" key={activity.id} aria-current={selectedId === activity.id ? "true" : undefined} title={activity.id} onClick={() => selectActivity(activity.id)}><strong>{activity.title}</strong><small>{activity.native ? "Native" : activity.editable ? "Editable" : "Read-only"} · {nativeActivityKindLabels[activity.kind] || activity.kind.replaceAll("-", " ")}</small><code>{activity.id}</code></button>;
-  return <div className="activity-navigation-tree">{filtered.units.map((unit) => { const unitOpen = expandedUnits.has(unit.id); return <section key={unit.id}><div className="activity-tree-unit-row"><button className="activity-tree-toggle" type="button" aria-expanded={unitOpen} onClick={() => toggleSet(setExpandedUnits, unit.id)}>{unitOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<strong>{unit.title}</strong><span>{unit.pages.reduce((count, page) => count + page.activities.length, 0)}</span></button>{allowExtras ? <details className="activity-tree-extras"><summary aria-label={`Add extras to ${unit.title}`} title={`Add extras to ${unit.title}`}><Plus aria-hidden="true" /></summary><div><strong>Add Extras</strong><button type="button" onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onOpenExtras(unit, event.currentTarget); }}><Video aria-hidden="true" /> Videos</button></div></details> : null}</div>{unitOpen ? unit.pages.map((page) => { const pageOpen = expandedPages.has(page.id); return <div className="activity-tree-page" key={page.id}><button className="activity-tree-toggle" type="button" aria-expanded={pageOpen} onClick={() => toggleSet(setExpandedPages, page.id)}>{pageOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<span><strong>{page.title}</strong><small>{page.pageLabel}</small></span><span>{page.activities.length}</span></button>{pageOpen ? <div className="activity-tree-items">{page.activities.map(itemButton)}</div> : null}</div>; }) : null}</section>; })}{filtered.unplaced.length ? <section><h2>Unplaced native drafts</h2>{filtered.unplaced.map(itemButton)}</section> : null}</div>;
+  return <div className="activity-navigation-tree">{filtered.units.map((unit) => { const unitOpen = expandedUnits.has(unit.id); return <section key={unit.id}><div className="activity-tree-unit-row"><button className="activity-tree-toggle" type="button" aria-expanded={unitOpen} onClick={() => toggleSet(setExpandedUnits, unit.id)}>{unitOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<strong>{unit.title}</strong><span>{unit.pages.reduce((count, page) => count + page.activities.length, 0)}</span></button>{allowExtras ? <details className="activity-tree-extras"><summary aria-label={`Add extras to ${unit.title}`} title={`Add extras to ${unit.title}`}><Plus aria-hidden="true" /></summary><div><strong>Add Extras</strong><button type="button" onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onOpenExtras(unit, event.currentTarget); }}><Video aria-hidden="true" /> Videos</button></div></details> : null}</div>{unitOpen ? unit.pages.map((page) => { const pageOpen = expandedPages.has(page.id); return <div className="activity-tree-page" key={page.id}><button className="activity-tree-toggle" type="button" aria-expanded={pageOpen} onClick={() => toggleSet(setExpandedPages, page.id)}>{pageOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<span><strong>{page.title}</strong><small>{page.pageLabel}</small></span><span>{page.activities.length}</span></button>{pageOpen ? <div className="activity-tree-items">{page.activities.map(itemButton)}</div> : null}</div>; }) : null}</section>; })}{filtered.unplaced.length ? <section><h2>Unplaced native drafts</h2>{filtered.unplaced.map(itemButton)}</section> : null}{filtered.unavailable?.length ? <section><h2>Activities on deleted pages</h2><p className="activity-filter-notice">These activities are preserved but cannot launch until moved to an active page.</p>{filtered.unavailable.map(itemButton)}</section> : null}</div>;
 }
 
 export function UltimateB2StudentsBookHostedWorkspace({ tool = "hotspots", nativeActivities = null, bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book" }) {
-  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={nativeActivities?.placements || []} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "ui" ? <HostedTeacherUiController /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</UnifiedBuilderReview></div>;
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</div>;
 }
 
 export function UltimateB2ManagedComponentHostedWorkspace({ tool = "hotspots", nativeActivities = null, bookSlug = "ultimate-b2", componentSlug }) {
-  const [pageLibrary, setPageLibrary] = useState(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    getBuilderPages({ bookSlug, componentSlug }, { signal: controller.signal }).then(setPageLibrary).catch(() => setPageLibrary(null));
-    return () => controller.abort();
-  }, [bookSlug, componentSlug]);
-  const navigation = useMemo(() => pageLibrary
-    ? pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug })
-    : { units: [], placements: [] }, [bookSlug, componentSlug, pageLibrary]);
-  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool={tool} pages={navigation.placements} bookSlug={bookSlug} componentSlug={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</UnifiedBuilderReview></div>;
-}
-
-function PagesWorkspaceReviewBridge({ bookSlug, componentSlug, selectedPageId, setPageLibrary, setSelectedPageId }) {
-  const { launcherRef, openReview, registerToolContext } = useBuilderReview();
-  useEffect(() => {
-    registerToolContext("pages", { view: "page", dirty: false, refreshKey: 0, release: null });
-  }, [registerToolContext]);
-  return <ComponentPagesWorkspace
-    bookSlug={bookSlug}
-    componentSlug={componentSlug}
-    onPageLibraryChange={setPageLibrary}
-    onSelectedPageChange={setSelectedPageId}
-    reviewAction={<button ref={launcherRef} className="hosted-builder-action" type="button" onClick={openReview}>Review</button>}
-  />;
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}>{tool === "hotspots" ? <HostedUltimateB2HotspotBuilder bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "activities" ? <ActivityReview nativeActivities={nativeActivities} bookSlug={bookSlug} componentSlug={componentSlug} /> : null}{tool === "publication" ? <HostedPublicationWorkspace /> : null}</div>;
 }
 
 export function UltimateB2PagesHostedWorkspace({ bookSlug = "ultimate-b2", componentSlug }) {
-  const [pageLibrary, setPageLibrary] = useState(null);
-  const [selectedPageId, setSelectedPageId] = useState("");
-  const navigation = useMemo(() => pageLibrary?.component
-    ? pageLibraryReviewNavigation(pageLibrary, { bookSlug, componentSlug })
-    : { units: [], placements: [] }, [bookSlug, componentSlug, pageLibrary]);
-  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><UnifiedBuilderReview tool="pages" pages={navigation.placements} selectedPageId={selectedPageId} bookSlug={bookSlug} componentSlug={componentSlug} externalLauncher><PagesWorkspaceReviewBridge bookSlug={bookSlug} componentSlug={componentSlug} selectedPageId={selectedPageId} setPageLibrary={setPageLibrary} setSelectedPageId={setSelectedPageId} /></UnifiedBuilderReview></div>;
+  return <div className="ultimate-b2-builder-app" data-build-profile="book-builder-hosted-review" data-component-adapter={componentSlug}><ComponentPagesWorkspace bookSlug={bookSlug} componentSlug={componentSlug} /></div>;
 }
 
 export default UltimateB2StudentsBookHostedWorkspace;

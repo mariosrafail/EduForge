@@ -7,6 +7,7 @@ import { startHostedViewerAuthorizationLifecycle } from "./hostedViewerAuthoriza
 
 export function HostedViewerPreview({
   intent,
+  active = true,
   bookSlug = "ultimate-b2",
   componentSlug = "ultimate-b2-students-book",
   refreshKey = 0,
@@ -24,6 +25,7 @@ export function HostedViewerPreview({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState(false);
   useEffect(() => {
+    if (!active) { setAuthorization(null); setAuthorizationError(false); return undefined; }
     setAuthorization(null); setAuthorizationError(false);
     return startHostedViewerAuthorizationLifecycle({
       requestAuthorization: ({ signal }) => createBuilderPreviewAuthorization(resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent }), { signal }),
@@ -31,7 +33,7 @@ export function HostedViewerPreview({
       onError: () => setAuthorizationError(true),
       renew: Boolean(intent.productReleaseId),
     });
-  }, [bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.productReleaseId, refreshKey, manualRefresh]);
+  }, [active, bookSlug, componentSlug, intent.view, intent.pageId, intent.activityId, intent.productReleaseId, refreshKey, manualRefresh]);
   const src = authorization ? createHostedViewerPreviewUrl({
     ...intent,
     bookSlug,
@@ -108,16 +110,15 @@ export function HostedViewerPreview({
     <p className="hosted-viewer-preview-state" role="status" data-state={frameState}>
       {authorizationError ? "Secure Viewer authorization could not be created." : frameState === "loading" ? "Loading canonical Viewer..." : frameState === "error" ? "The canonical Viewer could not be loaded." : "Canonical Viewer loaded."}
     </p>
-    {src ? <iframe
+    <iframe
       ref={iframeRef}
-      key={frameKey}
-      src={src}
+      src={src || "about:blank"}
       title={title}
       referrerPolicy="no-referrer"
       loading="eager"
       onLoad={() => setFrameState("ready")}
       onError={() => setFrameState("error")}
-    /> : null}
+    />
   </section>;
 }
 

@@ -7,6 +7,7 @@ import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { compileUltimateB2ManagedComponentRelease } from "../../netlify-sites/ultimate-b2-builder/server/_builder-managed-publication-compiler.js";
 import { productReleaseMemberSha256, productReleaseSha256, productReleaseSourceSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-product-publication-domain.js";
 import { createBuilderPreviewAuthorizationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
@@ -42,6 +43,7 @@ const unitExtraMp4 = await readFile(path.resolve("src/assets/books/ultimate-b2/t
 const releaseIds = ["10000000-0000-4000-8000-000000000091", "10000000-0000-4000-8000-000000000092"];
 const productReleaseIds = ["20000000-0000-4000-8000-000000000091", "20000000-0000-4000-8000-000000000092"];
 const publication = "/builder/api/publication/books/ultimate-b2";
+const builderPages = "/builder/api/pages/books/ultimate-b2/components/ultimate-b2-students-book";
 const mime = { ".css": "text/css", ".gaf": "application/octet-stream", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".pdf": "application/pdf", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 let savedPrompt = "Draft version A";
 let sourceVersion = 1;
@@ -471,6 +473,7 @@ function sendNetlify(response, result) {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return sendJson(response, 200, { authenticated: true, builderUser: { id: "task-9", full_name: "Task 9 Browser", role: "developer", status: "active" } });
+  if (url.pathname === builderPages && request.method === "GET") return sendJson(response, 200, { revision: 0, hotspotRevision: 0, component: { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", kind: "students-book", title: "Students Book" }, units: [], pages: canonicalStudentsBookPages, deletedPages: [] });
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") {
     const chunks = []; for await (const chunk of request) chunks.push(chunk);
     return sendNetlify(response, await previewAuthorizationHandler(netlifyEvent({
@@ -584,7 +587,7 @@ try {
   await page.getByText("Release 1 · Current", { exact: true }).waitFor();
   legacyReleases.push(buildLegacyProductRelease(releases[0]));
   lifecycle("preview-one-prepared");
-  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 0);
+  assert.equal(await page.locator(".hosted-viewer-preview iframe").count(), 1);
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.getByRole("heading", { name: "Review · Release #1 · Immutable", exact: true }).waitFor();
   await page.locator(".unified-builder-review-dialog iframe").waitFor();
@@ -623,7 +626,7 @@ try {
   assert.equal(viewerReleaseRequests.some((request) => request.componentSlug === "ultimate-b2-workbook" && request.action === "public"), true);
   assert.equal(viewerReleaseRequests.some((request) => request.componentSlug === "ultimate-b2-grammar-book" && request.action === "public"), true);
   await page.getByRole("button", { name: "Close Review" }).click();
-  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 0);
+  assert.equal(await page.locator(".unified-builder-review-dialog iframe").count(), 1);
 
   const legacyRelease = legacyReleases[0];
   const legacyMember = legacyRelease.members[0];
@@ -703,6 +706,7 @@ try {
   assert.equal(await page.getByRole("button", { name: "Publish Preview" }).isDisabled(), true);
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.getByText("Release #1 is immutable and older than the current saved draft.", { exact: true }).waitFor();
+  await page.waitForFunction((releaseId) => new URL(document.querySelector(".unified-builder-review-dialog iframe")?.src || "about:blank").searchParams.get("releaseId") === releaseId, releaseIds[0]);
   const staleFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
   assert.equal(staleFrameUrl.searchParams.get("releaseId"), releaseIds[0]);
   assert.equal(staleFrameUrl.searchParams.get("productReleaseId"), productReleaseIds[0]);
@@ -714,6 +718,7 @@ try {
   await page.getByText("Release 2 · Current", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.getByRole("heading", { name: "Review · Release #2 · Immutable", exact: true }).waitFor();
+  await page.waitForFunction((releaseId) => new URL(document.querySelector(".unified-builder-review-dialog iframe")?.src || "about:blank").searchParams.get("releaseId") === releaseId, releaseIds[1]);
   const currentFrameUrl = new URL(await page.locator(".unified-builder-review-dialog iframe").getAttribute("src"));
   assert.equal(currentFrameUrl.searchParams.get("releaseId"), releaseIds[1]);
   assert.equal(currentFrameUrl.searchParams.get("productReleaseId"), productReleaseIds[1]);
