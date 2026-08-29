@@ -3,12 +3,14 @@ import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAud
 import "./nativeImage.css";
 
 export function NativeImagePresentation(props) {
-  const contentText = props.document.parts[0].interaction.contentText;
-  const surface = <NativeImageSurface {...props} />;
-  return <div className={`native-image-presentation${contentText ? " has-content-text" : ""}`}>
-    <div className="native-image-stage-slot">{surface}</div>
-    {contentText ? <div className="native-image-content-text" aria-label="Activity content">{contentText}</div> : null}
+  return <div className="native-image-presentation">
+    <div className="native-image-stage-slot"><NativeImageSurface {...props} /></div>
   </div>;
+}
+
+export function NativeImageLearnerContent({ document }) {
+  const contentText = document.parts[0].interaction.contentText;
+  return contentText ? <div className="native-image-learner-content" aria-label="Activity content">{contentText}</div> : null;
 }
 
 export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "", audioHotspotPresentation = null }) {

@@ -80,21 +80,20 @@ test("Native Image uses neutral read-only layers while preserving authored image
   });
 });
 
-test("Native Image learner content renders below the surface as semantic selectable text", async () => {
+test("Native Image Interactive presentation renders only the authored image composition", async () => {
   await withVite(async (vite) => {
     const { NativeImagePresentation } = await vite.ssrLoadModule("/src/components/native-image/NativeImageSurface.jsx");
     const contentText = "The library closes at 4:30 p.m.\nPlease return books first.";
     const document = imageDocument({ images: [image("image-1")], contentText });
     const markup = renderToStaticMarkup(React.createElement(NativeImagePresentation, { document, assetUrl: () => "/fixture.png" }));
     assert.match(markup, /native-image-surface/);
-    assert.match(markup, /native-image-content-text/);
-    assert.match(markup, /aria-label="Activity content"/);
-    assert.match(markup, /The library closes at 4:30 p\.m\.\nPlease return books first\./);
-    assert.doesNotMatch(markup, /dangerouslySetInnerHTML|textarea/);
+    assert.doesNotMatch(markup, /native-image-(?:content-text|learner-content)|aria-label="Activity content"/);
+    assert.doesNotMatch(markup, /The library closes at 4:30 p\.m\.|Please return books first/);
+    assert.doesNotMatch(markup, /hidden|display:\s*none|visibility:\s*hidden/);
     const oldMarkup = renderToStaticMarkup(React.createElement(NativeImagePresentation, { document: imageDocument({ images: [image("image-1")] }), assetUrl: () => "/fixture.png" }));
     assert.match(oldMarkup, /native-image-presentation/);
     assert.match(oldMarkup, /native-image-stage-slot/);
-    assert.doesNotMatch(oldMarkup, /native-image-content-text/);
+    assert.doesNotMatch(oldMarkup, /native-image-(?:content-text|learner-content)/);
   });
 });
 
@@ -137,6 +136,7 @@ test("Native Open Response uses static preview layers and selectable authoring c
     };
 
     const preview = NativeOpenResponseSurface({ document, assetUrl: () => "/fixture.png" });
+    assert.equal(preview.props["data-native-or-presentation"], "runtime");
     assert.equal(preview.props.children[0][0].type, "div");
     assert.equal(preview.props.children[0][0].props.disabled, undefined);
     assert.equal(preview.props.children[0][0].props.onClick, undefined);
@@ -148,6 +148,7 @@ test("Native Open Response uses static preview layers and selectable authoring c
 
     const selections = [];
     const authoring = NativeOpenResponseSurface({ document, assetUrl: () => "/fixture.png", onSelect: (value) => selections.push(value) });
+    assert.equal(authoring.props["data-native-or-presentation"], "authoring");
     assert.equal(authoring.props.children[0][0].type, "button");
     assert.equal(authoring.props.children[1][0].type, "button");
     authoring.props.children[0][0].props.onClick();
@@ -188,8 +189,10 @@ test("native runner metadata is default-on and can be suppressed without removin
       vite.ssrLoadModule("/src/components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx"),
       vite.ssrLoadModule("/src/components/lms/activities/ultimate-b2/PublishedNativeActivityRunner.jsx"),
     ]);
-    const document = imageDocument();
-    const state = { kind: "ready", entry: { kind: "image", document }, teacher: { kind: "idle" } };
+    const contentSentinel = "LMS_PUBLIC_IMAGE_CONTENT_SENTINEL";
+    const teacherSentinel = "PRIVATE_TEACHER_IMAGE_SENTINEL";
+    const document = imageDocument({ images: [image("image-1")], contentText: contentSentinel });
+    const state = { kind: "ready", entry: { kind: "image", document }, teacher: { kind: "ready", document: { privateValue: teacherSentinel } } };
     const entry = { kind: "image", document };
     const publication = { releaseId: "10000000-0000-4000-8000-000000000098" };
 
@@ -197,17 +200,31 @@ test("native runner metadata is default-on and can be suppressed without removin
     const hostedInteractive = renderToStaticMarkup(React.createElement(HostedNativeDraftActivityRunner, { activityId, state, showMetadataHeader: false }));
     assert.match(hostedDefault, new RegExp(titleSentinel));
     assert.match(hostedDefault, new RegExp(instructionSentinel));
-    assert.doesNotMatch(hostedInteractive, new RegExp(`${titleSentinel}|${instructionSentinel}`));
+    assert.equal(hostedDefault.match(new RegExp(contentSentinel, "g"))?.length, 1);
+    assert.match(hostedDefault, /class="native-image-learner-content" aria-label="Activity content"/);
+    assert.doesNotMatch(hostedDefault, new RegExp(teacherSentinel));
+    assert.doesNotMatch(hostedInteractive, new RegExp(`${titleSentinel}|${instructionSentinel}|${contentSentinel}|${teacherSentinel}`));
     assert.match(hostedInteractive, /hosted-native-draft-activity/);
     assert.match(hostedInteractive, /native-image-surface/);
+    assert.doesNotMatch(hostedInteractive, /native-image-learner-content/);
 
     const publishedDefault = renderToStaticMarkup(React.createElement(PublishedNativeActivityRunner, { entry, publication }));
     const publishedInteractive = renderToStaticMarkup(React.createElement(PublishedNativeActivityRunner, { entry, publication, showMetadataHeader: false }));
     assert.match(publishedDefault, new RegExp(titleSentinel));
     assert.match(publishedDefault, new RegExp(instructionSentinel));
-    assert.doesNotMatch(publishedInteractive, new RegExp(`${titleSentinel}|${instructionSentinel}`));
+    assert.equal(publishedDefault.match(new RegExp(contentSentinel, "g"))?.length, 1);
+    assert.match(publishedDefault, /class="native-image-learner-content" aria-label="Activity content"/);
+    assert.doesNotMatch(publishedInteractive, new RegExp(`${titleSentinel}|${instructionSentinel}|${contentSentinel}`));
     assert.match(publishedInteractive, /published-native-activity/);
     assert.match(publishedInteractive, /native-image-surface/);
+    assert.doesNotMatch(publishedInteractive, /native-image-learner-content/);
+
+    const publishedTeacherDefault = renderToStaticMarkup(React.createElement(PublishedNativeActivityRunner, { entry, publication, teacherMode: true }));
+    assert.equal(publishedTeacherDefault.match(new RegExp(contentSentinel, "g"))?.length, 1);
+    assert.doesNotMatch(publishedTeacherDefault, new RegExp(teacherSentinel));
+
+    const legacyDefault = renderToStaticMarkup(React.createElement(PublishedNativeActivityRunner, { entry: { kind: "image", document: imageDocument({ images: [image("legacy-image")] }) }, publication }));
+    assert.doesNotMatch(legacyDefault, /native-image-learner-content|aria-label="Activity content"/);
   });
 });
 

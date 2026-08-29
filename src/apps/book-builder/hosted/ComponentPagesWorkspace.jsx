@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCcw, RotateCcw, Trash2, Upload
 
 import { BuilderModal } from "./BuilderModal.jsx";
 import { finalizeBuilderPage, getBuilderPages, mutateBuilderPage, prepareBuilderPage, uploadBuilderPage } from "./builderPagesApi.js";
-import { printedPageWeight, splitUnitPageRows } from "./componentPageRows.js";
+import { componentPageLayoutPolicy, componentPageRowMaxWidth, printedPageWeight, splitUnitPageRows } from "./componentPageRows.js";
 import { useBuilderReview } from "./HostedPackageReview.jsx";
 import "./componentPagesWorkspace.css";
 
@@ -28,10 +28,10 @@ function PageCard({ page, selected, managed, busy, onSelect, onReplace, onEdit, 
   </article>;
 }
 
-function PageGrid({ pages, row = "", selected, managed, busy, onSelect, onReplace, onEdit, onMove, onDelete, onRestore }) {
+function PageGrid({ pages, row = "", layout, selected, managed, busy, onSelect, onReplace, onEdit, onMove, onDelete, onRestore }) {
   const style = row ? {
     "--component-page-row-count": pages.length,
-    "--component-page-row-max-width": `${(pages.length * 236.25) + (Math.max(0, pages.length - 1) * 13)}px`,
+    "--component-page-row-max-width": `${componentPageRowMaxWidth(pages.length, layout)}px`,
   } : undefined;
   return <div className={`component-page-grid${row ? " component-page-row" : ""}`} data-page-row={row || undefined} style={style}>
     {pages.map((page) => <PageCard key={page.id} page={page} selected={page.id === selected?.id} managed={managed} busy={busy} onSelect={() => onSelect(page.id)} onReplace={(file) => onReplace(page, file)} onEdit={() => onEdit(page)} onMove={(direction) => onMove(page, direction)} onDelete={() => onDelete(page)} onRestore={() => onRestore(page)} />)}
@@ -50,6 +50,7 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, onPageLibrary
   const { registerToolContext } = useBuilderReview();
   const identity = useMemo(() => ({ bookSlug, componentSlug }), [bookSlug, componentSlug]);
   const policy = policies[componentSlug] || null;
+  const layout = componentPageLayoutPolicy(componentSlug);
   const managed = Boolean(policy);
   const title = policy?.title || "Students Book";
   const [state, setState] = useState({ loading: true, revision: 0, hotspotRevision: 0, component: null, units: [], pages: [], deletedPages: [], error: "", conflict: false });
@@ -108,12 +109,12 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, onPageLibrary
     ? [...state.units.map((unit) => ({ ...unit, pages: state.pages.filter((page) => page.unitId === unit.id) })), { id: "unassigned", title: "Unassigned", pages: state.pages.filter((page) => !page.unitId) }]
     : [...new Set(state.pages.map((page) => page.unitNumber))].map((unitNumber) => ({ id: `unit-${unitNumber}`, title: `Unit ${unitNumber}`, pages: state.pages.filter((page) => page.unitNumber === unitNumber) }));
 
-  return <main className="component-pages-workspace" data-component-pages={componentSlug}>
+  return <main className="component-pages-workspace" data-component-pages={componentSlug} style={{ "--component-page-image-height": `${layout.imageHeight}px`, "--component-page-grid-gap": `${layout.gap}px` }}>
     <header className="component-pages-header"><div><span>{title} · Pages</span><h1>Page library</h1><p>{managed ? `Upload, assign, label, order, replace, and safely remove ${title} pages.` : "Review canonical Students Book pages, replace their raster safely, or restore deleted pages and canonical images."}</p></div><div><button type="button" disabled={busy} onClick={() => reload()}><RefreshCcw aria-hidden="true" /> Refresh</button><input ref={addInput} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { if (event.target.files?.length && pendingUnitId.current) add(event.target.files, pendingUnitId.current); event.target.value = ""; pendingUnitId.current = ""; }} /></div></header>
     {busy ? <div className="component-pages-progress" role="status"><span style={{ width: `${progress}%` }} /> Processing page assets… {progress ? `${progress}%` : ""}</div> : null}
     {state.error ? <p className="builder-inline-error component-pages-error" role="alert">{state.error}{state.conflict ? <> The library changed elsewhere. Your view was preserved. <button type="button" onClick={() => reload()}>Reload latest</button></> : null}</p> : null}
     {state.loading ? <p className="component-pages-empty" role="status">Loading page library…</p> : <div className="component-pages-layout">
-      <div className="component-pages-groups">{groups.map((group) => <section key={group.id} data-page-unit={group.id === "unassigned" ? undefined : group.id}><h2>{group.title}<span>{group.pages.length}</span>{managed && group.id !== "unassigned" ? <button className="hosted-builder-action" type="button" disabled={busy} onClick={() => openAdd(group.id)}><Plus aria-hidden="true" /> Add pages</button> : null}</h2>{group.pages.length ? group.id === "unassigned" ? <PageGrid pages={group.pages} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <UnitPageRows pages={group.pages} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <p className="component-pages-empty">{group.id === "unassigned" ? "No legacy pages are awaiting assignment." : `No pages in ${group.title} yet.`}</p>}</section>)}</div>
+      <div className="component-pages-groups">{groups.map((group) => <section key={group.id} data-page-unit={group.id === "unassigned" ? undefined : group.id}><h2>{group.title}<span>{group.pages.length}</span>{managed && group.id !== "unassigned" ? <button className="hosted-builder-action" type="button" disabled={busy} onClick={() => openAdd(group.id)}><Plus aria-hidden="true" /> Add pages</button> : null}</h2>{group.pages.length ? group.id === "unassigned" ? <PageGrid pages={group.pages} layout={layout} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <UnitPageRows pages={group.pages} layout={layout} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <p className="component-pages-empty">{group.id === "unassigned" ? "No legacy pages are awaiting assignment." : `No pages in ${group.title} yet.`}</p>}</section>)}</div>
       {selected ? <aside className="component-page-inspector"><span>Selected page</span><h2>{selected.label}</h2><div className="component-page-preview"><img src={selected.image.url} alt={`${selected.label} preview`} width={selected.image.width} height={selected.image.height} /></div><dl><div><dt>Page ID</dt><dd><code>{selected.id}</code></dd></div>{managed ? <div><dt>Unit</dt><dd>{selected.unitTitle || "Unassigned"}</dd></div> : null}<div><dt>Printed pages</dt><dd>{selected.printedLabel || "Not set"}</dd></div><div><dt>Source</dt><dd>{selected.source === "repository-baseline" ? "Canonical baseline" : selected.source === "override" ? "Managed replacement" : "Managed upload"}</dd></div><div><dt>Dimensions</dt><dd>{selected.image.width} × {selected.image.height}</dd></div><div><dt>SHA-256</dt><dd><code>{selected.image.checksumSha256.slice(0, 16)}…</code></dd></div></dl></aside> : null}
     </div>}
     {!state.loading && state.deletedPages.length ? <details className="component-deleted-pages"><summary>Deleted pages <span>{state.deletedPages.length}</span></summary><div>{state.deletedPages.map((page) => <article key={page.id}><div><strong>{page.label}</strong><code>{page.id}</code><small>{page.printedLabel || "Unnumbered"} · {page.removedHotspotCount || 0} hotspots removed</small></div><button type="button" disabled={busy} onClick={() => mutate(page, "restore")}><RotateCcw aria-hidden="true" /> Restore page</button></article>)}</div></details> : null}

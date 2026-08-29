@@ -152,7 +152,7 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
       <header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Set the title and learner-facing content.</p></div></div></header>
       <div className="studio-form-grid">
         <StudioField label="Activity title"><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutate((next) => { next.metadata.title = event.target.value; })} /></StudioField>
-        <StudioField className="studio-field--wide" label="Content" hint="The learner-facing words conveyed by the image, separate from image accessibility metadata."><textarea value={interaction.contentText || ""} maxLength={NATIVE_IMAGE_LIMITS.contentTextLength} rows={7} onChange={(event) => mutate((next) => {
+        <StudioField className="studio-field--wide" label="Content" hint="This learner-facing text is retained for LMS reading support. It is not displayed inside the Interactive image stage."><textarea value={interaction.contentText || ""} maxLength={NATIVE_IMAGE_LIMITS.contentTextLength} rows={7} onChange={(event) => mutate((next) => {
           const value = event.target.value;
           if (value) next.parts[0].interaction.contentText = value;
           else delete next.parts[0].interaction.contentText;

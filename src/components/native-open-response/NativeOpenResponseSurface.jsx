@@ -29,7 +29,7 @@ export function NativeOpenResponseSurface({ document, panel: selectedPanel = nul
   const responses = interaction.questions.filter((question) => responseIds.includes(question.id));
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
   const staticLayer = !onSelect;
-  return <div className={`native-or-surface ${className}`.trim()} style={{ aspectRatio: `${surface.width} / ${surface.height}` }} data-studio-stage data-surface-width={surface.width} data-surface-height={surface.height} onClick={(event) => { if (event.button === 0 && event.target === event.currentTarget) onSelect?.(null); }}>
+  return <div className={`native-or-surface ${className}`.trim()} style={{ aspectRatio: `${surface.width} / ${surface.height}` }} data-studio-stage data-native-or-presentation={staticLayer ? "runtime" : "authoring"} data-surface-width={surface.width} data-surface-height={surface.height} onClick={(event) => { if (event.button === 0 && event.target === event.currentTarget) onSelect?.(null); }}>
     {panel.images.map((item) => {
       const reference = assets.get(item.assetSlot);
       const authoringLocked = Boolean(onSelect && item.locked);

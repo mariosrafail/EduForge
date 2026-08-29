@@ -12,14 +12,17 @@
   overflow: hidden;
 }
 
-.native-image-presentation.has-content-text { grid-template-rows: minmax(0, 1fr) auto; }
 .native-image-stage-slot { align-self: stretch; justify-self: stretch; display: grid; min-width: 0; min-height: 0; place-items: center; overflow: hidden; container-type: size; }
 .native-image-presentation .native-image-surface { width: min(100cqw, calc(100cqh * var(--native-image-surface-ratio))); height: auto; max-width: 100%; max-height: 100%; }
 
-.native-image-content-text {
+:is(.hosted-native-draft-activity[data-native-kind="image"][data-native-metadata],.published-native-activity[data-native-kind="image"][data-native-metadata],.native-image-editor .studio-preview-panel) .native-image-presentation { height: auto; overflow: visible; }
+:is(.hosted-native-draft-activity[data-native-kind="image"][data-native-metadata],.published-native-activity[data-native-kind="image"][data-native-metadata],.native-image-editor .studio-preview-panel) .native-image-stage-slot { overflow: visible; container-type: inline-size; }
+:is(.hosted-native-draft-activity[data-native-kind="image"][data-native-metadata],.published-native-activity[data-native-kind="image"][data-native-metadata],.native-image-editor .studio-preview-panel) .native-image-presentation .native-image-surface { width: 100%; max-height: none; }
+
+.native-image-learner-content {
   box-sizing: border-box;
   width: min(100%, 72ch);
-  margin-inline: auto;
+  margin: clamp(14px, 2vw, 24px) auto 0;
   padding: clamp(14px, 2vw, 22px);
   border: 1px solid #cbd5e1;
   border-radius: 10px;

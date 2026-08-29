@@ -2,10 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { canonicalStudentsBookPages } from "../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
-import { MAX_PRINTED_LABEL_PAGE_WEIGHT, printedPageWeight, splitUnitPageRows } from "../src/apps/book-builder/hosted/componentPageRows.js";
+import { componentPageLayoutPolicy, componentPageRowMaxWidth, MAX_PRINTED_LABEL_PAGE_WEIGHT, printedPageWeight, splitUnitPageRows } from "../src/apps/book-builder/hosted/componentPageRows.js";
 
 const labels = (pages) => pages.map((page) => page.printedLabel);
 const managedPages = (...printedLabels) => printedLabels.map((printedLabel, index) => ({ id: `page-${index + 1}`, printedPages: [], printedLabel }));
+
+test("component Page Library layout keeps managed previews at 150px and enlarges Student's Book coherently", () => {
+  const workbook = componentPageLayoutPolicy("ultimate-b2-workbook");
+  const grammar = componentPageLayoutPolicy("ultimate-b2-grammar-book");
+  const students = componentPageLayoutPolicy("ultimate-b2-students-book");
+  assert.equal(workbook.imageHeight, 150);
+  assert.equal(grammar.imageHeight, 150);
+  assert.equal(students.imageHeight, 180);
+  assert.ok(students.imageHeight > workbook.imageHeight);
+  assert.equal(componentPageRowMaxWidth(4, students), (4 * students.preferredCardWidth) + (3 * students.gap));
+});
 
 test("printed page weight prioritizes valid unique canonical page numbers", () => {
   assert.equal(printedPageWeight({ printedPages: [5], printedLabel: "50-51" }), 1);

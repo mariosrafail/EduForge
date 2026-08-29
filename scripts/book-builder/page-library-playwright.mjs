@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
-import { splitUnitPageRows } from "../../src/apps/book-builder/hosted/componentPageRows.js";
+import { componentPageLayoutPolicy, splitUnitPageRows } from "../../src/apps/book-builder/hosted/componentPageRows.js";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 const root = path.resolve("dist-netlify/ultimate-b2-builder");
@@ -90,6 +90,7 @@ function pageRow(page, unitTitle, rowName) { return group(page, unitTitle).locat
 async function assertPageGroupsReady(page, expected) { const groups = page.locator(".component-pages-groups"); await groups.waitFor(); assert.equal(await groups.locator("section").count(), expected); }
 async function addFiles(page, unitTitle, files) { const chooser = page.waitForEvent("filechooser"); await group(page, unitTitle).getByRole("button", { name: "Add pages" }).click(); await (await chooser).setFiles(files); await page.locator(".component-pages-progress").waitFor({ state: "hidden" }); }
 async function assertUnitLayout(page, componentSlug, unitNumber, expectedLabels = null, expectedWeights = null, expectNoRowScroll = true) {
+  const expectedImageHeight = componentPageLayoutPolicy(componentSlug).imageHeight;
   const ordered = state[componentSlug].pages.filter((item) => item.unitNumber === unitNumber);
   const expected = splitUnitPageRows(ordered);
   const unit = group(page, `Unit ${unitNumber}`);
@@ -114,7 +115,7 @@ async function assertUnitLayout(page, componentSlug, unitNumber, expectedLabels 
     const cardGeometry = await cards.evaluateAll((items) => items.map((item) => { const box = item.getBoundingClientRect(); const imageButton = item.querySelector(".component-page-image"); const image = imageButton?.querySelector("img"); const actions = item.querySelector(".component-page-actions"); return { y: box.y, cardOverflow: item.scrollWidth - item.clientWidth, actionsOverflow: actions ? actions.scrollWidth - actions.clientWidth : 0, imageHeight: imageButton?.getBoundingClientRect().height, objectFit: image ? getComputedStyle(image).objectFit : "" }; }));
     assert.ok(cardGeometry.every(({ y }) => Math.abs(y - cardGeometry[0].y) < 1), `Unit ${unitNumber} ${rowName} wrapped visually`);
     assert.ok(cardGeometry.every(({ cardOverflow, actionsOverflow }) => cardOverflow <= 1 && actionsOverflow <= 1), `Unit ${unitNumber} ${rowName} card content overflowed`);
-    assert.ok(cardGeometry.every(({ imageHeight, objectFit }) => Math.abs(imageHeight - 150) <= 1 && objectFit === "contain"), `Unit ${unitNumber} ${rowName} image fitting changed`);
+    assert.ok(cardGeometry.every(({ imageHeight, objectFit }) => Math.abs(imageHeight - expectedImageHeight) <= 1 && objectFit === "contain"), `Unit ${unitNumber} ${rowName} image fitting changed`);
   }
 
   const expectedIds = [expected.top.map((item) => item.id), expected.bottom.map((item) => item.id)].slice(0, rowNames.length);
@@ -141,11 +142,13 @@ try {
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   await page.route("https://hhplms-viewer.netlify.app/**", async (route) => { const url = new URL(route.request().url()); reviewIntents.push(Object.fromEntries(url.searchParams)); await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><h1>Canonical Viewer fixture</h1>" }); });
 
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook/pages`, { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "Page library" }).waitFor();
   await assertPageGroupsReady(page, 11);
   for (let number = 1; number <= 10; number += 1) await group(page, `Unit ${number}`).waitFor();
   const workbookRows = await assertUnitLayout(page, "ultimate-b2-workbook", 7, [["70-71", "72-73", "74-75"], ["76", "77", "78-79"]], [6, 4]);
+  const workbookImageHeight = await pageRow(page, "Unit 7", "top").locator(".component-page-image").first().evaluate((element) => element.getBoundingClientRect().height);
+  assert.ok(Math.abs(workbookImageHeight - 150) <= 1);
   await capture(page, "workbook-unit-7", group(page, "Unit 7"));
 
   const firstWorkbookFixtureId = workbookUnit7[0].id;
@@ -196,10 +199,12 @@ try {
   await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click();
   await workbookB.waitFor({ state: "detached" });
 
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book/pages`, { waitUntil: "domcontentloaded" });
   await page.getByText("Grammar Book · Pages").waitFor();
   await assertPageGroupsReady(page, 11);
   const grammarRows = await assertUnitLayout(page, "ultimate-b2-grammar-book", 4, [["40", "41-42"], ["43"]], [3, 1]);
+  const grammarImageHeight = await pageRow(page, "Unit 4", "top").locator(".component-page-image").first().evaluate((element) => element.getBoundingClientRect().height);
+  assert.ok(Math.abs(grammarImageHeight - 150) <= 1);
   await capture(page, "grammar-book-unit-4", group(page, "Unit 4"));
   await addFiles(page, "Unit 10", [{ name: "Grammar A.png", mimeType: "image/png", buffer: imageA }, { name: "Grammar B.png", mimeType: "image/png", buffer: imageB }]);
   assert.deepEqual(await group(page, "Unit 10").locator(".component-page-card-copy strong").allTextContents(), ["Grammar A", "Grammar B"]);
@@ -209,9 +214,12 @@ try {
   assert.equal(await group(page, "Unit 10").locator(".component-page-card").count(), 2);
   assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-grammar-book", 4)).ids, grammarRows.ids);
 
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/pages`, { waitUntil: "domcontentloaded" });
   const unit1Rows = await assertUnitLayout(page, "ultimate-b2-students-book", 1, [["5", "6-7", "8-9", "10-11"], ["12", "13", "14-15", "16", "17", "18"]], [7, 7]);
   const unit2Rows = await assertUnitLayout(page, "ultimate-b2-students-book", 2, [["19", "20-21", "22-23", "24-25", "26"], ["27", "28-29", "30", "31", "32", "33", "34"]], [8, 8]);
+  const studentImageHeight = await pageRow(page, "Unit 1", "top").locator(".component-page-image").first().evaluate((element) => element.getBoundingClientRect().height);
+  assert.ok(Math.abs(studentImageHeight - 180) <= 1);
+  assert.ok(studentImageHeight > workbookImageHeight && studentImageHeight > grammarImageHeight);
   for (let number = 3; number <= 10; number += 1) await assertUnitLayout(page, "ultimate-b2-students-book", number);
   await capture(page, "students-book-unit-1", group(page, "Unit 1"));
   await capture(page, "students-book-unit-2", group(page, "Unit 2"));
@@ -247,6 +255,7 @@ try {
   const narrowUnit2 = await assertUnitLayout(page, "ultimate-b2-students-book", 2, unit2Rows.labels, unit2Rows.weights, false);
   assert.deepEqual(narrowUnit2.ids, unit2Rows.ids);
   assert.ok(await pageRow(page, "Unit 2", "bottom").evaluate((element) => element.scrollWidth > element.clientWidth));
+  await capture(page, "students-book-narrow-unit-2", group(page, "Unit 2"));
   await page.setViewportSize({ width: 1440, height: 900 });
 
   assert.equal(state["ultimate-b2-workbook"].pages.some((item) => item.id === baseline.id), false);

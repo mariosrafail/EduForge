@@ -9,11 +9,14 @@ test("public Native Image surface depends only on the public document and manage
   assert.doesNotMatch(source, /Teacher|teacherDocument|solution|modelAnswer|fetch\(/);
 });
 
-test("Image Builder keeps learner content and per-image Alt text without generic instruction authoring", async () => {
-  const [editor, surface, styles] = await Promise.all([
+test("Image Builder keeps learner content and LMS runners place it outside the Interactive presentation", async () => {
+  const [editor, surface, styles, hostedRunner, studentRunner, teacherRunner] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeImageEditor.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-image/NativeImageSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-image/nativeImage.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeTeacherActivityRunner.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /label="Activity title"/);
   assert.match(editor, /label="Content"/);
@@ -21,7 +24,13 @@ test("Image Builder keeps learner content and per-image Alt text without generic
   assert.doesNotMatch(editor, /label="Visible instruction"/);
   assert.match(editor, /label="Alt text"/);
   assert.match(editor, /delete next\.parts\[0\]\.interaction\.contentText/);
-  assert.match(surface, /native-image-content-text/);
+  assert.match(surface, /export function NativeImageLearnerContent/);
+  assert.match(surface, /native-image-learner-content/);
+  const presentation = surface.slice(surface.indexOf("export function NativeImagePresentation"), surface.indexOf("export function NativeImageLearnerContent"));
+  assert.doesNotMatch(presentation, /contentText|learner-content|Activity content/);
+  for (const runner of [hostedRunner, studentRunner, teacherRunner]) {
+    assert.match(runner, /showMetadataHeader \? <NativeImageLearnerContent document=\{document\}/);
+  }
   assert.doesNotMatch(surface, /dangerouslySetInnerHTML/);
   assert.match(styles, /white-space:\s*pre-wrap/);
   assert.match(styles, /width:\s*min\(100%, 72ch\)/);

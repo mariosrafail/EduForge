@@ -2,6 +2,20 @@
 // within that proven repository model instead of accepting unbounded ranges.
 export const MAX_PRINTED_LABEL_PAGE_WEIGHT = 2;
 
+const DEFAULT_COMPONENT_PAGE_LAYOUT = Object.freeze({ imageHeight: 150, preferredCardWidth: 236.25, gap: 13 });
+const componentPageLayouts = Object.freeze({
+  "ultimate-b2-students-book": Object.freeze({ ...DEFAULT_COMPONENT_PAGE_LAYOUT, imageHeight: 180 }),
+});
+
+export function componentPageLayoutPolicy(componentSlug) {
+  return componentPageLayouts[componentSlug] || DEFAULT_COMPONENT_PAGE_LAYOUT;
+}
+
+export function componentPageRowMaxWidth(pageCount, policy = DEFAULT_COMPONENT_PAGE_LAYOUT) {
+  const count = Math.max(0, Number(pageCount) || 0);
+  return (count * policy.preferredCardWidth) + (Math.max(0, count - 1) * policy.gap);
+}
+
 const validPrintedPageNumber = (value) => Number.isSafeInteger(value) && value > 0;
 
 export function printedPageWeight(page) {
