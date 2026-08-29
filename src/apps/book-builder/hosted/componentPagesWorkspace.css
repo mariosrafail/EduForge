@@ -11,6 +11,8 @@
 .component-pages-groups section > h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 11px; font-size: 1rem; }
 .component-pages-groups section > h2 span { display: inline-grid; min-width: 24px; height: 24px; padding: 0 6px; place-items: center; border-radius: 99px; color: #344054; background: #e9eef5; font-size: .72rem; }
 .component-page-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(210px,1fr)); gap: 13px; }
+.component-page-rows { display: grid; min-width: 0; gap: 13px; }
+.component-page-row { width: 100%; max-width: var(--component-page-row-max-width); min-width: 0; grid-template-columns: repeat(var(--component-page-row-count),minmax(128px,1fr)); overflow-x: auto; }
 .component-page-card { min-width: 0; overflow: hidden; border: 1px solid #d5dfeb; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(16,24,40,.05); }
 .component-page-card[data-selected] { border-color: #175cd3; box-shadow: 0 0 0 2px rgba(23,92,211,.14); }
 .component-page-image { display: grid; width: 100%; height: 150px; padding: 0; place-items: center; overflow: hidden; border: 0; border-bottom: 1px solid #e4e7ec; border-radius: 0; background: #eef2f7; }
@@ -19,6 +21,7 @@
 .component-page-card-copy span,.component-page-card-copy small { overflow: hidden; color: #667085; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
 .component-page-card-copy strong { overflow: hidden; font-size: .84rem; text-overflow: ellipsis; white-space: nowrap; }
 .component-page-actions { display: flex; min-height: 40px; padding: 5px 7px; gap: 4px; border-top: 1px solid #eef2f6; }
+.component-page-card[data-managed] .component-page-actions { flex-wrap: wrap; }
 .component-page-actions button,.component-page-file-action { display: inline-grid; width: 32px; height: 32px; padding: 0; place-items: center; border: 1px solid transparent; border-radius: 7px; color: #475467; background: transparent; cursor: pointer; }
 .component-page-actions button:hover,.component-page-file-action:hover { border-color: #d5dfeb; background: #f2f4f7; }
 .component-page-actions svg { width: 16px; }

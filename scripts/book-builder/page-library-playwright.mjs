@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
+import { splitUnitPageRows } from "../../src/apps/book-builder/hosted/componentPageRows.js";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 
 const root = path.resolve("dist-netlify/ultimate-b2-builder");
@@ -16,10 +17,28 @@ const managedSlugs = ["ultimate-b2-workbook", "ultimate-b2-grammar-book"];
 const unitsFor = (componentSlug) => Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 }));
 const managedImage = (uploadId, bytes) => ({ source: "managed", assetId: uploadId, url: `/test-uploaded/${uploadId}`, originalFilename: "browser-page.png", mimeType: "image/png", byteSize: bytes.length, checksumSha256: "a".repeat(64), width: 581, height: 794 });
 const legacyAssetId = "40000000-0000-4000-8000-000000000001";
+const managedFixturePage = (componentSlug, unitNumber, printedLabel, index) => ({
+  id: `${componentSlug.endsWith("workbook") ? "wb" : "gb"}-u${unitNumber}-${printedLabel.replaceAll(/[^0-9]+/g, "-")}-${index}`,
+  stableKey: `${componentSlug}/pages/unit-${unitNumber}-${index}`,
+  componentSlug,
+  source: "managed",
+  unitId: `${componentSlug}-unit-${unitNumber}`,
+  unitSlug: `unit-${unitNumber}`,
+  unitNumber,
+  unitTitle: `Unit ${unitNumber}`,
+  unitSortOrder: unitNumber,
+  printedPages: [],
+  printedLabel,
+  sortOrder: (unitNumber * 100) + index,
+  label: `${componentSlug.endsWith("workbook") ? "Workbook" : "Grammar"} page ${printedLabel}`,
+  image: managedImage(legacyAssetId, imageA),
+});
+const workbookUnit7 = ["70-71", "72-73", "74-75", "76", "77", "78-79"].map((label, index) => managedFixturePage("ultimate-b2-workbook", 7, label, index + 1));
+const grammarUnit4 = ["40", "41-42", "43"].map((label, index) => managedFixturePage("ultimate-b2-grammar-book", 4, label, index + 1));
 const state = {
   "ultimate-b2-students-book": { revision: 0, units: [], pages: canonicalStudentsBookPages.map((page) => ({ ...page })) },
-  "ultimate-b2-workbook": { revision: 0, units: unitsFor("ultimate-b2-workbook"), pages: [{ id: "wb-legacy-unassigned", stableKey: "ultimate-b2-workbook/pages/wb-legacy-unassigned", componentSlug: "ultimate-b2-workbook", source: "managed", unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null, printedPages: [], printedLabel: "L", sortOrder: 1, label: "Legacy unassigned", image: managedImage(legacyAssetId, imageA) }] },
-  "ultimate-b2-grammar-book": { revision: 0, units: unitsFor("ultimate-b2-grammar-book"), pages: [] },
+  "ultimate-b2-workbook": { revision: 0, units: unitsFor("ultimate-b2-workbook"), pages: [...workbookUnit7, { id: "wb-legacy-unassigned", stableKey: "ultimate-b2-workbook/pages/wb-legacy-unassigned", componentSlug: "ultimate-b2-workbook", source: "managed", unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null, printedPages: [], printedLabel: "L", sortOrder: 1, label: "Legacy unassigned", image: managedImage(legacyAssetId, imageA) }] },
+  "ultimate-b2-grammar-book": { revision: 0, units: unitsFor("ultimate-b2-grammar-book"), pages: grammarUnit4 },
 };
 const sessions = new Map();
 const uploads = new Map([[legacyAssetId, imageA]]);
@@ -52,6 +71,7 @@ async function pagesApi(request, response, url) {
   const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
   const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); if (index < 0) { json(response, 404, { error: "page_not_found" }); return true; }
   if (action === "restore") current.pages[index] = { ...canonicalStudentsBookPages.find((page) => page.id === pageId) }; else if (action === "delete") current.pages.splice(index, 1); else current.pages[index] = { ...current.pages[index], ...input.metadata, ...unitMetadata(current, input.metadata.unitId) };
+  if (action === "metadata" || action === "reorder") current.pages.sort((left, right) => (left.unitSortOrder ?? Number.MAX_SAFE_INTEGER) - (right.unitSortOrder ?? Number.MAX_SAFE_INTEGER) || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
   current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
 }
 
@@ -60,18 +80,158 @@ const server = createServer(async (request, response) => { const url = new URL(r
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 
 function group(page, title) { return page.locator(".component-pages-groups section", { has: page.getByRole("heading", { name: new RegExp(`^${title}\\b`) }) }); }
+function pageRow(page, unitTitle, rowName) { return group(page, unitTitle).locator(`[data-page-row="${rowName}"]`); }
 async function assertPageGroupsReady(page, expected) { const groups = page.locator(".component-pages-groups"); await groups.waitFor(); assert.equal(await groups.locator("section").count(), expected); }
 async function addFiles(page, unitTitle, files) { const chooser = page.waitForEvent("filechooser"); await group(page, unitTitle).getByRole("button", { name: "Add pages" }).click(); await (await chooser).setFiles(files); await page.locator(".component-pages-progress").waitFor({ state: "hidden" }); }
+async function assertUnitLayout(page, componentSlug, unitNumber, expectedLabels = null, expectedWeights = null, expectNoRowScroll = true) {
+  const ordered = state[componentSlug].pages.filter((item) => item.unitNumber === unitNumber);
+  const expected = splitUnitPageRows(ordered);
+  const unit = group(page, `Unit ${unitNumber}`);
+  if (ordered.length) await unit.locator(`[data-page-id="${ordered[0].id}"]`).waitFor();
+  const rows = unit.locator("[data-page-row]");
+  const rowNames = expected.bottom.length ? ["top", "bottom"] : ["top"];
+  assert.equal(await rows.count(), rowNames.length);
+  assert.equal(await unit.getAttribute("data-page-unit"), componentSlug.endsWith("students-book") ? `unit-${unitNumber}` : `${componentSlug}-unit-${unitNumber}`);
+
+  const actualIds = [];
+  const actualLabels = [];
+  const actualWeights = [];
+  for (const rowName of rowNames) {
+    const row = pageRow(page, `Unit ${unitNumber}`, rowName);
+    const cards = row.locator(".component-page-card");
+    const ids = await cards.evaluateAll((items) => items.map((item) => item.dataset.pageId));
+    const labels = await cards.evaluateAll((items) => items.map((item) => item.dataset.printedLabel));
+    const weights = (await cards.evaluateAll((items) => items.map((item) => Number(item.dataset.pageWeight)))).reduce((sum, weight) => sum + weight, 0);
+    actualIds.push(ids); actualLabels.push(labels); actualWeights.push(weights);
+    const geometry = await row.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
+    if (expectNoRowScroll) assert.ok(geometry.scrollWidth <= geometry.clientWidth + 1, `Unit ${unitNumber} ${rowName} unexpectedly scrolls at 1440px`);
+    const cardGeometry = await cards.evaluateAll((items) => items.map((item) => { const box = item.getBoundingClientRect(); const imageButton = item.querySelector(".component-page-image"); const image = imageButton?.querySelector("img"); const actions = item.querySelector(".component-page-actions"); return { y: box.y, cardOverflow: item.scrollWidth - item.clientWidth, actionsOverflow: actions ? actions.scrollWidth - actions.clientWidth : 0, imageHeight: imageButton?.getBoundingClientRect().height, objectFit: image ? getComputedStyle(image).objectFit : "" }; }));
+    assert.ok(cardGeometry.every(({ y }) => Math.abs(y - cardGeometry[0].y) < 1), `Unit ${unitNumber} ${rowName} wrapped visually`);
+    assert.ok(cardGeometry.every(({ cardOverflow, actionsOverflow }) => cardOverflow <= 1 && actionsOverflow <= 1), `Unit ${unitNumber} ${rowName} card content overflowed`);
+    assert.ok(cardGeometry.every(({ imageHeight, objectFit }) => Math.abs(imageHeight - 150) <= 1 && objectFit === "contain"), `Unit ${unitNumber} ${rowName} image fitting changed`);
+  }
+
+  const expectedIds = [expected.top.map((item) => item.id), expected.bottom.map((item) => item.id)].slice(0, rowNames.length);
+  assert.deepEqual(actualIds, expectedIds);
+  assert.deepEqual(actualIds.flat(), ordered.map((item) => item.id));
+  assert.equal(new Set(actualIds.flat()).size, ordered.length);
+  if (expectedLabels) assert.deepEqual(actualLabels, expectedLabels);
+  if (expectedWeights) assert.deepEqual(actualWeights, expectedWeights);
+  return { ids: actualIds, labels: actualLabels, weights: actualWeights };
+}
+async function capture(page, name, locator = null) {
+  if (!process.env.PAGE_LIBRARY_SCREENSHOT_DIR) return;
+  await mkdir(process.env.PAGE_LIBRARY_SCREENSHOT_DIR, { recursive: true });
+  await (locator || page).screenshot({ path: path.join(process.env.PAGE_LIBRARY_SCREENSHOT_DIR, `${name}.png`), ...(locator ? {} : { fullPage: true }) });
+}
 
 let browser;
 try {
-  browser = await chromium.launch(localPlaywrightLaunchOptions()); const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }); page.setDefaultTimeout(60_000); const errors = []; page.on("pageerror", (error) => errors.push(error.message)); page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); }); await page.route("https://hhplms-viewer.netlify.app/**", async (route) => { const url = new URL(route.request().url()); reviewIntents.push(Object.fromEntries(url.searchParams)); await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><h1>Canonical Viewer fixture</h1>" }); });
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" }); await page.getByRole("heading", { name: "Page library" }).waitFor(); await assertPageGroupsReady(page, 11); for (let number = 1; number <= 10; number += 1) await group(page, `Unit ${number}`).waitFor();
-  await group(page, "Unassigned").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor(); await group(page, "Unassigned").getByTitle("Edit metadata").click(); await page.getByLabel("Unit").selectOption({ label: "Unit 1" }); await page.getByRole("button", { name: "Save metadata" }).click(); await group(page, "Unit 1").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor();
-  await addFiles(page, "Unit 1", [{ name: "Workbook A.png", mimeType: "image/png", buffer: imageA }, { name: "Workbook B.png", mimeType: "image/png", buffer: imageB }]); assert.deepEqual(await group(page, "Unit 1").locator(".component-page-card-copy strong").allTextContents(), ["Legacy unassigned", "Workbook A", "Workbook B"]); const newlyPersisted = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" }); const newlyPersistedId = await newlyPersisted.getAttribute("data-page-id"); assert.ok(newlyPersistedId); await newlyPersisted.getByRole("button", { name: "Preview Workbook B" }).click(); assert.equal(await page.getByRole("button", { name: "Save", exact: true }).count(), 0); await page.getByRole("button", { name: "Review", exact: true }).click(); await page.frameLocator(".unified-builder-review-dialog iframe").getByRole("heading", { name: "Canonical Viewer fixture" }).waitFor(); assert.deepEqual({ componentSlug: reviewIntents.at(-1).componentSlug, view: reviewIntents.at(-1).view, pageId: reviewIntents.at(-1).pageId }, { componentSlug: "ultimate-b2-workbook", view: "library", pageId: undefined }); await page.getByRole("button", { name: "Close Review" }).click();
-  const workbookA = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook A" }); const stableId = await workbookA.getAttribute("data-page-id"); await workbookA.getByTitle("Edit metadata").click(); await page.getByLabel("Unit").selectOption({ label: "Unit 2" }); await page.getByLabel("Label").fill("Workbook opening page"); await page.getByLabel("Printed page or spread").fill("2"); await page.getByRole("button", { name: "Save metadata" }).click(); await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor(); await page.reload({ waitUntil: "domcontentloaded" }); await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor(); assert.equal(await group(page, "Unit 2").locator(".component-page-card").getAttribute("data-page-id"), stableId);
-  const replacement = page.waitForEvent("filechooser"); await group(page, "Unit 2").getByTitle("Replace page image").click(); await (await replacement).setFiles({ name: "replacement.png", mimeType: "image/png", buffer: imageB }); await page.locator(".component-pages-progress").waitFor({ state: "hidden" }); const workbookB = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" }); await workbookB.getByTitle("Delete page").click(); await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click(); await workbookB.waitFor({ state: "detached" });
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book`, { waitUntil: "domcontentloaded" }); await page.getByText("Grammar Book · Pages").waitFor(); await assertPageGroupsReady(page, 11); await addFiles(page, "Unit 10", [{ name: "Grammar A.png", mimeType: "image/png", buffer: imageA }, { name: "Grammar B.png", mimeType: "image/png", buffer: imageB }]); assert.deepEqual(await group(page, "Unit 10").locator(".component-page-card-copy strong").allTextContents(), ["Grammar A", "Grammar B"]); await page.reload({ waitUntil: "domcontentloaded" }); await group(page, "Unit 10").locator(".component-page-card").first().waitFor(); assert.equal(await group(page, "Unit 10").locator(".component-page-card").count(), 2);
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" }); const baseline = canonicalStudentsBookPages[0]; const studentCard = page.locator(`.component-page-card[data-page-id="${baseline.id}"]`); assert.equal(await studentCard.getAttribute("data-source"), "repository-baseline"); const studentReplace = page.waitForEvent("filechooser"); await studentCard.getByTitle("Replace page image").click(); await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA }); await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor(); await studentCard.getByTitle("Restore canonical page").click(); await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
-  assert.equal(state["ultimate-b2-workbook"].pages.some((item) => item.id === baseline.id), false); assert.equal(state["ultimate-b2-grammar-book"].pages.some((item) => item.id === baseline.id), false); assert.deepEqual(errors, []); process.stdout.write("Managed Workbook/Grammar and Students Pages browser acceptance passed.\n");
+  browser = await chromium.launch(localPlaywrightLaunchOptions());
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.setDefaultTimeout(60_000);
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  await page.route("https://hhplms-viewer.netlify.app/**", async (route) => { const url = new URL(route.request().url()); reviewIntents.push(Object.fromEntries(url.searchParams)); await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><h1>Canonical Viewer fixture</h1>" }); });
+
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "Page library" }).waitFor();
+  await assertPageGroupsReady(page, 11);
+  for (let number = 1; number <= 10; number += 1) await group(page, `Unit ${number}`).waitFor();
+  const workbookRows = await assertUnitLayout(page, "ultimate-b2-workbook", 7, [["70-71", "72-73", "74-75"], ["76", "77", "78-79"]], [6, 4]);
+  await capture(page, "workbook-unit-7", group(page, "Unit 7"));
+
+  const firstWorkbookFixtureId = workbookUnit7[0].id;
+  await page.locator(`[data-page-id="${firstWorkbookFixtureId}"]`).getByTitle("Move later in this Unit").click();
+  await page.waitForFunction((id) => document.querySelector('[data-page-unit="ultimate-b2-workbook-unit-7"] [data-page-row="top"] .component-page-card')?.dataset.pageId !== id, firstWorkbookFixtureId);
+  const reorderedRows = await assertUnitLayout(page, "ultimate-b2-workbook", 7);
+  assert.deepEqual(reorderedRows.ids.flat().slice(0, 2), [workbookUnit7[1].id, firstWorkbookFixtureId]);
+  await page.locator(`[data-page-id="${firstWorkbookFixtureId}"]`).getByTitle("Move earlier in this Unit").click();
+  await page.waitForFunction((id) => document.querySelector('[data-page-unit="ultimate-b2-workbook-unit-7"] [data-page-row="top"] .component-page-card')?.dataset.pageId === id, firstWorkbookFixtureId);
+  assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-workbook", 7)).ids, workbookRows.ids);
+
+  await group(page, "Unassigned").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor();
+  assert.equal(await group(page, "Unassigned").locator("[data-page-row]").count(), 0);
+  await group(page, "Unassigned").getByTitle("Edit metadata").click();
+  await page.getByLabel("Unit").selectOption({ label: "Unit 1" });
+  await page.getByRole("button", { name: "Save metadata" }).click();
+  await group(page, "Unit 1").locator(".component-page-card-copy strong", { hasText: "Legacy unassigned" }).waitFor();
+  await addFiles(page, "Unit 1", [{ name: "Workbook A.png", mimeType: "image/png", buffer: imageA }, { name: "Workbook B.png", mimeType: "image/png", buffer: imageB }]);
+  assert.deepEqual(await group(page, "Unit 1").locator(".component-page-card-copy strong").allTextContents(), ["Legacy unassigned", "Workbook A", "Workbook B"]);
+  const newlyPersisted = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" });
+  const newlyPersistedId = await newlyPersisted.getAttribute("data-page-id");
+  assert.ok(newlyPersistedId);
+  await newlyPersisted.getByRole("button", { name: "Preview Workbook B" }).click();
+  assert.equal(await page.getByRole("button", { name: "Save", exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.frameLocator(".unified-builder-review-dialog iframe").getByRole("heading", { name: "Canonical Viewer fixture" }).waitFor();
+  assert.deepEqual({ componentSlug: reviewIntents.at(-1).componentSlug, view: reviewIntents.at(-1).view, pageId: reviewIntents.at(-1).pageId }, { componentSlug: "ultimate-b2-workbook", view: "library", pageId: undefined });
+  await page.getByRole("button", { name: "Close Review" }).click();
+
+  const workbookA = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook A" });
+  const stableId = await workbookA.getAttribute("data-page-id");
+  await workbookA.getByTitle("Edit metadata").click();
+  await page.getByLabel("Unit").selectOption({ label: "Unit 2" });
+  await page.getByLabel("Label").fill("Workbook opening page");
+  await page.getByLabel("Printed page or spread").fill("2");
+  await page.getByRole("button", { name: "Save metadata" }).click();
+  await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await group(page, "Unit 2").locator(".component-page-card-copy strong", { hasText: "Workbook opening page" }).waitFor();
+  assert.equal(await group(page, "Unit 2").locator(".component-page-card").getAttribute("data-page-id"), stableId);
+  assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-workbook", 7)).ids, workbookRows.ids);
+  const replacement = page.waitForEvent("filechooser");
+  await group(page, "Unit 2").getByTitle("Replace page image").click();
+  await (await replacement).setFiles({ name: "replacement.png", mimeType: "image/png", buffer: imageB });
+  await page.locator(".component-pages-progress").waitFor({ state: "hidden" });
+  const workbookB = group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" });
+  await workbookB.getByTitle("Delete page").click();
+  await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click();
+  await workbookB.waitFor({ state: "detached" });
+
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book`, { waitUntil: "domcontentloaded" });
+  await page.getByText("Grammar Book · Pages").waitFor();
+  await assertPageGroupsReady(page, 11);
+  const grammarRows = await assertUnitLayout(page, "ultimate-b2-grammar-book", 4, [["40", "41-42"], ["43"]], [3, 1]);
+  await capture(page, "grammar-book-unit-4", group(page, "Unit 4"));
+  await addFiles(page, "Unit 10", [{ name: "Grammar A.png", mimeType: "image/png", buffer: imageA }, { name: "Grammar B.png", mimeType: "image/png", buffer: imageB }]);
+  assert.deepEqual(await group(page, "Unit 10").locator(".component-page-card-copy strong").allTextContents(), ["Grammar A", "Grammar B"]);
+  await assertUnitLayout(page, "ultimate-b2-grammar-book", 10);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await group(page, "Unit 10").locator(".component-page-card").first().waitFor();
+  assert.equal(await group(page, "Unit 10").locator(".component-page-card").count(), 2);
+  assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-grammar-book", 4)).ids, grammarRows.ids);
+
+  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book`, { waitUntil: "domcontentloaded" });
+  const unit1Rows = await assertUnitLayout(page, "ultimate-b2-students-book", 1, [["5", "6-7", "8-9", "10-11"], ["12", "13", "14-15", "16", "17", "18"]], [7, 7]);
+  const unit2Rows = await assertUnitLayout(page, "ultimate-b2-students-book", 2, [["19", "20-21", "22-23", "24-25", "26"], ["27", "28-29", "30", "31", "32", "33", "34"]], [8, 8]);
+  for (let number = 3; number <= 10; number += 1) await assertUnitLayout(page, "ultimate-b2-students-book", number);
+  await capture(page, "students-book-unit-1", group(page, "Unit 1"));
+  await capture(page, "students-book-unit-2", group(page, "Unit 2"));
+  await capture(page, "students-book-page-library");
+
+  const baseline = canonicalStudentsBookPages[0];
+  const studentCard = page.locator(`.component-page-card[data-page-id="${baseline.id}"]`);
+  assert.equal(await studentCard.getAttribute("data-source"), "repository-baseline");
+  const studentReplace = page.waitForEvent("filechooser");
+  await studentCard.getByTitle("Replace page image").click();
+  await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA });
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor();
+  await studentCard.getByTitle("Restore canonical page").click();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-students-book", 1)).ids, unit1Rows.ids);
+  assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-students-book", 2)).ids, unit2Rows.ids);
+
+  await page.setViewportSize({ width: 760, height: 900 });
+  const narrowUnit2 = await assertUnitLayout(page, "ultimate-b2-students-book", 2, unit2Rows.labels, unit2Rows.weights, false);
+  assert.deepEqual(narrowUnit2.ids, unit2Rows.ids);
+  assert.ok(await pageRow(page, "Unit 2", "bottom").evaluate((element) => element.scrollWidth > element.clientWidth));
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  assert.equal(state["ultimate-b2-workbook"].pages.some((item) => item.id === baseline.id), false);
+  assert.equal(state["ultimate-b2-grammar-book"].pages.some((item) => item.id === baseline.id), false);
+  assert.deepEqual(errors, []);
+  process.stdout.write("Deterministic two-row Workbook, Grammar, and Students Pages browser acceptance passed.\n");
 } finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }
