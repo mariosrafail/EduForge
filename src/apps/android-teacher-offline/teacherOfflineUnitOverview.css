@@ -116,6 +116,11 @@
   overflow: visible;
 }
 
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) .teacher-unit-overview-grid {
+  box-sizing: border-box;
+  padding-inline: 14px;
+}
+
 .teacher-offline-unit-overview-screen .teacher-unit-overview-empty {
   grid-column: 1 / -1;
   grid-row: 1 / -1;
@@ -231,6 +236,11 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) .teacher-unit-page-thumb img {
+  height: auto;
+  max-height: 100%;
 }
 
 .teacher-offline-unit-overview-screen .teacher-unit-page-thumb.grouped img {

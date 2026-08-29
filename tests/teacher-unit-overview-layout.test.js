@@ -86,15 +86,15 @@ test("Workbook Unit 7 and representative Grammar rows preserve spreads and alloc
   assert.deepEqual(rowLabels(workbook, 1), ["pg 70-71", "pg 72-73", "pg 74-75"]);
   assert.deepEqual(rowLabels(workbook, 2), ["pg 76", "pg 77", "pg 78-79"]);
   assert.deepEqual([rowWeight(workbook, 1), rowWeight(workbook, 2)], [6, 4]);
-  assert.deepEqual(workbook.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [7, 7, 7]);
-  assert.equal(workbook.filter((entry) => entry.row === 1).reduce((sum, entry) => sum + entry.columnSpan, 0), 21);
-  assert.equal(workbook.filter((entry) => entry.row === 2).reduce((sum, entry) => sum + entry.columnSpan, 0), 15);
+  assert.deepEqual(workbook.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [8, 8, 8]);
+  assert.equal(workbook.filter((entry) => entry.row === 1).reduce((sum, entry) => sum + entry.columnSpan, 0), 24);
+  assert.equal(workbook.filter((entry) => entry.row === 2).reduce((sum, entry) => sum + entry.columnSpan, 0), 16);
 
   const grammar = buildManagedOverviewEntries({ number: 4, pages: pages("40", "41-42", "43") });
   assert.deepEqual(rowLabels(grammar, 1), ["pg 40", "pg 41-42"]);
   assert.deepEqual(rowLabels(grammar, 2), ["pg 43"]);
   assert.deepEqual([rowWeight(grammar, 1), rowWeight(grammar, 2)], [3, 1]);
-  assert.deepEqual(grammar.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [4, 7]);
+  assert.deepEqual(grammar.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [4, 8]);
   assert.deepEqual(grammar.filter((entry) => entry.row === 2).map((entry) => entry.columnSpan), [4]);
 });
 

@@ -69,7 +69,7 @@ export function splitOverviewEntries(entries) {
 }
 
 function idealSparseColumns(weight) {
-  return weight > 1 ? 7 : 4;
+  return weight > 1 ? 8 : 4;
 }
 
 export function allocateOverviewColumns(entries, columnCount = OVERVIEW_GRID_COLUMNS) {
