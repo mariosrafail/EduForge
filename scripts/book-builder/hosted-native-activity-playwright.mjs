@@ -20,6 +20,7 @@ import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-laun
 import { exerciseDragDropPanelTransitionGuard, exerciseDragDropResetGuard, exerciseValidatedDragDrop, measureDragDrop } from "./hosted-native-activity-drag-drop.mjs";
 import { measureEditorDock } from "./hosted-native-activity-geometry.mjs";
 import { exerciseOuterFocusAspectRatio, exercisePersistedVisualRefinements } from "./hosted-native-activity-visual-refinement.mjs";
+import { createViewerFrameNavigationLifecycle, viewerFrameNavigationIdentity } from "./viewer-frame-navigation-lifecycle.mjs";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
@@ -102,13 +103,11 @@ async function uploadVideoCompanion(page) {
   await page.getByText("2 validated subtitle cues", { exact: true }).waitFor();
 }
 
-async function openStudentsUnitOnePage(viewer) {
-  await viewer.locator(".teacher-offline-library").waitFor();
-  assert.equal(await viewer.getByRole("button", { name: "Students Book", exact: true }).getAttribute("aria-pressed"), "true");
-  await viewer.getByRole("button", { name: /^Open Unit 1:/ }).click();
-  await viewer.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
-  await viewer.locator(".teacher-unit-page-card").first().click();
-  await viewer.locator(".teacher-offline-page-stage").waitFor();
+async function openStudentsUnitOnePage(viewer, navigation = null) {
+  const wait = (operation) => navigation ? navigation.wait(operation) : operation; const click = (locator, description) => navigation ? navigation.click(locator, description) : locator.click();
+  await wait(viewer.locator(".teacher-offline-library").waitFor()); assert.equal(await wait(viewer.getByRole("button", { name: "Students Book", exact: true }).getAttribute("aria-pressed")), "true");
+  await click(viewer.getByRole("button", { name: /^Open Unit 1:/ }), "Open Unit 1"); await wait(viewer.getByRole("heading", { name: "Unit 1", exact: true }).waitFor());
+  await click(viewer.locator(".teacher-unit-page-card").first(), "Student Unit 1 page card"); await wait(viewer.locator(".teacher-offline-page-stage").waitFor());
 }
 
 function nativeDocumentPair(activityId, kind, pageId, title) {
@@ -310,17 +309,20 @@ try {
   });
   const page = await context.newPage(); page.setDefaultTimeout(45_000);
   let autoOpenDraftPages = false;
-  const autoOpenedDraftFrames = new WeakMap();
-  page.on("framenavigated", (frame) => {
-    if (frame !== page.mainFrame() && frame.url() === "about:blank") { autoOpenedDraftFrames.delete(frame); return; }
-    if (!autoOpenDraftPages || frame === page.mainFrame() || autoOpenedDraftFrames.get(frame) === frame.url()) return;
-    const frameUrl = new URL(frame.url());
-    if (frameUrl.origin !== "https://hhplms-viewer.netlify.app" || frameUrl.searchParams.get("view") !== "library") return;
-    autoOpenedDraftFrames.set(frame, frame.url());
-    void openStudentsUnitOnePage(frame).catch((error) => {
+  const draftFrameNavigations = createViewerFrameNavigationLifecycle({
+    run: (frame, navigation) => openStudentsUnitOnePage(frame, navigation),
+    onError: (error) => {
       if (/Frame was detached|Target page, context or browser has been closed/.test(error.message)) return;
       process.nextTick(() => { throw error; });
-    });
+    },
+  });
+  page.on("framenavigated", (frame) => {
+    if (!autoOpenDraftPages || frame === page.mainFrame()) return;
+    const navigationUrl = frame.url();
+    if (navigationUrl === "about:blank") { draftFrameNavigations.supersede(frame, navigationUrl); return; }
+    const frameUrl = new URL(navigationUrl);
+    if (frameUrl.origin !== "https://hhplms-viewer.netlify.app" || frameUrl.searchParams.get("view") !== "library") { draftFrameNavigations.supersede(frame, navigationUrl); return; }
+    draftFrameNavigations.begin(frame, viewerFrameNavigationIdentity(navigationUrl));
   });
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.locator(".b2-hosted-open-response-editor").waitFor();
