@@ -32,6 +32,11 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
         && first.top < second.bottom - 1 && first.bottom > second.top + 1
       ))),
       objectFits: [...panel.querySelectorAll(".teacher-unit-page-thumb img")].map((image) => getComputedStyle(image).objectFit),
+      thumbnailHeights: [...panel.querySelectorAll(".teacher-unit-page-thumb")].map((thumbnail) => thumbnail.getBoundingClientRect().height),
+      titleFontSizes: entries.map((entry) => Number.parseFloat(getComputedStyle(entry.querySelector(".teacher-unit-page-copy strong")).fontSize)),
+      pageLabelFontSizes: entries.map((entry) => Number.parseFloat(getComputedStyle(entry.querySelector(".teacher-unit-page-copy b")).fontSize)),
+      overviewBook: panel.dataset.overviewBook,
+      thumbnailToken: getComputedStyle(panel).getPropertyValue("--teacher-unit-overview-thumbnail-height").trim(),
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   });
@@ -39,6 +44,7 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   assert.deepEqual(metrics.labels, expected.labels, `${label} labels`);
   assert.deepEqual(metrics.rows, expected.rows, `${label} rows`);
   assert.deepEqual(metrics.weights, expected.weights, `${label} weights`);
+  assert.equal(metrics.overviewBook, expected.overviewBook, `${label} component identity`);
   assert.deepEqual([1, 2].map((row) => metrics.spans
     .filter((_, index) => metrics.rows[index] === row)
     .reduce((sum, span) => sum + span, 0)), expected.columnTotals, `${label} proportional columns`);
@@ -49,8 +55,11 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   assert.ok(metrics.objectFits.every((value) => value === "contain"), `${label} object-fit contain`);
   assert.equal(metrics.objectFits.length, expected.labels.length, `${label} all images rendered`);
   assert.ok(metrics.documentOverflow <= 1, `${label} document overflow`);
+  console.log(`${label}: thumbnail ${Math.min(...metrics.thumbnailHeights)}px (${metrics.thumbnailToken}); title ${metrics.titleFontSizes[0]}px; page label ${metrics.pageLabelFontSizes[0]}px`);
 
   if (screenshot.directory && screenshot.fileName) {
     await frame.locator(".teacher-offline-unit-overview-screen").screenshot({ path: path.join(screenshot.directory, screenshot.fileName) });
   }
+
+  return metrics;
 }

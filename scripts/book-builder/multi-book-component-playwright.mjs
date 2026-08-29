@@ -607,6 +607,7 @@ try {
     await pagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
     assert.equal(await pagesReview.locator(".teacher-unit-page-card").count(), 2);
     assert.equal(await pagesReview.locator(`.teacher-unit-page-card[data-page-ids^="ultimate-b2-${componentSlug === components.workbook ? "wb" : "gb"}-"]`).count(), 2);
+    if (overviewScreenshotDir) await pagesReview.locator(".teacher-offline-unit-overview-screen").screenshot({ path: path.join(overviewScreenshotDir, `${componentSlug === components.workbook ? "workbook" : "grammar-book"}-unit-1-overview.png`) });
     await pagesReview.getByRole("button", { name: new RegExp(`^Open ${selectedCatalog.pages[0].label},`) }).click();
     await pagesReview.getByAltText(new RegExp(selectedCatalog.pages[0].label)).waitFor();
     await pagesReview.getByRole("button", { name: "Home" }).click();
@@ -717,12 +718,14 @@ try {
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 5:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 5", exact: true }).waitFor();
-  await assertInteractiveOverview(studentsPagesReview, {
+  const studentsOverviewMetrics = await assertInteractiveOverview(studentsPagesReview, {
     labels: ["pg 65", "pg 66-67", "pg 68-69", "pg 70-71", "pg 72", "pg 73", "pg 74-75", "pg 76", "pg 77", "pg 78"],
     rows: [1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
     weights: [1, 2, 2, 2, 1, 1, 2, 1, 1, 1],
     columnTotals: [24, 24],
+    overviewBook: "students-book",
   }, "Students Book Unit 5 interactive Review", { directory: overviewScreenshotDir, fileName: "students-book-unit-5-overview.png" });
+  assert.equal(studentsOverviewMetrics.thumbnailToken, "235px", "Students Book launcher keeps its established thumbnail token");
   await studentsPagesReview.getByRole("button", { name: /^Open Reading, pg 66-67$/ }).click();
   await studentsPagesReview.getByAltText("Unit 5, Reading, pg 66-67", { exact: true }).waitFor();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
@@ -750,12 +753,17 @@ try {
   assert.equal(await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).getAttribute("aria-pressed"), "true");
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 7:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 7", exact: true }).waitFor();
-  await assertInteractiveOverview(studentsPagesReview, {
+  const workbookOverviewMetrics = await assertInteractiveOverview(studentsPagesReview, {
     labels: ["pg 70-71", "pg 72-73", "pg 74-75", "pg 76", "pg 77", "pg 78-79"],
     rows: [1, 1, 1, 2, 2, 2],
     weights: [2, 2, 2, 1, 1, 2],
     columnTotals: [21, 15],
+    overviewBook: "workbook",
   }, "Workbook Unit 7 interactive Review", { directory: overviewScreenshotDir, fileName: "workbook-unit-7-overview.png" });
+  assert.equal(workbookOverviewMetrics.thumbnailToken, "280px", "Workbook launcher uses the larger managed thumbnail token");
+  assert.ok(Math.min(...workbookOverviewMetrics.thumbnailHeights) >= Math.min(...studentsOverviewMetrics.thumbnailHeights) * 1.18, "Workbook launcher thumbnails are at least 18% larger without scaling labels");
+  assert.deepEqual([...new Set(workbookOverviewMetrics.titleFontSizes)], [...new Set(studentsOverviewMetrics.titleFontSizes)], "Workbook title font size remains unchanged");
+  assert.deepEqual([...new Set(workbookOverviewMetrics.pageLabelFontSizes)], [...new Set(studentsOverviewMetrics.pageLabelFontSizes)], "Workbook page-label font size remains unchanged");
   await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 70-71,/ }).click();
   await studentsPagesReview.getByAltText(/Workbook page 70-71/).waitFor();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
@@ -763,12 +771,16 @@ try {
   await studentsPagesReview.getByRole("button", { name: "Grammar Book", exact: true }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 4:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 4", exact: true }).waitFor();
-  await assertInteractiveOverview(studentsPagesReview, {
+  const grammarOverviewMetrics = await assertInteractiveOverview(studentsPagesReview, {
     labels: ["pg 40", "pg 41-42", "pg 43"],
     rows: [1, 1, 2],
     weights: [1, 2, 1],
     columnTotals: [11, 4],
+    overviewBook: "grammar-book",
   }, "Grammar Book Unit 4 interactive Review", { directory: overviewScreenshotDir, fileName: "grammar-book-unit-4-overview.png" });
+  assert.equal(grammarOverviewMetrics.thumbnailToken, "280px", "Grammar Book safely shares the managed thumbnail token");
+  assert.ok(grammarOverviewMetrics.thumbnailHeights.every((height) => Math.abs(height - workbookOverviewMetrics.thumbnailHeights[0]) < 0.1), "Grammar Book safely shares the managed launcher thumbnail size");
+  assert.deepEqual([...new Set(grammarOverviewMetrics.titleFontSizes)], [...new Set(studentsOverviewMetrics.titleFontSizes)], "Grammar Book title font size remains unchanged");
   await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 41-42,/ }).click();
   await studentsPagesReview.getByAltText(/Grammar Book page 41-42/).waitFor();
   assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));

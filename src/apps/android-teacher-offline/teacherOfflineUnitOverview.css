@@ -97,6 +97,10 @@
   color: #fff;
 }
 
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) {
+  --teacher-unit-overview-thumbnail-height: clamp(118px, 14.75vw, 270px);
+}
+
 .teacher-offline-unit-overview-screen .teacher-unit-overview-grid {
   position: relative;
   z-index: 1;
@@ -282,6 +286,7 @@
   .legacy-overview-heading .legacy-page-window-controls { gap: 5px; }
   .legacy-overview-heading .legacy-page-window-controls button { width: 30px; height: 30px; min-height: 30px; border-width: 2px; font-size: 1.1rem; }
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { --teacher-unit-overview-thumbnail-height: clamp(72px, 12.25vw, 98px); width: auto; max-width: var(--teacher-students-book-stage-max-width); padding: 5px 7px; border-width: calc(var(--teacher-students-book-stage-border-width) + 1px); border-radius: var(--teacher-students-book-stage-radius); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) { --teacher-unit-overview-thumbnail-height: clamp(86px, 14.75vw, 118px); }
   .teacher-unit-side-navigation { width: 44px; height: 44px; min-height: 44px; border-width: 2px; box-shadow: 0 0 0 1px rgba(70, 31, 104, 0.78), 0 3px 0 rgba(52, 24, 79, 0.72), 0 5px 10px rgba(18, 29, 66, 0.26); }
   .teacher-unit-side-navigation.previous { left: max(6px, env(safe-area-inset-left)); }
   .teacher-unit-side-navigation.next { right: max(6px, env(safe-area-inset-right)); }
@@ -314,6 +319,7 @@
   .teacher-unit-side-navigation.next { right: max(32px, env(safe-area-inset-right)); }
   .teacher-unit-side-navigation svg { width: 48px; height: 48px; }
   .teacher-offline-unit-overview-screen .teacher-offline-unit-overview { --teacher-unit-overview-thumbnail-height: 260px; width: auto; padding: 42px; border-width: calc(var(--teacher-students-book-stage-border-width) + 1px); border-radius: var(--teacher-students-book-stage-radius); }
+  .teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) { --teacher-unit-overview-thumbnail-height: 290px; }
   .teacher-offline-unit-overview-screen .teacher-unit-overview-grid { gap: 28px 12px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy { min-height: 96px; }
   .teacher-offline-unit-overview-screen .teacher-unit-page-copy strong { font-size: 3.1rem; }

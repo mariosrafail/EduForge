@@ -19,7 +19,7 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
       </header>
 
       <div className="teacher-unit-overview-stage">
-        <div id="teacher-unit-overview-panel" className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber}`} data-classroom-surface-id={surfaceKey} tabIndex={-1}>
+        <div id="teacher-unit-overview-panel" className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber}`} data-classroom-surface-id={surfaceKey} data-overview-book={selectedBookId} tabIndex={-1}>
           <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="teacher-unit-overview-grid">
             {entries.length ? entries.map((entry) => (
