@@ -32,6 +32,7 @@ import {
   buildStudentsBookOverviewEntries,
   studentsBookOverviewLayout,
 } from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
+import { splitOverviewEntries } from "../src/apps/android-teacher-offline/unitOverviewLayout.js";
 import {
   DEFAULT_TEACHER_OFFLINE_SETTINGS,
   migrateTeacherOfflineSettingsV1,
@@ -170,7 +171,12 @@ test("Students Book overview groups every real Unit 1-10 page exactly once", () 
     const entries = buildStudentsBookOverviewEntries(unit);
     assert.equal(entries.length, unit.pages.length);
     assert.deepEqual(entries.flatMap((entry) => entry.pageIds), unit.pages.map((page) => page.id));
-    assert.ok(entries.every((entry) => entry.pages.length === 1 && [1, 2].includes(entry.row)));
+    assert.equal(new Set(entries.flatMap((entry) => entry.pageIds)).size, unit.pages.length);
+    assert.ok(entries.every((entry) => entry.pages.length === 1 && [1, 2].includes(entry.row) && entry.columnSpan > 0));
+    const semanticRows = splitOverviewEntries(entries);
+    assert.deepEqual(entries.filter((entry) => entry.row === 1).map((entry) => entry.id), semanticRows.top.map((entry) => entry.id));
+    assert.deepEqual(entries.filter((entry) => entry.row === 2).map((entry) => entry.id), semanticRows.bottom.map((entry) => entry.id));
+    assert.ok(semanticRows.topWeight >= semanticRows.bottomWeight);
   }
 
   assert.throws(

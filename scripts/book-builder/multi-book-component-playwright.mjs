@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
+import { assertInteractiveOverview } from "./interactive-overview-assertions.mjs";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
@@ -43,17 +44,26 @@ const canonicalViewerAssetRequests = [];
 const draftUnitExtraRequests = [];
 const managedReviewTokens = new Map();
 const managedStorageOrigin = "https://hhplms-viewer.netlify.app";
+const overviewScreenshotDir = process.env.INTERACTIVE_OVERVIEW_SCREENSHOT_DIR || "";
 
 function managedCatalog(componentSlug) {
   const title = componentSlug === components.workbook ? "Workbook" : "Grammar Book";
   const abbreviation = componentSlug === components.workbook ? "wb" : "gb";
   const units = Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 }));
+  const descriptors = [
+    { unitNumber: 1, printedLabel: "1", token: "1" },
+    { unitNumber: 1, printedLabel: "2", token: "2" },
+    { unitNumber: 2, printedLabel: "3", token: "3" },
+    ...(componentSlug === components.workbook
+      ? ["70-71", "72-73", "74-75", "76", "77", "78-79"].map((printedLabel) => ({ unitNumber: 7, printedLabel, token: printedLabel.replaceAll(/[^0-9]+/g, "-") }))
+      : ["40", "41-42", "43"].map((printedLabel) => ({ unitNumber: 4, printedLabel, token: printedLabel.replaceAll(/[^0-9]+/g, "-") }))),
+  ];
   return {
     revision: 2,
     component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed", title },
     units,
-    pages: [{ unitNumber: 1, pageNumber: 1 }, { unitNumber: 1, pageNumber: 2 }, { unitNumber: 2, pageNumber: 3 }].map(({ unitNumber, pageNumber }, index) => {
-      const pageId = `ultimate-b2-${abbreviation}-unit-${unitNumber}-page-${pageNumber}`;
+    pages: descriptors.map(({ unitNumber, printedLabel, token }, index) => {
+      const pageId = `ultimate-b2-${abbreviation}-unit-${unitNumber}-page-${token}`;
       const assetId = `40000000-0000-4000-8000-${String(index + 1 + (abbreviation === "gb" ? 100 : 0)).padStart(12, "0")}`;
       return {
         id: pageId,
@@ -61,9 +71,9 @@ function managedCatalog(componentSlug) {
         unitId: units[unitNumber - 1].id,
         unitNumber,
         unitTitle: `Unit ${unitNumber}`,
-        label: `${title} page ${pageNumber}`,
-        printedLabel: String(pageNumber),
-        sortOrder: pageNumber * 10,
+        label: `${title} page ${printedLabel}`,
+        printedLabel,
+        sortOrder: (index + 1) * 10,
         source: "managed-upload",
         image: { source: "managed", assetId, width: 581, height: 794, checksumSha256: "a".repeat(64) },
       };
@@ -504,6 +514,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 let browser;
 try {
+  if (overviewScreenshotDir) await mkdir(overviewScreenshotDir, { recursive: true });
   browser = await chromium.launch(localPlaywrightLaunchOptions());
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
   await context.addInitScript(() => {
@@ -577,8 +588,8 @@ try {
     await page.locator(`[data-component-pages="${componentSlug}"]`).waitFor();
     assert.deepEqual(await page.locator(".hosted-builder-tool-tabs a strong").allTextContents(), ["Pages", "Hotspot Builder", "Activity Builder", "Publication"]);
     assert.equal(await page.locator(".component-pages-groups > section").count(), 11);
-    assert.equal(await page.locator(".component-page-card").count(), 3);
     const selectedCatalog = managedCatalogs[componentSlug];
+    assert.equal(await page.locator(".component-page-card").count(), selectedCatalog.pages.length);
     await page.getByRole("button", { name: `Preview ${selectedCatalog.pages[0].label}` }).click();
     await page.getByRole("button", { name: "Review", exact: true }).click();
     const pagesReview = page.frameLocator(".unified-builder-review-dialog iframe");
@@ -696,6 +707,25 @@ try {
   assert.match(await studentsPagesReview.locator(".teacher-offline-library").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
+  if (overviewScreenshotDir) await studentsPagesReview.locator(".teacher-offline-unit-overview-screen").screenshot({ path: path.join(overviewScreenshotDir, "students-book-unit-1-overview.png") });
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 2:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
+  if (overviewScreenshotDir) await studentsPagesReview.locator(".teacher-offline-unit-overview-screen").screenshot({ path: path.join(overviewScreenshotDir, "students-book-unit-2-overview.png") });
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 5:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 5", exact: true }).waitFor();
+  await assertInteractiveOverview(studentsPagesReview, {
+    labels: ["pg 65", "pg 66-67", "pg 68-69", "pg 70-71", "pg 72", "pg 73", "pg 74-75", "pg 76", "pg 77", "pg 78"],
+    rows: [1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
+    weights: [1, 2, 2, 2, 1, 1, 2, 1, 1, 1],
+    columnTotals: [24, 24],
+  }, "Students Book Unit 5 interactive Review", { directory: overviewScreenshotDir, fileName: "students-book-unit-5-overview.png" });
+  await studentsPagesReview.getByRole("button", { name: /^Open Reading, pg 66-67$/ }).click();
+  await studentsPagesReview.getByAltText("Unit 5, Reading, pg 66-67", { exact: true }).waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
   await studentsPagesReview.locator(".teacher-unit-page-card").first().click();
   await studentsPagesReview.locator(".teacher-offline-page-stage").waitFor();
   const draftExtraLauncher = studentsPagesReview.getByRole("button", { name: "Extra Videos", exact: true });
@@ -716,17 +746,35 @@ try {
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   assert.equal(await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).getAttribute("aria-pressed"), "true");
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 7:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 7", exact: true }).waitFor();
+  await assertInteractiveOverview(studentsPagesReview, {
+    labels: ["pg 70-71", "pg 72-73", "pg 74-75", "pg 76", "pg 77", "pg 78-79"],
+    rows: [1, 1, 1, 2, 2, 2],
+    weights: [2, 2, 2, 1, 1, 2],
+    columnTotals: [21, 15],
+  }, "Workbook Unit 7 interactive Review", { directory: overviewScreenshotDir, fileName: "workbook-unit-7-overview.png" });
+  await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 70-71,/ }).click();
+  await studentsPagesReview.getByAltText(/Workbook page 70-71/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: "Home" }).click();
+  await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   await studentsPagesReview.getByRole("button", { name: "Grammar Book", exact: true }).click();
-  await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
-  await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
-  await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 1,/ }).click();
-  await studentsPagesReview.getByAltText(/Grammar Book page 1/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Unit 4:/ }).click();
+  await studentsPagesReview.getByRole("heading", { name: "Unit 4", exact: true }).waitFor();
+  await assertInteractiveOverview(studentsPagesReview, {
+    labels: ["pg 40", "pg 41-42", "pg 43"],
+    rows: [1, 1, 2],
+    weights: [1, 2, 1],
+    columnTotals: [11, 4],
+  }, "Grammar Book Unit 4 interactive Review", { directory: overviewScreenshotDir, fileName: "grammar-book-unit-4-overview.png" });
+  await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 41-42,/ }).click();
+  await studentsPagesReview.getByAltText(/Grammar Book page 41-42/).waitFor();
   assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await page.waitForTimeout(500);
   const renewedResidentExchanges = exchangeRequests.slice(residentExchangeStart);
   assert.equal(renewedResidentExchanges.length >= 6, true, "controlled short timers renew all scoped component authorizations inside the resident Viewer");
   assert.equal(renewedResidentExchanges.some((entry) => entry.source.componentSlug === entry.intent.componentSlug), true, "controlled renewal must use same-component scope");
-  await studentsPagesReview.getByAltText(/Grammar Book page 1/).waitFor();
+  await studentsPagesReview.getByAltText(/Grammar Book page 41-42/).waitFor();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.getByRole("button", { name: "Students Book", exact: true }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();

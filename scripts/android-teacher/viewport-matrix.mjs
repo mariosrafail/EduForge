@@ -252,6 +252,57 @@ try {
     assert.equal(overviewLayout.images, 12, `${target.name} Unit 2 real thumbnails`);
     assert.ok(overviewLayout.minimumEntryHeight >= (44 * displayScale) - 1, `${target.name} scaled overview targets`);
     assert.equal(overviewLayout.entriesContained, true, `${target.name} overview entries contained`);
+    await openInternalBookLocation(page, { unitNumber: 5, tab: "pages", pageId: "" });
+    await page.getByRole("heading", { name: "Unit 5", exact: true }).waitFor();
+    await page.waitForFunction(() => {
+      const images = [...document.querySelectorAll(".teacher-unit-page-thumb img")];
+      return images.length === 10 && images.every((image) => image.complete && image.naturalWidth > 0);
+    });
+    await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
+    const unit5Overview = await page.evaluate(() => {
+      const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
+      const entries = [...document.querySelectorAll("[data-overview-entry]")];
+      const rectangles = entries.map((entry) => entry.getBoundingClientRect());
+      return {
+        documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        labels: entries.map((entry) => entry.querySelector(".teacher-unit-page-copy b")?.textContent?.trim()),
+        rows: entries.map((entry) => Number(entry.dataset.overviewRow)),
+        weights: entries.map((entry) => Number(entry.dataset.overviewWeight)),
+        spans: entries.map((entry) => Number(entry.dataset.overviewColumnSpan)),
+        rowTopSpreads: [1, 2].map((row) => {
+          const tops = rectangles.filter((_, index) => Number(entries[index].dataset.overviewRow) === row).map((rectangle) => rectangle.top);
+          return tops.length ? Math.max(...tops) - Math.min(...tops) : null;
+        }),
+        minimumWidth: Math.min(...rectangles.map((rectangle) => rectangle.width)),
+        contained: rectangles.every((rectangle) => rectangle.left >= panel.left - 2 && rectangle.right <= panel.right + 2 && rectangle.top >= panel.top - 2 && rectangle.bottom <= panel.bottom + 2),
+        overlaps: rectangles.some((first, index) => rectangles.slice(index + 1).some((second) => (
+          first.left < second.right - 1 && first.right > second.left + 1
+          && first.top < second.bottom - 1 && first.bottom > second.top + 1
+        ))),
+        objectFits: [...document.querySelectorAll(".teacher-unit-page-thumb img")].map((image) => getComputedStyle(image).objectFit),
+        navigation: Boolean(document.querySelector("[data-teacher-book-navigation]")),
+        toolbar: Boolean(document.querySelector(".teacher-offline-unit-overview-screen .classroom-teaching-toolbar")),
+      };
+    });
+    assert.deepEqual(unit5Overview.labels, ["pg 65", "pg 66-67", "pg 68-69", "pg 70-71", "pg 72", "pg 73", "pg 74-75", "pg 76", "pg 77", "pg 78"], `${target.name} Unit 5 labels`);
+    assert.deepEqual(unit5Overview.rows, [1, 1, 1, 1, 2, 2, 2, 2, 2, 2], `${target.name} Unit 5 row membership`);
+    assert.deepEqual(unit5Overview.weights, [1, 2, 2, 2, 1, 1, 2, 1, 1, 1], `${target.name} Unit 5 physical weights`);
+    assert.equal(unit5Overview.spans.filter((_, index) => unit5Overview.rows[index] === 1).reduce((sum, span) => sum + span, 0), 24, `${target.name} Unit 5 top columns`);
+    assert.equal(unit5Overview.spans.filter((_, index) => unit5Overview.rows[index] === 2).reduce((sum, span) => sum + span, 0), 24, `${target.name} Unit 5 bottom columns`);
+    assert.ok(unit5Overview.rowTopSpreads.every((spread) => spread !== null && spread <= 3 * displayScale), `${target.name} Unit 5 visual rows`);
+    assert.ok(unit5Overview.minimumWidth >= (150 * displayScale) - 1, `${target.name} Unit 5 cards remain readable`);
+    assert.equal(unit5Overview.contained, true, `${target.name} Unit 5 cards contained`);
+    assert.equal(unit5Overview.overlaps, false, `${target.name} Unit 5 cards do not overlap`);
+    assert.ok(unit5Overview.objectFits.every((value) => value === "contain"), `${target.name} Unit 5 object-fit`);
+    assert.equal(unit5Overview.objectFits.length, 10, `${target.name} Unit 5 all images rendered`);
+    assert.equal(unit5Overview.navigation, true, `${target.name} Unit 5 navigation retained`);
+    assert.equal(unit5Overview.toolbar, true, `${target.name} Unit 5 toolbar retained`);
+    assert.ok(unit5Overview.documentOverflow <= 1, `${target.name} Unit 5 document overflow`);
+    if (["phone-800x360", "laptop-1366x768", "full-hd-1920x1080", "qhd-2560x1440"].includes(target.name)) {
+      await page.screenshot({ path: `${artifactRoot}/${target.name}-unit5-overview.png` });
+    }
+    await openInternalBookLocation(page, { unitNumber: 2, tab: "pages", pageId: "" });
+    await page.getByRole("heading", { name: "Unit 2", exact: true }).waitFor();
     await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 20-21" }).first().click();
     await page.waitForFunction(() => {
       const image = document.querySelector(".teacher-offline-page-image img");

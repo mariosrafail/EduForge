@@ -3,19 +3,7 @@ import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
-
-function buildManagedOverviewEntries(unit) {
-  const pages = unit?.pages || [];
-  const rowBreak = Math.ceil(pages.length / 2);
-  return pages.map((page, index) => ({
-    id: `unit-${unit.number}-managed-overview-${page.id}`,
-    label: page.title || page.label || null,
-    pageLabel: page.spreadNumber || page.label || `Page ${index + 1}`,
-    pageIds: [page.id],
-    pages: [page],
-    row: index < rowBreak ? 1 : 2,
-  }));
-}
+import { buildManagedOverviewEntries } from "./unitOverviewLayout.js";
 
 export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch, unavailableBookIds }) {
   const entries = selectedBookId === "students-book" ? buildStudentsBookOverviewEntries(unit) : buildManagedOverviewEntries(unit);
@@ -41,7 +29,11 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
                 className="teacher-unit-page-card"
                 data-overview-entry={entry.id}
                 data-overview-row={entry.row}
+                data-overview-weight={entry.physicalWeight}
+                data-overview-column-start={entry.columnStart || undefined}
+                data-overview-column-span={entry.columnSpan || undefined}
                 data-page-ids={entry.pageIds.join(",")}
+                style={entry.columnSpan ? { "--overview-column-start": entry.columnStart, "--overview-column-span": entry.columnSpan } : undefined}
                 onClick={() => onSelectPage(entry.pageIds[0])}
                 aria-label={`Open ${entry.label || "Unit opener"}, ${entry.pageLabel}`}
               >

@@ -68,6 +68,10 @@ const canonicalOverview = {
   1: ["pg 5", "pg 6-7", "pg 8-9", "pg 10-11", "pg 12", "pg 13", "pg 14-15", "pg 16", "pg 17-18"],
   2: ["pg 19", "pg 20-21", "pg 22-23", "pg 24-25", "pg 26", "pg 27", "pg 28-29", "pg 30", "pg 31-32", "pg 33-34"],
 };
+const canonicalOverviewWidths = {
+  1: [229.69, 407.95, 407.95, 348.53, 229.69, 229.69, 348.53, 229.69, 348.53],
+  2: [170.27, 348.53, 348.53, 348.53, 170.27, 170.27, 348.53, 170.27, 348.53, 348.53],
+};
 
 async function assertLegacyUnitOverview(page, unit, label) {
   await waitForUnitOverview(page);
@@ -80,6 +84,14 @@ async function assertLegacyUnitOverview(page, unit, label) {
   assert.equal(new Set(pageIds).size, pageIds.length, `${label} unique real pages`);
   assert.equal(await overview.getByText(/activities$/i).count(), 0, `${label} activity counts hidden`);
   assert.equal(await overview.locator("img").count(), unit === 1 ? 10 : 12, `${label} thumbnail count`);
+  const geometry = await entries.evaluateAll((nodes) => ({
+    rows: nodes.map((node) => Number(node.dataset.overviewRow)),
+    widths: nodes.map((node) => node.getBoundingClientRect().width),
+    panelWidth: nodes[0]?.closest(".teacher-offline-unit-overview")?.getBoundingClientRect().width || 0,
+  }));
+  assert.deepEqual(geometry.rows, unit === 1 ? [1, 1, 1, 1, 2, 2, 2, 2, 2] : [1, 1, 1, 1, 1, 2, 2, 2, 2, 2], `${label} canonical rows`);
+  const geometryScale = geometry.panelWidth / 1490.125;
+  geometry.widths.forEach((width, index) => assert.ok(Math.abs(width - canonicalOverviewWidths[unit][index] * geometryScale) <= 1.5, `${label} card ${index + 1} baseline width: ${width}`));
   assert.equal(await overview.evaluate((element) => getComputedStyle(element).backgroundSize), "cover", `${label} overview background covers the frame`);
   const overviewFonts = await entries.locator(".teacher-unit-page-copy").evaluateAll((nodes) => nodes
     .filter((node) => node.querySelector("strong"))
@@ -104,6 +116,56 @@ async function assertLegacyUnitOverview(page, unit, label) {
   assert.deepEqual(await navigation.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Home", "Back", "Previous page", "Next page", "Students Book", "Grammar Book", "Workbook"], `${label} canonical navigation`);
   assert.equal(await navigation.nth(2).isDisabled(), true, `${label} Previous page disabled`);
   assert.equal(await navigation.nth(3).isDisabled(), true, `${label} Next page disabled`);
+  await assertScreen(page, label);
+}
+
+async function assertGenericUnitOverview(page, unit, expected, label) {
+  await waitForUnitOverview(page);
+  await page.waitForFunction((expectedCount) => {
+    const images = [...document.querySelectorAll(".teacher-unit-page-thumb img")];
+    return images.length === expectedCount && images.every((image) => image.complete && image.naturalWidth > 0);
+  }, expected.labels.length);
+  await page.locator(".teacher-unit-page-thumb img").evaluateAll((images) => Promise.all(images.map((image) => image.decode())));
+  const metrics = await page.evaluate(() => {
+    const panel = document.querySelector(".teacher-offline-unit-overview").getBoundingClientRect();
+    const entries = [...document.querySelectorAll("[data-overview-entry]")];
+    const rectangles = entries.map((entry) => entry.getBoundingClientRect());
+    const overlaps = rectangles.some((first, index) => rectangles.slice(index + 1).some((second) => (
+      first.left < second.right - 1 && first.right > second.left + 1
+      && first.top < second.bottom - 1 && first.bottom > second.top + 1
+    )));
+    return {
+      labels: entries.map((entry) => entry.querySelector(".teacher-unit-page-copy b")?.textContent?.trim()),
+      headings: entries.map((entry) => entry.querySelector(".teacher-unit-page-copy strong")?.textContent?.trim() || null),
+      rows: entries.map((entry) => Number(entry.dataset.overviewRow)),
+      weights: entries.map((entry) => Number(entry.dataset.overviewWeight)),
+      spans: entries.map((entry) => Number(entry.dataset.overviewColumnSpan)),
+      minimumWidth: Math.min(...rectangles.map((rectangle) => rectangle.width)),
+      rowTopSpreads: [1, 2].map((row) => {
+        const tops = rectangles.filter((_, index) => Number(entries[index].dataset.overviewRow) === row).map((rectangle) => rectangle.top);
+        return tops.length ? Math.max(...tops) - Math.min(...tops) : null;
+      }),
+      contained: rectangles.every((rectangle) => rectangle.left >= panel.left - 2 && rectangle.right <= panel.right + 2 && rectangle.top >= panel.top - 2 && rectangle.bottom <= panel.bottom + 2),
+      overlaps,
+      objectFits: [...document.querySelectorAll(".teacher-unit-page-thumb img")].map((image) => getComputedStyle(image).objectFit),
+      objectPositions: [...document.querySelectorAll(".teacher-unit-page-thumb img")].map((image) => getComputedStyle(image).objectPosition),
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  });
+  assert.deepEqual(metrics.labels, expected.labels, `${label} printed labels`);
+  assert.deepEqual(metrics.rows, expected.rows, `${label} semantic rows`);
+  assert.deepEqual(metrics.weights, expected.weights, `${label} physical weights`);
+  assert.equal(metrics.spans.filter((_, index) => metrics.rows[index] === 1).reduce((sum, span) => sum + span, 0), 24, `${label} top columns`);
+  assert.equal(metrics.spans.filter((_, index) => metrics.rows[index] === 2).reduce((sum, span) => sum + span, 0), 24, `${label} bottom columns`);
+  assert.ok(metrics.minimumWidth >= 160, `${label} readable card widths: ${metrics.minimumWidth}`);
+  assert.ok(metrics.rowTopSpreads.every((spread) => spread !== null && spread <= 3), `${label} exactly two visual rows: ${JSON.stringify(metrics.rowTopSpreads)}`);
+  assert.equal(metrics.contained, true, `${label} cards contained`);
+  assert.equal(metrics.overlaps, false, `${label} cards do not overlap`);
+  assert.ok(metrics.objectFits.every((value) => value === "contain"), `${label} images contained`);
+  assert.equal(metrics.objectFits.length, expected.labels.length, `${label} all images rendered`);
+  assert.ok(metrics.objectPositions.every((value) => value === "50% 0%"), `${label} images top-centered`);
+  assert.ok(metrics.headings.every((heading) => !/parts?_part_/i.test(heading || "")), `${label} internal filenames hidden`);
+  assert.ok(metrics.documentOverflow <= 1, `${label} document overflow`);
   await assertScreen(page, label);
 }
 
@@ -426,6 +488,17 @@ try {
     await assertLegacyUnitOverview(page, 2, "students-book-unit2-overview-1920x1080");
     await page.screenshot({ path: `${artifactRoot}/students-book-unit2-overview-1920x1080.png` });
     await page.screenshot({ path: `${artifactRoot}/modern-unit2-overview-1920x1080.png` });
+    await selectOverviewUnit(page, 5);
+    await assertGenericUnitOverview(page, 5, {
+      labels: ["pg 65", "pg 66-67", "pg 68-69", "pg 70-71", "pg 72", "pg 73", "pg 74-75", "pg 76", "pg 77", "pg 78"],
+      rows: [1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
+      weights: [1, 2, 2, 2, 1, 1, 2, 1, 1, 1],
+    }, "students-book-unit5-overview-1920x1080");
+    await page.screenshot({ path: `${artifactRoot}/students-book-unit5-overview-1920x1080.png` });
+    await page.locator('[data-page-ids="ub2-sb-unit-5-part-2"]').click();
+    await waitForPageImage(page);
+    await page.getByAltText("Unit 5, Reading, pg 66-67", { exact: true }).waitFor();
+    await returnToOverview(page, 5);
     await selectOverviewUnit(page, 1);
     await openPage(page, "pg 5");
     await assertScreen(page, "page-viewer-unit1-page5-1920x1080");
@@ -730,7 +803,7 @@ try {
     await page.screenshot({ path: `${artifactRoot}/normal-toolbar-3840x2160.png` });
   });
 
-  console.log(JSON.stringify({ status: "passed", screenshots: 49, chromeGeometryResults, artifactRoot }, null, 2));
+  console.log(JSON.stringify({ status: "passed", screenshots: 50, chromeGeometryResults, artifactRoot }, null, 2));
 } finally {
   await browser?.close();
   preview.kill();

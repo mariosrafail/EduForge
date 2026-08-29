@@ -1,3 +1,5 @@
+import { buildGenericOverviewEntries, overviewEntryWeight } from "./unitOverviewLayout.js";
+
 export const studentsBookOverviewLayout = Object.freeze({
   1: [
     { label: null, pageLabel: "pg 5", pageIds: ["ub2-sb-unit-1-part-1"], row: 1 },
@@ -27,17 +29,7 @@ export const studentsBookOverviewLayout = Object.freeze({
 export function buildStudentsBookOverviewEntries(unit) {
   const configuration = studentsBookOverviewLayout[Number(unit?.number)];
   const realPages = unit?.pages || [];
-  if (!configuration) {
-    const rowBreak = Math.ceil(realPages.length / 2);
-    return realPages.map((page, index) => ({
-      id: `unit-${unit.number}-overview-${index + 1}`,
-      label: page.title || page.label || null,
-      pageLabel: page.spreadNumber || page.label || `Page ${index + 1}`,
-      pageIds: [page.id],
-      pages: [page],
-      row: index < rowBreak ? 1 : 2,
-    }));
-  }
+  if (!configuration) return buildGenericOverviewEntries(unit);
 
   const pagesById = new Map(realPages.map((page) => [page.id, page]));
   const configuredIds = configuration.flatMap((entry) => entry.pageIds);
@@ -49,9 +41,12 @@ export function buildStudentsBookOverviewEntries(unit) {
     throw new Error(`Invalid Unit ${unit.number} overview layout: ${JSON.stringify({ duplicateIds, missingIds, omittedIds })}`);
   }
 
-  return configuration.map((entry, index) => ({
-    ...entry,
-    id: `unit-${unit.number}-overview-${index + 1}`,
-    pages: entry.pageIds.map((id) => pagesById.get(id)),
-  }));
+  return configuration.map((entry, index) => {
+    const result = {
+      ...entry,
+      id: `unit-${unit.number}-overview-${index + 1}`,
+      pages: entry.pageIds.map((id) => pagesById.get(id)),
+    };
+    return { ...result, physicalWeight: overviewEntryWeight(result) };
+  });
 }

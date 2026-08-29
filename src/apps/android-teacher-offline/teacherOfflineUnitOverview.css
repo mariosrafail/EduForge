@@ -136,6 +136,11 @@
 .legacy-overview-unit-1 .teacher-unit-page-card:is([data-page-ids="ub2-sb-unit-1-part-7"], [data-page-ids="ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"]) { grid-column: span 6; }
 .legacy-overview-unit-2 .teacher-unit-page-card:is([data-page-ids="reading-19"], [data-page-ids="listening-26"], [data-page-ids="speaking-27"], [data-page-ids="review-30"]) { grid-column: span 3; }
 .legacy-overview-unit-2 .teacher-unit-page-card:is([data-page-ids="reading-20-21"], [data-page-ids="vocabulary-22-23"], [data-page-ids="grammar-24-25"], [data-page-ids="writing-28-29"], [data-page-ids="practice-31,practice-32"], [data-page-ids="progress-check-33,progress-check-34"]) { grid-column: span 6; }
+.teacher-offline-unit-overview-screen .teacher-unit-page-card[data-overview-row="1"] { grid-row: 1; }
+.teacher-offline-unit-overview-screen .teacher-unit-page-card[data-overview-row="2"] { grid-row: 2; }
+.teacher-offline-unit-overview-screen .teacher-unit-page-card[data-overview-column-span] {
+  grid-column: var(--overview-column-start) / span var(--overview-column-span);
+}
 
 .teacher-offline-unit-overview-screen .teacher-unit-page-card {
   min-width: 0;
