@@ -70,8 +70,8 @@ function historicalV2Release() {
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
   const historicalVariant = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS
     .find((variant) => variant.name === "initial-image-open-response");
-  const { unitExtras: _sourceUnitExtras, ...sourceSnapshot } = compiled.sourceSnapshot;
-  const { unitExtras: _publicUnitExtras, ...currentPublicProjection } = compiled.publicProjection;
+  const { unitExtras: _sourceUnitExtras, pageLibrary: _sourcePageLibrary, ...sourceSnapshot } = compiled.sourceSnapshot;
+  const { unitExtras: _publicUnitExtras, activePageIds: _activePageIds, ...currentPublicProjection } = compiled.publicProjection;
   const publicProjection = { ...currentPublicProjection, compatibility: historicalVariant.compatibility };
   return {
     ...compiled,
@@ -111,17 +111,18 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
       { name: "listening-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS },
       { name: "drag-drop-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "unit-extras-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
+      { name: "page-lifecycle-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
     ],
   );
   for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {
-    const options = { unitExtras: variant.unitExtras === true };
+    const options = { unitExtras: variant.unitExtras === true, pageLifecycle: variant.pageLifecycle === true };
     const descriptor = ultimateB2PublicationV2CompatibilityDescriptor(variant.nativeKinds, options);
     assert.deepEqual(descriptor.nativeKinds, variant.nativeKinds);
     assert.ok(builderDocumentSha256(descriptor) === variant.compatibility, `${variant.name} compatibility descriptor drifted`);
     assert.ok(reconstructUltimateB2PublicationV2Compatibility(variant.nativeKinds, options) === variant.compatibility, `${variant.name} compatibility reconstruction drifted`);
     assert.equal(resolveUltimateB2PublicationV2CompatibilityVariant(variant.compatibility), variant);
   }
-  const expanded = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS[5];
+  const expanded = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.at(-1);
   assert.ok(ultimateB2PublicationV2Compatibility() === expanded.compatibility);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS, ["image", "open-response", "single-choice"]);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS, ["complete-sentences", "image", "open-response", "single-choice"]);

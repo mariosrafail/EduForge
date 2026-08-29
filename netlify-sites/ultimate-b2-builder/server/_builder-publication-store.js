@@ -15,7 +15,10 @@ function document(row, resource) {
 }
 
 export async function collectUltimateB2PublicationV2Sources(sql) {
-  const legacy = await collectUltimateB2PublicationSources(sql);
+  const [legacy, pages] = await Promise.all([
+    collectUltimateB2PublicationSources(sql),
+    loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }),
+  ]);
   const rows = await sql`
     select coalesce(jsonb_agg(jsonb_build_object(
       'document_type',document.document_type,'document_key',document.document_key,'schema_version',document.schema_version,
@@ -51,7 +54,7 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
   const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references });
   const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => unit.categories.videos.flatMap((video) => video.asset ? [video.asset] : []));
   const unitExtraAssetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references: unitExtraReferences });
-  return { ...legacy, native: { index, activities, assetRows }, unitExtras: { document: unitExtras, assetRows: unitExtraAssetRows } };
+  return { ...legacy, pages, native: { index, activities, assetRows }, unitExtras: { document: unitExtras, assetRows: unitExtraAssetRows } };
 }
 
 export async function collectUltimateB2ManagedPublicationSources(sql, componentSlug) {

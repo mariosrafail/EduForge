@@ -34,7 +34,7 @@ function request(path, body, overrides = {}) {
 }
 
 function harness(options = {}) {
-  let prepared; let completed; let failed; let mutation;
+  let prepared; let completed; let failed; let mutation; let lifecycleMutation;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/upload", headers: { "Content-Type": first.image.mimeType } }),
     signedGetUrl: async () => "https://storage.example/private-preview",
@@ -50,7 +50,8 @@ function harness(options = {}) {
     ...(options.authorizePreview ? { authorizePreview: options.authorizePreview } : {}),
     randomUuid: () => uploadId,
     storage: () => storage,
-    loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, rows: [], units: identity.componentSlug === "ultimate-b2-students-book" ? [] : managedUnits(identity.componentSlug) },
+    loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, hotspotRevision: 0, rows: [], units: identity.componentSlug === "ultimate-b2-students-book" ? [] : managedUnits(identity.componentSlug) },
+    loadHotspots: async () => options.hotspots || null,
     prepare: async (_sql, input) => {
       prepared = input;
       return { outcome: "prepared", upload_id: uploadId, current_revision: input.expectedRevision, session_state: "prepared", staging_object_key: input.stagingObjectKey };
@@ -64,11 +65,13 @@ function harness(options = {}) {
     complete: async (_sql, input) => { completed = input; return { outcome: "saved", page_id: actor, asset_id: assetId, revision: 1 }; },
     fail: async (_sql, input) => { failed = input; return true; },
     mutate: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
+    deleteLifecycle: async (_sql, input) => { lifecycleMutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1, hotspot_revision: input.expectedHotspotRevision + (input.removedHotspotCount ? 1 : 0), removed_hotspot_count: input.removedHotspotCount, preserved_activity_count: input.preservedActivityCount }; },
+    restoreStudentsPage: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
     loadAsset: options.loadAsset || (async () => null),
     inspectRaster: options.inspectRaster,
     logger: { error() {} },
   });
-  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation };
+  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation, getLifecycleMutation: () => lifecycleMutation };
 }
 
 test("Students Book Pages derives the complete canonical catalog and exposes no repository paths", async () => {
@@ -167,14 +170,17 @@ test("replacement rejects dimension drift and preview lookup remains component-s
   assert.equal(workbookPreview.statusCode, 404);
 });
 
-test("baseline delete is rejected while Workbook mutations remain revision-bound", async () => {
+test("Student and managed delete use one revision-bound page/hotspot lifecycle mutation", async () => {
   const current = harness();
-  const body = { expectedRevision: 0, clientMutationId: randomUUID(), metadata: {} };
-  assert.equal((await current.handler(request(`${base}/ultimate-b2-students-book/pages/${first.id}/delete`, body))).statusCode, 400);
+  const body = { expectedRevision: 0, expectedHotspotRevision: 0, clientMutationId: randomUUID(), metadata: {} };
+  const student = await current.handler(request(`${base}/ultimate-b2-students-book/pages/${first.id}/delete`, body));
+  assert.equal(student.statusCode, 200);
+  assert.equal(current.getLifecycleMutation().pageKey, `ultimate-b2-students-book/pages/${first.id}`);
+  assert.equal(current.getLifecycleMutation().hotspotDocument.pages[first.id], undefined);
   const workbook = await current.handler(request(`${base}/ultimate-b2-workbook/pages/wb-page-safe/delete`, body));
   assert.equal(workbook.statusCode, 200);
-  assert.equal(current.getMutation().pageKey, "ultimate-b2-workbook/pages/wb-page-safe");
-  assert.equal(current.getMutation().componentSlug, "ultimate-b2-workbook");
+  assert.equal(current.getLifecycleMutation().pageKey, "ultimate-b2-workbook/pages/wb-page-safe");
+  assert.equal(current.getLifecycleMutation().componentSlug, "ultimate-b2-workbook");
 });
 
 test("managed preview library authorization reaches every same-component page while page authorization remains exact", async () => {

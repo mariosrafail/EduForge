@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCcw, RotateCcw, Trash2, Upload
 import { BuilderModal } from "./BuilderModal.jsx";
 import { finalizeBuilderPage, getBuilderPages, mutateBuilderPage, prepareBuilderPage, uploadBuilderPage } from "./builderPagesApi.js";
 import { printedPageWeight, splitUnitPageRows } from "./componentPageRows.js";
+import { useBuilderReview } from "./HostedPackageReview.jsx";
 import "./componentPagesWorkspace.css";
 
 const mutationId = () => globalThis.crypto.randomUUID();
@@ -21,7 +22,8 @@ function PageCard({ page, selected, managed, busy, onSelect, onReplace, onEdit, 
     <div className="component-page-actions">
       {managed ? <><button type="button" disabled={busy} onClick={() => onMove(-1)} title="Move earlier in this Unit"><ArrowUp aria-hidden="true" /></button><button type="button" disabled={busy} onClick={() => onMove(1)} title="Move later in this Unit"><ArrowDown aria-hidden="true" /></button><button type="button" disabled={busy} onClick={onEdit} title="Edit metadata"><Pencil aria-hidden="true" /></button></> : null}
       <label className="component-page-file-action" title="Replace page image"><Upload aria-hidden="true" /><span className="sr-only">Replace {page.label}</span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={(event) => { const [file] = event.target.files || []; if (file) onReplace(file); event.target.value = ""; }} /></label>
-      {managed ? <button className="is-danger" type="button" disabled={busy} onClick={onDelete} title="Delete page"><Trash2 aria-hidden="true" /></button> : page.source === "override" ? <button type="button" disabled={busy} onClick={onRestore} title="Restore canonical page"><RotateCcw aria-hidden="true" /></button> : null}
+      {!managed && page.source === "override" ? <button type="button" disabled={busy} onClick={onRestore} title="Restore canonical image"><RotateCcw aria-hidden="true" /></button> : null}
+      <button className="is-danger" type="button" disabled={busy} onClick={onDelete} title="Delete page"><Trash2 aria-hidden="true" /></button>
     </div>
   </article>;
 }
@@ -44,12 +46,13 @@ function UnitPageRows(props) {
   </div>;
 }
 
-export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction = null, onPageLibraryChange = () => {}, onSelectedPageChange = () => {} }) {
+export function ComponentPagesWorkspace({ bookSlug, componentSlug, onPageLibraryChange = () => {}, onSelectedPageChange = () => {} }) {
+  const { registerToolContext } = useBuilderReview();
   const identity = useMemo(() => ({ bookSlug, componentSlug }), [bookSlug, componentSlug]);
   const policy = policies[componentSlug] || null;
   const managed = Boolean(policy);
   const title = policy?.title || "Students Book";
-  const [state, setState] = useState({ loading: true, revision: 0, component: null, units: [], pages: [], error: "" });
+  const [state, setState] = useState({ loading: true, revision: 0, hotspotRevision: 0, component: null, units: [], pages: [], deletedPages: [], error: "", conflict: false });
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -59,13 +62,15 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction 
   const addInput = useRef(null);
 
   const apply = (result) => {
-    setState({ loading: false, revision: result.revision, component: result.component, units: result.units || [], pages: result.pages, error: "" });
+    setState({ loading: false, revision: result.revision, hotspotRevision: result.hotspotRevision || 0, component: result.component, units: result.units || [], pages: result.pages, deletedPages: result.deletedPages || [], error: "", conflict: false });
     setSelectedId((current) => result.pages.some((page) => page.id === current) ? current : result.pages[0]?.id || "");
+    globalThis.dispatchEvent?.(new CustomEvent("builder:pages-changed", { detail: { bookSlug, componentSlug } }));
   };
   const reload = async (signal) => { try { apply(await getBuilderPages(identity, { signal })); } catch (error) { if (error.name !== "AbortError") setState((current) => ({ ...current, loading: false, error: error.message || "Could not load pages." })); } };
   useEffect(() => { const controller = new AbortController(); reload(controller.signal); return () => controller.abort(); }, [identity]);
   useEffect(() => { onPageLibraryChange(state); }, [onPageLibraryChange, state]);
   useEffect(() => { onSelectedPageChange(selectedId); }, [onSelectedPageChange, selectedId]);
+  useEffect(() => { registerToolContext("pages", { view: "page", pageId: selectedId, dirty: false, refreshKey: state.revision, release: null }); }, [registerToolContext, selectedId, state.revision]);
 
   const uploadOne = async ({ file, mode, pageId = "", metadata, expectedRevision }) => {
     const normalizedFile = file.type ? file : new File([file], file.name, { type: fileType(file) });
@@ -77,7 +82,7 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction 
   const run = async (operation) => {
     setBusy(true); setProgress(0); setState((current) => ({ ...current, error: "" }));
     try { const result = await operation(); if (result?.pages) apply(result); }
-    catch (error) { setState((current) => ({ ...current, error: error?.payload?.error || error.message || "Page operation failed." })); if (error?.status === 409) await reload(); }
+    catch (error) { setState((current) => ({ ...current, error: error?.payload?.error || error.message || "Page operation failed.", conflict: error?.status === 409 })); }
     finally { setBusy(false); setProgress(0); }
   };
   const replace = (page, file) => run(() => uploadOne({ file, mode: "replace", pageId: page.id, metadata: metadataFor(page, managed), expectedRevision: state.revision }));
@@ -90,7 +95,7 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction 
     }
     return result;
   });
-  const mutate = (page, action, metadata = {}) => run(() => mutateBuilderPage(identity, page.id, action, { expectedRevision: state.revision, clientMutationId: mutationId(), metadata }));
+  const mutate = (page, action, metadata = {}) => run(() => mutateBuilderPage(identity, page.id, action, { expectedRevision: state.revision, ...(action === "delete" ? { expectedHotspotRevision: state.hotspotRevision } : {}), clientMutationId: mutationId(), metadata }));
   const move = (page, direction) => {
     const ordered = state.pages.filter((item) => item.unitId === page.unitId).sort((left, right) => left.sortOrder - right.sortOrder);
     const index = ordered.findIndex((item) => item.id === page.id);
@@ -104,17 +109,18 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, reviewAction 
     : [...new Set(state.pages.map((page) => page.unitNumber))].map((unitNumber) => ({ id: `unit-${unitNumber}`, title: `Unit ${unitNumber}`, pages: state.pages.filter((page) => page.unitNumber === unitNumber) }));
 
   return <main className="component-pages-workspace" data-component-pages={componentSlug}>
-    <header className="component-pages-header"><div><span>{title} · Pages</span><h1>Page library</h1><p>{managed ? `Upload, assign, label, order, replace, and safely remove ${title} pages.` : "Review every canonical Students Book page, replace its raster safely, or restore the baseline."}</p></div><div>{reviewAction}<button type="button" disabled={busy} onClick={() => reload()}><RefreshCcw aria-hidden="true" /> Refresh</button><input ref={addInput} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { if (event.target.files?.length && pendingUnitId.current) add(event.target.files, pendingUnitId.current); event.target.value = ""; pendingUnitId.current = ""; }} /></div></header>
+    <header className="component-pages-header"><div><span>{title} · Pages</span><h1>Page library</h1><p>{managed ? `Upload, assign, label, order, replace, and safely remove ${title} pages.` : "Review canonical Students Book pages, replace their raster safely, or restore deleted pages and canonical images."}</p></div><div><button type="button" disabled={busy} onClick={() => reload()}><RefreshCcw aria-hidden="true" /> Refresh</button><input ref={addInput} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { if (event.target.files?.length && pendingUnitId.current) add(event.target.files, pendingUnitId.current); event.target.value = ""; pendingUnitId.current = ""; }} /></div></header>
     {busy ? <div className="component-pages-progress" role="status"><span style={{ width: `${progress}%` }} /> Processing page assets… {progress ? `${progress}%` : ""}</div> : null}
-    {state.error ? <p className="builder-inline-error component-pages-error" role="alert">{state.error}</p> : null}
+    {state.error ? <p className="builder-inline-error component-pages-error" role="alert">{state.error}{state.conflict ? <> The library changed elsewhere. Your view was preserved. <button type="button" onClick={() => reload()}>Reload latest</button></> : null}</p> : null}
     {state.loading ? <p className="component-pages-empty" role="status">Loading page library…</p> : <div className="component-pages-layout">
       <div className="component-pages-groups">{groups.map((group) => <section key={group.id} data-page-unit={group.id === "unassigned" ? undefined : group.id}><h2>{group.title}<span>{group.pages.length}</span>{managed && group.id !== "unassigned" ? <button className="hosted-builder-action" type="button" disabled={busy} onClick={() => openAdd(group.id)}><Plus aria-hidden="true" /> Add pages</button> : null}</h2>{group.pages.length ? group.id === "unassigned" ? <PageGrid pages={group.pages} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <UnitPageRows pages={group.pages} selected={selected} managed={managed} busy={busy} onSelect={setSelectedId} onReplace={replace} onEdit={(page) => setEditor({ page, ...metadataFor(page, managed) })} onMove={move} onDelete={setConfirmDelete} onRestore={(page) => mutate(page, "restore")} /> : <p className="component-pages-empty">{group.id === "unassigned" ? "No legacy pages are awaiting assignment." : `No pages in ${group.title} yet.`}</p>}</section>)}</div>
       {selected ? <aside className="component-page-inspector"><span>Selected page</span><h2>{selected.label}</h2><div className="component-page-preview"><img src={selected.image.url} alt={`${selected.label} preview`} width={selected.image.width} height={selected.image.height} /></div><dl><div><dt>Page ID</dt><dd><code>{selected.id}</code></dd></div>{managed ? <div><dt>Unit</dt><dd>{selected.unitTitle || "Unassigned"}</dd></div> : null}<div><dt>Printed pages</dt><dd>{selected.printedLabel || "Not set"}</dd></div><div><dt>Source</dt><dd>{selected.source === "repository-baseline" ? "Canonical baseline" : selected.source === "override" ? "Managed replacement" : "Managed upload"}</dd></div><div><dt>Dimensions</dt><dd>{selected.image.width} × {selected.image.height}</dd></div><div><dt>SHA-256</dt><dd><code>{selected.image.checksumSha256.slice(0, 16)}…</code></dd></div></dl></aside> : null}
     </div>}
+    {!state.loading && state.deletedPages.length ? <details className="component-deleted-pages"><summary>Deleted pages <span>{state.deletedPages.length}</span></summary><div>{state.deletedPages.map((page) => <article key={page.id}><div><strong>{page.label}</strong><code>{page.id}</code><small>{page.printedLabel || "Unnumbered"} · {page.removedHotspotCount || 0} hotspots removed</small></div><button type="button" disabled={busy} onClick={() => mutate(page, "restore")}><RotateCcw aria-hidden="true" /> Restore page</button></article>)}</div></details> : null}
     <BuilderModal open={Boolean(editor)} title="Edit page metadata" description="Update the Unit, editorial label, and printed-page reference." onClose={() => setEditor(null)}><form className="component-page-editor" onSubmit={(event) => { event.preventDefault(); const page = editor.page; const metadata = { label: editor.label.trim(), printedLabel: editor.printedLabel.trim(), sortOrder: editor.unitId === page.unitId ? editor.sortOrder : Math.max(0, ...state.pages.filter((item) => item.unitId === editor.unitId).map((item) => item.sortOrder)) + 10, ...(managed ? { unitId: editor.unitId } : {}) }; setEditor(null); mutate(page, "metadata", metadata); }}>
       {managed ? <label><span>Unit</span><select required value={editor?.unitId || ""} onChange={(event) => setEditor((current) => ({ ...current, unitId: event.target.value }))}><option value="" disabled>Select Unit</option>{state.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.title}</option>)}</select></label> : null}
       <label><span>Label</span><input autoFocus={!managed} required maxLength={160} value={editor?.label || ""} onChange={(event) => setEditor((current) => ({ ...current, label: event.target.value }))} /></label><label><span>Printed page or spread</span><input maxLength={40} value={editor?.printedLabel || ""} onChange={(event) => setEditor((current) => ({ ...current, printedLabel: event.target.value }))} /></label><footer><button type="button" onClick={() => setEditor(null)}>Cancel</button><button className="hosted-builder-action" type="submit" disabled={managed && !editor?.unitId}>Save metadata</button></footer></form></BuilderModal>
-    <BuilderModal open={Boolean(confirmDelete)} title={`Delete ${title} page?`} description="The page will be removed from the active library. Referenced pages are protected." onClose={() => setConfirmDelete(null)}><div className="component-page-delete"><p><strong>{confirmDelete?.label}</strong></p><div><button type="button" onClick={() => setConfirmDelete(null)}>Cancel</button><button className="builder-danger-action" type="button" onClick={() => { const page = confirmDelete; setConfirmDelete(null); mutate(page, "delete"); }}>Delete page</button></div></div></BuilderModal>
+    <BuilderModal open={Boolean(confirmDelete)} title={`Delete ${title} page?`} description="The page will become inactive and its launch hotspots will be removed. Activities and their assets will be preserved." onClose={() => setConfirmDelete(null)}><div className="component-page-delete"><p><strong>{confirmDelete?.label}</strong></p><p>Restoring the page later will not recreate its hotspots.</p><div><button type="button" onClick={() => setConfirmDelete(null)}>Cancel</button><button className="builder-danger-action" type="button" onClick={() => { const page = confirmDelete; setConfirmDelete(null); mutate(page, "delete"); }}>Delete page</button></div></div></BuilderModal>
   </main>;
 }
 

@@ -12,7 +12,7 @@ import {
 } from "../book-builder/hosted/builderContentApi.js";
 import { getActivityLifecycle, getNativeActivityCatalog } from "../book-builder/hosted/builderNativeActivityApi.js";
 import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
-import { useBuilderReview } from "./UnifiedBuilderReview.jsx";
+import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
 
 const studentsPageRows = ultimateB2StudentsBookPageUnits
   .filter((unit) => [1, 2].includes(Number(unit.number)))
@@ -140,6 +140,11 @@ export function HostedUltimateB2HotspotBuilder({ bookSlug = "ultimate-b2", compo
         setPageLibrary(new Map(value.pages.map((item) => [item.id, item])));
         if (managed) {
           const rows = value.pages.filter((item) => item.unitNumber).map((item) => ({ ...item, title: item.label, spreadNumber: item.printedLabel || item.label, pageNumber: null, pageNumbers: [] }));
+          setPageRows(rows);
+          setPageId((current) => rows.some((item) => item.id === current) ? current : rows[0]?.id || "");
+        } else {
+          const active = new Set(value.pages.map((item) => item.id));
+          const rows = studentsPageRows.filter((item) => active.has(item.id));
           setPageRows(rows);
           setPageId((current) => rows.some((item) => item.id === current) ? current : rows[0]?.id || "");
         }

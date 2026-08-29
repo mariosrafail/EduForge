@@ -2,14 +2,20 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
+import { canonicalStudentsBookPagesById } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
+import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 
 import {
   claimBuilderPageUpload,
   completeBuilderPageUpload,
+  deleteBuilderPageLifecycle,
   loadBuilderPageAsset,
   loadBuilderPages,
   mutateBuilderPage,
   prepareBuilderPageUpload,
+  restoreBuilderStudentsPage,
 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages-store.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
@@ -66,7 +72,7 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "050_builder_publication_role_scoped_asset_pins.sql");
+  assert.ok(migrations.some(({ filename }) => filename === "051_builder_page_deletion_lifecycle.sql"));
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Page Actor','page-actor@example.test','hash'),($2,'Other Page Actor','page-other@example.test','hash')", [actor, otherActor]);
   const sql = tag(pool);
   const unitRows = await pool.query(`select component.slug component_slug,unit.id,unit.unit_number from units unit join book_components component on component.id=unit.book_component_id join book_packages package on package.id=component.book_package_id where package.slug='ultimate-b2' and component.slug in ('ultimate-b2-workbook','ultimate-b2-grammar-book') order by component.slug,unit.unit_number`);
@@ -128,15 +134,116 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   assert.equal((await loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" })).rows[0].unit_id, grammarUnit10);
   const wrongGrammar = uploadInput({ componentSlug: "ultimate-b2-grammar-book", pageId: `gb-page-${randomUUID().replaceAll("-", "")}`, mode: "create", expectedRevision: 1, unitId: workbookUnit1 });
   assert.equal((await prepareBuilderPageUpload(sql, wrongGrammar)).outcome, "invalid_unit");
-  await pool.query("insert into book_activities(package_slug,component_slug,page_id,title,type,content,correct_answers) values('ultimate-b2','ultimate-b2-workbook',$1,'Referenced page','multiple_choice','{}','{}')", [workbookPageId]);
-  const referenced = await mutateBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pageKey: workbook.pageKey, action: "delete", expectedRevision: 5, clientMutationId: randomUUID(), pageMetadata: {}, builderUserId: actor });
-  assert.equal(referenced.outcome, "page_referenced");
-  await pool.query("delete from book_activities where package_slug='ultimate-b2' and component_slug='ultimate-b2-workbook' and page_id=$1", [workbookPageId]);
-  const removed = await mutateBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pageKey: workbook.pageKey, action: "delete", expectedRevision: 5, clientMutationId: randomUUID(), pageMetadata: {}, builderUserId: actor });
-  assert.equal(removed.current_revision, 6);
+  const nativeHandler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const nativeResponse = await nativeHandler({ httpMethod: "POST", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/create", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ kind: "open-response", pageId: workbookPageId, title: "Preserved Workbook activity", clientMutationId: randomUUID() }) });
+  assert.equal(nativeResponse.statusCode, 200, nativeResponse.body);
+  const nativeActivityId = JSON.parse(nativeResponse.body).activityId;
+  const nativeBefore = (await pool.query("select document_type,document_key,revision,payload_sha256 from builder_component_documents where document_type like 'native_activity_%' order by document_type,document_key")).rows;
+  const workbookIdentity = (await pool.query("select package.id package_id,component.id component_id from book_packages package join book_components component on component.book_package_id=package.id where package.slug='ultimate-b2' and component.slug='ultimate-b2-workbook'")).rows[0];
+  const activeHotspots = { schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pages: { [workbookPageId]: [{ id: `hotspot-${randomUUID()}`, unitNumber: 2, pageId: workbookPageId, left: 10, top: 10, width: 20, height: 20, label: "Preserved activity", actionType: "normalized_activity", activityKey: nativeActivityId }] } };
+  await pool.query("insert into builder_component_documents(book_package_id,book_component_id,document_type,document_key,schema_version,revision,payload,payload_sha256,created_by_builder_user_id,updated_by_builder_user_id) values($1,$2,'hotspots','default','1.0',1,$3,$4,$5,$5)", [workbookIdentity.package_id, workbookIdentity.component_id, activeHotspots, builderDocumentSha256(activeHotspots), actor]);
+  const managedEditionId = (await pool.query("insert into book_editions(book_package_id,edition_identifier,title,status) values($1,'managed-lifecycle','Managed lifecycle','draft') returning id", [workbookIdentity.package_id])).rows[0].id;
+  const managedActivityAssetId = (await pool.query("insert into book_assets(book_package_id,edition_id,book_component_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level,source_metadata) values($1,$2,$3,$4,'activity_artwork',$5,'private','lifecycle-test','image/png',4,$6,'managed-lifecycle','v1','draft','internal',$7) returning id", [workbookIdentity.package_id, managedEditionId, workbookIdentity.component_id, `ultimate-b2.managed.${nativeActivityId}`, `managed-lifecycle/${nativeActivityId}.png`, "b".repeat(64), { native_activity_id: nativeActivityId }])).rows[0].id;
+  await pool.query("insert into book_activities(package_slug,component_slug,page_id,title,type,content,correct_answers) values('ultimate-b2','ultimate-b2-workbook',$1,'Preserved legacy activity','multiple_choice','{}','{}')", [workbookPageId]);
+  const emptyHotspots = { ...activeHotspots, pages: {} };
+  const removed = await deleteBuilderPageLifecycle(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pageKey: workbook.pageKey, expectedRevision: 5, expectedHotspotRevision: 1, clientMutationId: randomUUID(), pageMetadata: movedMetadata, hotspotSchemaVersion: "1.0", hotspotDocument: emptyHotspots, hotspotSha256: builderDocumentSha256(emptyHotspots), removedHotspotCount: 1, preservedActivityCount: 1, builderUserId: actor });
+  assert.deepEqual({ outcome: removed.outcome, pageRevision: removed.current_revision, hotspotRevision: removed.hotspot_revision, removed: removed.removed_hotspot_count, preserved: removed.preserved_activity_count }, { outcome: "saved", pageRevision: 6, hotspotRevision: 2, removed: 1, preserved: 1 });
   workbookRows = await loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" });
   const removedRow = workbookRows.rows.find((row) => row.stable_key === workbook.pageKey);
   assert.equal(removedRow.source_metadata.is_active, false);
   assert.equal(removedRow.asset_id, null);
+  assert.deepEqual((await pool.query("select document_type,document_key,revision,payload_sha256 from builder_component_documents where document_type like 'native_activity_%' order by document_type,document_key")).rows, nativeBefore);
+  assert.equal((await pool.query("select publication_status from book_assets where id=$1", [managedActivityAssetId])).rows[0].publication_status, "draft");
+  assert.equal((await pool.query("select count(*)::int count from book_activities where component_slug='ultimate-b2-workbook' and page_id=$1", [workbookPageId])).rows[0].count, 1);
+  assert.deepEqual((await pool.query("select revision,payload from builder_component_documents where book_component_id=$1 and document_type='hotspots'", [workbookIdentity.component_id])).rows[0], { revision: "2", payload: emptyHotspots });
   assert.equal(workbookRows.rows.find((row) => row.stable_key === legacy.pageKey).unit_id, null);
+  const concurrentBase = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pageKey: second.pageKey, expectedRevision: 6, expectedHotspotRevision: 2, pageMetadata: { label: `Label ${secondPageId}`, printedLabel: "2-3", sortOrder: 2, unitId: workbookUnit2 }, hotspotSchemaVersion: "1.0", hotspotDocument: emptyHotspots, hotspotSha256: builderDocumentSha256(emptyHotspots), removedHotspotCount: 0, preservedActivityCount: 0, builderUserId: actor };
+  const concurrentDeletes = await Promise.all([
+    deleteBuilderPageLifecycle(sql, { ...concurrentBase, clientMutationId: randomUUID() }),
+    deleteBuilderPageLifecycle(sql, { ...concurrentBase, clientMutationId: randomUUID() }),
+  ]);
+  assert.deepEqual(concurrentDeletes.map(({ outcome }) => outcome).sort(), ["revision_conflict", "saved"]);
+  assert.equal((await pool.query("select count(*)::int count from builder_audit_log where action='component_page_deleted' and metadata->>'page_key'=$1", [second.pageKey])).rows[0].count, 1);
+});
+
+test("isolated PostgreSQL atomically tombstones and restores a canonical Student page while pruning only its effective hotspots", { skip: !enabled }, async (t) => {
+  const schema = `builder_page_lifecycle_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: databaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  const migrations = await applyCanonicalProductionMigrations(pool);
+  assert.ok(migrations.some(({ filename }) => filename === "051_builder_page_deletion_lifecycle.sql"));
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Lifecycle Actor','lifecycle@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const componentSlug = "ultimate-b2-students-book";
+  const pageId = "ub2-sb-unit-1-part-1";
+  const page = canonicalStudentsBookPagesById.get(pageId);
+  const hotspotDocument = structuredClone(repositoryHotspots);
+  const removed = hotspotDocument.pages[pageId];
+  delete hotspotDocument.pages[pageId];
+  const input = {
+    bookSlug: "ultimate-b2", componentSlug, pageKey: `${componentSlug}/pages/${pageId}`,
+    expectedRevision: 0, expectedHotspotRevision: 0, clientMutationId: randomUUID(),
+    pageMetadata: { label: page.label, printedLabel: page.printedLabel, sortOrder: page.sortOrder, unitNumber: page.unitNumber },
+    hotspotSchemaVersion: hotspotDocument.schemaVersion, hotspotDocument, hotspotSha256: builderDocumentSha256(hotspotDocument),
+    removedHotspotCount: removed.length, preservedActivityCount: new Set(removed.map(({ activityKey }) => activityKey)).size, builderUserId: actor,
+  };
+
+  const nativeHandler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const nativeResponse = await nativeHandler({
+    httpMethod: "POST",
+    path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/create",
+    headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
+    body: JSON.stringify({ kind: "open-response", pageId, title: "Preserved on deleted page", clientMutationId: randomUUID() }),
+  });
+  assert.equal(nativeResponse.statusCode, 200, nativeResponse.body);
+  const nativeActivityId = JSON.parse(nativeResponse.body).activityId;
+  const nativeBefore = (await pool.query("select document_type,document_key,revision,payload_sha256 from builder_component_documents where document_type like 'native_activity_%' order by document_type,document_key")).rows;
+  const componentIdentity = (await pool.query("select package.id package_id,component.id component_id from book_packages package join book_components component on component.book_package_id=package.id where package.slug='ultimate-b2' and component.slug=$1", [componentSlug])).rows[0];
+  const editionId = (await pool.query("insert into book_editions(book_package_id,edition_identifier,title,status) values($1,'lifecycle-test','Lifecycle test','draft') returning id", [componentIdentity.package_id])).rows[0].id;
+  const activityAssetId = (await pool.query("insert into book_assets(book_package_id,edition_id,book_component_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level,source_metadata) values($1,$2,$3,$4,'activity_artwork',$5,'private','lifecycle-test','image/png',4,$6,'lifecycle-test','v1','draft','internal',$7) returning id", [componentIdentity.package_id, editionId, componentIdentity.component_id, `ultimate-b2.lifecycle.${nativeActivityId}`, `lifecycle/${nativeActivityId}.png`, "a".repeat(64), { native_activity_id: nativeActivityId }])).rows[0].id;
+
+  const deleted = await deleteBuilderPageLifecycle(sql, input);
+  assert.deepEqual({ outcome: deleted.outcome, pageRevision: deleted.current_revision, hotspotRevision: deleted.hotspot_revision, removed: deleted.removed_hotspot_count, preserved: deleted.preserved_activity_count }, { outcome: "saved", pageRevision: 1, hotspotRevision: 1, removed: 2, preserved: 2 });
+  const stored = await loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug });
+  assert.equal(stored.revision, 1);
+  assert.equal(stored.hotspotRevision, 1);
+  assert.equal(stored.rows.find(({ stable_key }) => stable_key === input.pageKey).source_metadata.is_deleted, true);
+  const storedHotspots = await pool.query("select revision,payload from builder_component_documents where document_type='hotspots'");
+  assert.equal(storedHotspots.rows[0].revision, "1");
+  assert.equal(Object.hasOwn(storedHotspots.rows[0].payload.pages, pageId), false);
+  assert.deepEqual((await pool.query("select document_type,document_key,revision,payload_sha256 from builder_component_documents where document_type like 'native_activity_%' order by document_type,document_key")).rows, nativeBefore);
+  assert.deepEqual((await pool.query("select publication_status,source_metadata->>'native_activity_id' native_activity_id from book_assets where id=$1", [activityAssetId])).rows[0], { publication_status: "draft", native_activity_id: nativeActivityId });
+  assert.equal((await pool.query("select count(*)::int count from builder_audit_log where action='component_page_deleted'")).rows[0].count, 1);
+
+  const replay = await deleteBuilderPageLifecycle(sql, input);
+  assert.deepEqual({ outcome: replay.outcome, pageRevision: replay.current_revision, hotspotRevision: replay.hotspot_revision }, { outcome: "idempotent", pageRevision: 1, hotspotRevision: 1 });
+  assert.equal((await pool.query("select count(*)::int count from builder_audit_log where action='component_page_deleted'")).rows[0].count, 1);
+  assert.equal((await deleteBuilderPageLifecycle(sql, { ...input, expectedRevision: 1 })).outcome, "mutation_id_conflict");
+
+  const secondPage = canonicalStudentsBookPagesById.get("ub2-sb-unit-1-part-2");
+  const secondHotspotDocument = structuredClone(hotspotDocument);
+  const secondRemoved = secondHotspotDocument.pages[secondPage.id] || [];
+  delete secondHotspotDocument.pages[secondPage.id];
+  const secondInput = { ...input, pageKey: secondPage.stableKey, pageMetadata: { label: secondPage.label, printedLabel: secondPage.printedLabel, sortOrder: secondPage.sortOrder, unitNumber: secondPage.unitNumber }, clientMutationId: randomUUID(), hotspotDocument: secondHotspotDocument, hotspotSha256: builderDocumentSha256(secondHotspotDocument), removedHotspotCount: secondRemoved.length, preservedActivityCount: new Set(secondRemoved.map(({ activityKey }) => activityKey)).size };
+  assert.equal((await deleteBuilderPageLifecycle(sql, secondInput)).outcome, "revision_conflict");
+  assert.equal((await deleteBuilderPageLifecycle(sql, { ...secondInput, expectedRevision: 1, expectedHotspotRevision: 0, clientMutationId: randomUUID() })).outcome, "hotspot_revision_conflict");
+  assert.equal((await deleteBuilderPageLifecycle(sql, { ...secondInput, expectedRevision: 1, expectedHotspotRevision: 1, clientMutationId: randomUUID(), hotspotDocument: { ...hotspotDocument, packageSlug: "wrong" } })).outcome, "invalid_hotspot_projection");
+
+  await pool.query("insert into book_media_assets(package_slug,component_slug,page_id,file_name,mime_type,public_url,kind) values('ultimate-b2',$1,$2,'unsupported.pdf','application/pdf','https://example.invalid/unsupported.pdf','document')", [componentSlug, secondPage.id]);
+  assert.equal((await deleteBuilderPageLifecycle(sql, { ...secondInput, expectedRevision: 1, expectedHotspotRevision: 1, clientMutationId: randomUUID() })).outcome, "unsupported_page_reference");
+  assert.equal((await pool.query("select count(*)::int count from book_pages where stable_key=$1", [secondPage.stableKey])).rows[0].count, 0);
+  assert.equal((await pool.query("select revision from builder_component_page_revisions revision join book_components component on component.id=revision.book_component_id where component.slug=$1", [componentSlug])).rows[0].revision, "1");
+  assert.equal((await pool.query("select revision from builder_component_documents where document_type='hotspots'")).rows[0].revision, "1");
+
+  const restored = await restoreBuilderStudentsPage(sql, { bookSlug: "ultimate-b2", componentSlug, pageKey: input.pageKey, expectedRevision: 1, clientMutationId: randomUUID(), builderUserId: actor });
+  assert.deepEqual({ outcome: restored.outcome, revision: restored.current_revision }, { outcome: "saved", revision: 2 });
+  const restoredPage = (await pool.query("select source_metadata from book_pages where stable_key=$1", [input.pageKey])).rows[0];
+  assert.equal(restoredPage.source_metadata.is_deleted, false);
+  assert.equal((await pool.query("select revision,payload from builder_component_documents where document_type='hotspots'")).rows[0].revision, "1");
+  assert.equal(Object.hasOwn((await pool.query("select payload from builder_component_documents where document_type='hotspots'")).rows[0].payload.pages, pageId), false);
+  const repeatedRestore = await restoreBuilderStudentsPage(sql, { bookSlug: "ultimate-b2", componentSlug, pageKey: input.pageKey, expectedRevision: 2, clientMutationId: randomUUID(), builderUserId: actor });
+  assert.deepEqual({ outcome: repeatedRestore.outcome, revision: repeatedRestore.current_revision }, { outcome: "page_state_conflict", revision: 2 });
+  assert.equal((await pool.query("select revision from builder_component_page_revisions revision join book_components component on component.id=revision.book_component_id where component.slug=$1", [componentSlug])).rows[0].revision, "2");
 });

@@ -33,7 +33,7 @@ export function buildUltimateB2ActivityNavigation(activities, editorMetadata = {
   return units;
 }
 
-export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], lifecycle = null, isEditable = () => false } = {}) {
+export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], lifecycle = null, activePageIds = null, isEditable = () => false } = {}) {
   const placementByPage = new Map(placements.map((placement) => [placement.pageId, placement]));
   const lifecycleEntries = lifecycle?.activities && typeof lifecycle.activities === "object" ? lifecycle.activities : {};
   const pageById = new Map();
@@ -81,6 +81,14 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
     }
   }
 
+  const unavailable = [];
+  if (activePageIds) {
+    const active = new Set(activePageIds);
+    for (const unit of model) for (const page of unit.pages) if (!active.has(page.id)) {
+      unavailable.push(...page.activities.map((item) => ({ ...item, placementUnavailable: true })));
+      page.activities = [];
+    }
+  }
   const unplaced = [];
   for (const activity of nativeActivities) {
     const placement = placementByPage.get(activity.placement?.pageId);
@@ -104,7 +112,8 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
   }
   for (const unit of model) for (const page of unit.pages) page.activities.sort(stable);
   unplaced.sort(stable);
-  return { units: model, unplaced };
+  unavailable.sort(stable);
+  return { units: model, unplaced, unavailable };
 }
 
 function matches(item, query, access, type) {
@@ -127,6 +136,7 @@ export function filterActivityBuilderNavigation(model, { query = "", access = "a
         || (needle && [unit.title, page.title, page.pageLabel].some((value) => normalized(value).includes(needle)))),
     })).filter((page) => preserveEmptyPages || page.activities.length) })).filter((unit) => preserveEmptyPages || unit.pages.length),
     unplaced: model.unplaced.filter((item) => matches(item, needle, access, type)),
+    unavailable: (model.unavailable || []).filter((item) => matches(item, needle, access, type)),
   };
 }
 
@@ -136,9 +146,11 @@ export function findActivityBuilderItem(model, activityId) {
     if (item) return { item, unit, page };
   }
   const item = model.unplaced.find((activity) => activity.id === activityId);
-  return item ? { item, unit: null, page: null } : null;
+  if (item) return { item, unit: null, page: null };
+  const unavailable = (model.unavailable || []).find((activity) => activity.id === activityId);
+  return unavailable ? { item: unavailable, unit: null, page: null } : null;
 }
 
 export function activityBuilderTypeOptions(model) {
-  return [...new Set([...model.units.flatMap((unit) => unit.pages.flatMap((page) => page.activities)), ...model.unplaced].map((item) => item.kind).filter(Boolean))].sort();
+  return [...new Set([...model.units.flatMap((unit) => unit.pages.flatMap((page) => page.activities)), ...model.unplaced, ...(model.unavailable || [])].map((item) => item.kind).filter(Boolean))].sort();
 }

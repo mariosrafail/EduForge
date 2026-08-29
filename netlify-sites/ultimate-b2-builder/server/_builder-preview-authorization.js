@@ -50,7 +50,8 @@ function actionsFor(intent) {
   if (!intent.releaseId) actions.push("native-draft-public", "native-draft-teacher", "native-draft-asset");
   if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && intent.componentSlug === "ultimate-b2-students-book") actions.push("unit-extras-draft", "unit-extra-draft-asset");
   if (!intent.releaseId && intent.view === "activity") actions.push("open-response-teacher");
-  if (!intent.releaseId && intent.componentSlug !== "ultimate-b2-students-book") actions.push("managed-page-catalog", "managed-page-asset", "managed-hotspots");
+  if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(intent.componentSlug)) actions.push("managed-page-catalog", "managed-page-asset");
+  if (!intent.releaseId && intent.componentSlug !== "ultimate-b2-students-book") actions.push("managed-hotspots");
   if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(intent.componentSlug)) actions.push("component-switch");
   return actions;
 }

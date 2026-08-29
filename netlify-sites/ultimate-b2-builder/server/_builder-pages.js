@@ -7,14 +7,20 @@ import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES } from "../../../lib
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
 import { authorizeBuilderPreviewRequestWithDiagnostic } from "./_builder-preview-authorization.js";
 import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-content-security.js";
+import { builderDocumentSha256 } from "./_builder-content-security.js";
 import { canonicalStudentsBookPagesById, resolveBuilderPageComponent } from "./_builder-page-catalog.js";
+import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
+import { createEmptyManagedComponentHotspotManifest, ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, validateManagedComponentHotspotManifestStructure, validateUltimateB2HotspotManifestStructure } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import {
   claimBuilderPageUpload,
   completeBuilderPageUpload,
   failBuilderPageUpload,
   loadBuilderPageAsset,
+  loadBuilderPageHotspots,
   loadBuilderPages,
   mutateBuilderPage,
+  deleteBuilderPageLifecycle,
+  restoreBuilderStudentsPage,
   prepareBuilderPageUpload,
 } from "./_builder-pages-store.js";
 
@@ -114,9 +120,10 @@ function listPayload(parsed, policy, stored, previewAuthorization = "") {
   if (policy.kind === "students-book") {
     return policy.baseline.map((baseline) => {
       const row = rows.get(baseline.id);
+      if (row?.source_metadata?.is_deleted === true) return null;
       if (row?.source_metadata?.is_override !== true || !row.asset_id) return baseline;
       return { ...baseline, source: "override", label: row.label, sortOrder: Number(row.sort_order), image: privateImage(parsed, baseline.id, row, previewAuthorization), baselineImage: baseline.image };
-    });
+    }).filter(Boolean);
   }
   return stored.rows.filter((row) => row.source_metadata?.is_active === true && row.asset_id).map((row) => {
     const pageId = pageIdFromStableKey(parsed.componentSlug, row.stable_key);
@@ -141,15 +148,39 @@ function listPayload(parsed, policy, stored, previewAuthorization = "") {
   });
 }
 
+function deletedPayload(parsed, policy, stored) {
+  if (policy.kind !== "students-book") return [];
+  const rows = new Map(stored.rows.map((row) => [pageIdFromStableKey(parsed.componentSlug, row.stable_key), row]));
+  return policy.baseline.filter((baseline) => rows.get(baseline.id)?.source_metadata?.is_deleted === true).map((baseline) => ({
+    ...baseline,
+    source: "deleted",
+    removedHotspotCount: Number(rows.get(baseline.id).source_metadata?.removed_hotspot_count || 0),
+  }));
+}
+
 async function listResponse(dependencies, sql, parsed, policy, previewAuthorization = "") {
   const stored = await dependencies.loadPages(sql, parsed);
   if (!stored) return null;
   return {
     revision: safeInteger(stored.revision, "builder_page_revision"),
+    hotspotRevision: safeInteger(stored.hotspotRevision || 0, "builder_hotspot_revision"),
     component: { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, kind: policy.kind, title: policy.title || "Students Book" },
     units: (stored.units || []).map((unit) => ({ id: String(unit.id), slug: unit.slug, title: unit.title, unitNumber: Number(unit.unit_number), sortOrder: Number(unit.sort_order) })),
     pages: listPayload(parsed, policy, stored, previewAuthorization),
+    deletedPages: deletedPayload(parsed, policy, stored),
   };
+}
+
+function prunedPageHotspots(policy, componentSlug, stored, pageId) {
+  const baseline = policy.kind === "students-book" ? structuredClone(repositoryHotspots) : createEmptyManagedComponentHotspotManifest(componentSlug);
+  const document = stored?.payload || baseline;
+  const normalized = policy.kind === "students-book"
+    ? validateUltimateB2HotspotManifestStructure(document)
+    : validateManagedComponentHotspotManifestStructure(document, componentSlug);
+  const removed = normalized.pages[pageId] || [];
+  const pages = { ...normalized.pages };
+  delete pages[pageId];
+  return { document: { ...normalized, pages }, removedHotspotCount: removed.length, preservedActivityCount: new Set(removed.map((hotspot) => hotspot.activityKey)).size };
 }
 
 export function createBuilderPagesHandler(overrides = {}) {
@@ -163,6 +194,9 @@ export function createBuilderPagesHandler(overrides = {}) {
     complete: overrides.complete || completeBuilderPageUpload,
     fail: overrides.fail || failBuilderPageUpload,
     mutate: overrides.mutate || mutateBuilderPage,
+    deleteLifecycle: overrides.deleteLifecycle || deleteBuilderPageLifecycle,
+    restoreStudentsPage: overrides.restoreStudentsPage || restoreBuilderStudentsPage,
+    loadHotspots: overrides.loadHotspots || loadBuilderPageHotspots,
     loadAsset: overrides.loadAsset || loadBuilderPageAsset,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
@@ -179,7 +213,7 @@ export function createBuilderPagesHandler(overrides = {}) {
       const sql = dependencies.getDatabase();
       let auth = null;
       if (parsed.preview) {
-        if (policy.kind !== "managed" || !["list", "preview"].includes(parsed.action)) return json(404, { error: "page_preview_not_found" });
+        if (!["list", "preview"].includes(parsed.action)) return json(404, { error: "page_preview_not_found" });
         const decision = await dependencies.authorizePreview(event, sql, {
           action: parsed.action === "list" ? "managed-page-catalog" : "managed-page-asset",
           bookSlug: parsed.bookSlug,
@@ -214,6 +248,9 @@ export function createBuilderPagesHandler(overrides = {}) {
         if (policy.kind === "students-book") {
           const baseline = canonicalStudentsBookPagesById.get(pageId);
           if (body.value.mode !== "replace" || !baseline) return json(400, { error: "invalid_students_book_page_operation" });
+          const currentPages = await dependencies.loadPages(sql, parsed);
+          const currentRow = currentPages?.rows?.find((row) => row.stable_key === `${parsed.componentSlug}/pages/${pageId}`);
+          if (currentRow?.source_metadata?.is_deleted === true) return json(409, { error: "page_inactive", currentRevision: currentPages.revision });
           metadata = { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, baselineWidth: baseline.image.width, baselineHeight: baseline.image.height };
         } else if (body.value.mode === "create") {
           if (pageId) return json(400, { error: "new_page_id_must_be_empty" });
@@ -266,18 +303,36 @@ export function createBuilderPagesHandler(overrides = {}) {
       }
 
       if (["metadata", "reorder", "delete", "restore"].includes(parsed.action)) {
-        const body = parseJson(event, ["expectedRevision", "clientMutationId", "metadata"]); if (body.error) return body.error;
+        const body = parseJson(event, parsed.action === "delete" ? ["expectedRevision", "expectedHotspotRevision", "clientMutationId", "metadata"] : ["expectedRevision", "clientMutationId", "metadata"]); if (body.error) return body.error;
         if (!Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 0 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_mutation_identity" });
-        if (policy.kind === "students-book" && parsed.action !== "restore") return json(400, { error: "students_book_baseline_metadata_locked" });
+        if (parsed.action === "delete" && (!Number.isSafeInteger(body.value.expectedHotspotRevision) || body.value.expectedHotspotRevision < 0)) return json(400, { error: "invalid_hotspot_revision" });
+        if (policy.kind === "students-book" && !["delete", "restore"].includes(parsed.action)) return json(400, { error: "students_book_baseline_metadata_locked" });
         if (policy.kind === "managed" && parsed.action === "restore") return json(400, { error: "managed_page_cannot_restore_baseline" });
         let metadata = {};
         if (["metadata", "reorder"].includes(parsed.action)) { try { metadata = pageMetadata(body.value.metadata, { managed: policy.kind === "managed" }); } catch (error) { return json(400, { error: failureCode(error) }); } }
         else if (!exact(body.value.metadata, [])) return json(400, { error: "invalid_page_metadata" });
-        const result = await dependencies.mutate(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id });
-        if (!result || ["revision_conflict", "mutation_id_conflict", "page_referenced"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null });
+        let result;
+        if (parsed.action === "delete") {
+          const baseline = policy.kind === "students-book" ? canonicalStudentsBookPagesById.get(parsed.pageId) : null;
+          if (policy.kind === "students-book" && !baseline) return json(404, { error: "page_not_found" });
+          const storedHotspots = await dependencies.loadHotspots(sql, parsed);
+          const pruned = prunedPageHotspots(policy, parsed.componentSlug, storedHotspots, parsed.pageId);
+          if (safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") !== body.value.expectedHotspotRevision) return json(409, { error: "hotspot_revision_conflict", currentHotspotRevision: safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") });
+          const pageMetadata = baseline ? { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, unitNumber: baseline.unitNumber } : {};
+          try {
+            result = await dependencies.deleteLifecycle(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, expectedHotspotRevision: body.value.expectedHotspotRevision, clientMutationId: body.value.clientMutationId, pageMetadata, hotspotSchemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, hotspotDocument: pruned.document, hotspotSha256: builderDocumentSha256(pruned.document), removedHotspotCount: pruned.removedHotspotCount, preservedActivityCount: pruned.preservedActivityCount, builderUserId: auth.builderUser.id });
+          } catch (error) {
+            if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" });
+            throw error;
+          }
+        } else if (policy.kind === "students-book" && parsed.action === "restore") {
+          try { result = await dependencies.restoreStudentsPage(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id }); }
+          catch (error) { if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" }); throw error; }
+        } else result = await dependencies.mutate(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id });
+        if (!result || ["revision_conflict", "hotspot_revision_conflict", "mutation_id_conflict", "unsupported_page_reference", "page_state_conflict", "page_referenced"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null, currentHotspotRevision: result?.hotspot_revision ?? null });
         if (!["saved", "idempotent"].includes(result.outcome)) return json(result.outcome === "page_not_found" ? 404 : 400, { error: result.outcome });
         const listed = await listResponse(dependencies, sql, parsed, policy);
-        return json(200, { ...listed, idempotent: result.outcome === "idempotent" });
+        return json(200, { ...listed, lifecycle: parsed.action === "delete" ? { pageId: parsed.pageId, pageRevision: result.current_revision, hotspotRevision: result.hotspot_revision, removedHotspotCount: Number(result.removed_hotspot_count || 0), preservedActivityCount: Number(result.preserved_activity_count || 0) } : null, idempotent: result.outcome === "idempotent" });
       }
       return json(404, { error: "page_route_not_found" });
     } catch (error) {

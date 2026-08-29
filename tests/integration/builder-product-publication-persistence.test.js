@@ -106,7 +106,7 @@ test("migrations 048/049/050 preserve truthful legacy families and publish exact
   const rolePinMigrationIndex = migrations.findIndex((migration) => migration.filename === "050_builder_publication_role_scoped_asset_pins.sql");
   assert.equal(pinMigrationIndex, productMigrationIndex + 1);
   assert.equal(rolePinMigrationIndex, pinMigrationIndex + 1);
-  assert.equal(rolePinMigrationIndex, migrations.length - 1);
+  assert.ok(migrations.slice(rolePinMigrationIndex + 1).some((migration) => migration.filename === "051_builder_page_deletion_lifecycle.sql"));
   await pool.query("create table eduforge_migration_history(filename text primary key,checksum_sha256 text not null,applied_at timestamptz not null default now())");
   await apply(pool, migrations.slice(0, productMigrationIndex));
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Product Publication Integration','product-publication@example.test','not-a-real-login-hash')", [actor]);

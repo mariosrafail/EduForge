@@ -52,6 +52,7 @@ Apply production migrations in this exact order:
 48. `048_ultimate_b2_product_publication.sql`
 49. `049_builder_publication_asset_pins.sql`
 50. `050_builder_publication_role_scoped_asset_pins.sql`
+51. `051_builder_page_deletion_lifecycle.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

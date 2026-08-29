@@ -92,8 +92,8 @@ function normalizeAsset(value, label) {
 
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras") } = {}) {
-  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : [])], "Release v2 source snapshot");
+export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"), includePageLifecycle = Object.hasOwn(value || {}, "pageLibrary") } = {}) {
+  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["pageLibrary"] : [])], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
     schemaVersion: "1.0",
@@ -122,6 +122,7 @@ export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeeds
     nativeIndex: sourceIdentity(value.nativeIndex, "Release v2 native index"),
     nativeActivities,
     ...(includeUnitExtras ? { unitExtras: sourceIdentity(value.unitExtras, "Release v2 Unit Extras") } : {}),
+    ...(includePageLifecycle ? { pageLibrary: sourceIdentity(value.pageLibrary, "Release v2 page library") } : {}),
   };
 }
 
@@ -155,8 +156,9 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
   expectedCompatibility = null,
   includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"),
+  includePageLifecycle = Object.hasOwn(value || {}, "activePageIds"),
 } = {}) {
-  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets", ...(includeUnitExtras ? ["unitExtras"] : [])], "Public release v2");
+  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["activePageIds"] : [])], "Public release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book" || !SHA256.test(String(value.compatibility || "")) || (expectedCompatibility !== null && value.compatibility !== expectedCompatibility)) throw new Error("Public release v2 identity is invalid.");
   const nativeActivities = normalizeNativePublicMap(value.nativeActivities, allowedNativeKinds);
   const hotspots = validateAndNormalizeUltimateB2HotspotManifest(value.hotspots, hotspotCatalog(nativeActivities));
@@ -175,6 +177,8 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK}`));
   const actualNative = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK).map((asset) => `${asset.sha256}.${asset.role}`);
   const unitExtras = includeUnitExtras ? normalizePublishedUltimateB2UnitExtras(value.unitExtras) : null;
+  const activePageIds = includePageLifecycle && Array.isArray(value.activePageIds) ? value.activePageIds.map((id) => String(id)) : null;
+  if (includePageLifecycle && (!activePageIds || activePageIds.some((id) => !SAFE_ID.test(id)) || new Set(activePageIds).size !== activePageIds.length)) throw new Error("Public release v2 active page identities are invalid.");
   const expectedUnitExtras = unitExtras ? unitExtras.units.flatMap((unit) => unit.categories.videos.map((entry) => `${entry.video.asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO}`)) : [];
   const actualUnitExtras = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO).map((asset) => `${asset.sha256}.${asset.role}`);
   if (new Set(rawAssets.map(assetIdentity)).size !== rawAssets.length
@@ -191,6 +195,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
     activities: legacy.activities,
     nativeActivities,
     ...(unitExtras ? { unitExtras } : {}),
+    ...(activePageIds ? { activePageIds } : {}),
     assets: rawAssets,
   };
   assertStudentSafeReleaseProjection(normalized);

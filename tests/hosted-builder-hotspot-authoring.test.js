@@ -50,7 +50,7 @@ test("Viewer refresh advances only after a successful persisted hotspot save", a
   assert.doesNotMatch(saveBody.match(/status === 409[\s\S]*?\} else/)?.[0] || "", /setViewerRefreshKey/);
 });
 
-test("Students adapter exposes Pages plus every established writable tool", async () => {
+test("Students adapter exposes component tools while the UI Controller is package-owned", async () => {
   const [adapters, shell, workspace] = await Promise.all([
     read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
@@ -59,10 +59,11 @@ test("Students adapter exposes Pages plus every established writable tool", asyn
   assert.match(adapters, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
-  assert.match(adapters, /uiController: Object\.freeze\(\{ readable: true, writable: true \}\)/);
+  assert.doesNotMatch(adapters.match(/"ultimate-b2-students-book":[\s\S]*?Workspace: UltimateB2StudentsBookWorkspace/)?.[0] || "", /uiController/);
+  assert.match(adapters, /"ultimate-b2-page-ui": Object\.freeze\(\{ Tool: HostedTeacherUiController \}\)/);
   assert.match(shell, /tools\.filter\(\(\{ capability \}\) => adapter\.capabilities\[capability\]\?\.readable\)/);
   assert.match(shell, /adapter\.capabilities\[capability\]\.writable \? "Editable" : "Read-only"/);
-  assert.match(workspace, /HostedTeacherUiController/);
+  assert.doesNotMatch(workspace, /HostedTeacherUiController/);
   assert.match(workspace, /Editable canonical activity/);
   assert.match(workspace, /Read-only canonical activity/);
   assert.doesNotMatch(workspace, /b2-hosted-review-banner/);

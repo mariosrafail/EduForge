@@ -45,7 +45,7 @@ test("isolated PostgreSQL preserves Teacher UI upload ownership, expiry, candida
   const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 2 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "050_builder_publication_role_scoped_asset_pins.sql");
+  assert.ok(migrations.some(({ filename }) => filename === "034_builder_teacher_ui_asset_uploads.sql"));
   await pool.query(`insert into builder_users(id,full_name,email,password_hash) values($1,'UI Actor','ui-actor@example.test','hash'),($2,'Other UI Actor','other-ui-actor@example.test','hash')`, [actorId, otherActorId]);
   const sql = tag(pool);
   const uploadId = randomUUID();

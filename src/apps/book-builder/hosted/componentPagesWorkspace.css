@@ -46,4 +46,12 @@
 .component-page-editor label { display: grid; gap: 6px; }
 .component-page-editor input { min-height: 42px; padding: 8px 10px; border: 1px solid #b8c4d4; border-radius: 8px; }
 .component-page-editor footer,.component-page-delete > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.component-deleted-pages { max-width: 1600px; margin: 24px auto 0; padding: 14px 16px; border: 1px solid #f0c9c5; border-radius: 12px; background: #fff; }
+.component-deleted-pages summary { cursor: pointer; color: #912018; font-weight: 800; }
+.component-deleted-pages summary span { display: inline-grid; min-width: 24px; margin-left: 6px; place-items: center; border-radius: 999px; background: #fee4e2; }
+.component-deleted-pages > div { display: grid; gap: 8px; margin-top: 14px; }
+.component-deleted-pages article { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px; border: 1px solid #eaecf0; border-radius: 9px; }
+.component-deleted-pages article > div { display: grid; min-width: 0; gap: 3px; }
+.component-deleted-pages article code,.component-deleted-pages article small { color: #667085; }
+.component-deleted-pages article button { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; }
 @media (max-width: 900px) { .component-pages-layout { grid-template-columns: 1fr; } .component-page-inspector { position: static; } .component-pages-header { flex-direction: column; } }

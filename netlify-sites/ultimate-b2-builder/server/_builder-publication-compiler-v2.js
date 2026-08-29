@@ -26,11 +26,12 @@ import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
+import { canonicalStudentsBookPages } from "./_builder-page-catalog.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS);
 
-function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false } = {}) {
+function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false } = {}) {
   return Object.freeze({
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
@@ -41,6 +42,7 @@ function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false 
     nativeKinds: Object.freeze([...nativeKinds].sort()),
     releaseAssetDescriptorSchemaVersion: "1.0",
     ...(unitExtras ? { unitExtrasSchemaVersion: ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } : {}),
+    ...(pageLifecycle ? { pageLifecycleSchemaVersion: "1.0" } : {}),
   });
 }
 
@@ -51,6 +53,7 @@ const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
   listeningExpanded: "705a2e4a5dbe5db38d17720e80d811496b8816a8778df89ddf616ad9617a857c",
   dragDropExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS)),
   unitExtrasExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true })),
+  pageLifecycleExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
 });
 
 export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
@@ -86,6 +89,13 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     unitExtras: true,
   }),
+  Object.freeze({
+    name: "page-lifecycle-expanded",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.pageLifecycleExpanded,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+    unitExtras: true,
+    pageLifecycle: true,
+  }),
 ]);
 
 const v2CompatibilityVariantsByIdentity = new Map(
@@ -115,7 +125,7 @@ export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility
 }
 
 export function ultimateB2PublicationV2Compatibility() {
-  return V2_COMPATIBILITY_IDENTITIES.unitExtrasExpanded;
+  return V2_COMPATIBILITY_IDENTITIES.pageLifecycleExpanded;
 }
 
 export function isUltimateB2PublicationV2NativeKind(kind) {
@@ -254,6 +264,9 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
   const unitExtrasDocument = unitExtrasSource?.payload || createEmptyUltimateB2UnitExtras();
   const unitExtraAssetSources = validateUnitExtraAssetRows(unitExtrasDocument, sources.unitExtras?.assetRows || []);
   const unitExtras = projectUltimateB2UnitExtrasForPublication(unitExtrasDocument);
+  const rowsByPageId = new Map((sources.pages?.rows || []).map((row) => [String(row.stable_key).split("/").pop(), row]));
+  const activePageIds = canonicalStudentsBookPages.filter((page) => rowsByPageId.get(page.id)?.source_metadata?.is_deleted !== true).map((page) => page.id);
+  const pageLibrarySource = { revision: Number(sources.pages?.revision || 0), sha256: builderDocumentSha256(activePageIds) };
 
   const legacy = compileUltimateB2ComponentRelease({
     documents: { ...sources.documents, hotspots: null },
@@ -273,7 +286,8 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
       teacher: { revision: entry.source.teacher.revision, sha256: entry.source.teacher.sha256 },
     }])),
     unitExtras: unitExtrasSource ? { revision: unitExtrasSource.revision, sha256: unitExtrasSource.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyUltimateB2UnitExtras()) },
-  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras: true });
+    pageLibrary: pageLibrarySource,
+  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras: true, includePageLifecycle: true });
   const publicProjection = normalizeUltimateB2PublicReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -283,11 +297,13 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     activities: legacy.publicProjection.activities,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }])),
     unitExtras,
+    activePageIds,
     assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)],
   }, seeds, {
     allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     expectedCompatibility: compatibility,
     includeUnitExtras: true,
+    includePageLifecycle: true,
   });
   const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,

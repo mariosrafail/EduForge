@@ -36,9 +36,9 @@ const managedFixturePage = (componentSlug, unitNumber, printedLabel, index) => (
 const workbookUnit7 = ["70-71", "72-73", "74-75", "76", "77", "78-79"].map((label, index) => managedFixturePage("ultimate-b2-workbook", 7, label, index + 1));
 const grammarUnit4 = ["40", "41-42", "43"].map((label, index) => managedFixturePage("ultimate-b2-grammar-book", 4, label, index + 1));
 const state = {
-  "ultimate-b2-students-book": { revision: 0, units: [], pages: canonicalStudentsBookPages.map((page) => ({ ...page })) },
-  "ultimate-b2-workbook": { revision: 0, units: unitsFor("ultimate-b2-workbook"), pages: [...workbookUnit7, { id: "wb-legacy-unassigned", stableKey: "ultimate-b2-workbook/pages/wb-legacy-unassigned", componentSlug: "ultimate-b2-workbook", source: "managed", unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null, printedPages: [], printedLabel: "L", sortOrder: 1, label: "Legacy unassigned", image: managedImage(legacyAssetId, imageA) }] },
-  "ultimate-b2-grammar-book": { revision: 0, units: unitsFor("ultimate-b2-grammar-book"), pages: grammarUnit4 },
+  "ultimate-b2-students-book": { revision: 0, hotspotRevision: 0, units: [], pages: canonicalStudentsBookPages.map((page) => ({ ...page })), deletedPages: [] },
+  "ultimate-b2-workbook": { revision: 0, hotspotRevision: 0, units: unitsFor("ultimate-b2-workbook"), pages: [...workbookUnit7, { id: "wb-legacy-unassigned", stableKey: "ultimate-b2-workbook/pages/wb-legacy-unassigned", componentSlug: "ultimate-b2-workbook", source: "managed", unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null, printedPages: [], printedLabel: "L", sortOrder: 1, label: "Legacy unassigned", image: managedImage(legacyAssetId, imageA) }], deletedPages: [] },
+  "ultimate-b2-grammar-book": { revision: 0, hotspotRevision: 0, units: unitsFor("ultimate-b2-grammar-book"), pages: grammarUnit4, deletedPages: [] },
 };
 const sessions = new Map();
 const uploads = new Map([[legacyAssetId, imageA]]);
@@ -47,7 +47,7 @@ let origin;
 
 function json(response, status, value) { const encoded = JSON.stringify(value); response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(encoded), "Cache-Control": "no-store" }); response.end(encoded); }
 async function requestBody(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); return Buffer.concat(chunks); }
-function library(componentSlug) { const current = state[componentSlug]; const title = componentSlug.endsWith("workbook") ? "Workbook" : componentSlug.endsWith("grammar-book") ? "Grammar Book" : "Students Book"; return { revision: current.revision, component: { bookSlug: "ultimate-b2", componentSlug, kind: managedSlugs.includes(componentSlug) ? "managed" : "students-book", title }, units: current.units, pages: current.pages }; }
+function library(componentSlug) { const current = state[componentSlug]; const title = componentSlug.endsWith("workbook") ? "Workbook" : componentSlug.endsWith("grammar-book") ? "Grammar Book" : "Students Book"; return { revision: current.revision, hotspotRevision: current.hotspotRevision, component: { bookSlug: "ultimate-b2", componentSlug, kind: managedSlugs.includes(componentSlug) ? "managed" : "students-book", title }, units: current.units, pages: current.pages, deletedPages: current.deletedPages }; }
 function unitMetadata(current, unitId) { const unit = current.units.find((candidate) => candidate.id === unitId); return unit ? { unitId: unit.id, unitSlug: unit.slug, unitNumber: unit.unitNumber, unitTitle: unit.title, unitSortOrder: unit.sortOrder } : { unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null }; }
 
 async function pagesApi(request, response, url) {
@@ -69,8 +69,14 @@ async function pagesApi(request, response, url) {
     current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
   }
   const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
-  const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); if (index < 0) { json(response, 404, { error: "page_not_found" }); return true; }
-  if (action === "restore") current.pages[index] = { ...canonicalStudentsBookPages.find((page) => page.id === pageId) }; else if (action === "delete") current.pages.splice(index, 1); else current.pages[index] = { ...current.pages[index], ...input.metadata, ...unitMetadata(current, input.metadata.unitId) };
+  const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); const deletedIndex = current.deletedPages.findIndex((page) => page.id === pageId); if (index < 0 && !(action === "restore" && deletedIndex >= 0)) { json(response, 404, { error: "page_not_found" }); return true; }
+  if (action === "restore" && deletedIndex >= 0) {
+    const [deleted] = current.deletedPages.splice(deletedIndex, 1);
+    current.pages.push(componentSlug.endsWith("students-book") ? { ...canonicalStudentsBookPages.find((page) => page.id === pageId) } : { ...deleted });
+    current.pages.sort((left, right) => (left.unitSortOrder ?? left.unitNumber ?? Number.MAX_SAFE_INTEGER) - (right.unitSortOrder ?? right.unitNumber ?? Number.MAX_SAFE_INTEGER) || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
+  } else if (action === "restore") current.pages[index] = { ...canonicalStudentsBookPages.find((page) => page.id === pageId) };
+  else if (action === "delete") { const [deleted] = current.pages.splice(index, 1); current.deletedPages.push({ ...deleted, removedHotspotCount: componentSlug.endsWith("students-book") ? 2 : 1 }); current.hotspotRevision += 1; }
+  else current.pages[index] = { ...current.pages[index], ...input.metadata, ...unitMetadata(current, input.metadata.unitId) };
   if (action === "metadata" || action === "reorder") current.pages.sort((left, right) => (left.unitSortOrder ?? Number.MAX_SAFE_INTEGER) - (right.unitSortOrder ?? Number.MAX_SAFE_INTEGER) || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
   current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
 }
@@ -218,8 +224,21 @@ try {
   await studentCard.getByTitle("Replace page image").click();
   await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA });
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor();
-  await studentCard.getByTitle("Restore canonical page").click();
+  await studentCard.getByTitle("Restore canonical image").click();
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).getByTitle("Delete page").click();
+  const deleteModal = page.locator(".builder-modal");
+  await deleteModal.getByText("Activities and their assets will be preserved.", { exact: false }).waitFor();
+  await deleteModal.getByText("Restoring the page later will not recreate its hotspots.", { exact: true }).waitFor();
+  await deleteModal.getByRole("button", { name: "Delete page" }).click();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).waitFor({ state: "detached" });
+  const deletedPages = page.locator(".component-deleted-pages");
+  await deletedPages.locator("summary").click();
+  await deletedPages.getByText(baseline.id, { exact: true }).waitFor();
+  assert.match(await deletedPages.innerText(), /2 hotspots removed/);
+  await deletedPages.getByRole("button", { name: "Restore page" }).click();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  assert.equal(state["ultimate-b2-students-book"].hotspotRevision, 1);
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-students-book", 1)).ids, unit1Rows.ids);
   assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-students-book", 2)).ids, unit2Rows.ids);

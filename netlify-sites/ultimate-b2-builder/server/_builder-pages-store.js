@@ -17,7 +17,8 @@ function normalizeRevisionField(row, field, options = { nullable: true }) {
 
 export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
   const components = await sql`
-    select component.id,coalesce(revision.revision,0) revision
+    select component.id,coalesce(revision.revision,0) revision,
+      coalesce((select document.revision from builder_component_documents document where document.book_component_id=component.id and document.document_type='hotspots' and document.document_key='default'),0) hotspot_revision
     from book_packages package join book_components component on component.book_package_id=package.id
     left join builder_component_page_revisions revision on revision.book_component_id=component.id
     where package.slug=${bookSlug} and component.slug=${componentSlug} limit 1
@@ -49,7 +50,7 @@ export async function loadBuilderPages(sql, { bookSlug, componentSlug }) {
       and page.stable_key like ${`${componentSlug}/pages/%`}
     order by unit.sort_order nulls last,page.sort_order,page.stable_key
   `;
-  return { revision: normalizeBuilderPageRevision(components[0].revision, { nullable: false }), units, rows };
+  return { revision: normalizeBuilderPageRevision(components[0].revision, { nullable: false }), hotspotRevision: normalizeBuilderPageRevision(components[0].hotspot_revision ?? 0, { nullable: false }), units, rows };
 }
 
 export async function prepareBuilderPageUpload(sql, input) {
@@ -85,6 +86,35 @@ export async function mutateBuilderPage(sql, input) {
     ${input.clientMutationId}::uuid,${JSON.stringify(input.pageMetadata)}::jsonb,${input.builderUserId}::uuid
   )`;
   return normalizeRevisionField(rows[0] || null, "current_revision");
+}
+
+export async function loadBuilderPageHotspots(sql, { bookSlug, componentSlug }) {
+  const rows = await sql`
+    select document.revision,document.schema_version,document.payload,document.payload_sha256
+    from builder_component_documents document
+    join book_components component on component.id=document.book_component_id
+    join book_packages package on package.id=document.book_package_id and package.id=component.book_package_id
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+      and document.document_type='hotspots' and document.document_key='default' limit 1
+  `;
+  return rows[0] || null;
+}
+
+export async function deleteBuilderPageLifecycle(sql, input) {
+  const rows = await sql`select * from delete_builder_component_page_lifecycle(
+    ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.expectedRevision},${input.expectedHotspotRevision},
+    ${input.clientMutationId}::uuid,${JSON.stringify(input.pageMetadata)}::jsonb,${input.hotspotSchemaVersion},
+    ${JSON.stringify(input.hotspotDocument)}::jsonb,${input.hotspotSha256},${input.removedHotspotCount},${input.preservedActivityCount},${input.builderUserId}::uuid
+  )`;
+  const row = rows[0] || null;
+  return row ? { ...row, current_revision: normalizeBuilderPageRevision(row.current_revision, { nullable: true }), hotspot_revision: normalizeBuilderPageRevision(row.hotspot_revision, { nullable: true }) } : null;
+}
+
+export async function restoreBuilderStudentsPage(sql, input) {
+  const rows = await sql`select * from restore_builder_students_page(
+    ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.expectedRevision},${input.clientMutationId}::uuid,${input.builderUserId}::uuid
+  )`;
+  return normalizeRevisionField(rows[0] || null, "current_revision", { nullable: true });
 }
 
 export async function loadBuilderPageAsset(sql, { bookSlug, componentSlug, pageKey, assetId }) {
