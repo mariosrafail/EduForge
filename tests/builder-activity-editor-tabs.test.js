@@ -28,10 +28,12 @@ test("shared Studio tabs implement the complete accessible keyboard contract", a
 
 test("every editable activity exposes only its supported semantic authoring modes", async () => {
   const source = Object.fromEntries(await Promise.all(Object.entries(editors).map(async ([name, path]) => [name, await read(path)])));
+  const listeningSupport = await read("src/apps/book-builder/hosted/nativeListeningEditorSupport.js");
   const expectLabels = (name, labels) => {
-    for (const label of labels) assert.match(source[name], new RegExp(`label: "${label}"`), `${name} must expose ${label}`);
+    const labelSource = name === "listening" ? `${source[name]}\n${listeningSupport}` : source[name];
+    for (const label of labels) assert.match(labelSource, new RegExp(`label: "${label}"`), `${name} must expose ${label}`);
     assert.match(source[name], /StudioTabWorkspace/);
-    assert.doesNotMatch(source[name], /label: "(?:Front|Back)"/);
+    assert.doesNotMatch(labelSource, /label: "(?:Front|Back)"/);
   };
 
   expectLabels("openResponse", ["Content", "Layout", "Readable Text", "Video", "Local Preview"]);
@@ -39,6 +41,8 @@ test("every editable activity exposes only its supported semantic authoring mode
   expectLabels("singleChoice", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
   expectLabels("completeSentences", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
   expectLabels("listening", ["Content", "Audio & Transcript", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
+  for (const label of ["Content", "Visual", "Audio & Timeline", "Page Mapping", "Answer Key", "Readable Text", "Video", "Local Preview"])
+    assert.match(listeningSupport, new RegExp(`label: "${label}"`), `oldschool listening must expose ${label}`);
   expectLabels("dragDrop", ["Content", "Layout", "Answer Key", "Local Preview"]);
   expectLabels("canonicalOpenResponse", ["Content", "Publisher Source"]);
 
