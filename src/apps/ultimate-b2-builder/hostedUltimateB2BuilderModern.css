@@ -99,7 +99,7 @@
 .native-or-question-workspace aside button > span { margin-top: 3px; color: var(--b-muted); font-size: .7rem; font-weight: 500; }
 .native-or-question-workspace code, .native-activity-foundation code { color: #98a2b3; font-size: .67rem; }
 .native-single-choice-editor fieldset > div { border: 1px solid var(--b-border); border-radius: 10px; background: #fbfcfe; }
-.native-single-choice-editor fieldset legend::after { content: " · Teacher-only answer"; color: #9a6700; }
+.native-single-choice-back[data-authoring-mode="answer-key"] fieldset legend::after { content: " · Teacher-only answer"; color: #9a6700; }
 
 .native-listening-editor-panels { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
 .native-listening-editor-panels button { display: grid; gap: 3px; border: 1px solid var(--b-border); border-radius: 12px; padding: 12px; background: #fff; font-weight: 800; text-align: left; }
