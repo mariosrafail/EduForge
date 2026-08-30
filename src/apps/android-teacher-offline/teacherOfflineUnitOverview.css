@@ -208,6 +208,14 @@
   line-height: 1.05;
 }
 
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) .teacher-unit-page-copy {
+  min-width: 0;
+}
+
+.teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) .teacher-unit-page-copy strong {
+  white-space: normal;
+}
+
 .teacher-offline-unit-overview-screen .teacher-unit-page-thumb {
   position: relative;
   width: 100%;

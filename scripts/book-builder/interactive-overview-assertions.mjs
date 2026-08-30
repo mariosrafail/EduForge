@@ -6,6 +6,9 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   const images = frame.locator(".teacher-unit-page-thumb img");
   await cards.nth(expected.labels.length - 1).waitFor();
   await images.nth(expected.labels.length - 1).waitFor();
+  await frame.locator("html").evaluate(async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+  });
   await images.evaluateAll(async (nodes, expectedCount) => {
     if (nodes.length !== expectedCount) throw new Error(`Expected ${expectedCount} overview images, found ${nodes.length}`);
     await Promise.all(nodes.map((image) => image.decode()));
@@ -13,11 +16,65 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
 
   const metrics = await frame.locator(".teacher-offline-unit-overview").evaluate((panel) => {
     const entries = [...panel.querySelectorAll("[data-overview-entry]")];
+    const rectangle = (node) => {
+      const { left, right, top, bottom, width, height } = node.getBoundingClientRect();
+      return { left, right, top, bottom, width, height };
+    };
+    const directionalOverflow = (child, container) => ({
+      left: Math.max(0, container.left - child.left),
+      right: Math.max(0, child.right - container.right),
+      top: Math.max(0, container.top - child.top),
+      bottom: Math.max(0, child.bottom - container.bottom),
+    });
+    const maximumOverflow = (overflow) => Math.max(...Object.values(overflow));
     const rectangles = entries.map((entry) => entry.getBoundingClientRect());
     const imageNodes = entries.map((entry) => entry.querySelector(".teacher-unit-page-thumb img"));
     const imageRectangles = imageNodes.map((image) => image.getBoundingClientRect());
     const thumbnailRectangles = entries.map((entry) => entry.querySelector(".teacher-unit-page-thumb").getBoundingClientRect());
     const panelRect = panel.getBoundingClientRect();
+    const geometry = entries.map((entry) => {
+      const card = rectangle(entry);
+      const children = [
+        ["copy", entry.querySelector(".teacher-unit-page-copy")],
+        ["title", entry.querySelector(".teacher-unit-page-copy strong")],
+        ["pageLabel", entry.querySelector(".teacher-unit-page-copy b")],
+        ["thumbnail", entry.querySelector(".teacher-unit-page-thumb")],
+        ["image", entry.querySelector(".teacher-unit-page-thumb img")],
+      ].filter(([, node]) => node).map(([kind, node]) => {
+        const child = rectangle(node);
+        const cardOverflow = directionalOverflow(child, card);
+        const panelOverflow = directionalOverflow(child, panelRect);
+        const style = kind === "title" || kind === "pageLabel" ? getComputedStyle(node) : null;
+        return {
+          kind,
+          text: node.textContent?.trim() || null,
+          rectangle: child,
+          cardOverflow,
+          panelOverflow,
+          maximumCardOverflow: maximumOverflow(cardOverflow),
+          maximumPanelOverflow: maximumOverflow(panelOverflow),
+          textStyle: style ? {
+            fontFamily: style.fontFamily,
+            fontSize: style.fontSize,
+            fontStretch: style.fontStretch,
+            fontWeight: style.fontWeight,
+            lineHeight: style.lineHeight,
+            overflow: style.overflow,
+            textOverflow: style.textOverflow,
+            whiteSpace: style.whiteSpace,
+          } : null,
+        };
+      });
+      return {
+        entry: entry.dataset.overviewEntry,
+        card,
+        cardPanelOverflow: directionalOverflow(card, panelRect),
+        children,
+      };
+    });
+    const offenders = geometry.flatMap(({ entry, children }) => children.map((child) => ({ entry, ...child })))
+      .sort((left, right) => Math.max(right.maximumCardOverflow, right.maximumPanelOverflow) - Math.max(left.maximumCardOverflow, left.maximumPanelOverflow));
+    const loadedFontFaces = document.fonts ? [...document.fonts].map((face) => ({ family: face.family, status: face.status, style: face.style, weight: face.weight })) : [];
     return {
       labels: entries.map((entry) => entry.querySelector(".teacher-unit-page-copy b")?.textContent?.trim()),
       rows: entries.map((entry) => Number(entry.dataset.overviewRow)),
@@ -51,9 +108,32 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
       overviewBook: panel.dataset.overviewBook,
       thumbnailToken: getComputedStyle(panel).getPropertyValue("--teacher-unit-overview-thumbnail-height").trim(),
       panelOverflow: panel.scrollWidth - panel.clientWidth,
+      panelVerticalOverflow: panel.scrollHeight - panel.clientHeight,
       documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      documentVerticalOverflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+      panelGeometry: {
+        rectangle: rectangle(panel),
+        clientWidth: panel.clientWidth,
+        clientHeight: panel.clientHeight,
+        scrollWidth: panel.scrollWidth,
+        scrollHeight: panel.scrollHeight,
+      },
+      geometry,
+      maximumOffender: offenders[0],
+      fontState: {
+        status: document.fonts?.status || "unsupported",
+        pfStieleCheck: document.fonts?.check('30.4px "PF Stiele Futura Medium"') || false,
+        arialNarrowCheck: document.fonts?.check('30.4px "Arial Narrow"') || false,
+        arialCheck: document.fonts?.check("30.4px Arial") || false,
+        loadedFontFaces,
+      },
     };
   });
+
+  const childContainmentFailures = metrics.geometry.flatMap(({ entry, children }) => children
+    .filter((child) => child.maximumCardOverflow > 1 || child.maximumPanelOverflow > 1)
+    .map((child) => ({ entry, ...child })));
+  console.log(`${label} geometry: ${JSON.stringify({ panel: metrics.panelGeometry, fontState: metrics.fontState, maximumOffender: metrics.maximumOffender, childContainmentFailures })}`);
 
   assert.deepEqual(metrics.labels, expected.labels, `${label} labels`);
   assert.deepEqual(metrics.rows, expected.rows, `${label} rows`);
@@ -69,8 +149,14 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   assert.equal(metrics.imagesContained, true, `${label} images are not clipped`);
   assert.ok(metrics.objectFits.every((value) => value === "contain"), `${label} object-fit contain`);
   assert.equal(metrics.objectFits.length, expected.labels.length, `${label} all images rendered`);
+  assert.equal(metrics.fontState.status, "loaded", `${label} deterministic font state`);
+  if (expected.overviewBook === "workbook" || expected.overviewBook === "grammar-book") {
+    assert.deepEqual(childContainmentFailures, [], `${label} managed card children fit their cards and panel`);
+  }
   assert.ok(metrics.panelOverflow <= 1, `${label} panel overflow: ${metrics.panelOverflow}px`);
+  assert.ok(metrics.panelVerticalOverflow <= 1, `${label} vertical panel overflow: ${metrics.panelVerticalOverflow}px`);
   assert.ok(metrics.documentOverflow <= 1, `${label} document overflow`);
+  assert.ok(metrics.documentVerticalOverflow <= 1, `${label} vertical document overflow`);
 
   if (expected.imageHeightParityTolerance !== undefined) {
     const singleIndices = metrics.weights.map((weight, index) => weight === 1 ? index : -1).filter((index) => index >= 0);
