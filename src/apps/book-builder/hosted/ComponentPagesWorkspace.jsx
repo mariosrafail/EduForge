@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCcw, RotateCcw, Trash2, Upload
 
 import { BuilderModal } from "./BuilderModal.jsx";
 import { finalizeBuilderPage, getBuilderPages, mutateBuilderPage, prepareBuilderPage, uploadBuilderPage } from "./builderPagesApi.js";
+import { componentPagesErrorPresentation } from "./componentPagesErrorPresentation.js";
 import { componentPageLayoutPolicy, componentPageRowMaxWidth, printedPageWeight, splitUnitPageRows } from "./componentPageRows.js";
 import { useBuilderReview } from "./HostedPackageReview.jsx";
 import "./componentPagesWorkspace.css";
@@ -83,7 +84,7 @@ export function ComponentPagesWorkspace({ bookSlug, componentSlug, onPageLibrary
   const run = async (operation) => {
     setBusy(true); setProgress(0); setState((current) => ({ ...current, error: "" }));
     try { const result = await operation(); if (result?.pages) apply(result); }
-    catch (error) { setState((current) => ({ ...current, error: error?.payload?.error || error.message || "Page operation failed.", conflict: error?.status === 409 })); }
+    catch (error) { const presentation = componentPagesErrorPresentation(error); setState((current) => ({ ...current, error: presentation.message, conflict: presentation.conflict })); }
     finally { setBusy(false); setProgress(0); }
   };
   const replace = (page, file) => run(() => uploadOne({ file, mode: "replace", pageId: page.id, metadata: metadataFor(page, managed), expectedRevision: state.revision }));

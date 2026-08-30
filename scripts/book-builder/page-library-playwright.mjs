@@ -43,6 +43,8 @@ const state = {
 const sessions = new Map();
 const uploads = new Map([[legacyAssetId, imageA]]);
 const reviewIntents = [];
+let nextMutationFailure = null;
+let previewAuthorizationRequests = 0;
 let origin;
 
 function json(response, status, value) { const encoded = JSON.stringify(value); response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(encoded), "Cache-Control": "no-store" }); response.end(encoded); }
@@ -70,6 +72,7 @@ async function pagesApi(request, response, url) {
   }
   const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
   const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); const deletedIndex = current.deletedPages.findIndex((page) => page.id === pageId); if (index < 0 && !(action === "restore" && deletedIndex >= 0)) { json(response, 404, { error: "page_not_found" }); return true; }
+  if (nextMutationFailure) { const failure = nextMutationFailure; nextMutationFailure = null; json(response, failure.status, { error: failure.code, currentRevision: current.revision, currentHotspotRevision: current.hotspotRevision }); return true; }
   if (action === "restore" && deletedIndex >= 0) {
     const [deleted] = current.deletedPages.splice(deletedIndex, 1);
     current.pages.push(componentSlug.endsWith("students-book") ? { ...canonicalStudentsBookPages.find((page) => page.id === pageId) } : { ...deleted });
@@ -82,7 +85,7 @@ async function pagesApi(request, response, url) {
 }
 
 async function staticFile(pathname, response) { const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, ""); let file = path.resolve(root, relative); let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null; if (!details?.isFile()) { file = path.join(root, "index.html"); details = await stat(file); } response.writeHead(200, { "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": details.size }); createReadStream(file).pipe(response); }
-const server = createServer(async (request, response) => { const url = new URL(request.url, "http://127.0.0.1"); if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "pages-browser", full_name: "Pages Browser", role: "developer", status: "active" } }); if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") return json(response, 200, { token: `v2.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" }); if (url.pathname.startsWith("/test-upload/") && request.method === "PUT") { uploads.set(url.pathname.split("/").at(-1), await requestBody(request)); response.writeHead(200); response.end(); return; } if (url.pathname.startsWith("/test-uploaded/")) { const bytes = uploads.get(url.pathname.split("/").at(-1)); if (!bytes) return json(response, 404, {}); response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }); response.end(bytes); return; } if (await pagesApi(request, response, url)) return; await staticFile(url.pathname, response); });
+const server = createServer(async (request, response) => { const url = new URL(request.url, "http://127.0.0.1"); if (url.pathname === "/builder/api/auth" && url.searchParams.get("action") === "me") return json(response, 200, { authenticated: true, builderUser: { id: "pages-browser", full_name: "Pages Browser", role: "developer", status: "active" } }); if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") { previewAuthorizationRequests += 1; return json(response, 200, { token: `v2.eA.${"a".repeat(43)}`, expiresAt: "2099-01-01T00:00:00.000Z" }); } if (url.pathname.startsWith("/test-upload/") && request.method === "PUT") { uploads.set(url.pathname.split("/").at(-1), await requestBody(request)); response.writeHead(200); response.end(); return; } if (url.pathname.startsWith("/test-uploaded/")) { const bytes = uploads.get(url.pathname.split("/").at(-1)); if (!bytes) return json(response, 404, {}); response.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length }); response.end(bytes); return; } if (await pagesApi(request, response, url)) return; await staticFile(url.pathname, response); });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); origin = `http://127.0.0.1:${server.address().port}`;
 
 function group(page, title) { return page.locator(".component-pages-groups section", { has: page.getByRole("heading", { name: new RegExp(`^${title}\\b`) }) }); }
@@ -234,12 +237,47 @@ try {
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor();
   await studentCard.getByTitle("Restore canonical image").click();
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await page.frameLocator(".unified-builder-review-dialog iframe").getByRole("heading", { name: "Canonical Viewer fixture" }).waitFor();
+  await page.getByRole("button", { name: "Close Review" }).click();
+  const authorizationCountBeforeFailures = previewAuthorizationRequests;
+  const revisionBeforeFailures = state["ultimate-b2-students-book"].revision;
+  const errorCountBeforeFailures = errors.length;
+  for (const failure of [
+    { code: "revision_conflict", status: 409, message: /page library revision changed/i, conflict: true },
+    { code: "hotspot_revision_conflict", status: 409, message: /hotspot revision changed/i, conflict: true },
+    { code: "unsupported_page_reference", status: 409, message: /reference that cannot be removed safely/i, conflict: false },
+    { code: "page_lifecycle_schema_not_ready", status: 503, message: /temporarily unavailable while the lifecycle service is being prepared/i, conflict: false },
+  ]) {
+    nextMutationFailure = failure;
+    await studentCard.getByTitle("Delete page").click();
+    await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click();
+    const alert = page.getByRole("alert");
+    await alert.waitFor();
+    assert.match(await alert.innerText(), failure.message);
+    assert.equal(await alert.getByRole("button", { name: "Reload latest" }).count(), failure.conflict ? 1 : 0);
+    assert.equal(/library changed elsewhere/i.test(await alert.innerText()), failure.conflict);
+    assert.equal(await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).count(), 1);
+    assert.equal(state["ultimate-b2-students-book"].revision, revisionBeforeFailures);
+    assert.equal(previewAuthorizationRequests, authorizationCountBeforeFailures);
+  }
+  const expectedFailureDiagnostics = errors.splice(errorCountBeforeFailures);
+  assert.equal(expectedFailureDiagnostics.length, 4);
+  assert.equal(expectedFailureDiagnostics.every((message) => /^Failed to load resource: the server responded with a status of (?:409|503) /.test(message)), true);
+
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).getByTitle("Delete page").click();
   const deleteModal = page.locator(".builder-modal");
   await deleteModal.getByText("Activities and their assets will be preserved.", { exact: false }).waitFor();
   await deleteModal.getByText("Restoring the page later will not recreate its hotspots.", { exact: true }).waitFor();
   await deleteModal.getByRole("button", { name: "Delete page" }).click();
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"]`).waitFor({ state: "detached" });
+  assert.equal(previewAuthorizationRequests, authorizationCountBeforeFailures);
+  const reviewRefresh = page.waitForResponse((response) => response.url().includes("/builder/api/preview-authorization") && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  await reviewRefresh;
+  await page.getByRole("button", { name: "Close Review" }).click();
+  assert.equal(previewAuthorizationRequests, authorizationCountBeforeFailures + 1);
   const deletedPages = page.locator(".component-deleted-pages");
   await deletedPages.locator("summary").click();
   await deletedPages.getByText(baseline.id, { exact: true }).waitFor();

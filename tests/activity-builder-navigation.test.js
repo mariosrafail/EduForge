@@ -32,3 +32,13 @@ test("unknown placement falls back to a deterministic unplaced native group", ()
   const model = buildActivityBuilderNavigation({ units, placements, nativeActivities: [{ ...nativeActivities[0], activityId: "z", placement: { pageId: "missing" } }, { ...nativeActivities[0], activityId: "a", title: "Alpha", placement: { pageId: "missing" } }] });
   assert.deepEqual(model.unplaced.map(({ id }) => id), ["a", "z"]);
 });
+
+test("deleted-page projection keeps canonical and Student native activities discoverable", () => {
+  const model = buildActivityBuilderNavigation({ units, placements, nativeActivities, activePageIds: [] });
+  const canonical = findActivityBuilderItem(model, "canonical-read");
+  const native = findActivityBuilderItem(model, "native-choice");
+  assert.equal(canonical.page, null);
+  assert.equal(canonical.item.placementUnavailable, true);
+  assert.equal(native.page.id, "page-6");
+  assert.equal(native.item.native, true);
+});

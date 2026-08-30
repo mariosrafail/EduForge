@@ -275,6 +275,20 @@ test("Single Choice private key changes deterministically change source and rele
   assert.deepEqual(first.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId], changed.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId]);
 });
 
+test("page lifecycle keeps Unit Extras visibility dormant without changing publication compatibility", () => {
+  const baseline = compilePublicationV2Fixture();
+  const sources = createPublicationV2FixtureSources();
+  sources.pages = {
+    revision: 1,
+    rows: [{ stable_key: `ultimate-b2-students-book/pages/${publicationV2Fixture.pageId}`, source_metadata: { is_deleted: true } }],
+  };
+  const deletedPageRelease = compileUltimateB2ComponentReleaseV2(sources);
+  assert.equal(deletedPageRelease.compatibility, baseline.compatibility);
+  assert.equal(deletedPageRelease.publicProjection.activePageIds.includes(publicationV2Fixture.pageId), false);
+  assert.deepEqual(deletedPageRelease.publicProjection.unitExtras, baseline.publicProjection.unitExtras);
+  assert.deepEqual(deletedPageRelease.sourceSnapshot.unitExtras, baseline.sourceSnapshot.unitExtras);
+});
+
 test("referenced native publication readiness rejects incomplete Open Response, Image, and Single Choice drafts", () => {
   const cases = [];
   const zeroQuestions = createPublicationV2FixtureSources();
