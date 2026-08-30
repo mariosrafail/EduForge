@@ -9,6 +9,7 @@ import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 import { assertInteractiveOverview } from "./interactive-overview-assertions.mjs";
 import { managedOverviewDescriptors, managedPageBytes, managedPageFixture, managedSpreadPageWidth } from "./interactive-overview-fixtures.mjs";
+import { assertDelayedManagedComponentCatalogIsolation, assertManagedComponentActivityLifecycle } from "./multi-book-component-activity-lifecycle.mjs";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
@@ -658,56 +659,15 @@ try {
     await page.getByText("Draft saved.", { exact: true }).waitFor();
     assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.metadata.title, `${title} saved image`);
     assert.doesNotMatch(JSON.stringify(state.documents.get(`native_activity_public:${activityId}`).document), /solution|answerKey|modelAnswer/i);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByLabel("Activity title").waitFor();
-    assert.equal(await page.getByLabel("Activity title").inputValue(), `${title} saved image`);
-    await page.getByRole("button", { name: "Move Activity" }).click();
-    const destination = managedCatalogs[componentSlug].pages[1].id;
-    const moveDialog = page.getByRole("dialog", { name: "Move activity" });
-    await moveDialog.getByLabel("Destination").selectOption(destination);
-    await moveDialog.getByRole("button", { name: "Move Activity", exact: true }).click();
-    await page.getByText("Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.", { exact: true }).waitFor();
-    assert.equal(state.index.document.activities[0].placement.pageId, destination);
-    assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.placement.pageId, destination);
-
-    const deletedPage = managedCatalogs[componentSlug].pages.find((candidate) => candidate.id === destination);
-    deletedPage.isActive = false;
-    deletedPage.removedHotspotCount = 0;
-    deletedPage.preservedActivityCount = 1;
-    managedCatalogs[componentSlug].revision += 1;
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByRole("heading", { name: "Unassigned", exact: true }).waitFor();
-    assert.equal(await page.getByText(`${title} activities could not be loaded.`, { exact: true }).count(), 0);
-    await page.getByRole("button", { name: new RegExp(activityId) }).click();
-    await page.getByRole("heading", { name: `${title} saved image`, exact: true }).waitFor();
-    await page.getByRole("button", { name: "Move Activity", exact: true }).click();
-    const rescueDestination = managedCatalogs[componentSlug].pages[2].id;
-    const rescueDialog = page.getByRole("dialog", { name: "Move activity" });
-    await rescueDialog.getByLabel("Destination").selectOption(rescueDestination);
-    await rescueDialog.getByRole("button", { name: "Move Activity", exact: true }).click();
-    await page.getByText("Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.", { exact: true }).waitFor();
-    assert.equal(state.index.document.activities[0].placement.pageId, rescueDestination);
-    assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.placement.pageId, rescueDestination);
-    assert.equal(Object.values(state.hotspots.document.pages).flat().some((hotspot) => hotspot.activityKey === activityId), false, "moving an Unassigned activity must not create a hotspot");
-    deletedPage.isActive = true;
-    managedCatalogs[componentSlug].revision += 1;
-    assert.equal(Object.values(state.hotspots.document.pages).flat().some((hotspot) => hotspot.activityKey === activityId), false, "restoring the page must not recreate its hotspot");
+    await assertManagedComponentActivityLifecycle({
+      page, componentSlug, componentTitle: title, activityId, managedNativeState: state,
+      managedComponentCatalog: selectedCatalog,
+    });
   }
 
-  delayedWorkbookCatalog = true;
-  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.workbook}/activities`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(40);
-  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.grammar}/activities`, { waitUntil: "domcontentloaded" });
-  await page.getByLabel("Activity title").waitFor();
-  assert.equal(await page.getByLabel("Activity title").inputValue(), "Grammar Book saved image");
-  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-wb-"), false, "a delayed Workbook catalog cannot repopulate Grammar state");
-  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.workbook}/activities`, { waitUntil: "domcontentloaded" });
-  await page.getByLabel("Activity title").waitFor();
-  assert.equal(await page.getByLabel("Activity title").inputValue(), "Workbook saved image");
-  await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "Activity authoring" }).waitFor();
-  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-wb-"), false);
-  assert.equal((await page.locator("body").innerText()).includes("ultimate-b2-gb-"), false);
+  await assertDelayedManagedComponentCatalogIsolation({
+    page, origin, components, enableDelayedWorkbookCatalog: () => { delayedWorkbookCatalog = true; },
+  });
 
   const residentExchangeStart = exchangeRequests.length;
   const residentCatalogStart = managedCatalogRequests.length;
