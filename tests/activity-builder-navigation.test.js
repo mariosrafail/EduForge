@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { activityBuilderTypeOptions, buildActivityBuilderNavigation, filterActivityBuilderNavigation, findActivityBuilderItem } from "../src/apps/ultimate-b2-builder/activityBuilderNavigation.js";
+import { activityBuilderSourcePageId, activityBuilderTypeOptions, buildActivityBuilderNavigation, filterActivityBuilderNavigation, findActivityBuilderItem } from "../src/apps/ultimate-b2-builder/activityBuilderNavigation.js";
 
 const units = [{ id: "unit-1", unitNumber: 1, title: "Unit 1", lessons: [{ id: "lesson-1", title: "Reading", sectionTitle: "Reading", pageLabel: "Pages 6-7", exercises: [
   { stableActivityId: "canonical-read", title: "Read and respond", description: "Find the details", activityType: "open-response" },
@@ -28,9 +28,10 @@ test("search and access/type filters use safe catalog metadata and preserve a st
   assert.deepEqual(activityBuilderTypeOptions(model), ["image", "open-response", "single-choice"]);
 });
 
-test("unknown placement falls back to a deterministic unplaced native group", () => {
+test("unknown placement falls back to the deterministic Unassigned group", () => {
   const model = buildActivityBuilderNavigation({ units, placements, nativeActivities: [{ ...nativeActivities[0], activityId: "z", placement: { pageId: "missing" } }, { ...nativeActivities[0], activityId: "a", title: "Alpha", placement: { pageId: "missing" } }] });
-  assert.deepEqual(model.unplaced.map(({ id }) => id), ["a", "z"]);
+  assert.deepEqual(model.unassigned.map(({ id }) => id), ["a", "z"]);
+  assert.ok(model.unassigned.every((item) => item.assignment.reason === "page-unavailable"));
 });
 
 test("deleted-page projection keeps canonical and Student native activities discoverable", () => {
@@ -38,7 +39,20 @@ test("deleted-page projection keeps canonical and Student native activities disc
   const canonical = findActivityBuilderItem(model, "canonical-read");
   const native = findActivityBuilderItem(model, "native-choice");
   assert.equal(canonical.page, null);
-  assert.equal(canonical.item.placementUnavailable, true);
-  assert.equal(native.page.id, "page-6");
+  assert.deepEqual(canonical.item.assignment, { state: "unassigned", reason: "page-deleted" });
+  assert.equal(canonical.item.sourcePageId, "page-6");
+  assert.equal(native.page, null);
   assert.equal(native.item.native, true);
+  assert.deepEqual(native.item.assignment, { state: "unassigned", reason: "page-unavailable" });
+  assert.equal(activityBuilderSourcePageId(native), "page-6");
+});
+
+test("catalog assignment reasons unify deleted and genuinely unplaced native activities while preserving filters", () => {
+  const model = buildActivityBuilderNavigation({ units, placements, activePageIds: ["page-6"], nativeActivities: [
+    { ...nativeActivities[0], activityId: "deleted-native", assignment: { state: "unassigned", reason: "page-deleted" }, sourcePageId: "deleted-page" },
+    { ...nativeActivities[0], activityId: "unplaced-native", title: "Searchable orphan", placement: { pageId: "missing" }, assignment: { state: "unassigned", reason: "page-unavailable" } },
+  ] });
+  assert.deepEqual(model.unassigned.map(({ id }) => id), ["deleted-native", "unplaced-native"]);
+  assert.deepEqual(filterActivityBuilderNavigation(model, { query: "orphan" }).unassigned.map(({ id }) => id), ["unplaced-native"]);
+  assert.deepEqual(filterActivityBuilderNavigation(model, { access: "native" }).unassigned.map(({ id }) => id), ["deleted-native", "unplaced-native"]);
 });

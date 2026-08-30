@@ -52,6 +52,7 @@ function harness(options = {}) {
     storage: () => storage,
     loadPages: async (_sql, identity) => options.loadPages?.(identity) || { revision: options.revision || 0, hotspotRevision: 0, rows: [], units: identity.componentSlug === "ultimate-b2-students-book" ? [] : managedUnits(identity.componentSlug) },
     loadHotspots: async () => options.hotspots || null,
+    loadActivityReferences: async () => options.activityReferences || { nativeIndex: null, lifecycle: null, legacyActivityIds: [] },
     prepare: async (_sql, input) => {
       prepared = input;
       return { outcome: "prepared", upload_id: uploadId, current_revision: input.expectedRevision, session_state: "prepared", staging_object_key: input.stagingObjectKey };
@@ -66,7 +67,8 @@ function harness(options = {}) {
     fail: async (_sql, input) => { failed = input; return true; },
     mutate: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
     deleteLifecycle: async (_sql, input) => { lifecycleMutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1, hotspot_revision: input.expectedHotspotRevision + (input.removedHotspotCount ? 1 : 0), removed_hotspot_count: input.removedHotspotCount, preserved_activity_count: input.preservedActivityCount }; },
-    restoreStudentsPage: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
+    restorePage: options.restorePage || (async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; }),
+    purgePage: options.purgePage || (async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; }),
     loadAsset: options.loadAsset || (async () => null),
     inspectRaster: options.inspectRaster,
     logger: { error() {} },
@@ -129,6 +131,32 @@ test("managed list serializes relational Unit metadata and normalizes bigint rev
   assert.equal(body.pages[0].image.byteSize, 10);
 });
 
+test("all components expose explicit page capabilities and safe Deleted Pages lifecycle metadata", async () => {
+  const units = managedUnits("ultimate-b2-workbook");
+  const studentOverride = harness({ loadPages: () => ({ revision: 2, hotspotRevision: 1, units: [], rows: [{
+    stable_key: first.stableKey, label: "Edited Student label", sort_order: first.sortOrder + 4, unit_id: units[0].id,
+    source_metadata: { has_metadata_override: true, printed_label: "Edited 6-7" }, asset_id: null,
+  }] }) });
+  const student = JSON.parse((await studentOverride.handler(request(`${base}/ultimate-b2-students-book`))).body);
+  const edited = student.pages.find((page) => page.id === first.id);
+  assert.equal(edited.label, "Edited Student label");
+  assert.equal(edited.printedLabel, "Edited 6-7");
+  assert.equal(edited.image.source, "repository-baseline");
+  assert.deepEqual(edited.capabilities, { moveUp: true, moveDown: true, editMetadata: true, replaceImage: true, restoreCanonicalImage: false, deletePage: true });
+
+  const deletedRow = { id: actor, stable_key: "ultimate-b2-workbook/pages/wb-deleted", label: "Deleted Workbook page", sort_order: 4,
+    unit_id: units[0].id, unit_slug: "unit-1", unit_number: 1, unit_title: "Unit 1", unit_sort_order: 1,
+    source_metadata: { is_active: false, is_deleted: true, printed_label: "14", removed_hotspot_count: 2, preserved_activity_count: 3, deleted_at: "2026-08-30T10:00:00Z" } };
+  const managed = harness({ loadPages: () => ({ revision: 5, hotspotRevision: 2, units, rows: [deletedRow] }) });
+  const workbook = JSON.parse((await managed.handler(request(`${base}/ultimate-b2-workbook`))).body);
+  assert.deepEqual(workbook.pages, []);
+  assert.deepEqual(workbook.deletedPages[0], {
+    id: "wb-deleted", stableKey: deletedRow.stable_key, componentSlug: "ultimate-b2-workbook", source: "deleted", unitId: units[0].id,
+    unitNumber: 1, unitTitle: "Unit 1", label: "Deleted Workbook page", printedLabel: "14", sortOrder: 4,
+    removedHotspotCount: 2, preservedActivityCount: 3, deletedAt: "2026-08-30T10:00:00Z", canRestore: true, canDeleteCompletely: true,
+  });
+});
+
 test("Students Book replacement prepare is baseline-bound and returns only signed upload authorization", async () => {
   const current = harness(); const clientMutationId = randomUUID();
   const valid = { mode: "replace", pageId: first.id, expectedRevision: 0, clientMutationId, metadata: { label: "ignored", printedLabel: "", sortOrder: 1 }, file: { name: "replacement.png", size: canonicalBytes.length, type: "image/png" } };
@@ -181,6 +209,42 @@ test("Student and managed delete use one revision-bound page/hotspot lifecycle m
   assert.equal(workbook.statusCode, 200);
   assert.equal(current.getLifecycleMutation().pageKey, "ultimate-b2-workbook/pages/wb-page-safe");
   assert.equal(current.getLifecycleMutation().componentSlug, "ultimate-b2-workbook");
+});
+
+test("delete counts every authoritative activity on the page, not only hotspot targets", async () => {
+  const current = harness({ activityReferences: {
+    nativeIndex: { activities: [{ activityId: "native-one", placement: { pageId: first.id } }] },
+    lifecycle: { activities: { "legacy-u1-p1-a1": { status: "active", pageId: first.id } } },
+    legacyActivityIds: ["legacy-database-row"],
+  } });
+  const body = { expectedRevision: 0, expectedHotspotRevision: 0, clientMutationId: randomUUID(), metadata: {} };
+  const response = await current.handler(request(`${base}/ultimate-b2-students-book/pages/${first.id}/delete`, body));
+  assert.equal(response.statusCode, 200, response.body);
+  assert.ok(current.getLifecycleMutation().preservedActivityCount >= 3);
+});
+
+test("Students Book reorder accepts the zero boundary needed to move before the first canonical page", async () => {
+  const current = harness();
+  const input = { expectedRevision: 0, clientMutationId: randomUUID(), metadata: { label: first.label, printedLabel: first.printedLabel, sortOrder: 0 } };
+  const response = await current.handler(request(`${base}/ultimate-b2-students-book/pages/${first.id}/reorder`, input));
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(current.getMutation().pageMetadata.sortOrder, 0);
+});
+
+test("restore and Delete completely are component-scoped revision mutations with controlled schema rollout", async () => {
+  const current = harness({ revision: 4 });
+  const input = { expectedRevision: 4, clientMutationId: randomUUID(), metadata: {} };
+  const restored = await current.handler(request(`${base}/ultimate-b2-workbook/pages/wb-deleted/restore`, input));
+  assert.equal(restored.statusCode, 200, restored.body);
+  assert.equal(current.getMutation().componentSlug, "ultimate-b2-workbook");
+  const purged = await current.handler(request(`${base}/ultimate-b2-grammar-book/pages/gb-deleted/purge`, { ...input, clientMutationId: randomUUID() }));
+  assert.equal(purged.statusCode, 200, purged.body);
+  assert.equal(current.getMutation().componentSlug, "ultimate-b2-grammar-book");
+
+  const unavailable = harness({ restorePage: async () => { throw Object.assign(new Error("missing function"), { code: "42883" }); } });
+  const response = await unavailable.handler(request(`${base}/ultimate-b2-workbook/pages/wb-deleted/restore`, { expectedRevision: 0, clientMutationId: randomUUID(), metadata: {} }));
+  assert.equal(response.statusCode, 503);
+  assert.equal(JSON.parse(response.body).error, "page_lifecycle_schema_not_ready");
 });
 
 test("managed preview library authorization reaches every same-component page while page authorization remains exact", async () => {

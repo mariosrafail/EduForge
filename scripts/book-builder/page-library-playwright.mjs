@@ -49,7 +49,9 @@ let origin;
 
 function json(response, status, value) { const encoded = JSON.stringify(value); response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(encoded), "Cache-Control": "no-store" }); response.end(encoded); }
 async function requestBody(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); return Buffer.concat(chunks); }
-function library(componentSlug) { const current = state[componentSlug]; const title = componentSlug.endsWith("workbook") ? "Workbook" : componentSlug.endsWith("grammar-book") ? "Grammar Book" : "Students Book"; return { revision: current.revision, hotspotRevision: current.hotspotRevision, component: { bookSlug: "ultimate-b2", componentSlug, kind: managedSlugs.includes(componentSlug) ? "managed" : "students-book", title }, units: current.units, pages: current.pages, deletedPages: current.deletedPages }; }
+function projectPage(componentSlug, page) { return { ...page, capabilities: { moveUp: true, moveDown: true, editMetadata: true, replaceImage: true, restoreCanonicalImage: componentSlug.endsWith("students-book") && page.source === "override", deletePage: true } }; }
+function projectDeleted(page) { return { ...page, canRestore: true, canDeleteCompletely: true }; }
+function library(componentSlug) { const current = state[componentSlug]; const title = componentSlug.endsWith("workbook") ? "Workbook" : componentSlug.endsWith("grammar-book") ? "Grammar Book" : "Students Book"; return { revision: current.revision, hotspotRevision: current.hotspotRevision, component: { bookSlug: "ultimate-b2", componentSlug, kind: managedSlugs.includes(componentSlug) ? "managed" : "students-book", title, capabilities: { restoreDeletedPage: true, deleteCompletely: true } }, units: current.units, pages: current.pages.map((page) => projectPage(componentSlug, page)), deletedPages: current.deletedPages.map(projectDeleted) }; }
 function unitMetadata(current, unitId) { const unit = current.units.find((candidate) => candidate.id === unitId); return unit ? { unitId: unit.id, unitSlug: unit.slug, unitNumber: unit.unitNumber, unitTitle: unit.title, unitSortOrder: unit.sortOrder } : { unitId: null, unitSlug: null, unitNumber: null, unitTitle: "", unitSortOrder: null }; }
 
 async function pagesApi(request, response, url) {
@@ -70,16 +72,21 @@ async function pagesApi(request, response, url) {
     else { const index = current.pages.findIndex((page) => page.id === session.pageId); const existing = current.pages[index]; current.pages[index] = { ...existing, source: componentSlug.endsWith("students-book") ? "override" : "managed", image: managedImage(input.uploadId, bytes), ...(componentSlug.endsWith("students-book") ? { baselineImage: existing.baselineImage || existing.image } : {}) }; }
     current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
   }
-  const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
-  const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); const deletedIndex = current.deletedPages.findIndex((page) => page.id === pageId); if (index < 0 && !(action === "restore" && deletedIndex >= 0)) { json(response, 404, { error: "page_not_found" }); return true; }
+  const mutation = suffix.match(/^\/pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore|restore-image|purge)$/); if (!mutation) { json(response, 404, { error: "page_route_not_found" }); return true; }
+  const [, pageId, action] = mutation; const index = current.pages.findIndex((page) => page.id === pageId); const deletedIndex = current.deletedPages.findIndex((page) => page.id === pageId); if (index < 0 && !(["restore", "purge"].includes(action) && deletedIndex >= 0)) { json(response, 404, { error: "page_not_found" }); return true; }
   if (nextMutationFailure) { const failure = nextMutationFailure; nextMutationFailure = null; json(response, failure.status, { error: failure.code, currentRevision: current.revision, currentHotspotRevision: current.hotspotRevision }); return true; }
   if (action === "restore" && deletedIndex >= 0) {
     const [deleted] = current.deletedPages.splice(deletedIndex, 1);
-    current.pages.push(componentSlug.endsWith("students-book") ? { ...canonicalStudentsBookPages.find((page) => page.id === pageId) } : { ...deleted });
+    const { removedHotspotCount: _removed, preservedActivityCount: _preserved, ...restored } = deleted;
+    current.pages.push(restored);
     current.pages.sort((left, right) => (left.unitSortOrder ?? left.unitNumber ?? Number.MAX_SAFE_INTEGER) - (right.unitSortOrder ?? right.unitNumber ?? Number.MAX_SAFE_INTEGER) || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
-  } else if (action === "restore") current.pages[index] = { ...canonicalStudentsBookPages.find((page) => page.id === pageId) };
-  else if (action === "delete") { const [deleted] = current.pages.splice(index, 1); current.deletedPages.push({ ...deleted, removedHotspotCount: componentSlug.endsWith("students-book") ? 2 : 1 }); current.hotspotRevision += 1; }
-  else current.pages[index] = { ...current.pages[index], ...input.metadata, ...unitMetadata(current, input.metadata.unitId) };
+  } else if (action === "restore-image") {
+    const baseline = canonicalStudentsBookPages.find((page) => page.id === pageId);
+    current.pages[index] = { ...current.pages[index], source: "metadata-override", image: baseline.image };
+    delete current.pages[index].baselineImage;
+  } else if (action === "purge" && deletedIndex >= 0) current.deletedPages.splice(deletedIndex, 1);
+  else if (action === "delete") { const [deleted] = current.pages.splice(index, 1); current.deletedPages.push({ ...deleted, removedHotspotCount: componentSlug.endsWith("students-book") ? 2 : 1, preservedActivityCount: componentSlug.endsWith("students-book") ? 3 : 2 }); current.hotspotRevision += 1; }
+  else current.pages[index] = { ...current.pages[index], ...input.metadata, ...(managedSlugs.includes(componentSlug) ? unitMetadata(current, input.metadata.unitId) : { source: current.pages[index].source === "override" ? "override" : "metadata-override" }) };
   if (action === "metadata" || action === "reorder") current.pages.sort((left, right) => (left.unitSortOrder ?? Number.MAX_SAFE_INTEGER) - (right.unitSortOrder ?? Number.MAX_SAFE_INTEGER) || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
   current.revision += 1; json(response, 200, { ...library(componentSlug), idempotent: false }); return true;
 }
@@ -201,6 +208,22 @@ try {
   await workbookB.getByTitle("Delete page").click();
   await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click();
   await workbookB.waitFor({ state: "detached" });
+  const workbookDeleted = page.locator(".component-deleted-pages");
+  await workbookDeleted.locator("summary").click();
+  await workbookDeleted.getByText(/2 activities preserved/).waitFor();
+  await workbookDeleted.getByRole("button", { name: "Restore page" }).click();
+  await group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" }).waitFor();
+  await group(page, "Unit 1").locator(".component-page-card", { hasText: "Workbook B" }).getByTitle("Delete page").click();
+  await page.locator(".builder-modal").getByRole("button", { name: "Delete page" }).click();
+  await workbookDeleted.locator("summary").click();
+  await workbookDeleted.getByRole("button", { name: "Delete completely" }).click();
+  const purgeModal = page.locator(".builder-modal");
+  await purgeModal.getByText("This page cannot be restored after this action.", { exact: true }).waitFor();
+  await purgeModal.getByText(/Activities will remain Unassigned, and historical releases are unaffected\./).waitFor();
+  await purgeModal.getByRole("button", { name: "Delete completely" }).click();
+  await workbookDeleted.waitFor({ state: "detached" });
+  assert.equal(state["ultimate-b2-workbook"].pages.some((item) => item.id === newlyPersistedId), false);
+  assert.equal(state["ultimate-b2-workbook"].deletedPages.some((item) => item.id === newlyPersistedId), false);
 
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-grammar-book/pages`, { waitUntil: "domcontentloaded" });
   await page.getByText("Grammar Book · Pages").waitFor();
@@ -231,12 +254,25 @@ try {
   const baseline = canonicalStudentsBookPages[0];
   const studentCard = page.locator(`.component-page-card[data-page-id="${baseline.id}"]`);
   assert.equal(await studentCard.getAttribute("data-source"), "repository-baseline");
+  await studentCard.getByTitle("Edit metadata").click();
+  await page.getByLabel("Label").fill("Student opening page");
+  await page.getByLabel("Printed page or spread").fill("5 revised");
+  await page.getByRole("button", { name: "Save metadata" }).click();
+  await studentCard.locator(".component-page-card-copy strong", { hasText: "Student opening page" }).waitFor();
+  assert.equal(await studentCard.getAttribute("data-source"), "metadata-override");
+  await studentCard.getByTitle("Move later in this Unit").click();
+  await page.waitForFunction((id) => document.querySelector('[data-page-unit="unit-1"] [data-page-row="top"] .component-page-card')?.dataset.pageId !== id, baseline.id);
+  await studentCard.getByTitle("Move earlier in this Unit").click();
+  await page.waitForFunction((id) => document.querySelector('[data-page-unit="unit-1"] [data-page-row="top"] .component-page-card')?.dataset.pageId === id, baseline.id);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await studentCard.locator(".component-page-card-copy strong", { hasText: "Student opening page" }).waitFor();
   const studentReplace = page.waitForEvent("filechooser");
   await studentCard.getByTitle("Replace page image").click();
   await (await studentReplace).setFiles({ name: "student-replacement.png", mimeType: "image/png", buffer: imageA });
   await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="override"]`).waitFor();
   await studentCard.getByTitle("Restore canonical image").click();
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="metadata-override"]`).waitFor();
+  await studentCard.locator(".component-page-card-copy strong", { hasText: "Student opening page" }).waitFor();
 
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await page.frameLocator(".unified-builder-review-dialog iframe").getByRole("heading", { name: "Canonical Viewer fixture" }).waitFor();
@@ -282,8 +318,10 @@ try {
   await deletedPages.locator("summary").click();
   await deletedPages.getByText(baseline.id, { exact: true }).waitFor();
   assert.match(await deletedPages.innerText(), /2 hotspots removed/);
+  assert.match(await deletedPages.innerText(), /3 activities preserved/);
   await deletedPages.getByRole("button", { name: "Restore page" }).click();
-  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="repository-baseline"]`).waitFor();
+  await page.locator(`.component-page-card[data-page-id="${baseline.id}"][data-source="metadata-override"]`).waitFor();
+  await studentCard.locator(".component-page-card-copy strong", { hasText: "Student opening page" }).waitFor();
   assert.equal(state["ultimate-b2-students-book"].hotspotRevision, 1);
   await page.reload({ waitUntil: "domcontentloaded" });
   assert.deepEqual((await assertUnitLayout(page, "ultimate-b2-students-book", 1)).ids, unit1Rows.ids);

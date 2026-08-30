@@ -71,25 +71,31 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
     return { id: unit.id || `unit-${unit.unitNumber || unit.number || unitIndex + 1}`, title: unit.title || `Unit ${unit.unitNumber || unit.number || unitIndex + 1}`, unitNumber: unit.unitNumber || unit.number || unitIndex + 1, sortOrder: unitIndex, pages };
   });
 
+  const unassigned = [];
   for (const unit of model) for (const page of unit.pages) {
     for (const item of [...page.activities]) {
       const destination = pageById.get(item.placement?.pageId);
       if (destination && destination !== page) {
         page.activities = page.activities.filter((candidate) => candidate !== item);
         destination.activities.push(item);
+      } else if (!destination && item.placement?.pageId !== page.id) {
+        page.activities = page.activities.filter((candidate) => candidate !== item);
+        unassigned.push({ ...item, sourcePageId: item.placement?.pageId, assignment: { state: "unassigned", reason: "page-unavailable" } });
       }
     }
   }
 
-  const unavailable = [];
   if (activePageIds) {
     const active = new Set(activePageIds);
     for (const unit of model) for (const page of unit.pages) if (!active.has(page.id)) {
-      unavailable.push(...page.activities.map((item) => ({ ...item, placementUnavailable: true })));
+      unassigned.push(...page.activities.map((item) => ({
+        ...item,
+        sourcePageId: item.placement?.pageId || page.id,
+        assignment: { state: "unassigned", reason: "page-deleted" },
+      })));
       page.activities = [];
     }
   }
-  const unplaced = [];
   for (const activity of nativeActivities) {
     const placement = placementByPage.get(activity.placement?.pageId);
     const target = pageById.get(activity.placement?.pageId);
@@ -105,15 +111,18 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
       movable: true,
       ready: Boolean(activity.ready),
       issues: [...(activity.issues || [])],
-      placement,
+      placement: placement || activity.placement,
+      sourcePageId: activity.sourcePageId || activity.placement?.pageId,
+      assignment: activity.assignment || { state: target ? "assigned" : "unassigned", reason: target ? undefined : "page-unavailable" },
       sortOrder: activity.sortOrder ?? placement?.sortOrder ?? Number.MAX_SAFE_INTEGER,
     };
-    if (target) target.activities.push(item); else unplaced.push(item);
+    const assigned = item.assignment.state === "assigned" && target && (!activePageIds || activePageIds.includes(target.id));
+    if (assigned) target.activities.push(item);
+    else unassigned.push({ ...item, assignment: { state: "unassigned", reason: item.assignment.reason || "page-unavailable" } });
   }
   for (const unit of model) for (const page of unit.pages) page.activities.sort(stable);
-  unplaced.sort(stable);
-  unavailable.sort(stable);
-  return { units: model, unplaced, unavailable };
+  unassigned.sort(stable);
+  return { units: model, unassigned };
 }
 
 function matches(item, query, access, type) {
@@ -135,8 +144,7 @@ export function filterActivityBuilderNavigation(model, { query = "", access = "a
       activities: page.activities.filter((item) => matches(item, needle, access, type)
         || (needle && [unit.title, page.title, page.pageLabel].some((value) => normalized(value).includes(needle)))),
     })).filter((page) => preserveEmptyPages || page.activities.length) })).filter((unit) => preserveEmptyPages || unit.pages.length),
-    unplaced: model.unplaced.filter((item) => matches(item, needle, access, type)),
-    unavailable: (model.unavailable || []).filter((item) => matches(item, needle, access, type)),
+    unassigned: (model.unassigned || []).filter((item) => matches(item, needle, access, type)),
   };
 }
 
@@ -145,12 +153,14 @@ export function findActivityBuilderItem(model, activityId) {
     const item = page.activities.find((activity) => activity.id === activityId);
     if (item) return { item, unit, page };
   }
-  const item = model.unplaced.find((activity) => activity.id === activityId);
-  if (item) return { item, unit: null, page: null };
-  const unavailable = (model.unavailable || []).find((activity) => activity.id === activityId);
-  return unavailable ? { item: unavailable, unit: null, page: null } : null;
+  const item = (model.unassigned || []).find((activity) => activity.id === activityId);
+  return item ? { item, unit: null, page: null } : null;
 }
 
 export function activityBuilderTypeOptions(model) {
-  return [...new Set([...model.units.flatMap((unit) => unit.pages.flatMap((page) => page.activities)), ...model.unplaced, ...(model.unavailable || [])].map((item) => item.kind).filter(Boolean))].sort();
+  return [...new Set([...model.units.flatMap((unit) => unit.pages.flatMap((page) => page.activities)), ...(model.unassigned || [])].map((item) => item.kind).filter(Boolean))].sort();
+}
+
+export function activityBuilderSourcePageId(selection) {
+  return selection?.page?.id || selection?.item?.sourcePageId || selection?.item?.placement?.pageId || "";
 }

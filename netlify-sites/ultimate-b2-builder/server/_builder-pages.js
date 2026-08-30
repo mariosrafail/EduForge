@@ -10,6 +10,7 @@ import { builderClientMutationIdPattern, stableBuilderJson } from "./_builder-co
 import { builderDocumentSha256 } from "./_builder-content-security.js";
 import { canonicalStudentsBookPagesById, resolveBuilderPageComponent } from "./_builder-page-catalog.js";
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
+import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { createEmptyManagedComponentHotspotManifest, ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, validateManagedComponentHotspotManifestStructure, validateUltimateB2HotspotManifestStructure } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import {
   claimBuilderPageUpload,
@@ -17,10 +18,12 @@ import {
   failBuilderPageUpload,
   loadBuilderPageAsset,
   loadBuilderPageHotspots,
+  loadBuilderPageActivityReferences,
   loadBuilderPages,
   mutateBuilderPage,
   deleteBuilderPageLifecycle,
-  restoreBuilderStudentsPage,
+  purgeBuilderPage,
+  restoreBuilderPage,
   prepareBuilderPageUpload,
 } from "./_builder-pages-store.js";
 
@@ -52,7 +55,7 @@ function route(event) {
   if (!suffix) return { ...scope, action: "list" };
   if (suffix === "assets/prepare") return { ...scope, action: "prepare" };
   if (suffix === "assets/finalize") return { ...scope, action: "finalize" };
-  const match = suffix.match(/^pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore)$/);
+  const match = suffix.match(/^pages\/([a-z0-9-]+)\/(metadata|reorder|delete|restore|restore-image|purge)$/);
   if (match) return { ...scope, pageId: match[1], action: match[2] };
   const preview = suffix.match(/^pages\/([a-z0-9-]+)\/assets\/([0-9a-f-]+)\/preview$/);
   if (preview) return { ...scope, pageId: preview[1], assetId: preview[2], action: "preview" };
@@ -73,7 +76,7 @@ function pageMetadata(value, { managed = false, requireUnit = false } = {}) {
   if (!exact(value, managed ? ["label", "printedLabel", "sortOrder", "unitId"] : ["label", "printedLabel", "sortOrder"])) throw new Error("invalid_page_metadata");
   const label = String(value.label || "").trim();
   const printedLabel = String(value.printedLabel || "").trim();
-  if (!label || label.length > 160 || printedLabel.length > 40 || !Number.isSafeInteger(value.sortOrder) || value.sortOrder < 1 || value.sortOrder > 100000) throw new Error("invalid_page_metadata");
+  if (!label || label.length > 160 || printedLabel.length > 40 || !Number.isSafeInteger(value.sortOrder) || value.sortOrder < -100000 || value.sortOrder > 100000) throw new Error("invalid_page_metadata");
   const unitId = managed ? String(value.unitId || "") : "";
   if (managed && ((requireUnit && !unitId) || (unitId && !UUID.test(unitId)))) throw new Error("invalid_page_unit");
   return { label, printedLabel, sortOrder: value.sortOrder, ...(managed ? { unitId } : {}) };
@@ -120,10 +123,20 @@ function listPayload(parsed, policy, stored, previewAuthorization = "") {
   if (policy.kind === "students-book") {
     return policy.baseline.map((baseline) => {
       const row = rows.get(baseline.id);
-      if (row?.source_metadata?.is_deleted === true) return null;
-      if (row?.source_metadata?.is_override !== true || !row.asset_id) return baseline;
-      return { ...baseline, source: "override", label: row.label, sortOrder: Number(row.sort_order), image: privateImage(parsed, baseline.id, row, previewAuthorization), baselineImage: baseline.image };
-    }).filter(Boolean);
+      if (row?.source_metadata?.is_deleted === true || row?.source_metadata?.is_permanently_deleted === true) return null;
+      const metadataOverride = row?.source_metadata?.has_metadata_override === true;
+      const imageOverride = Boolean(row?.asset_id) && (row?.source_metadata?.has_image_override === true || row?.source_metadata?.is_override === true);
+      return {
+        ...baseline,
+        source: imageOverride ? "override" : metadataOverride ? "metadata-override" : baseline.source,
+        label: metadataOverride ? row.label : baseline.label,
+        printedLabel: metadataOverride ? row.source_metadata?.printed_label || "" : baseline.printedLabel,
+        sortOrder: metadataOverride ? Number(row.sort_order) : baseline.sortOrder,
+        image: imageOverride ? privateImage(parsed, baseline.id, row, previewAuthorization) : baseline.image,
+        ...(imageOverride ? { baselineImage: baseline.image } : {}),
+        capabilities: { moveUp: true, moveDown: true, editMetadata: true, replaceImage: true, restoreCanonicalImage: imageOverride, deletePage: true },
+      };
+    }).filter(Boolean).sort((left, right) => left.unitNumber - right.unitNumber || left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
   }
   return stored.rows.filter((row) => row.source_metadata?.is_active === true && row.asset_id).map((row) => {
     const pageId = pageIdFromStableKey(parsed.componentSlug, row.stable_key);
@@ -144,17 +157,26 @@ function listPayload(parsed, policy, stored, previewAuthorization = "") {
       sortOrder: Number(row.sort_order),
       label: row.label,
       image: privateImage(parsed, pageId, row, previewAuthorization),
+      capabilities: { moveUp: true, moveDown: true, editMetadata: true, replaceImage: true, restoreCanonicalImage: false, deletePage: true },
     };
   });
 }
 
 function deletedPayload(parsed, policy, stored) {
-  if (policy.kind !== "students-book") return [];
   const rows = new Map(stored.rows.map((row) => [pageIdFromStableKey(parsed.componentSlug, row.stable_key), row]));
-  return policy.baseline.filter((baseline) => rows.get(baseline.id)?.source_metadata?.is_deleted === true).map((baseline) => ({
-    ...baseline,
-    source: "deleted",
-    removedHotspotCount: Number(rows.get(baseline.id).source_metadata?.removed_hotspot_count || 0),
+  if (policy.kind === "students-book") return policy.baseline.filter((baseline) => {
+    const metadata = rows.get(baseline.id)?.source_metadata;
+    return metadata?.is_deleted === true && metadata?.is_permanently_deleted !== true;
+  }).map((baseline) => {
+    const metadata = rows.get(baseline.id).source_metadata;
+    return { ...baseline, source: "deleted", removedHotspotCount: Number(metadata.removed_hotspot_count || 0), preservedActivityCount: Number(metadata.preserved_activity_count || 0), deletedAt: metadata.deleted_at || null, canRestore: true, canDeleteCompletely: true };
+  });
+  return stored.rows.filter((row) => row.source_metadata?.is_deleted === true && row.source_metadata?.is_permanently_deleted !== true).map((row) => ({
+    id: pageIdFromStableKey(parsed.componentSlug, row.stable_key), stableKey: row.stable_key, componentSlug: parsed.componentSlug,
+    source: "deleted", unitId: row.unit_id ? String(row.unit_id) : null, unitNumber: row.unit_number === null ? null : Number(row.unit_number),
+    unitTitle: row.unit_title || "", label: row.label, printedLabel: row.source_metadata?.printed_label || "", sortOrder: Number(row.sort_order),
+    removedHotspotCount: Number(row.source_metadata?.removed_hotspot_count || 0), preservedActivityCount: Number(row.source_metadata?.preserved_activity_count || 0),
+    deletedAt: row.source_metadata?.deleted_at || null, canRestore: true, canDeleteCompletely: true,
   }));
 }
 
@@ -164,7 +186,7 @@ async function listResponse(dependencies, sql, parsed, policy, previewAuthorizat
   return {
     revision: safeInteger(stored.revision, "builder_page_revision"),
     hotspotRevision: safeInteger(stored.hotspotRevision || 0, "builder_hotspot_revision"),
-    component: { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, kind: policy.kind, title: policy.title || "Students Book" },
+    component: { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, kind: policy.kind, title: policy.title || "Students Book", capabilities: { restoreDeletedPage: true, deleteCompletely: true } },
     units: (stored.units || []).map((unit) => ({ id: String(unit.id), slug: unit.slug, title: unit.title, unitNumber: Number(unit.unit_number), sortOrder: Number(unit.sort_order) })),
     pages: listPayload(parsed, policy, stored, previewAuthorization),
     deletedPages: deletedPayload(parsed, policy, stored),
@@ -183,6 +205,20 @@ function prunedPageHotspots(policy, componentSlug, stored, pageId) {
   return { document: { ...normalized, pages }, removedHotspotCount: removed.length, preservedActivityCount: new Set(removed.map((hotspot) => hotspot.activityKey)).size };
 }
 
+async function preservedPageActivityCount(dependencies, sql, parsed, pageId) {
+  const references = await dependencies.loadActivityReferences(sql, { ...parsed, pageId });
+  const ids = new Set(references.legacyActivityIds || []);
+  for (const entry of references.nativeIndex?.activities || []) if (entry.placement?.pageId === pageId) ids.add(entry.activityId);
+  if (parsed.componentSlug === "ultimate-b2-students-book") {
+    const lifecycle = references.lifecycle?.activities || {};
+    for (const activity of ultimateB2StudentsBookAuthoringActivities) {
+      const current = lifecycle[activity.activityKey] || { status: "active", pageId: activity.pageId };
+      if (current.status === "active" && current.pageId === pageId) ids.add(activity.activityKey);
+    }
+  }
+  return ids.size;
+}
+
 export function createBuilderPagesHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
@@ -195,7 +231,9 @@ export function createBuilderPagesHandler(overrides = {}) {
     fail: overrides.fail || failBuilderPageUpload,
     mutate: overrides.mutate || mutateBuilderPage,
     deleteLifecycle: overrides.deleteLifecycle || deleteBuilderPageLifecycle,
-    restoreStudentsPage: overrides.restoreStudentsPage || restoreBuilderStudentsPage,
+    restorePage: overrides.restorePage || overrides.restoreStudentsPage || restoreBuilderPage,
+    purgePage: overrides.purgePage || purgeBuilderPage,
+    loadActivityReferences: overrides.loadActivityReferences || loadBuilderPageActivityReferences,
     loadHotspots: overrides.loadHotspots || loadBuilderPageHotspots,
     loadAsset: overrides.loadAsset || loadBuilderPageAsset,
     storage: overrides.storage || (() => createBookAssetStorage()),
@@ -251,7 +289,7 @@ export function createBuilderPagesHandler(overrides = {}) {
           const currentPages = await dependencies.loadPages(sql, parsed);
           const currentRow = currentPages?.rows?.find((row) => row.stable_key === `${parsed.componentSlug}/pages/${pageId}`);
           if (currentRow?.source_metadata?.is_deleted === true) return json(409, { error: "page_inactive", currentRevision: currentPages.revision });
-          metadata = { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, baselineWidth: baseline.image.width, baselineHeight: baseline.image.height };
+          metadata = { ...metadata, baselineWidth: baseline.image.width, baselineHeight: baseline.image.height };
         } else if (body.value.mode === "create") {
           if (pageId) return json(400, { error: "new_page_id_must_be_empty" });
           pageId = `${policy.pagePrefix}-page-${body.value.clientMutationId.replaceAll("-", "")}`;
@@ -302,12 +340,11 @@ export function createBuilderPagesHandler(overrides = {}) {
         }
       }
 
-      if (["metadata", "reorder", "delete", "restore"].includes(parsed.action)) {
+      if (["metadata", "reorder", "delete", "restore", "restore-image", "purge"].includes(parsed.action)) {
         const body = parseJson(event, parsed.action === "delete" ? ["expectedRevision", "expectedHotspotRevision", "clientMutationId", "metadata"] : ["expectedRevision", "clientMutationId", "metadata"]); if (body.error) return body.error;
         if (!Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 0 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_mutation_identity" });
         if (parsed.action === "delete" && (!Number.isSafeInteger(body.value.expectedHotspotRevision) || body.value.expectedHotspotRevision < 0)) return json(400, { error: "invalid_hotspot_revision" });
-        if (policy.kind === "students-book" && !["delete", "restore"].includes(parsed.action)) return json(400, { error: "students_book_baseline_metadata_locked" });
-        if (policy.kind === "managed" && parsed.action === "restore") return json(400, { error: "managed_page_cannot_restore_baseline" });
+        if (policy.kind === "managed" && parsed.action === "restore-image") return json(400, { error: "operation_not_allowed" });
         let metadata = {};
         if (["metadata", "reorder"].includes(parsed.action)) { try { metadata = pageMetadata(body.value.metadata, { managed: policy.kind === "managed" }); } catch (error) { return json(400, { error: failureCode(error) }); } }
         else if (!exact(body.value.metadata, [])) return json(400, { error: "invalid_page_metadata" });
@@ -317,6 +354,7 @@ export function createBuilderPagesHandler(overrides = {}) {
           if (policy.kind === "students-book" && !baseline) return json(404, { error: "page_not_found" });
           const storedHotspots = await dependencies.loadHotspots(sql, parsed);
           const pruned = prunedPageHotspots(policy, parsed.componentSlug, storedHotspots, parsed.pageId);
+          pruned.preservedActivityCount = await preservedPageActivityCount(dependencies, sql, parsed, parsed.pageId);
           if (safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") !== body.value.expectedHotspotRevision) return json(409, { error: "hotspot_revision_conflict", currentHotspotRevision: safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") });
           const pageMetadata = baseline ? { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, unitNumber: baseline.unitNumber } : {};
           try {
@@ -325,11 +363,14 @@ export function createBuilderPagesHandler(overrides = {}) {
             if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" });
             throw error;
           }
-        } else if (policy.kind === "students-book" && parsed.action === "restore") {
-          try { result = await dependencies.restoreStudentsPage(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id }); }
+        } else if (parsed.action === "restore") {
+          try { result = await dependencies.restorePage(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id }); }
+          catch (error) { if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" }); throw error; }
+        } else if (parsed.action === "purge") {
+          try { result = await dependencies.purgePage(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id }); }
           catch (error) { if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" }); throw error; }
         } else result = await dependencies.mutate(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id });
-        if (!result || ["revision_conflict", "hotspot_revision_conflict", "mutation_id_conflict", "unsupported_page_reference", "page_state_conflict", "page_referenced"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null, currentHotspotRevision: result?.hotspot_revision ?? null });
+        if (!result || ["revision_conflict", "hotspot_revision_conflict", "mutation_id_conflict", "unsupported_page_reference", "page_state_conflict", "page_referenced", "restorable_asset_unavailable", "page_permanently_deleted"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null, currentHotspotRevision: result?.hotspot_revision ?? null });
         if (!["saved", "idempotent"].includes(result.outcome)) return json(result.outcome === "page_not_found" ? 404 : 400, { error: result.outcome });
         const listed = await listResponse(dependencies, sql, parsed, policy);
         return json(200, { ...listed, lifecycle: parsed.action === "delete" ? { pageId: parsed.pageId, pageRevision: result.current_revision, hotspotRevision: result.hotspot_revision, removedHotspotCount: Number(result.removed_hotspot_count || 0), preservedActivityCount: Number(result.preserved_activity_count || 0) } : null, idempotent: result.outcome === "idempotent" });

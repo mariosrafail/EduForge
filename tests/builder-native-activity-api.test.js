@@ -298,6 +298,23 @@ test("authenticated native catalog exposes page-aware readiness without Teacher 
   assert.doesNotMatch(incomplete.body, new RegExp(publicationV2Fixture.openResponseId));
 });
 
+test("Students Book catalog keeps a native activity on a tombstoned canonical page as Unassigned", async () => {
+  const sources = createPublicationV2FixtureSources();
+  const sql = async () => [{ source_metadata: { is_active: false, is_deleted: true } }];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources,
+    logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const activities = JSON.parse(response.body).activities;
+  assert.ok(activities.length > 0);
+  assert.ok(activities.every((activity) => activity.sourcePageId === publicationV2Fixture.pageId && activity.placement.pageId === publicationV2Fixture.pageId));
+  assert.ok(activities.every((activity) => activity.assignment.state === "unassigned" && activity.assignment.reason === "page-deleted"));
+});
+
 test("catalog fails closed when a Students Book activity is supplied for Workbook", async () => {
   const sources = createPublicationV2FixtureSources();
   const handler = createBuilderNativeActivitiesHandler({

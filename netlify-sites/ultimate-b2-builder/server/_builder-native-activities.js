@@ -105,7 +105,7 @@ async function createActivity(dependencies, sql, auth, parsedRoute, event) {
   const kind = resolveNativeActivityKind(parsed.value.kind);
   if (!adapter) return json(404, { error: "native_activity_component_not_found" });
   if (!kind || !adapter.kinds.includes(kind.kind)) return json(400, { error: "unsupported_native_activity_kind" });
-  let placement; try { placement = await adapter.normalizePlacement({ pageId: parsed.value.pageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); } catch { return json(400, { error: "invalid_native_activity_placement" }); }
+  let placement; try { placement = await (adapter.normalizeDestinationPlacement || adapter.normalizePlacement)({ pageId: parsed.value.pageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); } catch { return json(400, { error: "invalid_native_activity_placement" }); }
   const title = parsed.value.title.trim() || `New ${kind.label}`;
   if (title.length > 300 || /[\u0000-\u001f\u007f]/.test(title)) return json(400, { error: "invalid_native_activity_title" });
   const requestSha256 = sha256(stableBuilderJson({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, kind: kind.kind, pageId: placement.pageId, title }));
@@ -221,7 +221,7 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
   if (!adapter) return json(404, { error: "native_activity_component_not_found" });
   let destination = null;
   if (move) {
-    try { destination = await adapter.normalizePlacement({ pageId: input.destinationPageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); }
+    try { destination = await (adapter.normalizeDestinationPlacement || adapter.normalizePlacement)({ pageId: input.destinationPageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug }); }
     catch { return json(400, { error: "invalid_native_activity_placement" }); }
   }
   const [lifecycleResource, indexResource, hotspotResource] = await Promise.all([
@@ -273,6 +273,12 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
     }, { allowedKinds: adapter.kinds });
     publicDocument = kind.normalizePublic({ ...storedPublic.document, placement: { pageId: destination.pageId } }, parsedRoute.activityId);
     assertPublicBuilderDocument(publicDocument);
+  }
+  try {
+    const resolvedSource = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)({ pageId: currentPageId }, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+    if (resolvedSource.pageId !== currentPageId) return json(409, { error: "activity_placement_invalid" });
+  } catch {
+    return json(409, { error: "activity_placement_invalid" });
   }
   const currentHotspots = storedHotspots?.document || hotspotResource.baseline();
   const pruned = pruneComponentActivityHotspots(currentHotspots, parsedRoute.activityId);
@@ -491,7 +497,7 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
   const activities = [];
   for (const entry of sources.native.index?.payload?.activities || []) {
     if (!adapter.ownsActivityId?.(entry.activityId) || !adapter.kinds.includes(entry.kind)) throw new Error("Native activity catalog identity is outside its component.");
-    const placement = await adapter.normalizePlacement(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+    const placement = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
     if (placement.pageId !== entry.placement.pageId) throw new Error("Native activity catalog placement is outside its component.");
     const pair = sources.native.activities[entry.activityId];
     const kind = resolveNativeActivityKind(entry.kind);
@@ -538,7 +544,19 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
           }
         }
         ready = issues.length === 0;
-        activities.push({ activityId: entry.activityId, kind: entry.kind, title: publicDocument.metadata.title, placement: entry.placement, ready, issues: [...new Set(issues)] });
+        activities.push({
+          activityId: entry.activityId,
+          kind: entry.kind,
+          title: publicDocument.metadata.title,
+          placement: entry.placement,
+          sourcePageId: placement.sourcePageId || entry.placement.pageId,
+          assignment: {
+            state: placement.assignmentState || "assigned",
+            ...(placement.unassignedReason ? { reason: placement.unassignedReason } : {}),
+          },
+          ready,
+          issues: [...new Set(issues)],
+        });
         continue;
       } catch (error) {
         if (String(error?.message || "").includes("outside its component")) throw error;

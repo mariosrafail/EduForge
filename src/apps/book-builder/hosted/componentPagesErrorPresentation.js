@@ -6,6 +6,8 @@ const pageErrorPresentations = Object.freeze({
   mutation_id_conflict: Object.freeze({ message: "This page request identifier was already used for a different change. Nothing was changed. Try the operation again.", conflict: false }),
   page_state_conflict: Object.freeze({ message: "This page is no longer in the state required for that operation. Nothing was changed. Refresh the page library to review its current state.", conflict: false }),
   page_inactive: Object.freeze({ message: "This page is inactive. Restore it from Deleted pages before replacing its image.", conflict: false }),
+  restorable_asset_unavailable: Object.freeze({ message: "The exact archived page image cannot be identified safely, so this page was not restored.", conflict: false }),
+  page_permanently_deleted: Object.freeze({ message: "This page was deleted completely and can no longer be restored.", conflict: false }),
 });
 
 export function componentPagesErrorPresentation(error) {

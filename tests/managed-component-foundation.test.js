@@ -57,11 +57,11 @@ test("managed native adapters derive authoritative Unit placement and keep Workb
   const observed = [];
   const sql = async (strings, ...values) => {
     observed.push({ text: strings.join("?"), values });
-    return [{ stable_key: `${workbook}/pages/wb-page-one`, sort_order: 7, unit_id: "20000000-0000-4000-8000-000000000001", unit_number: "3", unit_title: "Unit 3" }];
+    return [{ stable_key: `${workbook}/pages/wb-page-one`, sort_order: 7, source_metadata: { is_active: true }, unit_id: "20000000-0000-4000-8000-000000000001", unit_number: "3", unit_title: "Unit 3" }];
   };
   const workbookAdapter = createManagedNativeActivityAdapter(workbook);
   const placement = await workbookAdapter.normalizePlacement({ pageId: "wb-page-one", unitNumber: 9 }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook });
-  assert.deepEqual(placement, { pageId: "wb-page-one", unitId: "20000000-0000-4000-8000-000000000001", unitNumber: 3, unitTitle: "Unit 3", sortOrder: 7 });
+  assert.deepEqual(placement, { pageId: "wb-page-one", sourcePageId: "wb-page-one", unitId: "20000000-0000-4000-8000-000000000001", unitNumber: 3, unitTitle: "Unit 3", sortOrder: 7, assignmentState: "assigned" });
   assert.ok(observed[0].values.includes(`${workbook}/pages/wb-page-one`));
   await assert.rejects(workbookAdapter.normalizePlacement({ pageId: "gb-page-one" }, { sql, bookSlug: "ultimate-b2", componentSlug: grammar }), /invalid/);
   const workbookId = workbookAdapter.nextActivityId({ placement, nativeIndex: { activities: [] } });
@@ -69,6 +69,16 @@ test("managed native adapters derive authoritative Unit placement and keep Workb
   assert.match(workbookId, /^ultimate-b2-wb-/);
   assert.match(grammarId, /^ultimate-b2-gb-/);
   assert.notEqual(workbookId, grammarId);
+});
+
+test("managed existing placement resolution accepts a deleted owned page while destination normalization rejects it", async () => {
+  const adapter = createManagedNativeActivityAdapter(workbook);
+  const sql = async () => [{ stable_key: `${workbook}/pages/wb-deleted`, sort_order: 8, source_metadata: { is_active: false, is_deleted: true }, unit_id: "20000000-0000-4000-8000-000000000001", unit_number: 3, unit_title: "Unit 3" }];
+  const existing = await adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook });
+  assert.deepEqual({ pageId: existing.pageId, state: existing.assignmentState, reason: existing.unassignedReason }, { pageId: "wb-deleted", state: "unassigned", reason: "page-deleted" });
+  await assert.rejects(adapter.normalizeDestinationPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook }), /inactive/);
+  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql: async () => [], bookSlug: "ultimate-b2", componentSlug: workbook }), /unknown/);
+  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: grammar }), /invalid/);
 });
 
 function managedCatalog(componentSlug) {

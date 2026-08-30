@@ -110,11 +110,42 @@ export async function deleteBuilderPageLifecycle(sql, input) {
   return row ? { ...row, current_revision: normalizeBuilderPageRevision(row.current_revision, { nullable: true }), hotspot_revision: normalizeBuilderPageRevision(row.hotspot_revision, { nullable: true }) } : null;
 }
 
-export async function restoreBuilderStudentsPage(sql, input) {
-  const rows = await sql`select * from restore_builder_students_page(
+export async function restoreBuilderPage(sql, input) {
+  const rows = await sql`select * from restore_builder_component_page(
     ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.expectedRevision},${input.clientMutationId}::uuid,${input.builderUserId}::uuid
   )`;
   return normalizeRevisionField(rows[0] || null, "current_revision", { nullable: true });
+}
+
+// Compatibility export for callers compiled before the lifecycle was
+// generalized. It uses the new all-component stored procedure.
+export const restoreBuilderStudentsPage = restoreBuilderPage;
+
+export async function purgeBuilderPage(sql, input) {
+  const rows = await sql`select * from purge_builder_component_page(
+    ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.expectedRevision},${input.clientMutationId}::uuid,${input.builderUserId}::uuid
+  )`;
+  return normalizeRevisionField(rows[0] || null, "current_revision", { nullable: true });
+}
+
+export async function loadBuilderPageActivityReferences(sql, { bookSlug, componentSlug, pageId }) {
+  const documents = await sql`
+    select document.document_type,document.payload
+    from builder_component_documents document
+    join book_components component on component.id=document.book_component_id
+    join book_packages package on package.id=document.book_package_id and package.id=component.book_package_id
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+      and document.document_type in ('native_activity_index','activity_lifecycle') and document.document_key='default'
+  `;
+  const legacy = await sql`
+    select activity.id from book_activities activity
+    where activity.package_slug=${bookSlug} and activity.component_slug=${componentSlug} and activity.page_id=${pageId}
+  `;
+  return {
+    nativeIndex: documents.find((row) => row.document_type === "native_activity_index")?.payload || null,
+    lifecycle: documents.find((row) => row.document_type === "activity_lifecycle")?.payload || null,
+    legacyActivityIds: legacy.map((row) => String(row.id)),
+  };
 }
 
 export async function loadBuilderPageAsset(sql, { bookSlug, componentSlug, pageKey, assetId }) {

@@ -17,6 +17,8 @@ import {
   loadBuilderPages,
   mutateBuilderPage,
   prepareBuilderPageUpload,
+  purgeBuilderPage,
+  restoreBuilderPage,
   restoreBuilderStudentsPage,
 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages-store.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
@@ -76,6 +78,7 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   const migrations = await applyCanonicalProductionMigrations(pool);
   assert.ok(migrations.some(({ filename }) => filename === "051_builder_page_deletion_lifecycle.sql"));
   assert.ok(migrations.some(({ filename }) => filename === "052_builder_page_unit_extras_preservation.sql"));
+  assert.ok(migrations.some(({ filename }) => filename === "053_builder_page_lifecycle_completion.sql"));
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Page Actor','page-actor@example.test','hash'),($2,'Other Page Actor','page-other@example.test','hash')", [actor, otherActor]);
   const sql = tag(pool);
   const unitRows = await pool.query(`select component.slug component_slug,unit.id,unit.unit_number from units unit join book_components component on component.id=unit.book_component_id join book_packages package on package.id=component.book_package_id where package.slug='ultimate-b2' and component.slug in ('ultimate-b2-workbook','ultimate-b2-grammar-book') order by component.slug,unit.unit_number`);
@@ -101,7 +104,7 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   assert.equal(studentRows.rows[0].source_metadata.is_override, true);
   assert.equal(studentRows.rows[0].asset_id, studentResult.asset_id);
   assert.equal(await loadBuilderPageAsset(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", pageKey: `ultimate-b2-workbook/pages/${studentPageId}`, assetId: studentResult.asset_id }), null);
-  assert.equal((await mutateBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", pageKey: student.pageKey, action: "restore", expectedRevision: 1, clientMutationId: randomUUID(), pageMetadata: {}, builderUserId: actor })).outcome, "saved");
+  assert.equal((await mutateBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", pageKey: student.pageKey, action: "restore-image", expectedRevision: 1, clientMutationId: randomUUID(), pageMetadata: {}, builderUserId: actor })).outcome, "saved");
   assert.equal((await loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" })).rows[0].source_metadata.is_override, false);
 
   const legacyPageId = `wb-page-${randomUUID().replaceAll("-", "")}`;
@@ -325,4 +328,52 @@ test("isolated PostgreSQL atomically tombstones and restores a canonical Student
   const repeatedRestore = await restoreBuilderStudentsPage(sql, { bookSlug: "ultimate-b2", componentSlug, pageKey: input.pageKey, expectedRevision: 2, clientMutationId: randomUUID(), builderUserId: actor });
   assert.deepEqual({ outcome: repeatedRestore.outcome, revision: repeatedRestore.current_revision }, { outcome: "page_state_conflict", revision: 2 });
   assert.equal((await pool.query("select revision from builder_component_page_revisions revision join book_components component on component.id=revision.book_component_id where component.slug=$1", [componentSlug])).rows[0].revision, "2");
+});
+
+test("isolated PostgreSQL restores exact managed assets, supports pre-053 tombstones, and permanently tombstones only the editable page", { skip: !enabled }, async (t) => {
+  const schema = `builder_pages_lifecycle_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: databaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 4 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Managed Lifecycle Actor','managed-lifecycle@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const identities = (await pool.query(`select component.slug,component.id component_id,package.id package_id,unit.id unit_id
+    from book_packages package join book_components component on component.book_package_id=package.id join units unit on unit.book_component_id=component.id and unit.unit_number=1
+    where package.slug='ultimate-b2' and component.slug in ('ultimate-b2-workbook','ultimate-b2-grammar-book')`)).rows;
+  const workbook = identities.find((row) => row.slug === "ultimate-b2-workbook");
+  const pageId = `wb-page-${randomUUID().replaceAll("-", "")}`;
+  const upload = uploadInput({ componentSlug: workbook.slug, pageId, mode: "create", expectedRevision: 0, unitId: workbook.unit_id });
+  const created = await finish(sql, upload);
+  await pool.query("insert into book_activities(package_slug,component_slug,page_id,title,type,content,correct_answers) values('ultimate-b2',$1,$2,'Preserved without hotspot','multiple_choice','{}','{}')", [workbook.slug, pageId]);
+  const emptyHotspots = { schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug: workbook.slug, pages: {} };
+  const deleteInput = (expectedRevision) => ({ bookSlug: "ultimate-b2", componentSlug: workbook.slug, pageKey: upload.pageKey,
+    expectedRevision, expectedHotspotRevision: 0, clientMutationId: randomUUID(), pageMetadata: {}, hotspotSchemaVersion: "1.0",
+    hotspotDocument: emptyHotspots, hotspotSha256: builderDocumentSha256(emptyHotspots), removedHotspotCount: 0, preservedActivityCount: 1, builderUserId: actor });
+
+  const deleted = await deleteBuilderPageLifecycle(sql, deleteInput(1));
+  assert.equal(deleted.outcome, "saved");
+  const tombstone = (await pool.query("select source_metadata from book_pages where stable_key=$1", [upload.pageKey])).rows[0].source_metadata;
+  assert.equal(tombstone.restorable_asset_id, created.asset_id);
+  assert.equal((await pool.query("select publication_status from book_assets where id=$1", [created.asset_id])).rows[0].publication_status, "archived");
+  const restored = await restoreBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: workbook.slug, pageKey: upload.pageKey, expectedRevision: 2, clientMutationId: randomUUID(), builderUserId: actor });
+  assert.equal(restored.outcome, "saved");
+  assert.equal((await pool.query("select publication_status from book_assets where id=$1", [created.asset_id])).rows[0].publication_status, "draft");
+  assert.equal((await deleteBuilderPageLifecycle(sql, deleteInput(3))).outcome, "saved");
+  const purged = await purgeBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: workbook.slug, pageKey: upload.pageKey, expectedRevision: 4, clientMutationId: randomUUID(), builderUserId: actor });
+  assert.equal(purged.outcome, "saved");
+  assert.equal((await restoreBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: workbook.slug, pageKey: upload.pageKey, expectedRevision: 5, clientMutationId: randomUUID(), builderUserId: actor })).outcome, "page_permanently_deleted");
+  assert.equal((await pool.query("select count(*)::int count from book_activities where component_slug=$1 and page_id=$2", [workbook.slug, pageId])).rows[0].count, 1);
+  assert.equal((await pool.query("select count(*)::int count from builder_audit_log where target_id=(select id::text from book_pages where stable_key=$1) and action='component_page_permanently_deleted'", [upload.pageKey])).rows[0].count, 1);
+
+  const grammar = identities.find((row) => row.slug === "ultimate-b2-grammar-book");
+  const legacyPageId = `gb-page-${randomUUID().replaceAll("-", "")}`;
+  const legacyUpload = uploadInput({ componentSlug: grammar.slug, pageId: legacyPageId, mode: "create", expectedRevision: 0, unitId: grammar.unit_id });
+  const legacyCreated = await finish(sql, legacyUpload);
+  await pool.query("update book_assets set publication_status='archived',updated_at=now() where id=$1", [legacyCreated.asset_id]);
+  await pool.query("update book_pages set source_metadata=(source_metadata-'restorable_asset_id')||jsonb_build_object('is_active',false,'is_deleted',true,'deleted_at',now()),updated_at=now() where stable_key=$1", [legacyUpload.pageKey]);
+  const compatibilityRestore = await restoreBuilderPage(sql, { bookSlug: "ultimate-b2", componentSlug: grammar.slug, pageKey: legacyUpload.pageKey, expectedRevision: 1, clientMutationId: randomUUID(), builderUserId: actor });
+  assert.equal(compatibilityRestore.outcome, "saved");
+  assert.equal((await pool.query("select publication_status from book_assets where id=$1", [legacyCreated.asset_id])).rows[0].publication_status, "draft");
 });

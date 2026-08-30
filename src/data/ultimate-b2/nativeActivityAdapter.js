@@ -37,6 +37,45 @@ export const ultimateB2NativeActivityAdapter = Object.freeze({
   placements: ultimateB2NativeActivityPlacements,
   ownsActivityId(activityId) { return /^ultimate-b2-sb-[a-z0-9-]+-o\d+$/.test(String(activityId || "")); },
   normalizePlacement: normalizeUltimateB2NativeActivityPlacement,
+  async normalizeDestinationPlacement(input, { sql, bookSlug, componentSlug } = {}) {
+    const placement = normalizeUltimateB2NativeActivityPlacement(input);
+    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new Error("Ultimate B2 native activity placement is invalid.");
+    if (typeof sql === "function") {
+      const stableKey = `${componentSlug}/pages/${placement.pageId}`;
+      const rows = await sql`
+        select page.source_metadata from book_pages page
+        join book_packages package on package.id=page.book_package_id
+        join book_components component on component.id=page.book_component_id and component.book_package_id=package.id
+        where package.slug=${bookSlug} and component.slug=${componentSlug} and page.stable_key=${stableKey} limit 1
+      `;
+      if (rows[0]?.source_metadata?.is_deleted === true || rows[0]?.source_metadata?.is_permanently_deleted === true) throw new Error("Ultimate B2 native activity placement is inactive.");
+    }
+    return placement;
+  },
+  async resolveExistingPlacement(input, { sql, bookSlug, componentSlug } = {}) {
+    const placement = normalizeUltimateB2NativeActivityPlacement(input);
+    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new Error("Ultimate B2 native activity placement is invalid.");
+    let active = true;
+    if (typeof sql === "function") {
+      const stableKey = `${componentSlug}/pages/${placement.pageId}`;
+      const rows = await sql`
+        select page.source_metadata
+        from book_pages page
+        join book_packages package on package.id=page.book_package_id
+        join book_components component on component.id=page.book_component_id and component.book_package_id=package.id
+        where package.slug=${bookSlug} and component.slug=${componentSlug} and page.stable_key=${stableKey}
+        limit 1
+      `;
+      const metadata = rows[0]?.source_metadata;
+      active = metadata?.is_deleted !== true && metadata?.is_permanently_deleted !== true;
+    }
+    return {
+      ...placement,
+      sourcePageId: placement.pageId,
+      assignmentState: active ? "assigned" : "unassigned",
+      ...(active ? {} : { unassignedReason: "page-deleted" }),
+    };
+  },
   nextActivityId: nextUltimateB2NativeActivityIdentity,
   sortOrder({ placement, activityId }) {
     const page = normalizeUltimateB2NativeActivityPlacement({ pageId: placement.pageId });

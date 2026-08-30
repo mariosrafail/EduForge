@@ -67,6 +67,7 @@ function managedCatalog(componentSlug) {
         label: `${title} Unit ${unitNumber} page ${token}`,
         printedLabel,
         sortOrder: (index + 1) * 10,
+        isActive: true,
         source: "managed-upload",
         image: { source: "managed", assetId, width: physicalWeight === 2 ? managedSpreadPageWidth : 581, height: 794, checksumSha256: "a".repeat(64) },
       };
@@ -98,7 +99,7 @@ const managedNativeSql = async (strings, ...values) => {
   const stableKey = values.find((value) => typeof value === "string" && value.includes("/pages/"));
   const [componentSlug, , pageId] = String(stableKey || "").split("/");
   const page = managedCatalogs[componentSlug]?.pages.find((candidate) => candidate.id === pageId);
-  return page ? [{ stable_key: stableKey, sort_order: page.sortOrder, unit_id: page.unitId, unit_number: page.unitNumber, unit_title: page.unitTitle }] : [];
+  return page ? [{ stable_key: stableKey, sort_order: page.sortOrder, unit_id: page.unitId, unit_number: page.unitNumber, unit_title: page.unitTitle, source_metadata: { is_active: page.isActive !== false, is_deleted: page.isActive === false } }] : [];
 };
 
 async function loadNativeDocument(_sql, resource) {
@@ -264,7 +265,7 @@ function storedManagedPages(componentSlug) {
       unit_number: page.unitNumber,
       unit_title: page.unitTitle,
       unit_sort_order: page.unitNumber,
-      source_metadata: { is_active: true, printed_label: page.printedLabel },
+      source_metadata: { is_active: page.isActive !== false, is_deleted: page.isActive === false, printed_label: page.printedLabel, removed_hotspot_count: page.removedHotspotCount || 0, preserved_activity_count: page.preservedActivityCount || 0 },
       asset_id: page.image.assetId,
       mime_type: "image/png",
       byte_size: managedPageFixture(page).length,
@@ -668,6 +669,29 @@ try {
     await page.getByText("Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.", { exact: true }).waitFor();
     assert.equal(state.index.document.activities[0].placement.pageId, destination);
     assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.placement.pageId, destination);
+
+    const deletedPage = managedCatalogs[componentSlug].pages.find((candidate) => candidate.id === destination);
+    deletedPage.isActive = false;
+    deletedPage.removedHotspotCount = 0;
+    deletedPage.preservedActivityCount = 1;
+    managedCatalogs[componentSlug].revision += 1;
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByRole("heading", { name: "Unassigned", exact: true }).waitFor();
+    assert.equal(await page.getByText(`${title} activities could not be loaded.`, { exact: true }).count(), 0);
+    await page.getByRole("button", { name: new RegExp(activityId) }).click();
+    await page.getByRole("heading", { name: `${title} saved image`, exact: true }).waitFor();
+    await page.getByRole("button", { name: "Move Activity", exact: true }).click();
+    const rescueDestination = managedCatalogs[componentSlug].pages[2].id;
+    const rescueDialog = page.getByRole("dialog", { name: "Move activity" });
+    await rescueDialog.getByLabel("Destination").selectOption(rescueDestination);
+    await rescueDialog.getByRole("button", { name: "Move Activity", exact: true }).click();
+    await page.getByText("Activity moved. Open the destination page in Hotspots and place one deliberate launch hotspot.", { exact: true }).waitFor();
+    assert.equal(state.index.document.activities[0].placement.pageId, rescueDestination);
+    assert.equal(state.documents.get(`native_activity_public:${activityId}`).document.placement.pageId, rescueDestination);
+    assert.equal(Object.values(state.hotspots.document.pages).flat().some((hotspot) => hotspot.activityKey === activityId), false, "moving an Unassigned activity must not create a hotspot");
+    deletedPage.isActive = true;
+    managedCatalogs[componentSlug].revision += 1;
+    assert.equal(Object.values(state.hotspots.document.pages).flat().some((hotspot) => hotspot.activityKey === activityId), false, "restoring the page must not recreate its hotspot");
   }
 
   delayedWorkbookCatalog = true;

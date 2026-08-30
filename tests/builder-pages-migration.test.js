@@ -28,3 +28,16 @@ test("migration 052 preserves only canonical Students Book Unit Extras reference
   assert.match(migration051, /and document_type not in \('hotspots','native_activity_index','native_activity_public','native_activity_teacher','activity_lifecycle','open_response'\)/i);
   assert.doesNotMatch(migration051, /document_type='unit_extras'/i);
 });
+
+test("migration 053 completes restore, permanent tombstones, and independent Student overrides", async () => {
+  const sql = await readFile("database/053_builder_page_lifecycle_completion.sql", "utf8");
+  assert.match(sql, /create or replace function restore_builder_component_page\(/i);
+  assert.match(sql, /create or replace function purge_builder_component_page\(/i);
+  assert.match(sql, /is_permanently_deleted/i);
+  assert.match(sql, /restorable_asset_id/i);
+  assert.match(sql, /has_metadata_override/i);
+  assert.match(sql, /has_image_override/i);
+  assert.match(sql, /storage_profile='private'[\s\S]*access_level='internal'/i);
+  assert.match(sql, /hotspots_restored',false/i);
+  assert.doesNotMatch(sql, /delete\s+from\s+(?:book_pages|book_assets|builder_audit_log|builder_component_releases)/i);
+});

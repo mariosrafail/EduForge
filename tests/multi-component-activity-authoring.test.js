@@ -28,12 +28,13 @@ function componentHarness() {
     index: { revision: 1, document: { schemaVersion: "1.0", activities: [] } },
     lifecycle: { revision: 1, document: { schemaVersion: "1.0", activities: {} } },
     documents: new Map(), mutations: new Map(),
+    pageDeleted: false,
   }]));
   const scopes = [];
   const sql = async (strings, ...values) => {
     const stableKey = values.find((value) => typeof value === "string" && value.includes("/pages/"));
     const component = components.find(({ componentSlug, pageId }) => stableKey === `${componentSlug}/pages/${pageId}`);
-    return component ? [{ stable_key: stableKey, sort_order: 10, unit_id: "10000000-0000-4000-8000-000000000001", unit_number: 1, unit_title: "Unit 1" }] : [];
+    return component ? [{ stable_key: stableKey, sort_order: 10, source_metadata: { is_active: !states[component.componentSlug].pageDeleted, is_deleted: states[component.componentSlug].pageDeleted }, unit_id: "10000000-0000-4000-8000-000000000001", unit_number: 1, unit_title: "Unit 1" }] : [];
   };
   const loadDocument = async (_sql, resource) => {
     const state = states[resource.componentSlug]; if (!state) return null;
@@ -101,8 +102,15 @@ test("Workbook and Grammar create every registered native kind and reload only t
     assert.equal(payload.activities.length, NATIVE_ACTIVITY_KINDS.length);
     assert.equal(payload.activities.every(({ activityId }) => activityId.startsWith(component.prefix)), true);
     assert.equal(new Set(payload.activities.map(({ activityId }) => activityId)).size, NATIVE_ACTIVITY_KINDS.length);
+    states[component.componentSlug].pageDeleted = true;
+    const recovered = await handler(event(`${root}/catalog`));
+    assert.equal(recovered.statusCode, 200, recovered.body);
+    assert.equal(JSON.parse(recovered.body).activities.every((activity) => activity.sourcePageId === component.pageId && activity.assignment.state === "unassigned" && activity.assignment.reason === "page-deleted"), true);
+    const rejectedDestination = await handler(event(`${root}/create`, { method: "POST", body: { kind: "image", pageId: component.pageId, title: "Must reject deleted destination", clientMutationId: randomUUID() } }));
+    assert.equal(rejectedDestination.statusCode, 400);
+    states[component.componentSlug].pageDeleted = false;
   }
-  assert.deepEqual(scopes, components.map(({ componentSlug }) => ({ bookSlug: "ultimate-b2", componentSlug })));
+  assert.deepEqual(scopes, components.flatMap(({ componentSlug }) => [{ bookSlug: "ultimate-b2", componentSlug }, { bookSlug: "ultimate-b2", componentSlug }]));
   assert.equal([...states[components[0].componentSlug].documents.keys()].some((key) => key.includes("-gb-")), false);
   assert.equal([...states[components[1].componentSlug].documents.keys()].some((key) => key.includes("-wb-")), false);
 });

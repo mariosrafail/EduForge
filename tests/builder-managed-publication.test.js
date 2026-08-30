@@ -147,6 +147,25 @@ test("managed compiler fails closed on cross-component native activity identitie
   }
 });
 
+test("publication safely excludes native activities made Unassigned by page deletion", () => {
+  const activityId = "ultimate-b2-wb-unit-1-page-1-o1";
+  const input = managedSourcesWithActivity(componentSlug, pageId, activityId, "PRIVATE_UNASSIGNED_ANSWER");
+  const historical = compileUltimateB2ManagedComponentRelease(input, componentSlug);
+  assert.ok(historical.publicProjection.nativeActivities[activityId]);
+
+  const prunedHotspots = { ...input.documents.hotspots.payload, pages: {} };
+  input.documents.hotspots = { payload: prunedHotspots, revision: 4, sha256: builderDocumentSha256(prunedHotspots) };
+  input.pages.rows[0].source_metadata.is_active = false;
+  const current = compileUltimateB2ManagedComponentRelease(input, componentSlug);
+
+  assert.deepEqual(current.publicProjection.pages, []);
+  assert.deepEqual(current.publicProjection.hotspots.pages, {});
+  assert.deepEqual(current.publicProjection.nativeActivities, {});
+  assert.deepEqual(current.teacherProjection.nativeActivities, {});
+  assert.deepEqual(current.sourceSnapshot.nativeActivities, {});
+  assert.doesNotThrow(() => verifyUltimateB2ManagedComponentRelease(releaseRow(historical), componentSlug));
+});
+
 test("product member inputs keep Students, Workbook, and Grammar activities and Teacher data strictly local", () => {
   const workbookActivityId = "ultimate-b2-wb-unit-1-page-1-o1";
   const grammarActivityId = "ultimate-b2-gb-unit-1-page-1-o1";
