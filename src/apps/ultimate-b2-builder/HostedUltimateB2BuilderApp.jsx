@@ -21,12 +21,13 @@ import "./hostedUltimateB2BuilderReview.css";
 import "./hostedUltimateB2BuilderModern.css";
 import "./studioAuthoring.css";
 
-const kindIcons = { "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks, listening: MessageSquareText, "drag-drop": Boxes };
+const kindIcons = { "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks, listening: MessageSquareText, "oldschool-listening": FileImage, "drag-drop": Boxes };
 const kindDescriptions = {
   "open-response": "Learners write a free response for Teacher review.",
   image: "Present an authored image with optional guidance.",
   "complete-sentences": "Learners type words or phrases into visual blanks; answers stay Teacher-only.",
   listening: "Learners listen, follow a synchronized transcript, and write responses for Teacher review.",
+  "oldschool-listening": "Learners listen while timed highlights and scrolling follow an uploaded page image.",
   "single-choice": "Learners choose one answer; the key stays Teacher-only.",
   "drag-drop": "Learners place shared word-bank items onto visual targets; mappings stay Teacher-only.",
 };

@@ -46,6 +46,10 @@ test("native capabilities derive reviewed, scored, and display-only policy for e
   assert.equal(listening.assignable, true);
   assert.equal(listening.submittable, true);
   assert.equal(listening.reviewMode, "teacher-reviewed");
+  const oldschoolListening = nativeAssignmentCapability("oldschool-listening");
+  assert.equal(oldschoolListening.assignable, true);
+  assert.equal(oldschoolListening.submittable, true);
+  assert.equal(oldschoolListening.reviewMode, "teacher-reviewed");
   const dragDrop = nativeAssignmentCapability("drag-drop");
   assert.equal(dragDrop.assignable, true);
   assert.equal(dragDrop.submittable, true);
@@ -87,6 +91,16 @@ test("Listening responses reuse ordered text semantics while keeping model answe
   assert.deepEqual(capability.teacherReviewProjection(publicDocument, teacherDocument, normalized.payload).map(({ questionId, modelAnswer }) => ({ questionId, modelAnswer })), [
     { questionId: "q-first", modelAnswer: "Private first" }, { questionId: "q-second", modelAnswer: "Private second" },
   ]);
+});
+
+test("Oldschool Listening responses reuse Panel 1 text semantics without exposing model answers", () => {
+  const teacherDocument = { parts: [{ solution: { kind: "oldschool-listening", modelAnswers: [{ questionId: "q-first", text: "Private first" }, { questionId: "q-second", text: "Private second" }] } }] };
+  const capability = nativeAssignmentCapability("oldschool-listening");
+  const normalized = capability.normalizeResponse(publicDocument, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "q-second", value: "Student second" }, { id: "q-first", value: "Student first" }] });
+  assert.equal(normalized.payload.kind, "oldschool-listening");
+  assert.deepEqual(normalized.payload.items.map((item) => item.id), ["q-first", "q-second"]);
+  assert.doesNotMatch(JSON.stringify(normalized.payload), /Private/);
+  assert.deepEqual(capability.teacherReviewProjection(publicDocument, teacherDocument, normalized.payload).map(({ questionId, modelAnswer }) => ({ questionId, modelAnswer })), [{ questionId: "q-first", modelAnswer: "Private first" }, { questionId: "q-second", modelAnswer: "Private second" }]);
 });
 
 test("Complete the Sentences response uses public item order and joins private answers only in Teacher review", () => {

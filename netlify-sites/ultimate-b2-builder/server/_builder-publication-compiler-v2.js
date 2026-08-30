@@ -4,6 +4,7 @@ import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, na
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
+import { nativeOldschoolListeningAssetRequirements } from "../../../src/data/native-activities/nativeOldschoolListening.js";
 import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
 import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
@@ -19,6 +20,7 @@ import {
   ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
 } from "../../../src/data/ultimate-b2/componentPublicationV2.js";
@@ -29,7 +31,7 @@ import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds,
 import { canonicalStudentsBookPages } from "./_builder-page-catalog.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf" });
-const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS);
+const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS);
 
 function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false } = {}) {
   return Object.freeze({
@@ -54,6 +56,7 @@ const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
   dragDropExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS)),
   unitExtrasExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true })),
   pageLifecycleExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
+  oldschoolListeningExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
 });
 
 export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
@@ -96,6 +99,13 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     unitExtras: true,
     pageLifecycle: true,
   }),
+  Object.freeze({
+    name: "oldschool-listening-expanded",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.oldschoolListeningExpanded,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
+    unitExtras: true,
+    pageLifecycle: true,
+  }),
 ]);
 
 const v2CompatibilityVariantsByIdentity = new Map(
@@ -125,7 +135,7 @@ export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility
 }
 
 export function ultimateB2PublicationV2Compatibility() {
-  return V2_COMPATIBILITY_IDENTITIES.pageLifecycleExpanded;
+  return V2_COMPATIBILITY_IDENTITIES.oldschoolListeningExpanded;
 }
 
 export function isUltimateB2PublicationV2NativeKind(kind) {
@@ -180,6 +190,7 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
         ...(entry.publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "listening" ? nativeListeningAssetRequirements(entry.publicDocument) : []),
+        ...(entry.publicDocument.kind === "oldschool-listening" ? nativeOldschoolListeningAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(entry.publicDocument) : []),
       ];
@@ -287,7 +298,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     }])),
     unitExtras: unitExtrasSource ? { revision: unitExtrasSource.revision, sha256: unitExtrasSource.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyUltimateB2UnitExtras()) },
     pageLibrary: pageLibrarySource,
-  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, includeUnitExtras: true, includePageLifecycle: true });
+  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, includeUnitExtras: true, includePageLifecycle: true });
   const publicProjection = normalizeUltimateB2PublicReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -300,7 +311,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     activePageIds,
     assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)],
   }, seeds, {
-    allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+    allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
     expectedCompatibility: compatibility,
     includeUnitExtras: true,
     includePageLifecycle: true,
@@ -312,7 +323,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     solutions: legacy.teacherProjection.solutions,
     ui: legacy.teacherProjection.ui,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.teacherDocument.kind, document: entry.teacherDocument }])),
-  }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS });
+  }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS });
   const assetManifest = [...legacy.assetManifest, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)]
     .sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
   const hashes = {

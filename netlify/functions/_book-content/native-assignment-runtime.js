@@ -110,6 +110,7 @@ function normalizeTextResponses(publicDocument, rawEnvelope, responseKind) {
 
 function normalizeOpenResponse(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "open-response"); }
 function normalizeListening(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "listening"); }
+function normalizeOldschoolListening(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "oldschool-listening"); }
 
 function openResponseReview(publicDocument, teacherDocument, payload = {}) {
   const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
@@ -231,6 +232,15 @@ const capabilities = Object.freeze({
     reviewMode: "teacher-reviewed",
     responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
     normalizeResponse: normalizeListening,
+    teacherReviewProjection: openResponseReview,
+  }),
+  "oldschool-listening": Object.freeze({
+    kind: "oldschool-listening",
+    assignable: true,
+    submittable: true,
+    reviewMode: "teacher-reviewed",
+    responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION,
+    normalizeResponse: normalizeOldschoolListening,
     teacherReviewProjection: openResponseReview,
   }),
   "drag-drop": Object.freeze({

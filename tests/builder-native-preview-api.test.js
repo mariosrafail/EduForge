@@ -4,6 +4,9 @@ import test from "node:test";
 import { createBuilderNativePreviewHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-preview.js";
 import { inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization } from "../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
+import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
+import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 
 const environment = { BUILDER_PREVIEW_AUTH_SECRET: "test-only-preview-secret-with-at-least-thirty-two-bytes" };
 const now = Date.parse("2026-08-15T12:00:00Z");
@@ -48,6 +51,25 @@ function harness({ sources = createPublicationV2FixtureSources(), asset = undefi
   });
 }
 
+function oldschoolPreviewSources() {
+  const sources = createPublicationV2FixtureSources();
+  const activityId = "ultimate-b2-sb-u1-p1-o95";
+  const kind = resolveNativeActivityKind("oldschool-listening");
+  const publicDocument = kind.createBlankPublic({ activityId, title: "Oldschool Listening preview", placement: { pageId: publicationV2Fixture.pageId } });
+  const teacherDocument = kind.createBlankTeacher({ activityId });
+  const questionId = nativeChildIdFromUuid("q", "20000000-0000-4000-8000-000000000001");
+  const audio = { assetId: "20000000-0000-4000-8000-000000000002", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "preview-audio" };
+  const page = { assetId: "20000000-0000-4000-8000-000000000003", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "preview-page" };
+  publicDocument.assets = [audio, page];
+  Object.assign(publicDocument.parts[0].interaction, { audioAssetSlot: audio.slot, audioDurationMs: 2_000, questions: [{ ...createNativeOpenResponseQuestion(questionId), prompt: "What did you hear?" }], cues: [{ id: nativeChildIdFromUuid("cue", "20000000-0000-4000-8000-000000000004"), startMs: 0, endMs: 2_000, text: "A safe public cue", highlightRegions: [{ id: nativeChildIdFromUuid("region", "20000000-0000-4000-8000-000000000005"), x: 10, y: 20, width: 300, height: 60 }], scrollY: 20 }] });
+  Object.assign(publicDocument.parts[0].interaction.panels[1], { pageAssetSlot: page.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Preview page" });
+  teacherDocument.parts[0].solution.modelAnswers = [{ questionId, text: "OLDSCHOOL_PREVIEW_TEACHER_PRIVATE" }];
+  const entry = { activityId, kind: "oldschool-listening", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 99 };
+  sources.native.index.payload.activities.push(entry);
+  sources.native.activities[activityId] = { index: entry, public: { revision: 1, payload: publicDocument }, teacher: { revision: 1, payload: teacherDocument } };
+  return { sources, activityId };
+}
+
 test("native draft public and teacher endpoints enforce audience separation", async () => {
   const handler = harness();
   const publicResponse = await handler(request(publicationV2Fixture.openResponseId, "public"));
@@ -80,6 +102,18 @@ test("native draft public and teacher endpoints enforce audience separation", as
   );
   assert.equal(choiceTeacherEnvelope.document.parts[0].solution.correctAnswers.length, 2);
   assert.equal((await handler(request(publicationV2Fixture.imageId, "teacher"))).statusCode, 404);
+});
+
+test("Oldschool Listening preview returns its public page mapping and keeps model answers Teacher-only", async () => {
+  const fixture = oldschoolPreviewSources();
+  const handler = harness({ sources: fixture.sources });
+  const publicResponse = await handler(request(fixture.activityId, "public"));
+  assert.equal(publicResponse.statusCode, 200);
+  assert.equal(JSON.parse(publicResponse.body).document.parts[0].interaction.cues[0].highlightRegions.length, 1);
+  assert.doesNotMatch(publicResponse.body, /OLDSCHOOL_PREVIEW_TEACHER_PRIVATE/);
+  const teacherResponse = await handler(request(fixture.activityId, "teacher"));
+  assert.equal(teacherResponse.statusCode, 200);
+  assert.match(teacherResponse.body, /OLDSCHOOL_PREVIEW_TEACHER_PRIVATE/);
 });
 
 test("page and activity scopes stay narrow while a component-scoped library token supports in-book activity launch", async () => {

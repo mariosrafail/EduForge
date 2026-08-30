@@ -11,8 +11,11 @@ import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChild
 const pageId = "ub2-sb-unit-1-part-1";
 const openId = "ultimate-b2-sb-u1-p1-o99";
 const imageId = "ultimate-b2-sb-u1-p1-o98";
+const oldschoolId = "ultimate-b2-sb-u1-p1-o97";
 const q1 = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000001");
 const assetReference = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "asset-image" };
+const oldschoolAudio = { assetId: "10000000-0000-4000-8000-000000000005", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "oldschool-audio" };
+const oldschoolPage = { assetId: "10000000-0000-4000-8000-000000000006", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "oldschool-page" };
 
 function source(payload, revision = 1) { return { payload, revision, sha256: builderDocumentSha256(payload) }; }
 
@@ -33,6 +36,37 @@ function imagePair() {
   publicDocument.parts[0].interaction.contentText = "Public learner notice\nSecond line";
   publicDocument.parts[0].interaction.images = [{ id: `img-${"a".repeat(32)}`, assetSlot: assetReference.slot, area: { x: 20, y: 30, width: 400, height: 260 }, order: 0, altText: "A publication diagram", decorative: false, fit: "contain", locked: true }];
   return { publicDocument, teacherDocument: kind.createBlankTeacher({ activityId: imageId }) };
+}
+
+function oldschoolPair() {
+  const kind = resolveNativeActivityKind("oldschool-listening");
+  const publicDocument = kind.createBlankPublic({ activityId: oldschoolId, title: "Published Oldschool Listening", placement: { pageId } });
+  const teacherDocument = kind.createBlankTeacher({ activityId: oldschoolId });
+  const questionId = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000007");
+  publicDocument.assets = [oldschoolAudio, oldschoolPage];
+  const interaction = publicDocument.parts[0].interaction;
+  interaction.audioAssetSlot = oldschoolAudio.slot;
+  interaction.audioDurationMs = 4_000;
+  Object.assign(interaction.panels[1], { pageAssetSlot: oldschoolPage.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "A listening activity page" });
+  interaction.questions = [{ ...createNativeOpenResponseQuestion(questionId), prompt: "What is recommended?" }];
+  interaction.cues = [{ id: nativeChildIdFromUuid("cue", "10000000-0000-4000-8000-000000000008"), startMs: 0, endMs: 4_000, text: "Take the train.", highlightRegions: [{ id: nativeChildIdFromUuid("region", "10000000-0000-4000-8000-000000000009"), x: 80, y: 900, width: 700, height: 90 }], scrollY: 920 }];
+  teacherDocument.parts[0].solution.modelAnswers = [{ questionId, text: "OLDSCHOOL_TEACHER_SENTINEL_PRIVATE" }];
+  return { publicDocument, teacherDocument };
+}
+
+function withOldschoolPublication(input) {
+  const pair = oldschoolPair();
+  const entry = { activityId: oldschoolId, kind: "oldschool-listening", placement: { pageId }, sortOrder: 3 };
+  input.native.index.payload.activities.push(entry);
+  input.native.index.sha256 = builderDocumentSha256(input.native.index.payload);
+  input.native.activities[oldschoolId] = { index: entry, public: source(pair.publicDocument, 4), teacher: source(pair.teacherDocument, 4) };
+  input.documents.hotspots.payload.pages[pageId].push({ id: "hotspot-native-oldschool", unitNumber: 1, pageId, pageNumber: 5, left: 28, top: 2, width: 10, height: 10, label: "Oldschool Listening", actionType: "normalized_activity", activityKey: oldschoolId });
+  input.documents.hotspots.sha256 = builderDocumentSha256(input.documents.hotspots.payload);
+  input.native.assetRows.push(
+    { id: oldschoolAudio.assetId, checksum_sha256: oldschoolAudio.checksumSha256, asset_role: oldschoolAudio.role, object_key: "builder-native-assets/oldschool.mp3", storage_profile: "private", storage_bucket: "private", mime_type: "audio/mpeg", byte_size: 500, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: oldschoolId, asset_slot: oldschoolAudio.slot } },
+    { id: oldschoolPage.assetId, checksum_sha256: oldschoolPage.checksumSha256, asset_role: oldschoolPage.role, object_key: "builder-native-assets/oldschool.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 600, width: 1000, height: 1800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: oldschoolId, asset_slot: oldschoolPage.slot } },
+  );
+  return input;
 }
 
 function manifest(ids = [openId, imageId]) {
@@ -128,6 +162,26 @@ test("v2 validates and materializes a public Readable Text image without Builder
   const worksheetMismatch = structuredClone(input);
   worksheetMismatch.native.assetRows.find((row) => row.id === worksheetAsset.assetId).mime_type = "text/html";
   assert.throws(() => compileUltimateB2ComponentReleaseV2(worksheetMismatch), (error) => error.code === "native_activity_asset_invalid" && !JSON.stringify(error).includes("TEACHER_SENTINEL"));
+});
+
+test("v2 publishes Oldschool Listening with both managed assets and no Teacher-answer leakage", () => {
+  const input = withOldschoolPublication(sources({ ids: [openId] }));
+  const compiled = compileUltimateB2ComponentReleaseV2(input);
+  const published = compiled.publicProjection.nativeActivities[oldschoolId].document;
+  assert.equal(published.kind, "oldschool-listening");
+  assert.equal(published.parts[0].interaction.cues[0].highlightRegions.length, 1);
+  assert.doesNotMatch(JSON.stringify(compiled.publicProjection), /OLDSCHOOL_TEACHER_SENTINEL_PRIVATE/);
+  assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[oldschoolId]), /OLDSCHOOL_TEACHER_SENTINEL_PRIVATE/);
+  assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "mp3" && asset.row.id === oldschoolAudio.assetId), true);
+  assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "png" && asset.row.id === oldschoolPage.assetId), true);
+
+  const wrongAudio = structuredClone(input);
+  wrongAudio.native.assetRows.find((row) => row.id === oldschoolAudio.assetId).mime_type = "image/png";
+  assert.throws(() => compileUltimateB2ComponentReleaseV2(wrongAudio), (error) => error.code === "native_activity_asset_invalid" && !JSON.stringify(error).includes("OLDSCHOOL_TEACHER_SENTINEL"));
+
+  const wrongPage = structuredClone(input);
+  wrongPage.native.assetRows.find((row) => row.id === oldschoolPage.assetId).height = 1799;
+  assert.throws(() => compileUltimateB2ComponentReleaseV2(wrongPage), (error) => error.code === "native_activity_asset_invalid");
 });
 
 test("unreferenced incomplete native drafts do not block v2 publication", () => {

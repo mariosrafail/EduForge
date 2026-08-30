@@ -11,7 +11,7 @@ import {
 } from "../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { findStudentsBookImplementation } from "../src/data/ultimate-b2/studentsBookCatalog.js";
 
-const nativeKinds = ["open-response", "image", "single-choice", "complete-sentences", "listening", "drag-drop"];
+const nativeKinds = ["open-response", "image", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"];
 
 test("native schema v1 retains the deprecated instruction while Builder authoring projects it empty", () => {
   for (const [index, kindName] of nativeKinds.entries()) {

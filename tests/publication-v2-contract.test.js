@@ -25,6 +25,7 @@ import {
   ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
 } from "../src/data/ultimate-b2/componentPublicationV2.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { ultimateB2PublicationCanonicalSeeds } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
@@ -112,6 +113,7 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
       { name: "drag-drop-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "unit-extras-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "page-lifecycle-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
+      { name: "oldschool-listening-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS },
     ],
   );
   for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {
@@ -128,6 +130,7 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS, ["complete-sentences", "image", "open-response", "single-choice"]);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS, ["complete-sentences", "image", "listening", "open-response", "single-choice"]);
   assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, ["complete-sentences", "drag-drop", "image", "listening", "open-response", "single-choice"]);
+  assert.deepEqual(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, ["complete-sentences", "drag-drop", "image", "listening", "oldschool-listening", "open-response", "single-choice"]);
   assert.equal(isUltimateB2PublicationV2NativeKind("future-native-kind"), false);
   assert.ok(reconstructUltimateB2PublicationV2Compatibility([...NATIVE_ACTIVITY_KINDS, "future-native-kind"]) !== ultimateB2PublicationV2Compatibility());
 });

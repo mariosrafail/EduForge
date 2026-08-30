@@ -6,10 +6,11 @@ import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/
 import { NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import { NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
+import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 
-const teacherDocumentKinds = new Set(["open-response", "single-choice", "complete-sentences", "listening", "drag-drop"]);
+const teacherDocumentKinds = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"]);
 
 export function PublishedNativeTeacherActivityRunner({ entry, publication, showMetadataHeader = true, presentation = null }) {
   const [teacherState, setTeacherState] = useState({ kind: "idle", document: null });
@@ -28,8 +29,8 @@ export function PublishedNativeTeacherActivityRunner({ entry, publication, showM
     const reference = document.assets.find((asset) => asset.assetId === assetId);
     return publishedNativeAssetUrl(publication, reference);
   };
-  const loadingLabel = ["open-response", "listening"].includes(entry.kind) ? "Loading Teacher model answersâ€¦" : "Loading Teacher answersâ€¦";
-  const errorLabel = ["open-response", "listening"].includes(entry.kind) ? "Teacher model answers are unavailable." : "Teacher answers are unavailable.";
+  const loadingLabel = ["open-response", "listening", "oldschool-listening"].includes(entry.kind) ? "Loading Teacher model answers…" : "Loading Teacher answers…";
+  const errorLabel = ["open-response", "listening", "oldschool-listening"].includes(entry.kind) ? "Teacher model answers are unavailable." : "Teacher answers are unavailable.";
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId} data-native-metadata={showMetadataHeader || undefined}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
@@ -40,6 +41,7 @@ export function PublishedNativeTeacherActivityRunner({ entry, publication, showM
     {entry.kind === "single-choice" && teacherState.document ? <NativeSingleChoiceTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "complete-sentences" && teacherState.document ? <NativeCompleteSentencesTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "listening" && teacherState.document ? <NativeListeningTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
+    {entry.kind === "oldschool-listening" && teacherState.document ? <NativeOldschoolListeningTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
     {entry.kind === "drag-drop" && teacherState.document ? <NativeDragDropTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
   </article>}</NativeReadableTextPresentation>;
 }
