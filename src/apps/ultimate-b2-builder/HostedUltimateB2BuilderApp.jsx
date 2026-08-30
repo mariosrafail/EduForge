@@ -27,7 +27,7 @@ const kindDescriptions = {
   image: "Present an authored image with optional guidance.",
   "complete-sentences": "Learners type words or phrases into visual blanks; answers stay Teacher-only.",
   listening: "Learners listen, follow a synchronized transcript, and write responses for Teacher review.",
-  "oldschool-listening": "Learners listen while timed highlights and scrolling follow an uploaded page image.",
+  "oldschool-listening": "Learners listen while timed highlights and scrolling follow a managed page image.",
   "single-choice": "Learners choose one answer; the key stays Teacher-only.",
   "drag-drop": "Learners place shared word-bank items onto visual targets; mappings stay Teacher-only.",
 };
