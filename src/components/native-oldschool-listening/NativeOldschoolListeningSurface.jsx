@@ -21,14 +21,15 @@ function OldschoolPage({ document, interaction, assetUrl, highlightedCueIds, pag
   const highlighted = new Set(highlightedCueIds);
   const highlightedCues = interaction.cues.filter((cue) => highlighted.has(cue.id));
   const transcriptFragments = nativeOldschoolListeningTranscriptFragments(interaction.cues);
+  const exactRegionIds = new Set(transcriptFragments.filter((fragment) => fragment.exact).map((fragment) => fragment.regionId));
   return <section className="native-oldschool-listening-page-panel" aria-label="Synchronized listening page">
     <div ref={pageViewportRef} className="native-oldschool-listening-page-viewport" tabIndex="0" aria-label="Scrollable synchronized listening page">
       <div ref={pageCanvasRef} className="native-oldschool-listening-page-canvas" style={{ aspectRatio: `${panel.sourceWidth}/${panel.sourceHeight}` }}>
         {pageReference ? <img src={assetUrl(pageReference.assetId)} alt={panel.altText} draggable="false" /> : <p role="alert">Listening page image is unavailable.</p>}
         <svg className="native-oldschool-listening-transcript" viewBox={`0 0 ${panel.sourceWidth} ${panel.sourceHeight}`} preserveAspectRatio="none" aria-hidden="true">
-          {transcriptFragments.filter((fragment) => fragment.text).map((fragment) => <foreignObject key={fragment.regionId} x={fragment.x} y={fragment.y} width={fragment.width} height={fragment.height} className="native-oldschool-listening-transcript-fragment" data-cue-id={fragment.cueId} data-region-id={fragment.regionId} data-exact={fragment.exact ? "true" : "false"}><div xmlns="http://www.w3.org/1999/xhtml" style={{ fontSize: `${nativeOldschoolListeningFragmentFontSize(fragment)}px` }}>{fragment.text}</div></foreignObject>)}
+          {transcriptFragments.filter((fragment) => fragment.text).map((fragment) => <foreignObject key={fragment.regionId} x={fragment.x} y={fragment.y} width={fragment.width} height={fragment.height} className="native-oldschool-listening-transcript-fragment" data-cue-id={fragment.cueId} data-region-id={fragment.regionId} data-exact={fragment.exact ? "true" : "false"} data-highlighted={fragment.exact && highlighted.has(fragment.cueId) ? "true" : "false"}><div xmlns="http://www.w3.org/1999/xhtml" style={{ fontSize: `${nativeOldschoolListeningFragmentFontSize(fragment)}px` }}>{fragment.exact ? <span className={`native-oldschool-listening-exact-text${highlighted.has(fragment.cueId) ? " is-active" : ""}`}>{fragment.text}</span> : fragment.text}</div></foreignObject>)}
         </svg>
-        {highlightedCues.flatMap((cue) => cue.highlightRegions.map((region) => <div key={region.id} className="native-oldschool-listening-highlight" style={nativeOldschoolListeningRegionStyle(region, { width: panel.sourceWidth, height: panel.sourceHeight })} data-cue-id={cue.id} data-region-id={region.id} aria-hidden="true" />))}
+        {highlightedCues.flatMap((cue) => cue.highlightRegions.filter((region) => !exactRegionIds.has(region.id)).map((region) => <div key={region.id} className="native-oldschool-listening-highlight" style={nativeOldschoolListeningRegionStyle(region, { width: panel.sourceWidth, height: panel.sourceHeight })} data-cue-id={cue.id} data-region-id={region.id} aria-hidden="true" />))}
       </div>
     </div>
     <p className="native-oldschool-listening-live" aria-live="polite">{highlightedCues.map((cue) => cue.text).join(" ")}</p>

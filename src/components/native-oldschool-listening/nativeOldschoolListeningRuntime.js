@@ -56,6 +56,7 @@ export function nativeOldschoolListeningTranscriptFragments(cues) {
 }
 
 export function nativeOldschoolListeningFragmentFontSize(fragment) {
+  if (fragment.exact) return 21;
   const contentLength = Math.max(1, fragment.text.length);
   let size = Math.max(6, Math.min(21, fragment.height * .68));
   while (size > 6) {

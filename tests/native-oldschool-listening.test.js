@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, nativeOldschoolListeningTranscriptFragments, parseNativeOldschoolListeningSrt } from "../src/components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
+import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningFragmentFontSize, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, nativeOldschoolListeningTranscriptFragments, parseNativeOldschoolListeningSrt } from "../src/components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { addNativeOldschoolListeningCue, addNativeOldschoolListeningRegion, clearNativeOldschoolListeningMappings, removeNativeOldschoolListeningCue, removeNativeOldschoolListeningRegion, updateNativeOldschoolListeningRegion } from "../src/data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { parseNativeOldschoolListeningJson, serializeNativeOldschoolListeningJson } from "../src/data/native-activities/nativeOldschoolListeningJson.js";
@@ -77,6 +77,17 @@ test("partially enriched mappings safely fall back to the complete cue wording",
   const fragments = nativeOldschoolListeningTranscriptFragments(interaction.cues).filter((fragment) => fragment.cueId === interaction.cues[0].id);
   assert.equal(fragments.every((fragment) => fragment.exact === false), true);
   assert.equal(fragments.map((fragment) => fragment.text).filter(Boolean).join(" "), interaction.cues[0].text);
+});
+
+test("exact fragments always use uniform 21px source typography while fallback fitting remains safe", () => {
+  const exactFragments = [
+    { exact: true, text: "What", width: 36, height: 20 },
+    { exact: true, text: "A deliberately long exact source fragment that must never auto-shrink", width: 900, height: 31 },
+    { exact: true, text: "Wide", width: 1_200, height: 90 },
+    { exact: true, text: "Narrow exact source text", width: 24, height: 12 },
+  ];
+  assert.deepEqual(exactFragments.map(nativeOldschoolListeningFragmentFontSize), [21, 21, 21, 21]);
+  assert.equal(nativeOldschoolListeningFragmentFontSize({ exact: false, text: "A deliberately long fallback fragment that still needs safe fitting", width: 40, height: 20 }), 5.6);
 });
 
 test("Oldschool Listening rejects unknown fields, overlaps, out-of-bounds geometry, and cues beyond duration", () => {
