@@ -29,7 +29,19 @@ export function overviewPageWeight(page) {
   return printedPageNumbers(page).length || 1;
 }
 
+export function managedOverviewPageWeight(page) {
+  const width = Number(page?.imageWidth);
+  const height = Number(page?.imageHeight);
+  if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    return width > height ? 2 : 1;
+  }
+  return overviewPageWeight(page);
+}
+
 export function overviewEntryWeight(entry) {
+  if (positiveSafeInteger(entry?.physicalWeight) && entry.physicalWeight <= MAX_OVERVIEW_PAGE_WEIGHT) {
+    return entry.physicalWeight;
+  }
   const physicalPages = new Set();
   let fallbackPages = 0;
   const pages = Array.isArray(entry?.pages) ? entry.pages : [];
@@ -132,8 +144,14 @@ export function buildGenericOverviewEntries(unit) {
 }
 
 export function buildManagedOverviewEntries(unit) {
-  return buildGenericOverviewEntries(unit).map((entry) => ({
-    ...entry,
-    id: `unit-${unit.number}-managed-overview-${entry.pageIds[0]}`,
+  const entries = (unit?.pages || []).map((page, index) => ({
+    id: `unit-${unit.number}-managed-overview-${page.id}`,
+    label: cleanOverviewSectionLabel(page.title || page.label),
+    pageLabel: overviewPrintedLabel(page, index),
+    pageIds: [page.id],
+    pages: [page],
+    physicalWeight: managedOverviewPageWeight(page),
   }));
+  const rows = splitOverviewEntries(entries);
+  return [...decorateRow(rows.top, 1), ...decorateRow(rows.bottom, 2)];
 }

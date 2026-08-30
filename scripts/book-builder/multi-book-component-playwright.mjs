@@ -8,7 +8,7 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 import { assertInteractiveOverview } from "./interactive-overview-assertions.mjs";
-import { isManagedSpreadLabel, managedPageBytes, managedPageFixture, managedSpreadPageWidth } from "./interactive-overview-fixtures.mjs";
+import { managedOverviewDescriptors, managedPageBytes, managedPageFixture, managedSpreadPageWidth } from "./interactive-overview-fixtures.mjs";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
@@ -50,33 +50,25 @@ function managedCatalog(componentSlug) {
   const title = componentSlug === components.workbook ? "Workbook" : "Grammar Book";
   const abbreviation = componentSlug === components.workbook ? "wb" : "gb";
   const units = Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 }));
-  const descriptors = [
-    { unitNumber: 1, printedLabel: "1", token: "1" },
-    { unitNumber: 1, printedLabel: "2", token: "2" },
-    { unitNumber: 2, printedLabel: "3", token: "3" },
-    ...(componentSlug === components.workbook
-      ? ["70-71", "72-73", "74-75", "76", "77", "78-79"].map((printedLabel) => ({ unitNumber: 7, printedLabel, token: printedLabel.replaceAll(/[^0-9]+/g, "-") }))
-      : ["16", "17-18", "19-20", "21", "22-23", "25", "27-28"].map((printedLabel) => ({ unitNumber: 3, printedLabel, token: printedLabel.replaceAll(/[^0-9]+/g, "-") }))),
-  ];
+  const descriptors = managedOverviewDescriptors(componentSlug);
   return {
     revision: 2,
     component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed", title },
     units,
-    pages: descriptors.map(({ unitNumber, printedLabel, token }, index) => {
+    pages: descriptors.map(({ unitNumber, printedLabel, token, physicalWeight }, index) => {
       const pageId = `ultimate-b2-${abbreviation}-unit-${unitNumber}-page-${token}`;
       const assetId = `40000000-0000-4000-8000-${String(index + 1 + (abbreviation === "gb" ? 100 : 0)).padStart(12, "0")}`;
-      const isSpread = isManagedSpreadLabel(printedLabel);
       return {
         id: pageId,
         componentSlug,
         unitId: units[unitNumber - 1].id,
         unitNumber,
         unitTitle: `Unit ${unitNumber}`,
-        label: `${title} page ${printedLabel}`,
+        label: `${title} Unit ${unitNumber} page ${token}`,
         printedLabel,
         sortOrder: (index + 1) * 10,
         source: "managed-upload",
-        image: { source: "managed", assetId, width: isSpread ? managedSpreadPageWidth : 581, height: 794, checksumSha256: "a".repeat(64) },
+        image: { source: "managed", assetId, width: physicalWeight === 2 ? managedSpreadPageWidth : 581, height: 794, checksumSha256: "a".repeat(64) },
       };
     }),
   };
@@ -725,6 +717,7 @@ try {
     labels: ["pg 65", "pg 66-67", "pg 68-69", "pg 70-71", "pg 72", "pg 73", "pg 74-75", "pg 76", "pg 77", "pg 78"],
     rows: [1, 1, 1, 1, 2, 2, 2, 2, 2, 2],
     weights: [1, 2, 2, 2, 1, 1, 2, 1, 1, 1],
+    spans: [3, 7, 7, 7, 4, 4, 7, 3, 3, 3],
     columnTotals: [24, 24],
     overviewBook: "students-book",
     imageHeightParityTolerance: 1,
@@ -750,8 +743,8 @@ try {
   await studentsPagesReview.getByRole("button", { name: "Workbook", exact: true }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 1", exact: true }).waitFor();
-  await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 1,/ }).click();
-  await studentsPagesReview.getByAltText(/Workbook page 1/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Workbook Unit 1 page 1,/ }).click();
+  await studentsPagesReview.getByAltText(/Workbook Unit 1 page 1/).waitFor();
   assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.locator(".teacher-offline-library").waitFor();
@@ -759,10 +752,11 @@ try {
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 7:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 7", exact: true }).waitFor();
   const workbookOverviewMetrics = await assertInteractiveOverview(studentsPagesReview, {
-    labels: ["pg 70-71", "pg 72-73", "pg 74-75", "pg 76", "pg 77", "pg 78-79"],
-    rows: [1, 1, 1, 2, 2, 2],
-    weights: [2, 2, 2, 1, 1, 2],
-    columnTotals: [24, 16],
+    labels: ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7"],
+    rows: [1, 1, 1, 2, 2, 2, 2],
+    weights: [2, 2, 2, 1, 1, 2, 2],
+    spans: [8, 8, 8, 4, 4, 8, 8],
+    columnTotals: [24, 24],
     overviewBook: "workbook",
     imageHeightParityTolerance: 2,
     singleImageHeight: 154,
@@ -772,17 +766,18 @@ try {
   assert.ok(Math.min(...workbookOverviewMetrics.thumbnailHeights) >= Math.min(...studentsOverviewMetrics.thumbnailHeights) * 1.18, "Workbook launcher thumbnails are at least 18% larger without scaling labels");
   assert.deepEqual([...new Set(workbookOverviewMetrics.titleFontSizes)], [...new Set(studentsOverviewMetrics.titleFontSizes)], "Workbook title font size remains unchanged");
   assert.deepEqual([...new Set(workbookOverviewMetrics.pageLabelFontSizes)], [...new Set(studentsOverviewMetrics.pageLabelFontSizes)], "Workbook page-label font size remains unchanged");
-  await studentsPagesReview.getByRole("button", { name: /^Open Workbook page 70-71,/ }).click();
-  await studentsPagesReview.getByAltText(/Workbook page 70-71/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Workbook Unit 7 page 1,/ }).click();
+  await studentsPagesReview.getByAltText(/Workbook Unit 7 page 1/).waitFor();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.locator(".teacher-offline-library").waitFor();
   await studentsPagesReview.getByRole("button", { name: "Grammar Book", exact: true }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 3:/ }).click();
   await studentsPagesReview.getByRole("heading", { name: "Unit 3", exact: true }).waitFor();
   const grammarOverviewMetrics = await assertInteractiveOverview(studentsPagesReview, {
-    labels: ["pg 16", "pg 17-18", "pg 19-20", "pg 21", "pg 22-23", "pg 25", "pg 27-28"],
+    labels: ["Page 1", "Page 2", "Page 3", "Page 4", "Page 5", "Page 6", "Page 7"],
     rows: [1, 1, 1, 1, 2, 2, 2],
     weights: [1, 2, 2, 1, 2, 1, 2],
+    spans: [4, 8, 8, 4, 8, 4, 8],
     columnTotals: [24, 20],
     overviewBook: "grammar-book",
     imageHeightParityTolerance: 2,
@@ -792,14 +787,14 @@ try {
   assert.equal(grammarOverviewMetrics.thumbnailToken, "280px", "Grammar Book safely shares the managed thumbnail token");
   assert.ok(grammarOverviewMetrics.thumbnailHeights.every((height) => Math.abs(height - workbookOverviewMetrics.thumbnailHeights[0]) < 0.1), "Grammar Book safely shares the managed launcher thumbnail size");
   assert.deepEqual([...new Set(grammarOverviewMetrics.titleFontSizes)], [...new Set(studentsOverviewMetrics.titleFontSizes)], "Grammar Book title font size remains unchanged");
-  await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book page 17-18,/ }).click();
-  await studentsPagesReview.getByAltText(/Grammar Book page 17-18/).waitFor();
+  await studentsPagesReview.getByRole("button", { name: /^Open Grammar Book Unit 3 page 2,/ }).click();
+  await studentsPagesReview.getByAltText(/Grammar Book Unit 3 page 2/).waitFor();
   assert.match(await studentsPagesReview.locator(".teacher-offline-book").getAttribute("style"), new RegExp(`/preview/ui-assets-v2/${teacherUiChecksum}\\.png`));
   await page.waitForTimeout(500);
   const renewedResidentExchanges = exchangeRequests.slice(residentExchangeStart);
   assert.equal(renewedResidentExchanges.length >= 6, true, "controlled short timers renew all scoped component authorizations inside the resident Viewer");
   assert.equal(renewedResidentExchanges.some((entry) => entry.source.componentSlug === entry.intent.componentSlug), true, "controlled renewal must use same-component scope");
-  await studentsPagesReview.getByAltText(/Grammar Book page 17-18/).waitFor();
+  await studentsPagesReview.getByAltText(/Grammar Book Unit 3 page 2/).waitFor();
   await studentsPagesReview.getByRole("button", { name: "Home" }).click();
   await studentsPagesReview.getByRole("button", { name: "Students Book", exact: true }).click();
   await studentsPagesReview.getByRole("button", { name: /^Open Unit 1:/ }).click();

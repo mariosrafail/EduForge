@@ -138,6 +138,7 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   assert.deepEqual(metrics.labels, expected.labels, `${label} labels`);
   assert.deepEqual(metrics.rows, expected.rows, `${label} rows`);
   assert.deepEqual(metrics.weights, expected.weights, `${label} weights`);
+  if (expected.spans) assert.deepEqual(metrics.spans, expected.spans, `${label} column spans`);
   assert.equal(metrics.overviewBook, expected.overviewBook, `${label} component identity`);
   assert.deepEqual([1, 2].map((row) => metrics.spans
     .filter((_, index) => metrics.rows[index] === row)
@@ -152,6 +153,7 @@ export async function assertInteractiveOverview(frame, expected, label, screensh
   assert.equal(metrics.fontState.status, "loaded", `${label} deterministic font state`);
   if (expected.overviewBook === "workbook" || expected.overviewBook === "grammar-book") {
     assert.deepEqual(childContainmentFailures, [], `${label} managed card children fit their cards and panel`);
+    assert.deepEqual(metrics.naturalWidths.map((width, index) => width > metrics.naturalHeights[index] ? 2 : 1), metrics.weights, `${label} weights follow intrinsic managed page geometry`);
   }
   assert.ok(metrics.panelOverflow <= 1, `${label} panel overflow: ${metrics.panelOverflow}px`);
   assert.ok(metrics.panelVerticalOverflow <= 1, `${label} vertical panel overflow: ${metrics.panelVerticalOverflow}px`);

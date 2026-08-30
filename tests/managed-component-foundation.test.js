@@ -14,6 +14,7 @@ import {
   authorizeManagedReviewPageUnits,
   managedHostedStartupAssets,
   managedPageUnitsFromCatalog,
+  managedPageUnitsFromRelease,
 } from "../src/apps/android-teacher-offline/managedReviewRuntime.js";
 
 const workbook = "ultimate-b2-workbook";
@@ -74,7 +75,7 @@ function managedCatalog(componentSlug) {
   const units = Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 }));
   return {
     revision: 3, component: { bookSlug: "ultimate-b2", componentSlug, kind: "managed", title: componentSlug === workbook ? "Workbook" : "Grammar Book" }, units,
-    pages: [1, 2].map((number) => ({ id: `${componentSlug}-page-${number}`, componentSlug, unitId: units[0].id, label: `Page ${number}`, printedLabel: String(number), sortOrder: number, image: { source: "managed", url: `/preview/pages/${componentSlug}/${number}` } })),
+    pages: [1, 2].map((number) => ({ id: `${componentSlug}-page-${number}`, componentSlug, unitId: units[0].id, label: `Page ${number}`, printedLabel: String(number), sortOrder: number, image: { source: "managed", url: `/preview/pages/${componentSlug}/${number}`, width: number === 1 ? 1180 : 581, height: 794 } })),
   };
 }
 
@@ -83,6 +84,7 @@ test("managed hosted runtime starts and browses a ten-Unit two-page pack with ze
   const mapped = managedPageUnitsFromCatalog(payload, workbook);
   assert.equal(mapped.length, 10);
   assert.deepEqual(mapped[0].pages.map((page) => page.id), [`${workbook}-page-1`, `${workbook}-page-2`]);
+  assert.deepEqual(mapped[0].pages.map((page) => [page.imageWidth, page.imageHeight]), [[1180, 794], [581, 794]]);
   assert.ok(mapped.every((unit) => Array.isArray(unit.pages)));
   const previousLocation = Object.getOwnPropertyDescriptor(globalThis, "location");
   Object.defineProperty(globalThis, "location", { configurable: true, value: { search: `?builderPreview=1&previewAuthorization=v2.payload.${"a".repeat(43)}` } });
@@ -110,6 +112,18 @@ test("managed hosted runtime starts and browses a ten-Unit two-page pack with ze
     if (previousLocation) Object.defineProperty(globalThis, "location", previousLocation);
     else delete globalThis.location;
   }
+});
+
+test("immutable managed releases retain intrinsic page geometry for overview weighting", () => {
+  const unitId = "10000000-0000-4000-8000-000000000001";
+  const projection = {
+    units: [{ id: unitId, slug: "unit-1", title: "Unit 1", unitNumber: 1, sortOrder: 1 }],
+    pages: [{ id: "release-page-1", unitId, label: "Release page", printedLabel: "Page 1", sortOrder: 1, image: { sha256: "a".repeat(64), extension: "png", width: 1180, height: 794 } }],
+  };
+  const runtimeContext = { kind: "release-preview", releaseId: "20000000-0000-4000-8000-000000000001", authorization: `v3.payload.${"a".repeat(43)}` };
+  const mapped = managedPageUnitsFromRelease(projection, workbook, runtimeContext);
+  assert.deepEqual([mapped[0].pages[0].imageWidth, mapped[0].pages[0].imageHeight], [1180, 794]);
+  assert.match(mapped[0].pages[0].images[0], /\/assets\/[a]{64}\.png\?previewAuthorization=v3\.payload\./);
 });
 
 test("managed component preparation keeps heavy page images on demand and reauthorizes cached metadata", () => {

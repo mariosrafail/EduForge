@@ -25,6 +25,14 @@ function previewContext(runtimeContext = resolveHostedViewerRuntimeContext()) {
   return context;
 }
 
+function managedImageDimensions(image) {
+  const width = Number(image?.width);
+  const height = Number(image?.height);
+  return Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0
+    ? { imageWidth: width, imageHeight: height }
+    : {};
+}
+
 async function loadManagedReleaseProjection(context, componentSlug, fetchImpl, signal) {
   const response = await fetchImpl(hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug }, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal });
   if (!response?.ok) throw new Error("Managed release projection is unavailable.");
@@ -40,7 +48,7 @@ export function managedPageUnitsFromRelease(projection, componentSlug, context) 
   for (const page of projection.pages) {
     if (!pagesByUnit.has(page.unitId) || !page.image?.sha256 || !page.image?.extension) throw new Error("Managed release page topology is invalid.");
     const image = hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug }, `assets/${page.image.sha256}.${page.image.extension}`);
-    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), images: Object.freeze([image]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
+    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), ...managedImageDimensions(page.image), images: Object.freeze([image]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
   }
   return Object.freeze(projection.units.map((unit) => Object.freeze({ id: unit.slug, number: unit.unitNumber, title: unit.title, pages: Object.freeze(pagesByUnit.get(unit.id).sort((left, right) => left.sortOrder - right.sortOrder)) })));
 }
@@ -54,7 +62,7 @@ export function managedPageUnitsFromCatalog(payload, componentSlug) {
     const imageUrl = new URL(page.image.url, "https://viewer.invalid");
     imageUrl.searchParams.delete("previewAuthorization");
     const imagePath = `${imageUrl.pathname}${imageUrl.search}`;
-    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), images: Object.freeze([imagePath]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
+    pagesByUnit.get(page.unitId).push(Object.freeze({ id: page.id, title: page.label, pageNumber: null, spreadNumber: page.printedLabel || page.label, pageNumbers: Object.freeze([]), ...managedImageDimensions(page.image), images: Object.freeze([imagePath]), activities: Object.freeze([]), actions: Object.freeze([]), sortOrder: page.sortOrder }));
   }
   return Object.freeze(payload.units.map((unit) => Object.freeze({ id: unit.slug, number: unit.unitNumber, title: unit.title, pages: Object.freeze(pagesByUnit.get(unit.id).sort((left, right) => left.sortOrder - right.sortOrder)) })));
 }

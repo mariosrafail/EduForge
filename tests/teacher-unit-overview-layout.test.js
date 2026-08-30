@@ -7,6 +7,7 @@ import {
   allocateOverviewColumns,
   buildManagedOverviewEntries,
   cleanOverviewSectionLabel,
+  managedOverviewPageWeight,
   MAX_OVERVIEW_PAGE_WEIGHT,
   overviewEntryWeight,
   overviewPageWeight,
@@ -22,6 +23,15 @@ const pages = (...spreadNumbers) => spreadNumbers.map((spreadNumber, index) => (
   images: [`/${index + 1}.png`],
 }));
 const entries = (sourcePages) => sourcePages.map((page) => ({ id: page.id, pageIds: [page.id], pages: [page] }));
+const managedPages = (...weights) => weights.map((weight, index) => ({
+  id: `managed-page-${index + 1}`,
+  title: `Managed page ${index + 1}`,
+  spreadNumber: `Page ${index + 1}`,
+  pageNumbers: [],
+  imageWidth: weight === 2 ? 1180 : 581,
+  imageHeight: 794,
+  images: [`/managed-${index + 1}.png`],
+}));
 const rowLabels = (sourceEntries, row) => sourceEntries.filter((entry) => entry.row === row).map((entry) => entry.pageLabel);
 const rowWeight = (sourceEntries, row) => sourceEntries.filter((entry) => entry.row === row).reduce((sum, entry) => sum + entry.physicalWeight, 0);
 
@@ -37,6 +47,13 @@ test("Teacher overview page weighting prioritizes canonical numbers and strictly
     assert.equal(overviewPageWeight({ pageNumbers: [], spreadNumber }), 1, spreadNumber);
   }
   assert.equal(MAX_OVERVIEW_PAGE_WEIGHT, 2);
+});
+
+test("managed page weighting prioritizes persisted intrinsic geometry over editorial labels", () => {
+  assert.equal(managedOverviewPageWeight({ spreadNumber: "Page 1", imageWidth: 1180, imageHeight: 794 }), 2);
+  assert.equal(managedOverviewPageWeight({ spreadNumber: "Page 2", imageWidth: 581, imageHeight: 794 }), 1);
+  assert.equal(managedOverviewPageWeight({ spreadNumber: "70-71", imageWidth: 581, imageHeight: 794 }), 1);
+  assert.equal(managedOverviewPageWeight({ spreadNumber: "70-71" }), 2, "legacy catalogs without dimensions retain the strict label fallback");
 });
 
 test("entry weighting unions canonical pages without double-counting grouped duplicates", () => {
@@ -81,21 +98,24 @@ test("Student Units 3-10 keep every atomic page once and derive rows from physic
   assert.deepEqual([rowWeight(unit5, 1), rowWeight(unit5, 2)], [7, 7]);
 });
 
-test("Workbook Unit 7 and representative Grammar rows preserve spreads and allocate the full panel", () => {
-  const workbook = buildManagedOverviewEntries({ number: 7, pages: pages("70-71", "72-73", "74-75", "76", "77", "78-79") });
-  assert.deepEqual(rowLabels(workbook, 1), ["pg 70-71", "pg 72-73", "pg 74-75"]);
-  assert.deepEqual(rowLabels(workbook, 2), ["pg 76", "pg 77", "pg 78-79"]);
-  assert.deepEqual([rowWeight(workbook, 1), rowWeight(workbook, 2)], [6, 4]);
+test("managed Workbook and Grammar rows follow intrinsic spread geometry despite simple Page labels", () => {
+  const workbook = buildManagedOverviewEntries({ number: 7, pages: managedPages(2, 2, 2, 1, 1, 2, 2) });
+  assert.deepEqual(rowLabels(workbook, 1), ["Page 1", "Page 2", "Page 3"]);
+  assert.deepEqual(rowLabels(workbook, 2), ["Page 4", "Page 5", "Page 6", "Page 7"]);
+  assert.deepEqual(workbook.map((entry) => entry.physicalWeight), [2, 2, 2, 1, 1, 2, 2]);
+  assert.deepEqual([rowWeight(workbook, 1), rowWeight(workbook, 2)], [6, 6]);
   assert.deepEqual(workbook.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [8, 8, 8]);
+  assert.deepEqual(workbook.filter((entry) => entry.row === 2).map((entry) => entry.columnSpan), [4, 4, 8, 8]);
   assert.equal(workbook.filter((entry) => entry.row === 1).reduce((sum, entry) => sum + entry.columnSpan, 0), 24);
-  assert.equal(workbook.filter((entry) => entry.row === 2).reduce((sum, entry) => sum + entry.columnSpan, 0), 16);
+  assert.equal(workbook.filter((entry) => entry.row === 2).reduce((sum, entry) => sum + entry.columnSpan, 0), 24);
 
-  const grammar = buildManagedOverviewEntries({ number: 4, pages: pages("40", "41-42", "43") });
-  assert.deepEqual(rowLabels(grammar, 1), ["pg 40", "pg 41-42"]);
-  assert.deepEqual(rowLabels(grammar, 2), ["pg 43"]);
-  assert.deepEqual([rowWeight(grammar, 1), rowWeight(grammar, 2)], [3, 1]);
-  assert.deepEqual(grammar.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [4, 8]);
-  assert.deepEqual(grammar.filter((entry) => entry.row === 2).map((entry) => entry.columnSpan), [4]);
+  const grammar = buildManagedOverviewEntries({ number: 3, pages: managedPages(1, 2, 2, 1, 2, 1, 2) });
+  assert.deepEqual(rowLabels(grammar, 1), ["Page 1", "Page 2", "Page 3", "Page 4"]);
+  assert.deepEqual(rowLabels(grammar, 2), ["Page 5", "Page 6", "Page 7"]);
+  assert.deepEqual(grammar.map((entry) => entry.physicalWeight), [1, 2, 2, 1, 2, 1, 2]);
+  assert.deepEqual([rowWeight(grammar, 1), rowWeight(grammar, 2)], [6, 5]);
+  assert.deepEqual(grammar.filter((entry) => entry.row === 1).map((entry) => entry.columnSpan), [4, 8, 8, 4]);
+  assert.deepEqual(grammar.filter((entry) => entry.row === 2).map((entry) => entry.columnSpan), [8, 4, 8]);
 });
 
 test("split handles empty and small inputs without mutation, reordering, or identity loss", () => {
