@@ -5,7 +5,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { compileUltimateB2ManagedComponentRelease } from "../../netlify-sites/ultimate-b2-builder/server/_builder-managed-publication-compiler.js";
@@ -328,8 +328,8 @@ async function exerciseValidatedDragDrop(page, surface, publicDocument, teacherD
   const wrongWordId = publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
-  await dragBetween(page, wrongWord, target); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await target.getAttribute("data-incorrect"), "true"); assert.equal(await wrongWord.getAttribute("data-used"), null); assert.equal(await surface.getByRole("status").textContent(), "Incorrect placement. Try again."); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
-  await dragBetween(page, surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`), target); assert.equal(await target.getAttribute("data-occupied"), "true"); assert.equal(await target.getAttribute("data-incorrect"), null);
+  await dragBetween(page, wrongWord, target); await expect(target).toHaveAttribute("data-incorrect", "true"); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await wrongWord.getAttribute("data-used"), null); await expect(surface.getByRole("status")).toHaveText("Incorrect placement. Try again."); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
+  await dragBetween(page, surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`), target); await expect(target).toHaveAttribute("data-occupied", "true"); assert.equal(await target.getAttribute("data-incorrect"), null);
   return target;
 }
 
@@ -757,7 +757,7 @@ try {
   await publishedViewer.setViewportSize({ width: 1440, height: 900 });
   assert.equal(await immutableDragDrop.locator(".native-drag-drop-artwork img").evaluate((image) => getComputedStyle(image).objectFit), "contain");
   const publishedDragPublic = releases[1].publicProjection.nativeActivities[dragDropActivityId].document; const publishedDragTeacher = releases[1].teacherProjection.nativeActivities[dragDropActivityId].document;
-  const immutableTarget = await exerciseValidatedDragDrop(publishedViewer, immutableDragDrop, publishedDragPublic, publishedDragTeacher); await immutableTarget.click(); assert.equal(await immutableTarget.getAttribute("data-occupied"), null); await immutableTarget.click(); assert.equal(await immutableTarget.getAttribute("data-revealed"), "true");
+  const immutableTarget = await exerciseValidatedDragDrop(publishedViewer, immutableDragDrop, publishedDragPublic, publishedDragTeacher); await immutableTarget.click(); await expect(immutableTarget).not.toHaveAttribute("data-occupied", "true"); await immutableTarget.click(); await expect(immutableTarget).toHaveAttribute("data-revealed", "true");
   await publishedViewer.getByRole("button", { name: "Back", exact: true }).click(); await extraVideoLauncher.waitFor();
   await extraVideoLauncher.click(); await publishedViewer.getByRole("menuitem", { name: "Captioned extra", exact: true }).click(); await captionedExtraDialog.waitFor(); await publishedViewer.keyboard.press("Escape"); await captionedExtraDialog.waitFor({ state: "detached" });
   await publishedViewer.getByRole("button", { name: "Next page", exact: true }).click(); assert.equal(await extraVideoLauncher.count(), 0); await publishedViewer.getByRole("button", { name: "Previous page", exact: true }).click(); await extraVideoLauncher.waitFor();
