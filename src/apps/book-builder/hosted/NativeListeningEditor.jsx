@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop, Music } from "lucide-react";
-
 import { StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../components/native-listening/NativeListeningSurface.jsx";
 import { formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt } from "../../../components/native-listening/nativeListeningRuntime.js";
@@ -10,8 +8,7 @@ import { createNativeChildId } from "../../../data/native-activities/nativeChild
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeListeningReadiness, initialNativeListeningArtworkArea } from "../../../data/native-activities/nativeListening.js";
 import { assessNativeOldschoolListeningReadiness, initialNativeOldschoolListeningArtworkArea } from "../../../data/native-activities/nativeOldschoolListening.js";
-import { addNativeOldschoolListeningRegion, clearNativeOldschoolListeningMappings, removeNativeOldschoolListeningRegion, updateNativeOldschoolListeningRegion } from "../../../data/native-activities/nativeOldschoolListeningAuthoring.js";
-import { parseNativeOldschoolListeningJson, serializeNativeOldschoolListeningJson } from "../../../data/native-activities/nativeOldschoolListeningJson.js";
+import { clearNativeOldschoolListeningMappings } from "../../../data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { createNativeOpenResponseQuestion, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
@@ -21,45 +18,8 @@ import { NativeListeningQuestionAuthoring } from "./NativeListeningQuestionAutho
 import { NativeListeningTranscriptAuthoring } from "./NativeListeningTranscriptAuthoring.jsx";
 import { NativeOldschoolListeningPageMappingAuthoring, NativeOldschoolListeningTimelineAuthoring } from "./NativeOldschoolListeningAuthoring.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
-
+import { createOldschoolJsonActions, createOldschoolMappingActions, nativeListeningEditorTabs, nativeListeningMediaDuration, nativeListeningPreviewRoot, nativeOldschoolListeningEditorTabs, replaceNativeListeningAsset } from "./nativeListeningEditorSupport.js";
 const clone = (value) => structuredClone(value);
-const tabs = [
-  { id: "content", label: "Content", icon: FileText },
-  { id: "audio-transcript", label: "Audio & Transcript", icon: Music },
-  { id: "visual", label: "Visual", icon: LayoutPanelTop },
-  { id: "answer-key", label: "Answer Key", icon: KeyRound },
-  { id: "readable-text", label: "Readable Text", icon: BookOpenText },
-  { id: "video", label: "Video", icon: Film },
-  { id: "preview", label: "Local Preview", icon: Eye },
-];
-const oldschoolTabs = [
-  { id: "content", label: "Content", icon: FileText },
-  { id: "visual", label: "Visual", icon: LayoutPanelTop },
-  { id: "audio-timeline", label: "Audio & Timeline", icon: Music },
-  { id: "page-mapping", label: "Page Mapping", icon: LayoutPanelTop },
-  { id: "answer-key", label: "Answer Key", icon: KeyRound },
-  { id: "readable-text", label: "Readable Text", icon: BookOpenText },
-  { id: "video", label: "Video", icon: Film },
-  { id: "preview", label: "Local Preview", icon: Eye },
-];
-const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
-
-function replaceAsset(next, uploaded, previousSlot) {
-  next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
-  if (previousSlot && previousSlot !== uploaded.reference.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
-}
-
-function mediaDuration(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file); const audio = new Audio();
-    const done = () => { URL.revokeObjectURL(url); audio.removeAttribute("src"); };
-    audio.onloadedmetadata = () => { const duration = Math.round(audio.duration * 1_000); done(); Number.isSafeInteger(duration) && duration > 0 ? resolve(duration) : reject(new Error("Audio duration is unavailable.")); };
-    audio.onerror = () => { done(); reject(new Error("Audio duration is unavailable.")); };
-    audio.preload = "metadata";
-    audio.src = url;
-  });
-}
-
 export function NativeListeningEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {}, activityKind = "listening" }) {
   const oldschool = activityKind === "oldschool-listening";
   const [state, setState] = useState({
@@ -83,7 +43,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const [uploading, setUploading] = useState("");
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
-
   useEffect(() => {
     const controller = new AbortController();
     setState({
@@ -137,7 +96,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       });
     return () => controller.abort();
   }, [activityId, bookSlug, componentSlug]);
-
   const changed = () => {
     setDirty(true);
     onDirtyChange(true);
@@ -175,7 +133,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const selectedCue = cues.find((entry) => entry.id === selectedCueId) || null;
   const selectedSnippet = snippets.find((entry) => entry.id === selectedSnippetId) || null;
   const readiness = useMemo(() => (publicDraft && teacherDraft ? (oldschool ? assessNativeOldschoolListeningReadiness(publicDraft, teacherDraft) : assessNativeListeningReadiness(publicDraft, teacherDraft)) : null), [oldschool, publicDraft, teacherDraft]);
-  const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
+  const assetUrl = (assetId) => nativeListeningPreviewRoot(bookSlug, componentSlug, activityId, assetId);
   const audioReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.audioAssetSlot);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].backgroundAssetSlot);
   const pageReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].pageAssetSlot);
@@ -294,7 +252,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
     if (!file) return;
     setUploading("audio");
     try {
-      const durationMs = await mediaDuration(file);
+      const durationMs = await nativeListeningMediaDuration(file);
       const uploaded = await uploadNativeActivityAsset({
         bookSlug,
         componentSlug,
@@ -305,7 +263,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       mutatePublic((next) => {
         const current = next.parts[0].interaction;
         const previousSlot = current.audioAssetSlot;
-        replaceAsset(next, uploaded, previousSlot);
+        replaceNativeListeningAsset(next, uploaded, previousSlot);
         current.audioAssetSlot = uploaded.reference.slot;
         current.audioDurationMs = durationMs;
         if (previousSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
@@ -338,7 +296,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       mutatePublic((next) => {
         const panelTwo = next.parts[0].interaction.panels[1];
         const previousSlot = panelTwo.backgroundAssetSlot;
-        replaceAsset(next, uploaded, previousSlot);
+        replaceNativeListeningAsset(next, uploaded, previousSlot);
         panelTwo.backgroundAssetSlot = uploaded.reference.slot;
         panelTwo.sourceWidth = uploaded.metadata.width;
         panelTwo.sourceHeight = uploaded.metadata.height;
@@ -363,26 +321,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       setUploading("");
     }
   };
-  const oldschoolJsonContext = () => ({ assets: publicDraft.assets, commonAssetSlots: new Set(publicDraft.assets.map((asset) => asset.slot)) });
-  const exportOldschoolJson = () => {
-    try {
-      const blob = new Blob([serializeNativeOldschoolListeningJson(interaction, oldschoolJsonContext())], { type: "application/json" });
-      const url = URL.createObjectURL(blob); const link = document.createElement("a");
-      link.href = url; link.download = `${activityId}.oldschool-listening.json`; link.click(); URL.revokeObjectURL(url);
-      setState((current) => ({ ...current, message: "Canonical Oldschool Listening mapping JSON exported." }));
-    } catch (error) { setState((current) => ({ ...current, message: error.message })); }
-  };
-  const importOldschoolJson = async (file) => {
-    if (!file) return;
-    if (cues.length && !globalThis.confirm("Importing mapping JSON replaces all cue timing, text, regions, and scroll targets. Continue?")) return;
-    try {
-      const imported = parseNativeOldschoolListeningJson(await file.text(), oldschoolJsonContext()); const currentPanel = interaction.panels[1]; const importedPanel = imported.panels[1];
-      if (imported.audioAssetSlot !== interaction.audioAssetSlot || importedPanel.pageAssetSlot !== currentPanel.pageAssetSlot || importedPanel.sourceWidth !== currentPanel.sourceWidth || importedPanel.sourceHeight !== currentPanel.sourceHeight) throw new Error("Mapping JSON must target the currently uploaded MP3 and page image at identical intrinsic dimensions.");
-      mutatePublic((next) => { next.parts[0].interaction.cues = imported.cues; });
-      setSelectedCueId(imported.cues[0]?.id || null); setSelectedRegionId(null);
-      setState((current) => ({ ...current, message: `${imported.cues.length} canonical JSON cues imported.` }));
-    } catch (error) { setState((current) => ({ ...current, message: error.message || "Mapping JSON import failed." })); }
-  };
+  const { exportJson: exportOldschoolJson, importJson: importOldschoolJson } = createOldschoolJsonActions({ activityId, interaction, assets: publicDraft?.assets || [], cues, mutatePublic, setSelectedCueId, setSelectedRegionId, setMessage: (message) => setState((current) => ({ ...current, message })) });
   const uploadPage = async (file) => {
     if (!file) return;
     const hasMappings = cues.some((cue) => cue.highlightRegions.length || cue.scrollY !== null);
@@ -393,7 +332,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       if (!uploaded.metadata?.width || !uploaded.metadata?.height) throw new Error("Page image dimensions are unavailable.");
       mutatePublic((next) => {
         const current = next.parts[0].interaction; const panel = current.panels[1]; const previousSlot = panel.pageAssetSlot;
-        replaceAsset(next, uploaded, previousSlot);
+        replaceNativeListeningAsset(next, uploaded, previousSlot);
         panel.pageAssetSlot = uploaded.reference.slot;
         panel.sourceWidth = uploaded.metadata.width;
         panel.sourceHeight = uploaded.metadata.height;
@@ -553,35 +492,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
     setQuestionSelection(null);
   };
 
-  const addPageRegion = (geometry) => {
-    if (!selectedCue) return;
-    let regionId = null;
-    mutatePublic((next) => {
-      const cue = next.parts[0].interaction.cues.find((entry) => entry.id === selectedCue.id);
-      const region = addNativeOldschoolListeningRegion(cue, geometry);
-      regionId = region.id;
-    });
-    setSelectedRegionId(regionId);
-  };
-  const updatePageRegion = (geometry) => {
-    if (!selectedCue || !selectedRegionId) return;
-    mutatePublic((next) => updateNativeOldschoolListeningRegion(next.parts[0].interaction.cues.find((entry) => entry.id === selectedCue.id), selectedRegionId, geometry));
-  };
-  const removePageRegion = () => {
-    if (!selectedCue || !selectedRegionId) return;
-    mutatePublic((next) => removeNativeOldschoolListeningRegion(next.parts[0].interaction.cues.find((entry) => entry.id === selectedCue.id), selectedRegionId));
-    setSelectedRegionId(null);
-  };
-  const clearPageMappings = () => {
-    if (!globalThis.confirm("Clear every cue highlight region and authored scroll target? This cannot be undone after saving.")) return;
-    mutatePublic((next) => clearNativeOldschoolListeningMappings(next.parts[0].interaction));
-    setSelectedRegionId(null);
-  };
-  const clearSelectedCueMappings = () => {
-    if (!selectedCue || !globalThis.confirm("Clear every highlight region and the scroll target for this cue?")) return;
-    mutatePublic((next) => { const cue = next.parts[0].interaction.cues.find((entry) => entry.id === selectedCue.id); cue.highlightRegions = []; cue.scrollY = null; });
-    setSelectedRegionId(null);
-  };
+  const { addRegion: addPageRegion, updateRegion: updatePageRegion, removeRegion: removePageRegion, clearMappings: clearPageMappings, clearCueMappings: clearSelectedCueMappings } = createOldschoolMappingActions({ selectedCue, selectedRegionId, mutatePublic, setSelectedRegionId });
 
   const save = async () => {
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
@@ -650,7 +561,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
           <code>{activityId}</code>
         </details>
       </header>
-      <StudioTabWorkspace id={oldschool ? "native-oldschool-listening-tabs" : "native-listening-tabs"} value={tab} onChange={setTab} tabs={oldschool ? oldschoolTabs : tabs} label={`${oldschool ? "Oldschool Listening" : "Listening"} authoring modes`}>
+      <StudioTabWorkspace id={oldschool ? "native-oldschool-listening-tabs" : "native-listening-tabs"} value={tab} onChange={setTab} tabs={oldschool ? nativeOldschoolListeningEditorTabs : nativeListeningEditorTabs} label={`${oldschool ? "Oldschool Listening" : "Listening"} authoring modes`}>
         {tab === "content" ? (
           <section className="studio-content-panel">
             <div className="studio-form-grid">
