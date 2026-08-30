@@ -28,7 +28,7 @@ export function adaptLegacyListeningAuthoringToOldschoolInteraction(authoring, {
       text: cue.fragmentIds.flatMap((id) => fragments.get(id)?.runs || []).map((run) => run.text).join(" ").trim(),
       highlightRegions: cue.fragmentIds.map((id) => {
         const fragment = fragments.get(id); const index = fragmentIndex.get(id);
-        return { id: stableId("region", index), x: fragment.x, y: fragment.y, width: fragment.width, height: fragment.height };
+        return { id: stableId("region", index), x: fragment.x, y: fragment.y, width: fragment.width, height: fragment.height, text: fragment.runs.map((run) => run.text).join("").trim() };
       }),
       scrollY: scrollAt(authoring.karaoke.scrollTimeline, cue.startMs),
     })),

@@ -5,7 +5,7 @@ import { NativeOpenResponseStudentSurface } from "../native-open-response/Native
 import { NativeOpenResponseTeacherSurface } from "../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { formatNativeListeningTime } from "../native-listening/nativeListeningRuntime.js";
 import { nativeListeningPlayerAssets } from "../native-listening/nativeListeningPlayerAssets.js";
-import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget } from "./nativeOldschoolListeningRuntime.js";
+import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningFragmentFontSize, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, nativeOldschoolListeningTranscriptFragments } from "./nativeOldschoolListeningRuntime.js";
 import "./nativeOldschoolListening.css";
 
 function referenceForSlot(document, slot) { return document.assets.find((asset) => asset.slot === slot) || null; }
@@ -20,11 +20,15 @@ function OldschoolPage({ document, interaction, assetUrl, highlightedCueIds, pag
   const pageReference = referenceForSlot(document, panel.pageAssetSlot);
   const highlighted = new Set(highlightedCueIds);
   const highlightedCues = interaction.cues.filter((cue) => highlighted.has(cue.id));
+  const transcriptFragments = nativeOldschoolListeningTranscriptFragments(interaction.cues);
   return <section className="native-oldschool-listening-page-panel" aria-label="Synchronized listening page">
     <div ref={pageViewportRef} className="native-oldschool-listening-page-viewport" tabIndex="0" aria-label="Scrollable synchronized listening page">
       <div ref={pageCanvasRef} className="native-oldschool-listening-page-canvas" style={{ aspectRatio: `${panel.sourceWidth}/${panel.sourceHeight}` }}>
         {pageReference ? <img src={assetUrl(pageReference.assetId)} alt={panel.altText} draggable="false" /> : <p role="alert">Listening page image is unavailable.</p>}
-        {highlightedCues.flatMap((cue) => cue.highlightRegions.map((region, index) => <div key={region.id} className="native-oldschool-listening-highlight" style={nativeOldschoolListeningRegionStyle(region, { width: panel.sourceWidth, height: panel.sourceHeight })} data-cue-id={cue.id} data-region-id={region.id} aria-hidden="true"><span>{index + 1}</span></div>))}
+        <svg className="native-oldschool-listening-transcript" viewBox={`0 0 ${panel.sourceWidth} ${panel.sourceHeight}`} preserveAspectRatio="none" aria-hidden="true">
+          {transcriptFragments.filter((fragment) => fragment.text).map((fragment) => <foreignObject key={fragment.regionId} x={fragment.x} y={fragment.y} width={fragment.width} height={fragment.height} className="native-oldschool-listening-transcript-fragment" data-cue-id={fragment.cueId} data-region-id={fragment.regionId} data-exact={fragment.exact ? "true" : "false"}><div xmlns="http://www.w3.org/1999/xhtml" style={{ fontSize: `${nativeOldschoolListeningFragmentFontSize(fragment)}px` }}>{fragment.text}</div></foreignObject>)}
+        </svg>
+        {highlightedCues.flatMap((cue) => cue.highlightRegions.map((region) => <div key={region.id} className="native-oldschool-listening-highlight" style={nativeOldschoolListeningRegionStyle(region, { width: panel.sourceWidth, height: panel.sourceHeight })} data-cue-id={cue.id} data-region-id={region.id} aria-hidden="true" />))}
       </div>
     </div>
     <p className="native-oldschool-listening-live" aria-live="polite">{highlightedCues.map((cue) => cue.text).join(" ")}</p>

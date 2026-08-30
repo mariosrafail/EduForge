@@ -17,6 +17,56 @@ export function nativeOldschoolListeningRegionStyle(region, surface) {
   };
 }
 
+function splitCueTextAcrossRegions(text, regions) {
+  const words = String(text || "").trim().match(/\S+/g) || [];
+  if (!regions.length) return [];
+  const weights = regions.map((region) => Math.max(1, region.width * region.height));
+  let wordIndex = 0;
+  let remainingWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  return regions.map((region, index) => {
+    const wordsLeft = words.length - wordIndex;
+    const regionsLeft = regions.length - index;
+    if (index === regions.length - 1) return words.slice(wordIndex).join(" ");
+    const weighted = Math.round(wordsLeft * weights[index] / remainingWeight);
+    const minimum = wordsLeft >= regionsLeft ? 1 : 0;
+    const maximum = Math.max(0, wordsLeft - Math.max(0, regionsLeft - 1));
+    const take = Math.max(minimum, Math.min(maximum, weighted));
+    const fragment = words.slice(wordIndex, wordIndex + take).join(" ");
+    wordIndex += take;
+    remainingWeight -= weights[index];
+    return fragment;
+  });
+}
+
+export function nativeOldschoolListeningTranscriptFragments(cues) {
+  return cues.flatMap((cue) => {
+    const exact = cue.highlightRegions.length > 0 && cue.highlightRegions.every((region) => typeof region.text === "string");
+    const fallback = exact ? [] : splitCueTextAcrossRegions(cue.text, cue.highlightRegions);
+    return cue.highlightRegions.map((region, index) => ({
+      cueId: cue.id,
+      regionId: region.id,
+      x: region.x,
+      y: region.y,
+      width: region.width,
+      height: region.height,
+      text: exact ? region.text : fallback[index],
+      exact,
+    }));
+  });
+}
+
+export function nativeOldschoolListeningFragmentFontSize(fragment) {
+  const contentLength = Math.max(1, fragment.text.length);
+  let size = Math.max(6, Math.min(21, fragment.height * .68));
+  while (size > 6) {
+    const columns = Math.max(1, Math.floor(fragment.width / (size * .45)));
+    const rows = Math.max(1, Math.floor(fragment.height / (size * 1.12)));
+    if (columns * rows >= contentLength) break;
+    size -= .5;
+  }
+  return Math.round(size * 100) / 100;
+}
+
 export function nativeOldschoolListeningCueScrollY(cue) {
   if (!cue) return null;
   if (Number.isSafeInteger(cue.scrollY)) return cue.scrollY;

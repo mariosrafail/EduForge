@@ -67,9 +67,10 @@ function normalizeLegacyQuestion(input, index) {
 
 function normalizeRegion(input, cueIndex, regionIndex, surface) {
   const label = `Oldschool Listening cues[${cueIndex}].highlightRegions[${regionIndex}]`;
-  exactKeys(input, ["id", "x", "y", "width", "height"], label);
+  const hasText = Object.hasOwn(input, "text");
+  exactKeys(input, ["id", "x", "y", "width", "height", ...(hasText ? ["text"] : [])], label);
   if (!isNativeChildId(input.id, "region")) throw new Error(`${label}.id is invalid.`);
-  return { id: input.id, ...area({ x: input.x, y: input.y, width: input.width, height: input.height }, label, surface) };
+  return { id: input.id, ...area({ x: input.x, y: input.y, width: input.width, height: input.height }, label, surface), ...(hasText ? { text: text(input.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.cueTextLength, { required: true }) } : {}) };
 }
 
 function normalizeCue(input, index, surface) {

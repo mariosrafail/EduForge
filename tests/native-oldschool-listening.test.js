@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, parseNativeOldschoolListeningSrt } from "../src/components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
+import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, nativeOldschoolListeningTranscriptFragments, parseNativeOldschoolListeningSrt } from "../src/components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { addNativeOldschoolListeningCue, addNativeOldschoolListeningRegion, clearNativeOldschoolListeningMappings, removeNativeOldschoolListeningCue, removeNativeOldschoolListeningRegion, updateNativeOldschoolListeningRegion } from "../src/data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { parseNativeOldschoolListeningJson, serializeNativeOldschoolListeningJson } from "../src/data/native-activities/nativeOldschoolListeningJson.js";
@@ -57,6 +57,26 @@ test("Oldschool Listening normalizes multiple source-pixel highlight regions and
   ]);
   assert.deepEqual(assessNativeOldschoolListeningReadiness(normalized, normalizedTeacher), { ready: true, issues: [] });
   assert.equal(JSON.stringify(normalized).includes("speaker recommends"), false);
+});
+
+test("current regions without fragment text remain valid and receive a deterministic source-positioned transcript fallback", () => {
+  const { publicDocument } = completePair();
+  const interaction = normalizeNativeOldschoolListeningInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets });
+  assert.equal(Object.hasOwn(interaction.cues[0].highlightRegions[0], "text"), false);
+  const fragments = nativeOldschoolListeningTranscriptFragments(interaction.cues);
+  const firstCueFragments = fragments.filter((fragment) => fragment.cueId === interaction.cues[0].id);
+  assert.equal(firstCueFragments.length, 2);
+  assert.equal(firstCueFragments.map((fragment) => fragment.text).filter(Boolean).join(" "), interaction.cues[0].text);
+  assert.deepEqual(firstCueFragments.map(({ x, y, width, height }) => ({ x, y, width, height })), interaction.cues[0].highlightRegions.map(({ x, y, width, height }) => ({ x, y, width, height })));
+});
+
+test("partially enriched mappings safely fall back to the complete cue wording", () => {
+  const { publicDocument } = completePair();
+  publicDocument.parts[0].interaction.cues[0].highlightRegions[0].text = "A retained exact fragment";
+  const interaction = normalizeNativeOldschoolListeningInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets });
+  const fragments = nativeOldschoolListeningTranscriptFragments(interaction.cues).filter((fragment) => fragment.cueId === interaction.cues[0].id);
+  assert.equal(fragments.every((fragment) => fragment.exact === false), true);
+  assert.equal(fragments.map((fragment) => fragment.text).filter(Boolean).join(" "), interaction.cues[0].text);
 });
 
 test("Oldschool Listening rejects unknown fields, overlaps, out-of-bounds geometry, and cues beyond duration", () => {
@@ -130,10 +150,17 @@ test("readiness exposes actionable timing, text, geometry, mapping, and duration
 test("canonical JSON interchange round-trips only validated exact Oldschool Listening data", () => {
   const { publicDocument } = completePair();
   const context = { assets: publicDocument.assets };
+  publicDocument.parts[0].interaction.cues[0].highlightRegions[0].text = "The opening source fragment";
+  publicDocument.parts[0].interaction.cues[0].highlightRegions[1].text = "continues here.";
   const serialized = serializeNativeOldschoolListeningJson(publicDocument.parts[0].interaction, context);
   assert.deepEqual(parseNativeOldschoolListeningJson(serialized, context), normalizeNativeOldschoolListeningInteraction(publicDocument.parts[0].interaction, context));
+  assert.deepEqual(parseNativeOldschoolListeningJson(serialized, context).cues[0].highlightRegions.map((region) => region.text), ["The opening source fragment", "continues here."]);
   const unknown = JSON.parse(serialized); unknown.fetchUrl = "https://example.invalid/";
   assert.throws(() => parseNativeOldschoolListeningJson(JSON.stringify(unknown), context), /unknown fields/);
+  const unknownRegion = JSON.parse(serialized); unknownRegion.cues[0].highlightRegions[0].html = "<b>unsafe</b>";
+  assert.throws(() => parseNativeOldschoolListeningJson(JSON.stringify(unknownRegion), context), /unknown fields/);
+  const plainText = JSON.parse(serialized); plainText.cues[0].highlightRegions[0].text = "<img src=x onerror=alert(1)>";
+  assert.equal(parseNativeOldschoolListeningJson(JSON.stringify(plainText), context).cues[0].highlightRegions[0].text, "<img src=x onerror=alert(1)>");
   assert.throws(() => parseNativeOldschoolListeningJson("x".repeat(1024 * 1024 + 1), context), /1 MiB/);
 });
 
@@ -146,10 +173,18 @@ test("tracked legacy Object 2 deterministically adapts 37 cues, 98 positioned fa
   const normalized = normalizeNativeOldschoolListeningInteraction(interaction, { assets: [audio, page] });
   assert.equal(normalized.cues.length, 37);
   assert.equal(normalized.cues.reduce((count, cue) => count + cue.highlightRegions.length, 0), 98);
+  assert.equal(normalized.cues.flatMap((cue) => cue.highlightRegions).every((region) => typeof region.text === "string" && region.text.length > 0), true);
+  const sourceFragments = new Map(legacyListeningAuthoring.karaoke.fragments.map((fragment) => [fragment.id, fragment]));
+  assert.deepEqual(normalized.cues.flatMap((cue) => cue.highlightRegions).map((region) => region.text), legacyListeningAuthoring.karaoke.cues.flatMap((cue) => cue.fragmentIds.map((fragmentId) => sourceFragments.get(fragmentId).runs.map((run) => run.text).join(""))));
   assert.ok(normalized.cues.some((cue) => cue.highlightRegions.length > 1));
   assert.ok(new Set(normalized.cues.map((cue) => cue.scrollY).filter((value) => value !== null)).size > 1);
   const later = normalized.cues.at(-2); const earlier = normalized.cues[2];
   assert.equal(findNativeOldschoolListeningCue(normalized.cues, later.startMs).id, later.id);
   assert.equal(findNativeOldschoolListeningCue(normalized.cues, earlier.startMs).id, earlier.id);
   assert.ok(normalized.cues.every((cue) => cue.highlightRegions.every((region) => region.x + region.width <= normalized.panels[1].sourceWidth && region.y + region.height <= normalized.panels[1].sourceHeight)));
+  const crossColumnCue = normalized.cues.find((cue) => cue.highlightRegions.some((region, index) => index && region.y < cue.highlightRegions[index - 1].y));
+  assert.ok(crossColumnCue, "tracked reading order must retain a cue that crosses from the left column to the top of the right column");
+  const rendered = nativeOldschoolListeningTranscriptFragments(normalized.cues).filter((fragment) => fragment.cueId === crossColumnCue.id);
+  assert.deepEqual(rendered.map((fragment) => fragment.regionId), crossColumnCue.highlightRegions.map((region) => region.id));
+  assert.deepEqual(rendered.map((fragment) => fragment.text), crossColumnCue.highlightRegions.map((region) => region.text));
 });
