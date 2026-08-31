@@ -214,9 +214,9 @@ export default function TeacherOfflinePages({
     if (action.logicalKey) return true;
     return Boolean(activityIdForAction(page, action, getAuthoredActivityKey));
   }), [getAuthoredActivityKey, hotspotProvider, page, unit?.number]);
-  const fallbackExtraVideoActions = useMemo(() => pageExtraVideos.length ? [] : actions.filter((action) => (
+  const fallbackExtraVideoActions = useMemo(() => publication.kind !== "none" || pageExtraVideos.length ? [] : actions.filter((action) => (
     action.classification === "video" && /\bextra video\b/i.test(action.label)
-  )), [actions, pageExtraVideos.length]);
+  )), [actions, pageExtraVideos.length, publication.kind]);
 
   const image = page?.images?.[0] || null;
   const openAction = (action) => {
