@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Headphones, Trash2, Upload } from "lucide-react";
 
 import { NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
-import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
+import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeAudioTextFocusContent, nativeAudioHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
@@ -53,7 +53,7 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
   if (document.kind === "image") content = <NativeImageSurface document={document} assetUrl={assetUrl} />;
   else if (document.kind === "open-response") {
     const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId) || null;
-    content = <NativeOpenResponseSurface document={document} panel={panel} assetUrl={assetUrl} />;
+    content = <NativeOpenResponseFontSurface document={document} panel={panel} assetUrl={assetUrl} />;
   }
   else if (document.kind === "complete-sentences") {
     const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId);

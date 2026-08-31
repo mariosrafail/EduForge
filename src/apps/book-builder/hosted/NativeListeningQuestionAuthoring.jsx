@@ -3,7 +3,7 @@ import { Plus, Trash2, Upload } from "lucide-react";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { StudioButton, StudioField } from "../../../components/builder-studio/StudioControls.jsx";
-import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
+import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 
 export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea }) {
@@ -142,7 +142,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
             </div>
             <div className="studio-canvas-viewport">
               <div className="studio-artboard-wrap">
-                <NativeOpenResponseSurface
+                <NativeOpenResponseFontSurface
                   className="studio-artboard"
                   document={surfaceDocument}
                   assetUrl={assetUrl}
@@ -173,7 +173,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                     />
                   ))}
                   {selectedArea ? <StageSelectionFrame geometry={selectedArea} stage={surface} label={selection.type === "snippet" ? "Show Text hotspot" : selection.type === "prompt" ? "Prompt" : selection.type === "response" ? "Response region" : "Artwork"} locked={Boolean(selectedArtwork?.locked)} minWidth={selection.type === "response" ? Math.max(80, 2 * selectedSurfaceQuestion.responseRegion.presentation.paddingX + 1) : 24} minHeight={selection.type === "response" ? Math.max(44, 2 * selectedSurfaceQuestion.responseRegion.presentation.paddingY + selectedSurfaceQuestion.responseRegion.presentation.lineSpacing) : 24} moveFromGrip={selection.type !== "artwork"} onChange={commitArea} onClear={() => setSelection(null)} onDelete={selection.type === "artwork" ? removeArtwork : selection.type === "snippet" ? removeSnippet : undefined} zIndex={95} /> : null}
-                </NativeOpenResponseSurface>
+                </NativeOpenResponseFontSurface>
               </div>
             </div>
             {selection ? (

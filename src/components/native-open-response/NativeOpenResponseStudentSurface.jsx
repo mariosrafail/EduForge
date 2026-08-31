@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
+import { nativeOpenResponseAnswerFontFamily, nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
 
-import { logicalAreaStyle, NativeOpenResponseSurface, nativeOpenResponseResponseAriaLabel } from "./NativeOpenResponseSurface.jsx";
+import { logicalAreaStyle, NativeOpenResponseFontSurface, nativeOpenResponseResponseAriaLabel } from "./NativeOpenResponseSurface.jsx";
 
 export function NativeOpenResponseStudentSurface({
   document,
@@ -31,7 +31,7 @@ export function NativeOpenResponseStudentSurface({
   if (!panel) return <p role="status">This Open Response activity has no panels yet.</p>;
   const responseIds = nativeOpenResponsePanelResponseIds(panel);
   const visibleQuestions = interaction.questions.filter((question) => responseIds.includes(question.id));
-  return <section className="native-or-panel-session"><NativeOpenResponseSurface document={document} panel={panel} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
+  return <section className="native-or-panel-session"><NativeOpenResponseFontSurface document={document} panel={panel} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
     {visibleQuestions.map((question) => {
       const { responseRegion } = question;
       const { presentation } = responseRegion;
@@ -41,7 +41,7 @@ export function NativeOpenResponseStudentSurface({
         style={{
           ...logicalAreaStyle(responseRegion.area, panel.surface),
           padding: `${(presentation.paddingY / panel.surface.width) * 100}cqw ${(presentation.paddingX / panel.surface.width) * 100}cqw`,
-          fontFamily: presentation.answerFontFamily,
+          fontFamily: nativeOpenResponseAnswerFontFamily(document, presentation),
           fontSize: `${(presentation.answerFontSizeMax / panel.surface.width) * 100}cqw`,
           lineHeight: `${(presentation.lineSpacing / panel.surface.width) * 100}cqw`,
           color: presentation.color,
@@ -53,5 +53,5 @@ export function NativeOpenResponseStudentSurface({
         onChange={(event) => updateResponse(question.id, event.target.value)}
       />;
     })}
-  </NativeOpenResponseSurface>{panels.length > 1 ? <nav className="native-or-panel-navigation" aria-label="Open Response panels"><button type="button" disabled={panelIndex === 0} onClick={() => setPanelIndex((current) => Math.max(0, current - 1))}>Previous</button><span>Panel {panelIndex + 1} of {panels.length}</span><button type="button" disabled={panelIndex === panels.length - 1} onClick={() => setPanelIndex((current) => Math.min(panels.length - 1, current + 1))}>Next</button></nav> : null}</section>;
+  </NativeOpenResponseFontSurface>{panels.length > 1 ? <nav className="native-or-panel-navigation" aria-label="Open Response panels"><button type="button" disabled={panelIndex === 0} onClick={() => setPanelIndex((current) => Math.max(0, current - 1))}>Previous</button><span>Panel {panelIndex + 1} of {panels.length}</span><button type="button" disabled={panelIndex === panels.length - 1} onClick={() => setPanelIndex((current) => Math.min(panels.length - 1, current + 1))}>Next</button></nav> : null}</section>;
 }

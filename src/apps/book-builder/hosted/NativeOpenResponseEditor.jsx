@@ -4,20 +4,21 @@ import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { QuickNumber } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
-import { NativeOpenResponseSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
+import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../components/native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../components/native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { duplicateNativeImage } from "../../../data/native-activities/nativeImage.js";
-import { assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../../../data/native-activities/nativeOpenResponse.js";
+import { assessNativeOpenResponseReadiness, commitNativeOpenResponseConfiguredFontSize, createNativeOpenResponseQuestion, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../../../data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer } from "../../../data/native-activities/nativeOpenResponseAutoFit.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
+import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
+import { NativeActivityFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -28,6 +29,14 @@ function assetPreviewRoot(bookSlug, componentSlug, activityId, assetId) {
 
 function geometryLabel(type) { return type === "prompt" ? "Prompt" : type === "response" ? "Response region" : "Artwork"; }
 function blocksMiddlePan(target) { return target instanceof Element && Boolean(target.closest("button,input,textarea,select,a,summary,[contenteditable='true']")); }
+function answerFitMessage(presentation, fit) {
+  if (!fit) return `Requested ${presentation.answerFontSizeMax}px · rendered size is unavailable until a model answer exists.`;
+  if (!fit?.fits) return `Requested ${presentation.answerFontSizeMax}px · rendered ${fit?.fontSize}px · overflow: ${fit?.overflowReason}.`;
+  const lines = `${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"}`;
+  return fit.fontSize < presentation.answerFontSizeMax
+    ? `Auto-fit applied: requested ${presentation.answerFontSizeMax}px · rendered ${fit.fontSize}px across ${lines}.`
+    : `Requested and rendered at ${fit.fontSize}px across ${lines}.`;
+}
 const tabs = [
   { id: "content", label: "Content", icon: FileText },
   { id: "layout", label: "Layout", icon: LayoutPanelTop },
@@ -50,6 +59,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const [zoom, setZoom] = useState(1);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [fonts, setFonts] = useState([]);
   const [panning, setPanning] = useState(false);
   const [fitViewportHeight, setFitViewportHeight] = useState(null);
   const canvasViewportRef = useRef(null);
@@ -61,11 +71,13 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     Promise.all([
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-public", documentKey: activityId }, { signal: controller.signal }),
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-teacher", documentKey: activityId }, { signal: controller.signal }),
-    ]).then(([publicValue, teacherValue]) => {
+      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
+    ]).then(([publicValue, teacherValue, fontLibrary]) => {
       if (controller.signal.aborted) return;
       const projected = projectNativeActivityPublicForAuthoring(publicValue.document);
       projected.parts[0].interaction = promoteNativeOpenResponsePanels(projected.parts[0].interaction);
       setPublicDraft(projected); setTeacherDraft(teacherValue.document);
+      setFonts(fontLibrary);
       setState({ kind: "ready", publicRevision: publicValue.revision, teacherRevision: teacherValue.revision, message: "Saved draft" });
       setSelectedQuestionId(publicValue.document.parts[0].interaction.questions[0]?.id || null);
       setPanelId(projected.parts[0].interaction.presentation.panels[0]?.id || null);
@@ -218,7 +230,25 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     const presentation = target.responseRegion.presentation;
     presentation[key] = value;
     if (key === "paddingX") presentation.lineWidth = Math.min(presentation.lineWidth, Math.max(1, target.responseRegion.area.width - 2 * value));
+    if (key === "lineSpacing") {
+      presentation.answerFontSizeMax = Math.min(presentation.answerFontSizeMax, Math.floor(value * .9), 72);
+      presentation.answerFontSizeMin = Math.min(presentation.answerFontSizeMin, presentation.answerFontSizeMax);
+    }
+    if (key === "answerFontSizeMin") presentation.answerFontSizeMin = Math.min(Math.max(value, 8), presentation.answerFontSizeMax, 48);
     if (["paddingY", "lineSpacing", "lineCount"].includes(key)) presentation.linePositions = nativeOpenResponseLinePositions(presentation);
+  });
+
+  const recordUploadedFont = (font) => setFonts((current) => current.some((entry) => entry.assetId === font.assetId) ? current : [...current, font]);
+  const setAnswerFont = (font) => mutatePublic((next) => {
+    const target = next.parts[0].interaction.questions.find((question) => question.id === selectedQuestionId);
+    const previousSlot = target.responseRegion.presentation.answerFontAssetSlot;
+    if (font) {
+      next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
+      target.responseRegion.presentation.answerFontAssetSlot = font.slot;
+    } else {
+      delete target.responseRegion.presentation.answerFontAssetSlot;
+    }
+    if (previousSlot && previousSlot !== font?.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
   });
 
   const uploadArtwork = async (file, { background = false, replaceId = null } = {}) => {
@@ -287,7 +317,9 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
 
   if (state.kind === "loading") return <section className="native-activity-foundation" role="status">Loading native Open Response…</section>;
   if (state.kind === "error" || !publicDraft || !teacherDraft) return <section className="native-activity-foundation" role="alert">{state.message || "Native draft is unavailable."}</section>;
-  const previewAsset = (assetId) => assetPreviewRoot(bookSlug, componentSlug, activityId, assetId);
+  const previewAsset = (assetId) => publicDraft.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font"
+    ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId)
+    : assetPreviewRoot(bookSlug, componentSlug, activityId, assetId);
   const fit = selectedQuestion && answer ? autoFitNativeOpenResponseAnswer({ text: answer.text, responseRegion: selectedQuestion.responseRegion }) : null;
   const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : ""].filter(Boolean);
   const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete;
@@ -299,15 +331,15 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     {tab === "content" ? <div className="native-or-content">
       <div className="native-activity-foundation-fields"><label><span>Activity title</span><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></label></div>
       <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => { const panelCount = questionPanelCount(question.id); return <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><small>{panelCount ? `Shown on ${panelCount} panel${panelCount === 1 ? "" : "s"}` : "Unassigned"}</small><code>{question.id}</code></button>; })}</aside>
-      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{fit?.fits ? `Auto Fit: ${fit.lines.length} line${fit.lines.length === 1 ? "" : "s"} at ${fit.fontSize}px.` : `Auto Fit overflow: ${fit?.overflowReason}.`}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
+      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer <small>Teacher only · never shown to students</small></span><textarea value={answer?.text || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(event.target.value)} /></label><p role="status" data-fit={fit?.fits}>{answerFitMessage(selectedQuestion.responseRegion.presentation, fit)}</p></section> : <p>No questions yet. Add a question to begin.</p>}</div>
     </div> : null}
     {tab === "layout" && panel ? <PanelCompositionControls panel={panel} questions={questions} onChange={changePanelMembership} /> : null}
     {tab === "layout" ? panel ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={changeCanvasZoom}>
       <div className="native-or-toolbar-actions"><label className="native-or-upload studio-upload-action"><ImagePlus aria-hidden="true" /><span>{uploading ? "Uploading…" : "Add Background"}</span><input aria-label="Add Background" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0], { background: true }); event.target.value = ""; }} /></label><label className="native-or-upload studio-upload-action"><Layers3 aria-hidden="true" /><span>{uploading ? "Uploading…" : "Add Image"}</span><input aria-label="Add Image" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0]); event.target.value = ""; }} /></label>{selectedArtwork ? <label className="native-or-upload studio-upload-action"><Upload aria-hidden="true" /><span>Replace image</span><input aria-label="Replace image" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadArtwork(event.target.files?.[0], { replaceId: selectedArtwork.id }); event.target.value = ""; }} /></label> : null}<button className="studio-danger-action" type="button" onClick={deletePanel}><Trash2 aria-hidden="true" /> Delete Panel</button><section className="native-or-layers" aria-label="Artwork Layers"><strong>Artwork Layers</strong><div>{[...panel.images].sort((left, right) => right.order - left.order).map((item) => <button type="button" key={item.id} aria-current={selection?.type === "artwork" && selection.id === item.id ? "true" : undefined} onClick={() => setSelection({ type: "artwork", id: item.id })}><span>{item.altText || (item.decorative ? "Decorative graphic" : item.id)}</span>{item.locked ? <small>Locked</small> : null}</button>)}</div></section></div>
-      <OpenResponseQuickControls selection={selection} area={selectedArea} question={selectedQuestion} artwork={selectedArtwork} artworkList={panel.images} surface={panel.surface} updateArea={updateSelectedArea} changeResponse={changeResponsePresentation} updateQuestion={updateQuestion} updateArtwork={(mutator) => mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === panel.id).images; mutator(list.find((item) => item.id === selection?.id), list); })} duplicateArtwork={() => duplicateArtwork(selection.id)} removeArtwork={() => removeArtwork(selection.id)} fit={fit} />
-    </StudioCanvasToolbar><div ref={canvasViewportRef} className={`studio-canvas-viewport ${panning ? "is-middle-panning" : ""}`} style={fitViewportHeight ? { height: `${fitViewportHeight}px` } : undefined} data-middle-pan="true" onPointerDown={beginCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan} onAuxClick={(event) => { if (event.button === 1) event.preventDefault(); }}><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}><NativeOpenResponseSurface className="studio-artboard" document={publicDraft} panel={panel} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value && value.type !== "artwork") setSelectedQuestionId(value.id); }}>
+      <OpenResponseQuickControls selection={selection} area={selectedArea} question={selectedQuestion} artwork={selectedArtwork} artworkList={panel.images} surface={panel.surface} updateArea={updateSelectedArea} changeResponse={changeResponsePresentation} updateQuestion={updateQuestion} updateArtwork={(mutator) => mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === panel.id).images; mutator(list.find((item) => item.id === selection?.id), list); })} duplicateArtwork={() => duplicateArtwork(selection.id)} removeArtwork={() => removeArtwork(selection.id)} fit={fit} bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} setAnswerFont={setAnswerFont} recordUploadedFont={recordUploadedFont} onMessage={(message) => setState((current) => ({ ...current, message }))} />
+    </StudioCanvasToolbar><div ref={canvasViewportRef} className={`studio-canvas-viewport ${panning ? "is-middle-panning" : ""}`} style={fitViewportHeight ? { height: `${fitViewportHeight}px` } : undefined} data-middle-pan="true" onPointerDown={beginCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan} onAuxClick={(event) => { if (event.button === 1) event.preventDefault(); }}><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}><NativeOpenResponseFontSurface className="studio-artboard" document={publicDraft} panel={panel} assetUrl={previewAsset} selected={selection} onSelect={(value) => { setSelection(value); if (value && value.type !== "artwork") setSelectedQuestionId(value.id); }}>
       {selectedArea ? <StageSelectionFrame geometry={selectedArea} stage={panel.surface} label={geometryLabel(selection.type)} locked={Boolean(selectedArtwork?.locked)} minWidth={selection.type === "response" ? Math.max(80, 2 * selectedQuestion.responseRegion.presentation.paddingX + 1) : 24} minHeight={selection.type === "response" ? Math.max(44, 2 * selectedQuestion.responseRegion.presentation.paddingY + selectedQuestion.responseRegion.presentation.lineSpacing) : 24} moveFromGrip={selection.type !== "artwork"} onChange={commitSelectedArea} onClear={() => setSelection(null)} onDelete={selection.type === "artwork" ? () => removeArtwork(selection.id) : undefined} zIndex={selection.type === "artwork" ? 39 : 90} /> : null}
-    </NativeOpenResponseSurface></div></div><p className="studio-canvas-hint">Move using the selection grip · Resize from any corner · Middle-drag pans when zoomed · Arrow keys nudge</p></div></div> : <p>Add a panel to begin layout authoring.</p> : null}
+    </NativeOpenResponseFontSurface></div></div><p className="studio-canvas-hint">Move using the selection grip · Resize from any corner · Middle-drag pans when zoomed · Arrow keys nudge</p></div></div> : <p>Add a panel to begin layout authoring.</p> : null}
     {tab === "preview" ? <div className="native-or-preview"><p><strong>Local Preview</strong> may include unsaved editor changes. Use the shared Review button for the last saved deployed Viewer state.</p><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3><NativeReadableTextPresentation document={publicDraft} assetUrl={previewAsset}>{(presentation, audioHotspotPresentation) => <><div hidden={preview !== "student"}><NativeOpenResponseStudentSurface document={publicDraft} assetUrl={previewAsset} audioHotspotPresentation={audioHotspotPresentation} /></div>{preview === "teacher" ? <NativeOpenResponseTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAsset} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}</>}</NativeReadableTextPresentation></div> : null}
     {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewAsset} onIncompleteChange={setReadableTextIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
@@ -336,7 +368,7 @@ function PanelCompositionControls({ panel, questions, onChange }) {
   </section>;
 }
 
-function OpenResponseQuickControls({ selection, area, question, artwork, artworkList, surface, updateArea, changeResponse, updateQuestion, updateArtwork, duplicateArtwork, removeArtwork, fit }) {
+function OpenResponseQuickControls({ selection, area, question, artwork, artworkList, surface, updateArea, changeResponse, updateQuestion, updateArtwork, duplicateArtwork, removeArtwork, fit, bookSlug, componentSlug, fonts, setAnswerFont, recordUploadedFont, onMessage }) {
   if (!selection || !area) return <p className="studio-canvas-selection-status">Select an object for quick controls</p>;
   const locked = Boolean(artwork?.locked);
   const presentation = question?.responseRegion.presentation;
@@ -360,10 +392,12 @@ function OpenResponseQuickControls({ selection, area, question, artwork, artwork
       <QuickNumber label="Line count" value={presentation.lineCount} minimum={1} maximum={20} onChange={(value) => changeResponse(question.id, "lineCount", Number(value))} />
       <QuickNumber label="Line width" value={question.responseRegion.presentation.lineWidth} minimum={1} maximum={question.responseRegion.area.width - 2 * question.responseRegion.presentation.paddingX} onChange={(value) => changeResponse(question.id, "lineWidth", Number(value))} />
       <QuickNumber label="Line spacing" value={question.responseRegion.presentation.lineSpacing} minimum={8} maximum={120} onChange={(value) => changeResponse(question.id, "lineSpacing", Number(value))} />
-      <QuickNumber label="Font min" value={presentation.answerFontSizeMin} minimum={8} maximum={48} onChange={(value) => changeResponse(question.id, "answerFontSizeMin", Number(value))} />
-      <QuickNumber label="Font max" value={presentation.answerFontSizeMax} minimum={8} maximum={72} onChange={(value) => changeResponse(question.id, "answerFontSizeMax", Number(value))} />
+      <QuickNumber label="Auto-fit minimum" value={presentation.answerFontSizeMin} minimum={8} maximum={Math.min(48, presentation.answerFontSizeMax)} onChange={(value) => changeResponse(question.id, "answerFontSizeMin", Number(value))} />
+      <ConfiguredAnswerFontSize value={presentation.answerFontSizeMax} presentation={presentation} onChange={(value) => changeResponse(question.id, "answerFontSizeMax", value)} />
+      <NativeActivityFontControls bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} selectedSlot={presentation.answerFontAssetSlot} onSelect={setAnswerFont} onUploaded={recordUploadedFont} onMessage={onMessage} />
+      <StudioField label="Answer text color" className="studio-quick-field"><input aria-label="Answer text color" type="color" value={presentation.color} onChange={(event) => changeResponse(question.id, "color", event.target.value)} /></StudioField>
       <StudioField label="Answer align" className="studio-quick-field"><select aria-label="Quick Answer align" value={presentation.align} onChange={(event) => changeResponse(question.id, "align", event.target.value)}><option>left</option><option>center</option><option>right</option></select></StudioField>
-      <p className="native-or-toolbar-fit" role="status" data-fit={fit?.fits}>{fit?.fits ? "Auto Fit passes" : `Auto Fit overflow: ${fit?.overflowReason}`}</p>
+      <p className="native-or-toolbar-fit" role="status" data-fit={fit?.fits}>{answerFitMessage(presentation, fit)}</p>
     </> : null}
     {selection.type === "prompt" && question ? <><QuickNumber label="Font size" value={question.promptStyle.fontSize} minimum={8} maximum={96} onChange={(value) => updateQuestion(question.id, (target) => { target.promptStyle.fontSize = Number(value); })} /><StudioField label="Align" className="studio-quick-field"><select aria-label="Quick Align" value={question.promptStyle.align} onChange={(event) => updateQuestion(question.id, (target) => { target.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></StudioField></> : null}
     {selection.type === "artwork" && artwork ? <>
@@ -375,4 +409,34 @@ function OpenResponseQuickControls({ selection, area, question, artwork, artwork
       <button type="button" onClick={duplicateArtwork}>Duplicate graphic</button><button className="studio-danger-action" type="button" onClick={removeArtwork}>Remove graphic</button>
     </> : null}
   </div>;
+}
+
+function ConfiguredAnswerFontSize({ value, presentation, onChange }) {
+  const [draft, setDraft] = useState(String(value));
+  const [message, setMessage] = useState("Commit with Enter or leave the field.");
+  useEffect(() => setDraft(String(value)), [value]);
+  const commit = () => {
+    if (!draft.trim()) {
+      setMessage("Enter a whole-number requested size; the previous value is still saved.");
+      return;
+    }
+    const numeric = Number(draft);
+    try {
+      const result = commitNativeOpenResponseConfiguredFontSize(presentation, numeric);
+      onChange(result.value);
+      setDraft(String(result.value));
+      setMessage(result.clamped
+        ? `Clamped to ${result.value}px; allowed range is ${result.bounds.minimum}–${result.bounds.maximum}px.`
+        : `Requested size committed at ${result.value}px.`);
+    } catch (error) {
+      setMessage(`${error.message} The previous value is still saved.`);
+    }
+  };
+  return <StudioField label="Requested answer size" className="studio-quick-field studio-quick-field--wide">
+    <input type="number" inputMode="numeric" step="1" value={draft} aria-describedby="native-or-requested-size-status" onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => {
+      if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
+      if (event.key === "Escape") { event.preventDefault(); setDraft(String(value)); setMessage("Edit cancelled; the saved value is unchanged."); }
+    }} />
+    <small id="native-or-requested-size-status" role="status">{message}</small>
+  </StudioField>;
 }

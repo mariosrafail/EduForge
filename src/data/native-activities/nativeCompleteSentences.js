@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { nativeActivityFontFamilyAlias } from "./nativeActivityFont.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({
   items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500,
@@ -57,9 +58,7 @@ function area(value, panel, label) {
 }
 
 export function nativeCompleteSentencesFontFamilyAlias(assetId) {
-  const compact = String(assetId || "").toLowerCase().replaceAll("-", "");
-  if (!/^[0-9a-f]{32}$/.test(compact)) throw new Error("Complete the Sentences font asset ID is invalid.");
-  return `hh-native-font-${compact}`;
+  return nativeActivityFontFamilyAlias(assetId);
 }
 
 export function normalizeNativeCompleteSentencesHotspotPresentation(input, label = "Complete the Sentences hotspot presentation", { assets = null } = {}) {

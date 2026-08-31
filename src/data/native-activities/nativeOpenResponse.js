@@ -1,6 +1,7 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import { NATIVE_IMAGE_LIMITS, normalizeNativeImageInteraction } from "./nativeImage.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
+import { nativeActivityFontFamily } from "./nativeActivityFont.js";
 import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
 
 export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
@@ -17,6 +18,8 @@ export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
 
 export const NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
 export const NATIVE_OPEN_RESPONSE_FONT_FAMILY = "Arial";
+export const NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM = 8;
+export const NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM = 72;
 export const NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID = "panel-00000000000040008000000000000000";
 
 export function initialNativeOpenResponseArtworkArea(logicalSurface, metadata = {}) {
@@ -144,8 +147,9 @@ export function resizeNativeOpenResponseRegion(responseRegion, nextArea) {
   return responseRegion;
 }
 
-function responsePresentation(input, label, regionArea) {
-  exactKeys(input, ["paddingX", "paddingY", "lineCount", "lineSpacing", "linePositions", "lineWidth", "answerFontFamily", "answerFontSizeMin", "answerFontSizeMax", "color", "align"], label);
+function responsePresentation(input, label, regionArea, assets) {
+  const hasFontAsset = Object.hasOwn(input, "answerFontAssetSlot");
+  exactKeys(input, ["paddingX", "paddingY", "lineCount", "lineSpacing", "linePositions", "lineWidth", "answerFontFamily", "answerFontSizeMin", "answerFontSizeMax", "color", "align", ...(hasFontAsset ? ["answerFontAssetSlot"] : [])], label);
   const paddingX = number(input.paddingX, `${label}.paddingX`, 0, Math.min(100, regionArea.width / 2));
   const paddingY = number(input.paddingY, `${label}.paddingY`, 0, Math.min(100, regionArea.height / 2));
   const lineCount = integer(input.lineCount, `${label}.lineCount`, 1, 20);
@@ -161,19 +165,26 @@ function responsePresentation(input, label, regionArea) {
   });
   if (linePositions.at(-1) > regionArea.height - paddingY) throw new Error(`${label} line layout exceeds the response region.`);
   if (input.answerFontFamily !== NATIVE_OPEN_RESPONSE_FONT_FAMILY) throw new Error(`${label}.answerFontFamily is not approved.`);
-  const answerFontSizeMin = number(input.answerFontSizeMin, `${label}.answerFontSizeMin`, 8, 48);
-  const answerFontSizeMax = number(input.answerFontSizeMax, `${label}.answerFontSizeMax`, answerFontSizeMin, 72);
+  const answerFontSizeMin = number(input.answerFontSizeMin, `${label}.answerFontSizeMin`, NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM, 48);
+  const answerFontSizeMax = number(input.answerFontSizeMax, `${label}.answerFontSizeMax`, answerFontSizeMin, NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM);
   if (answerFontSizeMax > lineSpacing * 0.9) throw new Error(`${label}.answerFontSizeMax exceeds the line spacing.`);
+  let answerFontAssetSlot;
+  if (hasFontAsset) {
+    const reference = assets.find((asset) => asset.slot === input.answerFontAssetSlot);
+    if (!reference || reference.role !== "activity_font") throw new Error(`${label}.answerFontAssetSlot must reference a managed component font.`);
+    answerFontAssetSlot = reference.slot;
+  }
   return {
     paddingX, paddingY, lineCount, lineSpacing, linePositions, lineWidth,
     answerFontFamily: input.answerFontFamily,
+    ...(answerFontAssetSlot ? { answerFontAssetSlot } : {}),
     answerFontSizeMin, answerFontSizeMax,
     color: color(input.color, `${label}.color`),
     align: alignment(input.align, `${label}.align`),
   };
 }
 
-function responseRegion(input, label, questionId, logicalSurface) {
+function responseRegion(input, label, questionId, logicalSurface, assets) {
   exactKeys(input, ["id", "ariaLabel", "area", "presentation"], label);
   if (input.id !== `${questionId}-response`) throw new Error(`${label}.id is invalid.`);
   const regionArea = area(input.area, `${label}.area`, logicalSurface);
@@ -181,11 +192,11 @@ function responseRegion(input, label, questionId, logicalSurface) {
     id: input.id,
     ariaLabel: text(input.ariaLabel, `${label}.ariaLabel`, NATIVE_OPEN_RESPONSE_LIMITS.labelLength, { required: true }),
     area: regionArea,
-    presentation: responsePresentation(input.presentation, `${label}.presentation`, regionArea),
+    presentation: responsePresentation(input.presentation, `${label}.presentation`, regionArea, assets),
   };
 }
 
-function question(input, index, logicalSurface) {
+function question(input, index, logicalSurface, assets) {
   const label = `Native Open Response questions[${index}]`;
   exactKeys(input, ["id", "prompt", "promptArea", "promptStyle", "responseRegion"], label);
   if (!isNativeChildId(input.id, "q")) throw new Error(`${label}.id is invalid.`);
@@ -194,7 +205,7 @@ function question(input, index, logicalSurface) {
     prompt: text(input.prompt, `${label}.prompt`, NATIVE_OPEN_RESPONSE_LIMITS.promptLength),
     promptArea: area(input.promptArea, `${label}.promptArea`, logicalSurface),
     promptStyle: promptStyle(input.promptStyle, `${label}.promptStyle`),
-    responseRegion: responseRegion(input.responseRegion, `${label}.responseRegion`, input.id, logicalSurface),
+    responseRegion: responseRegion(input.responseRegion, `${label}.responseRegion`, input.id, logicalSurface, assets),
   };
 }
 
@@ -228,6 +239,8 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [], com
   if (!Array.isArray(value.questions) || value.questions.length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error("Native Open Response question count is invalid.");
   if (legacy) return normalizeLegacyOpenResponse(value, { assets, commonAssetSlots });
 
+  const artworkAssets = assets.filter((asset) => asset.role !== "activity_font");
+
   exactKeys(value.presentation, ["kind", "panels"], "Native Open Response presentation");
   if (value.presentation.kind !== "panels" || !Array.isArray(value.presentation.panels) || value.presentation.panels.length > NATIVE_OPEN_RESPONSE_LIMITS.panels) throw new Error("Native Open Response panel presentation is invalid.");
   const rawQuestionIds = new Set();
@@ -257,8 +270,8 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [], com
       if (!Array.isArray(panelValue[key]) || panelValue[key].length > NATIVE_OPEN_RESPONSE_LIMITS.questions) throw new Error(`${label}.${key} count is invalid.`);
     });
     const panelSlots = new Set(panelValue.images.map((image) => image.assetSlot));
-    const otherSlots = new Set([...commonAssetSlots, ...assets.filter((asset) => !panelSlots.has(asset.slot)).map((asset) => asset.slot)]);
-    const composition = normalizeNativeImageInteraction({ kind: "image", surface: panelValue.surface, images: panelValue.images }, { assets, commonAssetSlots: otherSlots });
+    const otherSlots = new Set([...commonAssetSlots, ...artworkAssets.filter((asset) => !panelSlots.has(asset.slot)).map((asset) => asset.slot)]);
+    const composition = normalizeNativeImageInteraction({ kind: "image", surface: panelValue.surface, images: panelValue.images }, { assets: artworkAssets, commonAssetSlots: otherSlots });
     composition.images.forEach((image) => {
       if (imageIds.has(image.id)) throw new Error("Native Open Response image identities must be unique across panels.");
       imageIds.add(image.id); usedSlots.add(image.assetSlot);
@@ -292,14 +305,17 @@ export function normalizeNativeOpenResponseInteraction(input, { assets = [], com
   const questionIds = new Set();
   const responseIds = new Set();
   const questions = value.questions.map((entry, index) => {
-    const normalized = question(entry, index, unassignedQuestionSurface(entry));
+    const normalized = question(entry, index, unassignedQuestionSurface(entry), assets);
     if ((promptSurfaces.get(entry.id) || []).some((panelSurface) => !areaFitsSurface(normalized.promptArea, panelSurface))) throw new Error(`Native Open Response question ${index + 1} prompt geometry does not fit every composed panel.`);
     if ((responseSurfaces.get(entry.id) || []).some((panelSurface) => !areaFitsSurface(normalized.responseRegion.area, panelSurface))) throw new Error(`Native Open Response question ${index + 1} response geometry does not fit every composed panel.`);
     if (questionIds.has(normalized.id) || responseIds.has(normalized.responseRegion.id)) throw new Error("Native Open Response child identities must be unique.");
     questionIds.add(normalized.id); responseIds.add(normalized.responseRegion.id);
     return normalized;
   });
-  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by a panel image or common supporting content.");
+  const usedFontSlots = new Set(questions.map((entry) => entry.responseRegion.presentation.answerFontAssetSlot).filter(Boolean));
+  if (assets.some((asset) => asset.role === "activity_font"
+    ? !usedFontSlots.has(asset.slot)
+    : asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by a panel image, answer font, or common supporting content.");
   return { kind: "open-response", questions, presentation: { kind: "panels", panels } };
 }
 
@@ -308,17 +324,20 @@ function normalizeLegacyOpenResponse(value, { assets, commonAssetSlots }) {
   if (!Array.isArray(value.artwork) || value.artwork.length > NATIVE_OPEN_RESPONSE_LIMITS.artwork) throw new Error("Native Open Response artwork count is invalid.");
   const questionIds = new Set(); const responseIds = new Set();
   const questions = value.questions.map((entry, index) => {
-    const normalized = question(entry, index, logicalSurface);
+    const normalized = question(entry, index, logicalSurface, assets);
     if (questionIds.has(normalized.id) || responseIds.has(normalized.responseRegion.id)) throw new Error("Native Open Response child identities must be unique.");
     questionIds.add(normalized.id); responseIds.add(normalized.responseRegion.id); return normalized;
   });
-  const assetSlots = new Set(assets.map((asset) => asset.slot)); const artworkIds = new Set(); const usedSlots = new Set();
+  const assetSlots = new Set(assets.filter((asset) => asset.role === "activity_artwork").map((asset) => asset.slot)); const artworkIds = new Set(); const usedSlots = new Set();
   const normalizedArtwork = value.artwork.map((entry, index) => {
     const normalized = artwork(entry, index, logicalSurface, assetSlots);
     if (artworkIds.has(normalized.id)) throw new Error("Native Open Response artwork identities must be unique.");
     artworkIds.add(normalized.id); usedSlots.add(normalized.assetSlot); return normalized;
   });
-  if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by artwork or common supporting content.");
+  const usedFontSlots = new Set(questions.map((entry) => entry.responseRegion.presentation.answerFontAssetSlot).filter(Boolean));
+  if (assets.some((asset) => asset.role === "activity_font"
+    ? !usedFontSlots.has(asset.slot)
+    : asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Open Response managed asset must be used by artwork, an answer font, or common supporting content.");
   return { kind: "open-response", surface: logicalSurface, artwork: normalizedArtwork, questions };
 }
 
@@ -451,10 +470,40 @@ export function removeNativeOpenResponsePanel(publicDocument, panelId) {
 
 export function nativeOpenResponseAssetRequirements(publicDocument) {
   const panels = nativeOpenResponsePanels(publicDocument?.parts?.[0]?.interaction || {}); const seen = new Set();
-  return panels.flatMap((panel, panelIndex) => panel.images.flatMap((image, imageIndex) => {
+  const artwork = panels.flatMap((panel, panelIndex) => panel.images.flatMap((image, imageIndex) => {
     if (seen.has(image.assetSlot)) return [];
     seen.add(image.assetSlot); return [{ slot: image.assetSlot, label: `Open Response panel ${panelIndex + 1} image ${imageIndex + 1}` }];
   }));
+  const fonts = (publicDocument?.parts?.[0]?.interaction?.questions || []).flatMap((question, questionIndex) => {
+    const slot = question.responseRegion?.presentation?.answerFontAssetSlot;
+    if (!slot || seen.has(slot)) return [];
+    seen.add(slot);
+    return [{ slot, mediaType: "font/ttf", label: `Open Response question ${questionIndex + 1} answer font` }];
+  });
+  return [...artwork, ...fonts];
+}
+
+export function nativeOpenResponseAnswerFontFamily(publicDocument, presentation) {
+  return nativeActivityFontFamily(publicDocument, presentation?.answerFontAssetSlot, presentation?.answerFontFamily || NATIVE_OPEN_RESPONSE_FONT_FAMILY);
+}
+
+export function nativeOpenResponseConfiguredFontSizeBounds(presentation) {
+  return {
+    minimum: Math.ceil(Math.max(NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM, Number(presentation?.answerFontSizeMin) || NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM)),
+    maximum: Math.floor(Math.min(NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM, (Number(presentation?.lineSpacing) || 0) * 0.9)),
+  };
+}
+
+export function commitNativeOpenResponseConfiguredFontSize(presentation, value) {
+  if (!Number.isSafeInteger(value)) throw new Error("Requested answer font size must be a whole number.");
+  const bounds = nativeOpenResponseConfiguredFontSizeBounds(presentation);
+  if (bounds.maximum < bounds.minimum) throw new Error("The line spacing is too small for the auto-fit minimum.");
+  const committed = clampNumber(value, bounds.minimum, bounds.maximum);
+  return { value: committed, bounds, clamped: committed !== value };
+}
+
+function clampNumber(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
 }
 
 export function duplicateNativeOpenResponseArtwork(interaction, sourceId, duplicateId) {

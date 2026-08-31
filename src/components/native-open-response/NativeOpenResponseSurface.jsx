@@ -1,5 +1,6 @@
 import "./nativeOpenResponseSurface.css";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
+import { useNativeActivityFonts } from "../native-activity-assets/useNativeActivityFonts.js";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
 import { nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
 
@@ -45,4 +46,9 @@ export function NativeOpenResponseSurface({ document, panel: selectedPanel = nul
     <NativeAudioTextHotspotButtons panelId={panel.legacy ? null : panel.id} surface={surface} presentation={audioHotspotPresentation} />
     {children}
   </div>;
+}
+
+export function NativeOpenResponseFontSurface(props) {
+  useNativeActivityFonts(props.document, props.assetUrl || (() => ""));
+  return <NativeOpenResponseSurface {...props} />;
 }

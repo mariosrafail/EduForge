@@ -3,12 +3,14 @@ import test from "node:test";
 
 import { nextNativeOpenResponseReveal, updateNativeOpenResponseReveals } from "../src/components/native-open-response/nativeOpenResponseTeacherRuntime.js";
 
-import { assertPublicBuilderDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
-import { mergeNativeManagedAssetReference } from "../src/data/native-activities/nativeActivityPublic.js";
-import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponseArtwork, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../src/data/native-activities/nativeOpenResponse.js";
+import { mergeNativeManagedAssetReference, nativeActivityUsesManagedAssetSlot, removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
+import { assignNativeOpenResponseQuestion, assessNativeOpenResponseReadiness, commitNativeOpenResponseConfiguredFontSize, createNativeOpenResponseQuestion, duplicateNativeOpenResponseArtwork, initialNativeOpenResponseArtworkArea, nativeOpenResponseAnswerFontFamily, nativeOpenResponseAssetRequirements, nativeOpenResponseLinePositions, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponseArtwork, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../src/data/native-activities/nativeOpenResponse.js";
 import { autoFitNativeOpenResponseAnswer, normalizeNativeAnswerWhitespace } from "../src/data/native-activities/nativeOpenResponseAutoFit.js";
+import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o99";
 const placement = { pageId: "ub2-sb-unit-1-part-1" };
@@ -18,6 +20,7 @@ const q2 = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000002");
 const art1 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000003");
 const art2 = nativeChildIdFromUuid("art", "10000000-0000-4000-8000-000000000005");
 const asset = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "asset-one" };
+const font = { assetId: "10000000-0000-4000-8000-000000000007", checksumSha256: "f".repeat(64), role: "activity_font", slot: "font-10000000000040008000000000000007" };
 
 test("Teacher Open Response reveal commands advance exactly once, reveal all, and reset", () => {
   let revealed = new Set();
@@ -48,6 +51,83 @@ test("blank, one-question, and multi-question native Open Response drafts normal
     assert.doesNotThrow(() => assertPublicBuilderDocument(documents.publicDocument));
     assert.equal(JSON.stringify(documents.publicDocument).includes("Answer"), false);
   }
+});
+
+test("Open Response answer typography reuses canonical component fonts without changing legacy documents", () => {
+  const legacy = pair([q1]).publicDocument;
+  const legacyNormalized = kind.normalizePublic(legacy);
+  assert.equal(Object.hasOwn(legacyNormalized.parts[0].interaction.questions[0].responseRegion.presentation, "answerFontAssetSlot"), false);
+
+  const publicDocument = structuredClone(legacy);
+  publicDocument.assets.push(font);
+  const presentation = publicDocument.parts[0].interaction.questions[0].responseRegion.presentation;
+  presentation.answerFontAssetSlot = font.slot;
+  presentation.color = "#13579b";
+  presentation.answerFontSizeMax = 28;
+  const normalized = kind.normalizePublic(publicDocument);
+  const normalizedPresentation = normalized.parts[0].interaction.questions[0].responseRegion.presentation;
+  assert.equal(normalizedPresentation.answerFontAssetSlot, font.slot);
+  assert.equal(normalizedPresentation.color, "#13579b");
+  assert.match(nativeOpenResponseAnswerFontFamily(normalized, normalizedPresentation), /^hh-native-font-10000000000040008000000000000007, Arial, sans-serif$/);
+  assert.deepEqual(nativeOpenResponseAssetRequirements(normalized), [{ slot: font.slot, mediaType: "font/ttf", label: "Open Response question 1 answer font" }]);
+  assert.equal(nativeActivityUsesManagedAssetSlot(normalized, font.slot), true);
+
+  delete normalizedPresentation.answerFontAssetSlot;
+  removeNativeManagedAssetReferenceIfUnused(normalized, font.slot);
+  assert.deepEqual(normalized.assets, []);
+  assert.equal(nativeOpenResponseAnswerFontFamily(normalized, normalizedPresentation), "Arial");
+  assert.equal(nativeOpenResponseAnswerFontFamily(normalized, { ...normalizedPresentation, answerFontAssetSlot: "font-gone" }), "Arial");
+
+  const dangling = structuredClone(publicDocument);
+  dangling.parts[0].interaction.questions[0].responseRegion.presentation.answerFontAssetSlot = "font-missing";
+  assert.throws(() => kind.normalizePublic(dangling), /managed component font/);
+  const wrongRole = structuredClone(publicDocument);
+  wrongRole.assets[0].role = "activity_artwork";
+  assert.throws(() => kind.normalizePublic(wrongRole), /managed component font/);
+});
+
+test("Open Response publishes its configured component font, size, and color through v2", () => {
+  const sources = createPublicationV2FixtureSources();
+  const publicSource = sources.native.activities[publicationV2Fixture.openResponseId].public;
+  const publicDocument = publicSource.payload;
+  const presentation = publicDocument.parts[0].interaction.questions[0].responseRegion.presentation;
+  publicDocument.assets.push(font);
+  presentation.answerFontAssetSlot = font.slot;
+  presentation.answerFontSizeMax = 26;
+  presentation.color = "#13579b";
+  publicSource.sha256 = builderDocumentSha256(publicDocument);
+  sources.native.assetRows.push({
+    id: font.assetId,
+    checksum_sha256: font.checksumSha256,
+    asset_role: font.role,
+    object_key: `builder-font-library/ultimate-b2/ultimate-b2-students-book/${font.checksumSha256}.ttf`,
+    storage_profile: "private",
+    storage_bucket: "private",
+    mime_type: "font/ttf",
+    byte_size: 22000,
+    width: null,
+    height: null,
+    publication_status: "draft",
+    access_level: "internal",
+    source_metadata: { font_library_scope: "component", display_label: "Ahem" },
+  });
+
+  const compiled = compileUltimateB2ComponentReleaseV2(sources);
+  const published = compiled.publicProjection.nativeActivities[publicationV2Fixture.openResponseId].document;
+  const publishedPresentation = published.parts[0].interaction.questions[0].responseRegion.presentation;
+  assert.equal(publishedPresentation.answerFontAssetSlot, font.slot);
+  assert.equal(publishedPresentation.answerFontSizeMax, 26);
+  assert.equal(publishedPresentation.color, "#13579b");
+  assert.ok(compiled.assetManifest.some((entry) => entry.sha256 === font.checksumSha256 && entry.role === "activity_font" && entry.extension === "ttf" && entry.mediaType === "font/ttf"));
+});
+
+test("requested answer size commits whole numbers and reports canonical live bounds", () => {
+  const presentation = createNativeOpenResponseQuestion(q1).responseRegion.presentation;
+  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 22), { value: 22, bounds: { minimum: 12, maximum: 28 }, clamped: false });
+  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 80), { value: 28, bounds: { minimum: 12, maximum: 28 }, clamped: true });
+  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 2), { value: 12, bounds: { minimum: 12, maximum: 28 }, clamped: true });
+  assert.throws(() => commitNativeOpenResponseConfiguredFontSize(presentation, Number.NaN), /whole number/);
+  assert.throws(() => commitNativeOpenResponseConfiguredFontSize(presentation, 18.5), /whole number/);
 });
 
 test("question identity is opaque, stable across edits/reorder, unique, and topology is ID-based", () => {

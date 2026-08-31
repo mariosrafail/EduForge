@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
+import { useNativeActivityFonts } from "../native-activity-assets/useNativeActivityFonts.js";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
 import { nativeCompleteSentencesFontFamilyAlias, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesHotspotPresentation, updateNativeCompleteSentencesRevealState } from "../../data/native-activities/nativeCompleteSentences.js";
 import "./nativeCompleteSentences.css";
@@ -8,17 +9,6 @@ import "./nativeCompleteSentences.css";
 function SentencePrompt({ prompt }) {
   const parts = nativeCompleteSentencesPromptParts(prompt);
   return parts.structured ? <>{parts.before}<span className="native-complete-sentences-inline-blank" aria-label="blank">______</span>{parts.after}</> : prompt;
-}
-
-function useCompleteSentencesFonts(document, assetUrl) {
-  const sources = useMemo(() => document.assets.filter((asset) => asset.role === "activity_font").map((asset) => ({ alias: nativeCompleteSentencesFontFamilyAlias(asset.assetId), url: assetUrl(asset.assetId) })), [assetUrl, document.assets]);
-  const identity = sources.map((source) => `${source.alias}\0${source.url}`).join("\1");
-  useEffect(() => {
-    if (typeof FontFace !== "function" || !globalThis.document?.fonts) return undefined;
-    const faces = sources.map(({ alias, url }) => new FontFace(alias, `url(${JSON.stringify(url)}) format("truetype")`));
-    faces.forEach((face) => { globalThis.document.fonts.add(face); face.load().catch(() => {}); });
-    return () => faces.forEach((face) => globalThis.document.fonts.delete(face));
-  }, [identity]);
 }
 
 function PanelNavigation({ panelIndex, panelCount, onPrevious, onNext }) {
@@ -35,7 +25,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
   const panels = interaction.presentation.panels;
   const normalizedIndex = Math.min(Math.max(Number.isSafeInteger(panelIndex) ? panelIndex : 0, 0), Math.max(0, panels.length - 1));
   const panel = panels[normalizedIndex];
-  useCompleteSentencesFonts(document, assetUrl);
+  useNativeActivityFonts(document, assetUrl);
   useEffect(() => { audioHotspotPresentation?.onPanelChange(panel?.id || null); }, [audioHotspotPresentation, panel?.id]);
   if (!panel) return <p role="status">No Complete the Sentences panel is available.</p>;
   const reference = document.assets.find((asset) => asset.slot === panel.backgroundAssetSlot);

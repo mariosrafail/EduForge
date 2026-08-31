@@ -4,8 +4,9 @@ import { Upload } from "lucide-react";
 import { StudioField } from "../../../components/builder-studio/StudioControls.jsx";
 import { uploadBuilderFont } from "./builderNativeActivityApi.js";
 
-export function NativeCompleteSentencesFontControls({ bookSlug, componentSlug, fonts, selectedSlot, onSelect, onUploaded, onMessage }) {
+export function NativeActivityFontControls({ bookSlug, componentSlug, fonts, selectedSlot, onSelect, onUploaded, onMessage, label = "Answer font" }) {
   const [uploading, setUploading] = useState(false);
+  const selectedFont = fonts.find((font) => font.slot === selectedSlot) || null;
 
   const upload = async (file) => {
     if (!file) return;
@@ -24,11 +25,12 @@ export function NativeCompleteSentencesFontControls({ bookSlug, componentSlug, f
   };
 
   return <>
-    <StudioField label="Answer font">
+    <StudioField label={label}>
       <select value={selectedSlot || ""} onChange={(event) => onSelect(fonts.find((font) => font.slot === event.target.value) || null)}>
         <option value="">Default application font</option>
         {fonts.map((font) => <option key={font.assetId} value={font.slot}>{font.displayLabel}</option>)}
       </select>
+      <small role="status">{selectedFont ? `${selectedFont.displayLabel} · ${Math.ceil(selectedFont.byteSize / 1024)} KB · shared component font` : "Default application font · no managed font attached"}</small>
     </StudioField>
     <label className="studio-upload-action">
       <Upload aria-hidden="true" />
@@ -37,3 +39,5 @@ export function NativeCompleteSentencesFontControls({ bookSlug, componentSlug, f
     </label>
   </>;
 }
+
+export const NativeCompleteSentencesFontControls = NativeActivityFontControls;
