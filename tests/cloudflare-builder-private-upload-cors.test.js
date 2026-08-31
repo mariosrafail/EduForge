@@ -4,8 +4,9 @@ import test from "node:test";
 
 import {
   BUILDER_PRIVATE_UPLOAD_BUCKET,
+  BUILDER_PRIVATE_ASSET_METHODS,
+  BUILDER_PRIVATE_ASSET_ORIGINS,
   BUILDER_PRIVATE_UPLOAD_HEADER,
-  BUILDER_PRIVATE_UPLOAD_METHOD,
   BUILDER_PRIVATE_UPLOAD_ORIGIN,
   ensureRemoteBuilderPrivateUploadCors,
   isBuilderPrivateUploadRule,
@@ -16,8 +17,8 @@ import {
 
 const requiredRule = {
   allowed: {
-    origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN],
-    methods: [BUILDER_PRIVATE_UPLOAD_METHOD],
+    origins: [...BUILDER_PRIVATE_ASSET_ORIGINS],
+    methods: [...BUILDER_PRIVATE_ASSET_METHODS],
     headers: [BUILDER_PRIVATE_UPLOAD_HEADER],
   },
 };
@@ -25,8 +26,8 @@ const requiredRule = {
 test("Builder private-upload CORS contract is exact and DEV-only", () => {
   assert.deepEqual(validateBuilderPrivateUploadCorsContract(), {
     bucketName: "hhplms-book-private-dev",
-    origin: "https://builder.hhplms.workers.dev",
-    method: "PUT",
+    origins: ["https://builder.hhplms.workers.dev", "https://lms.hhplms.workers.dev"],
+    methods: ["PUT", "GET", "HEAD"],
     header: "Content-Type",
   });
   assert.throws(() => reconcileBuilderPrivateUploadCors([], "hhplms-book-private-production"), /Refusing R2 CORS access/);
@@ -41,8 +42,8 @@ test("empty policy receives one narrow deterministic rule without wildcards", ()
   assert.equal(JSON.stringify(first.rules).includes('"*"'), false);
   assert.deepEqual(verifyBuilderPrivateUploadCors(first.rules), {
     bucketName: BUILDER_PRIVATE_UPLOAD_BUCKET,
-    origin: BUILDER_PRIVATE_UPLOAD_ORIGIN,
-    method: BUILDER_PRIVATE_UPLOAD_METHOD,
+    origins: BUILDER_PRIVATE_ASSET_ORIGINS,
+    methods: BUILDER_PRIVATE_ASSET_METHODS,
     header: BUILDER_PRIVATE_UPLOAD_HEADER,
     ruleCount: 1,
   });
@@ -71,13 +72,15 @@ test("wildcard rules never satisfy the managed exact-origin contract", () => {
     { allowed: { origins: ["*"], methods: ["PUT"], headers: ["Content-Type"] } },
     { allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: ["*"], headers: ["Content-Type"] } },
     { allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: ["PUT"], headers: ["*"] } },
+    { allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: ["PUT", "GET"], headers: ["Content-Type"] } },
+    { allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: BUILDER_PRIVATE_ASSET_METHODS, headers: ["Content-Type"] } },
   ]) assert.equal(isBuilderPrivateUploadRule(rule), false);
   assert.equal(isBuilderPrivateUploadRule(requiredRule), true);
 });
 
 test("verification fails closed when the exact required capability is missing", () => {
   assert.throws(() => verifyBuilderPrivateUploadCors({ rules: [] }), /does not allow/);
-  assert.throws(() => verifyBuilderPrivateUploadCors({ rules: [{ allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: ["GET"], headers: ["Content-Type"] } }] }), /does not allow/);
+  assert.throws(() => verifyBuilderPrivateUploadCors({ rules: [{ allowed: { origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN], methods: ["PUT"], headers: ["Content-Type"] } }] }), /does not allow/);
 });
 
 test("remote ensure preserves existing rules, updates once, and re-reads before success", async () => {

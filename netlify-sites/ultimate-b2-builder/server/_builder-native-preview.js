@@ -3,7 +3,7 @@ import { getBuilderSql, json } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument } from "./_builder-content-security.js";
 import { loadBuilderComponentDocument } from "./_builder-content-store.js";
-import { isBuilderNativeDraftAssetRecord, loadBuilderNativeAsset } from "./_builder-native-activity-store.js";
+import { isBuilderNativeDraftAssetRecord, loadBuilderFontAsset, loadBuilderNativeAsset } from "./_builder-native-activity-store.js";
 import { inspectBuilderPreviewAuthorizationScope } from "./_builder-preview-authorization.js";
 import { validateNativeActivityPair } from "./_native-activity-registry.js";
 
@@ -77,6 +77,7 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
     inspectAuthorization: overrides.inspectAuthorization || inspectBuilderPreviewAuthorizationScope,
     loadAsset: overrides.loadAsset || loadBuilderNativeAsset,
+    loadFont: overrides.loadFont || loadBuilderFontAsset,
     storage: overrides.storage || (() => createBookAssetStorage()),
     logger: overrides.logger || console,
   };
@@ -105,8 +106,11 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
 
       const reference = publicState.document.assets.find((candidate) => candidate.assetId === parsed.assetId);
       if (!reference) return privateJson(404, { error: "native_draft_asset_not_found" });
-      const asset = await dependencies.loadAsset(sql, parsed);
-      if (!isBuilderNativeDraftAssetRecord(asset, { activityId: parsed.activityId, reference })) return privateJson(404, { error: "native_draft_asset_not_found" });
+      const asset = reference.role === "activity_font" ? await dependencies.loadFont(sql, parsed) : await dependencies.loadAsset(sql, parsed);
+      const validFont = reference.role === "activity_font" && asset?.mime_type === "font/ttf" && asset?.publication_status === "draft"
+        && asset?.access_level === "internal" && asset?.storage_profile === "private" && asset?.source_metadata?.font_library_scope === "component"
+        && String(asset.id) === reference.assetId && asset.checksum_sha256 === reference.checksumSha256 && reference.slot === `font-${reference.assetId.replaceAll("-", "")}`;
+      if (!(validFont || isBuilderNativeDraftAssetRecord(asset, { activityId: parsed.activityId, reference }))) return privateJson(404, { error: "native_draft_asset_not_found" });
       const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey: asset.object_key, ttlSeconds: previewTtlSeconds });
       return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }, body: "" };
     } catch (error) {

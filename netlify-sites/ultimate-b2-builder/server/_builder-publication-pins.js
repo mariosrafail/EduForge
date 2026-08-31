@@ -28,6 +28,7 @@ function failure(source, componentSlug, failureClass) {
 function pinOwner(source) {
   if (source.descriptor.role === "managed_page_image") return { ownerKey: source.row.source_metadata?.publication_page_id || "", assetSlot: "" };
   if (source.descriptor.role === "unit_extra_video") return { ownerKey: source.row.source_metadata?.unit_extra_item_id || "", assetSlot: source.row.source_metadata?.asset_slot || "" };
+  if (source.descriptor.role === "activity_font") return { ownerKey: source.row.source_metadata?.font_library_scope === "component" ? "component" : "", assetSlot: "" };
   return { ownerKey: source.row.source_metadata?.native_activity_id || "", assetSlot: source.row.source_metadata?.asset_slot || "" };
 }
 

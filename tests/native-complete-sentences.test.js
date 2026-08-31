@@ -5,12 +5,13 @@ import test from "node:test";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
-import { NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesInteraction, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
+import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID, nativeCompleteSentencesFontFamilyAlias, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesInteraction, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const activityId = "ultimate-b2-sb-u1-p1-o96";
 const asset = { assetId: "10000000-0000-4000-8000-000000000096", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "sentence-background" };
+const fontAsset = { assetId: "20000000-0000-4000-8000-000000000096", checksumSha256: "c".repeat(64), role: "activity_font", slot: "font-20000000000040008000000000000096" };
 let child = 100;
 const createId = (prefix) => `${prefix}-${String(child++).padStart(32, "0")}`;
 const source = (payload, revision = 1) => ({ payload, revision, sha256: builderDocumentSha256(payload) });
@@ -27,7 +28,7 @@ function completePair() {
   teacherDocument.parts[0].solution.answers[0].text = "catching up on";
   teacherDocument.parts[0].solution.answers[1].text = "episode";
   publicDocument.assets = [asset];
-  Object.assign(publicDocument.parts[0].interaction.presentation, { backgroundAssetSlot: asset.slot, sourceWidth: 1200, sourceHeight: 800, hotspots: [
+  Object.assign(publicDocument.parts[0].interaction.presentation.panels[0], { backgroundAssetSlot: asset.slot, sourceWidth: 1200, sourceHeight: 800, hotspots: [
     { id: createId("hot"), itemId: first, area: { x: 100, y: 100, width: 260, height: 52 } },
     { id: createId("hot"), itemId: second, area: { x: 500, y: 240, width: 220, height: 52 } },
   ] });
@@ -48,19 +49,22 @@ test("Complete the Sentences keeps stable items and phrase answers exclusively T
   assert.deepEqual(pair.teacherDocument.parts[0].solution.answers.map((answer) => answer.itemId), [...ids].reverse());
   removeNativeCompleteSentencesItem(pair.publicDocument, pair.teacherDocument, pair.first);
   assert.equal(pair.teacherDocument.parts[0].solution.answers.some((answer) => answer.itemId === pair.first), false);
-  assert.equal(pair.publicDocument.parts[0].interaction.presentation.hotspots.some((hotspot) => hotspot.itemId === pair.first), false);
+  assert.equal(pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots.some((hotspot) => hotspot.itemId === pair.first), false);
 });
 
 test("legacy hotspots receive deterministic safe typography and authored presentation round-trips publicly", () => {
   const { publicDocument } = completePair();
-  const legacy = publicDocument.parts[0].interaction;
+  const canonical = publicDocument.parts[0].interaction;
+  const panel = canonical.presentation.panels[0];
+  const legacy = { ...canonical, presentation: { kind: "image-hotspot", backgroundAssetSlot: panel.backgroundAssetSlot, sourceWidth: panel.sourceWidth, sourceHeight: panel.sourceHeight, hotspots: panel.hotspots } };
   const normalizedLegacy = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
-  assert.deepEqual(normalizedLegacy.presentation.hotspots[0].presentation, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION);
-  legacy.presentation.hotspots[0].presentation = { fontSize: 34, color: "#E40083" };
+  assert.equal(normalizedLegacy.presentation.panels[0].id, NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID);
+  assert.deepEqual(normalizedLegacy.presentation.panels[0].hotspots[0].presentation, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION);
+  legacy.presentation.hotspots[0].presentation = { fontSize: 240, color: "#E40083" };
   const authored = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
-  assert.deepEqual(authored.presentation.hotspots[0].presentation, { fontSize: 34, color: "#e40083" });
-  assert.doesNotMatch(JSON.stringify(authored.presentation.hotspots[0]), /catching up on|correct|answer/i);
-  for (const presentation of [{ fontSize: 7, color: "#12304b" }, { fontSize: 21, color: "red" }, { fontSize: 21, color: "url(javascript:1)" }]) {
+  assert.deepEqual(authored.presentation.panels[0].hotspots[0].presentation, { fontSize: 240, color: "#e40083", fontAssetSlot: null });
+  assert.doesNotMatch(JSON.stringify(authored.presentation.panels[0].hotspots[0]), /catching up on|correct|answer/i);
+  for (const presentation of [{ fontSize: 0, color: "#12304b" }, { fontSize: -10, color: "#12304b" }, { fontSize: Number.POSITIVE_INFINITY, color: "#12304b" }, { fontSize: 21, color: "red" }, { fontSize: 21, color: "url(javascript:1)" }]) {
     const invalid = structuredClone(legacy); invalid.presentation.hotspots[0].presentation = presentation;
     assert.throws(() => normalizeNativeCompleteSentencesInteraction(invalid, { assets: publicDocument.assets }));
   }
@@ -81,13 +85,87 @@ test("one-field sentence syntax extracts one private answer and an answer-neutra
 test("Complete the Sentences readiness requires explicit answer, background, and exactly one blank hotspot", () => {
   const { kind, publicDocument, teacherDocument } = completePair();
   teacherDocument.parts[0].solution.answers[0].text = "";
-  publicDocument.parts[0].interaction.presentation.hotspots.pop();
+  publicDocument.parts[0].interaction.presentation.panels[0].hotspots.pop();
   publicDocument.assets = [];
-  publicDocument.parts[0].interaction.presentation.backgroundAssetSlot = "";
+  publicDocument.parts[0].interaction.presentation.panels[0].backgroundAssetSlot = "";
   assert.deepEqual(kind.assessReadiness(publicDocument, teacherDocument).ready, false);
   assert.match(kind.assessReadiness(publicDocument, teacherDocument).issues.join(" "), /private correct word or phrase/);
   assert.match(kind.assessReadiness(publicDocument, teacherDocument).issues.join(" "), /managed background image/);
   assert.match(kind.assessReadiness(publicDocument, teacherDocument).issues.join(" "), /blank hotspot/);
+});
+
+test("valid unmapped drafts and empty panels are saveable but explicitly not publication-ready", () => {
+  const { publicDocument, teacherDocument } = completePair();
+  publicDocument.parts[0].interaction.presentation.panels[0].hotspots = [];
+  assert.deepEqual(assessNativeCompleteSentencesSaveability(publicDocument, teacherDocument), { saveable: true, issues: [] });
+  const readiness = assessNativeCompleteSentencesReadiness(publicDocument, teacherDocument);
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.saveable, true);
+  assert.match(readiness.issues.join(" "), /exactly one blank hotspot/);
+});
+
+test("ordered panels permit empty image-only panels and reject duplicate mappings across panels", () => {
+  const { publicDocument } = completePair();
+  const secondPanel = createNativeCompleteSentencesPanel(() => "panel-00000000000000000000000000000999");
+  Object.assign(secondPanel, { backgroundAssetSlot: asset.slot, sourceWidth: 1200, sourceHeight: 800 });
+  publicDocument.parts[0].interaction.presentation.panels.push(secondPanel);
+  const normalized = normalizeNativeCompleteSentencesInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets });
+  assert.deepEqual(normalized.presentation.panels.map((panel) => panel.id), publicDocument.parts[0].interaction.presentation.panels.map((panel) => panel.id));
+  assert.equal(normalized.presentation.panels[1].hotspots.length, 0);
+  secondPanel.hotspots.push(structuredClone(publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0]));
+  secondPanel.hotspots[0].id = "hot-00000000000000000000000000000999";
+  assert.throws(() => normalizeNativeCompleteSentencesInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets }), /binding is invalid or duplicate/);
+  secondPanel.hotspots[0].itemId = "item-00000000000000000000000000000999";
+  assert.throws(() => normalizeNativeCompleteSentencesInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets }), /binding is invalid or duplicate/);
+});
+
+test("panel reorder preserves IDs and mappings; deletion preserves content and cleans only unused artwork", () => {
+  const { publicDocument, teacherDocument } = completePair();
+  const secondAsset = { assetId: "30000000-0000-4000-8000-000000000096", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "sentence-background-2" };
+  const secondPanel = createNativeCompleteSentencesPanel(() => "panel-00000000000000000000000000000998");
+  publicDocument.assets.push(secondAsset, fontAsset);
+  publicDocument.parts[0].interaction.presentation.panels.push(secondPanel);
+  replaceNativeCompleteSentencesBackground(publicDocument, secondPanel.id, secondAsset, { width: 900, height: 600 });
+  secondPanel.hotspots.push({ id: "hot-00000000000000000000000000000998", itemId: publicDocument.parts[0].interaction.items[1].id, area: { x: 10, y: 10, width: 100, height: 50 }, presentation: { fontSize: 240, color: "#12304b", fontAssetSlot: fontAsset.slot } });
+  publicDocument.parts[0].interaction.presentation.panels[0].hotspots = publicDocument.parts[0].interaction.presentation.panels[0].hotspots.filter((hotspot) => hotspot.itemId !== secondPanel.hotspots[0].itemId);
+  const firstId = publicDocument.parts[0].interaction.presentation.panels[0].id;
+  const firstMapping = publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0].itemId;
+  publicDocument.parts[0].interaction.presentation.panels.reverse();
+  assert.deepEqual(publicDocument.parts[0].interaction.presentation.panels.map((panel) => panel.id), [secondPanel.id, firstId]);
+  assert.equal(publicDocument.parts[0].interaction.presentation.panels[1].hotspots[0].itemId, firstMapping);
+  removeNativeCompleteSentencesPanel(publicDocument, secondPanel.id);
+  assert.equal(publicDocument.assets.some((entry) => entry.slot === secondAsset.slot), false);
+  assert.equal(publicDocument.assets.some((entry) => entry.slot === fontAsset.slot), false);
+  assert.equal(publicDocument.assets.some((entry) => entry.slot === asset.slot), true);
+  assert.equal(publicDocument.parts[0].interaction.items.length, 2);
+  assert.equal(teacherDocument.parts[0].solution.answers.length, 2);
+});
+
+test("background replacement preserves geometry only when intrinsic dimensions match", () => {
+  const { publicDocument } = completePair();
+  const panel = publicDocument.parts[0].interaction.presentation.panels[0];
+  const replacement = { assetId: "40000000-0000-4000-8000-000000000096", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "replacement" };
+  publicDocument.assets.push(replacement);
+  assert.deepEqual(replaceNativeCompleteSentencesBackground(publicDocument, panel.id, replacement, { width: 1200, height: 800 }), { dimensionsChanged: false });
+  assert.equal(panel.hotspots.length, 2);
+  const changed = { assetId: "50000000-0000-4000-8000-000000000096", checksumSha256: "f".repeat(64), role: "activity_artwork", slot: "changed" };
+  publicDocument.assets.push(changed);
+  assert.deepEqual(replaceNativeCompleteSentencesBackground(publicDocument, panel.id, changed, { width: 1600, height: 900 }), { dimensionsChanged: true });
+  assert.equal(panel.hotspots.length, 0);
+});
+
+test("component font references use safe aliases and preserve large exact sizes and colors", () => {
+  const { publicDocument } = completePair();
+  publicDocument.assets.push(fontAsset);
+  const hotspot = publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0];
+  hotspot.presentation = { fontSize: 1_000_000.5, color: "#Ab12Ef", fontAssetSlot: fontAsset.slot };
+  const normalized = normalizeNativeCompleteSentencesInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets });
+  assert.deepEqual(normalized.presentation.panels[0].hotspots[0].presentation, { fontSize: 1_000_000.5, color: "#ab12ef", fontAssetSlot: fontAsset.slot });
+  assert.equal(nativeCompleteSentencesFontFamilyAlias(fontAsset.assetId), "hh-native-font-20000000000040008000000000000096");
+  const foreign = structuredClone(publicDocument.parts[0].interaction);
+  assert.throws(() => normalizeNativeCompleteSentencesInteraction(foreign, { assets: [asset] }), /authorized font/);
+  foreign.presentation.panels[0].hotspots[0].presentation.extra = "unsafe";
+  assert.throws(() => normalizeNativeCompleteSentencesInteraction(foreign, { assets: publicDocument.assets }), /missing or unknown fields/);
 });
 
 test("individual Teacher reveal is stable by itemId and lower commands skip revealed items", () => {
@@ -107,16 +185,20 @@ test("individual Teacher reveal is stable by itemId and lower commands skip reve
 
 test("Complete the Sentences compiles through v2 with public/Teacher separation and managed background", () => {
   const pair = completePair(); const sources = createPublicationV2FixtureSources();
+  pair.publicDocument.assets.push(fontAsset);
+  pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0].presentation = { fontSize: 240, color: "#e40083", fontAssetSlot: fontAsset.slot };
   const entry = { activityId, kind: "complete-sentences", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 4 };
   sources.native.index.payload.activities.push(entry); sources.native.index = source(sources.native.index.payload, sources.native.index.revision);
   sources.native.activities[activityId] = { index: entry, public: source(pair.publicDocument), teacher: source(pair.teacherDocument) };
   sources.native.assetRows.push({ id: asset.assetId, checksum_sha256: asset.checksumSha256, asset_role: asset.role, object_key: "builder-native-assets/sentences.png", storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 100, width: 1200, height: 800, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: asset.slot } });
+  sources.native.assetRows.push({ id: fontAsset.assetId, checksum_sha256: fontAsset.checksumSha256, asset_role: fontAsset.role, object_key: `builder-font-library/ultimate-b2/ultimate-b2-students-book/${fontAsset.checksumSha256}.ttf`, storage_profile: "private", storage_bucket: "private", mime_type: "font/ttf", byte_size: 22000, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { font_library_scope: "component", display_label: "Ahem" } });
   sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId].push({ id: "hotspot-native-complete-sentences", unitNumber: 1, pageId: publicationV2Fixture.pageId, pageNumber: 5, left: 52, top: 4, width: 12, height: 12, label: "Complete the Sentences", actionType: "normalized_activity", activityKey: activityId });
   sources.documents.hotspots = source(sources.documents.hotspots.payload, sources.documents.hotspots.revision);
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
   assert.equal(compiled.publicProjection.nativeActivities[activityId].kind, "complete-sentences");
   assert.doesNotMatch(JSON.stringify(compiled.publicProjection.nativeActivities[activityId]), /catching up on|episode/);
   assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[activityId]), /catching up on/);
+  assert.ok(compiled.assetManifest.some((entry) => entry.role === "activity_font" && entry.extension === "ttf" && entry.mediaType === "font\/ttf"));
 });
 
 test("shared runtime/editor render synchronized geometry, safe typography, Student inputs, and boxless Teacher reveal", async () => {
@@ -130,8 +212,11 @@ test("shared runtime/editor render synchronized geometry, safe typography, Stude
   assert.match(surface, /native-complete-sentences-teacher-target/); assert.match(surface, /onTeacherReveal\(hotspot\.itemId\)/);
   assert.doesNotMatch(surface, /data-(?:answer|correct)/i);
   assert.match(surface, /--native-complete-answer-font-size/); assert.match(surface, /--native-complete-answer-color/); assert.match(surface, /<input\s+type="text"/);
-  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /Answer font size/); assert.match(editor, /Answer text color/); assert.match(editor, /Lock hotspot position/);
+  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /Upload TTF/); assert.match(editor, /Answer font size/); assert.match(editor, /Answer text color/); assert.match(editor, /Lock hotspot position/);
   assert.match(canvas, /locked=\{locked\}/); assert.match(canvas, /onChange/);
-  assert.match(css, /teacher-target\[data-revealed\][^{]*\{[^}]*background:\s*transparent[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*box-shadow:\s*none/s);
-  assert.match(css, /blank input,[\s\S]*teacher-target[^{]*\{[^}]*border:\s*2px solid/s);
+  assert.match(css, /teacher-target[\s\S]*\{[^}]*background:\s*transparent[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*box-shadow:\s*none/s);
+  assert.match(css, /teacher-answer[^}]*align-items:\s*flex-end[^}]*white-space:\s*nowrap/s);
+  assert.match(css, /teacher-target:focus-visible/);
+  assert.doesNotMatch(editor, /fontSizeMaximum|maximum=\{96\}/);
+  assert.doesNotMatch(editor, /Math\.min\(96/);
 });

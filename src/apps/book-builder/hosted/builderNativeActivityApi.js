@@ -10,6 +10,43 @@ function activityRoot(bookSlug, componentSlug, activityId) {
   return `${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}`;
 }
 
+function componentRoot(bookSlug, componentSlug) {
+  for (const value of [bookSlug, componentSlug]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity component identity.");
+  return `${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}`;
+}
+
+export function nativeFontPreviewUrl(bookSlug, componentSlug, assetId) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(assetId || ""))) throw new Error("Invalid font asset identity.");
+  return `${componentRoot(bookSlug, componentSlug)}/fonts/${encodeURIComponent(assetId)}/preview`;
+}
+
+export async function getBuilderFontLibrary({ bookSlug, componentSlug }, { signal } = {}) {
+  const response = await fetch(`${componentRoot(bookSlug, componentSlug)}/fonts`, { method: "GET", credentials: "same-origin", cache: "no-store", signal });
+  const value = await payload(response);
+  if (!response.ok || !Array.isArray(value.fonts)) throw new Error(value.error || "Font library could not be loaded.");
+  return value.fonts;
+}
+
+export async function uploadBuilderFont({ bookSlug, componentSlug, file }) {
+  const base = `${componentRoot(bookSlug, componentSlug)}/fonts`;
+  const clientMutationId = newBuilderClientMutationId();
+  const preparedResponse = await fetch(`${base}/prepare`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: file.name, size: file.size, type: file.type || "application/octet-stream", clientMutationId }),
+  });
+  const prepared = await payload(preparedResponse);
+  if (!preparedResponse.ok) throw new Error(prepared.error || "Font upload could not be prepared.");
+  const uploaded = await fetch(prepared.authorization.url, { method: "PUT", headers: prepared.authorization.headers, body: file });
+  if (!uploaded.ok) throw new Error("Font bytes could not be uploaded.");
+  const finalizedResponse = await fetch(`${base}/finalize`, {
+    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadId: prepared.uploadId, clientMutationId }),
+  });
+  const finalized = await payload(finalizedResponse);
+  if (!finalizedResponse.ok) throw new Error(finalized.error || "Font upload could not be finalized.");
+  return finalized;
+}
+
 export async function createNativeActivity({ bookSlug, componentSlug, kind, pageId, title }) {
   for (const value of [bookSlug, componentSlug, kind, pageId]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity creation identity.");
   const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/create`, {

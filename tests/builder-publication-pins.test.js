@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { buildBuilderPageAssetObjectKey, buildNativeActivityAssetObjectKey, buildUnitExtraAssetObjectKey } from "../lib/book-assets/object-keys.js";
+import { buildBuilderFontLibraryObjectKey, buildBuilderPageAssetObjectKey, buildNativeActivityAssetObjectKey, buildUnitExtraAssetObjectKey } from "../lib/book-assets/object-keys.js";
 import { freezeComponentPublicationAssetPins, publicationAssetPinFingerprint } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-pins.js";
 
 const bookSlug = "ultimate-b2";
@@ -11,23 +11,32 @@ const bucket = "private-fixture";
 const checksum = (marker) => marker.repeat(64);
 
 function fixture(role = "managed_page_image") {
-  const descriptor = { sha256: checksum(role === "managed_page_image" ? "a" : role === "activity_artwork" ? "b" : "c"), extension: role === "unit_extra_video" ? "mp4" : "png", mediaType: role === "unit_extra_video" ? "video/mp4" : "image/png", role };
+  const descriptor = {
+    sha256: checksum(role === "managed_page_image" ? "a" : role === "activity_artwork" ? "b" : role === "unit_extra_video" ? "c" : "d"),
+    extension: role === "unit_extra_video" ? "mp4" : role === "activity_font" ? "ttf" : "png",
+    mediaType: role === "unit_extra_video" ? "video/mp4" : role === "activity_font" ? "font/ttf" : "image/png",
+    role,
+  };
   const ownership = role === "managed_page_image"
     ? { publication_page_id: "page-one" }
     : role === "unit_extra_video"
       ? { unit_slug: "unit-1", unit_extra_item_id: "video-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", asset_slot: "video-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+      : role === "activity_font"
+        ? { font_library_scope: "component" }
       : { native_activity_id: "ultimate-b2-wb-u1-p1-o1", asset_slot: "background" };
   const objectKey = role === "managed_page_image"
     ? buildBuilderPageAssetObjectKey({ bookSlug, componentSlug, pageId: ownership.publication_page_id, checksum: descriptor.sha256, extension: `.${descriptor.extension}` })
     : role === "unit_extra_video"
       ? buildUnitExtraAssetObjectKey({ bookSlug, componentSlug, unitSlug: ownership.unit_slug, itemId: ownership.unit_extra_item_id, checksum: descriptor.sha256, extension: ".mp4" })
+      : role === "activity_font"
+        ? buildBuilderFontLibraryObjectKey({ bookSlug, componentSlug, checksum: descriptor.sha256 })
       : buildNativeActivityAssetObjectKey({ bookSlug, componentSlug, activityId: ownership.native_activity_id, assetSlot: ownership.asset_slot, checksum: descriptor.sha256, extension: ".png" });
   return {
     descriptor,
     row: {
       id: randomUUID(), book_slug: bookSlug, component_slug: componentSlug,
       asset_role: role === "managed_page_image" ? "page_image" : role,
-      checksum_sha256: descriptor.sha256, byte_size: role === "unit_extra_video" ? 4096 : 68,
+      checksum_sha256: descriptor.sha256, byte_size: role === "unit_extra_video" ? 4096 : role === "activity_font" ? 21768 : 68,
       mime_type: descriptor.mediaType, object_key: objectKey, storage_profile: "private", storage_bucket: bucket,
       publication_status: "draft", access_level: "internal", source_metadata: ownership,
     },
@@ -58,8 +67,8 @@ function storageForSources(sources, verifiedObjectKeys = []) {
   };
 }
 
-test("all three private publication roles freeze exact canonical source identities without CopyObject", async () => {
-  for (const role of ["managed_page_image", "activity_artwork", "unit_extra_video"]) {
+test("all four private publication roles freeze exact canonical source identities without CopyObject", async () => {
+  for (const role of ["managed_page_image", "activity_artwork", "activity_font", "unit_extra_video"]) {
     const source = fixture(role);
     const pins = await freezeComponentPublicationAssetPins(storageFor(source), { bookSlug, componentSlug, assetManifest: [source.descriptor], nativeAssetSources: [source] });
     assert.equal(pins.length, 1);

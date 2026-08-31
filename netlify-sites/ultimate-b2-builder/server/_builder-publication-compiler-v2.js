@@ -30,7 +30,7 @@ import { resolveNativeActivityKind } from "./_native-activity-registry.js";
 import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
 import { canonicalStudentsBookPages } from "./_builder-page-catalog.js";
 
-const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf" });
+const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf", "font/ttf": "ttf" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS);
 
 function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false } = {}) {
@@ -167,18 +167,22 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
     for (const reference of entry.publicDocument.assets) {
       const row = byId.get(reference.assetId);
       const extension = extensionByMediaType[row?.mime_type];
+      const libraryFont = reference.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT;
+      const owned = libraryFont
+        ? row?.source_metadata?.font_library_scope === "component" && reference.slot === `font-${String(reference.assetId).replaceAll("-", "").toLowerCase()}`
+        : row?.source_metadata?.native_activity_id === activityId && row?.source_metadata?.asset_slot === reference.slot;
       if (!row || row.checksum_sha256 !== reference.checksumSha256 || row.asset_role !== reference.role
         || row.publication_status !== "draft" || row.access_level !== "internal" || row.storage_profile !== "private"
-        || row.source_metadata?.native_activity_id !== activityId || row.source_metadata?.asset_slot !== reference.slot
+        || !owned
         || !extension || !row.object_key || !Number.isSafeInteger(Number(row.byte_size)) || Number(row.byte_size) < 1
         || (row.mime_type.startsWith("image/") && (!Number.isSafeInteger(Number(row.width)) || !Number.isSafeInteger(Number(row.height))))) {
         throw new NativePublicationError("native_activity_asset_invalid", activityId, ["Managed artwork is missing, invalid, or owned by another activity."]);
       }
-      const identity = `${reference.checksumSha256}.${extension}`;
+      const identity = `${reference.checksumSha256}.${extension}.${reference.role}`;
       const existing = sources.get(identity);
       if (existing && existing.descriptor.mediaType !== row.mime_type) throw new NativePublicationError("native_activity_asset_invalid", activityId, ["Managed artwork content identity is inconsistent."]);
       if (!existing) sources.set(identity, {
-        descriptor: { sha256: reference.checksumSha256, extension, mediaType: row.mime_type, role: COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK },
+        descriptor: { sha256: reference.checksumSha256, extension, mediaType: row.mime_type, role: reference.role },
         row,
       });
     }

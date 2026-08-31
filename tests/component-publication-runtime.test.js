@@ -95,6 +95,9 @@ test("v2 LMS delivery is Student-safe, release-bound, private, and Teacher role 
   const unitExtraPath = publishedReleaseAssetPath(unitExtraDescriptor, release.id);
   assert.match(unitExtraPath, ULTIMATE_B2_PUBLISHED_ASSET_PATH);
   assert.match(unitExtraPath, /extension=mp4$/);
+  const fontPath = publishedReleaseAssetPath({ sha256: "d".repeat(64), extension: "ttf", mediaType: "font/ttf", role: "activity_font" }, release.id);
+  assert.match(fontPath, ULTIMATE_B2_PUBLISHED_ASSET_PATH);
+  assert.match(fontPath, /extension=ttf$/);
 
   const teacher = await getPublishedNativeTeacherDocument(sqlWith(release), { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: release.id, activityId: publicationV2Fixture.openResponseId });
   assert.equal(teacher.statusCode, 200);

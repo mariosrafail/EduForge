@@ -33,7 +33,7 @@ export const ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS =
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
-const mediaTypeByExtension = Object.freeze({ png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", pdf: "application/pdf" });
+const mediaTypeByExtension = Object.freeze({ png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", pdf: "application/pdf", ttf: "font/ttf" });
 
 function exactObject(value, keys, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -181,8 +181,8 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
     activities: value.activities,
     assets: legacyAssets,
   }, canonicalSeedsById);
-  const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK}`));
-  const actualNative = rawAssets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK).map((asset) => `${asset.sha256}.${asset.role}`);
+  const expectedNative = Object.values(nativeActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${asset.role}`));
+  const actualNative = rawAssets.filter((asset) => [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT].includes(asset.role)).map((asset) => `${asset.sha256}.${asset.role}`);
   const unitExtras = includeUnitExtras ? normalizePublishedUltimateB2UnitExtras(value.unitExtras) : null;
   const activePageIds = includePageLifecycle && Array.isArray(value.activePageIds) ? value.activePageIds.map((id) => String(id)) : null;
   if (includePageLifecycle && (!activePageIds || activePageIds.some((id) => !SAFE_ID.test(id)) || new Set(activePageIds).size !== activePageIds.length)) throw new Error("Public release v2 active page identities are invalid.");

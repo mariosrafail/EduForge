@@ -56,8 +56,9 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
     content = <NativeOpenResponseSurface document={document} panel={panel} assetUrl={assetUrl} />;
   }
   else if (document.kind === "complete-sentences") {
-    const reference = document.assets.find((asset) => asset.slot === interaction.presentation?.backgroundAssetSlot);
-    content = reference ? <img className="native-audio-hotspot-panel-image" src={assetUrl(reference.assetId)} alt="Complete the Sentences background" /> : null;
+    const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId);
+    const reference = document.assets.find((asset) => asset.slot === panel?.backgroundAssetSlot);
+    content = reference ? <img className="native-audio-hotspot-panel-image" src={assetUrl(reference.assetId)} alt={`Complete the Sentences panel ${interaction.presentation.panels.indexOf(panel) + 1}`} /> : null;
   }
   else {
     const panel = interaction.presentation?.panels?.find((entry) => entry.id === target.panelId);

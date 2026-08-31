@@ -148,6 +148,75 @@ export async function failBuilderNativeAssetUpload(sql, input) {
   await sql`select fail_builder_native_asset_upload(${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.failureCode})`;
 }
 
+export async function prepareBuilderFontUpload(sql, input) {
+  const rows = await sql`select * from prepare_builder_font_upload(
+    ${input.bookSlug},${input.componentSlug},${input.clientMutationId}::uuid,${input.uploadId}::uuid,
+    ${input.requestSha256},${JSON.stringify(input.fileDescriptor)}::jsonb,${input.stagingObjectKey},
+    ${input.builderUserId}::uuid,${input.expiresAt}
+  )`;
+  const row = rows[0];
+  return row ? { outcome: row.outcome, uploadId: row.upload_id, state: row.session_state, fileDescriptor: row.file_descriptor, stagingObjectKey: row.staging_object_key } : null;
+}
+
+export async function claimBuilderFontUpload(sql, input) {
+  const rows = await sql`select * from claim_builder_font_upload(${input.uploadId}::uuid,${input.clientMutationId}::uuid,${input.builderUserId}::uuid)`;
+  const row = rows[0];
+  return row ? { outcome: row.outcome, bookPackageId: row.book_package_id, bookComponentId: row.book_component_id, fileDescriptor: row.file_descriptor, stagingObjectKey: row.staging_object_key, resultingAssetId: row.resulting_asset_id } : null;
+}
+
+export async function loadBuilderFontUploadScope(sql, { uploadId, builderUserId }) {
+  const rows = await sql`
+    select package.slug as book_slug,component.slug as component_slug
+    from builder_font_upload_sessions upload
+    join book_packages package on package.id=upload.book_package_id
+    join book_components component on component.id=upload.book_component_id and component.book_package_id=package.id
+    where upload.id=${uploadId}::uuid and upload.created_by_builder_user_id=${builderUserId}::uuid
+    limit 1
+  `;
+  return rows[0] ? { bookSlug: rows[0].book_slug, componentSlug: rows[0].component_slug } : null;
+}
+
+export async function completeBuilderFontUpload(sql, input) {
+  const rows = await sql`select complete_builder_font_upload(
+    ${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.objectKey},${input.storageBucket},
+    ${input.mimeType},${input.byteSize},${input.checksumSha256},${input.displayLabel},${input.originalFilename}
+  ) as asset_id`;
+  return rows[0]?.asset_id || null;
+}
+
+export async function failBuilderFontUpload(sql, input) {
+  await sql`select fail_builder_font_upload(${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.failureCode})`;
+}
+
+export async function listBuilderFonts(sql, { bookSlug, componentSlug }) {
+  return sql`
+    select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
+      asset.storage_bucket,asset.mime_type,asset.byte_size,asset.publication_status,asset.access_level,asset.source_metadata
+    from book_assets asset
+    join book_packages package on package.id=asset.book_package_id
+    join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+      and asset.asset_role='activity_font' and asset.mime_type='font/ttf'
+      and asset.publication_status='draft' and asset.access_level='internal' and asset.storage_profile='private'
+      and asset.source_metadata->>'font_library_scope'='component'
+    order by lower(asset.source_metadata->>'display_label'),asset.checksum_sha256,asset.id
+  `;
+}
+
+export async function loadBuilderFontAsset(sql, { bookSlug, componentSlug, assetId }) {
+  const rows = await sql`
+    select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
+      asset.storage_bucket,asset.mime_type,asset.byte_size,asset.publication_status,asset.access_level,asset.source_metadata
+    from book_assets asset
+    join book_packages package on package.id=asset.book_package_id
+    join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
+    where package.slug=${bookSlug} and component.slug=${componentSlug} and asset.id=${assetId}::uuid
+      and asset.asset_role='activity_font' and asset.source_metadata->>'font_library_scope'='component'
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
 export async function loadBuilderNativeAsset(sql, { bookSlug, componentSlug, activityId, assetId }) {
   const rows = await sql`
     select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
@@ -186,9 +255,12 @@ export async function validateBuilderNativeAssetReferences(sql, { bookSlug, comp
   const byId = new Map(rows.map((row) => [String(row.id), row]));
   for (const reference of assets) {
     const asset = byId.get(reference.assetId);
+    const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
+    const owned = reference.role === "activity_font"
+      ? asset?.mime_type === "font/ttf" && asset?.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
+      : asset?.source_metadata?.native_activity_id === activityId && asset?.source_metadata?.asset_slot === reference.slot;
     if (!asset || asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
-      || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
-      || asset.source_metadata?.native_activity_id !== activityId || asset.source_metadata?.asset_slot !== reference.slot) {
+      || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private" || !owned) {
       throw new Error("Native managed asset reference is not owned by this activity.");
     }
   }

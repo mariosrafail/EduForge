@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
+import { BookOpenText, Eye, FileText, Film, ImagePlus, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
 
-import { StudioButton, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
+import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeCompleteSentencesHotspotCanvas } from "../../../components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx";
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../components/native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
-import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
-import { assessNativeCompleteSentencesReadiness, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LIMITS } from "../../../data/native-activities/nativeCompleteSentences.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
+import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
+import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadBuilderFont, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
@@ -40,11 +40,15 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [preview, setPreview] = useState("student");
   const [dirty, setDirty] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [selectedPanelId, setSelectedPanelId] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
   const [lockedHotspotIds, setLockedHotspotIds] = useState(() => new Set());
   const [drawItemId, setDrawItemId] = useState("");
   const [drawing, setDrawing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFont, setUploadingFont] = useState(false);
+  const [fonts, setFonts] = useState([]);
+  const [zoom, setZoom] = useState(1);
   const [readableIncomplete, setReadableIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
 
@@ -73,12 +77,17 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         },
         { signal: controller.signal },
       ),
+      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
     ])
-      .then(([publicValue, teacherValue]) => {
+      .then(([publicValue, teacherValue, fontLibrary]) => {
         if (controller.signal.aborted) return;
-        setPublicDraft(projectNativeActivityPublicForAuthoring(publicValue.document));
+        const projected = projectNativeActivityPublicForAuthoring(publicValue.document);
+        projected.parts[0].interaction = normalizeNativeCompleteSentencesInteraction(projected.parts[0].interaction, { assets: projected.assets });
+        setPublicDraft(projected);
         setTeacherDraft(teacherValue.document);
-        setSelectedItemId(publicValue.document.parts[0].interaction.items[0]?.id || null);
+        setFonts(fontLibrary);
+        setSelectedItemId(projected.parts[0].interaction.items[0]?.id || null);
+        setSelectedPanelId(projected.parts[0].interaction.presentation.panels[0]?.id || null);
         const answers = new Map(teacherValue.document.parts[0].solution.answers.map((entry) => [entry.itemId, entry.text]));
         setAuthoringSentences(Object.fromEntries(publicValue.document.parts[0].interaction.items.map((item) => [item.id, nativeCompleteSentencesMarkedSentence(item.prompt, answers.get(item.id) || "")])));
         setState({
@@ -117,9 +126,11 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const interaction = publicDraft?.parts[0].interaction;
   const items = interaction?.items || [];
   const presentation = interaction?.presentation;
+  const panels = presentation?.panels || [];
+  const selectedPanel = panels.find((panel) => panel.id === selectedPanelId) || panels[0] || null;
   const selectedItem = items.find((item) => item.id === selectedItemId) || null;
   const selectedAnswer = teacherDraft?.parts[0].solution.answers.find((entry) => entry.itemId === selectedItemId) || null;
-  const selectedHotspot = presentation?.hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
+  const selectedHotspot = selectedPanel?.hotspots.find((hotspot) => hotspot.id === selectedHotspotId) || null;
   const selectedHotspotLocked = selectedHotspot ? lockedHotspotIds.has(selectedHotspot.id) : false;
   const markedSentence = selectedItem ? (authoringSentences[selectedItem.id] ?? "") : "";
   const markedSentenceResult = selectedItem ? parseNativeCompleteSentencesMarkedSentence(markedSentence) : null;
@@ -128,8 +139,10 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     return parsed.valid ? [] : [`Sentence ${index + 1}: ${parsed.error}`];
   });
   const readiness = useMemo(() => (publicDraft && teacherDraft ? assessNativeCompleteSentencesReadiness(publicDraft, teacherDraft) : null), [publicDraft, teacherDraft]);
+  const saveability = useMemo(() => (publicDraft && teacherDraft ? assessNativeCompleteSentencesSaveability(publicDraft, teacherDraft) : null), [publicDraft, teacherDraft]);
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
-  const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === presentation?.backgroundAssetSlot);
+  const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
+  const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === selectedPanel?.backgroundAssetSlot);
 
   const addItem = () => {
     let id;
@@ -154,6 +167,25 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       if (target >= 0 && target < list.length) [list[index], list[target]] = [list[target], list[index]];
       alignNativeCompleteSentencesAnswers(nextPublic, nextTeacher);
     });
+  const addPanel = () => {
+    const panel = createNativeCompleteSentencesPanel();
+    mutatePublic((next) => next.parts[0].interaction.presentation.panels.push(panel));
+    setSelectedPanelId(panel.id);
+    setSelectedHotspotId(null);
+  };
+  const movePanel = (offset) => mutatePublic((next) => {
+    const list = next.parts[0].interaction.presentation.panels;
+    const index = list.findIndex((panel) => panel.id === selectedPanelId);
+    const target = index + offset;
+    if (index >= 0 && target >= 0 && target < list.length) [list[index], list[target]] = [list[target], list[index]];
+  });
+  const deletePanel = () => {
+    if (!selectedPanel || panels.length <= 1 || !globalThis.confirm("Delete this panel, its background, and all of its hotspots?")) return;
+    const index = panels.indexOf(selectedPanel);
+    mutatePublic((next) => removeNativeCompleteSentencesPanel(next, selectedPanel.id));
+    setSelectedPanelId(panels[index + 1]?.id || panels[index - 1]?.id || null);
+    setSelectedHotspotId(null);
+  };
   const updateMarkedSentence = (value) => {
     setAuthoringSentences((current) => ({
       ...current,
@@ -179,7 +211,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     });
   };
   const uploadBackground = async (file) => {
-    if (!file) return;
+    if (!file || !selectedPanel) return;
     setUploading(true);
     setState((current) => ({ ...current, message: "Uploading background…" }));
     try {
@@ -191,14 +223,15 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         file,
       });
       if (!Number.isSafeInteger(uploaded.metadata?.width) || !Number.isSafeInteger(uploaded.metadata?.height)) throw new Error("Uploaded image dimensions are unavailable.");
+      const dimensionsChanged = selectedPanel.sourceWidth !== uploaded.metadata.width || selectedPanel.sourceHeight !== uploaded.metadata.height;
       mutatePublic((next) => {
         next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
-        replaceNativeCompleteSentencesBackground(next, uploaded.reference, uploaded.metadata);
+        replaceNativeCompleteSentencesBackground(next, selectedPanel.id, uploaded.reference, uploaded.metadata);
       });
-      setSelectedHotspotId(null);
+      if (dimensionsChanged) setSelectedHotspotId(null);
       setState((current) => ({
         ...current,
-        message: "Background replaced. Redraw blank hotspots for its intrinsic dimensions.",
+        message: dimensionsChanged ? "Background dimensions changed. Redraw this panel's blank hotspots." : "Background replaced. Existing hotspot geometry was preserved.",
       }));
     } catch (error) {
       setState((current) => ({
@@ -209,8 +242,36 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       setUploading(false);
     }
   };
+  const setHotspotFont = (font) => {
+    if (!selectedHotspot) return;
+    mutatePublic((next) => {
+      const hotspot = next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id)?.hotspots.find((entry) => entry.id === selectedHotspot.id);
+      if (!hotspot) return;
+      const previousSlot = hotspot.presentation.fontAssetSlot;
+      if (font) {
+        next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
+        hotspot.presentation.fontAssetSlot = font.slot;
+      } else hotspot.presentation.fontAssetSlot = null;
+      if (previousSlot && previousSlot !== hotspot.presentation.fontAssetSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+    });
+  };
+  const uploadFont = async (file) => {
+    if (!file) return;
+    setUploadingFont(true);
+    setState((current) => ({ ...current, message: "Uploading TrueType font…" }));
+    try {
+      const value = await uploadBuilderFont({ bookSlug, componentSlug, file });
+      setFonts((current) => [...current.filter((font) => font.assetId !== value.font.assetId), value.font]);
+      setHotspotFont(value.font);
+      setState((current) => ({ ...current, message: value.idempotent ? "Existing component font selected." : "Font uploaded to this component's library and selected." }));
+    } catch (error) {
+      setState((current) => ({ ...current, message: error.message || "Font upload failed." }));
+    } finally {
+      setUploadingFont(false);
+    }
+  };
   const createHotspot = (area) => {
-    if (!drawItemId || presentation.hotspots.some((hotspot) => hotspot.itemId === drawItemId)) return;
+    if (!drawItemId || !selectedPanel || panels.some((panel) => panel.hotspots.some((hotspot) => hotspot.itemId === drawItemId))) return;
     const hotspot = {
       id: createNativeChildId("hot"),
       itemId: drawItemId,
@@ -219,13 +280,13 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         ...NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION,
       },
     };
-    mutatePublic((next) => next.parts[0].interaction.presentation.hotspots.push(hotspot));
+    mutatePublic((next) => next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id).hotspots.push(hotspot));
     setSelectedHotspotId(hotspot.id);
     setDrawing(false);
   };
   const updateHotspot = (mutator) =>
     mutatePublic((next) => {
-      const hotspot = next.parts[0].interaction.presentation.hotspots.find((entry) => entry.id === selectedHotspotId);
+      const hotspot = next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanelId)?.hotspots.find((entry) => entry.id === selectedHotspotId);
       if (hotspot) mutator(hotspot);
     });
   const updateHotspotArea = (area) => {
@@ -236,12 +297,15 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   };
   const deleteHotspot = () => {
     mutatePublic((next) => {
-      next.parts[0].interaction.presentation.hotspots = next.parts[0].interaction.presentation.hotspots.filter((entry) => entry.id !== selectedHotspotId);
+      const panel = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === selectedPanelId);
+      const fontSlot = panel.hotspots.find((entry) => entry.id === selectedHotspotId)?.presentation?.fontAssetSlot;
+      panel.hotspots = panel.hotspots.filter((entry) => entry.id !== selectedHotspotId);
+      if (fontSlot) removeNativeManagedAssetReferenceIfUnused(next, fontSlot);
     });
     setSelectedHotspotId(null);
   };
   const save = async () => {
-    if (!readiness.ready || authoringIssues.length || readableIncomplete || videoIncomplete)
+    if (!saveability.saveable || authoringIssues.length || readableIncomplete || videoIncomplete)
       return setState((current) => ({
         ...current,
         message: "Resolve all authoring issues before saving.",
@@ -290,9 +354,9 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         {state.message}
       </section>
     );
-  const mapped = new Set(presentation.hotspots.map((hotspot) => hotspot.itemId));
+  const mapped = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)));
   const readinessIssues = [...readiness.issues, ...authoringIssues, readableIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : ""].filter(Boolean);
-  const readyToSave = readiness.ready && !authoringIssues.length && !readableIncomplete && !videoIncomplete;
+  const readyToSave = saveability.saveable && !authoringIssues.length && !readableIncomplete && !videoIncomplete;
   const itemNavigation = (
     <aside>
       <StudioButton onClick={addItem} disabled={items.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.items}>
@@ -388,11 +452,24 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                 </div>
               </header>
               <div className="studio-visual-workspace">
+                <aside className="studio-navigator">
+                  <header><div><LayoutPanelTop aria-hidden="true" /><div><h3>Panels</h3><p>Visual pages inside part-1.</p></div></div><span className="studio-count">{panels.length}</span></header>
+                  <div className="studio-layer-list">
+                    {panels.map((panel, index) => <button type="button" key={panel.id} aria-current={panel.id === selectedPanel?.id ? "true" : undefined} onClick={() => { setSelectedPanelId(panel.id); setSelectedHotspotId(null); setDrawing(false); }}><span><strong>Panel {index + 1}</strong><small>{panel.backgroundAssetSlot ? `${panel.sourceWidth} × ${panel.sourceHeight}` : "Needs background"}</small></span></button>)}
+                  </div>
+                  <StudioButton onClick={addPanel} disabled={panels.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.panels}><Plus aria-hidden="true" />Add Panel</StudioButton>
+                  {selectedPanel ? <>
+                    <StudioButton onClick={() => movePanel(-1)} disabled={panels.indexOf(selectedPanel) === 0}>Move Up</StudioButton>
+                    <StudioButton onClick={() => movePanel(1)} disabled={panels.indexOf(selectedPanel) === panels.length - 1}>Move Down</StudioButton>
+                    <StudioButton variant="danger-ghost" onClick={deletePanel} disabled={panels.length <= 1}><Trash2 aria-hidden="true" />Delete Panel</StudioButton>
+                  </> : null}
+                </aside>
                 <section className="studio-canvas-column">
+                  <StudioCanvasToolbar zoom={zoom} onZoomChange={setZoom} />
                   <div className="studio-canvas-viewport">
-                    <div className="studio-artboard-wrap">
-                      <NativeCompleteSentencesHotspotCanvas
-                        presentation={presentation}
+                    <div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}>
+                      {selectedPanel ? <NativeCompleteSentencesHotspotCanvas
+                        presentation={selectedPanel}
                         assetUrl={backgroundReference ? assetUrl(backgroundReference.assetId) : ""}
                         items={items}
                         selectedHotspotId={selectedHotspotId}
@@ -405,11 +482,13 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                         onChange={updateHotspotArea}
                         onDelete={deleteHotspot}
                         drawingEnabled={drawing}
-                      />
+                      /> : <p>Select a panel.</p>}
                     </div>
                   </div>
                 </section>
                 <aside className="studio-inspector">
+                  <header><span className="studio-section-icon"><ImagePlus aria-hidden="true" /></span><div><h3>{selectedHotspot ? "Hotspot properties" : "Panel properties"}</h3><p>{selectedPanel ? `Panel ${panels.indexOf(selectedPanel) + 1}` : "Select a panel."}</p></div></header>
+                  {selectedPanel ? <>
                   <label className="studio-upload-action">
                     <Upload />
                     <span>
@@ -442,7 +521,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                       ))}
                     </select>
                   </StudioField>
-                  <StudioButton variant="primary" selected={drawing} disabled={!drawItemId || !backgroundReference || Boolean(selectedHotspot)} onClick={() => setDrawing((current) => !current)}>
+                  <StudioButton variant="primary" selected={drawing} disabled={!drawItemId || !backgroundReference || Boolean(selectedHotspot) || mapped.has(drawItemId)} onClick={() => setDrawing((current) => !current)}>
                     Draw blank hotspot
                   </StudioButton>
                   {selectedHotspot ? (
@@ -478,18 +557,29 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                         />
                         Lock hotspot position
                       </label>
-                      <StageGeometryControls area={selectedHotspot.area} stage={{ width: presentation.sourceWidth, height: presentation.sourceHeight }} label="Complete Sentences hotspot" minWidth={4} minHeight={4} locked={selectedHotspotLocked} onChange={updateHotspotArea} />
+                      <StageGeometryControls area={selectedHotspot.area} stage={{ width: selectedPanel.sourceWidth, height: selectedPanel.sourceHeight }} label="Complete Sentences hotspot" minWidth={4} minHeight={4} locked={selectedHotspotLocked} onChange={updateHotspotArea} />
                       <QuickNumber
                         label="Answer font size"
                         value={selectedHotspot.presentation.fontSize}
-                        minimum={8}
-                        maximum={96}
+                        minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
                         onChange={(value) =>
                           updateHotspot((hotspot) => {
-                            hotspot.presentation.fontSize = Math.max(8, Math.min(96, Number(value) || 8));
+                            const fontSize = Number(value);
+                            if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) hotspot.presentation.fontSize = fontSize;
                           })
                         }
                       />
+                      <StudioField label="Answer font">
+                        <select value={selectedHotspot.presentation.fontAssetSlot || ""} onChange={(event) => setHotspotFont(fonts.find((font) => font.slot === event.target.value) || null)}>
+                          <option value="">Default application font</option>
+                          {fonts.map((font) => <option key={font.assetId} value={font.slot}>{font.displayLabel}</option>)}
+                        </select>
+                      </StudioField>
+                      <label className="studio-upload-action">
+                        <Upload aria-hidden="true" />
+                        <span><strong>{uploadingFont ? "Uploading…" : "Upload TTF"}</strong><small>Reusable TrueType font, component-scoped</small></span>
+                        <input type="file" accept=".ttf,font/ttf" disabled={uploadingFont} onChange={(event) => { uploadFont(event.target.files?.[0]); event.target.value = ""; }} />
+                      </label>
                       <StudioField label="Answer text color" className="studio-quick-field">
                         <input
                           aria-label="Answer text color"
@@ -507,7 +597,8 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                         Delete Hotspot
                       </StudioButton>
                     </>
-                  ) : null}
+                  ) : <p>Draw or select a hotspot to style its answer.</p>}
+                  </> : <p>Select or add a panel.</p>}
                 </aside>
               </div>
             </div>
@@ -563,7 +654,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                 Teacher Preview
               </button>
             </div>
-            {preview === "student" ? <NativeCompleteSentencesStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeCompleteSentencesTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}
+            {preview === "student" ? <NativeCompleteSentencesStudentSurface document={publicDraft} assetUrl={previewAssetUrl} /> : <NativeCompleteSentencesTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} />}
           </div>
         ) : null}
       </StudioTabWorkspace>

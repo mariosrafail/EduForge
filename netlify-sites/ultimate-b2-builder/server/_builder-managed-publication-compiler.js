@@ -45,7 +45,7 @@ function componentIdentity(componentSlug) {
 function normalizeAssetDescriptor(value, expectedRole = null) {
   exact(value, ["sha256", "extension", "mediaType", "role"], "Managed release asset");
   const extension = String(value.extension || "").toLowerCase();
-  if (!SHA256.test(String(value.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf"].includes(extension)
+  if (!SHA256.test(String(value.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf", "ttf"].includes(extension)
     || !String(value.mediaType || "").includes("/") || (expectedRole && value.role !== expectedRole)) throw new Error("Managed release asset identity is invalid.");
   return { sha256: value.sha256, extension, mediaType: value.mediaType, role: value.role };
 }
@@ -129,10 +129,10 @@ export function normalizeManagedPublicProjection(value, componentSlug, expectedC
   if (!assets || new Set(assets.map((asset) => `${asset.sha256}.${asset.extension}.${asset.role}`)).size !== assets.length) throw new Error("Managed release assets are invalid.");
   const expectedPageAssets = [...new Set(pages.map((page) => `${page.image.sha256}.${page.image.extension}.${page.image.role}`))].sort();
   const actualPageAssets = assets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE).map((asset) => `${asset.sha256}.${asset.extension}.${asset.role}`).sort();
-  const expectedNativeAssets = [...new Set(Object.values(publicActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK}`)))].sort();
-  const actualNativeAssets = assets.filter((asset) => asset.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK).map((asset) => `${asset.sha256}.${asset.role}`).sort();
+  const expectedNativeAssets = [...new Set(Object.values(publicActivities).flatMap((entry) => entry.document.assets.map((asset) => `${asset.checksumSha256}.${asset.role}`)))].sort();
+  const actualNativeAssets = assets.filter((asset) => [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT].includes(asset.role)).map((asset) => `${asset.sha256}.${asset.role}`).sort();
   if (expectedPageAssets.join("\0") !== actualPageAssets.join("\0") || expectedNativeAssets.join("\0") !== actualNativeAssets.join("\0")
-    || assets.some((asset) => ![COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK].includes(asset.role))) throw new Error("Managed release asset manifest is inconsistent.");
+    || assets.some((asset) => ![COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT].includes(asset.role))) throw new Error("Managed release asset manifest is inconsistent.");
   return { schemaVersion: value.schemaVersion, bookSlug: value.bookSlug, componentSlug, compatibility: value.compatibility, units, pages, hotspots, nativeActivities: publicActivities, assets };
 }
 

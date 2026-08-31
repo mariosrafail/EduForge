@@ -5,7 +5,8 @@ import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-assets/audio-inspection.js";
 import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../../../lib/book-assets/video-inspection.js";
 import { inspectManagedPdf, MANAGED_PDF_MAXIMUM_BYTES } from "../../../lib/book-assets/pdf-inspection.js";
-import { buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
+import { inspectManagedTtf, MANAGED_TTF_MAXIMUM_BYTES, MANAGED_TTF_MEDIA_TYPE } from "../../../lib/book-assets/font-inspection.js";
+import { buildBuilderFontLibraryObjectKey, buildBuilderFontLibraryStagingKey, buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
 import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
@@ -36,6 +37,13 @@ import {
   prepareBuilderNativeAssetUpload,
   saveBuilderNativeActivityPair,
   validateBuilderNativeAssetReferences,
+  claimBuilderFontUpload,
+  completeBuilderFontUpload,
+  failBuilderFontUpload,
+  listBuilderFonts,
+  loadBuilderFontAsset,
+  loadBuilderFontUploadScope,
+  prepareBuilderFontUpload,
 } from "./_builder-native-activity-store.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
@@ -62,7 +70,12 @@ function route(event) {
   if (suffix === "catalog") return { ...scope, action: "catalog" };
   if (suffix === "lifecycle") return { ...scope, action: "lifecycle" };
   if (suffix === "create") return { ...scope, action: "create" };
-  let match = suffix.match(/^activities\/([a-z0-9-]+)\/save$/);
+  if (suffix === "fonts") return { ...scope, action: "font-list" };
+  let match = suffix.match(/^fonts\/(prepare|finalize)$/);
+  if (match) return { ...scope, action: `font-${match[1]}` };
+  match = suffix.match(/^fonts\/([0-9a-f-]+)\/preview$/);
+  if (match) return { ...scope, assetId: match[1], action: "font-preview" };
+  match = suffix.match(/^activities\/([a-z0-9-]+)\/save$/);
   if (match) return { ...scope, activityId: match[1], action: "save" };
   match = suffix.match(/^activities\/([a-z0-9-]+)\/delete$/);
   if (match) return { ...scope, activityId: match[1], action: "delete" };
@@ -97,6 +110,97 @@ function createBody(event) {
 function failureCode(error) {
   const value = String(error?.message || "native_asset_rejected");
   return /^[a-z0-9_]{3,64}$/.test(value) ? value : "native_asset_rejected";
+}
+
+function normalizeFontDescriptor(input) {
+  if (!exact(input, ["name", "size", "type"])) throw new Error("invalid_file_descriptor");
+  const name = String(input.name || "");
+  if (!/^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/.test(name) || path.basename(name) !== name || path.extname(name).toLowerCase() !== ".ttf" || /^(?:[a-z]:|\\\\|\/)|%2f|%5c|[\u0000-\u001f\u007f]/i.test(name)) throw new Error("invalid_filename");
+  const declaredType = String(input.type || "").toLowerCase();
+  if (![MANAGED_TTF_MEDIA_TYPE, "application/x-font-ttf", "application/octet-stream"].includes(declaredType)) throw new Error("declared_mime_mismatch");
+  if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > MANAGED_TTF_MAXIMUM_BYTES) throw new Error("declared_file_too_large");
+  const displayLabel = path.basename(name, path.extname(name)).trim().slice(0, 120);
+  if (!displayLabel) throw new Error("invalid_filename");
+  return { name, size: input.size, type: MANAGED_TTF_MEDIA_TYPE, displayLabel };
+}
+
+function isBuilderFontRecord(asset) {
+  return asset?.asset_role === "activity_font" && asset?.mime_type === MANAGED_TTF_MEDIA_TYPE
+    && asset?.publication_status === "draft" && asset?.access_level === "internal"
+    && asset?.storage_profile === "private" && asset?.source_metadata?.font_library_scope === "component";
+}
+
+function fontReference(asset, parsedRoute) {
+  if (!isBuilderFontRecord(asset)) return null;
+  const assetId = String(asset.id).toLowerCase();
+  return {
+    assetId,
+    checksumSha256: asset.checksum_sha256,
+    role: "activity_font",
+    slot: `font-${assetId.replaceAll("-", "")}`,
+    displayLabel: String(asset.source_metadata?.display_label || "Uploaded font").slice(0, 120),
+    familyAlias: `hh-native-font-${assetId.replaceAll("-", "")}`,
+    byteSize: Number(asset.byte_size),
+    previewUrl: `/builder/api/native-activities/books/${encodeURIComponent(parsedRoute.bookSlug)}/components/${encodeURIComponent(parsedRoute.componentSlug)}/fonts/${encodeURIComponent(assetId)}/preview`,
+  };
+}
+
+async function fontList(dependencies, sql, parsedRoute) {
+  const rows = await dependencies.listFonts(sql, parsedRoute);
+  return json(200, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, fonts: rows.map((row) => fontReference(row, parsedRoute)).filter(Boolean) }, { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" });
+}
+
+async function prepareFont(dependencies, sql, auth, parsedRoute, event) {
+  const parsed = parseJson(event, ["name", "size", "type", "clientMutationId"]);
+  if (parsed.error) return parsed.error;
+  if (!builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_client_mutation_id" });
+  let descriptor;
+  try { descriptor = normalizeFontDescriptor({ name: parsed.value.name, size: parsed.value.size, type: parsed.value.type }); } catch (error) { return json(400, { error: failureCode(error) }); }
+  const uploadId = dependencies.randomUuid();
+  const stagingObjectKey = buildBuilderFontLibraryStagingKey({ ...parsedRoute, uploadId });
+  const requestSha256 = sha256(stableBuilderJson(descriptor));
+  const result = await dependencies.prepareFont(sql, { ...parsedRoute, clientMutationId: parsed.value.clientMutationId, uploadId, requestSha256, fileDescriptor: descriptor, stagingObjectKey, builderUserId: auth.builderUser.id, expiresAt: new Date(dependencies.now() + uploadTtlSeconds * 1000).toISOString() });
+  if (!result) throw new Error("Font upload preparation returned no result");
+  if (result.outcome === "mutation_id_conflict") return json(409, { error: result.outcome });
+  if (result.outcome === "resource_not_found") return json(404, { error: "font_library_not_found" });
+  if (!['prepared', 'idempotent'].includes(result.outcome) || result.state !== "prepared") return json(409, { error: result.outcome || "invalid_session_state" });
+  const authorization = await dependencies.storage().signedPutUrl({ profile: "private", objectKey: result.stagingObjectKey, contentType: MANAGED_TTF_MEDIA_TYPE, ttlSeconds: uploadTtlSeconds });
+  return json(200, { uploadId: result.uploadId, expiresIn: uploadTtlSeconds, authorization, idempotent: result.outcome === "idempotent" });
+}
+
+async function finalizeFont(dependencies, sql, auth, parsedRoute, event) {
+  const parsed = parseJson(event, ["uploadId", "clientMutationId"]); if (parsed.error) return parsed.error;
+  if (!uuidV4.test(String(parsed.value.uploadId || "")) || !builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_finalize_identity" });
+  const uploadScope = await dependencies.loadFontUploadScope(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id });
+  if (!uploadScope) return json(404, { error: "session_not_found" });
+  if (uploadScope.bookSlug !== parsedRoute.bookSlug || uploadScope.componentSlug !== parsedRoute.componentSlug) return json(409, { error: "upload_scope_conflict" });
+  const claimed = await dependencies.claimFont(sql, { uploadId: parsed.value.uploadId, clientMutationId: parsed.value.clientMutationId, builderUserId: auth.builderUser.id });
+  if (!claimed) throw new Error("Font upload claim returned no result");
+  if (claimed.outcome === "idempotent") {
+    const asset = await dependencies.loadFont(sql, { ...parsedRoute, assetId: claimed.resultingAssetId });
+    const font = fontReference(asset, parsedRoute);
+    return font ? json(200, { font, idempotent: true }) : json(404, { error: "font_not_found" });
+  }
+  if (claimed.outcome !== "claimed") return json(claimed.outcome === "session_not_found" ? 404 : claimed.outcome === "expired_session" ? 410 : 409, { error: claimed.outcome });
+  const storage = dependencies.storage();
+  try {
+    const head = await storage.head({ profile: "private", objectKey: claimed.stagingObjectKey });
+    if (head.byteSize !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
+    const bytes = await storage.download({ profile: "private", objectKey: claimed.stagingObjectKey });
+    if (bytes.length !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
+    const inspected = dependencies.inspectFont(bytes);
+    const objectKey = buildBuilderFontLibraryObjectKey({ ...parsedRoute, checksum: inspected.checksumSha256 });
+    await storage.upload({ profile: "private", objectKey, body: inspected.bytes, contentType: inspected.mimeType, checksumSha256: inspected.checksumSha256, byteSize: inspected.byteSize });
+    const assetId = await dependencies.completeFont(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id, objectKey, storageBucket: storage.bucket("private"), ...inspected, displayLabel: claimed.fileDescriptor.displayLabel, originalFilename: claimed.fileDescriptor.name });
+    await storage.delete({ profile: "private", objectKey: claimed.stagingObjectKey }).catch(() => {});
+    const asset = await dependencies.loadFont(sql, { ...parsedRoute, assetId });
+    const font = fontReference(asset, parsedRoute);
+    if (!font) throw new Error("font_record_unavailable");
+    return json(200, { font, idempotent: false });
+  } catch (error) {
+    await Promise.allSettled([dependencies.failFont(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id, failureCode: failureCode(error) }), storage.delete({ profile: "private", objectKey: claimed.stagingObjectKey })]);
+    return json(400, { error: failureCode(error) });
+  }
 }
 
 async function createActivity(dependencies, sql, auth, parsedRoute, event) {
@@ -516,9 +620,13 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
         issues = [...readiness.issues];
         for (const reference of publicDocument.assets) {
           const asset = assetRows.get(reference.assetId);
+          const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
+          const owned = reference.role === "activity_font"
+            ? asset?.mime_type === MANAGED_TTF_MEDIA_TYPE && asset?.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
+            : asset?.source_metadata?.native_activity_id === entry.activityId && asset?.source_metadata?.asset_slot === reference.slot;
           if (!asset || asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
             || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
-            || asset.source_metadata?.native_activity_id !== entry.activityId || asset.source_metadata?.asset_slot !== reference.slot) throw new Error("Managed artwork is outside its component.");
+            || !owned) throw new Error("Managed artwork is outside its component.");
         }
         {
           const requirements = [
@@ -586,12 +694,20 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     completeAsset: overrides.completeAsset || completeBuilderNativeAssetUpload,
     failAsset: overrides.failAsset || failBuilderNativeAssetUpload,
     loadAsset: overrides.loadAsset || loadBuilderNativeAsset,
+    prepareFont: overrides.prepareFont || prepareBuilderFontUpload,
+    claimFont: overrides.claimFont || claimBuilderFontUpload,
+    loadFontUploadScope: overrides.loadFontUploadScope || loadBuilderFontUploadScope,
+    completeFont: overrides.completeFont || completeBuilderFontUpload,
+    failFont: overrides.failFont || failBuilderFontUpload,
+    listFonts: overrides.listFonts || listBuilderFonts,
+    loadFont: overrides.loadFont || loadBuilderFontAsset,
     collectCatalog: overrides.collectCatalog || collectBuilderNativeActivityCatalogSources,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,
     inspectVideo: overrides.inspectVideo || inspectManagedMp4,
     inspectPdf: overrides.inspectPdf || inspectManagedPdf,
+    inspectFont: overrides.inspectFont || inspectManagedTtf,
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
     logger: overrides.logger || console,
@@ -606,6 +722,15 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       if (!dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug)) return json(404, { error: "native_activity_component_not_found" });
       if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? await nativeCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "lifecycle") return event.httpMethod === "GET" ? activityLifecycleCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
+      if (parsedRoute.action === "font-list") return event.httpMethod === "GET" ? fontList(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
+      if (parsedRoute.action === "font-preview") {
+        if (!["GET", "HEAD"].includes(event.httpMethod)) return json(405, { error: "method_not_allowed" });
+        if (!uuidV4.test(parsedRoute.assetId)) return json(404, { error: "font_not_found" });
+        const asset = await dependencies.loadFont(sql, { ...parsedRoute, assetId: parsedRoute.assetId });
+        if (!isBuilderFontRecord(asset)) return json(404, { error: "font_not_found" });
+        const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey: asset.object_key, ttlSeconds: previewTtlSeconds });
+        return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }, body: "" };
+      }
       if (parsedRoute.action === "asset-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });
         const result = await assetResponse(dependencies, sql, parsedRoute, parsedRoute.assetId);
@@ -616,6 +741,8 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       if (event.httpMethod !== "POST") return json(405, { error: "method_not_allowed" });
       const originError = requireBuilderOrigin(event); if (originError) return originError;
       if (parsedRoute.action === "create") return createActivity(dependencies, sql, auth, parsedRoute, event);
+      if (parsedRoute.action === "font-prepare") return prepareFont(dependencies, sql, auth, parsedRoute, event);
+      if (parsedRoute.action === "font-finalize") return finalizeFont(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "save") return savePair(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "delete") return deleteActivity(dependencies, sql, auth, parsedRoute, event);
       if (["retire", "move"].includes(parsedRoute.action)) return mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, event);

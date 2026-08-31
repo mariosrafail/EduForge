@@ -1,7 +1,10 @@
 .hosted-native-draft-activity[data-native-kind="complete-sentences"],
 .published-native-activity[data-native-kind="complete-sentences"] { width: 100%; height: 100%; min-height: 0; }
 
-.native-complete-sentences { display: grid; gap: 12px; width: 100%; min-height: 0; place-items: center; overflow: hidden; }
+.native-complete-sentences { display: grid; gap: 12px; width: 100%; min-height: 0; place-items: center; overflow: visible; }
+.native-complete-sentences-panel-navigation { align-items: center; display: flex; gap: .65rem; justify-content: center; }
+.native-complete-sentences-panel-navigation button { min-height: 38px; padding: .4rem .75rem; }
+.native-complete-sentences-panel-navigation span { color: #475569; font-size: .85rem; }
 .native-complete-sentences-stage { position: relative; width: 100%; height: auto; max-width: 1100px; max-height: 100%; overflow: hidden; background: #eef2f6; container-type: inline-size; }
 .hosted-native-draft-activity[data-native-kind="complete-sentences"] > .native-complete-sentences,
 .published-native-activity[data-native-kind="complete-sentences"] > .native-complete-sentences { grid-template-rows: minmax(0, 1fr); height: 100%; container-type: size; }
@@ -10,11 +13,14 @@
 .native-complete-sentences-stage > img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .native-complete-sentences-blank { position: absolute; z-index: 2; box-sizing: border-box; display: grid; }
 .native-complete-sentences-blank input,
-.native-complete-sentences-blank input,
-.native-complete-sentences-teacher-target { box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 0 .25em; color: var(--native-complete-answer-color, #12304b); background: rgb(255 255 255 / 92%); border: 2px solid #247bc1; border-radius: 4px; font: 700 var(--native-complete-answer-font-size, 2.051cqw)/1.1 system-ui, sans-serif; text-align: center; }
-.native-complete-sentences-teacher-target { cursor: pointer; }
-.native-complete-sentences-teacher-target[data-revealed] { padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-.native-complete-sentences-teacher-answer { display: grid; width: 100%; height: 100%; place-items: center; overflow-wrap: anywhere; }
+.native-complete-sentences-teacher-target { box-sizing: border-box; width: 100%; height: 100%; min-width: 0; color: var(--native-complete-answer-color, #12304b); font-family: var(--native-complete-answer-font-family, system-ui, sans-serif); font-size: var(--native-complete-answer-font-size, 2.051cqw); font-weight: 700; text-align: center; }
+.native-complete-sentences-blank input { padding: 0 .25em; background: rgb(255 255 255 / 92%); border: 2px solid #247bc1; border-radius: 4px; line-height: 1.1; }
+.native-complete-sentences-teacher-target,
+.native-complete-sentences-teacher-target:hover,
+.native-complete-sentences-teacher-target:active { appearance: none; padding: 0; overflow: visible; cursor: pointer; background: transparent; border: 0; border-radius: 0; box-shadow: none; outline: 0; }
+.native-complete-sentences-teacher-target::before,
+.native-complete-sentences-teacher-target::after { content: none; }
+.native-complete-sentences-teacher-answer { align-items: flex-end; display: flex; justify-content: center; width: 100%; height: 100%; padding: 0; overflow: visible; line-height: 1; overflow-wrap: normal; white-space: nowrap; }
 .native-complete-sentences-blank input:focus-visible,
 .native-complete-sentences-teacher-target:focus-visible { outline: 4px solid #ffdc42; outline-offset: 2px; }
 .native-complete-sentences-prompts { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 
 export const BUILDER_PRIVATE_UPLOAD_BUCKET = "hhplms-book-private-dev";
 export const BUILDER_PRIVATE_UPLOAD_ORIGIN = "https://builder.hhplms.workers.dev";
+export const BUILDER_PRIVATE_ASSET_ORIGINS = Object.freeze([BUILDER_PRIVATE_UPLOAD_ORIGIN, "https://lms.hhplms.workers.dev"]);
 export const BUILDER_PRIVATE_UPLOAD_METHOD = "PUT";
+export const BUILDER_PRIVATE_ASSET_METHODS = Object.freeze(["PUT", "GET", "HEAD"]);
 export const BUILDER_PRIVATE_UPLOAD_HEADER = "Content-Type";
 
 const cloudflareApiRoot = "https://api.cloudflare.com/client/v4";
@@ -24,9 +26,9 @@ export function isBuilderPrivateUploadRule(rule) {
   const origins = stringList(rule?.allowed?.origins);
   const methods = stringList(rule?.allowed?.methods);
   const headers = stringList(rule?.allowed?.headers);
-  return origins.includes(BUILDER_PRIVATE_UPLOAD_ORIGIN)
+  return BUILDER_PRIVATE_ASSET_ORIGINS.every((origin) => origins.includes(origin))
     && !origins.includes("*")
-    && methods.includes(BUILDER_PRIVATE_UPLOAD_METHOD)
+    && BUILDER_PRIVATE_ASSET_METHODS.every((method) => methods.includes(method))
     && !methods.includes("*")
     && headers.some((header) => header.toLowerCase() === BUILDER_PRIVATE_UPLOAD_HEADER.toLowerCase())
     && !headers.includes("*");
@@ -45,9 +47,9 @@ export function verifyBuilderPrivateUploadCors(policy, bucketName = BUILDER_PRIV
   assertBuilderPrivateUploadBucket(bucketName);
   const rules = policyRules(policy);
   if (!rules.some(isBuilderPrivateUploadRule)) {
-    throw new Error(`R2 CORS policy does not allow ${BUILDER_PRIVATE_UPLOAD_ORIGIN} to PUT with ${BUILDER_PRIVATE_UPLOAD_HEADER}.`);
+    throw new Error(`R2 CORS policy does not allow ${BUILDER_PRIVATE_UPLOAD_ORIGIN} to upload and load signed private assets.`);
   }
-  return { bucketName, origin: BUILDER_PRIVATE_UPLOAD_ORIGIN, method: BUILDER_PRIVATE_UPLOAD_METHOD, header: BUILDER_PRIVATE_UPLOAD_HEADER, ruleCount: rules.length };
+  return { bucketName, origins: [...BUILDER_PRIVATE_ASSET_ORIGINS], methods: [...BUILDER_PRIVATE_ASSET_METHODS], header: BUILDER_PRIVATE_UPLOAD_HEADER, ruleCount: rules.length };
 }
 
 export function reconcileBuilderPrivateUploadCors(policy, bucketName = BUILDER_PRIVATE_UPLOAD_BUCKET) {
@@ -56,8 +58,8 @@ export function reconcileBuilderPrivateUploadCors(policy, bucketName = BUILDER_P
   if (rules.some(isBuilderPrivateUploadRule)) return { changed: false, rules };
   rules.push({
     allowed: {
-      origins: [BUILDER_PRIVATE_UPLOAD_ORIGIN],
-      methods: [BUILDER_PRIVATE_UPLOAD_METHOD],
+      origins: [...BUILDER_PRIVATE_ASSET_ORIGINS],
+      methods: [...BUILDER_PRIVATE_ASSET_METHODS],
       headers: [BUILDER_PRIVATE_UPLOAD_HEADER],
     },
   });
@@ -146,13 +148,15 @@ export async function ensureRemoteBuilderPrivateUploadCors(options = {}) {
 export function validateBuilderPrivateUploadCorsContract() {
   assert.equal(BUILDER_PRIVATE_UPLOAD_BUCKET, "hhplms-book-private-dev");
   assert.equal(BUILDER_PRIVATE_UPLOAD_ORIGIN, "https://builder.hhplms.workers.dev");
+  assert.deepEqual(BUILDER_PRIVATE_ASSET_ORIGINS, ["https://builder.hhplms.workers.dev", "https://lms.hhplms.workers.dev"]);
   assert.equal(BUILDER_PRIVATE_UPLOAD_METHOD, "PUT");
+  assert.deepEqual(BUILDER_PRIVATE_ASSET_METHODS, ["PUT", "GET", "HEAD"]);
   assert.equal(BUILDER_PRIVATE_UPLOAD_HEADER, "Content-Type");
   const reconciled = reconcileBuilderPrivateUploadCors({ rules: [] });
   assert.equal(reconciled.changed, true);
   verifyBuilderPrivateUploadCors(reconciled);
   assert.equal(JSON.stringify(reconciled.rules).includes('"*"'), false);
-  return { bucketName: BUILDER_PRIVATE_UPLOAD_BUCKET, origin: BUILDER_PRIVATE_UPLOAD_ORIGIN, method: BUILDER_PRIVATE_UPLOAD_METHOD, header: BUILDER_PRIVATE_UPLOAD_HEADER };
+  return { bucketName: BUILDER_PRIVATE_UPLOAD_BUCKET, origins: [...BUILDER_PRIVATE_ASSET_ORIGINS], methods: [...BUILDER_PRIVATE_ASSET_METHODS], header: BUILDER_PRIVATE_UPLOAD_HEADER };
 }
 
 function commandLine() {

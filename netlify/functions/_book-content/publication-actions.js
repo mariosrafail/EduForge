@@ -47,7 +47,7 @@ export async function getActiveComponentRelease(sql, query) {
 
 export async function getPublishedReleaseAsset(sql, query, { storage = createBookAssetStorage() } = {}) {
   const extension = String(query.extension || "").toLowerCase();
-  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(query.releaseId || "")) || !SHA256.test(String(query.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf"].includes(extension)) return json(404, { error: "Asset not found" });
+  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(query.releaseId || "")) || !SHA256.test(String(query.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf", "ttf"].includes(extension)) return json(404, { error: "Asset not found" });
   const row = await publishedReleaseRow(sql, query);
   if (!row) return json(404, { error: "Asset not found" });
   const verified = verifiedPublicProjection(row);

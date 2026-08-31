@@ -106,7 +106,7 @@ export function createBuilderPublicationHandler(overrides = {}) {
         if (!release) return json(404, { error: "release_not_found" });
         let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
         if (parsedRoute.action === "assets") {
-          const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|wav|gaf)$/);
+          const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|ttf|wav|gaf)$/);
           const asset = match && selectComponentReleaseAsset(release.asset_manifest, match[1], match[2]);
           if (!asset) return json(404, { error: "release_asset_not_found" });
           const target = componentPublicationAssetStorageTarget({ bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, ...asset });
