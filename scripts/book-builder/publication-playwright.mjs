@@ -290,9 +290,10 @@ async function measureDragDrop(locator, { context: measuredContext, viewport }) 
     for (let frame = 0; frame < 120; frame += 1) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const visualRect = surface.querySelector(".native-drag-drop-visual-region")?.getBoundingClientRect();
+      const workspaceRect = surface.querySelector(".native-drag-drop-workspace")?.getBoundingClientRect();
       const stageRect = surface.querySelector(".native-drag-drop-stage")?.getBoundingClientRect();
-      if (!visualRect || !stageRect) continue;
-      const signature = [visualRect.width, visualRect.height, stageRect.width, stageRect.height].map((value) => value.toFixed(2)).join(":");
+      if (!visualRect || !workspaceRect || !stageRect) continue;
+      const signature = [visualRect.width, visualRect.height, workspaceRect.height, stageRect.width, stageRect.height].map((value) => value.toFixed(2)).join(":");
       const stageInsideVisual = stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1;
       stableFrames = stageInsideVisual && signature === previousSignature ? stableFrames + 1 : 0;
       previousSignature = signature;
@@ -305,17 +306,18 @@ async function measureDragDrop(locator, { context: measuredContext, viewport }) 
       const rect = element.getBoundingClientRect(); const style = getComputedStyle(element);
       return { element: element.tagName.toLowerCase(), className: typeof element.className === "string" ? element.className : "", width: Math.round(rect.width * 100) / 100, height: Math.round(rect.height * 100) / 100, minWidth: style.minWidth, minHeight: style.minHeight, maxWidth: style.maxWidth, maxHeight: style.maxHeight, display: style.display, gridTemplateRows: style.gridTemplateRows, alignSelf: style.alignSelf, overflow: style.overflow, overflowX: style.overflowX, overflowY: style.overflowY };
     };
-    const visualElement = surface.querySelector(".native-drag-drop-visual-region"); const stageElement = surface.querySelector(".native-drag-drop-stage"); const bankElement = surface.querySelector(".native-drag-drop-bank");
-    const root = snapshot(surface); const visual = snapshot(visualElement); const stage = snapshot(stageElement); const bank = snapshot(bankElement);
+    const visualElement = surface.querySelector(".native-drag-drop-visual-region"); const workspaceElement = surface.querySelector(".native-drag-drop-workspace"); const stageSlotElement = surface.querySelector(".native-drag-drop-stage-slot"); const stageElement = surface.querySelector(".native-drag-drop-stage"); const bankElement = surface.querySelector(".native-drag-drop-bank"); const bankItemsElement = surface.querySelector(".native-drag-drop-bank-items");
+    const root = snapshot(surface); const visual = snapshot(visualElement); const workspace = snapshot(workspaceElement); const stageSlot = snapshot(stageSlotElement); const stage = snapshot(stageElement); const bank = snapshot(bankElement);
     const ancestors = []; for (let current = surface.parentElement, depth = 0; current && depth < 9; current = current.parentElement, depth += 1) ancestors.push(snapshot(current));
-    const stageRect = stageElement.getBoundingClientRect(); const visualRect = visualElement.getBoundingClientRect(); const bankRect = bankElement.getBoundingClientRect(); const activityHost = snapshot(surface.closest(".native-readable-text-activity-view"));
-    return { context, viewport: { width: innerWidth, height: innerHeight }, root, visual, stage, bank, activityHost, ancestors, activityHostFillRatio: root.height / activityHost.height, visualRootRatio: visual.height / root.height, bankRootRatio: bank.height / root.height, usableVisualRatio: (stage.height - bank.height) / stage.height, usableBankRatio: bank.height / stage.height, bankTopRatio: (bankRect.top - stageRect.top) / stageRect.height, bankInsideStage: bankRect.left >= stageRect.left - 1 && bankRect.right <= stageRect.right + 1 && bankRect.top >= stageRect.top - 1 && bankRect.bottom <= stageRect.bottom + 1, stageAspectRatio: stage.width / stage.height, sourceAspectRatio: Number(stageElement.dataset.surfaceWidth) / Number(stageElement.dataset.surfaceHeight), stageInsideVisual: stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1, horizontalOverflow: document.documentElement.scrollWidth - innerWidth };
+    const stageRect = stageElement.getBoundingClientRect(); const stageSlotRect = stageSlotElement.getBoundingClientRect(); const workspaceRect = workspaceElement.getBoundingClientRect(); const visualRect = visualElement.getBoundingClientRect(); const bankRect = bankElement.getBoundingClientRect(); const activityHost = snapshot(surface.closest(".native-readable-text-activity-view"));
+    return { context, viewport: { width: innerWidth, height: innerHeight }, root, visual, workspace, stageSlot, stage, bank, activityHost, ancestors, activityHostFillRatio: root.height / activityHost.height, visualRootRatio: visual.height / root.height, bankRootRatio: bank.height / root.height, usableVisualRatio: stageSlot.height / workspace.height, usableBankRatio: bank.height / workspace.height, bankTopRatio: (bankRect.top - workspaceRect.top) / workspaceRect.height, bankInsideStage: bankRect.left >= stageRect.left - 1 && bankRect.right <= stageRect.right + 1 && bankRect.top >= stageRect.top - 1 && bankRect.bottom <= stageRect.bottom + 1, bankOverlapsStage: bankRect.left < stageRect.right - 1 && bankRect.right > stageRect.left + 1 && bankRect.top < stageRect.bottom - 1 && bankRect.bottom > stageRect.top + 1, bankItemRows: new Set([...bankItemsElement.children].map((item) => Math.round(item.getBoundingClientRect().top))).size, bankItemsScrollable: bankItemsElement.scrollHeight > bankItemsElement.clientHeight + 1, stageAspectRatio: stage.width / stage.height, sourceAspectRatio: Number(stageElement.dataset.surfaceWidth) / Number(stageElement.dataset.surfaceHeight), stageInsideVisual: stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1, stageInsideSlot: stageRect.left >= stageSlotRect.left - 1 && stageRect.right <= stageSlotRect.right + 1 && stageRect.top >= stageSlotRect.top - 1 && stageRect.bottom <= stageSlotRect.bottom + 1, horizontalOverflow: document.documentElement.scrollWidth - innerWidth, activityScrollOverflow: { x: surface.scrollWidth - surface.clientWidth, y: surface.scrollHeight - surface.clientHeight } };
   }, measuredContext);
   process.stdout.write(`[drag-drop-geometry] ${JSON.stringify({ requestedViewport: viewport, ...measurement })}\n`);
   return measurement;
 }
 
 async function dragBetween(page, source, target) {
+  await source.scrollIntoViewIfNeeded();
   const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
   assert.ok(sourceBox && targetBox);
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
@@ -328,8 +330,8 @@ async function exerciseValidatedDragDrop(page, surface, publicDocument, teacherD
   const wrongWordId = publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
-  await dragBetween(page, wrongWord, target); await expect(target).toHaveAttribute("data-incorrect", "true"); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await wrongWord.getAttribute("data-used"), null); await expect(surface.getByRole("status")).toHaveText("Incorrect placement. Try again."); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
-  await dragBetween(page, surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`), target); await expect(target).toHaveAttribute("data-occupied", "true"); assert.equal(await target.getAttribute("data-incorrect"), null);
+  await dragBetween(page, wrongWord, target); await expect(target).toHaveAttribute("data-incorrect", "true"); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await wrongWord.count(), 1); await expect(surface.getByRole("status")).toHaveText("Incorrect placement. Try again."); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
+  const correctWord = surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`); await dragBetween(page, correctWord, target); await expect(target).toHaveAttribute("data-occupied", "true"); assert.equal(await target.getAttribute("data-incorrect"), null); assert.equal(await correctWord.count(), 0, "a correctly placed word leaves the bank");
   return target;
 }
 
@@ -748,11 +750,12 @@ try {
     await publishedViewer.setViewportSize(viewport); await immutableDragDrop.waitFor();
     const geometry = await measureDragDrop(immutableDragDrop, { context: "immutable-published-viewer-teacher", viewport });
     assert.ok(geometry.activityHostFillRatio > .95 && geometry.activityHostFillRatio < 1.05, JSON.stringify(geometry));
-    assert.ok(geometry.usableVisualRatio > .72 && geometry.usableVisualRatio < .78, JSON.stringify(geometry));
-    assert.ok(geometry.usableBankRatio > .22 && geometry.usableBankRatio < .28, JSON.stringify(geometry));
-    assert.ok(geometry.bankInsideStage && geometry.bankTopRatio > .72 && geometry.bankTopRatio < .78, JSON.stringify(geometry));
-    assert.ok(Math.abs(geometry.stageAspectRatio - geometry.sourceAspectRatio) < .02 && geometry.stageInsideVisual, JSON.stringify(geometry));
+    assert.ok(geometry.usableVisualRatio > .78 && geometry.usableVisualRatio < .82, JSON.stringify(geometry));
+    assert.ok(geometry.usableBankRatio > .18 && geometry.usableBankRatio < .22, JSON.stringify(geometry));
+    assert.ok(!geometry.bankInsideStage && !geometry.bankOverlapsStage && geometry.bankTopRatio > .78 && geometry.bankTopRatio < .82, JSON.stringify(geometry));
+    assert.ok(Math.abs(geometry.stageAspectRatio - geometry.sourceAspectRatio) < .02 && geometry.stageInsideVisual && geometry.stageInsideSlot, JSON.stringify(geometry));
     assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
+    assert.ok(geometry.activityScrollOverflow.x <= 1 && geometry.activityScrollOverflow.y <= 1, JSON.stringify(geometry));
   }
   await publishedViewer.setViewportSize({ width: 1440, height: 900 });
   assert.equal(await immutableDragDrop.locator(".native-drag-drop-artwork img").evaluate((image) => getComputedStyle(image).objectFit), "contain");

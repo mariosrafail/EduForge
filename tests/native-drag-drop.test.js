@@ -11,11 +11,14 @@ import {
   nativeDragDropAssetRequirements,
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
+  reassignNativeDragDropMapping,
   removeNativeDragDropImage,
   removeNativeDragDropPanel,
   removeNativeDragDropResponse,
   removeNativeDragDropWord,
+  shuffleNativeDragDropWordIds,
   updateNativeDragDropRevealState,
+  visibleNativeDragDropWordIds,
 } from "../src/data/native-activities/nativeDragDrop.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
@@ -125,6 +128,28 @@ test("controlled response helpers place, move, displace, remove, and sanitize on
   assert.deepEqual(removeNativeDragDropResponse(responses, targetIds[1]), {});
 });
 
+test("session word order shuffles immutably and consumed words return to the same position", () => {
+  const words = pair().publicDocument.parts[0].interaction.words;
+  const original = structuredClone(words);
+  const samples = [.8, .1];
+  const order = shuffleNativeDragDropWordIds(words, () => samples.shift());
+  assert.deepEqual(order, [wordIds[1], wordIds[0], wordIds[2]]);
+  assert.deepEqual(words, original, "presentation shuffling never mutates serialized words");
+  const responses = { [targetIds[0]]: wordIds[0] };
+  assert.deepEqual(visibleNativeDragDropWordIds(order, responses), [wordIds[1], wordIds[2]]);
+  assert.deepEqual(visibleNativeDragDropWordIds(order, {}), order, "removing a response restores the session position");
+  const overrides = new Map([[targetIds[1], words.find((word) => word.id === wordIds[2])]]);
+  assert.deepEqual(visibleNativeDragDropWordIds(order, {}, overrides), [wordIds[1], wordIds[0]]);
+});
+
+test("stable-ID mapping reassignment swaps occupied mappings without relying on duplicate text", () => {
+  const current = pair().teacherDocument.parts[0].solution.mappings;
+  const swapped = reassignNativeDragDropMapping(current, targetIds[0], wordIds[0]);
+  assert.deepEqual(swapped, [{ targetId: targetIds[0], wordId: wordIds[0] }, { targetId: targetIds[1], wordId: wordIds[1] }]);
+  assert.deepEqual(current, [{ targetId: targetIds[0], wordId: wordIds[1] }, { targetId: targetIds[1], wordId: wordIds[0] }], "the private draft input remains immutable");
+  assert.throws(() => reassignNativeDragDropMapping([{ targetId: targetIds[0], wordId: wordIds[0] }], targetIds[1], wordIds[0]), /cannot be assigned/);
+});
+
 test("Teacher reveal state supports individual, next, all, reset, and idempotent actions", () => {
   let revealed = updateNativeDragDropRevealState(new Set(), targetIds, { targetId: targetIds[1] });
   assert.deepEqual([...revealed], [targetIds[1]]);
@@ -166,9 +191,12 @@ test("Builder and web/Android runtimes expose managed panels, controlled respons
     readFile(new URL("../src/config/buildProfiles.js", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /Add Background/); assert.match(editor, /Add Image/); assert.match(editor, /Replace image/); assert.match(editor, /Draw Drop Target/); assert.match(editor, /Teacher-only correct mappings/); assert.match(editor, /Move panel/); assert.match(editor, /Remove this word and its private target mapping/);
+  assert.match(editor, /Correct word mapping/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /reassignNativeDragDropMapping/); assert.match(editor, /resolveWordForTarget/);
+  assert.match(editor, /fit: "contain", locked: background/);
   assert.doesNotMatch(await readFile(new URL("../src/components/native-drag-drop/nativeDragDrop.css", import.meta.url), "utf8"), /\d+(?:\.\d+)?vh\b/, "activity sizing must be based on its container rather than the browser viewport");
-  assert.match(surface, /onPointerDown/); assert.match(surface, /elementFromPoint/); assert.match(surface, /selectedWordId/); assert.match(surface, /Delete/); assert.match(surface, /initialResponses/); assert.match(surface, /onResponsesChange/); assert.match(surface, /readOnly/);
-  assert.match(surface, /const draggingWordIdRef = useRef\(null\)/); assert.doesNotMatch(surface, /useState\(null\).*draggingWordId|setDraggingWordId/); assert.match(surface, /onPointerCancel=\{\(\) => \{ draggingWordIdRef\.current = null; \}\}/);
+  assert.match(surface, /onPointerDown/); assert.match(surface, /onPointerMove/); assert.match(surface, /elementFromPoint/); assert.match(surface, /selectedWordId/); assert.match(surface, /Delete/); assert.match(surface, /initialResponses/); assert.match(surface, /onResponsesChange/); assert.match(surface, /readOnly/);
+  assert.match(surface, /data-drag-drop-drag-preview/); assert.match(surface, /pointerType/); assert.match(surface, /DRAG_MOVEMENT_THRESHOLD/); assert.match(surface, /onPointerCancel/); assert.match(surface, /onLostPointerCapture/); assert.match(surface, /visibleNativeDragDropWordIds/); assert.match(surface, /resolveWordForTarget/);
+  assert.doesNotMatch(surface, /Drop here|data-used/);
   assert.match(studentRunner, /NativeDragDropStudentSurface/); assert.doesNotMatch(studentRunner, /NativeDragDropTeacherSurface|loadPublishedNativeTeacherDocument|teacherDocument/);
   assert.match(teacherRunner, /NativeDragDropTeacherSurface/); assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.mappings/); assert.match(teacherSurface, /evaluatePlacement/);
   assert.doesNotMatch(surface, /teacherDocument|solution\.mappings|wordIdByTarget|revealedWords|NativeDragDropTeacherSurface/);

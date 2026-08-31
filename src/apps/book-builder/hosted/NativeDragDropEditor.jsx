@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, ImagePlus, Layers3, Plus, Trash2 } from "lucide-react";
 
 import { StudioButton, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
+import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeDragDropAuthoringCanvas } from "../../../components/native-drag-drop/NativeDragDropAuthoringCanvas.jsx";
 import { NativeDragDropStudentSurface } from "../../../components/native-drag-drop/NativeDragDropSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../components/native-drag-drop/NativeDragDropTeacherSurface.jsx";
@@ -11,6 +12,7 @@ import {
   assessNativeDragDropReadiness,
   NATIVE_DRAG_DROP_DEFAULT_SURFACE,
   NATIVE_DRAG_DROP_LIMITS,
+  reassignNativeDragDropMapping,
   removeNativeDragDropImage,
   removeNativeDragDropPanel,
   removeNativeDragDropWord,
@@ -129,7 +131,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
         mutatePublic((next) => {
           const nextPanel = next.parts[0].interaction.panels.find((entry) => entry.id === panel.id);
           next.assets = mergeNativeManagedAssetReference(next.assets, uploaded.reference);
-          const image = { id: imageId, assetSlot: uploaded.reference.slot, area: background ? { x: 0, y: 0, ...nextPanel.surface } : { x: 160, y: 110, width: 360, height: 240 }, order: background ? 0 : nextPanel.images.length, altText: "", decorative: false, fit: background ? "cover" : "contain", locked: background };
+          const image = { id: imageId, assetSlot: uploaded.reference.slot, area: background ? { x: 0, y: 0, ...nextPanel.surface } : { x: 160, y: 110, width: 360, height: 240 }, order: background ? 0 : nextPanel.images.length, altText: "", decorative: false, fit: "contain", locked: background };
           if (background) { nextPanel.images.unshift(image); nextPanel.images.forEach((entry, order) => { entry.order = order; }); } else nextPanel.images.push(image);
         });
         setSelection({ kind: "image", id: imageId });
@@ -140,12 +142,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   };
 
   const setMapping = (targetId, wordId) => mutateTeacher((next) => {
-    const list = next.parts[0].solution.mappings;
-    const current = list.find((entry) => entry.targetId === targetId);
-    const displaced = list.find((entry) => entry.wordId === wordId && entry.targetId !== targetId);
-    if (displaced && !current) return;
-    if (displaced && current) displaced.wordId = current.wordId;
-    if (current) current.wordId = wordId; else list.push({ targetId, wordId });
+    next.parts[0].solution.mappings = reassignNativeDragDropMapping(next.parts[0].solution.mappings, targetId, wordId);
   });
   const save = async () => {
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
@@ -173,11 +170,28 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
         <StudioButton onClick={() => { setDrawingTarget((value) => !value); setSelection(null); }} disabled={!panel || !interaction.words.length}>{drawingTarget ? "Cancel drawing" : "Draw Drop Target"}</StudioButton>
         <StudioButton variant="danger-ghost" onClick={deletePanel} disabled={!panel}>Remove panel</StudioButton>
       </div>{panel ? <NativeDragDropAuthoringCanvas document={publicDraft} panel={panel} assetUrl={assetUrl} selection={selection} onSelect={setSelection} drawingTarget={drawingTarget} onCreateTarget={addTarget} onChangeImage={(area) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).area = area; })} onChangeTarget={(area) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).area = area; })} onDelete={deleteSelection} /> : <p>Add a panel to begin.</p>}</section>
-      <aside className="native-drag-drop-editor-inspector"><h3>{selectedImage ? "Image layer" : selectedTarget ? "Drop target" : "Properties"}</h3>{selectedImage ? <><StudioField label="Alt text"><textarea rows="3" value={selectedImage.altText} disabled={selectedImage.decorative} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).altText = event.target.value; })} /></StudioField><label><input type="checkbox" checked={selectedImage.decorative} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).decorative = event.target.checked; })} /> Decorative</label><label><input type="checkbox" checked={selectedImage.locked} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).locked = event.target.checked; })} /> Lock position and size</label><StudioField label="Fit"><select value={selectedImage.fit} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).fit = event.target.value; })}><option value="contain">Contain</option><option value="cover">Cover</option></select></StudioField><div className="native-drag-drop-editor-actions"><button type="button" disabled={selectedImage.order === 0} onClick={() => mutatePublic((next) => { const list = next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images; moveInArray(list, selectedImage.order, -1); list.forEach((entry, order) => { entry.order = order; }); })}>Send backward</button><button type="button" disabled={selectedImage.order === panel.images.length - 1} onClick={() => mutatePublic((next) => { const list = next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images; moveInArray(list, selectedImage.order, 1); list.forEach((entry, order) => { entry.order = order; }); })}>Bring forward</button></div><label className="native-drag-drop-replace">Replace image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadImage(event.target.files?.[0], { replace: true }); event.target.value = ""; }} /></label><StudioButton variant="danger-ghost" onClick={deleteSelection}>Remove image</StudioButton></> : null}{selectedTarget ? <><StudioField label="Accessible label"><input value={selectedTarget.accessibleLabel} maxLength={NATIVE_DRAG_DROP_LIMITS.targetLabelLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).accessibleLabel = event.target.value; })} /></StudioField><StudioButton variant="danger-ghost" onClick={deleteSelection}>Remove target</StudioButton></> : null}</aside>
+      <aside className="native-drag-drop-editor-inspector">
+        <h3>{selectedImage ? "Image layer" : selectedTarget ? "Drop target" : "Properties"}</h3>
+        {selectedImage ? <>
+          <StudioField label="Alt text"><textarea rows="3" value={selectedImage.altText} disabled={selectedImage.decorative} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).altText = event.target.value; })} /></StudioField>
+          <label><input type="checkbox" checked={selectedImage.decorative} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).decorative = event.target.checked; })} /> Decorative</label>
+          <label><input type="checkbox" checked={selectedImage.locked} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).locked = event.target.checked; })} /> Lock position and size</label>
+          <StudioField label="Fit"><select value={selectedImage.fit} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images.find((entry) => entry.id === selectedImage.id).fit = event.target.value; })}><option value="contain">Contain</option><option value="cover">Cover</option></select></StudioField>
+          <div className="native-drag-drop-editor-actions"><button type="button" disabled={selectedImage.order === 0} onClick={() => mutatePublic((next) => { const list = next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images; moveInArray(list, selectedImage.order, -1); list.forEach((entry, order) => { entry.order = order; }); })}>Send backward</button><button type="button" disabled={selectedImage.order === panel.images.length - 1} onClick={() => mutatePublic((next) => { const list = next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).images; moveInArray(list, selectedImage.order, 1); list.forEach((entry, order) => { entry.order = order; }); })}>Bring forward</button></div>
+          <label className="native-drag-drop-replace">Replace image<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadImage(event.target.files?.[0], { replace: true }); event.target.value = ""; }} /></label>
+          <StudioButton variant="danger-ghost" onClick={deleteSelection}>Remove image</StudioButton>
+        </> : null}
+        {selectedTarget ? <>
+          <StudioField label="Accessible label"><input value={selectedTarget.accessibleLabel} maxLength={NATIVE_DRAG_DROP_LIMITS.targetLabelLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).accessibleLabel = event.target.value; })} /></StudioField>
+          <StudioField label="Correct word mapping"><select value={mappings.get(selectedTarget.id) || ""} onChange={(event) => setMapping(selectedTarget.id, event.target.value)}><option value="" disabled>Select correct word</option>{interaction.words.map((word, wordIndex) => <option key={word.id} value={word.id}>{word.text} · word {wordIndex + 1}</option>)}</select></StudioField>
+          <StageGeometryControls area={selectedTarget.area} stage={panel.surface} label={selectedTarget.accessibleLabel || "Drop target"} minWidth={8} minHeight={8} precision={3} onChange={(area) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).area = area; })} />
+          <StudioButton variant="danger-ghost" onClick={deleteSelection}>Remove target</StudioButton>
+        </> : null}
+      </aside>
     </div> : null}
 
     {tab === "answer-key" ? <div className="native-drag-drop-mapping"><h3>Teacher-only correct mappings</h3><p>Mappings use stable identities; public word and target order never determines an answer.</p>{interaction.panels.map((entry, panelIndex) => <section key={entry.id}><h4>Panel {panelIndex + 1}</h4>{entry.dropTargets.map((target, targetIndex) => { const currentWordId = mappings.get(target.id) || ""; return <StudioField key={target.id} label={`${targetIndex + 1}. ${target.accessibleLabel}`}><select value={currentWordId} onChange={(event) => setMapping(target.id, event.target.value)}><option value="" disabled>Select correct word</option>{interaction.words.map((word, wordIndex) => <option key={word.id} value={word.id} disabled={!currentWordId && [...mappings.entries()].some(([otherTargetId, otherWordId]) => otherTargetId !== target.id && otherWordId === word.id)}>{word.text} · word {wordIndex + 1}</option>)}</select></StudioField>; })}</section>)}</div> : null}
-    {tab === "preview" ? <div className="studio-preview-panel"><div className="native-drag-drop-editor-actions"><button type="button" aria-pressed={previewMode === "student"} onClick={() => setPreviewMode("student")}>Student Preview</button><button type="button" aria-pressed={previewMode === "teacher"} onClick={() => setPreviewMode("teacher")}>Teacher Preview</button></div>{previewMode === "student" ? <NativeDragDropStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeDragDropTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}</div> : null}
+    {tab === "preview" ? <div className="studio-preview-panel"><div className="native-drag-drop-editor-actions"><button type="button" aria-pressed={previewMode === "student"} onClick={() => setPreviewMode("student")}>Student Preview</button><button type="button" aria-pressed={previewMode === "teacher"} onClick={() => setPreviewMode("teacher")}>Teacher Preview</button></div>{previewMode === "student" ? <NativeDragDropStudentSurface document={publicDraft} assetUrl={assetUrl} evaluatePlacement={(targetId, wordId) => mappings.get(targetId) === wordId} resolveWordForTarget={(targetId) => mappings.get(targetId) || null} /> : <NativeDragDropTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}</div> : null}
     </StudioTabWorkspace>
     <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readiness.ready} issues={readiness.issues} disabled={!dirty || state.saving || !readiness.ready || !publicDraft.metadata.title.trim()} reason={!readiness.ready ? "Complete every panel, target, and private mapping before saving" : !dirty ? "No unsaved changes" : ""} onSave={save} />
   </section>;

@@ -218,6 +218,35 @@ export function placeNativeDragDropWord(responses, targetId, wordId) {
   return next;
 }
 
+export function shuffleNativeDragDropWordIds(words, random = Math.random) {
+  if (!Array.isArray(words) || typeof random !== "function") throw new Error("Drag & Drop shuffle input is invalid.");
+  const ids = words.map((word) => word.id);
+  for (let index = ids.length - 1; index > 0; index -= 1) {
+    const sample = Number(random());
+    const swapIndex = Math.min(index, Math.max(0, Math.floor((Number.isFinite(sample) ? sample : 0) * (index + 1))));
+    [ids[index], ids[swapIndex]] = [ids[swapIndex], ids[index]];
+  }
+  return ids;
+}
+
+export function visibleNativeDragDropWordIds(sessionWordIds, responses = {}, targetWordOverrides = null) {
+  const consumed = new Set(Object.values(responses || {}));
+  if (targetWordOverrides instanceof Map) targetWordOverrides.forEach((word) => { if (word?.id) consumed.add(word.id); });
+  return (sessionWordIds || []).filter((wordId) => !consumed.has(wordId));
+}
+
+export function reassignNativeDragDropMapping(mappings, targetId, wordId) {
+  if (!Array.isArray(mappings)) throw new Error("Drag & Drop mappings must be an array.");
+  const next = mappings.map((mapping) => ({ ...mapping }));
+  const current = next.find((mapping) => mapping.targetId === targetId);
+  const displaced = next.find((mapping) => mapping.wordId === wordId && mapping.targetId !== targetId);
+  if (displaced && !current) throw new Error("A used Drag & Drop word cannot be assigned to an unmapped target.");
+  if (displaced) displaced.wordId = current.wordId;
+  if (current) current.wordId = wordId;
+  else next.push({ targetId, wordId });
+  return next;
+}
+
 export function removeNativeDragDropResponse(responses, targetId) {
   return Object.fromEntries(Object.entries(responses || {}).filter(([currentTargetId]) => currentTargetId !== targetId));
 }

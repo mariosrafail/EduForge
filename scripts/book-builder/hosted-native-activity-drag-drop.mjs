@@ -9,9 +9,10 @@ export async function measureDragDrop(locator, { context, viewport }) {
     for (let frame = 0; frame < 120; frame += 1) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
       const visualRect = surface.querySelector(".native-drag-drop-visual-region")?.getBoundingClientRect();
+      const workspaceRect = surface.querySelector(".native-drag-drop-workspace")?.getBoundingClientRect();
       const stageRect = surface.querySelector(".native-drag-drop-stage")?.getBoundingClientRect();
-      if (!visualRect || !stageRect) continue;
-      const signature = [visualRect.width, visualRect.height, stageRect.width, stageRect.height].map((value) => value.toFixed(2)).join(":");
+      if (!visualRect || !workspaceRect || !stageRect) continue;
+      const signature = [visualRect.width, visualRect.height, workspaceRect.height, stageRect.width, stageRect.height].map((value) => value.toFixed(2)).join(":");
       const stageInsideVisual = stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1;
       stableFrames = stageInsideVisual && signature === previousSignature ? stableFrames + 1 : 0;
       previousSignature = signature;
@@ -41,17 +42,23 @@ export async function measureDragDrop(locator, { context, viewport }) {
       };
     };
     const visualElement = surface.querySelector(".native-drag-drop-visual-region");
+    const workspaceElement = surface.querySelector(".native-drag-drop-workspace");
+    const stageSlotElement = surface.querySelector(".native-drag-drop-stage-slot");
     const stageElement = surface.querySelector(".native-drag-drop-stage");
     const bankElement = surface.querySelector(".native-drag-drop-bank");
     const bankItemsElement = surface.querySelector(".native-drag-drop-bank-items");
     const root = snapshot(surface);
     const visual = snapshot(visualElement);
+    const workspace = snapshot(workspaceElement);
+    const stageSlot = snapshot(stageSlotElement);
     const stage = snapshot(stageElement);
     const bank = snapshot(bankElement);
     const activityHost = snapshot(surface.closest(".native-readable-text-activity-view"));
     const ancestors = [];
     for (let current = surface.parentElement, depth = 0; current && depth < 9; current = current.parentElement, depth += 1) ancestors.push(snapshot(current));
     const stageRect = stageElement.getBoundingClientRect();
+    const stageSlotRect = stageSlotElement.getBoundingClientRect();
+    const workspaceRect = workspaceElement.getBoundingClientRect();
     const visualRect = visualElement.getBoundingClientRect();
     const bankRect = bankElement.getBoundingClientRect();
     return {
@@ -59,6 +66,8 @@ export async function measureDragDrop(locator, { context, viewport }) {
       viewport: { width: innerWidth, height: innerHeight },
       root,
       visual,
+      workspace,
+      stageSlot,
       stage,
       bank,
       activityHost,
@@ -66,38 +75,42 @@ export async function measureDragDrop(locator, { context, viewport }) {
       activityHostFillRatio: activityHost ? root.height / activityHost.height : null,
       visualRootRatio: visual.height / root.height,
       bankRootRatio: bank.height / root.height,
-      usableVisualRatio: (stage.height - bank.height) / stage.height,
-      usableBankRatio: bank.height / stage.height,
-      bankTopRatio: (bankRect.top - stageRect.top) / stageRect.height,
+      usableVisualRatio: stageSlot.height / workspace.height,
+      usableBankRatio: bank.height / workspace.height,
+      bankTopRatio: (bankRect.top - workspaceRect.top) / workspaceRect.height,
       bankInsideStage: bankRect.left >= stageRect.left - 1 && bankRect.right <= stageRect.right + 1 && bankRect.top >= stageRect.top - 1 && bankRect.bottom <= stageRect.bottom + 1,
+      bankOverlapsStage: bankRect.left < stageRect.right - 1 && bankRect.right > stageRect.left + 1 && bankRect.top < stageRect.bottom - 1 && bankRect.bottom > stageRect.top + 1,
       bankItemRows: new Set([...bankItemsElement.children].map((item) => Math.round(item.getBoundingClientRect().top))).size,
       bankItemsScrollable: bankItemsElement.scrollHeight > bankItemsElement.clientHeight + 1,
       stageAspectRatio: stage.width / stage.height,
       sourceAspectRatio: Number(stageElement.dataset.surfaceWidth) / Number(stageElement.dataset.surfaceHeight),
       stageInsideVisual: stageRect.left >= visualRect.left - 1 && stageRect.right <= visualRect.right + 1 && stageRect.top >= visualRect.top - 1 && stageRect.bottom <= visualRect.bottom + 1,
+      stageInsideSlot: stageRect.left >= stageSlotRect.left - 1 && stageRect.right <= stageSlotRect.right + 1 && stageRect.top >= stageSlotRect.top - 1 && stageRect.bottom <= stageSlotRect.bottom + 1,
       horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
+      activityScrollOverflow: { x: surface.scrollWidth - surface.clientWidth, y: surface.scrollHeight - surface.clientHeight },
     };
   }, context);
   process.stdout.write(`[drag-drop-geometry] ${JSON.stringify({ requestedViewport: viewport, ...measurement })}\n`);
   return measurement;
 }
 
-async function dispatchPointer(source, type, init) {
+async function dispatchPointer(source, type, init, { pointerId = 41, pointerType = "mouse" } = {}) {
   await source.evaluate((element, payload) => {
     const ownCapture = Object.getOwnPropertyDescriptor(element, "setPointerCapture");
     if (payload.type === "pointerdown") Object.defineProperty(element, "setPointerCapture", { configurable: true, value() {} });
     try {
-      element.dispatchEvent(new PointerEvent(payload.type, { bubbles: true, cancelable: true, pointerId: 41, pointerType: "mouse", isPrimary: true, ...payload.init }));
+      element.dispatchEvent(new PointerEvent(payload.type, { bubbles: true, cancelable: true, pointerId: payload.pointerId, pointerType: payload.pointerType, isPrimary: true, ...payload.init }));
     } finally {
       if (payload.type === "pointerdown") {
         if (ownCapture) Object.defineProperty(element, "setPointerCapture", ownCapture);
         else delete element.setPointerCapture;
       }
     }
-  }, { type, init });
+  }, { type, init, pointerId, pointerType });
 }
 
 async function dragBetween(page, source, target) {
+  await source.scrollIntoViewIfNeeded();
   const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
   assert.ok(sourceBox && targetBox);
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
@@ -115,6 +128,7 @@ async function dispatchImmediatePointerSequence(source, target, { cancel = false
     const event = (type, init) => element.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 42, pointerType: "mouse", isPrimary: true, ...init }));
     try {
       event("pointerdown", { button: 0, buttons: 1, clientX: payload.sourceX, clientY: payload.sourceY });
+      event("pointermove", { button: 0, buttons: 1, clientX: payload.targetX, clientY: payload.targetY });
       if (payload.cancel) event("pointercancel", { button: 0, buttons: 0, clientX: payload.targetX, clientY: payload.targetY });
       event("pointerup", { button: 0, buttons: 0, clientX: payload.targetX, clientY: payload.targetY });
     } finally {
@@ -135,18 +149,70 @@ export async function exerciseValidatedDragDrop(page, surface, pair) {
   await dispatchImmediatePointerSequence(correctWord, target, { cancel: true });
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), null);
-  assert.equal(await correctWord.getAttribute("data-used"), null);
+  assert.equal(await correctWord.count(), 1);
   await dispatchImmediatePointerSequence(wrongWord, target);
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), "true");
-  assert.equal(await wrongWord.getAttribute("data-used"), null);
+  assert.equal(await wrongWord.count(), 1);
   assert.equal(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
   assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
   await dispatchImmediatePointerSequence(correctWord, target);
   assert.equal(await target.getAttribute("data-occupied"), "true");
   assert.equal(await target.getAttribute("data-incorrect"), null);
+  assert.equal(await correctWord.count(), 0, "a correctly placed word leaves the bank");
   assert.notEqual(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
   return target;
+}
+
+export async function exerciseDragDropProxy(page, surface, pair) {
+  const target = surface.locator("[data-drag-drop-target-id]").first();
+  const targetId = await target.getAttribute("data-drag-drop-target-id");
+  const correctWordId = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId)?.wordId;
+  const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
+  assert.ok(correctWordId && wrongWordId);
+  const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
+  await wrongWord.scrollIntoViewIfNeeded();
+  const [wrongBox, targetBox] = await Promise.all([wrongWord.boundingBox(), target.boundingBox()]);
+  assert.ok(wrongBox && targetBox);
+  const destination = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 };
+  await page.mouse.move(wrongBox.x + wrongBox.width / 2, wrongBox.y + wrongBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(destination.x, destination.y, { steps: 6 });
+  const proxy = surface.locator("[data-drag-drop-drag-preview]");
+  await proxy.waitFor();
+  const proxyBox = await proxy.boundingBox();
+  assert.ok(proxyBox && destination.x >= proxyBox.x && destination.x <= proxyBox.x + proxyBox.width && destination.y >= proxyBox.y && destination.y <= proxyBox.y + proxyBox.height, "the drag proxy follows mouse coordinates");
+  await page.mouse.up();
+  await expect(target).toHaveAttribute("data-incorrect", "true");
+  await expect(proxy).toHaveAttribute("data-returning", "true");
+  await proxy.waitFor({ state: "detached" });
+  assert.equal(await wrongWord.count(), 1, "a wrong drag returns the source word to the bank");
+
+  const correctWord = surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`);
+  await correctWord.scrollIntoViewIfNeeded();
+  const [correctBox, surfaceBox] = await Promise.all([correctWord.boundingBox(), surface.boundingBox()]);
+  assert.ok(correctBox && surfaceBox);
+  const outside = { x: surfaceBox.x + 4, y: surfaceBox.y + 4 };
+  await page.mouse.move(correctBox.x + correctBox.width / 2, correctBox.y + correctBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(outside.x, outside.y, { steps: 6 });
+  await proxy.waitFor();
+  await page.mouse.up();
+  await expect(proxy).toHaveAttribute("data-returning", "true");
+  await proxy.waitFor({ state: "detached" });
+  assert.equal(await target.getAttribute("data-occupied"), null, "dropping outside targets does not commit");
+  assert.equal(await correctWord.count(), 1);
+
+  const touchStart = { x: correctBox.x + correctBox.width / 2, y: correctBox.y + correctBox.height / 2 };
+  const touchEnd = { x: touchStart.x + 36, y: touchStart.y - 28 };
+  await dispatchPointer(correctWord, "pointerdown", { button: 0, buttons: 1, clientX: touchStart.x, clientY: touchStart.y }, { pointerId: 71, pointerType: "touch" });
+  await dispatchPointer(correctWord, "pointermove", { button: 0, buttons: 1, clientX: touchEnd.x, clientY: touchEnd.y }, { pointerId: 71, pointerType: "touch" });
+  await proxy.waitFor();
+  const touchProxyBox = await proxy.boundingBox();
+  assert.ok(touchProxyBox && touchEnd.x >= touchProxyBox.x && touchEnd.x <= touchProxyBox.x + touchProxyBox.width && touchEnd.y >= touchProxyBox.y && touchEnd.y <= touchProxyBox.y + touchProxyBox.height, "the drag proxy follows touch pointer coordinates");
+  await dispatchPointer(correctWord, "pointercancel", { button: 0, buttons: 0, clientX: touchEnd.x, clientY: touchEnd.y }, { pointerId: 71, pointerType: "touch" });
+  await proxy.waitFor({ state: "detached" });
+  assert.equal(await correctWord.count(), 1, "pointer cancellation preserves the source word");
 }
 
 export async function exerciseDragDropPanelTransitionGuard(surface) {
@@ -161,7 +227,7 @@ export async function exerciseDragDropPanelTransitionGuard(surface) {
   assert.ok(nextTargetBox);
   await dispatchPointer(source, "pointerup", { button: 0, buttons: 0, clientX: nextTargetBox.x + nextTargetBox.width / 2, clientY: nextTargetBox.y + nextTargetBox.height / 2 });
   assert.equal(await nextTarget.getAttribute("data-occupied"), null);
-  assert.equal(await source.getAttribute("data-used"), null);
+  assert.equal(await source.count(), 1);
   await surface.getByRole("button", { name: "Previous", exact: true }).click();
   assert.equal(await target.getAttribute("data-occupied"), null);
 }
@@ -195,7 +261,7 @@ export async function exerciseDragDropResetGuard(page, surface, resetButton, pai
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), null);
   assert.equal(await target.getAttribute("data-revealed"), null);
-  assert.equal(await source.getAttribute("data-used"), null);
+  assert.equal(await source.count(), 1);
   assert.equal(await source.getAttribute("aria-pressed"), "false");
 
   const targetId = await target.getAttribute("data-drag-drop-target-id");
@@ -207,10 +273,10 @@ export async function exerciseDragDropResetGuard(page, surface, resetButton, pai
   await dragBetween(page, wrongWord, target);
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), "true");
-  assert.equal(await wrongWord.getAttribute("data-used"), null);
+  assert.equal(await wrongWord.count(), 1);
   await dragBetween(page, correctWord, target);
   assert.equal(await target.getAttribute("data-occupied"), "true");
   assert.equal(await target.getAttribute("data-incorrect"), null);
-  assert.equal(await correctWord.getAttribute("data-used"), "true");
+  assert.equal(await correctWord.count(), 0);
   return target;
 }
