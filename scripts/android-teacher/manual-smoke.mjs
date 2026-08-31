@@ -637,7 +637,9 @@ try {
   assert.equal(await activityVideoOverlay.count(), 0, "Activity video closes back to the exercise");
   await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Back", exact: true }).click();
   await page.locator(".teacher-offline-book").waitFor();
-  await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
+  const extraVideosLauncher = page.getByRole("button", { name: "Extra Videos", exact: true });
+  await extraVideosLauncher.click();
+  await page.getByRole("menuitem", { name: "Unit 1 extra video 1", exact: true }).click();
   await page.locator(".teacher-offline-media").waitFor();
   assert.equal(await page.locator(".teacher-offline-media .classroom-teaching-toolbar").count(), 1, "Media toolbar should render");
   assert.equal(await page.locator(".teacher-offline-media .classroom-tools-overlay").count(), 1, "Media overlay should render");

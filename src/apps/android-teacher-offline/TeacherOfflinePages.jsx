@@ -214,6 +214,9 @@ export default function TeacherOfflinePages({
     if (action.logicalKey) return true;
     return Boolean(activityIdForAction(page, action, getAuthoredActivityKey));
   }), [getAuthoredActivityKey, hotspotProvider, page, unit?.number]);
+  const fallbackExtraVideoActions = useMemo(() => pageExtraVideos.length ? [] : actions.filter((action) => (
+    action.classification === "video" && /\bextra video\b/i.test(action.label)
+  )), [actions, pageExtraVideos.length]);
 
   const image = page?.images?.[0] || null;
   const openAction = (action) => {
@@ -496,8 +499,8 @@ export default function TeacherOfflinePages({
           </ClassroomStageTransform>
         </div>
 
-        {!activityActive && pageExtraVideos.length ? <div className="teacher-unit-extra-videos">
-          {extraMenuOpen ? <div ref={extraMenuRef} className="teacher-unit-extra-menu" role="menu" aria-label="Extra Videos"><strong>Extra Videos</strong>{pageExtraVideos.map((entry) => <button key={entry.id} type="button" role="menuitem" onClick={() => { document.querySelectorAll("audio,video").forEach((media) => media.pause()); setExtraMenuOpen(false); setActiveExtraVideo(entry); }}>{entry.title}</button>)}</div> : null}
+        {!activityActive && (pageExtraVideos.length || fallbackExtraVideoActions.length) ? <div className="teacher-unit-extra-videos">
+          {extraMenuOpen ? <div ref={extraMenuRef} className="teacher-unit-extra-menu" role="menu" aria-label="Extra Videos"><strong>Extra Videos</strong>{pageExtraVideos.map((entry) => <button key={entry.id} type="button" role="menuitem" onClick={() => { document.querySelectorAll("audio,video").forEach((media) => media.pause()); setExtraMenuOpen(false); setActiveExtraVideo(entry); }}>{entry.title}</button>)}{fallbackExtraVideoActions.map((action) => <button key={action.id} type="button" role="menuitem" onClick={() => { document.querySelectorAll("audio,video").forEach((media) => media.pause()); setExtraMenuOpen(false); openAction(action); }}>{action.label}</button>)}</div> : null}
           <button ref={extraLauncherRef} type="button" className="teacher-unit-extra-launcher" aria-haspopup="menu" aria-expanded={extraMenuOpen} onClick={() => setExtraMenuOpen((current) => !current)}><Video aria-hidden="true" /> Extra Videos</button>
         </div> : null}
         {activeExtraVideo ? <div className="teacher-unit-extra-overlay" role="dialog" aria-modal="true" aria-labelledby="teacher-unit-extra-title" onPointerDown={(event) => { if (event.target === event.currentTarget) { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); } }}><section><header><div><span>Extra Videos</span><h2 id="teacher-unit-extra-title">{activeExtraVideo.title}</h2></div><button ref={extraCloseRef} type="button" aria-label="Close Extra Video" onClick={() => { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); }}><X /></button></header><div><NativeVideoPlayer video={activeExtraVideo.video} src={publishedUnitExtraVideoUrl(publication, activeExtraVideo.video.asset)} autoPlayAttemptKey={activeExtraVideo.id} ariaLabel={`${activeExtraVideo.title} Extra Video player`} /></div></section></div> : null}
