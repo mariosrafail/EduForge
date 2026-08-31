@@ -11,8 +11,11 @@ test("public native Open Response renderer has no Teacher schema or answer depen
 test("native Teacher reveal is an explicit wrapper around the public renderer", async () => {
   const source = await readFile(new URL("../src/components/native-open-response/NativeOpenResponseTeacherSurface.jsx", import.meta.url), "utf8");
   assert.match(source, /NativeOpenResponseSurface/);
-  assert.match(source, /autoFitNativeOpenResponseAnswer/);
+  assert.match(source, /fitNativeOpenResponseRuntimeAnswer/);
   assert.doesNotMatch(source, /getBoundingClientRect|measureText|canvas/);
+  const runtimeFit = await readFile(new URL("../src/components/native-open-response/nativeOpenResponseRuntimeFit.js", import.meta.url), "utf8");
+  assert.match(runtimeFit, /autoFitNativeOpenResponseAnswer/);
+  assert.match(runtimeFit, /measureText/);
 });
 
 test("interactive Student preview is public-only local state with no persistence dependency", async () => {
@@ -20,5 +23,6 @@ test("interactive Student preview is public-only local state with no persistence
   assert.match(source, /useState/);
   assert.match(source, /NativeOpenResponseSurface/);
   assert.match(source, /<textarea/);
+  assert.match(source, /fitNativeOpenResponseRuntimeAnswer/);
   assert.doesNotMatch(source, /Teacher|teacherDocument|modelAnswers|saveNativeActivityPair|getBuilderContent|fetch\(/);
 });

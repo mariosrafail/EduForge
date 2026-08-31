@@ -429,3 +429,25 @@ test("deterministic Auto Fit covers wrapping, whitespace, tokens, punctuation, b
   assert.equal(exact.fits, true);
   assert.deepEqual(exact.baselines, exact.lines.map((_, index) => 180 + [40, 72, 104][index]));
 });
+
+test("runtime measurement preserves requested size and only reduces it when the selected face requires it", () => {
+  const ahemWidth = (text, fontSize) => String(text).length * fontSize;
+  const at16 = region({ lineCount: 1, linePositions: [40], lineWidth: 100, answerFontSizeMin: 12, answerFontSizeMax: 16 });
+  const at32 = region({ lineCount: 1, linePositions: [40], lineWidth: 100, answerFontSizeMin: 12, answerFontSizeMax: 32 });
+  assert.equal(autoFitNativeOpenResponseAnswer({ text: "OK", responseRegion: at16, measureTextWidth: ahemWidth }).fontSize, 16);
+  assert.equal(autoFitNativeOpenResponseAnswer({ text: "OK", responseRegion: at32, measureTextWidth: ahemWidth }).fontSize, 32);
+
+  const fitted = autoFitNativeOpenResponseAnswer({ text: "AAAA", responseRegion: at32, measureTextWidth: ahemWidth });
+  assert.deepEqual({ requested: at32.presentation.answerFontSizeMax, effective: fitted.fontSize, fits: fitted.fits }, { requested: 32, effective: 25, fits: true });
+  assert.equal(at32.presentation.answerFontSizeMax, 32, "derived fitting must not overwrite the configured request");
+
+  const impossible = region({ lineCount: 1, linePositions: [40], lineWidth: 30, answerFontSizeMin: 16, answerFontSizeMax: 32 });
+  const overflow = autoFitNativeOpenResponseAnswer({ text: "AAAAAAAAAA", responseRegion: impossible, measureTextWidth: ahemWidth });
+  assert.equal(overflow.fontSize, 16);
+  assert.equal(overflow.fits, false);
+  assert.ok(overflow.overflowReason);
+
+  const fallbackFit = autoFitNativeOpenResponseAnswer({ text: "iiiiiiiiii", responseRegion: region({ lineCount: 1, linePositions: [40], lineWidth: 150, answerFontSizeMin: 16, answerFontSizeMax: 32 }) });
+  const ahemFit = autoFitNativeOpenResponseAnswer({ text: "iiiiiiiiii", responseRegion: region({ lineCount: 1, linePositions: [40], lineWidth: 150, answerFontSizeMin: 16, answerFontSizeMax: 32 }), measureTextWidth: ahemWidth });
+  assert.notEqual(ahemFit.fontSize, fallbackFit.fontSize, "selected-font metrics must affect the derived fit");
+});

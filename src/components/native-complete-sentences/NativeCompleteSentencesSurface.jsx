@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
-import { useNativeActivityFonts } from "../native-activity-assets/useNativeActivityFonts.js";
+import { nativeActivitySelectedFontState, useNativeActivityFonts } from "../native-activity-assets/useNativeActivityFonts.js";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
 import { nativeCompleteSentencesFontFamilyAlias, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesHotspotPresentation, updateNativeCompleteSentencesRevealState } from "../../data/native-activities/nativeCompleteSentences.js";
 import "./nativeCompleteSentences.css";
@@ -25,11 +25,11 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
   const panels = interaction.presentation.panels;
   const normalizedIndex = Math.min(Math.max(Number.isSafeInteger(panelIndex) ? panelIndex : 0, 0), Math.max(0, panels.length - 1));
   const panel = panels[normalizedIndex];
-  useNativeActivityFonts(document, assetUrl);
+  const fontState = useNativeActivityFonts(document, assetUrl);
   useEffect(() => { audioHotspotPresentation?.onPanelChange(panel?.id || null); }, [audioHotspotPresentation, panel?.id]);
   if (!panel) return <p role="status">No Complete the Sentences panel is available.</p>;
   const reference = document.assets.find((asset) => asset.slot === panel.backgroundAssetSlot);
-  return <article className="native-complete-sentences" aria-label={document.metadata.title}>
+  return <>{fontState.failures.length ? <p className="native-activity-font-fallback" role="alert">Selected font could not be loaded; using the default font.</p> : null}<article className="native-complete-sentences" aria-label={document.metadata.title}>
     <PanelNavigation panelIndex={normalizedIndex} panelCount={panels.length} onPrevious={onPrevious} onNext={onNext} />
     <div className="native-complete-sentences-stage" data-panel-id={panel.id} style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}`, "--native-complete-sentences-ratio": panel.sourceWidth / panel.sourceHeight }}>
       {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}
@@ -37,6 +37,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
         const item = interaction.items.find((candidate) => candidate.id === hotspot.itemId);
         const hotspotPresentation = normalizeNativeCompleteSentencesHotspotPresentation(hotspot.presentation);
         const fontReference = hotspotPresentation.fontAssetSlot ? document.assets.find((asset) => asset.slot === hotspotPresentation.fontAssetSlot && asset.role === "activity_font") : null;
+        const selectedFont = nativeActivitySelectedFontState(fontState, document, hotspotPresentation.fontAssetSlot);
         const hotspotStyle = {
           ...logicalAreaStyle(hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight }),
           "--native-complete-answer-font-size": `${(hotspotPresentation.fontSize / panel.sourceWidth) * 100}cqw`,
@@ -44,11 +45,11 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
           "--native-complete-answer-font-family": fontReference ? nativeCompleteSentencesFontFamilyAlias(fontReference.assetId) : "system-ui, sans-serif",
         };
         const teacherAnswer = revealed.has(hotspot.itemId) ? answers.get(hotspot.itemId) || "" : null;
-        if (onTeacherReveal) return <button key={hotspot.id} type="button" className="native-complete-sentences-blank native-complete-sentences-teacher-target" style={hotspotStyle} data-revealed={teacherAnswer !== null || undefined} aria-label={`${teacherAnswer === null ? "Reveal" : "Revealed"} answer for sentence ${interaction.items.indexOf(item) + 1}`} onClick={() => onTeacherReveal(hotspot.itemId)}>
+        if (onTeacherReveal) return <button key={hotspot.id} type="button" className="native-complete-sentences-blank native-complete-sentences-teacher-target" style={hotspotStyle} data-font-status={selectedFont.status} data-revealed={teacherAnswer !== null || undefined} aria-label={`${teacherAnswer === null ? "Reveal" : "Revealed"} answer for sentence ${interaction.items.indexOf(item) + 1}`} onClick={() => onTeacherReveal(hotspot.itemId)}>
           <span className="native-complete-sentences-sr-only">{item?.prompt || `Sentence ${index + 1}`}</span>
           <span className="native-complete-sentences-teacher-answer" aria-live="polite">{teacherAnswer ?? ""}</span>
         </button>;
-        return <label key={hotspot.id} className="native-complete-sentences-blank" style={hotspotStyle}>
+        return <label key={hotspot.id} className="native-complete-sentences-blank" style={hotspotStyle} data-font-status={selectedFont.status}>
           <span className="native-complete-sentences-sr-only">{item?.prompt || `Sentence ${index + 1}`}</span>
           <input type="text" value={teacherAnswer ?? responses[hotspot.itemId] ?? ""} readOnly={readOnly || teacherAnswer !== null} aria-label={`Answer for sentence ${interaction.items.indexOf(item) + 1}`} onChange={(event) => onChange?.(hotspot.itemId, event.target.value)} />
         </label>;
@@ -56,7 +57,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
       <NativeAudioTextHotspotButtons panelId={panel.id} surface={{ width: panel.sourceWidth, height: panel.sourceHeight }} presentation={audioHotspotPresentation} />
     </div>
     <ol className="native-complete-sentences-prompts">{interaction.items.map((item) => <li key={item.id}><SentencePrompt prompt={item.prompt} /></li>)}</ol>
-  </article>;
+  </article></>;
 }
 
 export function NativeCompleteSentencesStudentSurface({ document, assetUrl = () => "", responses: controlled = null, initialResponses = null, onResponsesChange = null, readOnly = false, audioHotspotPresentation = null }) {

@@ -69,6 +69,9 @@ export function assertStableListeningStages(before, after) {
 
 async function openActivity(page, activityId) {
   await page.locator('.hosted-builder-tool-tabs a[href$="/activities"]').click();
+  await page.getByRole("heading", { name: "Activity authoring" }).waitFor();
+  await page.getByLabel("Access").selectOption("all");
+  await page.getByLabel("Type").selectOption("all");
   const search = page.getByPlaceholder("Search title, type, or ID"); await search.fill(activityId);
   for (let depth = 0; depth < 3; depth += 1) await page.locator('.activity-tree-toggle[aria-expanded="false"]').evaluateAll((buttons) => buttons.forEach((button) => button.click()));
   await page.getByRole("button", { name: new RegExp(activityId) }).click();

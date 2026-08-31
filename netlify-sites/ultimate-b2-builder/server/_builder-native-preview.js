@@ -6,6 +6,7 @@ import { loadBuilderComponentDocument } from "./_builder-content-store.js";
 import { isBuilderNativeDraftAssetRecord, loadBuilderFontAsset, loadBuilderNativeAsset } from "./_builder-native-activity-store.js";
 import { inspectBuilderPreviewAuthorizationScope } from "./_builder-preview-authorization.js";
 import { validateNativeActivityPair } from "./_native-activity-registry.js";
+import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -85,7 +86,7 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
     try {
       const parsed = route(event);
       if (!parsed) return privateJson(404, { error: "native_draft_not_found" });
-      if (event.httpMethod !== "GET") return privateJson(405, { error: "method_not_allowed" });
+      if (event.httpMethod !== "GET" && !(event.httpMethod === "HEAD" && parsed.action === "asset")) return privateJson(405, { error: "method_not_allowed" });
       const requestedAction = `native-draft-${parsed.action}`;
       const decision = dependencies.inspectAuthorization(event, { action: requestedAction, bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, activityId: parsed.activityId });
       if (!decision.authorized) return privateJson(401, { error: "Unauthorized" });
@@ -111,6 +112,7 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
         && asset?.access_level === "internal" && asset?.storage_profile === "private" && asset?.source_metadata?.font_library_scope === "component"
         && String(asset.id) === reference.assetId && asset.checksum_sha256 === reference.checksumSha256 && reference.slot === `font-${reference.assetId.replaceAll("-", "")}`;
       if (!(validFont || isBuilderNativeDraftAssetRecord(asset, { activityId: parsed.activityId, reference }))) return privateJson(404, { error: "native_draft_asset_not_found" });
+      if (validFont) return serveBuilderPrivateFont({ storage: dependencies.storage(), asset, method: event.httpMethod });
       const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey: asset.object_key, ttlSeconds: previewTtlSeconds });
       return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }, body: "" };
     } catch (error) {

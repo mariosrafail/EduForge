@@ -86,8 +86,14 @@ test("authorized component font list and preview expose safe metadata only and f
   assert.equal(font.familyAlias, "hh-native-font-20000000000040008000000000000096");
   assert.doesNotMatch(listed.body, /object_key|private-test|builder-font-library/);
   const preview = await fixture.handler(request(`${root}/${assetId}/preview`));
-  assert.equal(preview.statusCode, 302);
-  assert.match(preview.headers.Location, /signature=opaque/);
+  assert.equal(preview.statusCode, 200);
+  assert.equal(preview.headers["Content-Type"], "font/ttf");
+  assert.equal(preview.headers["Cross-Origin-Resource-Policy"], "same-origin");
+  assert.deepEqual(Buffer.from(preview.body, "base64"), bytes);
+  const headed = await fixture.handler(request(`${root}/${assetId}/preview`, { method: "HEAD" }));
+  assert.equal(headed.statusCode, 200);
+  assert.equal(headed.body, "");
+  assert.equal(headed.headers["Content-Length"], String(bytes.length));
   assert.equal((await fixture.handler(request(`/builder/api/native-activities/books/${bookSlug}/components/ultimate-b2-workbook/fonts/${assetId}/preview`))).statusCode, 404);
   assert.equal((await fixture.handler(request(`${root}/${randomUUID()}/preview`))).statusCode, 404);
 });
@@ -165,10 +171,12 @@ test("saved-draft preview resolves a referenced component font without accepting
     inspectAuthorization: () => ({ authorized: true, scope: { version: 2, releaseId: null, view: "activity", pageId: null, activityId } }),
     loadFont: async () => record(checksum),
     loadAsset: async () => { throw new Error("activity loader must not be used for component fonts"); },
-    storage: () => ({ signedGetUrl: async () => "https://private-assets.example/font?signature=opaque" }), logger: { error() {} },
+    storage: () => ({ download: async () => bytes }), logger: { error() {} },
   });
   const response = await handler({ httpMethod: "GET", path: `/builder/preview/native-activities/books/${bookSlug}/components/${componentSlug}/activities/${activityId}/assets/${assetId}`, headers: {} });
-  assert.equal(response.statusCode, 302);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["Content-Type"], "font/ttf");
+  assert.deepEqual(Buffer.from(response.body, "base64"), bytes);
   const foreignHandler = createBuilderNativePreviewHandler({
     getDatabase: () => ({}), resolveResource: async (_book, _component, type) => ({ documentType: type }),
     loadDocument: async (_sql, resource) => resource.documentType === "native-activity-index"

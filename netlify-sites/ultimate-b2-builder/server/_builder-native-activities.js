@@ -48,6 +48,7 @@ import {
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
 import { collectBuilderNativeActivityCatalogSources } from "./_builder-publication-store.js";
+import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -728,8 +729,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
         if (!uuidV4.test(parsedRoute.assetId)) return json(404, { error: "font_not_found" });
         const asset = await dependencies.loadFont(sql, { ...parsedRoute, assetId: parsedRoute.assetId });
         if (!isBuilderFontRecord(asset)) return json(404, { error: "font_not_found" });
-        const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey: asset.object_key, ttlSeconds: previewTtlSeconds });
-        return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }, body: "" };
+        return serveBuilderPrivateFont({ storage: dependencies.storage(), asset, method: event.httpMethod });
       }
       if (parsedRoute.action === "asset-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });
