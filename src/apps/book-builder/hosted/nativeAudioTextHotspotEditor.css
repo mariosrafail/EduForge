@@ -36,6 +36,8 @@
 .native-audio-hotspot-highlight-colors label:has(input:checked) { border-color: #176c91; box-shadow: 0 0 0 2px rgb(23 108 145 / 20%); }
 .native-audio-hotspot-highlight-colors label > span { width: 22px; height: 14px; border: 1px solid rgb(var(--native-highlight-color)); border-radius: 3px; background: rgb(var(--native-highlight-color) / 22%); }
 .native-audio-hotspot-authoring > audio { width: 100%; }
+.native-audio-hotspot-audio-status { width: fit-content; padding: 6px 10px; border: 1px solid #a9bac7; border-radius: 999px; background: #fff; color: #415466; font-weight: 700; }
+.native-audio-hotspot-audio-status[data-audio-attached] { border-color: #17804b; background: #ecfdf3; color: #12613a; }
 .native-audio-hotspot-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .native-audio-hotspot-authoring-preview { display: grid; grid-template-rows: minmax(220px, 1fr) minmax(220px, 1fr); gap: 8px; min-height: 460px; padding: 8px; border: 2px solid #2c6d8b; border-radius: 10px; background: #dbe8ef; }
 .native-audio-hotspot-authoring-preview .native-audio-hotspot-authoring-stage { width: auto; height: 100%; margin-inline: auto; }

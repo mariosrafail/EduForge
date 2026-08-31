@@ -76,7 +76,7 @@ export function nativeAudioTextHotspotTargets(publicDocument) {
 
 export function candidateNativeAudioTextAssetSlots(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || !Array.isArray(input.hotspots)) return [];
-  return input.hotspots.map((hotspot) => hotspot?.audioAssetSlot).filter((slot) => typeof slot === "string");
+  return input.hotspots.map((hotspot) => hotspot?.audioAssetSlot).filter((slot) => typeof slot === "string" && slot.trim());
 }
 
 export function normalizeNativeAudioTextHotspots(input, publicDocument) {
@@ -102,8 +102,10 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
       if (entry.panelId !== null && typeof entry.panelId !== "string") throw new Error(`${label}.panelId is invalid.`);
       const target = targetByPanel.get(entry.panelId);
       if (!target) throw new Error(`${label}.panelId does not reference a visual activity surface.`);
-      const audio = assetsBySlot.get(entry.audioAssetSlot);
-      if (!audio || audio.role !== "activity_artwork" || audio.slot === publicDocument.readableText.assetSlot) {
+      const audioAssetSlot = entry.audioAssetSlot;
+      if (typeof audioAssetSlot !== "string") throw new Error(`${label}.audioAssetSlot is invalid.`);
+      const audio = audioAssetSlot ? assetsBySlot.get(audioAssetSlot) : null;
+      if (audioAssetSlot && (!audio || audio.role !== "activity_artwork" || audio.slot === publicDocument.readableText.assetSlot)) {
         throw new Error(`${label}.audioAssetSlot does not reference managed native audio.`);
       }
       if (typeof entry.label !== "string" || !entry.label.trim() || entry.label.length > NATIVE_AUDIO_TEXT_HOTSPOT_LIMITS.labelLength
@@ -125,7 +127,7 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
         panelId: entry.panelId,
         activityArea: area(entry.activityArea, `${label}.activityArea`, target, { circular: true }),
         readableFocusArea: normalizedFocusArea,
-        audioAssetSlot: audio.slot,
+        audioAssetSlot: audio?.slot || "",
         label: entry.label.trim(),
       };
       if (hasReadableHighlightArea) normalized.readableHighlightArea = normalizedHighlightArea;
@@ -138,8 +140,9 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
 export function nativeAudioTextAssetRequirements(publicDocument) {
   const seen = new Set();
   return (publicDocument?.audioTextHotspots?.hotspots || []).flatMap((hotspot, index) => {
-    if (seen.has(hotspot.audioAssetSlot)) return [];
-    seen.add(hotspot.audioAssetSlot);
-    return [{ slot: hotspot.audioAssetSlot, mediaType: "audio/mpeg", label: `Audio hotspot ${index + 1}` }];
+    const slot = hotspot.audioAssetSlot;
+    if (typeof slot !== "string" || !slot.trim() || seen.has(slot)) return [];
+    seen.add(slot);
+    return [{ slot, mediaType: "audio/mpeg", label: `Audio hotspot ${index + 1}` }];
   });
 }

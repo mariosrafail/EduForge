@@ -2,15 +2,23 @@ import { useEffect, useRef } from "react";
 
 import audioHotspotActive from "../../assets/native-activities/audio-text-hotspot-active.svg";
 import audioHotspotPressed from "../../assets/native-activities/audio-text-hotspot-pressed.svg";
+import readableHotspotActive from "../../assets/native-activities/readable-text-hotspot-active.svg";
+import readableHotspotPressed from "../../assets/native-activities/readable-text-hotspot-pressed.svg";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 import { nativeAudioTextHighlightColor, nativeAudioTextReadableHighlightArea } from "../../data/native-activities/nativeAudioTextHotspots.js";
 
 export const nativeAudioHotspotArtwork = Object.freeze({ active: audioHotspotActive, pressed: audioHotspotPressed });
+export const nativeReadableTextHotspotArtwork = Object.freeze({ active: readableHotspotActive, pressed: readableHotspotPressed });
+
+export function nativeAudioTextHotspotArtwork(hotspot) {
+  return hotspot?.audioAssetSlot ? nativeAudioHotspotArtwork : nativeReadableTextHotspotArtwork;
+}
 
 export function NativeAudioTextHotspotButtons({ panelId = null, surface, presentation = null }) {
   if (!presentation || !surface) return null;
   return presentation.hotspots.filter((hotspot) => hotspot.panelId === panelId).map((hotspot) => {
     const active = presentation.activeHotspotId === hotspot.id;
+    const artwork = nativeAudioTextHotspotArtwork(hotspot);
     return <button
       key={hotspot.id}
       type="button"
@@ -19,22 +27,22 @@ export function NativeAudioTextHotspotButtons({ panelId = null, surface, present
       aria-label={hotspot.label}
       aria-pressed={active}
       onClick={() => presentation.onToggle(hotspot.id)}
-    ><img src={active ? audioHotspotPressed : audioHotspotActive} alt="" /></button>;
+    ><img src={active ? artwork.pressed : artwork.active} alt="" /></button>;
   });
 }
 
 export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoPlay = false }) {
   const audioRef = useRef(null);
   const readableReference = document.assets.find((asset) => asset.slot === document.readableText?.assetSlot);
-  const audioReference = document.assets.find((asset) => asset.slot === hotspot?.audioAssetSlot);
+  const audioReference = hotspot?.audioAssetSlot ? document.assets.find((asset) => asset.slot === hotspot.audioAssetSlot) : null;
   useEffect(() => {
     if (!autoPlay || !audioRef.current) return;
     const audio = audioRef.current;
     audio.currentTime = 0;
     audio.play().catch(() => {});
     return () => { audio.pause(); audio.currentTime = 0; };
-  }, [autoPlay, hotspot?.id]);
-  if (!hotspot || !readableReference || !audioReference) return null;
+  }, [autoPlay, hotspot?.audioAssetSlot, hotspot?.id]);
+  if (!hotspot || !readableReference) return null;
   const focus = hotspot.readableFocusArea;
   const highlight = nativeAudioTextReadableHighlightArea(hotspot);
   const highlightStyle = highlight ? {
@@ -54,6 +62,6 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
       </svg>
       {highlightStyle ? <span className="native-audio-text-focus-highlight" style={highlightStyle} aria-hidden="true" /> : null}
     </div>
-    <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} />
+    {audioReference ? <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} /> : null}
   </section>;
 }

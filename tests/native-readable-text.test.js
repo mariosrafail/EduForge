@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea } from "../src/data/native-activities/nativeAudioTextHotspots.js";
+import { candidateNativeAudioTextAssetSlots, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextAssetRequirements, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea } from "../src/data/native-activities/nativeAudioTextHotspots.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import { createNativeOpenResponseQuestion, promoteNativeOpenResponsePanels } from "../src/data/native-activities/nativeOpenResponse.js";
@@ -86,6 +88,39 @@ test("Audio / Readable-Text hotspots are strict, public, visual-surface-bound ma
     assert.doesNotThrow(() => assertPublicBuilderDocument(normalized));
     assert.doesNotMatch(JSON.stringify(normalized), /modelAnswer|correctOption|teacher|https?:\/\//i);
   }
+});
+
+test("Readable-Text hotspots use one canonical no-audio value without phantom assets", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const document = kind.createBlankPublic({ activityId: "open-readable-only", title: "Readable focus", placement: { pageId } });
+  document.assets = [reference];
+  document.readableText = readableText;
+  document.audioTextHotspots = { hotspots: [{ ...audioHotspot, audioAssetSlot: "", label: "Open readable excerpt" }] };
+  const normalized = kind.normalizePublic(document);
+  assert.equal(normalized.audioTextHotspots.hotspots[0].audioAssetSlot, "");
+  assert.deepEqual(candidateNativeAudioTextAssetSlots(normalized.audioTextHotspots), []);
+  assert.deepEqual(candidateNativeAudioTextAssetSlots({ hotspots: [{ audioAssetSlot: "" }, { audioAssetSlot: "   " }, audioHotspot, audioHotspot] }), [audioReference.slot, audioReference.slot]);
+  assert.deepEqual(nativeAudioTextAssetRequirements(normalized), []);
+  const mixed = structuredClone(normalized);
+  mixed.assets.push(audioReference);
+  mixed.audioTextHotspots.hotspots.push({ ...audioHotspot, id: `aud-${"2".repeat(32)}` }, { ...audioHotspot, id: `aud-${"3".repeat(32)}` });
+  assert.deepEqual(nativeAudioTextAssetRequirements(mixed), [{ slot: audioReference.slot, mediaType: "audio/mpeg", label: "Audio hotspot 2" }]);
+  for (const mutate of [
+    (value) => { value.audioTextHotspots.hotspots[0].audioAssetSlot = null; },
+    (value) => { delete value.audioTextHotspots.hotspots[0].audioAssetSlot; },
+    (value) => { value.audioTextHotspots.hotspots[0].audioAssetSlot = "   "; },
+    (value) => { value.audioTextHotspots.hotspots[0].audioAssetSlot = "missing-audio"; },
+  ]) {
+    const invalid = structuredClone(document); mutate(invalid);
+    assert.throws(() => kind.normalizePublic(invalid), /audioAssetSlot|unknown fields/);
+  }
+});
+
+test("existing MP3-bearing Readable-Text hotspot identity remains unchanged", () => {
+  const kind = resolveNativeActivityKind("open-response");
+  const document = kind.createBlankPublic({ activityId: "open-audio", title: "Audio focus", placement: { pageId } });
+  document.assets = [reference, audioReference]; document.readableText = readableText; document.audioTextHotspots = { hotspots: [audioHotspot] };
+  assert.equal(builderDocumentSha256(kind.normalizePublic(document)), "f2bef9a456746abe5fe462a12d8688cacd5db2a17f1dcb78837c306a53834281");
 });
 
 test("panelized Open Response audio hotspots bind to the selected panel surface", () => {
@@ -193,6 +228,14 @@ test("managed reference cleanup retains a slot until every activity use is remov
   document.parts[0].interaction.images = [];
   removeNativeManagedAssetReferenceIfUnused(document, reference.slot);
   assert.deepEqual(document.assets, []);
+
+  const audioDocument = { assets: [audioReference], parts: [{ interaction: {} }], audioTextHotspots: { hotspots: [{ ...audioHotspot }, { ...audioHotspot, id: `aud-${"4".repeat(32)}` }] } };
+  audioDocument.audioTextHotspots.hotspots[0].audioAssetSlot = "";
+  removeNativeManagedAssetReferenceIfUnused(audioDocument, audioReference.slot);
+  assert.deepEqual(audioDocument.assets, [audioReference], "shared audio remains while another hotspot uses it");
+  audioDocument.audioTextHotspots.hotspots[1].audioAssetSlot = "";
+  removeNativeManagedAssetReferenceIfUnused(audioDocument, audioReference.slot);
+  assert.deepEqual(audioDocument.assets, [], "the managed reference is removed after the last hotspot detaches it");
 });
 
 test("shared Builder and Teacher runtime wire all native kinds without duplicating private data or toolbars", async () => {
@@ -207,6 +250,7 @@ test("shared Builder and Teacher runtime wire all native kinds without duplicati
   assert.match(hotspotEditor, /accept="audio\/mpeg,.mp3"/); assert.match(hotspotEditor, /Test hotspot/); assert.doesNotMatch(hotspotEditor, /teacherDocument|correctAnswer|modelAnswer/);
   assert.match(hotspotEditor, /<StageSelectionFrame/); assert.match(hotspotEditor, /label="Outer readable text focus"/); assert.match(hotspotEditor, /label="Inner colored highlight"/); assert.match(hotspotEditor, /Delete inner highlight/); assert.match(hotspotEditor, /Highlight color/);
   assert.match(hotspotEditor, /Keep aspect ratio/); assert.match(hotspotEditor, /OUTER_FOCUS_ASPECT_RATIO = 1024 \/ 291/); assert.match(hotspotEditor, /aspectRatio=\{keepAspectRatio \? OUTER_FOCUS_ASPECT_RATIO : null\}/); assert.match(hotspotEditor, /<StageGeometryControls/);
+  assert.match(hotspotEditor, /No MP3 attached \(optional\)/); assert.match(hotspotEditor, /Remove MP3/); assert.match(hotspotEditor, /audioAssetSlot = ""/); assert.match(hotspotEditor, /Open readable excerpt/);
   assert.doesNotMatch(hotspotEditor.match(/label="Inner colored highlight"[^\n]+/)?.[0] || "", /aspectRatio|preserveAspectRatio/);
   assert.match(hotspotEditor, /NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS\.map/); assert.match(hotspotEditor, /data-studio-stage/);
   const pages = await readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8");
@@ -225,6 +269,39 @@ test("shared hotspot artwork embeds the exact canonical repository cue bytes wit
   }
   const runtime = await readFile(new URL("../src/components/native-readable-text/NativeAudioTextHotspots.jsx", import.meta.url), "utf8");
   assert.doesNotMatch(runtime, /legacyClassroomAssets|legacy-classroom-ui/);
+});
+
+test("runtime uses page artwork and renders readable focus without requesting optional audio", async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" });
+  try {
+    const { NativeAudioTextFocusContent, NativeAudioTextHotspotButtons, nativeAudioTextHotspotArtwork } = await vite.ssrLoadModule("/src/components/native-readable-text/NativeAudioTextHotspots.jsx");
+    const noAudioHotspot = { ...audioHotspot, audioAssetSlot: "", label: "Open readable excerpt" };
+    const presentation = { hotspots: [noAudioHotspot], activeHotspotId: null, onToggle() {} };
+    const normalButton = renderToStaticMarkup(React.createElement(NativeAudioTextHotspotButtons, { surface: { width: 1024, height: 582 }, presentation }));
+    const pressedButton = renderToStaticMarkup(React.createElement(NativeAudioTextHotspotButtons, { surface: { width: 1024, height: 582 }, presentation: { ...presentation, activeHotspotId: noAudioHotspot.id } }));
+    const readableArtwork = nativeAudioTextHotspotArtwork(noAudioHotspot);
+    const audioArtwork = nativeAudioTextHotspotArtwork(audioHotspot);
+    assert.ok(readableArtwork.active.startsWith("data:image/svg+xml"));
+    assert.ok(readableArtwork.pressed.startsWith("data:image/svg+xml"));
+    assert.notEqual(readableArtwork.active, audioArtwork.active);
+    assert.notEqual(readableArtwork.pressed, audioArtwork.pressed);
+    assert.ok(normalButton.includes(readableArtwork.active.replaceAll("'", "&#x27;")));
+    assert.ok(pressedButton.includes(readableArtwork.pressed.replaceAll("'", "&#x27;")));
+
+    const requested = [];
+    const noAudioDocument = { readableText, assets: [reference] };
+    const focus = renderToStaticMarkup(React.createElement(NativeAudioTextFocusContent, { document: noAudioDocument, hotspot: noAudioHotspot, assetUrl: (assetId) => { requested.push(assetId); return `/asset/${assetId}`; }, autoPlay: true }));
+    assert.match(focus, /native-audio-text-focus-crop/);
+    assert.match(focus, /native-audio-text-focus-highlight/);
+    assert.doesNotMatch(focus, /<audio|preload="metadata"/);
+    assert.deepEqual(requested, [reference.assetId]);
+
+    const audioDocument = { readableText, assets: [reference, audioReference] };
+    const audioButtons = renderToStaticMarkup(React.createElement(NativeAudioTextHotspotButtons, { surface: { width: 1024, height: 582 }, presentation: { hotspots: [audioHotspot], activeHotspotId: audioHotspot.id, onToggle() {} } }));
+    const audioFocus = renderToStaticMarkup(React.createElement(NativeAudioTextFocusContent, { document: audioDocument, hotspot: audioHotspot, assetUrl: (assetId) => `/asset/${assetId}`, autoPlay: true }));
+    assert.ok(audioButtons.includes(audioArtwork.pressed.replaceAll("'", "&#x27;")));
+    assert.match(audioFocus, /<audio[^>]+preload="metadata"[^>]+audio-one|<audio[^>]+preload="metadata"/);
+  } finally { await vite.close(); }
 });
 
 test("native Readable Text presentation toggles only when available and uses bounded internal scrolling", async () => {
