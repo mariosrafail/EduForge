@@ -25,7 +25,8 @@ test("Image and Open Response use the same scaled transform frame", async () => 
     read("src/apps/book-builder/hosted/NativeOpenResponseEditor.jsx"),
   ]);
   assert.match(imageEditor, /<StageSelectionFrame/);
-  assert.match(imageEditor, /preserveAspectRatio/);
+  assert.doesNotMatch(imageEditor, /preserveAspectRatio/);
+  assert.match(imageEditor, /Width and height resize independently\./);
   assert.match(imageEditor, /locked=\{selectedImage\.locked\}/);
   assert.match(openResponseEditor, /<StageSelectionFrame/);
   assert.doesNotMatch(openResponseEditor, /preserveAspectRatio=\{selection\.type === "artwork"\}/);

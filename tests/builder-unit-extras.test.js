@@ -90,6 +90,21 @@ test("native Activity Video still requires SRT while Unit Extra player hides cap
   assert.match(player, /videoRef\.current\?\.play\(\)\.catch/);
 });
 
+test("Unit Extras modal owns one responsive inner scroll region", async () => {
+  const [modal, editor, styles] = await Promise.all([
+    readFile(new URL("../src/apps/book-builder/hosted/BuilderModal.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/ultimate-b2-builder/UnitExtrasEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/ultimate-b2-builder/hostedUltimateB2BuilderModern.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(modal, /className=\{`builder-modal \$\{className\}`\.trim\(\)\}/);
+  assert.match(editor, /className="builder-modal--unit-extras"/);
+  assert.match(editor, /className="unit-extras-editor-scroll"/);
+  assert.match(styles, /\.builder-modal\.builder-modal--unit-extras[^}]*max-height:calc\(100dvh - 40px\)[^}]*overflow:hidden/);
+  assert.match(styles, /\.unit-extras-editor-scroll[^}]*min-height:0[^}]*overflow:auto/);
+  assert.doesNotMatch(styles, /\.unit-extras-editor \{[^}]*min-width:min\(760px,82vw\)|\.unit-extras-editor \{[^}]*overflow:auto|\.unit-extras-editor > footer[^}]*position:sticky/);
+  assert.match(styles, /unit-extra-video-card dd[^}]*overflow-wrap:anywhere/);
+});
+
 test("migration 044 owns Unit Extra uploads without fake activities and extends exact source freshness", async () => {
   const migration = await readFile(new URL("../database/044_builder_unit_extra_asset_uploads.sql", import.meta.url), "utf8");
   assert.match(migration, /create table if not exists builder_unit_extra_asset_upload_sessions/);

@@ -425,8 +425,8 @@ try {
       await page.locator(".teacher-unit-page-card").filter({ hasText: "pg 6-7" }).first().click();
       await page.locator(".teacher-offline-pages-viewer").waitFor();
 
-      await page.locator(".teacher-page-actions-trigger").click({ force: true });
-      await page.locator(".teacher-offline-page-actions").getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
+      assert.equal(await page.getByRole("button", { name: "Page activities" }).count(), 0, "obsolete Page activities control stays absent");
+      await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
       await page.locator(".teacher-offline-media").waitFor();
       const mediaBackdrop = await readViewportBackdrop(page);
       assertBackdrop(mediaBackdrop, "media", "Media");

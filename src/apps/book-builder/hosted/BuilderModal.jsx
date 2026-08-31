@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 
-export function BuilderModal({ open, title, description, busy = false, onClose, returnFocusRef, children }) {
+export function BuilderModal({ open, title, description, busy = false, onClose, returnFocusRef, children, className = "" }) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef(null);
@@ -29,7 +29,7 @@ export function BuilderModal({ open, title, description, busy = false, onClose, 
     return () => { clearTimeout(timer); document.removeEventListener("keydown", keydown); (returnFocusRef?.current || restoreRef.current)?.focus?.(); };
   }, [open]);
   return <AnimatePresence>{open ? <motion.div className="builder-modal-backdrop" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduced ? undefined : { opacity: 0 }} transition={{ duration: reduced ? 0 : .18 }} onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
-    <motion.section ref={dialogRef} className="builder-modal" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={reduced ? undefined : { opacity: 0, y: 8 }} transition={{ duration: reduced ? 0 : .2 }}>
+    <motion.section ref={dialogRef} className={`builder-modal ${className}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={reduced ? undefined : { opacity: 0, y: 8 }} transition={{ duration: reduced ? 0 : .2 }}>
       <header><div><h2 id={titleId}>{title}</h2>{description ? <p id={descriptionId}>{description}</p> : null}</div><button type="button" className="builder-icon-button" aria-label="Close dialog" title="Close" disabled={busy} onClick={onClose}><X aria-hidden="true" /></button></header>
       {children}
     </motion.section>

@@ -479,24 +479,6 @@
   white-space: nowrap;
 }
 
-.teacher-offline-pages-viewer .teacher-offline-page-actions {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  left: 18px;
-  z-index: 7;
-  min-height: 58px;
-  max-height: 126px;
-  display: none;
-  padding: 8px 12px;
-  border: 3px solid #fff;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(211, 241, 250, 0.98), rgba(107, 184, 211, 0.98));
-  box-shadow: 0 0 0 2px #087296, 0 8px 22px rgba(30, 18, 65, 0.34);
-}
-
-.teacher-offline-pages-viewer .teacher-offline-page-actions.open { display: flex; }
-
 .legacy-page-navigation {
   width: var(--teacher-students-book-stage-chrome-width);
   margin: -9px auto 0;
@@ -628,7 +610,6 @@
   .legacy-classroom-viewer-toolbar { width: min(620px, 88vw); min-height: 48px; padding: 2px 8px; gap: 8px; }
   .legacy-classroom-viewer-toolbar button { width: 44px; height: 44px; min-height: 44px; }
   .legacy-disabled-book-tools { display: none; }
-  .teacher-offline-pages-viewer .teacher-offline-page-actions { right: 8px; bottom: 8px; left: 8px; max-height: 110px; }
 }
 
 @media (max-width: 720px) {

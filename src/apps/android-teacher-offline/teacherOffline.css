@@ -132,7 +132,6 @@ html[data-app-mode="android-teacher-offline"] button {
 .teacher-offline-book-header button,
 .teacher-offline-view-tabs button,
 .teacher-offline-page-reader header button,
-.teacher-offline-page-actions button,
 .teacher-offline-pages aside button,
 .teacher-offline-media header button,
 .teacher-offline-presentation header button,
@@ -311,25 +310,6 @@ html[data-app-mode="android-teacher-offline"] button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.teacher-offline-page-actions {
-  display: flex;
-  gap: 7px;
-  min-height: 66px;
-  padding: 7px 10px;
-  overflow-x: auto;
-  border-top: 1px solid rgba(24, 54, 77, 0.14);
-  background: #fff;
-}
-
-.teacher-offline-page-actions.open {
-  display: flex;
-}
-
-.teacher-offline-page-actions button {
-  flex: 0 0 auto;
-  max-width: 260px;
 }
 
 .teacher-offline-contents {
@@ -634,10 +614,6 @@ html[data-app-mode="android-teacher-offline"] {
   display: none !important;
 }
 
-.teacher-page-actions-trigger {
-  display: none !important;
-}
-
 .teacher-page-fit-controls button,
 .teacher-page-toolbar-group button {
   min-width: 46px;
@@ -698,16 +674,6 @@ html[data-app-mode="android-teacher-offline"] {
   background: rgba(24, 54, 77, 0.82);
   color: #fff;
   pointer-events: none;
-}
-
-.teacher-offline-page-actions {
-  min-height: 54px;
-  max-height: 116px;
-  padding: 5px 8px;
-}
-
-.teacher-offline-page-actions button {
-  min-height: 44px;
 }
 
 .teacher-offline-presentation > header {
@@ -819,8 +785,7 @@ html[data-teacher-viewport="medium-landscape"] .teacher-offline-book-title h1 {
   font-size: 1.1rem;
 }
 
-html[data-teacher-viewport="medium-landscape"] .teacher-page-fit-controls button span,
-html[data-teacher-viewport="medium-landscape"] .teacher-page-actions-trigger span {
+html[data-teacher-viewport="medium-landscape"] .teacher-page-fit-controls button span {
   display: none;
 }
 
@@ -875,7 +840,6 @@ html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-title,
 html[data-teacher-viewport="compact-landscape"] .teacher-offline-icon-label span,
 html[data-teacher-viewport="compact-landscape"] .teacher-offline-view-tabs button span,
 html[data-teacher-viewport="compact-landscape"] .teacher-page-fit-controls button span,
-html[data-teacher-viewport="compact-landscape"] .teacher-page-actions-trigger span,
 html[data-teacher-viewport="compact-landscape"] .teacher-responsive-label {
   display: none;
 }
@@ -926,10 +890,6 @@ html[data-teacher-viewport="compact-landscape"] .teacher-page-list-trigger {
   display: inline-flex !important;
 }
 
-html[data-teacher-viewport="compact-landscape"] .teacher-page-actions-trigger {
-  display: inline-flex !important;
-}
-
 html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-reader > header {
   min-height: 48px;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -950,23 +910,6 @@ html[data-teacher-viewport="compact-landscape"] .teacher-page-toolbar-group butt
 
 html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-stage {
   padding: 3px;
-}
-
-html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-actions {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  left: 5px;
-  z-index: 7;
-  max-height: min(42vh, 140px);
-  border: 1px solid rgba(24, 54, 77, 0.18);
-  border-radius: 10px;
-  box-shadow: 0 10px 32px rgba(13, 26, 38, 0.25);
-  display: none;
-}
-
-html[data-teacher-viewport="compact-landscape"] .teacher-offline-page-actions.open {
-  display: flex;
 }
 
 html[data-teacher-viewport="compact-landscape"] .teacher-offline-presentation > header {
@@ -1155,7 +1098,6 @@ html[data-app-mode="android-teacher-offline"] #root,
 .teacher-offline-book-header button,
 .teacher-offline-view-tabs button,
 .teacher-offline-page-reader header button,
-.teacher-offline-page-actions button,
 .teacher-offline-pages aside button,
 .teacher-offline-media header button,
 .teacher-offline-presentation header button,
@@ -1266,7 +1208,6 @@ html[data-app-mode="android-teacher-offline"] #root,
   box-shadow: 0 2px 0 #47216a;
 }
 
-.teacher-offline-page-actions,
 .teacher-offline-presentation > nav {
   border-top: 3px solid #075f85;
   background: linear-gradient(180deg, #d8f4ff, #90c6dc);
@@ -1655,7 +1596,6 @@ html[data-teacher-viewport="compact-landscape"] .legacy-classroom-sound-toggle {
 
 .teacher-offline-page-reader > header { border-radius: 21px 21px 0 0; }
 .teacher-offline-page-stage { background: radial-gradient(circle at 50% 22%, rgba(80, 41, 135, 0.94), rgba(35, 24, 91, 0.98) 66%, #161346); }
-.teacher-offline-page-actions { border-radius: 0 0 21px 21px; }
 .teacher-unit-overview-trigger { min-width: 132px; }
 
 @media (min-width: 1800px) {

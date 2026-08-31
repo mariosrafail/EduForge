@@ -477,23 +477,6 @@ html[data-app-mode="android-teacher-offline"] :is(
 ) > .classroom-teaching-toolbar {
   grid-row: 4;
 }
-html[data-app-mode="android-teacher-offline"] .teacher-page-actions-trigger {
-  position: absolute;
-  z-index: 8;
-  top: 18px;
-  right: 18px;
-  width: 58px;
-  height: 58px;
-  min-height: 58px;
-  padding: 0;
-  display: grid !important;
-  place-items: center;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #e75fd3, #9d42c4 58%, #623099);
-  box-shadow: 0 0 0 2px #59277f, inset 0 4px 8px rgba(255, 255, 255, .26);
-  color: #fff;
-}
 html[data-app-mode="android-teacher-offline"] .teacher-offline-book.contents-active {
   grid-template-rows: minmax(0, 1fr) 66px var(--teacher-fixed-classroom-toolbar-height);
   gap: var(--teacher-presentation-grid-gap);

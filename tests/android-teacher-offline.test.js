@@ -538,6 +538,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(pages, /\$\{selectedBookId\}:activity:\$\{embeddedActivityId\}/);
   assert.match(pages, /activityActive \? \{\} : \{[\s\S]*onPointerDown/);
   assert.match(pages, /event\.target\.closest\?\.\("\.teacher-offline-page-hotspot"\)/);
+  assert.doesNotMatch(pages, /Page activities|teacher-page-actions-trigger|teacher-offline-page-actions|actionsOpen/);
   assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
   assert.equal((pages.match(/<ClassroomToolbar\b/g) || []).length, 1);
   assert.match(embedded, /TEACHER_PRESENTATION_OFFLINE/);

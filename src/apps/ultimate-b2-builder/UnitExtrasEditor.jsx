@@ -103,9 +103,10 @@ export function UnitExtrasEditor({ open, unit, onClose, returnFocusRef }) {
     next.pages.sort((left, right) => ultimateB2StudentsBookAuthoringPages.findIndex((page) => page.id === left.pageId) - ultimateB2StudentsBookAuthoringPages.findIndex((page) => page.id === right.pageId));
   });
 
-  return <BuilderModal open={open} title={`${unit?.title || `Unit ${unitNumber}`} Extras`} description="Manage Unit-owned Extras and choose which Pages expose them." busy={saving || Boolean(uploadingId)} onClose={onClose} returnFocusRef={returnFocusRef}>
+  return <BuilderModal className="builder-modal--unit-extras" open={open} title={`${unit?.title || `Unit ${unitNumber}`} Extras`} description="Manage Unit-owned Extras and choose which Pages expose them." busy={saving || Boolean(uploadingId)} onClose={onClose} returnFocusRef={returnFocusRef}>
     <div className="unit-extras-editor">
       <header><div><span>Unit Extras</span><h3><Video aria-hidden="true" /> Videos</h3><p>MP4 is required. SRT subtitles are optional.</p></div><button className="hosted-builder-action" type="button" onClick={addVideo} disabled={loading || Boolean(uploadingId)}><Plus aria-hidden="true" /> Add Video</button></header>
+      <div className="unit-extras-editor-scroll">
       {loading ? <p role="status">Loading Unit Extras…</p> : null}
       {!loading && !videos.length ? <p className="unit-extras-empty">No Extra Videos in this Unit.</p> : null}
       <div className="unit-extra-video-list">{videos.map((video, index) => <section key={video.id} className="unit-extra-video-card">
@@ -116,6 +117,7 @@ export function UnitExtrasEditor({ open, unit, onClose, returnFocusRef }) {
       </section>)}</div>
       <section className="unit-extra-page-visibility"><h3>Page visibility</h3><p>Show Extra Videos only on selected bare Pages.</p><div>{pages.map((page) => <label key={page.id}><input type="checkbox" checked={draft.pages.find((entry) => entry.pageId === page.id)?.extrasVisibility.videos || false} disabled={Boolean(uploadingId)} onChange={(event) => togglePage(page.id, event.target.checked)} /><span><strong>{page.sectionTitle}</strong><small>{page.pageNumbers}</small></span><em>Show Extra Videos</em></label>)}</div></section>
       {message ? <p className="builder-inline-status" role="status">{message}</p> : null}
+      </div>
       <footer><button type="button" disabled={saving || Boolean(uploadingId)} onClick={onClose}>Close</button><button className="hosted-builder-action" type="button" disabled={!dirty || saving || Boolean(uploadingId)} onClick={save}><Save aria-hidden="true" /> {saving ? "Saving…" : "Save Unit Extras"}</button></footer>
     </div>
   </BuilderModal>;

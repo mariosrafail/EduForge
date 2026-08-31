@@ -1,7 +1,5 @@
 import {
-  MonitorPlay,
   Move,
-  PlayCircle,
   Video,
   X,
 } from "lucide-react";
@@ -107,7 +105,6 @@ export default function TeacherOfflinePages({
   const fitMode = "fit-page";
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [actionsOpen, setActionsOpen] = useState(false);
   const [extraMenuOpen, setExtraMenuOpen] = useState(false);
   const [activeExtraVideo, setActiveExtraVideo] = useState(null);
   const extraMenuRef = useRef(null);
@@ -142,7 +139,6 @@ export default function TeacherOfflinePages({
     setNaturalSize({ width: 0, height: 0 });
     setZoom(1);
     setPan({ x: 0, y: 0 });
-    setActionsOpen(false);
     setExtraMenuOpen(false);
     setActiveExtraVideo(null);
     setActivityVideoOpen(false);
@@ -223,7 +219,6 @@ export default function TeacherOfflinePages({
   const openAction = (action) => {
     const activityId = activityIdForAction(page, action, getAuthoredActivityKey);
     if (activityId) {
-      setActionsOpen(false);
       onOpenActivity(activityId);
       return;
     }
@@ -501,29 +496,9 @@ export default function TeacherOfflinePages({
           </ClassroomStageTransform>
         </div>
 
-        {!activityActive && actions.length > 0 && (
-          <nav className={`teacher-offline-page-actions ${actionsOpen ? "open" : ""}`} aria-label="Page activities and media">
-            {actions.map((action) => (
-              <button key={action.id} type="button" onClick={() => openAction(action)}>
-                {action.classification === "activity" ? <MonitorPlay size={19} /> : <PlayCircle size={19} />}
-                {action.label}
-              </button>
-            ))}
-          </nav>
-        )}
-        {!activityActive && actions.length > 0 && (
-          <button
-            type="button"
-            className="teacher-page-actions-trigger"
-            aria-expanded={actionsOpen}
-            onClick={() => setActionsOpen((open) => !open)}
-            title="Page activities"
-            aria-label="Page activities"
-          ><MonitorPlay size={26} /></button>
-        )}
         {!activityActive && pageExtraVideos.length ? <div className="teacher-unit-extra-videos">
           {extraMenuOpen ? <div ref={extraMenuRef} className="teacher-unit-extra-menu" role="menu" aria-label="Extra Videos"><strong>Extra Videos</strong>{pageExtraVideos.map((entry) => <button key={entry.id} type="button" role="menuitem" onClick={() => { document.querySelectorAll("audio,video").forEach((media) => media.pause()); setExtraMenuOpen(false); setActiveExtraVideo(entry); }}>{entry.title}</button>)}</div> : null}
-          <button ref={extraLauncherRef} type="button" className="teacher-unit-extra-launcher" aria-haspopup="menu" aria-expanded={extraMenuOpen} onClick={() => { setActionsOpen(false); setExtraMenuOpen((current) => !current); }}><Video aria-hidden="true" /> Extra Videos</button>
+          <button ref={extraLauncherRef} type="button" className="teacher-unit-extra-launcher" aria-haspopup="menu" aria-expanded={extraMenuOpen} onClick={() => setExtraMenuOpen((current) => !current)}><Video aria-hidden="true" /> Extra Videos</button>
         </div> : null}
         {activeExtraVideo ? <div className="teacher-unit-extra-overlay" role="dialog" aria-modal="true" aria-labelledby="teacher-unit-extra-title" onPointerDown={(event) => { if (event.target === event.currentTarget) { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); } }}><section><header><div><span>Extra Videos</span><h2 id="teacher-unit-extra-title">{activeExtraVideo.title}</h2></div><button ref={extraCloseRef} type="button" aria-label="Close Extra Video" onClick={() => { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); }}><X /></button></header><div><NativeVideoPlayer video={activeExtraVideo.video} src={publishedUnitExtraVideoUrl(publication, activeExtraVideo.video.asset)} autoPlayAttemptKey={activeExtraVideo.id} ariaLabel={`${activeExtraVideo.title} Extra Video player`} /></div></section></div> : null}
       </div>

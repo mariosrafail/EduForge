@@ -188,6 +188,9 @@ test("Listening renders imported markup in one stable full stage without an HTML
   assert.match(player, /Stop Listening audio/);
   assert.match(player, /Mute Listening audio/);
   assert.match(css, /native-listening-player-anchor \{ position: absolute; z-index: 120; right: 24px; bottom: 18px/);
+  assert.match(css, /native-listening-transcript p\.is-active \{ background: rgb\(250 204 21 \/ 28%\); \}/);
+  assert.doesNotMatch(css, /native-listening-transcript p\.is-active[^}]*box-shadow|native-listening-transcript p\.is-active[^}]*font-weight|native-listening-transcript p\.is-active[^}]*outline|native-listening-transcript p\.is-active[^}]*border/);
+  assert.match(css, /native-listening-transcript p\.is-reference[^}]*outline/);
   assert.match(source, /native-listening-activity-stage/);
   assert.match(css, /native-listening-activity-stage[^}]*100cqw[^}]*100cqh/);
   assert.match(css, /native-listening-transcript-stage[^}]*width: 100%; height: 100%/);
