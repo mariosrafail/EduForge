@@ -202,9 +202,10 @@ test("Complete the Sentences compiles through v2 with public/Teacher separation 
 });
 
 test("shared runtime/editor render synchronized geometry, safe typography, Student inputs, and boxless Teacher reveal", async () => {
-  const [surface, editor, canvas, css] = await Promise.all([
+  const [surface, editor, fontControls, canvas, css] = await Promise.all([
     readFile(new URL("../src/components/native-complete-sentences/NativeCompleteSentencesSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeCompleteSentencesEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeCompleteSentencesFontControls.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-complete-sentences/nativeCompleteSentences.css", import.meta.url), "utf8"),
   ]);
@@ -212,7 +213,7 @@ test("shared runtime/editor render synchronized geometry, safe typography, Stude
   assert.match(surface, /native-complete-sentences-teacher-target/); assert.match(surface, /onTeacherReveal\(hotspot\.itemId\)/);
   assert.doesNotMatch(surface, /data-(?:answer|correct)/i);
   assert.match(surface, /--native-complete-answer-font-size/); assert.match(surface, /--native-complete-answer-color/); assert.match(surface, /<input\s+type="text"/);
-  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /Upload TTF/); assert.match(editor, /Answer font size/); assert.match(editor, /Answer text color/); assert.match(editor, /Lock hotspot position/);
+  assert.match(editor, /NativeReadableTextEditor/); assert.match(editor, /uploadNativeActivityAsset/); assert.match(editor, /Full sentence with one marked answer/); assert.doesNotMatch(editor, /Private correct word or phrase/); assert.match(editor, /<StageGeometryControls/); assert.match(fontControls, /Upload TTF/); assert.match(editor, /Answer font size/); assert.match(editor, /Answer text color/); assert.match(editor, /Lock hotspot position/);
   assert.match(canvas, /locked=\{locked\}/); assert.match(canvas, /onChange/);
   assert.match(css, /teacher-target[\s\S]*\{[^}]*background:\s*transparent[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*box-shadow:\s*none/s);
   assert.match(css, /teacher-answer[^}]*align-items:\s*flex-end[^}]*white-space:\s*nowrap/s);

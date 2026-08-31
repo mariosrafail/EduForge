@@ -10,7 +10,8 @@ import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUn
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadBuilderFont, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
@@ -46,7 +47,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [drawItemId, setDrawItemId] = useState("");
   const [drawing, setDrawing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadingFont, setUploadingFont] = useState(false);
   const [fonts, setFonts] = useState([]);
   const [zoom, setZoom] = useState(1);
   const [readableIncomplete, setReadableIncomplete] = useState(false);
@@ -255,21 +255,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       if (previousSlot && previousSlot !== hotspot.presentation.fontAssetSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
     });
   };
-  const uploadFont = async (file) => {
-    if (!file) return;
-    setUploadingFont(true);
-    setState((current) => ({ ...current, message: "Uploading TrueType font…" }));
-    try {
-      const value = await uploadBuilderFont({ bookSlug, componentSlug, file });
-      setFonts((current) => [...current.filter((font) => font.assetId !== value.font.assetId), value.font]);
-      setHotspotFont(value.font);
-      setState((current) => ({ ...current, message: value.idempotent ? "Existing component font selected." : "Font uploaded to this component's library and selected." }));
-    } catch (error) {
-      setState((current) => ({ ...current, message: error.message || "Font upload failed." }));
-    } finally {
-      setUploadingFont(false);
-    }
-  };
+  const recordUploadedFont = (font) => setFonts((current) => [...current.filter((entry) => entry.assetId !== font.assetId), font]);
   const createHotspot = (area) => {
     if (!drawItemId || !selectedPanel || panels.some((panel) => panel.hotspots.some((hotspot) => hotspot.itemId === drawItemId))) return;
     const hotspot = {
@@ -569,17 +555,15 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                           })
                         }
                       />
-                      <StudioField label="Answer font">
-                        <select value={selectedHotspot.presentation.fontAssetSlot || ""} onChange={(event) => setHotspotFont(fonts.find((font) => font.slot === event.target.value) || null)}>
-                          <option value="">Default application font</option>
-                          {fonts.map((font) => <option key={font.assetId} value={font.slot}>{font.displayLabel}</option>)}
-                        </select>
-                      </StudioField>
-                      <label className="studio-upload-action">
-                        <Upload aria-hidden="true" />
-                        <span><strong>{uploadingFont ? "Uploading…" : "Upload TTF"}</strong><small>Reusable TrueType font, component-scoped</small></span>
-                        <input type="file" accept=".ttf,font/ttf" disabled={uploadingFont} onChange={(event) => { uploadFont(event.target.files?.[0]); event.target.value = ""; }} />
-                      </label>
+                      <NativeCompleteSentencesFontControls
+                        bookSlug={bookSlug}
+                        componentSlug={componentSlug}
+                        fonts={fonts}
+                        selectedSlot={selectedHotspot.presentation.fontAssetSlot}
+                        onSelect={setHotspotFont}
+                        onUploaded={recordUploadedFont}
+                        onMessage={(message) => setState((current) => ({ ...current, message }))}
+                      />
                       <StudioField label="Answer text color" className="studio-quick-field">
                         <input
                           aria-label="Answer text color"
